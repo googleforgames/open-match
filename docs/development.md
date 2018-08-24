@@ -65,12 +65,27 @@ kubectl apply -f metrics_services.json
 ```
 kubectl create clusterrolebinding projectowner-cluster-admin-binding --clusterrole=cluster-admin --user=<GCP_ACCOUNT>
 ```
-* [optional, beta] If using Prometheus as your metrics gathering backend, configure the [Prometheus Kubernetes Operator](https://github.com/coreos/prometheus-operator):
+* [optional, uses beta software] If using Prometheus as your metrics gathering backend, configure the [Prometheus Kubernetes Operator](https://github.com/coreos/prometheus-operator):
 
 ```
-kubectl apply -f promoper.json
+kubectl apply -f prometheus_operator.json
 kubectl apply -f prometheus.json
 kubectl apply -f prometheus_service.json
 kubectl apply -f metrics_servicemonitors.json
 ```
 You should now be able to see the core component pods running using a `kubectl get pods`, and the core component metrics in the Prometheus Web UI by running `kubectl proxy <PROMETHEUS_POD_NAME> 9090:9090` in your local shell, then opening http://localhost:9090/targets in your browser to see which services Prometheus is collecting from.
+
+### End-to-End testing
+
+**Note** The programs provided below are just bare-bones manual testing programs with no automation and no claim of code coverage. This sparseness of this part of the documentation is because we expect to discard all of these tools and write a fully automated end-to-end test suite and a collection of load testing tools, with extensive stats output and tracing capabilities before 1.0 release. Tracing has to be integrated first, which will be in an upcoming release.
+
+In the end: *caveat emptor*. These tools all work and are quite small, and as such are fairly easy for developers to understand by looking at the code directly. They are provided as-is just as a reference point of how to begin experimenting with Open Match integrations.
+
+* `examples/frontendclient` is a fake client for the Frontend API.  It pretends to be a real game client connecting to Open Match and requests a game, then dumps out the connection string it receives.  Note, if you're using the backend client below, it won't actually make a match until it sees enough compatible  players in the pool, so it's easiest to run this alongside the client load simulator.
+* `examples/backendclient` is a fake client for the Backend API.  It pretends to be a dedicated game server backend connecting to openmatch and sending in a match profile to fill.  Once it receives a match object with a roster, it will also issue a call to assign the player IDs, and gives an example connection string.  If it never seems to get a match, make sure you're adding players to the pool using the other two tools.
+* `test/cmd/client` is a (VERY) basic client load simulation tool.  It does **not** test the Frontend API - in fact, it ignores it and writes players directly to state storage on its own.  It doesn't do anything but loop endlessly, writing players into state storage so you can test your backend integration, and run your custom MMFs and Evaluators (which are only triggered when there are players in the pool).
+
+### Resources
+
+* [Prometheus Operator spec](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md)
+
