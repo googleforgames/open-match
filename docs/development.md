@@ -28,7 +28,7 @@ Currently, each component reads a local config file `matchmaker_config.json` , a
 
 We plan to replace this with a Kubernetes-managed config with dynamic reloading when development time allows.  Pull requests are welcome!
 
-## Development and contribution
+## Running Open Match in a development environment 
 
 The rest of this guide assumes you have a cluster (example is using GKE, but works on any cluster with a little tweaking), and kubectl configured to administer that cluster, and you've built all the Docker container images described by `Dockerfiles` in the repository root directory and given them the docker tag 'dev'.  It assumes you are in the `<REPO_ROOT>/deployments/k8s/` directory.
 
