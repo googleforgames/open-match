@@ -1,0 +1,110 @@
+/*
+Package config contains convenience functions for reading and managing viper configs.
+
+Copyright 2018 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+package config
+
+import (
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+	"go.opencensus.io/stats"
+	"go.opencensus.io/stats/view"
+)
+
+var (
+	// Logrus structured logging setup
+	logFields = log.Fields{
+		"app":       "openmatch",
+		"component": "config",
+		"caller":    "config/main.go",
+	}
+	cfgLog = log.WithFields(logFields)
+
+	// Map of the config file keys to environment variable names populated by
+	// k8s into pods. Examples of redis-related env vars as written by k8s
+	// REDIS_SENTINEL_PORT_6379_TCP=tcp://10.55.253.195:6379
+	// REDIS_SENTINEL_PORT=tcp://10.55.253.195:6379
+	// REDIS_SENTINEL_PORT_6379_TCP_ADDR=10.55.253.195
+	// REDIS_SENTINEL_SERVICE_PORT=6379
+	// REDIS_SENTINEL_PORT_6379_TCP_PORT=6379
+	// REDIS_SENTINEL_PORT_6379_TCP_PROTO=tcp
+	// REDIS_SENTINEL_SERVICE_HOST=10.55.253.195
+	envMappings = map[string]string{
+		"redis.hostname": "REDIS_SENTINEL_SERVICE_HOST",
+		"redis.port":     "REDIS_SENTINEL_SERVICE_PORT",
+		"debug":          "DEBUG",
+	}
+
+	// Viper config management setup
+	cfg = viper.New()
+
+	// OpenCensus
+	cfgVarCount = stats.Int64("config/vars_total", "Number of config vars read during initialization", "1")
+	// CfgVarCountView is the Open Census view for the cfgVarCount measure.
+	CfgVarCountView = &view.View{
+		Name:        "config/vars_total",
+		Measure:     cfgVarCount,
+		Description: "The number of config vars read during initialization",
+		Aggregation: view.Count(),
+	}
+)
+
+// Read reads a config file into a viper.Viper instance and associates environment vars defined in
+// config.envMappings
+func Read() (*viper.Viper, error) {
+
+	// Viper config management initialization
+	cfg.SetConfigType("json")
+	cfg.SetConfigName("matchmaker_config")
+	cfg.AddConfigPath(".")
+
+	// Read in config file using Viper
+	err := cfg.ReadInConfig()
+	if err != nil {
+		cfgLog.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Fatal("Fatal error reading config file")
+	}
+
+	// Bind this envvars to viper config vars.
+	// https://github.com/spf13/viper#working-with-environment-variables
+	// One important thing to recognize when working with ENV variables is
+	// that the value will be read each time it is accessed. Viper does not
+	// fix the value when the BindEnv is called.
+	for cfgKey, envVar := range envMappings {
+		err = cfg.BindEnv(cfgKey, envVar)
+
+		if err != nil {
+			cfgLog.WithFields(log.Fields{
+				"configkey": cfgKey,
+				"envvar":    envVar,
+				"error":     err.Error(),
+				"module":    "config",
+			}).Warn("Unable to bind environment var as a config variable")
+
+		} else {
+			cfgLog.WithFields(log.Fields{
+				"configkey": cfgKey,
+				"envvar":    envVar,
+				"module":    "config",
+			}).Info("Binding environment var as a config variable")
+
+		}
+
+	}
+
+	return cfg, err
+}

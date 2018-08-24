@@ -1,0 +1,38 @@
+{
+  "apiVersion": "extensions/v1beta1",
+  "kind": "Deployment",
+  "metadata": {
+    "name": "redis-master"
+  },
+  "spec": {
+    "selector": {
+      "matchLabels": {
+        "app": "mm",
+        "tier": "storage"
+      }
+    },
+    "replicas": 1,
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "mm",
+          "tier": "storage"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "redis-master",
+            "image": "redis:4.0.11",
+            "ports": [
+              {
+                "name": "redis",
+                "containerPort": 6379 
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

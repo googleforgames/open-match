@@ -1,0 +1,9 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+            'build', 
+            '--tag=gcr.io/$PROJECT_ID/openmatch-mmf:dev', 
+            '-f', 'Dockerfile.mmf', 
+            '.'
+        ]
+images: ['gcr.io/$PROJECT_ID/openmatch-mmf:dev']

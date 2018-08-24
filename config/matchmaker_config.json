@@ -1,0 +1,44 @@
+{
+    "debug": true, 
+    "api": {
+        "backend": {
+            "port": 50505
+        },
+        "frontend": {
+            "port": 50504
+        }
+    },
+    "metrics": {
+        "port": 9555,
+        "endpoint": "/metrics",
+        "reportingPeriod": 5
+    },
+    "queues": {
+        "profiles": {
+            "name": "profileq",
+            "pullCount": 100
+        },
+        "proposals": {
+            "name": "proposalq"
+        }
+    },
+    "defaultImages": {
+        "evaluator": {
+            "name": "gcr.io/matchmaker-dev-201405/openmatch-evaluator",
+            "tag": "dev"
+        },
+        "mmf": {
+            "name": "gcr.io/matchmaker-dev-201405/openmatch-mmf",
+            "tag": "dev"
+        }
+    },
+    "jsonkeys": {
+        "mmfImages": "imagename", 
+        "roster": "profile.roster", 
+        "connstring": "connstring"
+    },
+    "interval": {
+        "evaluator": 10,
+        "resultsTimeout": 30
+    }
+}

@@ -1,0 +1,20 @@
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "redis-sentinel"
+  },
+  "spec": {
+    "selector": {
+      "app": "mm",
+      "tier": "storage"
+    },
+    "ports": [
+      {
+        "protocol": "TCP",
+        "port": 6379,
+        "targetPort": "redis"
+      }
+    ]
+  }
+}

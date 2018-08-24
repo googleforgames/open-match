@@ -1,0 +1,14 @@
+# Golang application builder steps
+FROM golang:1.10.3 as builder
+WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match
+COPY cmd/frontendapi cmd/frontendapi
+COPY api/protobuf-spec/frontend.pb.go cmd/frontendapi/proto/
+COPY config config
+COPY internal internal
+WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/cmd/frontendapi
+RUN go get -d -v
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
+
+#FROM scratch
+#COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/cmd/frontendapi/frontendapi . 
+ENTRYPOINT ["./frontendapi"]

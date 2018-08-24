@@ -1,0 +1,53 @@
+{
+   "apiVersion":"extensions/v1beta1",
+   "kind":"Deployment",
+   "metadata":{
+      "name":"om-backendapi",
+      "labels":{
+         "app":"openmatch",
+         "component": "backend"
+      }
+   },
+   "spec":{
+      "replicas":1,
+      "selector":{
+         "matchLabels":{
+            "app":"openmatch",
+            "component": "backend"
+         }
+      },
+      "template":{
+         "metadata":{
+            "labels":{
+               "app":"openmatch",
+                "component": "backend"
+            }
+         },
+         "spec":{
+            "containers":[
+               {
+                  "name":"om-backend",
+                  "image":"gcr.io/matchmaker-dev-201405/openmatch-backendapi:dev",
+                  "imagePullPolicy":"Always",
+                  "ports": [
+                    {
+                      "name": "grpc",
+                      "containerPort": 50505
+                    },
+                    {
+                      "name": "metrics",
+                      "containerPort": 9555
+                    }
+                  ],
+                  "resources":{
+                     "requests":{
+                        "memory":"100Mi",
+                        "cpu":"100m"
+                     }
+                  }
+               }
+            ]
+         }
+      }
+   }
+}

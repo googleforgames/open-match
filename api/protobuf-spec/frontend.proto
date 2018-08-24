@@ -1,0 +1,59 @@
+// Copyright 2018 Google LLC
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     https://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------- 
+// Follow the guidelines at https://cloud.google.com/endpoints/docs/grpc/transcoding
+// to keep the gRPC service definitions friendly to REST transcoding. An excerpt:
+//
+// "Transcoding involves mapping HTTP/JSON requests and their parameters to gRPC
+// methods and their parameters and return types (we'll look at exactly how you
+// do this in the following sections). Because of this, while it's possible to
+// map an HTTP/JSON request to any arbitrary API method, it's simplest and most
+// intuitive to do so if the gRPC API itself is structured in a
+// resource-oriented way, just like a traditional HTTP REST API. In other
+// words, the API service should be designed so that it uses a small number of
+// standard methods (corresponding to HTTP verbs like GET, PUT, and so on) that
+// operate on the service's resources (and collections of resources, which are
+// themselves a type of resource). 
+// These standard methods are List, Get, Create, Update, and Delete."
+//
+syntax = 'proto3';
+
+service API {
+    rpc CreateRequest(Group) returns (Result) {}
+    rpc DeleteRequest(Group) returns (Result) {}
+    rpc GetAssignment(PlayerId) returns (ConnectionInfo) {}
+    rpc DeleteAssignment(PlayerId) returns (Result) {}
+}
+
+// Data structure for a group of players  to pass to the matchmaking function.
+// Obviously, the group can be a group of one!
+message Group{
+  string id = 1;            // By convention, string of space-delimited playerIDs 
+  string properties = 2;    // By convention, a JSON-encoded string
+}
+
+message PlayerId {
+    string id = 1;          // By convention, a UUID
+}
+
+// Simple message used to pass the connection string for the DGS to the player. 
+message ConnectionInfo{
+    string connection_string = 1;   // Passed by the matchmaker to game clients without modification. 
+}
+
+// Simple message to return success/failure and error status.
+message Result{
+    bool success = 1;
+    string error = 2;
+}

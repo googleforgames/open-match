@@ -1,0 +1,53 @@
+{
+   "apiVersion":"extensions/v1beta1",
+   "kind":"Deployment",
+   "metadata":{
+      "name":"om-frontendapi",
+      "labels":{
+         "app":"openmatch",
+         "component": "frontend"
+      }
+   },
+   "spec":{
+      "replicas":1,
+      "selector":{
+         "matchLabels":{
+            "app":"openmatch",
+            "component": "frontend"
+         }
+      },
+      "template":{
+         "metadata":{
+            "labels":{
+               "app":"openmatch",
+                "component": "frontend"
+            }
+         },
+         "spec":{
+            "containers":[
+               {
+                  "name":"om-frontendapi",
+                  "image":"gcr.io/matchmaker-dev-201405/openmatch-frontendapi:dev",
+                  "imagePullPolicy":"Always",
+                  "ports": [
+                    {
+                      "name": "grpc",
+                      "containerPort": 50504
+                    },
+                    {
+                      "name": "metrics",
+                      "containerPort": 9555 
+                    }
+                  ],
+                  "resources":{
+                     "requests":{
+                        "memory":"100Mi",
+                        "cpu":"100m"
+                     }
+                  }
+               }
+            ]
+         }
+      }
+   }
+}

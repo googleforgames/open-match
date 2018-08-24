@@ -1,0 +1,8 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+            'build', 
+            '--tag=gcr.io/$PROJECT_ID/openmatch-frontendclient:dev', 
+            '.'
+        ]
+images: ['gcr.io/$PROJECT_ID/openmatch-frontendclient:dev']

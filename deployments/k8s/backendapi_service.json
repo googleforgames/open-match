@@ -1,0 +1,20 @@
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "om-backendapi"
+  },
+  "spec": {
+    "selector": {
+      "app": "openmatch",
+      "component": "backend"
+    },
+    "ports": [
+      {
+        "protocol": "TCP",
+        "port": 50505,
+        "targetPort": "grpc"
+      }
+    ]
+  }
+}

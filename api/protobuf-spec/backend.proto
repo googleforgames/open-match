@@ -1,0 +1,76 @@
+// Follow the guidelines at https://cloud.google.com/endpoints/docs/grpc/transcoding
+// to keep the gRPC service definitions friendly to REST transcoding. An excerpt:
+//
+// "Transcoding involves mapping HTTP/JSON requests and their parameters to gRPC
+// methods and their parameters and return types (we'll look at exactly how you
+// do this in the following sections). Because of this, while it's possible to
+// map an HTTP/JSON request to any arbitrary API method, it's simplest and most
+// intuitive to do so if the gRPC API itself is structured in a
+// resource-oriented way, just like a traditional HTTP REST API. In other
+// words, the API service should be designed so that it uses a small number of
+// standard methods (corresponding to HTTP verbs like GET, PUT, and so on) that
+// operate on the service's resources (and collections of resources, which are
+// themselves a type of resource). 
+// These standard methods are List, Get, Create, Update, and Delete."
+//
+syntax = 'proto3';
+
+service API {
+  // Calls to ask the matchmaker to run a matchmaking function.
+  //
+  // Run MMF once.  Return a matchobject that fits this profile.
+  rpc CreateMatch(Profile) returns (MatchObject) {} 
+  // Continually run MMF and stream matchobjects that fit this profile until
+  // client closes the connection.
+  rpc ListMatches(Profile) returns (stream MatchObject) {}
+
+  // Delete a matchobject from state storage manually. (Matchobjects in state
+  // storage will also automatically expire after a while)
+  rpc DeleteMatch(MatchObject) returns (Result) {}
+
+  // Call that manage communication of  DGS connection info to players. 
+  //
+  // Write the DGS connection info for the list of players in the
+  // Assignments.roster to state storage, so that info can be read by the game
+  // client(s).
+  // TODO: change this to be agnostic; return a 'result' instead of a connection
+  // string so it can be integrated with session service etc
+  rpc CreateAssignments(Assignments) returns (Result) {}
+  // Remove DGS connection info for the list of players in the Roster from
+  // state storage.
+  rpc DeleteAssignments(Roster) returns (Result) {}
+}
+
+// Data structure for a profile to pass to the matchmaking function.
+message Profile{
+  string id = 1;            // By convention, the CRC32 of the properties string.
+  string properties = 2;    // By convention, a JSON-encoded string
+}
+
+// Data structure for all the properties of a match. 
+message MatchObject{
+  string id = 1;            // By convention, a UUID
+  string properties = 2;    // By convention, a JSON-encoded string
+  Roster roster = 3;        // NYI
+}
+
+// Simple message to return success/failure and error status.
+message Result{
+    bool success = 1;
+    string error = 2;
+}
+
+// Data structure to hold a list of players in a match.
+message Roster{
+    string player_ids = 1;  // By convention, a space-delimited list of player IDs
+}
+
+// Simple message used to pass the connection string for the DGS to the player. 
+message ConnectionInfo{
+    string connection_string = 1;   // Passed by the matchmaker to game clients without modification. 
+}
+
+message Assignments{
+    Roster roster = 1;
+    ConnectionInfo connection_info = 2;
+}

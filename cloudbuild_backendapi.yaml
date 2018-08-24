@@ -1,0 +1,9 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+            'build', 
+            '--tag=gcr.io/$PROJECT_ID/openmatch-backendapi:dev',
+            '-f', 'Dockerfile.backendapi', 
+            '.'
+        ]
+images: ['gcr.io/$PROJECT_ID/openmatch-backendapi:dev']

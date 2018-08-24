@@ -1,0 +1,78 @@
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "om-frontend-metrics",
+    "labels": {
+      "app": "openmatch",
+      "component": "frontend",
+      "agent": "opencensus",
+      "destination": "prometheus"
+    }
+  },
+  "spec": {
+    "selector": {
+      "app": "openmatch",
+      "component": "frontend"
+    },
+    "ports": [
+      {
+        "name": "metrics",
+        "targetPort": 9555,
+        "port": 19555
+      }
+    ]
+  }
+}
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "om-backend-metrics",
+    "labels": {
+      "app": "openmatch",
+      "component": "backend",
+      "agent": "opencensus",
+      "destination": "prometheus"
+    }
+  },
+  "spec": {
+    "selector": {
+      "app": "openmatch",
+      "component": "backend"
+    },
+    "ports": [
+      {
+        "name": "metrics",
+        "targetPort": 9555,
+        "port": 29555
+      }
+    ]
+  }
+}
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "om-mmforc-metrics",
+    "labels": {
+      "app": "openmatch",
+      "component": "mmforc",
+      "agent": "opencensus",
+      "destination": "prometheus"
+    }
+  },
+  "spec": {
+    "selector": {
+      "app": "openmatch",
+      "component": "mmforc"
+    },
+    "ports": [
+      {
+        "name": "metrics",
+        "targetPort": 9555,
+        "port": 39555
+      }
+    ]
+  }
+}
