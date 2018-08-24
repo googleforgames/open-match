@@ -30,9 +30,9 @@ Open Match is designed to support massively concurrent matchmaking, and to be sc
 * **Assignment** - refers to assigning a player or group of players to a dedicated game server instance. Open Match offers a path to send dedicated game server connection details from your backend to your game clients after a match has been made.
 
 ## Requirements
-* Kubernetes cluster.  Tested with version 1.9 and 1.10.
-* Redis 4+.  Tested with 4.0.10.
-* Open Match is compiled against the latest release of Golang.  Tested with 1.10.
+* Kubernetes cluster.  Tested with version 1.9
+* Redis 4+.  Tested with 4.0.11
+* Open Match is compiled against the latest release of Golang.  Tested with 1.10.3
 
 ## Components
 
@@ -53,7 +53,7 @@ It also explicitly depends on these two **customizable** components.
 
 The job of the Frontend API is to accept the player data and put it in state storage so your Matchmaking Function (MMF) can access it.
 
-The Frontend API is a server application that implements the gRPC service defined in `frontendapi/proto/frontend.proto`.  At the most basic level, it expects clients to connect and send:
+The Frontend API is a server application that implements the gRPC service defined in `api/protobuf-spec/frontend.proto`.  At the most basic level, it expects clients to connect and send:
 * a **unique ID** of the group of players (the group can contain any number of players, including only one)
 * a **json blob** containing all player-related data you want to use in your matchmaking function.
 
@@ -63,7 +63,7 @@ The client is expected to maintain a connection, waiting for an update from the 
 
 The job of the Backend API is to put match profiles in state storage that your Matchmaking Function (MMF) can access and use to decide which players should be put into a match together, then return those matches to dedicated game server instances.`
 
-The Backend API is a server application that implements the gRPC service defined in `backendapi/proto/backend.proto`.  At the most basic level, it expects to be connected to your online infrastructure (probably to your server scaling manager or scheduler, or even directly to a dedicated game server), and to receive:
+The Backend API is a server application that implements the gRPC service defined in `api/protobuf-spec/backend.proto`.  At the most basic level, it expects to be connected to your online infrastructure (probably to your server scaling manager or scheduler, or even directly to a dedicated game server), and to receive:
 * a **unique ID** of a matchmaking profile.
 * a **json blob** containing all the match-related data you want to use in your matchmaking function, in an 'empty' match object.
 
@@ -138,7 +138,7 @@ Once we reach a 1.0 release, we plan to produce publicly available (Linux) Docke
 
 All components of Open Match produce (Linux) Docker container images as artifacts, and there are included `Dockerfile`s for each. [Google Cloud Platform Cloud Build](https://cloud.google.com/cloud-build/docs/) users will also find `cloudbuild_COMPONENT.yaml` files for each component in the repository root.
 
-As all the core components for Open Match are written in Golang, and use the [Dockerfile multistage builder pattern](https://docs.docker.com/develop/develop-images/multistage-build/). This pattern uses intermediate Docker containers as Golang and protobuf compilation environments while producing lightweight, minimized container images as final build artifacts. When in active development, it is recommended that you modify the `Dockerfile`s to remove the last build stage. Although this pattern is great for production container images, it removes most of the utilities required to troubleshoot issues during development.
+As all the core components for Open Match are written in Golang, and use the [Dockerfile multistage builder pattern](https://docs.docker.com/develop/develop-images/multistage-build/). This pattern uses intermediate Docker containers as a Golang build environment while producing lightweight, minimized container images as final build artifacts. When the project is ready for production, we will modify the `Dockerfile`s to uncomment the last build stage. Although this pattern is great for production container images, it removes most of the utilities required to troubleshoot issues during development.
 
 ## Configuration
 
