@@ -4,6 +4,8 @@ All components of Open Match produce (Linux) Docker container images as artifact
 
 Note: Although Google Cloud Platform includes some free usage, you may incur charges following this guide if you use GCP products.
 
+**This project has not completed a first-line security audit, and there are definitely going to be some service accounts that are too permissive.  This should be fine for testing/development in a local environment, but absolutely should not be used as-is in a production environment.**
+
 ## Example of building using Google Cloud Builder
 
 The [Quickstart for Docker](https://cloud.google.com/cloud-build/docs/quickstart-docker) guide explains how to set up a project, enable billing, enable Cloud Build, and install the Cloud SDK if you haven't do these things before. Once you get to 'Preparing source files' you are ready to continue with the steps below.
@@ -11,7 +13,7 @@ The [Quickstart for Docker](https://cloud.google.com/cloud-build/docs/quickstart
 * Clone this repo to a local machine or Google Cloud Shell session, and cd into it.
 * Run the following one-line bash script to compile all the images for the first time, and push them to your gcr.io registry. You must enable the [Container Registry API](https://console.cloud.google.com/flows/enableapi?apiid=containerregistry.googleapis.com) first.
 ```
-for dfile in $(ls Dockerfile.*); do gcloud builds submit --substitutions TAG_NAME=dev --config cloudbuild_${dfile##*.}.yaml; done
+for dfile in $(ls Dockerfile.*); do gcloud builds submit --config cloudbuild_${dfile##*.}.yaml; done
 ```
 
 ## Example of starting a GKE cluster
@@ -31,8 +33,6 @@ We plan to replace this with a Kubernetes-managed config with dynamic reloading 
 ## Running Open Match in a development environment 
 
 The rest of this guide assumes you have a cluster (example is using GKE, but works on any cluster with a little tweaking), and kubectl configured to administer that cluster, and you've built all the Docker container images described by `Dockerfiles` in the repository root directory and given them the docker tag 'dev'.  It assumes you are in the `<REPO_ROOT>/deployments/k8s/` directory.
-
-
 
 **NOTE** Kubernetes resources that use container images will need to be updated with **your container registry URI**. Here's an example command in Linux to do this (just replace YOUR_REGISTRY_URI with the appropriate location in your environment):
 ```
@@ -56,6 +56,7 @@ kubectl apply -f backendapi_service.json
 kubectl apply -f frontendapi_deployment.json
 kubectl apply -f frontendapi_service.json
 kubectl apply -f mmforc_deployment.json
+kubectl apply -f mmforc_serviceaccount.json
 ```
 * [optional, but recommended] Configure the OpenCensus metrics services:
 ```
@@ -79,9 +80,9 @@ You should now be able to see the core component pods running using a `kubectl g
 
 **Note** The programs provided below are just bare-bones manual testing programs with no automation and no claim of code coverage. This sparseness of this part of the documentation is because we expect to discard all of these tools and write a fully automated end-to-end test suite and a collection of load testing tools, with extensive stats output and tracing capabilities before 1.0 release. Tracing has to be integrated first, which will be in an upcoming release.
 
-In the end: *caveat emptor*. These tools all work and are quite small, and as such are fairly easy for developers to understand by looking at the code directly. They are provided as-is just as a reference point of how to begin experimenting with Open Match integrations.
+In the end: *caveat emptor*. These tools all work and are quite small, and as such are fairly easy for developers to understand by looking at the code and logging output. They are provided as-is just as a reference point of how to begin experimenting with Open Match integrations.
 
-* `examples/frontendclient` is a fake client for the Frontend API.  It pretends to be a real game client connecting to Open Match and requests a game, then dumps out the connection string it receives.  Note, if you're using the backend client below, it won't actually make a match until it sees enough compatible  players in the pool, so it's easiest to run this alongside the client load simulator.
+* `examples/frontendclient` is a fake client for the Frontend API.  It pretends to be a real game client connecting to Open Match and requests a game, then dumps out the connection string it receives.  Note that it doesn't actually test the return path by looking for arbitrary results from your matchmaking function; it pauses and tells you the name of a key to set a connection string in directly using a redis-cli client.
 * `examples/backendclient` is a fake client for the Backend API.  It pretends to be a dedicated game server backend connecting to openmatch and sending in a match profile to fill.  Once it receives a match object with a roster, it will also issue a call to assign the player IDs, and gives an example connection string.  If it never seems to get a match, make sure you're adding players to the pool using the other two tools.
 * `test/cmd/client` is a (VERY) basic client load simulation tool.  It does **not** test the Frontend API - in fact, it ignores it and writes players directly to state storage on its own.  It doesn't do anything but loop endlessly, writing players into state storage so you can test your backend integration, and run your custom MMFs and Evaluators (which are only triggered when there are players in the pool).
 

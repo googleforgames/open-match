@@ -195,6 +195,7 @@ Apache 2.0
 * Autoscaling isn't turned on for the Frontend or Backend API Kubernetes deployments by default.
 * Match profiles should be able to define multiple MMF container images to run, but this is not currently supported. This enables A/B testing and several other scenarios.
 * Out-of-the-box, the Redis deployment should be a HA configuration using Redis seninel.
+* Redis watch should be unified to watch a hash and stream updates.  The code for this is written and valdidated but not committed yet. We don't want to support two redis watcher code paths, so the backend watch of the match object should be switched to unify the way the frontend and backend watch keys.  Unfortunately this change touches the whole chain of components that touch backend match objects (mmf, evaluator, backendapi) and so needs additional work and testing before it is integrated.
 
 # Planned improvements
 
@@ -207,5 +208,7 @@ Apache 2.0
 * [OpenCensus tracing](https://opencensus.io/core-concepts/tracing/) will be implemented in an upcoming version.
 * Read logrus logging configuration from matchmaker_config.json.
 * Golang unit tests will be shipped in an upcoming version.
+* A full load-testing and e2e testing suite will be included in an upcoming version.
 * All state storage operations should be isolated from core components into the `statestorage/` modules.  This is necessary precursor work to enabling Open Match state storage to use software other than Redis.
 * The MMFOrc component name will be updated in a future version to something easier to understand.  Suggestions welcome!
+* The MMFOrc component currently requires a default service account with permission to kick of k8s jobs, but the revision today makes the service account have full permissions.  This needs to be reworked to have min required RBAC permissions before it is used in production, but is fine for closed testing and development.
