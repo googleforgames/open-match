@@ -22,6 +22,7 @@ package main
 import (
 	"context"
 	"errors"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -65,6 +66,7 @@ var (
 func init() {
 	// Logrus structured logging initialization
 	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
+	log.SetFormatter(&log.JSONFormatter{})
 	log.AddHook(metrics.NewHook(MmforcLogLines, KeySeverity))
 
 	// Viper config management initialization
@@ -376,8 +378,14 @@ func evaluator(ctx context.Context, cfg *viper.Viper, imageName string, clientse
 func submitJob(imageName string, jobName string, clientset *kubernetes.Clientset) error {
 	job := generateJobSpec(jobName, imageName)
 
+	// Get the namespace for the job from the current namespace, otherwise, use default
+	namespace := os.Getenv("METADATA_NAMESPACE")
+	if len(namespace) == 0 {
+		namespace = apiv1.NamespaceDefault
+	}
+
 	// Submit kubernetes job
-	jobsClient := clientset.BatchV1().Jobs(apiv1.NamespaceDefault)
+	jobsClient := clientset.BatchV1().Jobs(namespace)
 	result, err := jobsClient.Create(job)
 	if err != nil {
 		// TODO: replace queued profiles if things go south
