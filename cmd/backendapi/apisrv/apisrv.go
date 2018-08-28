@@ -324,11 +324,11 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 	redisConn.Send("MULTI")
 	for _, playerID := range assignments {
 		beLog.WithFields(log.Fields{
-			"query":                       "HSET",
-			"playerID":                    playerID,
-			s.cfg.GetString("connstring"): a.ConnectionInfo.ConnectionString,
+			"query":                                "HSET",
+			"playerID":                             playerID,
+			s.cfg.GetString("jsonkeys.connstring"): a.ConnectionInfo.ConnectionString,
 		}).Debug("Statestorage operation")
-		redisConn.Send("HSET", playerID, s.cfg.GetString("connstring"), a.ConnectionInfo.ConnectionString)
+		redisConn.Send("HSET", playerID, s.cfg.GetString("jsonkeys.connstring"), a.ConnectionInfo.ConnectionString)
 	}
 	_, err := redisConn.Do("EXEC")
 
