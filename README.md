@@ -2,7 +2,7 @@
 
 Open Match is a open source game matchmaker.
 
-Matchmaking is a complicated process, and when large player populations are invovled, many popular matchmaking approaches touch on significant areas of computer science including graph theory and massively concurrent processing. Open Match is an effort to provide a foundation upon which these difficult problems can be addressed by the wider game development community.  As Josh Menke, famous for working on matchmaking for many popular triple-A franchises, put it:
+Matchmaking is a complicated process, and when large player populations are involved, many popular matchmaking approaches touch on significant areas of computer science including graph theory and massively concurrent processing. Open Match is an effort to provide a foundation upon which these difficult problems can be addressed by the wider game development community.  As Josh Menke, famous for working on matchmaking for many popular triple-A franchises, put it:
 
 ["Matchmaking, a lot of it actually really is just really good engineering.  There's a lot of really hard networking and plumbing problems that need to be solved, depending on the size of your audience."](https://youtu.be/-pglxege-gU?t=830)
 
@@ -14,7 +14,7 @@ This software is currently alpha, and subject to change. It is not yet ready to 
 
 # Core Concepts
 
-[Watch the introduction of Open Match at Unite Berlin 2018 on YouTube](https://youtu.be/qasAmy)
+[Watch the introduction of Open Match at Unite Berlin 2018 on YouTube](https://youtu.be/qasAmy_ko2o)
 
 Open Match is designed to support massively concurrent matchmaking, and to be scalable to player populations of hundreds of millions or more.  It attempts to apply stateless web tech microservices patterns to game matchmaking.  If you're not sure what that means, that's okay - it is fully open source and designed to be customizable to fit into your online game architecture, so have a look a the code and modify it as you see fit.
 
