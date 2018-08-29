@@ -1,38 +1,38 @@
 # Open Match
 
-Open Match is a open source game matchmaker.
+Open Match is an open source game matchmaker designed to allow game creators to re-use a common matchmaker framework. It’s designed to be flexible (run it anywhere Kubernetes runs), extensible (match logic can be customized to work for any game), and scalable.
 
-Matchmaking is a complicated process, and when large player populations are involved, many popular matchmaking approaches touch on significant areas of computer science including graph theory and massively concurrent processing. Open Match is an effort to provide a foundation upon which these difficult problems can be addressed by the wider game development community.  As Josh Menke, famous for working on matchmaking for many popular triple-A franchises, put it:
+Matchmaking is a complicated process, and when large player populations are involved, many popular matchmaking approaches touch on significant areas of computer science including graph theory and massively concurrent processing. Open Match is an effort to provide a foundation upon which these difficult problems can be addressed by the wider game development community. As Josh Menke &mdash; famous for working on matchmaking for many popular triple-A franchises &mdash; put it:
 
-["Matchmaking, a lot of it actually really is just really good engineering.  There's a lot of really hard networking and plumbing problems that need to be solved, depending on the size of your audience."](https://youtu.be/-pglxege-gU?t=830)
+["Matchmaking, a lot of it actually really is just really good engineering. There's a lot of really hard networking and plumbing problems that need to be solved, depending on the size of your audience."](https://youtu.be/-pglxege-gU?t=830)
 
 
-This project attempts to solve networking and plumbing problems, so game developers can focus on the logic to match players into great games.
+This project attempts to solve the networking and plumbing problems, so game developers can focus on the logic to match players into great games.
 
 ## Disclaimer
-This software is currently alpha, and subject to change. It is not yet ready to be used in production systems.
+This software is currently alpha, and subject to change. **It is not yet ready to be used in production.**
 
 # Core Concepts
 
 [Watch the introduction of Open Match at Unite Berlin 2018 on YouTube](https://youtu.be/qasAmy_ko2o)
 
-Open Match is designed to support massively concurrent matchmaking, and to be scalable to player populations of hundreds of millions or more.  It attempts to apply stateless web tech microservices patterns to game matchmaking.  If you're not sure what that means, that's okay - it is fully open source and designed to be customizable to fit into your online game architecture, so have a look a the code and modify it as you see fit.
+Open Match is designed to support massively concurrent matchmaking, and to be scalable to player populations of hundreds of millions or more. It attempts to apply stateless web tech microservices patterns to game matchmaking. If you're not sure what that means, that's okay &mdash; it is fully open source and designed to be customizable to fit into your online game architecture &mdash; so have a look a the code and modify it as you see fit.
 
 ## Glossary
 
-* **MMF** - matchmaking function. Customizable matchmaking logic.
-* **Component** - one of the discrete processes in an Open Match deployment.  Open Match is composed of multiple scalable microservices called 'components'.
-* **Roster** - a list of all the players in a match.
-* **Profile** - the json blob containing all the parameters used to select which players go into a roster.
-* **Match Object** - a json blob to contain the results of the matchmaking function.  Sent with an empty roster section to the backend API from your game backend and then returned with the matchmaking results filled in.
-* **MMFOrc** - matchmaker function orchestrator.  Open Match core component in charge of kicking off custom matchmaking functions (MMFs) and evaluator processes.
-* **State Storage** - the storage software used by Open Match to hold all the matchmaking state.  Open Match ships with [Redis](https://redis.io/) as the default state storage.
-* **Assignment** - refers to assigning a player or group of players to a dedicated game server instance. Open Match offers a path to send dedicated game server connection details from your backend to your game clients after a match has been made.
+* **MMF** &mdash; Matchmaking function. This is the customizable matchmaking logic.
+* **Component** &mdash; One of the discrete processes in an Open Match deployment. Open Match is composed of multiple scalable microservices called 'components'.
+* **Roster** &mdash; A list of all the players in a match.
+* **Profile** &mdash; The json blob containing all the parameters used to select which players go into a roster.
+* **Match Object** &mdash; A json blob to contain the results of the matchmaking function. Sent with an empty roster section to the backend API from your game backend and then returned with the matchmaking results filled in.
+* **MMFOrc** &mdash; Matchmaker function orchestrator. This Open Match core component is in charge of kicking off custom matchmaking functions (MMFs) and evaluator processes.
+* **State Storage** &mdash; The storage software used by Open Match to hold all the matchmaking state. Open Match ships with [Redis](https://redis.io/) as the default state storage.
+* **Assignment** &mdash; Refers to assigning a player or group of players to a dedicated game server instance. Open Match offers a path to send dedicated game server connection details from your backend to your game clients after a match has been made.
 
 ## Requirements
-* Kubernetes cluster.  Tested with version 1.9
-* Redis 4+.  Tested with 4.0.11
-* Open Match is compiled against the latest release of Golang.  Tested with 1.10.3
+* [Kubernetes](https://kubernetes.io/) cluster &mdash; tested with version 1.9.
+* [Redis 4+](https://redis.io/) &mdash; tested with 4.0.11.
+* Open Match is compiled against the latest release of [Golang](https://golang.org/) &mdash; tested with 1.10.3.
 
 ## Components
 
@@ -47,54 +47,54 @@ It also explicitly depends on these two **customizable** components.
 1. Matchmaking "Function" (MMF)
 1. Evaluator
 
-**Core** components are fully open source and *can* be modified, but are designed to support the majority of matchmaking scenarios *without need to change the source code*.  The Open Match repository ships with simple **customizable** example MMF and Evaluator processes, but it is expected that most users will want full control over the logic in these, so they have been designed to be as easy to modify or replace as possible.
+While **core** components are fully open source and *can* be modified, they are designed to support the majority of matchmaking scenarios *without need to change the source code*. The Open Match repository ships with simple **customizable** example MMF and Evaluator processes, but it is expected that most users will want full control over the logic in these, so they have been designed to be as easy to modify or replace as possible.
 
 ### Frontend API
 
-The job of the Frontend API is to accept the player data and put it in state storage so your Matchmaking Function (MMF) can access it.
+The Frontend API accepts the player data and puts it in state storage so your Matchmaking Function (MMF) can access it.
 
-The Frontend API is a server application that implements the gRPC service defined in `api/protobuf-spec/frontend.proto`.  At the most basic level, it expects clients to connect and send:
-* a **unique ID** of the group of players (the group can contain any number of players, including only one)
-* a **json blob** containing all player-related data you want to use in your matchmaking function.
+The Frontend API is a server application that implements the [gRPC](https://grpc.io/) service defined in `api/protobuf-spec/frontend.proto`. At the most basic level, it expects clients to connect and send:
+* A **unique ID** for the group of players (the group can contain any number of players, including only one).
+* A **json blob** containing all player-related data you want to use in your matchmaking function.
 
-The client is expected to maintain a connection, waiting for an update from the API that contains the details required to connect to a dedicated game server instance (an 'assignment').  There are also basic functions for removing an ID from the matchmaking pool or an existing match.
+The client is expected to maintain a connection, waiting for an update from the API that contains the details required to connect to a dedicated game server instance (an 'assignment'). There are also basic functions for removing an ID from the matchmaking pool or an existing match.
 
 ### Backend API
 
-The job of the Backend API is to put match profiles in state storage that your Matchmaking Function (MMF) can access and use to decide which players should be put into a match together, then return those matches to dedicated game server instances.`
+The Backend API puts match profiles in state storage which the Matchmaking Function (MMF) can access and use to decide which players should be put into a match together, then return those matches to dedicated game server instances.
 
-The Backend API is a server application that implements the gRPC service defined in `api/protobuf-spec/backend.proto`.  At the most basic level, it expects to be connected to your online infrastructure (probably to your server scaling manager or scheduler, or even directly to a dedicated game server), and to receive:
-* a **unique ID** of a matchmaking profile.
-* a **json blob** containing all the match-related data you want to use in your matchmaking function, in an 'empty' match object.
+The Backend API is a server application that implements the [gRPC](https://grpc.io/) service defined in `api/protobuf-spec/backend.proto`. At the most basic level, it expects to be connected to your online infrastructure (probably to your server scaling manager or scheduler, or even directly to a dedicated game server), and to receive:
+* A **unique ID** for a matchmaking profile.
+* A **json blob** containing all the match-related data you want to use in your matchmaking function, in an 'empty' match object.
 
-Your game backend is expected to maintain a connection, waiting for 'filled' match objects containing a roster of players.  The backend API also provides a return path for your game backend to return dedicated game server connection details (an 'assignment') to the game client, and to delete these 'assignments'. 
+Your game backend is expected to maintain a connection, waiting for 'filled' match objects containing a roster of players. The Backend API also provides a return path for your game backend to return dedicated game server connection details (an 'assignment') to the game client, and to delete these 'assignments'.
 
 ### Matchmaking Function Orchestrator (MMFOrc)
 
-The job of the MMFOrc is to kick off your custom matchmaking function (MMF) for every profile submitted to the Backend API. It also runs the Evaluator to resolve conflicts in case more than one of your profiles matched the same players.
+The MMFOrc kicks off your custom matchmaking function (MMF) for every profile submitted to the Backend API. It also runs the Evaluator to resolve conflicts in case more than one of your profiles matched the same players.
 
 The MMFOrc exists to orchestrate/schedule your **custom components**, running them as often as required to meet the demands of your game. MMFOrc runs in an endless loop, submitting MMFs and Evaluator jobs to Kubernetes.
 
 ### Evaluator
 
-The job of the evaluator is to resolve conflicts when multiple matches want to include the same player(s).
+The Evaluator resolves conflicts when multiple matches want to include the same player(s).
 
-The evaluator is a component run by the matchmaker function orchestrator after the matchmaker functions have been run, and some proposed results are available.  The evaluator's job is to look at all the proposed matches, and if multiple proposals contain the same player(s), to break the tie. In many simple matchmaking setups with only a few game modes and matchmaking functions that always look at different parts of the matchmaking pool, the evaluator may functionally be a no-op or first-in-first-out algorithm.  In complex matchmaking setups where, for example, a player can queue for multiple types of matches, the evaluator provides the critical customizability to evaluate all available proposals and approve those that will passed to your game servers.  
+The Evaluator is a component run by the Matchmaker Function Orchestrator (MMFOrc) after the matchmaker functions have been run, and some proposed results are available.  The Evaluator looks at all the proposed matches, and if multiple proposals contain the same player(s), it breaks the tie. In many simple matchmaking setups with only a few game modes and matchmaking functions that always look at different parts of the matchmaking pool, the Evaluator may functionally be a no-op or first-in-first-out algorithm. In complex matchmaking setups where, for example, a player can queue for multiple types of matches, the Evaluator provides the critical customizability to evaluate all available proposals and approve those that will passed to your game servers.
 
-Large-scale concurrent matchmaking functions is a complex topic, and users who wish to do this are encouraged to engage with the Open Match community about patterns and best practices.
+Large-scale concurrent matchmaking functions is a complex topic, and users who wish to do this are encouraged to engage with the [Open Match community](https://github.com/GoogleCloudPlatform/open-match#get-involved) about patterns and best practices.
 
 ### Matchmaking Functions (MMFs)
 
-Matchmaking Functions are run by the matchmaker function orchestrator - once per profile it sees in state storage. The matchmaking function is run as a Job in Kubernetes, and has full access to read and write from state storage.  At a high level, the encouraged pattern is to write a MMF in whatever language you are comfortable in that can do the following things:
+Matchmaking Functions (MMFs) are run by the Matchmaker Function Orchestrator (MMFOrc) &mdash; once per profile it sees in state storage. The MMF is run as a Job in Kubernetes, and has full access to read and write from state storage. At a high level, the encouraged pattern is to write a MMF in whatever language you are comfortable in that can do the following things:
 
-1. Read/write from the Open Match state storage, Open Match ships with Redis as the default state storage
-1. Be packaged in a (Linux) Docker container
-1. Read a profile you wrote to state storage using the Backend API
-1. Select from the player data you wrote to state storage using the Frontend API
-1. Run your custom logic to try to find a match
-1. Write the match object it creates to state storage at a specified key 
-1. Remove the players it selected from consideration by other MMFs
-1. [optional but recommended] Export stats for metrics collection 
+1. Read/write from the Open Match state storage &mdash; Open Match ships with Redis as the default state storage.
+1. Be packaged in a (Linux) Docker container.
+1. Read a profile you wrote to state storage using the Backend API.
+1. Select from the player data you wrote to state storage using the Frontend API.
+1. Run your custom logic to try to find a match.
+1. Write the match object it creates to state storage at a specified key.
+1. Remove the players it selected from consideration by other MMFs.
+1. (Optional, but recommended) Export stats for metrics collection.
 
 Example MMFs are provided in Golang and C#. 
 
@@ -102,24 +102,24 @@ Example MMFs are provided in Golang and C#.
 
 ### Structured logging
 
-Logging for Open Match uses the [Golang logrus module](https://github.com/sirupsen/logrus) to provide structured logs (https://github.com/sirupsen/logrus).  Logs are output to `stdout` in each component, as expected by Docker and Kubernetes. If you have a specific log aggregator as your final destination, we recommend you have a look at the logrus documentation as there is probably a log formatter that plays nicely with your stack.
+Logging for Open Match uses the [Golang logrus module](https://github.com/sirupsen/logrus) to provide structured logs. Logs are output to `stdout` in each component, as expected by Docker and Kubernetes. If you have a specific log aggregator as your final destination, we recommend you have a look at the logrus documentation as there is probably a log formatter that plays nicely with your stack.
 
 ### Instrumentation for metrics
 
-Open Match uses http://opencensus.io for metrics instrumentation.  gRPC integrations are built-in, and Golang redigo module integrations are incoming (but haven't been merged into the official repo, see https://github.com/opencensus-integrations/redigo/pull/1).  All of the core components expose HTTP `/metrics` endpoints on the port defined in `config/matchmaker_config.json` (default: 9555) for Prometheus to scrape. If you would like to export to a different metrics aggregation platform, we suggest you have a look at the OpenCensus documentation - there may be one written for you already, and switching to it may be as simple as changing a few lines of code.
+Open Match uses [OpenCensus](https://opencensus.io/) for metrics instrumentation. The [gRPC](https://grpc.io/) integrations are built-in, and Golang redigo module integrations are incoming, but [haven't been merged into the official repo](https://github.com/opencensus-integrations/redigo/pull/1). All of the core components expose HTTP `/metrics` endpoints on the port defined in `config/matchmaker_config.json` (default: 9555) for Prometheus to scrape. If you would like to export to a different metrics aggregation platform, we suggest you have a look at the OpenCensus documentation &mdash; there may be one written for you already, and switching to it may be as simple as changing a few lines of code.
 
-A standard for instrumentation of MMFs is currently in planning.  
+**Note:** A standard for instrumentation of MMFs is planned.  
 
 ### Redis setup
 
-By default, Open Match expects you to run Redis *somewhere*.  `Host:port` connection information can be put in the config file for any Redis instance reachable from the [Kubernetes namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/) (by default, Open Match sensibly runs in the Kubernetes `default` namespace). In most instances, we expect users will run a copy of Redis in a pod in Kubernetes, with a service pointing to it.  
+By default, Open Match expects you to run Redis *somewhere*. `Host:port` connection information can be put in the config file for any Redis instance reachable from the [Kubernetes namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/). By default, Open Match sensibly runs in the Kubernetes `default` namespace. In most instances, we expect users will run a copy of Redis in a pod in Kubernetes, with a service pointing to it.
 
-* Basic auth for Redis instances isn't implemented (but could be, trivially).
+* Basic auth for Redis instances isn't implemented, but is trivial to implement.
 * HA configurations for Redis aren't implemented by the provided Kubernetes resource definition files, but Open Match expects the Redis service to be named `redis-sentinel`, which provides an easier path to multi-instance deployments.
 
 ## Additional examples
 
-These examples will be expanded on in future releases.
+**Note:** These examples will be expanded on in future releases.
 
 The following examples of how to call the APIs are provided in the repository. Both have associated `Dockerfile`s and `cloudbuild_COMPONENT.yaml` files:
 
@@ -132,22 +132,22 @@ Documentation and usage guides on how to set up and customize Open Match.
 
 ## Precompiled container images
 
-Once we reach a 1.0 release, we plan to produce publicly available (Linux) Docker container images of major releases in a public image registry.  Until then, refer to the 'Compiling from source' section below.
+Once we reach a 1.0 release, we plan to produce publicly available (Linux) Docker container images of major releases in a public image registry. Until then, refer to the 'Compiling from source' section below.
 
 ## Compiling from source
 
 All components of Open Match produce (Linux) Docker container images as artifacts, and there are included `Dockerfile`s for each. [Google Cloud Platform Cloud Build](https://cloud.google.com/cloud-build/docs/) users will also find `cloudbuild_COMPONENT.yaml` files for each component in the repository root.
 
-As all the core components for Open Match are written in Golang, and use the [Dockerfile multistage builder pattern](https://docs.docker.com/develop/develop-images/multistage-build/). This pattern uses intermediate Docker containers as a Golang build environment while producing lightweight, minimized container images as final build artifacts. When the project is ready for production, we will modify the `Dockerfile`s to uncomment the last build stage. Although this pattern is great for production container images, it removes most of the utilities required to troubleshoot issues during development.
+All the core components for Open Match are written in Golang and use the [Dockerfile multistage builder pattern](https://docs.docker.com/develop/develop-images/multistage-build/). This pattern uses intermediate Docker containers as a Golang build environment while producing lightweight, minimized container images as final build artifacts. When the project is ready for production, we will modify the `Dockerfile`s to uncomment the last build stage. Although this pattern is great for production container images, it removes most of the utilities required to troubleshoot issues during development.
 
 ## Configuration
 
-Currently, each component reads a local config file `matchmaker_config.json` , and all components assume they have the same configuration.  To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally. When `docker build`ing the component container images, the Dockerfile copies the centralized config file into the component directory. 
+Currently, each component reads a local config file `matchmaker_config.json`, and all components assume they have the same configuration. To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally. When `docker build`ing the component container images, the Dockerfile copies the centralized config file into the component directory. 
 
-We plan to replace this with a Kubernetes-managed config with dynamic reloading when development time allows.  Pull requests are welcome!
+We plan to replace this with a Kubernetes-managed config with dynamic reloading when development time allows. Pull requests are welcome!
 
 ### Guides
-* [Production guide](./docs/production.md) Lots of best practices to be written here before 1.0 release.  WIP
+* [Production guide](./docs/production.md) Lots of best practices to be written here before 1.0 release. **WIP**
 * [Development guide](./docs/development.md)
 
 ### Reference
