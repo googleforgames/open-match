@@ -1,4 +1,4 @@
-#Open Match APIs
+# Open Match APIs
 
 This directory contains the API specification files for Open Match. 
 
