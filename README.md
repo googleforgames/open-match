@@ -195,7 +195,7 @@ Apache 2.0
 * The Kubernetes service account used by the MMFOrc should be updated to have min required permissions.
 * Autoscaling isn't turned on for the Frontend or Backend API Kubernetes deployments by default.
 * Match profiles should be able to define multiple MMF container images to run, but this is not currently supported. This enables A/B testing and several other scenarios.
-* Out-of-the-box, the Redis deployment should be a HA configuration using Redis seninel.
+* Out-of-the-box, the Redis deployment should be a HA configuration using [Redis Sentinel](https://redis.io/topics/sentinel).
 * Redis watch should be unified to watch a hash and stream updates.  The code for this is written and validated but not committed yet. We don't want to support two redis watcher code paths, so the backend watch of the match object should be switched to unify the way the frontend and backend watch keys.  Unfortunately this change touches the whole chain of components that touch backend match objects (mmf, evaluator, backendapi) and so needs additional work and testing before it is integrated.
 
 # Planned improvements
