@@ -156,7 +156,7 @@ We plan to replace this with a Kubernetes-managed config with dynamic reloading 
 ## Get involved
 
 * [Slack channel](https://open-match.slack.com/)
-    * [Signup link](https://join.slack.com/t/open-match/signup)
+    * [Signup link](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLWQzMzE1MGY5YmYyYWY3ZjE2MjNjZTdmYmQ1ZTQzMmNiNGViYmQyN2M4ZmVkMDY2YzZlOTUwMTYwMzI1Y2I2MjU)
 * [Mailing list](https://groups.google.com/forum/#!forum/open-match-discuss)
 
 ## Code of Conduct
