@@ -320,7 +320,7 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 	redisConn := s.pool.Get()
 	defer redisConn.Close()
 
-	// Create player assignments in a transaction
+	// Create player assignments in a transaction.  Also remove these players from the proposed list.
 	redisConn.Send("MULTI")
 	for _, playerID := range assignments {
 		beLog.WithFields(log.Fields{
@@ -329,6 +329,7 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 			s.cfg.GetString("jsonkeys.connstring"): a.ConnectionInfo.ConnectionString,
 		}).Debug("Statestorage operation")
 		redisConn.Send("HSET", playerID, s.cfg.GetString("jsonkeys.connstring"), a.ConnectionInfo.ConnectionString)
+		redisConn.Send("ZREM", s.cfg.GetString("blacklists.players.name"), playerID)
 	}
 	_, err := redisConn.Do("EXEC")
 
