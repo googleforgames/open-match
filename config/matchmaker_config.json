@@ -22,6 +22,11 @@
             "name": "proposalq"
         }
     },
+    "blacklists": {
+        "players" : {
+            "name": "playerbl"
+        }
+    },
     "defaultImages": {
         "evaluator": {
             "name": "gcr.io/matchmaker-dev-201405/openmatch-evaluator",
