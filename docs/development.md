@@ -1,4 +1,4 @@
-## Compiling from source
+# Compiling from source
 
 All components of Open Match produce (Linux) Docker container images as artifacts, and there are included `Dockerfile`s for each. [Google Cloud Platform Cloud Build](https://cloud.google.com/cloud-build/docs/) users will also find `cloudbuild_<name>.yaml` files for each component in the repository root.
 
@@ -45,11 +45,8 @@ If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT
 kubectl apply -f redis_deployment.json
 kubectl apply -f redis_service.json
 ```
-* In order to kick off jobs, the matchmaker function orchestrator needs a service account with permission to administer the cluster. This should be updated to have min required perms before launch, this is pretty permissive but acceptable for closed testing:
-```
-kubectl apply -f k8s/serviceaccountperms.json
-```
 * Run the **core components**: the frontend API, the backend API, and the matchmaker function orchestrator (MMFOrc). 
+**NOTE** In order to kick off jobs, the matchmaker function orchestrator needs a service account with permission to administer the cluster. This should be updated to have min required perms before launch, this is pretty permissive but acceptable for closed testing:
 ```
 kubectl apply -f backendapi_deployment.json
 kubectl apply -f backendapi_service.json
