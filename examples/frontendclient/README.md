@@ -1,6 +1,5 @@
-# Client load generator
-
-This is an application that dumps players into the pool by writing to Redis state storage. As it writes directly to Redis state storage to simulate clients hitting the frontend API, it does not generate any load on the frontend API (or, in fact, even need it to be running). 
+# Frontend API Client Stub
+`frontendclient` is a fake client for the Frontend API. It pretends to be a real game client connecting to Open Match and requests a game, then dumps out the connection string it receives. Note that it doesn't actually test the return path by looking for arbitrary results from your matchmaking function; it pauses and tells you the name of a key to set a connection string in directly using a redis-cli client.
 
 Only to be used for testing, and only in isolated environments (not in production!)
 
@@ -18,11 +17,6 @@ This is a file with of all the cities you want to generate simulated clients fro
 Easiest using Google Cloud Build:
 ```
 gcloud builds submit --substitutions TAG_NAME=latest --config cloudbuild.yaml
-```
-
-Simple kubectl command to run it and see the results.  Replace REGISTRTY_URI with a docker image registry your k8s cluster can access.  If you're using cloudbuild it's probably `gcr.io/<PROJECT_NAME>`, and was output at the end of the Cloud Build log.
-```
-kubectl run --rm --restart=Never --image-pull-policy=Always -i --tty --image=<REGISTRY_URI>/openmatch-clientloadgen om-clientloadgen
 ```
 
 # Further reading
