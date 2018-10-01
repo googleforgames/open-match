@@ -21,7 +21,13 @@ for dfile in $(ls Dockerfile.*); do gcloud builds submit --config cloudbuild_${d
 A cluster with mostly default settings will work for this development guide.  In the Cloud SDK command below we start it with machines that have 4 vCPUs.  Alternatively, you can use the 'Create Cluster' button in [Google Cloud Console]("https://console.cloud.google.com/kubernetes").
 
 ```
-gcloud container clusters create --machine-type n1-standard-4 open-match-dev-cluster
+gcloud container clusters create --machine-type n1-standard-4 open-match-dev-cluster --zone <ZONE>
+```
+
+If you don't know which zone to launch the cluster in (`<ZONE>`), you can list all available zones by running the following command.
+
+```
+gcloud compute zones list
 ```
 
 ## Configuration
@@ -36,7 +42,11 @@ The rest of this guide assumes you have a cluster (example is using GKE, but wor
 
 **NOTE** Kubernetes resources that use container images will need to be updated with **your container registry URI**. Here's an example command in Linux to do this (just replace YOUR_REGISTRY_URI with the appropriate location in your environment):
 ```
-sed -i 's|gcr.io/matchmaker-dev|YOUR_REGISTRY_URI|g' *deployment.json
+sed -i 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' *deployment.json
+```
+For MacOS the `-i` flag creates backup files when changing the original file in place. You can use the following command, and then delete the `*.backup` files afterwards if you don't need them anymore:
+```
+sed -i'.backup' -e 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' *deployment.json
 ```
 If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT_NAME>`. 
 
