@@ -69,7 +69,7 @@ kubectl create clusterrolebinding projectowner-cluster-admin-binding --clusterro
 kubectl apply -f prometheus_operator.json
 kubectl apply -f prometheus.json
 kubectl apply -f prometheus_service.json
-kubectl apply -f metrics_servicemonitors.json
+kubectl apply -f metrics_servicemonitor.json
 ```
 You should now be able to see the core component pods running using a `kubectl get pods`, and the core component metrics in the Prometheus Web UI by running `kubectl proxy <PROMETHEUS_POD_NAME> 9090:9090` in your local shell, then opening http://localhost:9090/targets in your browser to see which services Prometheus is collecting from.
 
