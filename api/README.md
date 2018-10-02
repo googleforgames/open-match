@@ -1,4 +1,4 @@
-#Open Match APIs
+# Open Match APIs
 
 This directory contains the API specification files for Open Match. API documenation will be produced in a future version, although the protobuf files offer a concise description of the API calls available, along with arguments and return messages.
 
