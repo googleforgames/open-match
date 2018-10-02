@@ -84,7 +84,7 @@ func main() {
 
 	fmt.Println("overloadedPlayers")
 	pretty.PrettyPrint(overloadedPlayers)
-	fmt.Println("overloadePlayerList")
+	fmt.Println("overloadedPlayerList")
 	pretty.PrettyPrint(overloadedPlayerList)
 	fmt.Println("overloadedMatchList")
 	pretty.PrettyPrint(overloadedMatchList)

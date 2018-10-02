@@ -20,6 +20,7 @@ package playerq
 import (
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
@@ -77,6 +78,11 @@ func Create(redisConn redis.Conn, playerID string, playerData string) (err error
 		// Add this index to the list of indices
 		redisConn.Send("SADD", "indices", key)
 	}
+
+	// Add the player to the built-in indexes
+	redisConn.Send("SADD", "indices", "timestamp")
+	redisConn.Send("ZADD", "timestamp", int(time.Now().Unix()), playerID)
+
 	_, err = redisConn.Do("EXEC")
 	return
 }
@@ -113,19 +119,23 @@ func Delete(redisConn redis.Conn, playerID string) (err error) {
 	redisConn.Send("MULTI")
 	redisConn.Send("DEL", playerID)
 
-	// Remove playerID from indices
+	// Remove playerID from generated indices
 	for iName := range results {
 		log.WithFields(log.Fields{
 			"field": iName,
 			"key":   playerID}).Debug("Indexing field")
 		redisConn.Send("ZREM", iName, playerID)
 	}
+
+	// Remove the playerID from the built-in indexes
+	redisConn.Send("ZREM", "timestamp", playerID)
+
 	_, err = redisConn.Do("EXEC")
 	check(err, "")
 	return
 }
 
-// Unindex a player without deleting there JSON object representation from
+// Unindex a player without deleting their JSON object representation from
 // state storage.
 func Unindex(redisConn redis.Conn, playerID string) (err error) {
 	results, err := Retrieve(redisConn, playerID)
@@ -135,13 +145,17 @@ func Unindex(redisConn redis.Conn, playerID string) (err error) {
 
 	redisConn.Send("MULTI")
 
-	// Remove playerID from indices
+	// Remove playerID from the generated indices
 	for iName := range results {
 		log.WithFields(log.Fields{
 			"field": iName,
 			"key":   playerID}).Debug("Un-indexing field")
 		redisConn.Send("ZREM", iName, playerID)
 	}
+
+	// Remove the playerID from the built-in indexes
+	redisConn.Send("ZREM", "timestamp", playerID)
+
 	_, err = redisConn.Do("EXEC")
 	check(err, "")
 	return
