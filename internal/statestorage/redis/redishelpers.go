@@ -25,6 +25,7 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 // Logrus structured logging setup
@@ -38,6 +39,32 @@ var (
 	}
 	rhLog = log.WithFields(rhLogFields)
 )
+
+// ConnectionPool reads the configuration and attempts to instantiate a redis connection
+// pool based on the configured hostname and port.
+// TODO: needs to be reworked to use redis sentinel when we're ready to support it.
+func ConnectionPool(cfg *viper.Viper) *redis.Pool {
+	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
+	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
+
+	// Add redis user and password to connection url if they exist
+	redisURL := "redis://"
+	if cfg.IsSet("redis.user") && cfg.IsSet("redis.password") {
+		redisURL += cfg.GetString("redis.user") + ":" + cfg.GetString("redis.password") + "@"
+	}
+	redisURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
+
+	rhLog.WithFields(log.Fields{"redisURL": redisURL}).Debug("Attempting to connect to Redis")
+	pool := redis.Pool{
+		MaxIdle:     3,
+		MaxActive:   0,
+		IdleTimeout: 60 * time.Second,
+		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
+	}
+
+	rhLog.Info("Connected to Redis")
+	return &pool
+}
 
 // Watcher makes a channel and returns it immediately.  It also launches an
 // asynchronous goroutine that watches a redis key and returns the value of
