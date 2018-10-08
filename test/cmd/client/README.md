@@ -26,4 +26,4 @@ kubectl run --rm --restart=Never --image-pull-policy=Always -i --tty --image=<RE
 ```
 
 # Further reading
-More information about this program can be found in the development guide.
+More information about this program can be found in the [development guide](../../../docs/development.md).

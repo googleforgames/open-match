@@ -20,4 +20,4 @@ gcloud builds submit --substitutions TAG_NAME=latest --config cloudbuild.yaml
 ```
 
 # Further reading
-More information about this program can be found in the development guide.
+More information about this program can be found in the [development guide](../../docs/development.md).
