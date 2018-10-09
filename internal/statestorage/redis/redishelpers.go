@@ -56,9 +56,9 @@ func ConnectionPool(cfg *viper.Viper) *redis.Pool {
 
 	rhLog.WithFields(log.Fields{"redisURL": redisURL}).Debug("Attempting to connect to Redis")
 	pool := redis.Pool{
-		MaxIdle:     3,
-		MaxActive:   0,
-		IdleTimeout: 60 * time.Second,
+		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
+		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
+		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout") * time.Second,
 		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
 	}
 

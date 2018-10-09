@@ -34,7 +34,12 @@
     },
     "redis": {
         "user": "",
-        "password": ""
+        "password": "",
+        "pool" : {
+            "maxIdle" : 3,
+            "maxActive" : 0,
+            "idleTimeout" : 60
+        }
     },
     "jsonkeys": {
         "mmfImages": "imagename",
