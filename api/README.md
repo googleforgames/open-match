@@ -1,9 +1,8 @@
-#Open Match APIs
+# Open Match APIs
 
-This directory contains the API specification files for Open Match. 
+This directory contains the API specification files for Open Match. API documenation will be produced in a future version, although the protobuf files offer a concise description of the API calls available, along with arguments and return messages.
 
 * [Protobuf .proto files for all APIs](./protobuf-spec/)
-* [API documentation](./docs/)
 
 These proto files are copied to the container image during `docker build` for the Open Match core components.  The `Dockerfiles` handle the compilation for you transparently, and copy the resulting `SPEC.pb.go` files to the appropriate place in your final container image.
 

@@ -1,4 +1,4 @@
-## Compiling from source
+# Compiling from source
 
 All components of Open Match produce (Linux) Docker container images as artifacts, and there are included `Dockerfile`s for each. [Google Cloud Platform Cloud Build](https://cloud.google.com/cloud-build/docs/) users will also find `cloudbuild_<name>.yaml` files for each component in the repository root.
 
@@ -21,12 +21,28 @@ for dfile in $(ls Dockerfile.*); do gcloud builds submit --config cloudbuild_${d
 A cluster with mostly default settings will work for this development guide.  In the Cloud SDK command below we start it with machines that have 4 vCPUs.  Alternatively, you can use the 'Create Cluster' button in [Google Cloud Console]("https://console.cloud.google.com/kubernetes").
 
 ```
-gcloud container clusters create --machine-type n1-standard-4 open-match-dev-cluster
+gcloud container clusters create --machine-type n1-standard-4 open-match-dev-cluster --zone <ZONE>
+```
+
+If you don't know which zone to launch the cluster in (`<ZONE>`), you can list all available zones by running the following command.
+
+```
+gcloud compute zones list
 ```
 
 ## Configuration
 
 Currently, each component reads a local config file `matchmaker_config.json` , and all components assume they have the same configuration.  To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally. 
+
+**NOTE** 'defaultImages' container images names in the config file will need to be updated with **your container registry URI**.  Here's an example command in Linux to do this (just replace YOUR_REGISTRY_URI with the appropriate location in your environment, should be run from the config directory):
+```
+sed -i 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' matchamker_config.json 
+```
+For MacOS the `-i` flag creates backup files when changing the original file in place. You can use the following command, and then delete the `*.backup` files afterwards if you don't need them anymore:
+```
+sed -i'.backup' -e 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' matchamker_config.json 
+```
+If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT_NAME>`. 
 
 We plan to replace this with a Kubernetes-managed config with dynamic reloading when development time allows.  Pull requests are welcome!
 
@@ -36,7 +52,11 @@ The rest of this guide assumes you have a cluster (example is using GKE, but wor
 
 **NOTE** Kubernetes resources that use container images will need to be updated with **your container registry URI**. Here's an example command in Linux to do this (just replace YOUR_REGISTRY_URI with the appropriate location in your environment):
 ```
-sed -i 's|gcr.io/matchmaker-dev|YOUR_REGISTRY_URI|g' *deployment.json
+sed -i 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' *deployment.json
+```
+For MacOS the `-i` flag creates backup files when changing the original file in place. You can use the following command, and then delete the `*.backup` files afterwards if you don't need them anymore:
+```
+sed -i'.backup' -e 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' *deployment.json
 ```
 If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT_NAME>`. 
 
@@ -45,11 +65,8 @@ If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT
 kubectl apply -f redis_deployment.json
 kubectl apply -f redis_service.json
 ```
-* In order to kick off jobs, the matchmaker function orchestrator needs a service account with permission to administer the cluster. This should be updated to have min required perms before launch, this is pretty permissive but acceptable for closed testing:
-```
-kubectl apply -f k8s/serviceaccountperms.json
-```
 * Run the **core components**: the frontend API, the backend API, and the matchmaker function orchestrator (MMFOrc). 
+**NOTE** In order to kick off jobs, the matchmaker function orchestrator needs a service account with permission to administer the cluster. This should be updated to have min required perms before launch, this is pretty permissive but acceptable for closed testing:
 ```
 kubectl apply -f backendapi_deployment.json
 kubectl apply -f backendapi_service.json
@@ -72,7 +89,7 @@ kubectl create clusterrolebinding projectowner-cluster-admin-binding --clusterro
 kubectl apply -f prometheus_operator.json
 kubectl apply -f prometheus.json
 kubectl apply -f prometheus_service.json
-kubectl apply -f metrics_servicemonitors.json
+kubectl apply -f metrics_servicemonitor.json
 ```
 You should now be able to see the core component pods running using a `kubectl get pods`, and the core component metrics in the Prometheus Web UI by running `kubectl proxy <PROMETHEUS_POD_NAME> 9090:9090` in your local shell, then opening http://localhost:9090/targets in your browser to see which services Prometheus is collecting from.
 
