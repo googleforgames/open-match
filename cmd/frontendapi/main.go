@@ -41,8 +41,8 @@ var (
 	// Logrus structured logging setup
 	feLogFields = log.Fields{
 		"app":       "openmatch",
-		"component": "backend",
-		"caller":    "backendapi/main.go",
+		"component": "frontend",
+		"caller":    "frontendapi/main.go",
 	}
 	feLog = log.WithFields(feLogFields)
 
