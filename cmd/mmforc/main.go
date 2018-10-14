@@ -262,7 +262,7 @@ func mmfunc(ctx context.Context, profile string, cfg *viper.Viper, imageNames []
 	moID := ids[0]
 	proID := ids[1]
 	timestamp := strconv.Itoa(int(time.Now().Unix()))
-	jobName := timestamp + "." + moID + "." + proID
+	jobName := timestamp + "." + moID + "." + proID + ".mmf"
 
 	// Read the full profile from redis and access any keys that are important to deciding how MMFs are run.
 	profile, err := redisHelpers.Retrieve(ctx, pool, proID)
@@ -327,9 +327,9 @@ func mmfunc(ctx context.Context, profile string, cfg *viper.Viper, imageNames []
 	// single MMF container image name you want to run, until multi-mmf
 	// profiles are supported. If you send it more than one, you will get
 	// undefined (but definitely degenerate) behavior!
-	for _, imageName := range imageNames {
+	for imageIndex, imageName := range imageNames {
 		// Kick off Job with this image name
-		_ = submitJob(imageName, jobName, clientset)
+		_ = submitJob(imageName, jobName+"."+strconv.Itoa(imageIndex), clientset)
 		if err != nil {
 			// Record failure & log
 			stats.Record(ctx, mmforcMmfFailures.M(1))
@@ -405,10 +405,9 @@ func submitJob(imageName string, jobName string, clientset *kubernetes.Clientset
 // In the future we should be decoding into the client object using one of the
 // codecs on an input JSON, or piggyback on job templates.
 // https://github.com/kubernetes/client-go/issues/193
-// TODO: many fields in this job spec assume the container image is an mmf, but
-// we use this to kick the evaluator containers too, should be updated to
-// reflect that
 func generateJobSpec(jobName string, imageName string) *batchv1.Job {
+
+	values := strings.Split(jobName, ".")
 
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -419,12 +418,13 @@ func generateJobSpec(jobName string, imageName string) *batchv1.Job {
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": "mmf", // TODO: have this reflect mmf vs evaluator
+						"app": values[3],
 					},
 					Annotations: map[string]string{
 						// Unused; here as an example.
-						// Later we can put params here and read them using the
-						// k8s downward API volumes
+						// Later we can put things more complicated than
+						// env vars here and read them using k8s downward API
+						// volumes
 						"profile": "exampleprofile",
 					},
 				},
@@ -432,14 +432,21 @@ func generateJobSpec(jobName string, imageName string) *batchv1.Job {
 					RestartPolicy: "Never",
 					Containers: []apiv1.Container{
 						{
-							// TODO: have these reflect mmf vs evaluator
-							Name:            "mmf",
+							Name:            values[3],
 							Image:           imageName,
 							ImagePullPolicy: "Always",
 							Env: []apiv1.EnvVar{
 								{
-									Name:  "PROFILE",
-									Value: jobName,
+									Name:  "OM_TIMESTAMP",
+									Value: values[0],
+								},
+								{
+									Name:  "OM_MATCHOBJECT_ID",
+									Value: values[1],
+								},
+								{
+									Name:  "OM_PROFILE_ID",
+									Value: values[2],
 								},
 							},
 						},
