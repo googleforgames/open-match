@@ -25,13 +25,12 @@ import (
 	"errors"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/cmd/backendapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
+	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 
-	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.opencensus.io/plugin/ocgrpc"
@@ -85,7 +84,7 @@ func init() {
 func main() {
 
 	// Connect to redis
-	pool := redisConnect(cfg)
+	pool := redishelpers.ConnectionPool(cfg)
 	defer pool.Close()
 
 	// Instantiate the gRPC server with the connections we've made
@@ -103,27 +102,4 @@ func main() {
 	signal.Notify(terminate, os.Interrupt)
 	<-terminate
 	beLog.Info("Shutting down gRPC server")
-}
-
-// redisConnect reads the configuration and attempts to instantiate a redis connection
-// pool based on the configured hostname and port.
-// TODO: needs to be reworked to use redis sentinel when we're ready to support it.
-func redisConnect(cfg *viper.Viper) *redis.Pool {
-
-	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
-	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
-	redisURL := "redis://" + cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
-	// TODO: check if auth details are in the config, and append them if they
-	// are.  Right now, assumes your redis instance is unsecured!
-
-	beLog.WithFields(log.Fields{"redisURL": redisURL}).Info("Attempting to connect to Redis")
-	pool := redis.Pool{
-		MaxIdle:     3,
-		MaxActive:   0,
-		IdleTimeout: 60 * time.Second,
-		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
-	}
-
-	beLog.Info("Connected to Redis")
-	return &pool
 }
