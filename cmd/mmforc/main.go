@@ -96,21 +96,7 @@ func init() {
 
 func main() {
 
-	// Connect to redis
-	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
-	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
-	// redis pool docs: https://godoc.org/github.com/gomodule/redigo/redis#Pool
-	redisURL := "redis://" + cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
-
-	mmforcLog.WithFields(log.Fields{"redisURL": redisURL}).Info("Attempting to connect to Redis")
-	pool := redis.Pool{
-		MaxIdle:     3,
-		MaxActive:   0,
-		IdleTimeout: 60 * time.Second,
-		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
-	}
-	mmforcLog.Info("Connected to Redis")
-
+	pool := redisHelpers.ConnectionPool(cfg)
 	redisConn := pool.Get()
 	defer redisConn.Close()
 
@@ -158,9 +144,9 @@ func main() {
 
 			for _, profile := range results {
 				// Kick off the job asynchrnously
-				go mmfunc(ctx, profile, cfg, defaultMmfImages, clientset, &pool)
+				go mmfunc(ctx, profile, cfg, defaultMmfImages, clientset, pool)
 				// Count the number of jobs running
-				redisHelpers.Increment(context.Background(), &pool, "concurrentMMFs")
+				redisHelpers.Increment(context.Background(), pool, "concurrentMMFs")
 			}
 		} else {
 			mmforcLog.WithFields(log.Fields{
@@ -170,7 +156,7 @@ func main() {
 
 		// Check to see if we should run the evaluator.
 		// Get number of running MMFs
-		r, err := redisHelpers.Retrieve(context.Background(), &pool, "concurrentMMFs")
+		r, err := redisHelpers.Retrieve(context.Background(), pool, "concurrentMMFs")
 
 		if err != nil {
 			mmforcLog.Println(err)
@@ -221,7 +207,7 @@ func main() {
 			// Make sure there are proposals in the queue.
 			checkProposals = false
 			mmforcLog.Info("Checking statestorage for match object proposals")
-			results, err := redisHelpers.Count(context.Background(), &pool, cfg.GetString("queues.proposals.name"))
+			results, err := redisHelpers.Count(context.Background(), pool, cfg.GetString("queues.proposals.name"))
 			switch {
 			case err != nil:
 				mmforcLog.WithFields(log.Fields{
@@ -235,7 +221,7 @@ func main() {
 				}).Info("Proposals available, evaluating!")
 				go evaluator(ctx, cfg, defaultEvalImage, clientset)
 			}
-			_, err = redisHelpers.Delete(context.Background(), &pool, "concurrentMMFs")
+			_, err = redisHelpers.Delete(context.Background(), pool, "concurrentMMFs")
 			if err != nil {
 				mmforcLog.WithFields(log.Fields{
 					"error": err.Error(),

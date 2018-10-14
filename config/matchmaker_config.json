@@ -1,5 +1,5 @@
 {
-    "debug": true, 
+    "debug": true,
     "api": {
         "backend": {
             "port": 50505
@@ -36,9 +36,18 @@
             "tag": "dev"
         }
     },
+    "redis": {
+        "user": "",
+        "password": "",
+        "pool" : {
+            "maxIdle" : 3,
+            "maxActive" : 0,
+            "idleTimeout" : 60
+        }
+    },
     "jsonkeys": {
-        "mmfImages": "imagename", 
-        "roster": "profile.roster", 
+        "mmfImages": "imagename",
+        "roster": "profile.roster",
         "connstring": "connstring"
     },
     "interval": {
