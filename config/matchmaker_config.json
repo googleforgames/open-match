@@ -22,10 +22,9 @@
             "name": "proposalq"
         }
     },
-    "blacklists": {
-        "players" : {
-            "name": "playerbl"
-        }
+    "ignoreLists": {
+        "matchedPlayers": "matched",
+        "deindexedPlayers": "deindexed"
     },
     "defaultImages": {
         "evaluator": {
