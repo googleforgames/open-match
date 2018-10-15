@@ -1,5 +1,5 @@
 /*
-package apisrv provides an implementation of the gRPC server defined in ../proto/backend.proto
+package apisrv provides an implementation of the gRPC server defined in ../../../api/protobuf-spec/backend.proto
 
 Copyright 2018 Google LLC
 
