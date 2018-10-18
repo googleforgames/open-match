@@ -32,21 +32,21 @@ gcloud compute zones list
 
 ## Configuration
 
-Currently, each component reads a local config file `matchmaker_config.json` , and all components assume they have the same configuration.  To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally. 
+Currently, each component reads a local config file `matchmaker_config.yaml` , and all components assume they have the same configuration.  To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally.
 
 **NOTE** 'defaultImages' container images names in the config file will need to be updated with **your container registry URI**.  Here's an example command in Linux to do this (just replace YOUR_REGISTRY_URI with the appropriate location in your environment, should be run from the config directory):
 ```
-sed -i 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' matchamker_config.json 
+sed -i 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' matchmaker_config.yaml
 ```
 For MacOS the `-i` flag creates backup files when changing the original file in place. You can use the following command, and then delete the `*.backup` files afterwards if you don't need them anymore:
 ```
-sed -i'.backup' -e 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' matchamker_config.json 
+sed -i'.backup' -e 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' matchmaker_config.yaml
 ```
-If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT_NAME>`. 
+If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT_NAME>`.
 
 We plan to replace this with a Kubernetes-managed config with dynamic reloading when development time allows.  Pull requests are welcome!
 
-## Running Open Match in a development environment 
+## Running Open Match in a development environment
 
 The rest of this guide assumes you have a cluster (example is using GKE, but works on any cluster with a little tweaking), and kubectl configured to administer that cluster, and you've built all the Docker container images described by `Dockerfiles` in the repository root directory and given them the docker tag 'dev'.  It assumes you are in the `<REPO_ROOT>/deployments/k8s/` directory.
 
@@ -58,14 +58,14 @@ For MacOS the `-i` flag creates backup files when changing the original file in 
 ```
 sed -i'.backup' -e 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' *deployment.json
 ```
-If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT_NAME>`. 
+If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT_NAME>`.
 
 * Start a copy of redis and a service in front of it:
 ```
 kubectl apply -f redis_deployment.json
 kubectl apply -f redis_service.json
 ```
-* Run the **core components**: the frontend API, the backend API, and the matchmaker function orchestrator (MMFOrc). 
+* Run the **core components**: the frontend API, the backend API, and the matchmaker function orchestrator (MMFOrc).
 **NOTE** In order to kick off jobs, the matchmaker function orchestrator needs a service account with permission to administer the cluster. This should be updated to have min required perms before launch, this is pretty permissive but acceptable for closed testing:
 ```
 kubectl apply -f backendapi_deployment.json

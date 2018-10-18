@@ -70,7 +70,6 @@ var (
 func Read() (*viper.Viper, error) {
 
 	// Viper config management initialization
-	cfg.SetConfigType("json")
 	cfg.SetConfigName("matchmaker_config")
 	cfg.AddConfigPath(".")
 

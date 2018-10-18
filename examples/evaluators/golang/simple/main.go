@@ -161,7 +161,6 @@ func readConfig(filename string, defaults map[string]interface{}) (*viper.Viper,
 		v.SetDefault(key, value)
 	}
 	v.SetConfigName(filename)
-	v.SetConfigType("json")
 	v.AddConfigPath(".")
 	v.AutomaticEnv()
 
