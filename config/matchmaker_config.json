@@ -6,6 +6,9 @@
         },
         "frontend": {
             "port": 50504
+        },
+        "mmlogic": {
+            "port": 50503
         }
     },
     "metrics": {
@@ -23,8 +26,8 @@
         }
     },
     "ignoreLists": {
-        "matchedPlayers": "matched",
-        "deindexedPlayers": "deindexed"
+        "proposedPlayers": "proposedil",
+        "deindexedPlayers": "deindexedil"
     },
     "defaultImages": {
         "evaluator": {

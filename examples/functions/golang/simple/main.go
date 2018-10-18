@@ -30,8 +30,19 @@ import (
 	"github.com/tidwall/sjson"
 )
 
-func main() {
+/*
+Here are the things a MMF needs to do:
 
+*Read/write from the Open Match state storage — Open Match ships with Redis as the default state storage.
+*Be packaged in a (Linux) Docker container.
+*Read a profile you wrote to state storage using the Backend API.
+*Select from the player data you wrote to state storage using the Frontend API.
+*Run your custom logic to try to find a match.
+*Write the match object it creates to state storage at a specified key.
+*Remove the players it selected from consideration by other MMFs.
+*(Optional, but recommended) Export stats for metrics collection.
+*/
+func main() {
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
 	redisURL := "redis://" + os.Getenv("REDIS_SENTINEL_SERVICE_HOST") + ":" + os.Getenv("REDIS_SENTINEL_SERVICE_PORT")
@@ -52,14 +63,14 @@ func main() {
 
 	// PROFILE is passed via the k8s downward API through an env set to jobName.
 	jobName := os.Getenv("PROFILE")
-	fmt.Println("PROFILE from job name", jobName)
+	timestamp := os.Getenv("OM_TIMESTAMP")
+	moID := os.Getenv("OM_MATCHOBJECT_ID")
+	profileKey := os.Getenv("OM_PROFILE_ID")
 
-	values := strings.Split(jobName, ".")
-	timestamp, moID, proID := values[0], values[1], values[2]
-	_ = timestamp
-	_ = moID
-	profileKey := proID
+	fmt.Println("MMF request inserted at ", timestamp)
 	fmt.Println("Looking for profile in key", profileKey)
+	fmt.Println("Placing results in MatchObjectID", moID)
+
 	profile, err := redis.String(redisConn.Do("GET", profileKey))
 	if err != nil {
 		panic(err)
@@ -101,8 +112,8 @@ func main() {
 
 	if len(filters) < 1 {
 		fmt.Printf("No filters in the default pool for the profile, %v\n", len(filters))
-		fmt.Println("SET", moID+"."+proID, `{"error": "insufficient_filters"}`)
-		redisConn.Do("SET", moID+"."+proID, `{"error": "insufficient_filters"}`)
+		fmt.Println("SET", moID+"."+profileKey, `{"error": "insufficient_filters"}`)
+		redisConn.Do("SET", moID+"."+profileKey, `{"error": "insufficient_filters"}`)
 		return
 	}
 
@@ -150,8 +161,8 @@ func main() {
 	if len(overlap) < rosterSize {
 		fmt.Printf("Not enough players in the pool to fill %v player slots in requested roster", rosterSize)
 		fmt.Printf("rosterProfile.String() = %+v\n", rosterProfile.String())
-		fmt.Println("SET", moID+"."+proID, `{"error": "insufficient_players"}`)
-		redisConn.Do("SET", moID+"."+proID, `{"error": "insufficient_players"}`)
+		fmt.Println("SET", moID+"."+profileKey, `{"error": "insufficient_players"}`)
+		redisConn.Do("SET", moID+"."+profileKey, `{"error": "insufficient_players"}`)
 		return
 	}
 	rosterProfile.ForEach(func(name, size gjson.Result) bool {

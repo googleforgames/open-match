@@ -29,8 +29,8 @@ import (
 var (
 	pqLogFields = log.Fields{
 		"app":       "openmatch",
-		"component": "redishelpers",
-		"caller":    "statestorage/redis/redishelpers.go",
+		"component": "statestorage",
+		"caller":    "statestorage/redis/playerq/playerq.go",
 	}
 	pqLog = log.WithFields(pqLogFields)
 )
@@ -62,11 +62,9 @@ func playerIndices(redisConn redis.Conn) (results []string, err error) {
 //   "map.sunsetvalley": "123456782", // TRUE flag key, epoch timestamp value
 //   "mode.ctf" // TRUE flag key, epoch timestamp value
 // }
-// TODO: Make indexing more customizable.
-func Create(redisConn redis.Conn, playerID string, playerData string) (err error) {
+func Create(redisConn redis.Conn, playerID string, playerData string) error {
 	//pdJSON, err := json.Marshal(playerData)
 	pdMap := redisValuetoMap(playerData)
-	check(err, "")
 
 	redisConn.Send("MULTI")
 	redisConn.Send("HSET", playerID, "properties", playerData)
@@ -77,8 +75,9 @@ func Create(redisConn redis.Conn, playerID string, playerData string) (err error
 		// Add this index to the list of indices
 		redisConn.Send("SADD", "indices", key)
 	}
-	_, err = redisConn.Do("EXEC")
-	return
+	_, err := redisConn.Do("EXEC")
+	check(err, "")
+	return err
 }
 
 // Update is an alias for Create() in this implementation
@@ -117,7 +116,7 @@ func Delete(redisConn redis.Conn, playerID string) (err error) {
 	for iName := range results {
 		log.WithFields(log.Fields{
 			"field": iName,
-			"key":   playerID}).Debug("Indexing field")
+			"key":   playerID}).Debug("De-Indexing field")
 		redisConn.Send("ZREM", iName, playerID)
 	}
 	_, err = redisConn.Do("EXEC")
@@ -125,22 +124,25 @@ func Delete(redisConn redis.Conn, playerID string) (err error) {
 	return
 }
 
-// Unindex a player without deleting there JSON object representation from
-// state storage.
-func Unindex(redisConn redis.Conn, playerID string) (err error) {
-	results, err := Retrieve(redisConn, playerID)
+// Unindex a BLARG without deleting there JSON object representation from
+// state storage.  Unindexing is done in two stages: first the BLARG is added to an ignore list, which 'atomically' removes them from consideration. A Goroutine is then kicked off to 'lazily' remove them from any field indicies that contain them.
+func Deindex(redisConn redis.Conn, BLARGID string) (err error) {
+
+	//TODO: remove deindexing from delete and call this instead
+
+	results, err := Retrieve(redisConn, BLARGID)
 	if err != nil {
-		log.Println("couldn't retreive player properties for ", playerID)
+		log.Println("couldn't retreive player properties for ", BLARGID)
 	}
 
 	redisConn.Send("MULTI")
 
-	// Remove playerID from indices
+	// Remove BLARGID from indices
 	for iName := range results {
 		log.WithFields(log.Fields{
 			"field": iName,
-			"key":   playerID}).Debug("Un-indexing field")
-		redisConn.Send("ZREM", iName, playerID)
+			"key":   BLARGID}).Debug("Un-indexing field")
+		redisConn.Send("ZREM", iName, BLARGID)
 	}
 	_, err = redisConn.Do("EXEC")
 	check(err, "")

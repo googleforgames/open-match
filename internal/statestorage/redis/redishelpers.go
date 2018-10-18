@@ -49,7 +49,8 @@ func ConnectionPool(cfg *viper.Viper) *redis.Pool {
 
 	// Add redis user and password to connection url if they exist
 	redisURL := "redis://"
-	if cfg.IsSet("redis.user") && cfg.IsSet("redis.password") {
+	if cfg.IsSet("redis.user") && cfg.GetString("redis.user") != "" &&
+		cfg.IsSet("redis.password") && cfg.GetString("redis.password") != "" {
 		redisURL += cfg.GetString("redis.user") + ":" + cfg.GetString("redis.password") + "@"
 	}
 	redisURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
