@@ -112,9 +112,8 @@ Open Match uses [OpenCensus](https://opencensus.io/) for metrics instrumentation
 
 ### Redis setup
 
-By default, Open Match expects you to run Redis *somewhere*. `Host:port` connection information can be put in the config file for any Redis instance reachable from the [Kubernetes namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/). By default, Open Match sensibly runs in the Kubernetes `default` namespace. In most instances, we expect users will run a copy of Redis in a pod in Kubernetes, with a service pointing to it.
+By default, Open Match expects you to run Redis *somewhere*. Connection information can be put in the config file (`matchmaker_config.json`) for any Redis instance reachable from the [Kubernetes namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/). By default, Open Match sensibly runs in the Kubernetes `default` namespace. In most instances, we expect users will run a copy of Redis in a pod in Kubernetes, with a service pointing to it.
 
-* Basic auth for Redis instances isn't implemented, but is trivial to implement.
 * HA configurations for Redis aren't implemented by the provided Kubernetes resource definition files, but Open Match expects the Redis service to be named `redis-sentinel`, which provides an easier path to multi-instance deployments.
 
 ## Additional examples
