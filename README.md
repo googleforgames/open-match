@@ -42,7 +42,7 @@ Open Match is a set of processes designed to run on Kubernetes. It contains thes
 1. Backend API
 1. Matchmaker Function Orchestrator (MMFOrc)
 
-It also explicitly depends on these two **customizable** components.  
+It also explicitly depends on these two **customizable** components.
 
 1. Matchmaking "Function" (MMF)
 1. Evaluator
@@ -96,7 +96,7 @@ Matchmaking Functions (MMFs) are run by the Matchmaker Function Orchestrator (MM
 1. Remove the players it selected from consideration by other MMFs.
 1. (Optional, but recommended) Export stats for metrics collection.
 
-Example MMFs are provided in Golang and C#. 
+Example MMFs are provided in Golang and C#.
 
 ## Open Source Software integrations
 
@@ -108,7 +108,7 @@ Logging for Open Match uses the [Golang logrus module](https://github.com/sirups
 
 Open Match uses [OpenCensus](https://opencensus.io/) for metrics instrumentation. The [gRPC](https://grpc.io/) integrations are built-in, and Golang redigo module integrations are incoming, but [haven't been merged into the official repo](https://github.com/opencensus-integrations/redigo/pull/1). All of the core components expose HTTP `/metrics` endpoints on the port defined in `config/matchmaker_config.json` (default: 9555) for Prometheus to scrape. If you would like to export to a different metrics aggregation platform, we suggest you have a look at the OpenCensus documentation &mdash; there may be one written for you already, and switching to it may be as simple as changing a few lines of code.
 
-**Note:** A standard for instrumentation of MMFs is planned.  
+**Note:** A standard for instrumentation of MMFs is planned.
 
 ### Redis setup
 
@@ -123,7 +123,7 @@ By default, Open Match expects you to run Redis *somewhere*. `Host:port` connect
 
 The following examples of how to call the APIs are provided in the repository. Both have associated `Dockerfile`s and `cloudbuild_COMPONENT.yaml` files:
 
-* `frontendstub/main.go` calls the Frontend API continually, putting players into the queue with simulated latencies from major metropolitan cities. 
+* `frontendstub/main.go` calls the Frontend API continually, putting players into the queue with simulated latencies from major metropolitan cities.
 * `backendstub/main.go` calls the Backend API and passes in the profile found in `backendstub/profiles/testprofile.json` to the `ListMatches` API endpoint, then prints the results.
 
 ## Usage
@@ -142,7 +142,7 @@ All the core components for Open Match are written in Golang and use the [Docker
 
 ## Configuration
 
-Currently, each component reads a local config file `matchmaker_config.json`, and all components assume they have the same configuration. To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally. When `docker build`ing the component container images, the Dockerfile copies the centralized config file into the component directory. 
+Currently, each component reads a local config file `matchmaker_config.json`, and all components assume they have the same configuration. To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally. When `docker build`ing the component container images, the Dockerfile copies the centralized config file into the component directory.
 
 We plan to replace this with a Kubernetes-managed config with dynamic reloading when development time allows. Pull requests are welcome!
 
@@ -191,7 +191,7 @@ Apache 2.0
 # Missing functionality
 
 * Player/Group records generated when a client enters the matchmaking pool need to be removed after a certain amount of time with no activity. When using Redis, this will be implemented as a expiration on the player record.
-* Instrumentation of MMFs is in the planning stages.  Since MMFs are by design meant to be completely customizable (to the point of allowing any process that can be packaged in a Docker container), metrics/stats will need to have an expected format and formalized outgoing pathway.  Currently the thought is that it might be that the metrics should be written to a particular key in statestorage in a format compatible with opencensus, and will be collected, aggreggated, and exported to Prometheus using another process. 
+* Instrumentation of MMFs is in the planning stages.  Since MMFs are by design meant to be completely customizable (to the point of allowing any process that can be packaged in a Docker container), metrics/stats will need to have an expected format and formalized outgoing pathway.  Currently the thought is that it might be that the metrics should be written to a particular key in statestorage in a format compatible with opencensus, and will be collected, aggreggated, and exported to Prometheus using another process.
 * The Kubernetes service account used by the MMFOrc should be updated to have min required permissions.
 * Autoscaling isn't turned on for the Frontend or Backend API Kubernetes deployments by default.
 * Match profiles should be able to define multiple MMF container images to run, but this is not currently supported. This enables A/B testing and several other scenarios.
