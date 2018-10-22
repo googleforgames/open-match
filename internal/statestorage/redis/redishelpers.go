@@ -1,4 +1,4 @@
-// redisHelpers is a package for wrapping redis functionality.
+// Package redisHelpers is a package for wrapping redis functionality.
 /*
 Copyright 2018 Google LLC
 
@@ -61,6 +61,20 @@ func ConnectionPool(cfg *viper.Viper) *redis.Pool {
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
 		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout") * time.Second,
 		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
+	}
+
+	// Sanity check that connection works before passing it back.  Redigo
+	// always returns a valid connection, and will just fail on the first
+	// query: https://godoc.org/github.com/gomodule/redigo/redis#Pool.Get
+	redisConn := pool.Get()
+	defer redisConn.Close()
+	_, err := redisConn.Do("SELECT", "0")
+	// Encountered an issue getting a connection from the pool.
+	if err != nil {
+		rhLog.WithFields(log.Fields{
+			"error": err.Error(),
+			"query": "SELECT 0"}).Error("Statestorage connection error")
+		return nil
 	}
 
 	rhLog.Info("Connected to Redis")

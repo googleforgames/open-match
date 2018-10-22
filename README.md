@@ -87,8 +87,8 @@ Large-scale concurrent matchmaking functions is a complex topic, and users who w
 
 Matchmaking Functions (MMFs) are run by the Matchmaker Function Orchestrator (MMFOrc) &mdash; once per profile it sees in state storage. The MMF is run as a Job in Kubernetes, and has full access to read and write from state storage. At a high level, the encouraged pattern is to write a MMF in whatever language you are comfortable in that can do the following things:
 
-1. Read/write from the Open Match state storage &mdash; Open Match ships with Redis as the default state storage.
 1. Be packaged in a (Linux) Docker container.
+1. Read/write from the Open Match state storage &mdash; Open Match ships with Redis as the default state storage.
 1. Read a profile you wrote to state storage using the Backend API.
 1. Select from the player data you wrote to state storage using the Frontend API.
 1. Run your custom logic to try to find a match.

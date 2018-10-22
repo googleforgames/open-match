@@ -2,12 +2,15 @@
     "debug": true,
     "api": {
         "backend": {
+            "hostname": "om-backendapi",
             "port": 50505
         },
         "frontend": {
+            "hostname": "om-frontendapi",
             "port": 50504
         },
         "mmlogic": {
+            "hostname": "om-mmlogicapi",
             "port": 50503
         }
     },

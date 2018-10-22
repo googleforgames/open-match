@@ -124,7 +124,7 @@ func Delete(redisConn redis.Conn, playerID string) (err error) {
 	return
 }
 
-// Unindex a BLARG without deleting there JSON object representation from
+// Deindex a BLARG without deleting there JSON object representation from
 // state storage.  Unindexing is done in two stages: first the BLARG is added to an ignore list, which 'atomically' removes them from consideration. A Goroutine is then kicked off to 'lazily' remove them from any field indicies that contain them.
 func Deindex(redisConn redis.Conn, BLARGID string) (err error) {
 

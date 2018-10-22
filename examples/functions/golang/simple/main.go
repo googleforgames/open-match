@@ -206,7 +206,7 @@ func main() {
 	for _, playerID := range matchRoster {
 		fmt.Printf("Attempting to remove player %v from indices\n", playerID)
 		// TODO: make playerq module available to everything
-		err := playerq.Unindex(redisConn, playerID)
+		err := playerq.Deindex(redisConn, playerID)
 		if err != nil {
 			panic(err)
 		}

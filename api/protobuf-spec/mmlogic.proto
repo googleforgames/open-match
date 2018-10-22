@@ -1,0 +1,108 @@
+// Follow the guidelines at https://cloud.google.com/endpoints/docs/grpc/transcoding
+// to keep the gRPC service definitions friendly to REST transcoding. An excerpt:
+//
+// "Transcoding involves mapping HTTP/JSON requests and their parameters to gRPC
+// methods and their parameters and return types (we'll look at exactly how you
+// do this in the following sections). Because of this, while it's possible to
+// map an HTTP/JSON request to any arbitrary API method, it's simplest and most
+// intuitive to do so if the gRPC API itself is structured in a
+// resource-oriented way, just like a traditional HTTP REST API. In other
+// words, the API service should be designed so that it uses a small number of
+// standard methods (corresponding to HTTP verbs like GET, PUT, and so on) that
+// operate on the service's resources (and collections of resources, which are
+// themselves a type of resource). 
+// These standard methods are List, Get, Create, Update, and Delete."
+//
+syntax = 'proto3';
+
+service API {
+  // Profile and match object functions
+  // If your matchmaking logic makes a group, it should either make a Proposal
+  // or a Match Object (but only one of the two).  For more details about which
+  // you should create, refer to the documentation. 
+  //
+  // Send RetreiveProfile an profile ID with an empty properties field, it will return a 'filled' one.
+  rpc GetProfile(Profile) returns (Profile) {}
+  //
+  // CreateProposal  does the following:
+  //  - adds all players in the Roster to the proposed player ignore list
+  //  - writes the proposed match to the provided key
+  //  - adds that key to the list of proposals to be considered
+  //  - decrements the number of running MMFs 
+  rpc CreateProposal(MatchObject) returns (Result) {}
+  //
+  //  CreateMatchObject does the following:
+  //  - adds all players in the Roster to the deindexed player ignore list
+  //  - kicks off a lazy deindex of all players in the Roster
+  //  - writes the match to the provided key
+  //  - decrements the number of running MMFs 
+  rpc CreateMatchObject(MatchObject) returns (Result) {}
+
+  // Player listing and filtering functions
+  //
+  rpc ListPlayers(Filter) returns (Roster) {}
+  // RetrievePlayerPool runs ListFilteredPlayers for every Filter in the input FilterSet, and then
+  // removes all players returned by a call to RetrieveCombinedIgnoreList.  It returns the resulting 
+  // player pool.
+  rpc GetPlayerPool(FilterSet) returns (Roster) {}
+
+  // Ignore List functions
+  //
+  // RetrieveIgnoreList retrieves players from the
+  // 'ignoreLists.proposedPlayers' ignore list specified in the config file
+  // that were placed on the list before the provided timestamp.  To retrieve
+  // all players on the list, provide the current time as the timestamp.
+  rpc ListIgnoredPlayers(Timestamp) returns (Roster) {}
+  // 
+  rpc GetCombinedIgnoreList(Input) returns (Roster) {}
+}
+
+// Simple message to return success/failure and error status.
+message Result{
+    bool success = 1;
+    string error = 2;
+}
+
+// Data structure to hold a list of players in a match.
+message Roster{
+    //repeated string player_ids = 1;  // By convention, UUIDs 
+    repeated Profile profile = 1;   // Player profile
+    FilterSet filterset = 2;        // Set of filters applied to the population to get the pool considered for this roster
+}
+
+// Data structure for a profile to pass to the matchmaking function.
+message Profile{
+  string id = 1;            // By convention, the CRC32 of the properties string.
+  string properties = 2;    // By convention, a JSON-encoded string
+  FilterSet filterset = 3;
+}
+
+// Epoch timestamp in seconds.
+message Timestamp{
+  int64 ts = 1;
+}
+
+// Set of filters to apply to the player pool.
+message FilterSet{
+    repeated Filter filter = 1;
+}
+
+// A filter to apply to the player pool.
+message Filter{
+    string field = 1;
+    int64 min_value = 2;
+    int64 max_value = 3;
+    int64 num_matched = 4;
+    int64 limit = 5;
+}
+
+// Empty Message, but defining something so we can add fields without breaking backwards compatibility 
+message Input{
+}
+
+// Data structure for all the properties of a match. 
+message MatchObject{
+  string id = 1;            // By convention, a UUID
+  string properties = 2;    // By convention, a JSON-encoded string
+  Roster roster = 3;        // NYI
+}
