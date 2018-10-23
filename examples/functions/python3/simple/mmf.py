@@ -48,9 +48,9 @@ with  grpc.insecure_channel(api_conn_info) as channel:
     # [OPTIONAL] Step 8 - Export stats about this run.
     # TODO 
 
-### DEBUG
-pp.pprint(profile)
-pp.pprint(this)
-print(api_conn_info)
-print("yep")
-#pp.pprint(cfg)
+# Look through player pool, select players.
+def customMatchmakerLogic(profile_dict, player_pool):
+    # for example, if your JSON format includes 'red' and 'blue' teams at the 'teams' key:
+    profile_dict['teams']['blue'] = ['player1', 'player2', 'player3', 'player4']
+    profile_dict['teams']['red'] = ['player5', 'player6', 'player7', 'player8']
+    return profile_dict
