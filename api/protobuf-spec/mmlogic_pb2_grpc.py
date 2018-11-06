@@ -19,14 +19,14 @@ class APIStub(object):
         request_serializer=mmlogic__pb2.Profile.SerializeToString,
         response_deserializer=mmlogic__pb2.Profile.FromString,
         )
+    self.GetProposal = channel.unary_unary(
+        '/API/GetProposal',
+        request_serializer=mmlogic__pb2.MatchObject.SerializeToString,
+        response_deserializer=mmlogic__pb2.MatchObject.FromString,
+        )
     self.CreateProposal = channel.unary_unary(
         '/API/CreateProposal',
-        request_serializer=mmlogic__pb2.MatchObject.SerializeToString,
-        response_deserializer=mmlogic__pb2.Result.FromString,
-        )
-    self.CreateMatchObject = channel.unary_unary(
-        '/API/CreateMatchObject',
-        request_serializer=mmlogic__pb2.MatchObject.SerializeToString,
+        request_serializer=mmlogic__pb2.MMFResults.SerializeToString,
         response_deserializer=mmlogic__pb2.Result.FromString,
         )
     self.ListPlayers = channel.unary_unary(
@@ -34,10 +34,10 @@ class APIStub(object):
         request_serializer=mmlogic__pb2.Filter.SerializeToString,
         response_deserializer=mmlogic__pb2.Roster.FromString,
         )
-    self.GetPlayerPool = channel.unary_unary(
+    self.GetPlayerPool = channel.unary_stream(
         '/API/GetPlayerPool',
-        request_serializer=mmlogic__pb2.FilterSet.SerializeToString,
-        response_deserializer=mmlogic__pb2.Roster.FromString,
+        request_serializer=mmlogic__pb2.JsonFilterSet.SerializeToString,
+        response_deserializer=mmlogic__pb2.PlayerPool.FromString,
         )
     self.ListIgnoredPlayers = channel.unary_unary(
         '/API/ListIgnoredPlayers',
@@ -46,7 +46,7 @@ class APIStub(object):
         )
     self.GetCombinedIgnoreList = channel.unary_unary(
         '/API/GetCombinedIgnoreList',
-        request_serializer=mmlogic__pb2.Input.SerializeToString,
+        request_serializer=mmlogic__pb2.IlInput.SerializeToString,
         response_deserializer=mmlogic__pb2.Roster.FromString,
         )
 
@@ -61,7 +61,18 @@ class APIServicer(object):
     or a Match Object (but only one of the two).  For more details about which
     you should create, refer to the documentation. 
 
-    Send RetreiveProfile an profile ID with an empty properties field, it will return a 'filled' one.
+    Send GetProfile an profile ID with an empty properties field, it will return a 'filled' one.
+    Note that the filtersets are assumed to be checked by the backendapi
+    when accepting a profile: the mmlogic api will choke on filter set JSON
+    that the jsonpb module can't unmarshal to the FilterSet protobuf message!
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetProposal(self, request, context):
+    """rpc GetFilterSet(FilterSet) returns (FilterSet) {}
+    rpc CreateFilterSet(JsonFilter) returns (FilterSet) {}
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -73,26 +84,16 @@ class APIServicer(object):
     - adds all players in the Roster to the proposed player ignore list
     - writes the proposed match to the provided key
     - adds that key to the list of proposals to be considered
-    - decrements the number of running MMFs 
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def CreateMatchObject(self, request, context):
-    """
-    CreateMatchObject does the following:
-    - adds all players in the Roster to the matched player ignore list
-    - kicks off a lazy deindex of all players in the Roster
-    - writes the match to the provided key
-    - decrements the number of running MMFs 
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def ListPlayers(self, request, context):
-    """Player listing and filtering functions
+    """TODO: fix args
+    rpc UpdateConcurrentMMFCounter(Result) returns (Result) {} 
+
+    Player listing and filtering functions
 
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -135,14 +136,14 @@ def add_APIServicer_to_server(servicer, server):
           request_deserializer=mmlogic__pb2.Profile.FromString,
           response_serializer=mmlogic__pb2.Profile.SerializeToString,
       ),
+      'GetProposal': grpc.unary_unary_rpc_method_handler(
+          servicer.GetProposal,
+          request_deserializer=mmlogic__pb2.MatchObject.FromString,
+          response_serializer=mmlogic__pb2.MatchObject.SerializeToString,
+      ),
       'CreateProposal': grpc.unary_unary_rpc_method_handler(
           servicer.CreateProposal,
-          request_deserializer=mmlogic__pb2.MatchObject.FromString,
-          response_serializer=mmlogic__pb2.Result.SerializeToString,
-      ),
-      'CreateMatchObject': grpc.unary_unary_rpc_method_handler(
-          servicer.CreateMatchObject,
-          request_deserializer=mmlogic__pb2.MatchObject.FromString,
+          request_deserializer=mmlogic__pb2.MMFResults.FromString,
           response_serializer=mmlogic__pb2.Result.SerializeToString,
       ),
       'ListPlayers': grpc.unary_unary_rpc_method_handler(
@@ -150,10 +151,10 @@ def add_APIServicer_to_server(servicer, server):
           request_deserializer=mmlogic__pb2.Filter.FromString,
           response_serializer=mmlogic__pb2.Roster.SerializeToString,
       ),
-      'GetPlayerPool': grpc.unary_unary_rpc_method_handler(
+      'GetPlayerPool': grpc.unary_stream_rpc_method_handler(
           servicer.GetPlayerPool,
-          request_deserializer=mmlogic__pb2.FilterSet.FromString,
-          response_serializer=mmlogic__pb2.Roster.SerializeToString,
+          request_deserializer=mmlogic__pb2.JsonFilterSet.FromString,
+          response_serializer=mmlogic__pb2.PlayerPool.SerializeToString,
       ),
       'ListIgnoredPlayers': grpc.unary_unary_rpc_method_handler(
           servicer.ListIgnoredPlayers,
@@ -162,7 +163,7 @@ def add_APIServicer_to_server(servicer, server):
       ),
       'GetCombinedIgnoreList': grpc.unary_unary_rpc_method_handler(
           servicer.GetCombinedIgnoreList,
-          request_deserializer=mmlogic__pb2.Input.FromString,
+          request_deserializer=mmlogic__pb2.IlInput.FromString,
           response_serializer=mmlogic__pb2.Roster.SerializeToString,
       ),
   }

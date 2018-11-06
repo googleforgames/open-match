@@ -49,12 +49,19 @@
             "maxIdle" : 3,
             "maxActive" : 0,
             "idleTimeout" : 60
+        },
+        "queryArgs":{
+            "count": 10000
+        },
+        "results": {
+            "pageSize": 10000
         }
     },
     "jsonkeys": {
-        "mmfImages": "imagename",
-        "roster": "profile.roster",
-        "connstring": "connstring"
+        "mmfImage": "imagename",
+        "roster": "properties.roster",
+        "connstring": "connstring",
+        "pools": "properties.playerPools"
     },
     "interval": {
         "evaluator": 10,

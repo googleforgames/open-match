@@ -87,9 +87,14 @@ func main() {
 	client := backend.NewAPIClient(conn)
 	log.Println("API client connected to", ip[0]+":50505")
 
+	profileName := "test-dm-usc1f"
+	if gjson.Get(jsonProfile, "name").Exists() {
+		profileName = gjson.Get(jsonProfile, "name").String()
+	}
+
 	// Test CreateMatch
 	p := &backend.Profile{
-		Id: "test-dm-usc1f",
+		Id: profileName,
 		// Make a stub debug hostname from the current time
 		Properties: jsonProfile,
 	}

@@ -120,6 +120,7 @@ func (s *backendAPI) CreateMatch(c context.Context, p *backend.Profile) (*backen
 		"profileID": p.Id,
 	}).Info("gRPC call executing")
 
+	// TODO: must validate the filter set
 	// Write profile
 	_, err := redisHelpers.Create(ctx, s.pool, p.Id, p.Properties)
 	if err != nil {

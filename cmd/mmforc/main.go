@@ -114,8 +114,6 @@ func main() {
 
 	start := time.Now()
 	checkProposals := true
-	defaultMmfImages := []string{cfg.GetString("defaultImages.mmf.name") + ":" + cfg.GetString("defaultImages.mmf.tag")}
-	defaultEvalImage := cfg.GetString("defaultImages.evaluator.name") + ":" + cfg.GetString("defaultImages.evaluator.tag")
 
 	// main loop; kick off matchmaker functions for profiles in the profile
 	// queue and an evaluator when proposals are in the proposals queue
@@ -129,7 +127,7 @@ func main() {
 			"pullCount":        cfg.GetInt("queues.profiles.pullCount"),
 			"query":            "SPOP",
 			"component":        "statestorage",
-		}).Info("Retreiving match profiles")
+		}).Debug("Retreiving match profiles")
 
 		results, err := redis.Strings(redisConn.Do("SPOP",
 			cfg.GetString("queues.profiles.name"), cfg.GetInt("queues.profiles.pullCount")))
@@ -144,14 +142,14 @@ func main() {
 
 			for _, profile := range results {
 				// Kick off the job asynchrnously
-				go mmfunc(ctx, profile, cfg, defaultMmfImages, clientset, pool)
+				go mmfunc(ctx, profile, cfg, clientset, pool)
 				// Count the number of jobs running
 				redisHelpers.Increment(context.Background(), pool, "concurrentMMFs")
 			}
 		} else {
 			mmforcLog.WithFields(log.Fields{
 				"profileQueueName": cfg.GetString("queues.profiles.name"),
-			}).Warn("Unable to retreive match profiles from statestorage - have you entered any?")
+			}).Info("Unable to retreive match profiles from statestorage - have you entered any?")
 		}
 
 		// Check to see if we should run the evaluator.
@@ -159,7 +157,6 @@ func main() {
 		r, err := redisHelpers.Retrieve(context.Background(), pool, "concurrentMMFs")
 
 		if err != nil {
-			mmforcLog.Println(err)
 			if err.Error() == "redigo: nil returned" {
 				// No MMFs have run since we last evaluated; reset timer and loop
 				mmforcLog.Debug("Number of concurrentMMFs is nil")
@@ -184,7 +181,7 @@ func main() {
 		// which have some overlap in the matchmaking player pools. Suffice to
 		// say that under load, this switch should almost always trigger the
 		// timeout interval code path.  The concurrentMMFs check to see how
-		// many are still running is meant as a short-circuit to prevent
+		// many are still running is meant as a deadman's switch to prevent
 		// waiting to run the evaluator when all your MMFs are already
 		// finished.
 		switch {
@@ -204,7 +201,8 @@ func main() {
 		}
 
 		if checkProposals {
-			// Make sure there are proposals in the queue.
+			// Make sure there are proposals in the queue. No need to run the
+			// evaluator if there are none.
 			checkProposals = false
 			mmforcLog.Info("Checking statestorage for match object proposals")
 			results, err := redisHelpers.Count(context.Background(), pool, cfg.GetString("queues.proposals.name"))
@@ -219,7 +217,7 @@ func main() {
 				mmforcLog.WithFields(log.Fields{
 					"numProposals": results,
 				}).Info("Proposals available, evaluating!")
-				go evaluator(ctx, cfg, defaultEvalImage, clientset)
+				go evaluator(ctx, cfg, clientset)
 			}
 			_, err = redisHelpers.Delete(context.Background(), pool, "concurrentMMFs")
 			if err != nil {
@@ -242,110 +240,95 @@ func main() {
 }
 
 // mmfunc generates a k8s job that runs the specified mmf container image.
-func mmfunc(ctx context.Context, profile string, cfg *viper.Viper, imageNames []string, clientset *kubernetes.Clientset, pool *redis.Pool) {
+// scID is the redis key that the Backend API is monitoring for results; we can 'short circuit' and write errors directly to this key if we can't run the MMF for some reason.
+func mmfunc(ctx context.Context, scID string, cfg *viper.Viper, clientset *kubernetes.Clientset, pool *redis.Pool) {
+
 	// Generate the various keys/names, some of which must be populated to the k8s job.
-	ids := strings.Split(profile, ".")
+	imageName := cfg.GetString("defaultImages.mmf.name") + ":" + cfg.GetString("defaultImages.mmf.tag")
+	jobType := "mmf"
+	ids := strings.Split(scID, ".") // scID comes in as dot-concatinated moID and profID.
 	moID := ids[0]
-	proID := ids[1]
+	profID := ids[1]
 	timestamp := strconv.Itoa(int(time.Now().Unix()))
-	jobName := timestamp + "." + moID + "." + proID + ".mmf"
+	jobName := timestamp + "." + moID + "." + profID + "." + jobType
+	propID := "proposal." + timestamp + "." + moID + "." + profID
+	rosterID := "roster." + timestamp + "." + moID + "." + profID
+	fsID := "filterset." + timestamp + "." + moID + "." + profID
 
-	// Read the full profile from redis and access any keys that are important to deciding how MMFs are run.
-	profile, err := redisHelpers.Retrieve(ctx, pool, proID)
-	if err != nil {
-		// Note that we couldn't read the profile, and try to run the mmf with default settings.
-		mmforcLog.WithFields(log.Fields{
-			"error":           err.Error(),
-			"jobName":         moID,
-			"profile":         proID,
-			"containerImages": imageNames,
-		}).Warn("Failure retreiving full profile from statestorage - attempting to run default mmf container")
-	} else {
-		profileImageNames := gjson.Get(profile, cfg.GetString("jsonkeys.mmfImages"))
-
-		// Got profile from state storage, make sure it is valid
-		if gjson.Valid(profile) && profileImageNames.Exists() {
-			switch profileImageNames.Type.String() {
-			case "String":
-				// case: only one image name at this key.
-				imageNames = []string{profileImageNames.String()}
-			case "JSON":
-				// case: Array of image names at this key.
-				// TODO: support multiple MMFs per profile.  Doing this will require that
-				// we generate an proposal ID and populate it to the env vars for each
-				// mmf, so they can each write a proposal for the same profile
-				// without stomping each other. (The evaluator would then be
-				// responsible for selecting the proposal to send to the backendapi)
-				imageNames = []string{}
-
-				// Pattern for iterating through a gjson.Result
-				// https://github.com/tidwall/gjson#iterate-through-an-object-or-array
-				profileImageNames.ForEach(func(_, name gjson.Result) bool {
-					// TODO: Swap these two lines when multiple image support is ready
-					// imageNames = append(imageNames, name.String())
-					imageNames = []string{name.String()}
-					return true
-				})
-				mmforcLog.WithFields(log.Fields{
-					"jobName":         moID,
-					"profile":         proID,
-					"containerImages": imageNames,
-				}).Warn("Profile specifies multiple MMF container images (NYI), running only the last image provided")
-			}
-		} else {
-			mmforcLog.WithFields(log.Fields{
-				"jobName":         moID,
-				"profile":         proID,
-				"containerImages": imageNames,
-			}).Warn("Profile JSON was invalid or did not contain a MMF container image name - attempting to run default mmf container")
+	// Extra fields for structured logging
+	lf := log.Fields{"jobName": jobName}
+	if cfg.GetBool("debug") { // Log a lot more info.
+		lf = log.Fields{
+			"jobType":             jobType,
+			"backendMatchObject":  moID,
+			"filterset":           fsID,
+			"profile":             profID,
+			"jobTimestamp":        timestamp,
+			"containerImage":      imageName,
+			"jobName":             jobName,
+			"profileImageJSONKey": cfg.GetString("jsonkeys.mmfImage"),
 		}
 	}
-	mmforcLog.WithFields(log.Fields{
-		"jobName":        moID,
-		"profile":        proID,
-		"containerImage": imageNames,
-	}).Info("Attempting to create mmf k8s job")
+	mmfuncLog := mmforcLog.WithFields(lf)
 
-	// Create Jobs
-	// TODO: Handle returned errors
-	// TODO: Support multiple MMFs per profile.
-	// NOTE: For now, always send this an array of length 1 specifying the
-	// single MMF container image name you want to run, until multi-mmf
-	// profiles are supported. If you send it more than one, you will get
-	// undefined (but definitely degenerate) behavior!
-	for imageIndex, imageName := range imageNames {
-		// Kick off Job with this image name
-		_ = submitJob(imageName, jobName+"."+strconv.Itoa(imageIndex), clientset)
-		if err != nil {
-			// Record failure & log
-			stats.Record(ctx, mmforcMmfFailures.M(1))
-			mmforcLog.WithFields(log.Fields{
-				"error":          err.Error(),
-				"jobName":        moID,
-				"profile":        proID,
-				"containerImage": imageName,
-			}).Error("MMF job submission failure!")
+	// Read the full profile from redis and access any keys that are important to deciding how MMFs are run.
+	profile, err := redisHelpers.Retrieve(ctx, pool, profID)
+	if err != nil {
+		// Log failure to read this profile and return - won't run an MMF for an unreadable profile.
+		mmfuncLog.WithFields(log.Fields{"error": err.Error()}).Error("Failure retreiving profile from statestorage")
+		return
+	}
+
+	// Got profile from state storage, make sure it is valid
+	if gjson.Valid(profile) {
+		profileImage := gjson.Get(profile, cfg.GetString("jsonkeys.mmfImage"))
+		if profileImage.Exists() {
+			imageName = profileImage.String()
+			mmfuncLog = mmfuncLog.WithFields(log.Fields{"containerImage": imageName})
 		} else {
-			// Record Success
-			stats.Record(ctx, mmforcMmfs.M(1))
+			mmfuncLog.Warn("Failed to read image name from profile at configured json key, using default image instead")
 		}
+	}
+	mmfuncLog.Info("Attempting to create mmf k8s job")
+
+	// Kick off k8s job
+	envvars := []apiv1.EnvVar{
+		{Name: "MMF_FILTERSET_ID", Value: fsID},
+		{Name: "MMF_PROFILE_ID", Value: profID},
+		{Name: "MMF_PROPOSAL_ID", Value: propID},
+		{Name: "MMF_REQUEST_ID", Value: moID},
+		{Name: "MMF_ROSTER_ID", Value: rosterID},
+		{Name: "MMF_SHORTCIRCUIT_MATCHOBJECT_ID", Value: scID},
+		{Name: "MMF_TIMESTAMP", Value: timestamp},
+	}
+	err = submitJob(clientset, jobType, jobName, imageName, envvars)
+	if err != nil {
+		// Record failure & log
+		stats.Record(ctx, mmforcMmfFailures.M(1))
+		mmfuncLog.WithFields(log.Fields{"error": err.Error()}).Error("MMF job submission failure!")
+	} else {
+		// Record Success
+		stats.Record(ctx, mmforcMmfs.M(1))
 	}
 }
 
 // evaluator generates a k8s job that runs the specified evaluator container image.
-func evaluator(ctx context.Context, cfg *viper.Viper, imageName string, clientset *kubernetes.Clientset) {
+func evaluator(ctx context.Context, cfg *viper.Viper, clientset *kubernetes.Clientset) {
+
+	imageName := cfg.GetString("defaultImages.evaluator.name") + ":" + cfg.GetString("defaultImages.evaluator.tag")
 	// Generate the job name
 	timestamp := strconv.Itoa(int(time.Now().Unix()))
-	jobName := timestamp + ".evaluator"
+	jobType := "evaluator"
+	jobName := timestamp + "." + jobType
 
 	mmforcLog.WithFields(log.Fields{
 		"jobName":        jobName,
 		"containerImage": imageName,
 	}).Info("Attempting to create evaluator k8s job")
 
-	// Create Job
-	// TODO: Handle returned errors
-	_ = submitJob(imageName, jobName, clientset)
+	// Kick off k8s job
+	envvars := []apiv1.EnvVar{{Name: "MMF_TIMESTAMP", Value: timestamp}}
+	err = submitJob(clientset, jobType, jobName, imageName, envvars)
 	if err != nil {
 		// Record failure & log
 		stats.Record(ctx, mmforcEvalFailures.M(1))
@@ -361,8 +344,46 @@ func evaluator(ctx context.Context, cfg *viper.Viper, imageName string, clientse
 }
 
 // submitJob submits a job to kubernetes
-func submitJob(imageName string, jobName string, clientset *kubernetes.Clientset) error {
-	job := generateJobSpec(jobName, imageName)
+func submitJob(clientset *kubernetes.Clientset, jobType string, jobName string, imageName string, envvars []apiv1.EnvVar) error {
+	//func submitJob(clientset *kubernetes.Clientset, jobType string, jobName string, imageName string, timestamp string, profID string, propID string, scID string) error {
+
+	// DEPRECATED: will be removed in a future vrsion.  Please switch to using the 'MMF_*' environment variables.
+	v := strings.Split(jobName, ".")
+	envvars = append(envvars, apiv1.EnvVar{Name: "PROFILE", Value: strings.Join(v[:len(v)-1], ".")})
+
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: jobName,
+		},
+		Spec: batchv1.JobSpec{
+			Completions: int32Ptr(1),
+			Template: apiv1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": jobType,
+					},
+					Annotations: map[string]string{
+						// Unused; here as an example.
+						// Later we can put things more complicated than
+						// env vars here and read them using k8s downward API
+						// volumes
+						"profile": jobName,
+					},
+				},
+				Spec: apiv1.PodSpec{
+					RestartPolicy: "Never",
+					Containers: []apiv1.Container{
+						{
+							Name:            jobType,
+							Image:           imageName,
+							ImagePullPolicy: "Always",
+							Env:             envvars,
+						},
+					},
+				},
+			},
+		},
+	}
 
 	// Get the namespace for the job from the current namespace, otherwise, use default
 	namespace := os.Getenv("METADATA_NAMESPACE")
@@ -385,63 +406,6 @@ func submitJob(imageName string, jobName string, clientset *kubernetes.Clientset
 	}).Info("Created job.")
 
 	return err
-}
-
-// generateJobSpec is a PoC to test that all the k8s job generation code works.
-// In the future we should be decoding into the client object using one of the
-// codecs on an input JSON, or piggyback on job templates.
-// https://github.com/kubernetes/client-go/issues/193
-func generateJobSpec(jobName string, imageName string) *batchv1.Job {
-
-	values := strings.Split(jobName, ".")
-
-	job := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: jobName,
-		},
-		Spec: batchv1.JobSpec{
-			Completions: int32Ptr(1),
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": values[3],
-					},
-					Annotations: map[string]string{
-						// Unused; here as an example.
-						// Later we can put things more complicated than
-						// env vars here and read them using k8s downward API
-						// volumes
-						"profile": "exampleprofile",
-					},
-				},
-				Spec: apiv1.PodSpec{
-					RestartPolicy: "Never",
-					Containers: []apiv1.Container{
-						{
-							Name:            values[3],
-							Image:           imageName,
-							ImagePullPolicy: "Always",
-							Env: []apiv1.EnvVar{
-								{
-									Name:  "OM_TIMESTAMP",
-									Value: values[0],
-								},
-								{
-									Name:  "OM_MATCHOBJECT_ID",
-									Value: values[1],
-								},
-								{
-									Name:  "OM_PROFILE_ID",
-									Value: values[2],
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	return job
 }
 
 // readability functions used by generateJobSpec

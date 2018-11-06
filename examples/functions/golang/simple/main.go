@@ -64,8 +64,10 @@ func main() {
 	// PROFILE is passed via the k8s downward API through an env set to jobName.
 	jobName := os.Getenv("PROFILE")
 	timestamp := os.Getenv("OM_TIMESTAMP")
-	moID := os.Getenv("OM_MATCHOBJECT_ID")
+	moID := os.Getenv("OM_PROPOSAL_ID")
 	profileKey := os.Getenv("OM_PROFILE_ID")
+	errorKey := os.Getenv("OM_SHORTCIRCUIT_MATCHOBJECT_ID")
+	rosterKey := os.Getenv("OM_ROSTER_ID")
 
 	fmt.Println("MMF request inserted at ", timestamp)
 	fmt.Println("Looking for profile in key", profileKey)
@@ -81,6 +83,7 @@ func main() {
 	// Redis key under which to store results
 	resultsKey := "proposal." + jobName
 	rosterKey := "roster." + jobName
+	shortcutKey := moID + "." + profileKey
 
 	// select players
 	const numPlayers = 8
