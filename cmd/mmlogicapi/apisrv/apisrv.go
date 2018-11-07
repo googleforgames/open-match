@@ -80,9 +80,6 @@ func New(cfg *viper.Viper, pool *redis.Pool) *MmlogicAPI {
 	return &s
 }
 
-func (s *MmlogicAPI) ReturnResults() {
-}
-
 // Open opens the api grpc service, starting it listening on the configured port.
 func (s *MmlogicAPI) Open() error {
 	ln, err := net.Listen("tcp", ":"+s.cfg.GetString("api.mmlogic.port"))
@@ -333,41 +330,60 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map
 	defer redisConn.Close()
 
 	// Get the count
-	count, err := redis.Int64(redisConn.Do("ZCOUNT", f.Field, f.Minv, f.Maxv))
+	cmd := "ZCOUNT"
+	count, err := redis.Int64(redisConn.Do(cmd, f.Field, f.Minv, f.Maxv))
+	countLog := mlLog.WithFields(log.Fields{
+		"query": cmd,
+		"field": f.Field,
+		"minv":  f.Minv,
+		"maxv":  f.Maxv,
+		"error": err.Error(),
+	})
+
+	// Cases where the redis query succeeded but we don't want to process
+	// the results.
+	// 500,000 results is an arbitrary number; OM doesn't encourage
+	// patterns where MMFs look at this large of a pool.
+	if err == nil && (count == 0 || count > 500000) {
+		err = errors.New("Number of player this filter applies to is either too large or too small, ignoring")
+	}
 	if err != nil {
-		panic(err)
-	} //TODO real error checking
-	if count < 100000 {
-		mlLog.WithFields(log.Fields{"count": count}).Info("Number of potential returns")
-	} else if count > 500000 {
-		mlLog.WithFields(log.Fields{"count": count}).Error("Number of potential returns is too large to run this filter!")
-		return nil, errors.New("Statestorage Failure: Number of potential returns is too large to run this filter!")
-	} else {
-		mlLog.WithFields(log.Fields{"count": count}).Warn("Number of potential returns is very large!")
+		countLog.WithFields(log.Fields{"error": err.Error()}).Error("statestorage error")
+		return nil, err
 	}
 
-	// Get the first set of results
-	pool, err := redis.Int64Map(redisConn.Do("ZRANGEBYSCORE", f.Field, f.Minv, f.Maxv, "WITHSCORES", "LIMIT", 0, s.cfg.GetInt("redis.queryArgs.count")))
-	if err != nil {
-		panic(err)
-	} //TODO real error checking
-	offset := s.cfg.GetInt("redis.queryArgs.count")
+	// Cases where we continue.
+	if count < 100000 {
+		mlLog.WithFields(log.Fields{"count": count}).Info("number of players this filter applies to")
+	} else {
+		// Send a warning to the logs.
+		mlLog.WithFields(log.Fields{"count": count}).Warn("number of players this filter applies to is very large")
+	}
 
-	mlLog.WithFields(log.Fields{
-		"offset":    offset,
-		"count":     count,
-		"len(pool)": len(pool),
-		"field":     f.Field,
-		"min_value": f.Minv,
-		"max_value": f.Maxv,
-	}).Info("Retreived some stuff from a Filter")
+	// Var init for player retrieval
+	cmd = "ZRANGEBYSCORE"
+	offset := 0
+	pool := make(map[string]int64)
 
+	// Loop, getting all other sets of results
 	for len(pool) == offset {
-		results, err := redis.Int64Map(redisConn.Do("ZRANGEBYSCORE", f.Field, f.Minv, f.Maxv, "WITHSCORES", "LIMIT", offset, s.cfg.GetInt("redis.queryArgs.count")))
-		offset = offset + s.cfg.GetInt("redis.queryArgs.count")
+		results, err := redis.Int64Map(redisConn.Do(cmd, f.Field, f.Minv, f.Maxv, "WITHSCORES", "LIMIT", offset, s.cfg.GetInt("redis.queryArgs.count")))
 		if err != nil {
-			mlLog.Error(err.Error())
+			mlLog.WithFields(log.Fields{
+				"query":  cmd,
+				"field":  f.Field,
+				"minv":   f.Minv,
+				"maxv":   f.Maxv,
+				"offset": offset,
+				"count":  s.cfg.GetInt("redis.queryArgs.count"),
+				"error":  err.Error(),
+			}).Error("statestorage error")
 		}
+
+		// Increment the offset for the next query by the 'count' config value
+		offset = offset + s.cfg.GetInt("redis.queryArgs.count")
+
+		// Add all results to this player pool
 		for k, v := range results {
 			if _, ok := pool[k]; ok {
 				// Redis returned the same player more than once; this is not
@@ -379,15 +395,14 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map
 			}
 			pool[k] = v
 		}
-		mlLog.WithFields(log.Fields{
-			"offset":    offset,
-			"count":     count,
-			"len(pool)": len(pool),
-			"field":     f.Field,
-			"min_value": f.Minv,
-			"max_value": f.Maxv,
-		}).Info("Retreived some stuff from a Filter")
 	}
+
+	mlLog.WithFields(log.Fields{
+		"poolSize": len(pool),
+		"field":    f.Field,
+		"minv":     f.Minv,
+		"maxv":     f.Maxv,
+	}).Info("Player pool filter processed")
 
 	return pool, nil
 }
@@ -395,7 +410,8 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map
 // GetPlayerPool is this service's implementation of the gRPC call defined in
 // mmlogicapi/proto/mmlogic.proto
 // API_GetPlayerPoolServer returns mutiple PlayerPool messages - they should
-// all be reassembled on the calling side, as they are just paginated results.
+// all be reassembled into one set on the calling side, as they are just
+// paginated subsets of the player pool.
 func (s *mmlogicAPI) GetPlayerPool(jfs *mmlogic.JsonFilterSet, stream mmlogic.API_GetPlayerPoolServer) error {
 
 	// Unmarshal the JSON version of the filter set to the protobuf message struct
@@ -407,36 +423,58 @@ func (s *mmlogicAPI) GetPlayerPool(jfs *mmlogic.JsonFilterSet, stream mmlogic.AP
 			"filterset": jfs.Id,
 		}).Error("Unable to parse JSON filter set")
 	}
+	mar := jsonpb.Marshaler{} // For later Marshalling fs back to a JSON string
 
 	// TODO: quit if context is cancelled
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// One working 'pool' per filter in the set.  Combined at the end.
 	filteredPools := make(map[string][]string)
+	// Temp store the results so we can also populate some field values in the final return roster.
 	filteredResults := make(map[string]map[string]int64)
 	overlap := make([]string, 0)
 
 	// Loop over all filters, get results, combine
-	// One simple optimization here would be to check the count returned by a
-	// ZCOUNT query for each filter before doing anything.  If any of the
-	// filters return a ZCOUNT of 0, then the logical AND of all filters will
-	// container no players and we can shortcircuit and quit.
 	for _, thisFilter := range fs.Filters {
 		f := thisFilter.FilterSpec
 
 		start := time.Now()
 		results, err := s.applyFilter(ctx, thisFilter)
+		thisFilter.FilterStat = &mmlogic.FilterStat{Count: int64(len(results)), Elapsed: time.Since(start).Seconds()}
 		if err != nil {
 			mlLog.WithFields(log.Fields{"error": err.Error(), "filterid": thisFilter.Id}).Debug("Error applying filter")
+
+			if len(results) == 0 {
+				// One simple optimization here: check the count returned by a
+				// ZCOUNT query for each filter before doing anything.  If any of the
+				// filters return a ZCOUNT of 0, then the logical AND of all filters will
+				// container no players and we can shortcircuit and quit.
+				mlLog.WithFields(log.Fields{"count": len(results), "filterid": thisFilter.Id}).Debug("This filter returned zero players. Skipping this pool...")
+				jfs.Json, err = mar.MarshalToString(&fs)
+				if err != nil {
+					mlLog.WithFields(log.Fields{"error": err.Error()}).Error("unable to marshal filterset to JSON")
+				}
+				poolChunk := &mmlogic.PlayerPool{
+					Id:            jfs.Id,
+					Count:         int64(len(results)),
+					JsonFilterSet: jfs,
+					Roster:        &mmlogic.Roster{},
+				}
+				if err = stream.Send(poolChunk); err != nil {
+					return err
+				}
+				return nil
+			}
+
 		}
-		thisFilter.FilterStat = &mmlogic.FilterStat{Count: int64(len(results)), Elapsed: time.Since(start).Seconds()}
 
 		// Make an array of only the player IDs; used to do unions and find the
 		// logical AND
 		m := make([]string, len(results))
 		i := 0
-		for playerId, _ := range results {
-			m[i] = playerId
+		for playerID := range results {
+			m[i] = playerID
 			i++
 		}
 
@@ -455,24 +493,43 @@ func (s *mmlogicAPI) GetPlayerPool(jfs *mmlogic.JsonFilterSet, stream mmlogic.AP
 		mlLog.WithFields(log.Fields{"field": field, "first10": overlap[:min(len(overlap), 10)]}).Debug("Sample of overlap")
 	}
 
-	// TODO: Need to get combined ignore list here and apply it
+	// Get contents of all ignore lists and remove those players from the pool.
 	il, err := s.allIgnoreLists(ctx, &mmlogic.IlInput{})
 	if err != nil {
 		mlLog.Error(err)
 	}
-	pool := intersection(il, overlap)
+	pool := difference(overlap, il) // removes ignorelist from the pool
+	mlLog.WithFields(log.Fields{"count": len(overlap)}).Debug("Overlap size")
+	mlLog.WithFields(log.Fields{"count": len(il)}).Debug("Ignorelist size")
+	mlLog.WithFields(log.Fields{"count": len(pool)}).Debug("Pool size")
 
-	// TODO: create the final PlayerPool out of the overlapping Player IDs and
-	// the values of all their fields from the filteredResults map.  Should go
-	// ahead and send the chunks as we iterate.
-	// This is pretty agressive in the chunk sizes it sends, and that is
-	// partially because it assumes you're running everything on a local
-	// network.
+	// Create the final PlayerPool out of the overlapping Player IDs and
+	// the values of all their fields from the filteredResults map, sending the
+	// results in pages as we iterate.  This is pretty agressive in the page
+	// sizes it sends, and that is partially because it assumes you're running
+	// everything on a local network.  If you aren't, you may need to tune this
+	// pageSize.
 	pageSize := s.cfg.GetInt("redis.results.pageSize")
 	pageCount := int(math.Ceil((float64(len(pool)) / float64(pageSize)))) // Divides and rounds up on any remainder
 	poolRoster := mmlogic.Roster{Id: fmt.Sprintf("%v.poolRoster", jfs.Id), FilterSet: &fs}
+
+	// Write out new JSON FilterSet with the FilterStats populated.
+	jfs.Json, err = mar.MarshalToString(&fs)
+	if err != nil {
+		mlLog.WithFields(log.Fields{"error": err.Error()}).Error("unable to marshal filterset to JSON")
+	}
+
 	for i := 0; i < len(pool); i++ {
-		poolRoster.Players = append(poolRoster.Players, &mmlogic.Player{Id: pool[i]})
+		pID := pool[i]
+		player := &mmlogic.Player{Id: pID, Properties: []*mmlogic.Property{}}
+
+		// Loop through all results for all filtered fields, and add those values to this player
+		for field, fr := range filteredResults {
+			if value, ok := fr[pID]; ok {
+				player.Properties = append(player.Properties, &mmlogic.Property{Name: field, Value: value})
+			}
+		}
+		poolRoster.Players = append(poolRoster.Players, player)
 
 		if i%pageSize == 0 {
 			pageName := fmt.Sprintf("%v.page%v%v", jfs.Id, i/pageSize, pageCount)
@@ -488,6 +545,7 @@ func (s *mmlogicAPI) GetPlayerPool(jfs *mmlogic.JsonFilterSet, stream mmlogic.AP
 			poolRoster.Players = []*mmlogic.Player{}
 		}
 	}
+	mlLog.WithFields(log.Fields{"count": len(overlap), "pool": jfs.Id}).Debug("Player pool streaming complete")
 
 	return nil
 }
@@ -552,6 +610,11 @@ func (s *mmlogicAPI) GetCombinedIgnoreList(c context.Context, in *mmlogic.IlInpu
 	return createRosterfromPlayerIds(il), err
 }
 
+// ReturnResults is this service's implementation of the gRPC call defined in
+// mmlogicapi/proto/mmlogic.proto
+func (s *MmlogicAPI) ReturnResults() {
+}
+
 func (s *mmlogicAPI) allIgnoreLists(c context.Context, in *mmlogic.IlInput) (allIgnored []string, err error) {
 
 	// Get redis connection from pool
@@ -562,7 +625,7 @@ func (s *mmlogicAPI) allIgnoreLists(c context.Context, in *mmlogic.IlInput) (all
 	funcName := "allIgnoreLists"
 
 	for _, il := range s.cfg.GetStringMapString("ignoreLists") {
-		mlLog.Info(funcName, " Found IL named ", il)
+		mlLog.Debug(funcName, " Found IL named ", il)
 		thisIl, err := ignorelist.Retrieve(redisConn, il, time.Now().Unix())
 		if err != nil {
 			panic(err)
@@ -611,12 +674,35 @@ func union(a []string, b []string) (out []string) {
 	}
 
 	// put values into string array
-	for k, _ := range hash {
+	for k := range hash {
 		out = append(out, k)
 	}
 
 	return out
 
+}
+
+func difference(a []string, b []string) (out []string) {
+
+	hash := make(map[string]bool)
+	out = append([]string{}, a...)
+
+	for _, v := range b {
+		hash[v] = true
+	}
+
+	// Iterate through output, removing items found in b
+	for i := 0; i < len(out); i++ {
+		if _, found := hash[out[i]]; found {
+			// Remove this element by moving the copying the last element of the
+			// array to this index and then slicing off the last element.
+			// https://stackoverflow.com/a/37335777/3113674
+			out[i] = out[len(out)-1]
+			out = out[:len(out)-1]
+		}
+	}
+
+	return out
 }
 
 func getPlayerIdsFromRoster(r *mmlogic.Roster) []string {
