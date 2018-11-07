@@ -15,6 +15,9 @@
 //
 syntax = 'proto3';
 
+// Most of the protobuf messages sent in the gRPC calls are defined 'om_messages.proto'.
+import 'om_messages.proto';
+
 service API {
   // Calls to ask the matchmaker to run a matchmaking function.
   //
@@ -41,36 +44,12 @@ service API {
   rpc DeleteAssignments(Roster) returns (Result) {}
 }
 
-// Data structure for a profile to pass to the matchmaking function.
-message Profile{
-  string id = 1;            // By convention, the CRC32 of the properties string.
-  string properties = 2;    // By convention, a JSON-encoded string
-}
-
-// Data structure for all the properties of a match. 
-message MatchObject{
-  string id = 1;            // By convention, a UUID
-  string properties = 2;    // By convention, a JSON-encoded string
-  Roster roster = 3;        // NYI
-}
-
-// Simple message to return success/failure and error status.
-message Result{
-    bool success = 1;
-    string error = 2;
-}
-
-// Data structure to hold a list of players in a match.
-message Roster{
-    string player_ids = 1;  // By convention, a space-delimited list of player IDs
-}
-
 // Simple message used to pass the connection string for the DGS to the player. 
 message ConnectionInfo{
     string connection_string = 1;   // Passed by the matchmaker to game clients without modification. 
 }
 
 message Assignments{
-    Roster roster = 1;
+    repeated Roster rosters = 1;
     ConnectionInfo connection_info = 2;
 }

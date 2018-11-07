@@ -2,11 +2,14 @@
 import grpc
 
 import mmlogic_pb2 as mmlogic__pb2
+import om_messages_pb2 as om__messages__pb2
 
 
 class APIStub(object):
-  # missing associated documentation comment in .proto file
-  pass
+  """Profile and match object functions
+  If your matchmaking logic makes a group, it should CreateProposal.  If it 
+  cannot make a group, it should ReturnError.  
+  """
 
   def __init__(self, channel):
     """Constructor.
@@ -16,71 +19,54 @@ class APIStub(object):
     """
     self.GetProfile = channel.unary_unary(
         '/API/GetProfile',
-        request_serializer=mmlogic__pb2.Profile.SerializeToString,
-        response_deserializer=mmlogic__pb2.Profile.FromString,
-        )
-    self.GetProposal = channel.unary_unary(
-        '/API/GetProposal',
-        request_serializer=mmlogic__pb2.MatchObject.SerializeToString,
-        response_deserializer=mmlogic__pb2.MatchObject.FromString,
+        request_serializer=om__messages__pb2.Profile.SerializeToString,
+        response_deserializer=om__messages__pb2.Profile.FromString,
         )
     self.CreateProposal = channel.unary_unary(
         '/API/CreateProposal',
-        request_serializer=mmlogic__pb2.MMFResults.SerializeToString,
-        response_deserializer=mmlogic__pb2.Result.FromString,
+        request_serializer=om__messages__pb2.MatchObject.SerializeToString,
+        response_deserializer=om__messages__pb2.Result.FromString,
         )
-    self.ListPlayers = channel.unary_unary(
-        '/API/ListPlayers',
-        request_serializer=mmlogic__pb2.Filter.SerializeToString,
-        response_deserializer=mmlogic__pb2.Roster.FromString,
+    self.ReturnError = channel.unary_unary(
+        '/API/ReturnError',
+        request_serializer=om__messages__pb2.Result.SerializeToString,
+        response_deserializer=om__messages__pb2.Result.FromString,
         )
     self.GetPlayerPool = channel.unary_stream(
         '/API/GetPlayerPool',
-        request_serializer=mmlogic__pb2.JsonFilterSet.SerializeToString,
-        response_deserializer=mmlogic__pb2.PlayerPool.FromString,
+        request_serializer=om__messages__pb2.PlayerPool.SerializeToString,
+        response_deserializer=om__messages__pb2.PlayerPool.FromString,
+        )
+    self.GetAllIgnoredPlayers = channel.unary_unary(
+        '/API/GetAllIgnoredPlayers',
+        request_serializer=mmlogic__pb2.IlInput.SerializeToString,
+        response_deserializer=om__messages__pb2.Roster.FromString,
         )
     self.ListIgnoredPlayers = channel.unary_unary(
         '/API/ListIgnoredPlayers',
         request_serializer=mmlogic__pb2.Timestamp.SerializeToString,
-        response_deserializer=mmlogic__pb2.Roster.FromString,
-        )
-    self.GetCombinedIgnoreList = channel.unary_unary(
-        '/API/GetCombinedIgnoreList',
-        request_serializer=mmlogic__pb2.IlInput.SerializeToString,
-        response_deserializer=mmlogic__pb2.Roster.FromString,
+        response_deserializer=om__messages__pb2.Roster.FromString,
         )
 
 
 class APIServicer(object):
-  # missing associated documentation comment in .proto file
-  pass
+  """Profile and match object functions
+  If your matchmaking logic makes a group, it should CreateProposal.  If it 
+  cannot make a group, it should ReturnError.  
+  """
 
   def GetProfile(self, request, context):
-    """Profile and match object functions
-    If your matchmaking logic makes a group, it should either make a Proposal
-    or a Match Object (but only one of the two).  For more details about which
-    you should create, refer to the documentation. 
-
-    Send GetProfile an profile ID with an empty properties field, it will return a 'filled' one.
-    Note that the filtersets are assumed to be checked by the backendapi
-    when accepting a profile: the mmlogic api will choke on filter set JSON
-    that the jsonpb module can't unmarshal to the FilterSet protobuf message!
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def GetProposal(self, request, context):
-    """rpc GetFilterSet(FilterSet) returns (FilterSet) {}
-    rpc CreateFilterSet(JsonFilter) returns (FilterSet) {}
+    """Send GetProfile an profile with the ID field populated, it will return a
+    'filled' one.
+    Note: filters are assumed to have been checked for validity by the
+    backendapi  when accepting a profile
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def CreateProposal(self, request, context):
-    """
-    CreateProposal  does the following:
+    """CreateProposal  does the following:
     - adds all players in the Roster to the proposed player ignore list
     - writes the proposed match to the provided key
     - adds that key to the list of proposals to be considered
@@ -89,40 +75,38 @@ class APIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def ListPlayers(self, request, context):
-    """TODO: fix args
-    rpc UpdateConcurrentMMFCounter(Result) returns (Result) {} 
-
-    Player listing and filtering functions
-
-    """
+  def ReturnError(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetPlayerPool(self, request, context):
-    """RetrievePlayerPool runs ListFilteredPlayers for every Filter in the input FilterSet, and then
-    removes all players returned by a call to RetrieveCombinedIgnoreList.  It returns the resulting 
-    player pool.
+    """Player listing and filtering functions
+
+    RetrievePlayerPool gets the list of players for every Filter in the
+    PlayerPool, and then removes all players it finds in the ignore list.  It
+    combines the results, and returns the resulting player pool.
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetAllIgnoredPlayers(self, request, context):
+    """Ignore List functions
+
+    IlInput is an empty message reserved for future use.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def ListIgnoredPlayers(self, request, context):
-    """Ignore List functions
-
-    RetrieveIgnoreList retrieves players from the
+    """RetrieveIgnoreList retrieves players from the
     'ignoreLists.proposedPlayers' ignore list specified in the config file
     that were placed on the list before the provided timestamp.  To retrieve
     all players on the list, provide the current time as the timestamp.
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def GetCombinedIgnoreList(self, request, context):
-    """
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -133,38 +117,33 @@ def add_APIServicer_to_server(servicer, server):
   rpc_method_handlers = {
       'GetProfile': grpc.unary_unary_rpc_method_handler(
           servicer.GetProfile,
-          request_deserializer=mmlogic__pb2.Profile.FromString,
-          response_serializer=mmlogic__pb2.Profile.SerializeToString,
-      ),
-      'GetProposal': grpc.unary_unary_rpc_method_handler(
-          servicer.GetProposal,
-          request_deserializer=mmlogic__pb2.MatchObject.FromString,
-          response_serializer=mmlogic__pb2.MatchObject.SerializeToString,
+          request_deserializer=om__messages__pb2.Profile.FromString,
+          response_serializer=om__messages__pb2.Profile.SerializeToString,
       ),
       'CreateProposal': grpc.unary_unary_rpc_method_handler(
           servicer.CreateProposal,
-          request_deserializer=mmlogic__pb2.MMFResults.FromString,
-          response_serializer=mmlogic__pb2.Result.SerializeToString,
+          request_deserializer=om__messages__pb2.MatchObject.FromString,
+          response_serializer=om__messages__pb2.Result.SerializeToString,
       ),
-      'ListPlayers': grpc.unary_unary_rpc_method_handler(
-          servicer.ListPlayers,
-          request_deserializer=mmlogic__pb2.Filter.FromString,
-          response_serializer=mmlogic__pb2.Roster.SerializeToString,
+      'ReturnError': grpc.unary_unary_rpc_method_handler(
+          servicer.ReturnError,
+          request_deserializer=om__messages__pb2.Result.FromString,
+          response_serializer=om__messages__pb2.Result.SerializeToString,
       ),
       'GetPlayerPool': grpc.unary_stream_rpc_method_handler(
           servicer.GetPlayerPool,
-          request_deserializer=mmlogic__pb2.JsonFilterSet.FromString,
-          response_serializer=mmlogic__pb2.PlayerPool.SerializeToString,
+          request_deserializer=om__messages__pb2.PlayerPool.FromString,
+          response_serializer=om__messages__pb2.PlayerPool.SerializeToString,
+      ),
+      'GetAllIgnoredPlayers': grpc.unary_unary_rpc_method_handler(
+          servicer.GetAllIgnoredPlayers,
+          request_deserializer=mmlogic__pb2.IlInput.FromString,
+          response_serializer=om__messages__pb2.Roster.SerializeToString,
       ),
       'ListIgnoredPlayers': grpc.unary_unary_rpc_method_handler(
           servicer.ListIgnoredPlayers,
           request_deserializer=mmlogic__pb2.Timestamp.FromString,
-          response_serializer=mmlogic__pb2.Roster.SerializeToString,
-      ),
-      'GetCombinedIgnoreList': grpc.unary_unary_rpc_method_handler(
-          servicer.GetCombinedIgnoreList,
-          request_deserializer=mmlogic__pb2.IlInput.FromString,
-          response_serializer=mmlogic__pb2.Roster.SerializeToString,
+          response_serializer=om__messages__pb2.Roster.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

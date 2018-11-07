@@ -1,141 +1,46 @@
 syntax = 'proto3';
 
+// Most of the protobuf messages sent in the gRPC calls are defined 'om_messages.proto'.
+import 'om_messages.proto';
+
 service API {
   // Profile and match object functions
-  // If your matchmaking logic makes a group, it should either make a Proposal
-  // or a Match Object (but only one of the two).  For more details about which
-  // you should create, refer to the documentation. 
-  //
-  // Send GetProfile an profile ID with an empty properties field, it will return a 'filled' one.
-  //  Note that the filtersets are assumed to be checked by the backendapi
-  //  when accepting a profile: the mmlogic api will choke on filter set JSON
-  //  that the jsonpb module can't unmarshal to the FilterSet protobuf message!
+  // If your matchmaking logic makes a group, it should CreateProposal.  If it 
+  // cannot make a group, it should ReturnError.  
+
+  //  Send GetProfile an profile with the ID field populated, it will return a
+  //  'filled' one.
+  //  Note: filters are assumed to have been checked for validity by the
+  //  backendapi  when accepting a profile
   rpc GetProfile(Profile) returns (Profile) {}
-  //rpc GetFilterSet(FilterSet) returns (FilterSet) {}
-  //rpc CreateFilterSet(JsonFilter) returns (FilterSet) {}
-  rpc GetProposal(MatchObject) returns (MatchObject) {}
-  //
+
   // CreateProposal  does the following:
   //  - adds all players in the Roster to the proposed player ignore list
   //  - writes the proposed match to the provided key
   //  - adds that key to the list of proposals to be considered
-  rpc CreateProposal(MMFResults) returns (Result) {}
-  //
-  //  CreateResults does the following:
-  //  - adds all players in the Roster to the deindexed player ignore list
-  //  - kicks off a lazy deindex of all players in the Roster
-  //  - writes the match to the provided key
-  //rpc ReturnResults(MMFResults) returns (Result) {}
-
-  // TODO: fix args
-  //rpc UpdateConcurrentMMFCounter(Result) returns (Result) {} 
+  rpc CreateProposal(MatchObject) returns (Result) {}
+  rpc ReturnError(Result) returns (Result) {}
 
   // Player listing and filtering functions
   //
-  rpc ListPlayers(Filter) returns (Roster) {}
-  // RetrievePlayerPool runs ListFilteredPlayers for every Filter in the input FilterSet, and then
-  // removes all players returned by a call to RetrieveCombinedIgnoreList.  It returns the resulting 
-  // player pool.
-  rpc GetPlayerPool(JsonFilterSet) returns (stream PlayerPool) {}
+  // RetrievePlayerPool gets the list of players for every Filter in the
+  // PlayerPool, and then removes all players it finds in the ignore list.  It
+  // combines the results, and returns the resulting player pool.
+  rpc GetPlayerPool(PlayerPool) returns (stream PlayerPool) {}
 
   // Ignore List functions
   //
+  // IlInput is an empty message reserved for future use.
+  rpc GetAllIgnoredPlayers(IlInput) returns (Roster) {}
   // RetrieveIgnoreList retrieves players from the
   // 'ignoreLists.proposedPlayers' ignore list specified in the config file
   // that were placed on the list before the provided timestamp.  To retrieve
   // all players on the list, provide the current time as the timestamp.
   rpc ListIgnoredPlayers(Timestamp) returns (Roster) {}
-  // 
-  rpc GetCombinedIgnoreList(IlInput) returns (Roster) {}
-}
-// Proposals are the proposed match object and roster.
-message MMFResults{
-    string id = 1;                  // Set this to the value of MMF_PROPOSAL_ID env var sent to the MMF
-    MatchObject matchobject = 2;
-    Roster roster = 3;
 }
 
-// Data structure for all the properties of a match. 
-message MatchObject{
-  string id = 1;            // Set this to the value of MMF_SHORTCIRCUIT_MATCHOBJECT_ID env var sent to the MMF 
-  string properties = 2;    // By convention, a JSON-encoded string
-}
-
-// Data structure to hold a list of players in a match.
-message Roster{
-    string id = 1;                   // Set this to the value of MMF_ROSTER_ID env var sent to the MMF
-    repeated Player players = 2;     // Player profiles 
-    FilterSet filter_set = 3;        // Set of filters applied to the population to get the pool considered for this roster
-}
-
-// Simple message to return success/failure and error status.
-message Result{
-    bool success = 1;
-    string error = 2;
-}
-
-// Data structure for a profile to pass to the matchmaking function.
-message Profile{
-  string id = 1;            // By convention, the CRC32 of the properties string.
-  string properties = 2;    // By convention, a JSON-encoded string
-  FilterSet filterset = 3;
-}
-
-// Empty Message, but defining something so we can add fields without breaking backwards compatibility 
+// IlInput is an empty message reserved for future use.
 message IlInput{
-}
-
-////////////////////////////////////////// 
-// Filter messages
-////////////////////////////////////////// 
-
-// Set of filters to apply to the player pool.
-message FilterSet{
-    string id = 1;                  // Name of the filter set. By convention, set to your player pool name. 
-    repeated Filter filters = 2;    // All filters in the set are logical AND-ed (a player must match every filter to be returned).
-}
-
-// A filter to apply to the player pool.
-message Filter{
-    string id = 1;                  // Used to identify this Filter in metrics output.  Use something descriptive!
-    FilterSpec filter_spec = 2;   // INPUT: You must fill in the filter specs to make a filter.
-    FilterStat filter_stat = 3;   // OUTPUT: Once a filter has been applied, this will be populated with information.
-}
-
-message FilterSpec{
-    string field = 1;     // REQUIRED: This filter operates on this field in the player info. 
-    int64 minv = 2;       // OPTIONAL: Minimum value.  Defaults to 0.  
-    int64 maxv = 3;       // OPTIONAL: Maximum value.  Defaults to +inf.
-}
-
-message FilterStat{
-    int64 count = 1;      // OUTPUT: Number of players that matched the filter.
-    double elapsed = 2;   // OUTPUT: How long this filter statestorage query took.
-}
-
-// JSON representation of a FilterSet.  Must be able to be read by golang's jsonpb.UnmarshalString()
-message JsonFilterSet{
-    string id = 1;
-    string json = 2;
-}
-
-// Keep sending until no more to send, then close channel
-message PlayerPool{
-    string id = 1;
-    int64 count = 2;
-    Roster roster = 3;
-    JsonFilterSet json_filter_set = 4;
-}
-
-// Data structure for a profile to pass to the matchmaking function.
-message Player{
-  string id = 1;            // By convention, a UUID 
-  repeated Property properties = 2;
-}
-
-message Property{
-  string name = 1;
-  int64 value = 2;          // The value for this property 
 }
 
 // Epoch timestamp in seconds.

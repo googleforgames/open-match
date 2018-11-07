@@ -12,6 +12,7 @@ from google.protobuf import symbol_database as _symbol_database
 _sym_db = _symbol_database.Default()
 
 
+import om_messages_pb2 as om__messages__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
@@ -19,221 +20,11 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\rmmlogic.proto\"T\n\nMMFResults\x12\n\n\x02id\x18\x01 \x01(\t\x12!\n\x0bmatchobject\x18\x02 \x01(\x0b\x32\x0c.MatchObject\x12\x17\n\x06roster\x18\x03 \x01(\x0b\x32\x07.Roster\"-\n\x0bMatchObject\x12\n\n\x02id\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x01(\t\"N\n\x06Roster\x12\n\n\x02id\x18\x01 \x01(\t\x12\x18\n\x07players\x18\x02 \x03(\x0b\x32\x07.Player\x12\x1e\n\nfilter_set\x18\x03 \x01(\x0b\x32\n.FilterSet\"(\n\x06Result\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"H\n\x07Profile\x12\n\n\x02id\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x01(\t\x12\x1d\n\tfilterset\x18\x03 \x01(\x0b\x32\n.FilterSet\"\t\n\x07IlInput\"1\n\tFilterSet\x12\n\n\x02id\x18\x01 \x01(\t\x12\x18\n\x07\x66ilters\x18\x02 \x03(\x0b\x32\x07.Filter\"X\n\x06\x46ilter\x12\n\n\x02id\x18\x01 \x01(\t\x12 \n\x0b\x66ilter_spec\x18\x02 \x01(\x0b\x32\x0b.FilterSpec\x12 \n\x0b\x66ilter_stat\x18\x03 \x01(\x0b\x32\x0b.FilterStat\"7\n\nFilterSpec\x12\r\n\x05\x66ield\x18\x01 \x01(\t\x12\x0c\n\x04minv\x18\x02 \x01(\x03\x12\x0c\n\x04maxv\x18\x03 \x01(\x03\",\n\nFilterStat\x12\r\n\x05\x63ount\x18\x01 \x01(\x03\x12\x0f\n\x07\x65lapsed\x18\x02 \x01(\x01\")\n\rJsonFilterSet\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04json\x18\x02 \x01(\t\"i\n\nPlayerPool\x12\n\n\x02id\x18\x01 \x01(\t\x12\r\n\x05\x63ount\x18\x02 \x01(\x03\x12\x17\n\x06roster\x18\x03 \x01(\x0b\x32\x07.Roster\x12\'\n\x0fjson_filter_set\x18\x04 \x01(\x0b\x32\x0e.JsonFilterSet\"3\n\x06Player\x12\n\n\x02id\x18\x01 \x01(\t\x12\x1d\n\nproperties\x18\x02 \x03(\x0b\x32\t.Property\"\'\n\x08Property\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03\"\x17\n\tTimestamp\x12\n\n\x02ts\x18\x01 \x01(\x03\x32\xb0\x02\n\x03\x41PI\x12\"\n\nGetProfile\x12\x08.Profile\x1a\x08.Profile\"\x00\x12+\n\x0bGetProposal\x12\x0c.MatchObject\x1a\x0c.MatchObject\"\x00\x12(\n\x0e\x43reateProposal\x12\x0b.MMFResults\x1a\x07.Result\"\x00\x12!\n\x0bListPlayers\x12\x07.Filter\x1a\x07.Roster\"\x00\x12\x30\n\rGetPlayerPool\x12\x0e.JsonFilterSet\x1a\x0b.PlayerPool\"\x00\x30\x01\x12+\n\x12ListIgnoredPlayers\x12\n.Timestamp\x1a\x07.Roster\"\x00\x12,\n\x15GetCombinedIgnoreList\x12\x08.IlInput\x1a\x07.Roster\"\x00\x62\x06proto3')
-)
+  serialized_pb=_b('\n\rmmlogic.proto\x1a\x11om_messages.proto\"\t\n\x07IlInput\"\x17\n\tTimestamp\x12\n\n\x02ts\x18\x01 \x01(\x03\x32\x80\x02\n\x03\x41PI\x12\"\n\nGetProfile\x12\x08.Profile\x1a\x08.Profile\"\x00\x12)\n\x0e\x43reateProposal\x12\x0c.MatchObject\x1a\x07.Result\"\x00\x12!\n\x0bReturnError\x12\x07.Result\x1a\x07.Result\"\x00\x12-\n\rGetPlayerPool\x12\x0b.PlayerPool\x1a\x0b.PlayerPool\"\x00\x30\x01\x12+\n\x14GetAllIgnoredPlayers\x12\x08.IlInput\x1a\x07.Roster\"\x00\x12+\n\x12ListIgnoredPlayers\x12\n.Timestamp\x1a\x07.Roster\"\x00\x62\x06proto3')
+  ,
+  dependencies=[om__messages__pb2.DESCRIPTOR,])
 
 
-
-
-_MMFRESULTS = _descriptor.Descriptor(
-  name='MMFResults',
-  full_name='MMFResults',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='id', full_name='MMFResults.id', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='matchobject', full_name='MMFResults.matchobject', index=1,
-      number=2, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='roster', full_name='MMFResults.roster', index=2,
-      number=3, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=17,
-  serialized_end=101,
-)
-
-
-_MATCHOBJECT = _descriptor.Descriptor(
-  name='MatchObject',
-  full_name='MatchObject',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='id', full_name='MatchObject.id', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='properties', full_name='MatchObject.properties', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=103,
-  serialized_end=148,
-)
-
-
-_ROSTER = _descriptor.Descriptor(
-  name='Roster',
-  full_name='Roster',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='id', full_name='Roster.id', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='players', full_name='Roster.players', index=1,
-      number=2, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='filter_set', full_name='Roster.filter_set', index=2,
-      number=3, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=150,
-  serialized_end=228,
-)
-
-
-_RESULT = _descriptor.Descriptor(
-  name='Result',
-  full_name='Result',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='success', full_name='Result.success', index=0,
-      number=1, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='error', full_name='Result.error', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=230,
-  serialized_end=270,
-)
-
-
-_PROFILE = _descriptor.Descriptor(
-  name='Profile',
-  full_name='Profile',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='id', full_name='Profile.id', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='properties', full_name='Profile.properties', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='filterset', full_name='Profile.filterset', index=2,
-      number=3, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=272,
-  serialized_end=344,
-)
 
 
 _ILINPUT = _descriptor.Descriptor(
@@ -255,340 +46,8 @@ _ILINPUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=346,
-  serialized_end=355,
-)
-
-
-_FILTERSET = _descriptor.Descriptor(
-  name='FilterSet',
-  full_name='FilterSet',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='id', full_name='FilterSet.id', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='filters', full_name='FilterSet.filters', index=1,
-      number=2, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=357,
-  serialized_end=406,
-)
-
-
-_FILTER = _descriptor.Descriptor(
-  name='Filter',
-  full_name='Filter',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='id', full_name='Filter.id', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='filter_spec', full_name='Filter.filter_spec', index=1,
-      number=2, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='filter_stat', full_name='Filter.filter_stat', index=2,
-      number=3, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=408,
-  serialized_end=496,
-)
-
-
-_FILTERSPEC = _descriptor.Descriptor(
-  name='FilterSpec',
-  full_name='FilterSpec',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='field', full_name='FilterSpec.field', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='minv', full_name='FilterSpec.minv', index=1,
-      number=2, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='maxv', full_name='FilterSpec.maxv', index=2,
-      number=3, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=498,
-  serialized_end=553,
-)
-
-
-_FILTERSTAT = _descriptor.Descriptor(
-  name='FilterStat',
-  full_name='FilterStat',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='count', full_name='FilterStat.count', index=0,
-      number=1, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='elapsed', full_name='FilterStat.elapsed', index=1,
-      number=2, type=1, cpp_type=5, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=555,
-  serialized_end=599,
-)
-
-
-_JSONFILTERSET = _descriptor.Descriptor(
-  name='JsonFilterSet',
-  full_name='JsonFilterSet',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='id', full_name='JsonFilterSet.id', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='json', full_name='JsonFilterSet.json', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=601,
-  serialized_end=642,
-)
-
-
-_PLAYERPOOL = _descriptor.Descriptor(
-  name='PlayerPool',
-  full_name='PlayerPool',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='id', full_name='PlayerPool.id', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='count', full_name='PlayerPool.count', index=1,
-      number=2, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='roster', full_name='PlayerPool.roster', index=2,
-      number=3, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='json_filter_set', full_name='PlayerPool.json_filter_set', index=3,
-      number=4, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=644,
-  serialized_end=749,
-)
-
-
-_PLAYER = _descriptor.Descriptor(
-  name='Player',
-  full_name='Player',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='id', full_name='Player.id', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='properties', full_name='Player.properties', index=1,
-      number=2, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=751,
-  serialized_end=802,
-)
-
-
-_PROPERTY = _descriptor.Descriptor(
-  name='Property',
-  full_name='Property',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='name', full_name='Property.name', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='value', full_name='Property.value', index=1,
-      number=2, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=804,
-  serialized_end=843,
+  serialized_start=36,
+  serialized_end=45,
 )
 
 
@@ -618,72 +77,13 @@ _TIMESTAMP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=845,
-  serialized_end=868,
+  serialized_start=47,
+  serialized_end=70,
 )
 
-_MMFRESULTS.fields_by_name['matchobject'].message_type = _MATCHOBJECT
-_MMFRESULTS.fields_by_name['roster'].message_type = _ROSTER
-_ROSTER.fields_by_name['players'].message_type = _PLAYER
-_ROSTER.fields_by_name['filter_set'].message_type = _FILTERSET
-_PROFILE.fields_by_name['filterset'].message_type = _FILTERSET
-_FILTERSET.fields_by_name['filters'].message_type = _FILTER
-_FILTER.fields_by_name['filter_spec'].message_type = _FILTERSPEC
-_FILTER.fields_by_name['filter_stat'].message_type = _FILTERSTAT
-_PLAYERPOOL.fields_by_name['roster'].message_type = _ROSTER
-_PLAYERPOOL.fields_by_name['json_filter_set'].message_type = _JSONFILTERSET
-_PLAYER.fields_by_name['properties'].message_type = _PROPERTY
-DESCRIPTOR.message_types_by_name['MMFResults'] = _MMFRESULTS
-DESCRIPTOR.message_types_by_name['MatchObject'] = _MATCHOBJECT
-DESCRIPTOR.message_types_by_name['Roster'] = _ROSTER
-DESCRIPTOR.message_types_by_name['Result'] = _RESULT
-DESCRIPTOR.message_types_by_name['Profile'] = _PROFILE
 DESCRIPTOR.message_types_by_name['IlInput'] = _ILINPUT
-DESCRIPTOR.message_types_by_name['FilterSet'] = _FILTERSET
-DESCRIPTOR.message_types_by_name['Filter'] = _FILTER
-DESCRIPTOR.message_types_by_name['FilterSpec'] = _FILTERSPEC
-DESCRIPTOR.message_types_by_name['FilterStat'] = _FILTERSTAT
-DESCRIPTOR.message_types_by_name['JsonFilterSet'] = _JSONFILTERSET
-DESCRIPTOR.message_types_by_name['PlayerPool'] = _PLAYERPOOL
-DESCRIPTOR.message_types_by_name['Player'] = _PLAYER
-DESCRIPTOR.message_types_by_name['Property'] = _PROPERTY
 DESCRIPTOR.message_types_by_name['Timestamp'] = _TIMESTAMP
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
-
-MMFResults = _reflection.GeneratedProtocolMessageType('MMFResults', (_message.Message,), dict(
-  DESCRIPTOR = _MMFRESULTS,
-  __module__ = 'mmlogic_pb2'
-  # @@protoc_insertion_point(class_scope:MMFResults)
-  ))
-_sym_db.RegisterMessage(MMFResults)
-
-MatchObject = _reflection.GeneratedProtocolMessageType('MatchObject', (_message.Message,), dict(
-  DESCRIPTOR = _MATCHOBJECT,
-  __module__ = 'mmlogic_pb2'
-  # @@protoc_insertion_point(class_scope:MatchObject)
-  ))
-_sym_db.RegisterMessage(MatchObject)
-
-Roster = _reflection.GeneratedProtocolMessageType('Roster', (_message.Message,), dict(
-  DESCRIPTOR = _ROSTER,
-  __module__ = 'mmlogic_pb2'
-  # @@protoc_insertion_point(class_scope:Roster)
-  ))
-_sym_db.RegisterMessage(Roster)
-
-Result = _reflection.GeneratedProtocolMessageType('Result', (_message.Message,), dict(
-  DESCRIPTOR = _RESULT,
-  __module__ = 'mmlogic_pb2'
-  # @@protoc_insertion_point(class_scope:Result)
-  ))
-_sym_db.RegisterMessage(Result)
-
-Profile = _reflection.GeneratedProtocolMessageType('Profile', (_message.Message,), dict(
-  DESCRIPTOR = _PROFILE,
-  __module__ = 'mmlogic_pb2'
-  # @@protoc_insertion_point(class_scope:Profile)
-  ))
-_sym_db.RegisterMessage(Profile)
 
 IlInput = _reflection.GeneratedProtocolMessageType('IlInput', (_message.Message,), dict(
   DESCRIPTOR = _ILINPUT,
@@ -691,62 +91,6 @@ IlInput = _reflection.GeneratedProtocolMessageType('IlInput', (_message.Message,
   # @@protoc_insertion_point(class_scope:IlInput)
   ))
 _sym_db.RegisterMessage(IlInput)
-
-FilterSet = _reflection.GeneratedProtocolMessageType('FilterSet', (_message.Message,), dict(
-  DESCRIPTOR = _FILTERSET,
-  __module__ = 'mmlogic_pb2'
-  # @@protoc_insertion_point(class_scope:FilterSet)
-  ))
-_sym_db.RegisterMessage(FilterSet)
-
-Filter = _reflection.GeneratedProtocolMessageType('Filter', (_message.Message,), dict(
-  DESCRIPTOR = _FILTER,
-  __module__ = 'mmlogic_pb2'
-  # @@protoc_insertion_point(class_scope:Filter)
-  ))
-_sym_db.RegisterMessage(Filter)
-
-FilterSpec = _reflection.GeneratedProtocolMessageType('FilterSpec', (_message.Message,), dict(
-  DESCRIPTOR = _FILTERSPEC,
-  __module__ = 'mmlogic_pb2'
-  # @@protoc_insertion_point(class_scope:FilterSpec)
-  ))
-_sym_db.RegisterMessage(FilterSpec)
-
-FilterStat = _reflection.GeneratedProtocolMessageType('FilterStat', (_message.Message,), dict(
-  DESCRIPTOR = _FILTERSTAT,
-  __module__ = 'mmlogic_pb2'
-  # @@protoc_insertion_point(class_scope:FilterStat)
-  ))
-_sym_db.RegisterMessage(FilterStat)
-
-JsonFilterSet = _reflection.GeneratedProtocolMessageType('JsonFilterSet', (_message.Message,), dict(
-  DESCRIPTOR = _JSONFILTERSET,
-  __module__ = 'mmlogic_pb2'
-  # @@protoc_insertion_point(class_scope:JsonFilterSet)
-  ))
-_sym_db.RegisterMessage(JsonFilterSet)
-
-PlayerPool = _reflection.GeneratedProtocolMessageType('PlayerPool', (_message.Message,), dict(
-  DESCRIPTOR = _PLAYERPOOL,
-  __module__ = 'mmlogic_pb2'
-  # @@protoc_insertion_point(class_scope:PlayerPool)
-  ))
-_sym_db.RegisterMessage(PlayerPool)
-
-Player = _reflection.GeneratedProtocolMessageType('Player', (_message.Message,), dict(
-  DESCRIPTOR = _PLAYER,
-  __module__ = 'mmlogic_pb2'
-  # @@protoc_insertion_point(class_scope:Player)
-  ))
-_sym_db.RegisterMessage(Player)
-
-Property = _reflection.GeneratedProtocolMessageType('Property', (_message.Message,), dict(
-  DESCRIPTOR = _PROPERTY,
-  __module__ = 'mmlogic_pb2'
-  # @@protoc_insertion_point(class_scope:Property)
-  ))
-_sym_db.RegisterMessage(Property)
 
 Timestamp = _reflection.GeneratedProtocolMessageType('Timestamp', (_message.Message,), dict(
   DESCRIPTOR = _TIMESTAMP,
@@ -763,52 +107,52 @@ _API = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=871,
-  serialized_end=1175,
+  serialized_start=73,
+  serialized_end=329,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetProfile',
     full_name='API.GetProfile',
     index=0,
     containing_service=None,
-    input_type=_PROFILE,
-    output_type=_PROFILE,
-    serialized_options=None,
-  ),
-  _descriptor.MethodDescriptor(
-    name='GetProposal',
-    full_name='API.GetProposal',
-    index=1,
-    containing_service=None,
-    input_type=_MATCHOBJECT,
-    output_type=_MATCHOBJECT,
+    input_type=om__messages__pb2._PROFILE,
+    output_type=om__messages__pb2._PROFILE,
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
     name='CreateProposal',
     full_name='API.CreateProposal',
-    index=2,
+    index=1,
     containing_service=None,
-    input_type=_MMFRESULTS,
-    output_type=_RESULT,
+    input_type=om__messages__pb2._MATCHOBJECT,
+    output_type=om__messages__pb2._RESULT,
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
-    name='ListPlayers',
-    full_name='API.ListPlayers',
-    index=3,
+    name='ReturnError',
+    full_name='API.ReturnError',
+    index=2,
     containing_service=None,
-    input_type=_FILTER,
-    output_type=_ROSTER,
+    input_type=om__messages__pb2._RESULT,
+    output_type=om__messages__pb2._RESULT,
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
     name='GetPlayerPool',
     full_name='API.GetPlayerPool',
+    index=3,
+    containing_service=None,
+    input_type=om__messages__pb2._PLAYERPOOL,
+    output_type=om__messages__pb2._PLAYERPOOL,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetAllIgnoredPlayers',
+    full_name='API.GetAllIgnoredPlayers',
     index=4,
     containing_service=None,
-    input_type=_JSONFILTERSET,
-    output_type=_PLAYERPOOL,
+    input_type=_ILINPUT,
+    output_type=om__messages__pb2._ROSTER,
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
@@ -817,16 +161,7 @@ _API = _descriptor.ServiceDescriptor(
     index=5,
     containing_service=None,
     input_type=_TIMESTAMP,
-    output_type=_ROSTER,
-    serialized_options=None,
-  ),
-  _descriptor.MethodDescriptor(
-    name='GetCombinedIgnoreList',
-    full_name='API.GetCombinedIgnoreList',
-    index=6,
-    containing_service=None,
-    input_type=_ILINPUT,
-    output_type=_ROSTER,
+    output_type=om__messages__pb2._ROSTER,
     serialized_options=None,
   ),
 ])
