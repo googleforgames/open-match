@@ -8,6 +8,15 @@ It is generated from these files:
 	mmlogic.proto
 
 It has these top-level messages:
+	Profile
+	MatchObject
+	Roster
+	Filter
+	FilterSpec
+	Stats
+	PlayerPool
+	Player
+	Result
 	IlInput
 	Timestamp
 */
@@ -16,7 +25,6 @@ package mmlogic
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import om_messages "."
 
 import (
 	context "golang.org/x/net/context"
@@ -34,6 +42,315 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+type Profile struct {
+	Id         string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Properties string `protobuf:"bytes,2,opt,name=properties" json:"properties,omitempty"`
+	// When you send a Profile to the backendAPI, it looks to see if you populated
+	// this field with protobuf-encoded PlayerPool objects containing valid the filters
+	// objects.  If you did, they are used by OM.  If you didn't, the backendAPI
+	// next looks in your properties blob at the key specified in the 'jsonkeys.pools'
+	// config value from config/matchmaker_config.json - If it finds valid player
+	// pool definitions at that key, it will try to unmarshal them into this field.
+	// If you didn't specify valid player pools in either place, OM assumes you
+	// know what you're doing and just leaves this unpopulatd.
+	PlayerPools []*PlayerPool `protobuf:"bytes,3,rep,name=player_pools,json=playerPools" json:"player_pools,omitempty"`
+}
+
+func (m *Profile) Reset()                    { *m = Profile{} }
+func (m *Profile) String() string            { return proto.CompactTextString(m) }
+func (*Profile) ProtoMessage()               {}
+func (*Profile) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+
+func (m *Profile) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *Profile) GetProperties() string {
+	if m != nil {
+		return m.Properties
+	}
+	return ""
+}
+
+func (m *Profile) GetPlayerPools() []*PlayerPool {
+	if m != nil {
+		return m.PlayerPools
+	}
+	return nil
+}
+
+// A MMF takes the Profile object above, and generates a MatchObject.
+type MatchObject struct {
+	Id          string        `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Properties  string        `protobuf:"bytes,2,opt,name=properties" json:"properties,omitempty"`
+	Rosters     []*Roster     `protobuf:"bytes,3,rep,name=rosters" json:"rosters,omitempty"`
+	PlayerPools []*PlayerPool `protobuf:"bytes,4,rep,name=player_pools,json=playerPools" json:"player_pools,omitempty"`
+}
+
+func (m *MatchObject) Reset()                    { *m = MatchObject{} }
+func (m *MatchObject) String() string            { return proto.CompactTextString(m) }
+func (*MatchObject) ProtoMessage()               {}
+func (*MatchObject) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
+func (m *MatchObject) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *MatchObject) GetProperties() string {
+	if m != nil {
+		return m.Properties
+	}
+	return ""
+}
+
+func (m *MatchObject) GetRosters() []*Roster {
+	if m != nil {
+		return m.Rosters
+	}
+	return nil
+}
+
+func (m *MatchObject) GetPlayerPools() []*PlayerPool {
+	if m != nil {
+		return m.PlayerPools
+	}
+	return nil
+}
+
+// Data structure to hold a list of players in a match.
+type Roster struct {
+	Id      string    `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Players []*Player `protobuf:"bytes,2,rep,name=players" json:"players,omitempty"`
+}
+
+func (m *Roster) Reset()                    { *m = Roster{} }
+func (m *Roster) String() string            { return proto.CompactTextString(m) }
+func (*Roster) ProtoMessage()               {}
+func (*Roster) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+
+func (m *Roster) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *Roster) GetPlayers() []*Player {
+	if m != nil {
+		return m.Players
+	}
+	return nil
+}
+
+// A filter to apply to the player pool.
+type Filter struct {
+	Id         string      `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	FilterSpec *FilterSpec `protobuf:"bytes,2,opt,name=filter_spec,json=filterSpec" json:"filter_spec,omitempty"`
+	Stats      *Stats      `protobuf:"bytes,3,opt,name=stats" json:"stats,omitempty"`
+}
+
+func (m *Filter) Reset()                    { *m = Filter{} }
+func (m *Filter) String() string            { return proto.CompactTextString(m) }
+func (*Filter) ProtoMessage()               {}
+func (*Filter) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
+
+func (m *Filter) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *Filter) GetFilterSpec() *FilterSpec {
+	if m != nil {
+		return m.FilterSpec
+	}
+	return nil
+}
+
+func (m *Filter) GetStats() *Stats {
+	if m != nil {
+		return m.Stats
+	}
+	return nil
+}
+
+type FilterSpec struct {
+	Field string `protobuf:"bytes,1,opt,name=field" json:"field,omitempty"`
+	Maxv  int64  `protobuf:"varint,3,opt,name=maxv" json:"maxv,omitempty"`
+	Minv  int64  `protobuf:"varint,2,opt,name=minv" json:"minv,omitempty"`
+}
+
+func (m *FilterSpec) Reset()                    { *m = FilterSpec{} }
+func (m *FilterSpec) String() string            { return proto.CompactTextString(m) }
+func (*FilterSpec) ProtoMessage()               {}
+func (*FilterSpec) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+
+func (m *FilterSpec) GetField() string {
+	if m != nil {
+		return m.Field
+	}
+	return ""
+}
+
+func (m *FilterSpec) GetMaxv() int64 {
+	if m != nil {
+		return m.Maxv
+	}
+	return 0
+}
+
+func (m *FilterSpec) GetMinv() int64 {
+	if m != nil {
+		return m.Minv
+	}
+	return 0
+}
+
+type Stats struct {
+	Count   int64   `protobuf:"varint,1,opt,name=count" json:"count,omitempty"`
+	Elapsed float64 `protobuf:"fixed64,2,opt,name=elapsed" json:"elapsed,omitempty"`
+}
+
+func (m *Stats) Reset()                    { *m = Stats{} }
+func (m *Stats) String() string            { return proto.CompactTextString(m) }
+func (*Stats) ProtoMessage()               {}
+func (*Stats) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+
+func (m *Stats) GetCount() int64 {
+	if m != nil {
+		return m.Count
+	}
+	return 0
+}
+
+func (m *Stats) GetElapsed() float64 {
+	if m != nil {
+		return m.Elapsed
+	}
+	return 0
+}
+
+type PlayerPool struct {
+	Id      string    `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Filters []*Filter `protobuf:"bytes,2,rep,name=filters" json:"filters,omitempty"`
+	Roster  []*Roster `protobuf:"bytes,3,rep,name=roster" json:"roster,omitempty"`
+	Stats   *Stats    `protobuf:"bytes,4,opt,name=stats" json:"stats,omitempty"`
+}
+
+func (m *PlayerPool) Reset()                    { *m = PlayerPool{} }
+func (m *PlayerPool) String() string            { return proto.CompactTextString(m) }
+func (*PlayerPool) ProtoMessage()               {}
+func (*PlayerPool) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+
+func (m *PlayerPool) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *PlayerPool) GetFilters() []*Filter {
+	if m != nil {
+		return m.Filters
+	}
+	return nil
+}
+
+func (m *PlayerPool) GetRoster() []*Roster {
+	if m != nil {
+		return m.Roster
+	}
+	return nil
+}
+
+func (m *PlayerPool) GetStats() *Stats {
+	if m != nil {
+		return m.Stats
+	}
+	return nil
+}
+
+// Data structure for a profile to pass to the matchmaking function.
+type Player struct {
+	Id         string             `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Properties []*Player_Property `protobuf:"bytes,2,rep,name=properties" json:"properties,omitempty"`
+}
+
+func (m *Player) Reset()                    { *m = Player{} }
+func (m *Player) String() string            { return proto.CompactTextString(m) }
+func (*Player) ProtoMessage()               {}
+func (*Player) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
+
+func (m *Player) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *Player) GetProperties() []*Player_Property {
+	if m != nil {
+		return m.Properties
+	}
+	return nil
+}
+
+type Player_Property struct {
+	Name  string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Value int64  `protobuf:"varint,2,opt,name=value" json:"value,omitempty"`
+}
+
+func (m *Player_Property) Reset()                    { *m = Player_Property{} }
+func (m *Player_Property) String() string            { return proto.CompactTextString(m) }
+func (*Player_Property) ProtoMessage()               {}
+func (*Player_Property) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7, 0} }
+
+func (m *Player_Property) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *Player_Property) GetValue() int64 {
+	if m != nil {
+		return m.Value
+	}
+	return 0
+}
+
+// Simple message to return success/failure and error status.
+type Result struct {
+	Success bool   `protobuf:"varint,1,opt,name=success" json:"success,omitempty"`
+	Error   string `protobuf:"bytes,2,opt,name=error" json:"error,omitempty"`
+}
+
+func (m *Result) Reset()                    { *m = Result{} }
+func (m *Result) String() string            { return proto.CompactTextString(m) }
+func (*Result) ProtoMessage()               {}
+func (*Result) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
+
+func (m *Result) GetSuccess() bool {
+	if m != nil {
+		return m.Success
+	}
+	return false
+}
+
+func (m *Result) GetError() string {
+	if m != nil {
+		return m.Error
+	}
+	return ""
+}
+
 // IlInput is an empty message reserved for future use.
 type IlInput struct {
 }
@@ -41,7 +358,7 @@ type IlInput struct {
 func (m *IlInput) Reset()                    { *m = IlInput{} }
 func (m *IlInput) String() string            { return proto.CompactTextString(m) }
 func (*IlInput) ProtoMessage()               {}
-func (*IlInput) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+func (*IlInput) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{9} }
 
 // Epoch timestamp in seconds.
 type Timestamp struct {
@@ -51,7 +368,7 @@ type Timestamp struct {
 func (m *Timestamp) Reset()                    { *m = Timestamp{} }
 func (m *Timestamp) String() string            { return proto.CompactTextString(m) }
 func (*Timestamp) ProtoMessage()               {}
-func (*Timestamp) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+func (*Timestamp) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{10} }
 
 func (m *Timestamp) GetTs() int64 {
 	if m != nil {
@@ -61,6 +378,16 @@ func (m *Timestamp) GetTs() int64 {
 }
 
 func init() {
+	proto.RegisterType((*Profile)(nil), "Profile")
+	proto.RegisterType((*MatchObject)(nil), "MatchObject")
+	proto.RegisterType((*Roster)(nil), "Roster")
+	proto.RegisterType((*Filter)(nil), "Filter")
+	proto.RegisterType((*FilterSpec)(nil), "FilterSpec")
+	proto.RegisterType((*Stats)(nil), "Stats")
+	proto.RegisterType((*PlayerPool)(nil), "PlayerPool")
+	proto.RegisterType((*Player)(nil), "Player")
+	proto.RegisterType((*Player_Property)(nil), "Player.Property")
+	proto.RegisterType((*Result)(nil), "Result")
 	proto.RegisterType((*IlInput)(nil), "IlInput")
 	proto.RegisterType((*Timestamp)(nil), "Timestamp")
 }
@@ -80,28 +407,28 @@ type APIClient interface {
 	//  'filled' one.
 	//  Note: filters are assumed to have been checked for validity by the
 	//  backendapi  when accepting a profile
-	GetProfile(ctx context.Context, in *om_messages.Profile, opts ...grpc.CallOption) (*om_messages.Profile, error)
+	GetProfile(ctx context.Context, in *Profile, opts ...grpc.CallOption) (*Profile, error)
 	// CreateProposal  does the following:
 	//  - adds all players in the Roster to the proposed player ignore list
 	//  - writes the proposed match to the provided key
 	//  - adds that key to the list of proposals to be considered
-	CreateProposal(ctx context.Context, in *om_messages.MatchObject, opts ...grpc.CallOption) (*om_messages.Result, error)
-	ReturnError(ctx context.Context, in *om_messages.Result, opts ...grpc.CallOption) (*om_messages.Result, error)
+	CreateProposal(ctx context.Context, in *MatchObject, opts ...grpc.CallOption) (*Result, error)
+	ReturnError(ctx context.Context, in *Result, opts ...grpc.CallOption) (*Result, error)
 	// Player listing and filtering functions
 	//
 	// RetrievePlayerPool gets the list of players for every Filter in the
 	// PlayerPool, and then removes all players it finds in the ignore list.  It
 	// combines the results, and returns the resulting player pool.
-	GetPlayerPool(ctx context.Context, in *om_messages.PlayerPool, opts ...grpc.CallOption) (API_GetPlayerPoolClient, error)
+	GetPlayerPool(ctx context.Context, in *PlayerPool, opts ...grpc.CallOption) (API_GetPlayerPoolClient, error)
 	// Ignore List functions
 	//
 	// IlInput is an empty message reserved for future use.
-	GetAllIgnoredPlayers(ctx context.Context, in *IlInput, opts ...grpc.CallOption) (*om_messages.Roster, error)
+	GetAllIgnoredPlayers(ctx context.Context, in *IlInput, opts ...grpc.CallOption) (*Roster, error)
 	// RetrieveIgnoreList retrieves players from the
 	// 'ignoreLists.proposedPlayers' ignore list specified in the config file
 	// that were placed on the list before the provided timestamp.  To retrieve
 	// all players on the list, provide the current time as the timestamp.
-	ListIgnoredPlayers(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (*om_messages.Roster, error)
+	ListIgnoredPlayers(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (*Roster, error)
 }
 
 type aPIClient struct {
@@ -112,8 +439,8 @@ func NewAPIClient(cc *grpc.ClientConn) APIClient {
 	return &aPIClient{cc}
 }
 
-func (c *aPIClient) GetProfile(ctx context.Context, in *om_messages.Profile, opts ...grpc.CallOption) (*om_messages.Profile, error) {
-	out := new(om_messages.Profile)
+func (c *aPIClient) GetProfile(ctx context.Context, in *Profile, opts ...grpc.CallOption) (*Profile, error) {
+	out := new(Profile)
 	err := grpc.Invoke(ctx, "/API/GetProfile", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -121,8 +448,8 @@ func (c *aPIClient) GetProfile(ctx context.Context, in *om_messages.Profile, opt
 	return out, nil
 }
 
-func (c *aPIClient) CreateProposal(ctx context.Context, in *om_messages.MatchObject, opts ...grpc.CallOption) (*om_messages.Result, error) {
-	out := new(om_messages.Result)
+func (c *aPIClient) CreateProposal(ctx context.Context, in *MatchObject, opts ...grpc.CallOption) (*Result, error) {
+	out := new(Result)
 	err := grpc.Invoke(ctx, "/API/CreateProposal", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -130,8 +457,8 @@ func (c *aPIClient) CreateProposal(ctx context.Context, in *om_messages.MatchObj
 	return out, nil
 }
 
-func (c *aPIClient) ReturnError(ctx context.Context, in *om_messages.Result, opts ...grpc.CallOption) (*om_messages.Result, error) {
-	out := new(om_messages.Result)
+func (c *aPIClient) ReturnError(ctx context.Context, in *Result, opts ...grpc.CallOption) (*Result, error) {
+	out := new(Result)
 	err := grpc.Invoke(ctx, "/API/ReturnError", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -139,7 +466,7 @@ func (c *aPIClient) ReturnError(ctx context.Context, in *om_messages.Result, opt
 	return out, nil
 }
 
-func (c *aPIClient) GetPlayerPool(ctx context.Context, in *om_messages.PlayerPool, opts ...grpc.CallOption) (API_GetPlayerPoolClient, error) {
+func (c *aPIClient) GetPlayerPool(ctx context.Context, in *PlayerPool, opts ...grpc.CallOption) (API_GetPlayerPoolClient, error) {
 	stream, err := grpc.NewClientStream(ctx, &_API_serviceDesc.Streams[0], c.cc, "/API/GetPlayerPool", opts...)
 	if err != nil {
 		return nil, err
@@ -155,7 +482,7 @@ func (c *aPIClient) GetPlayerPool(ctx context.Context, in *om_messages.PlayerPoo
 }
 
 type API_GetPlayerPoolClient interface {
-	Recv() (*om_messages.PlayerPool, error)
+	Recv() (*PlayerPool, error)
 	grpc.ClientStream
 }
 
@@ -163,16 +490,16 @@ type aPIGetPlayerPoolClient struct {
 	grpc.ClientStream
 }
 
-func (x *aPIGetPlayerPoolClient) Recv() (*om_messages.PlayerPool, error) {
-	m := new(om_messages.PlayerPool)
+func (x *aPIGetPlayerPoolClient) Recv() (*PlayerPool, error) {
+	m := new(PlayerPool)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *aPIClient) GetAllIgnoredPlayers(ctx context.Context, in *IlInput, opts ...grpc.CallOption) (*om_messages.Roster, error) {
-	out := new(om_messages.Roster)
+func (c *aPIClient) GetAllIgnoredPlayers(ctx context.Context, in *IlInput, opts ...grpc.CallOption) (*Roster, error) {
+	out := new(Roster)
 	err := grpc.Invoke(ctx, "/API/GetAllIgnoredPlayers", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -180,8 +507,8 @@ func (c *aPIClient) GetAllIgnoredPlayers(ctx context.Context, in *IlInput, opts 
 	return out, nil
 }
 
-func (c *aPIClient) ListIgnoredPlayers(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (*om_messages.Roster, error) {
-	out := new(om_messages.Roster)
+func (c *aPIClient) ListIgnoredPlayers(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (*Roster, error) {
+	out := new(Roster)
 	err := grpc.Invoke(ctx, "/API/ListIgnoredPlayers", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -196,28 +523,28 @@ type APIServer interface {
 	//  'filled' one.
 	//  Note: filters are assumed to have been checked for validity by the
 	//  backendapi  when accepting a profile
-	GetProfile(context.Context, *om_messages.Profile) (*om_messages.Profile, error)
+	GetProfile(context.Context, *Profile) (*Profile, error)
 	// CreateProposal  does the following:
 	//  - adds all players in the Roster to the proposed player ignore list
 	//  - writes the proposed match to the provided key
 	//  - adds that key to the list of proposals to be considered
-	CreateProposal(context.Context, *om_messages.MatchObject) (*om_messages.Result, error)
-	ReturnError(context.Context, *om_messages.Result) (*om_messages.Result, error)
+	CreateProposal(context.Context, *MatchObject) (*Result, error)
+	ReturnError(context.Context, *Result) (*Result, error)
 	// Player listing and filtering functions
 	//
 	// RetrievePlayerPool gets the list of players for every Filter in the
 	// PlayerPool, and then removes all players it finds in the ignore list.  It
 	// combines the results, and returns the resulting player pool.
-	GetPlayerPool(*om_messages.PlayerPool, API_GetPlayerPoolServer) error
+	GetPlayerPool(*PlayerPool, API_GetPlayerPoolServer) error
 	// Ignore List functions
 	//
 	// IlInput is an empty message reserved for future use.
-	GetAllIgnoredPlayers(context.Context, *IlInput) (*om_messages.Roster, error)
+	GetAllIgnoredPlayers(context.Context, *IlInput) (*Roster, error)
 	// RetrieveIgnoreList retrieves players from the
 	// 'ignoreLists.proposedPlayers' ignore list specified in the config file
 	// that were placed on the list before the provided timestamp.  To retrieve
 	// all players on the list, provide the current time as the timestamp.
-	ListIgnoredPlayers(context.Context, *Timestamp) (*om_messages.Roster, error)
+	ListIgnoredPlayers(context.Context, *Timestamp) (*Roster, error)
 }
 
 func RegisterAPIServer(s *grpc.Server, srv APIServer) {
@@ -225,7 +552,7 @@ func RegisterAPIServer(s *grpc.Server, srv APIServer) {
 }
 
 func _API_GetProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(om_messages.Profile)
+	in := new(Profile)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -237,13 +564,13 @@ func _API_GetProfile_Handler(srv interface{}, ctx context.Context, dec func(inte
 		FullMethod: "/API/GetProfile",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(APIServer).GetProfile(ctx, req.(*om_messages.Profile))
+		return srv.(APIServer).GetProfile(ctx, req.(*Profile))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _API_CreateProposal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(om_messages.MatchObject)
+	in := new(MatchObject)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -255,13 +582,13 @@ func _API_CreateProposal_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: "/API/CreateProposal",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(APIServer).CreateProposal(ctx, req.(*om_messages.MatchObject))
+		return srv.(APIServer).CreateProposal(ctx, req.(*MatchObject))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _API_ReturnError_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(om_messages.Result)
+	in := new(Result)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -273,13 +600,13 @@ func _API_ReturnError_Handler(srv interface{}, ctx context.Context, dec func(int
 		FullMethod: "/API/ReturnError",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(APIServer).ReturnError(ctx, req.(*om_messages.Result))
+		return srv.(APIServer).ReturnError(ctx, req.(*Result))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _API_GetPlayerPool_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(om_messages.PlayerPool)
+	m := new(PlayerPool)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
@@ -287,7 +614,7 @@ func _API_GetPlayerPool_Handler(srv interface{}, stream grpc.ServerStream) error
 }
 
 type API_GetPlayerPoolServer interface {
-	Send(*om_messages.PlayerPool) error
+	Send(*PlayerPool) error
 	grpc.ServerStream
 }
 
@@ -295,7 +622,7 @@ type aPIGetPlayerPoolServer struct {
 	grpc.ServerStream
 }
 
-func (x *aPIGetPlayerPoolServer) Send(m *om_messages.PlayerPool) error {
+func (x *aPIGetPlayerPoolServer) Send(m *PlayerPool) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -373,21 +700,40 @@ var _API_serviceDesc = grpc.ServiceDesc{
 func init() { proto.RegisterFile("mmlogic.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 253 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x90, 0x41, 0x4b, 0xc3, 0x40,
-	0x10, 0x85, 0xd3, 0x16, 0x6c, 0x3b, 0xb5, 0x05, 0x07, 0x0f, 0x12, 0x2f, 0xba, 0x27, 0xa5, 0xb8,
-	0x88, 0xfe, 0x82, 0x22, 0x52, 0x02, 0x8a, 0xa1, 0x78, 0x97, 0x6d, 0x1c, 0x63, 0x64, 0x37, 0x13,
-	0x76, 0x26, 0x07, 0x6f, 0xfe, 0x74, 0xa9, 0xad, 0x35, 0x78, 0x7b, 0x6f, 0xde, 0xc7, 0x0c, 0xf3,
-	0x60, 0x1a, 0x82, 0xe7, 0xb2, 0x2a, 0x6c, 0x13, 0x59, 0x39, 0x3d, 0xe2, 0xf0, 0x12, 0x48, 0xc4,
-	0x95, 0x24, 0xdb, 0x91, 0x19, 0xc3, 0x30, 0xf3, 0x59, 0xdd, 0xb4, 0x6a, 0x4e, 0x61, 0xfc, 0x5c,
-	0x05, 0x12, 0x75, 0xa1, 0xc1, 0x19, 0xf4, 0x55, 0x4e, 0x7a, 0x67, 0xbd, 0x8b, 0xc1, 0xaa, 0xaf,
-	0x72, 0xf3, 0xd5, 0x87, 0xc1, 0x22, 0xcf, 0xd0, 0x00, 0x2c, 0x49, 0xf3, 0xc8, 0x6f, 0x95, 0x27,
-	0x1c, 0xd9, 0x9d, 0x4a, 0xf7, 0xca, 0x24, 0x78, 0x09, 0xb3, 0xbb, 0x48, 0x4e, 0x29, 0x8f, 0xdc,
-	0xb0, 0x38, 0x8f, 0x87, 0xf6, 0xd1, 0x69, 0xf1, 0xfe, 0xb4, 0xfe, 0xa0, 0x42, 0xd3, 0xa1, 0x5d,
-	0x91, 0xb4, 0x5e, 0x4d, 0x82, 0xe7, 0x30, 0x59, 0x91, 0xb6, 0xb1, 0xbe, 0x8f, 0x91, 0x23, 0xfe,
-	0x26, 0x5d, 0xe4, 0x0a, 0xa6, 0x9b, 0x8b, 0xde, 0x7d, 0x52, 0xcc, 0x99, 0x3d, 0x4e, 0xec, 0x9f,
-	0x49, 0xbb, 0xc6, 0x24, 0xd7, 0x3d, 0x9c, 0xc3, 0xf1, 0x92, 0x74, 0xe1, 0x7d, 0x56, 0xd6, 0x1c,
-	0xe9, 0x75, 0x1b, 0x0b, 0x8e, 0xec, 0xee, 0xcf, 0xcd, 0x6e, 0x16, 0xa5, 0x68, 0x12, 0x9c, 0x03,
-	0x3e, 0x54, 0xa2, 0xff, 0x50, 0xb0, 0xfb, 0x1e, 0x3a, 0xf0, 0xfa, 0xe0, 0xa7, 0xb1, 0xdb, 0xef,
-	0x00, 0x00, 0x00, 0xff, 0xff, 0x52, 0x6e, 0xac, 0xbf, 0x55, 0x01, 0x00, 0x00,
+	// 556 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0xdf, 0x6f, 0xd3, 0x30,
+	0x10, 0x6e, 0xfa, 0x23, 0x69, 0x2f, 0xdb, 0x84, 0xac, 0x3d, 0x54, 0x05, 0xc1, 0xea, 0xa7, 0xa1,
+	0x41, 0x34, 0x0d, 0x24, 0x90, 0x78, 0x9a, 0x10, 0x4c, 0x45, 0x20, 0x2a, 0x8f, 0xf7, 0x29, 0x4b,
+	0xaf, 0xc3, 0xc8, 0x89, 0x23, 0xdb, 0xa9, 0xd8, 0x0b, 0xda, 0x9f, 0xc0, 0x9f, 0x8c, 0x6c, 0x27,
+	0x6d, 0xd4, 0x56, 0x42, 0x7b, 0xbb, 0xef, 0xf3, 0xf9, 0xee, 0xbb, 0xef, 0xe2, 0xc0, 0x61, 0x9e,
+	0x0b, 0x79, 0xc7, 0xb3, 0xa4, 0x54, 0xd2, 0x48, 0xca, 0x21, 0x9a, 0x2b, 0xb9, 0xe4, 0x02, 0xc9,
+	0x11, 0x74, 0xf9, 0x62, 0x1c, 0x9c, 0x04, 0xa7, 0x23, 0xd6, 0xe5, 0x0b, 0xf2, 0x1c, 0xa0, 0x54,
+	0xb2, 0x44, 0x65, 0x38, 0xea, 0x71, 0xd7, 0xf1, 0x2d, 0x86, 0x24, 0x70, 0x50, 0x8a, 0xf4, 0x1e,
+	0xd5, 0x4d, 0x29, 0xa5, 0xd0, 0xe3, 0xde, 0x49, 0xef, 0x34, 0xbe, 0x88, 0x93, 0xb9, 0x23, 0xe7,
+	0x52, 0x0a, 0x16, 0x97, 0xeb, 0x58, 0xd3, 0xbf, 0x01, 0xc4, 0xdf, 0x52, 0x93, 0xfd, 0xfc, 0x7e,
+	0xfb, 0x0b, 0x33, 0xf3, 0xe8, 0x7e, 0x53, 0x88, 0x94, 0xd4, 0x06, 0x55, 0xd3, 0x2a, 0x4a, 0x98,
+	0xc3, 0xac, 0xe1, 0x77, 0x24, 0xf5, 0xff, 0x23, 0xe9, 0x03, 0x84, 0xbe, 0xc4, 0x8e, 0x98, 0x29,
+	0x44, 0x3e, 0xd1, 0x2a, 0xf1, 0xcd, 0x7c, 0x11, 0xd6, 0xf0, 0x74, 0x01, 0xe1, 0x67, 0x2e, 0xf6,
+	0x5d, 0x7e, 0x05, 0xf1, 0xd2, 0x9d, 0xdc, 0xe8, 0x12, 0x33, 0x37, 0x8a, 0x55, 0xe1, 0xb3, 0xaf,
+	0x4b, 0xcc, 0x18, 0x2c, 0xd7, 0x31, 0x79, 0x06, 0x03, 0x6d, 0x52, 0x63, 0xa7, 0xb2, 0x79, 0x61,
+	0x72, 0x6d, 0x11, 0xf3, 0x24, 0xfd, 0x02, 0xb0, 0xb9, 0x47, 0x8e, 0x61, 0xb0, 0xe4, 0x28, 0x9a,
+	0x66, 0x1e, 0x10, 0x02, 0xfd, 0x3c, 0xfd, 0xbd, 0x72, 0x05, 0x7a, 0xcc, 0xc5, 0x8e, 0xe3, 0xc5,
+	0xca, 0x35, 0xb7, 0x1c, 0x2f, 0x56, 0xf4, 0x1d, 0x0c, 0x5c, 0x6d, 0x5b, 0x26, 0x93, 0x55, 0x61,
+	0x5c, 0x99, 0x1e, 0xf3, 0x80, 0x8c, 0x21, 0x42, 0x91, 0x96, 0x1a, 0x17, 0xee, 0x56, 0xc0, 0x1a,
+	0x48, 0xff, 0x00, 0x6c, 0x2c, 0xdc, 0xe7, 0x95, 0x1f, 0x67, 0xe3, 0x95, 0x97, 0xcc, 0x1a, 0x9e,
+	0xbc, 0x80, 0xd0, 0xef, 0x68, 0x7b, 0x75, 0x35, 0xbd, 0x31, 0xa1, 0xbf, 0xcf, 0x84, 0x87, 0x00,
+	0x42, 0x2f, 0x60, 0xa7, 0xf9, 0xf9, 0xd6, 0x57, 0x63, 0xab, 0x3f, 0xa9, 0x77, 0x95, 0xcc, 0xfd,
+	0xc9, 0x7d, 0xfb, 0x3b, 0x9a, 0xbc, 0x85, 0x61, 0xc3, 0x5b, 0x97, 0x8a, 0x34, 0xc7, 0xba, 0x9e,
+	0x8b, 0xad, 0x39, 0xab, 0x54, 0x54, 0x58, 0x5b, 0xe7, 0x01, 0x7d, 0x0f, 0x21, 0x43, 0x5d, 0x09,
+	0x67, 0x93, 0xae, 0xb2, 0x0c, 0xb5, 0x76, 0xd7, 0x86, 0xac, 0x81, 0xf6, 0x26, 0x2a, 0x25, 0x55,
+	0xfd, 0xf1, 0x7a, 0x40, 0x47, 0x10, 0xcd, 0xc4, 0xac, 0x28, 0x2b, 0x43, 0x9f, 0xc2, 0xe8, 0x07,
+	0xcf, 0x51, 0x9b, 0x34, 0x2f, 0xed, 0x24, 0x46, 0xd7, 0x1b, 0xe8, 0x1a, 0x7d, 0xf1, 0xd0, 0x85,
+	0xde, 0xe5, 0x7c, 0x46, 0x28, 0xc0, 0x15, 0x9a, 0xe6, 0x55, 0x0e, 0x93, 0x3a, 0x9a, 0xac, 0x23,
+	0xda, 0x21, 0x2f, 0xe1, 0xe8, 0xa3, 0xc2, 0xd4, 0xa0, 0x9d, 0x44, 0xea, 0x54, 0x90, 0x83, 0xa4,
+	0xf5, 0xb6, 0x26, 0x51, 0xe2, 0xc5, 0xd2, 0x0e, 0x99, 0x42, 0xcc, 0xd0, 0x54, 0xaa, 0xf8, 0x64,
+	0xd5, 0x90, 0xe6, 0xa4, 0x9d, 0xf2, 0x1a, 0x0e, 0x6d, 0xc7, 0xcd, 0x86, 0xdb, 0x2f, 0x66, 0xd2,
+	0x06, 0xb4, 0x73, 0x1e, 0x90, 0x33, 0x38, 0xbe, 0x42, 0x73, 0x29, 0xc4, 0xec, 0xae, 0x90, 0x0a,
+	0x17, 0xfe, 0x58, 0x93, 0x61, 0x52, 0xcf, 0x39, 0x69, 0xd6, 0x4b, 0x3b, 0xe4, 0x0c, 0xc8, 0x57,
+	0xae, 0xcd, 0x56, 0x2a, 0x24, 0x6b, 0x1f, 0x5a, 0xc9, 0xb7, 0xa1, 0xfb, 0x29, 0xbd, 0xf9, 0x17,
+	0x00, 0x00, 0xff, 0xff, 0x2d, 0x0d, 0x09, 0x29, 0xa5, 0x04, 0x00, 0x00,
 }
