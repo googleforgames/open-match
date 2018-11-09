@@ -26,7 +26,9 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	mmlogic "github.com/GoogleCloudPlatform/open-match/cmd/mmlogicapi/proto"
@@ -135,7 +137,7 @@ func (s *mmlogicAPI) GetProfile(c context.Context, in *mmlogic.Profile) (*mmlogi
 		stats.Record(fnCtx, MlGrpcErrors.M(1))
 		return &mmlogic.Profile{Id: in.Id, Properties: ""}, err
 	}
-	out := &mmlogic.Profile{Id: in.Id, Properties: profile["properties"], PlayerPools: []*mmlogic.PlayerPool{}}
+	out := &mmlogic.Profile{Id: in.Id, Properties: profile["properties"], Pools: []*mmlogic.PlayerPool{}}
 	mlLog.WithFields(log.Fields{"profileid": in.Id, "contents": profile}).Debug("Retrieved profile from state storage")
 
 	// Unmarshal the player pools: the backend api writes the PlayerPools
@@ -153,7 +155,7 @@ func (s *mmlogicAPI) GetProfile(c context.Context, in *mmlogic.Profile) (*mmlogi
 				"JSON":      pool.String(),
 			}).Error("Failure to Unmarshal Player Pool JSON to protobuf message")
 		}
-		out.PlayerPools = append(out.PlayerPools, &pp)
+		out.Pools = append(out.Pools, &pp)
 	}
 
 	mlLog.Debug(out)
@@ -190,38 +192,44 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 	if err != nil {
 		// TODO: update fields
 		mlLog.WithFields(log.Fields{
-			"error":     err.Error(),
-			"component": "statestorage",
-			"key":       list,
+			"error":      err.Error(),
+			"component":  "statestorage",
+			"ignorelist": list,
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, MlGrpcErrors.M(1))
 		return &mmlogic.Result{Success: false, Error: err.Error()}, err
 	}
 
-	// Write properties
-	_, err = redisConn.Do("SET", prop.Id, prop.Properties)
-	if err != nil {
-		mlLog.WithFields(log.Fields{
-			"error":     err.Error(),
-			"component": "statestorage",
-			"key":       prop.Id,
-		}).Error("State storage error")
-		stats.Record(fnCtx, MlGrpcErrors.M(1))
-		return &mmlogic.Result{Success: false, Error: err.Error()}, err
-	}
-	/*
-		_, err = redisConn.Do("SET", prop.Roster.Id, prop.Rosters.Players)
-		if err != nil {
+	// Write all non-id fields from the protobuf message to state storage.
+	key := prop.Id
+	cmd := "HSET"
+	moInfo := reflect.ValueOf(prop).Elem()
+	for i := 0; i < moInfo.NumField(); i++ {
+		field := strings.ToLower(moInfo.Type().Field(i).Name)
+		value := moInfo.Field(i).Interface()
+		if field != "id" {
+			_, err = redisConn.Do(cmd, key, field, value)
+			if err != nil {
+				mlLog.WithFields(log.Fields{
+					"error":     err.Error(),
+					"component": "statestorage",
+					"key":       prop.Id,
+					"field":     field,
+				}).Error("State storage error")
+				stats.Record(fnCtx, MlGrpcErrors.M(1))
+				return &mmlogic.Result{Success: false, Error: err.Error()}, err
+			}
 			mlLog.WithFields(log.Fields{
-				"error":     err.Error(),
 				"component": "statestorage",
-				"key":       prop.Roster.Id,
-			}).Error("State storage error")
-			stats.Record(fnCtx, MlGrpcErrors.M(1))
-			return &mmlogic.Result{Success: false, Error: err.Error()}, err
+				"cmd":       cmd,
+				"key":       key,
+				"field":     field,
+				"value":     value,
+			}).Debug("State storage operation")
+
 		}
-	*/ // TODO: Fix after HSET conversion for matchobjects
+	}
 
 	//  add propkey to proposalsq
 	_, err = redisConn.Do("SADD", proposalq, prop.Id)
@@ -230,6 +238,7 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 			"error":     err.Error(),
 			"component": "statestorage",
 			"key":       proposalq,
+			"proposal":  key,
 		}).Error("State storage error")
 		stats.Record(fnCtx, MlGrpcErrors.M(1))
 		return &mmlogic.Result{Success: false, Error: err.Error()}, err
@@ -291,16 +300,14 @@ func (s *mmlogicAPI) CreateResults(c context.Context, mmfr *mmlogic.MMFResults) 
 // parameter) the amount of work is identical, so this is fine as a starting point.
 func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map[string]int64, error) {
 
-	f := filter.FilterSpec
-
 	// Default maximum value is positive infinity (i.e. highest possible number in redis)
 	// https://redis.io/commands/zrangebyscore
-	maxv := strconv.FormatInt(f.Maxv, 10) // Convert int64 to a string
-	if f.Maxv == 0 {                      // No max specified, set to +inf
+	maxv := strconv.FormatInt(filter.Maxv, 10) // Convert int64 to a string
+	if filter.Maxv == 0 {                      // No max specified, set to +inf
 		maxv = "+inf"
 	}
 
-	mlLog.WithFields(log.Fields{"filterField": f.Field}).Debug("In applyFilter")
+	mlLog.WithFields(log.Fields{"filterField": filter.Attribute}).Debug("In applyFilter")
 
 	// Get redis connection from pool
 	redisConn := s.pool.Get()
@@ -308,11 +315,11 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map
 
 	// Check how many expected matches for this filter before we start retrieving.
 	cmd := "ZCOUNT"
-	count, err := redis.Int64(redisConn.Do(cmd, f.Field, f.Minv, maxv))
+	count, err := redis.Int64(redisConn.Do(cmd, filter.Attribute, filter.Minv, maxv))
 	countLog := mlLog.WithFields(log.Fields{
 		"query": cmd,
-		"field": f.Field,
-		"minv":  f.Minv,
+		"field": filter.Attribute,
+		"minv":  filter.Minv,
 		"maxv":  maxv,
 	})
 
@@ -344,12 +351,12 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map
 
 	// Loop, retrieving players in chunks.
 	for len(pool) == offset {
-		results, err := redis.Int64Map(redisConn.Do(cmd, f.Field, f.Minv, maxv, "WITHSCORES", "LIMIT", offset, s.cfg.GetInt("redis.queryArgs.count")))
+		results, err := redis.Int64Map(redisConn.Do(cmd, filter.Attribute, filter.Minv, maxv, "WITHSCORES", "LIMIT", offset, s.cfg.GetInt("redis.queryArgs.count")))
 		if err != nil {
 			mlLog.WithFields(log.Fields{
 				"query":  cmd,
-				"field":  f.Field,
-				"minv":   f.Minv,
+				"field":  filter.Attribute,
+				"minv":   filter.Minv,
 				"maxv":   maxv,
 				"offset": offset,
 				"count":  s.cfg.GetInt("redis.queryArgs.count"),
@@ -377,8 +384,8 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map
 	// Log completion and return
 	mlLog.WithFields(log.Fields{
 		"poolSize": len(pool),
-		"field":    f.Field,
-		"minv":     f.Minv,
+		"field":    filter.Attribute,
+		"minv":     filter.Minv,
 		"maxv":     maxv,
 	}).Info("Player pool filter processed")
 
@@ -405,13 +412,12 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.API_
 
 	// Loop over all filters, get results, combine
 	for _, thisFilter := range pool.Filters {
-		f := thisFilter.FilterSpec
 
 		filterStart := time.Now()
 		results, err := s.applyFilter(ctx, thisFilter)
 		thisFilter.Stats = &mmlogic.Stats{Count: int64(len(results)), Elapsed: time.Since(filterStart).Seconds()}
 		if err != nil {
-			mlLog.WithFields(log.Fields{"error": err.Error(), "filterid": thisFilter.Id}).Debug("Error applying filter")
+			mlLog.WithFields(log.Fields{"error": err.Error(), "filterName": thisFilter.Name}).Debug("Error applying filter")
 
 			if len(results) == 0 {
 				// One simple optimization here: check the count returned by a
@@ -419,15 +425,13 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.API_
 				// filters return a ZCOUNT of 0, then the logical AND of all filters will
 				// container no players and we can shortcircuit and quit.
 				mlLog.WithFields(log.Fields{
-					"count":    0,
-					"filterid": thisFilter.Id,
-					"pool":     pool.Id,
+					"count":      0,
+					"filterName": thisFilter.Name,
+					"pool":       pool.Name,
 				}).Info("This filter returned zero players. Returning empty pool")
 
 				// Fill in the stats for this player pool.
 				pool.Stats = &mmlogic.Stats{Count: int64(len(results)), Elapsed: time.Since(filterStart).Seconds()}
-				// Return empty roster.
-				pool.Roster = []*mmlogic.Roster{}
 
 				// Send the empty pool and exit.
 				if err = stream.Send(pool); err != nil {
@@ -449,8 +453,8 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.API_
 
 		// Store the array of player IDs as well as the full results for later
 		// retrieval
-		filteredRosters[f.Field] = m
-		filteredResults[f.Field] = results
+		filteredRosters[thisFilter.Attribute] = m
+		filteredResults[thisFilter.Attribute] = results
 		overlap = m
 	}
 
@@ -480,37 +484,37 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.API_
 	pageSize := s.cfg.GetInt("redis.results.pageSize")
 	pageCount := int(math.Ceil((float64(len(playerList)) / float64(pageSize)))) // Divides and rounds up on any remainder
 	//TODO: change if removing filtersets from rosters in favor of it being in pools
-	partialRoster := mmlogic.Roster{Id: fmt.Sprintf("%v.partialRoster", pool.Id)}
+	partialRoster := mmlogic.Roster{Name: fmt.Sprintf("%v.partialRoster", pool.Name)}
 	pool.Stats = &mmlogic.Stats{Count: int64(len(playerList)), Elapsed: time.Since(fnStart).Seconds()}
 	for i := 0; i < len(playerList); i++ {
-		pID := playerList[i]
-		player := &mmlogic.Player{Id: pID, Properties: []*mmlogic.Player_Property{}}
-
-		// Loop through all results for all filtered fields, and add those values to this player
-		for field, fr := range filteredResults {
-			if value, ok := fr[pID]; ok {
-				player.Properties = append(player.Properties, &mmlogic.Player_Property{Name: field, Value: value})
-			}
-		}
-		partialRoster.Players = append(partialRoster.Players, player)
-
 		// Check if we've filled in enough players to fill a page of results.
-		if i%pageSize == 0 {
-			pageName := fmt.Sprintf("%v.page%v%v", pool.Id, i/pageSize, pageCount)
+		if (i > 0 && i%pageSize == 0) || i == (len(playerList)-1) {
+			pageName := fmt.Sprintf("%v.page%v/%v", pool.Name, i/pageSize+1, pageCount)
 			poolChunk := &mmlogic.PlayerPool{
-				Id:      pageName,
+				Name:    pageName,
 				Filters: pool.Filters,
 				Stats:   pool.Stats,
-				Roster:  []*mmlogic.Roster{&partialRoster},
+				Roster:  &partialRoster,
 			}
 			if err = stream.Send(poolChunk); err != nil {
 				return err
 			}
 			partialRoster.Players = []*mmlogic.Player{}
 		}
+
+		// Add one additional player result to the partial pool.
+		player := &mmlogic.Player{Id: playerList[i], Attributes: []*mmlogic.Player_Attribute{}}
+		// Collect all the filtered attributes into the player protobuf.
+		for attribute, fr := range filteredResults {
+			if value, ok := fr[playerList[i]]; ok {
+				player.Attributes = append(player.Attributes, &mmlogic.Player_Attribute{Name: attribute, Value: value})
+			}
+		}
+		partialRoster.Players = append(partialRoster.Players, player)
+
 	}
 	// TODO: send last page
-	mlLog.WithFields(log.Fields{"count": len(overlap), "pool": pool.Id}).Debug("Player pool streaming complete")
+	mlLog.WithFields(log.Fields{"count": len(overlap), "pool": pool.Name}).Debug("Player pool streaming complete")
 
 	return nil
 }

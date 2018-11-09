@@ -1,69 +1,52 @@
 {
-   "name":"testprofile",
-   "properties":{
-      "playerPools":[
-         {
-            "id":"DefaultPool",
-            "filters":[
-               {
-                  "id":"europeWest1LatencyUnder150",
-                  "filterSpec":{
-                     "field":"region.europe-west1",
-                     "maxv":"150"
-                  }
-               },
-               {
-                  "id":"silverRanking",
-                  "filterSpec":{
-                     "field":"mmr.rating",
-                     "minv":"950",
-                     "maxv":"1250"
-                  }
-               }
-            ]
-         },
-         {
-            "id":"SupportPool",
-            "filters":[
-               {
-                  "id":"europeEast1LatencyUnder150",
-                  "filterSpec":{
-                     "field":"region.europe-east1",
-                     "maxv":"150"
-                  },
-                  "filterStat":{
-                     "count":"1",
-                     "elapsed":"100"
-                  }
-               },
-               {
-                  "id":"europeWest1LatencyUnder150",
-                  "filterSpec":{
-                     "field":"region.europe-west1",
-                     "maxv":"150"
-                  }
-               },
-               {
-                  "id":"silverRanking",
-                  "filterSpec":{
-                     "field":"mmr.rating",
-                     "minv":"950",
-                     "maxv":"1250"
-                  }
-               },
-               {
-                  "id":"supportRole",
-                  "filterSpec":{
-                     "field":"role.support",
-                     "maxv":"2147483647"
-                  }
-               }
-            ]
-         }
-      ],
-      "roster":{
-         "blue":4,
-         "red":4
-      }
+  "name":"testprofile",
+  "properties":{
+     "playerPools": [
+        {
+          "name": "defaultPool",
+          "filters": [
+            { "name": "europeEast1ElapsedUnder150", "attribute": "region.europe-east1", "maxv": "150" },
+            { "name": "europeWest1ElapsedUnder150", "attribute": "region.europe-west1", "maxv": "150" },
+            { "name": "silverRanking", "attribute": "mmr.rating", "maxv": "1250", "minv": "950" }
+          ]
+        },
+        {
+          "name": "supportPool",
+          "filters": [
+            { "name": "europeEast1ElapsedUnder150", "attribute": "region.europe-east1", "maxv": "150" },
+            { "name": "europeWest1ElapsedUnder150", "attribute": "region.europe-west1", "maxv": "150" },
+            { "name": "silverRanking", "attribute": "mmr.rating", "maxv": "1250", "minv": "950" },
+            { "name": "supportRole", "attribute": "role.support", "maxv": "2147483647" }
+          ]
+        }
+     ],
+     "rosters": [
+        {
+          "name": "red",
+          "players": [
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" }
+          ]
+        },
+        {
+          "name": "blu",
+          "players": [
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" },
+            { "pool": "defaultPool" }
+          ]
+        }
+     ]
    }
 }

@@ -38,12 +38,3 @@ service API {
   // all players on the list, provide the current time as the timestamp.
   rpc ListIgnoredPlayers(Timestamp) returns (Roster) {}
 }
-
-// IlInput is an empty message reserved for future use.
-message IlInput{
-}
-
-// Epoch timestamp in seconds.
-message Timestamp{
-  int64 ts = 1;
-}

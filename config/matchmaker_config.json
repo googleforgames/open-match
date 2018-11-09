@@ -61,7 +61,8 @@
         "mmfImage": "imagename",
         "roster": "properties.roster",
         "connstring": "connstring",
-        "pools": "properties.playerPools"
+        "pools": "properties.playerPools",
+        "poolName": "properties.poolName"
     },
     "interval": {
         "evaluator": 10,

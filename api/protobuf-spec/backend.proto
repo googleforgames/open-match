@@ -43,13 +43,3 @@ service API {
   // state storage.
   rpc DeleteAssignments(Roster) returns (Result) {}
 }
-
-// Simple message used to pass the connection string for the DGS to the player. 
-message ConnectionInfo{
-    string connection_string = 1;   // Passed by the matchmaker to game clients without modification. 
-}
-
-message Assignments{
-    repeated Roster rosters = 1;
-    ConnectionInfo connection_info = 2;
-}
