@@ -1,9 +1,11 @@
 syntax = 'proto3';
+package api;
+option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
 
-// Most of the protobuf messages sent in the gRPC calls are defined 'om_messages.proto'.
-import 'om_messages.proto';
+// The protobuf messages sent in the gRPC calls are defined 'messages.proto'.
+import 'api/protobuf-spec/messages.proto';
 
-service API {
+service MmLogic {
   // Profile and match object functions
   // If your matchmaking logic makes a group, it should CreateProposal.  If it 
   // cannot make a group, it should ReturnError.  
@@ -12,29 +14,27 @@ service API {
   //  'filled' one.
   //  Note: filters are assumed to have been checked for validity by the
   //  backendapi  when accepting a profile
-  rpc GetProfile(Profile) returns (Profile) {}
+  rpc GetProfile(messages.Profile) returns (messages.Profile) {}
 
   // CreateProposal  does the following:
   //  - adds all players in the Roster to the proposed player ignore list
   //  - writes the proposed match to the provided key
   //  - adds that key to the list of proposals to be considered
-  rpc CreateProposal(MatchObject) returns (Result) {}
-  rpc ReturnError(Result) returns (Result) {}
+  rpc CreateProposal(messages.MatchObject) returns (messages.Result) {}
+  rpc ReturnError(messages.Result) returns (messages.Result) {}
 
   // Player listing and filtering functions
   //
   // RetrievePlayerPool gets the list of players for every Filter in the
   // PlayerPool, and then removes all players it finds in the ignore list.  It
   // combines the results, and returns the resulting player pool.
-  rpc GetPlayerPool(PlayerPool) returns (stream PlayerPool) {}
+  rpc GetPlayerPool(messages.PlayerPool) returns (stream messages.PlayerPool) {}
 
   // Ignore List functions
   //
   // IlInput is an empty message reserved for future use.
-  rpc GetAllIgnoredPlayers(IlInput) returns (Roster) {}
-  // RetrieveIgnoreList retrieves players from the
-  // 'ignoreLists.proposedPlayers' ignore list specified in the config file
-  // that were placed on the list before the provided timestamp.  To retrieve
-  // all players on the list, provide the current time as the timestamp.
-  rpc ListIgnoredPlayers(Timestamp) returns (Roster) {}
+  rpc GetAllIgnoredPlayers(messages.IlInput) returns (messages.Roster) {}
+  // RetrieveIgnoreList retrieves players from the ignore list specified in the
+  // config file under 'ignoreLists.proposedPlayers.key'.
+  rpc ListIgnoredPlayers(messages.IlInput) returns (messages.Roster) {}
 }

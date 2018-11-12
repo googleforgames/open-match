@@ -26,14 +26,13 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"reflect"
 	"strconv"
-	"strings"
 	"time"
 
-	mmlogic "github.com/GoogleCloudPlatform/open-match/cmd/mmlogicapi/proto"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
+	mmlogic "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
+	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	"github.com/gogo/protobuf/jsonpb"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/stats"
@@ -79,7 +78,7 @@ func New(cfg *viper.Viper, pool *redis.Pool) *MmlogicAPI {
 	log.AddHook(metrics.NewHook(MlLogLines, KeySeverity))
 
 	// Register gRPC server
-	mmlogic.RegisterAPIServer(s.grpc, (*mmlogicAPI)(&s))
+	mmlogic.RegisterMmLogicServer(s.grpc, (*mmlogicAPI)(&s))
 	mlLog.Info("Successfully registered gRPC server")
 	return &s
 }
@@ -170,7 +169,7 @@ func (s *mmlogicAPI) GetProfile(c context.Context, in *mmlogic.Profile) (*mmlogi
 func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject) (*mmlogic.Result, error) {
 
 	// Retreive configured redis keys.
-	list := s.cfg.GetString("ignoreLists.proposedPlayers")
+	list := s.cfg.GetString("ignoreLists.proposedPlayers.key")
 	proposalq := s.cfg.GetString("queues.proposals.name")
 
 	// Get redis connection from pool
@@ -188,7 +187,7 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 	for _, roster := range prop.Rosters {
 		playerIDs = append(playerIDs, getPlayerIdsFromRoster(roster)...)
 	}
-	err := ignorelist.Update(redisConn, list, playerIDs)
+	err := ignorelist.Add(redisConn, list, playerIDs)
 	if err != nil {
 		// TODO: update fields
 		mlLog.WithFields(log.Fields{
@@ -201,34 +200,41 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 		return &mmlogic.Result{Success: false, Error: err.Error()}, err
 	}
 
+	mo := &mmlogic.MatchObject{}
 	// Write all non-id fields from the protobuf message to state storage.
-	key := prop.Id
-	cmd := "HSET"
-	moInfo := reflect.ValueOf(prop).Elem()
-	for i := 0; i < moInfo.NumField(); i++ {
-		field := strings.ToLower(moInfo.Type().Field(i).Name)
-		value := moInfo.Field(i).Interface()
-		if field != "id" {
-			_, err = redisConn.Do(cmd, key, field, value)
-			if err != nil {
+	err = redispb.MarshalToRedis(mo, s.pool)
+	/*	key := prop.Id
+		cmd := "HSET"
+		moInfo := reflect.ValueOf(prop).Elem()
+		for i := 0; i < moInfo.NumField(); i++ {
+			field := strings.ToLower(moInfo.Type().Field(i).Name)
+			value := moInfo.Field(i).Interface()
+			if field != "id" {
+				_, err = redisConn.Do(cmd, key, field, value)
+				if err != nil {
+					mlLog.WithFields(log.Fields{
+						"error":     err.Error(),
+						"component": "statestorage",
+						"key":       prop.Id,
+						"field":     field,
+					}).Error("State storage error")
+					stats.Record(fnCtx, MlGrpcErrors.M(1))
+					return &mmlogic.Result{Success: false, Error: err.Error()}, err
+				}
 				mlLog.WithFields(log.Fields{
-					"error":     err.Error(),
 					"component": "statestorage",
-					"key":       prop.Id,
+					"cmd":       cmd,
+					"key":       key,
 					"field":     field,
-				}).Error("State storage error")
-				stats.Record(fnCtx, MlGrpcErrors.M(1))
-				return &mmlogic.Result{Success: false, Error: err.Error()}, err
-			}
-			mlLog.WithFields(log.Fields{
-				"component": "statestorage",
-				"cmd":       cmd,
-				"key":       key,
-				"field":     field,
-				"value":     value,
-			}).Debug("State storage operation")
+					"value":     value,
+				}).Debug("State storage operation")
 
+			}
 		}
+	*/
+	if err != nil {
+		stats.Record(fnCtx, MlGrpcErrors.M(1))
+		return &mmlogic.Result{Success: false, Error: err.Error()}, err
 	}
 
 	//  add propkey to proposalsq
@@ -238,7 +244,7 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 			"error":     err.Error(),
 			"component": "statestorage",
 			"key":       proposalq,
-			"proposal":  key,
+			"proposal":  prop.Id,
 		}).Error("State storage error")
 		stats.Record(fnCtx, MlGrpcErrors.M(1))
 		return &mmlogic.Result{Success: false, Error: err.Error()}, err
@@ -254,7 +260,7 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 // mmlogicapi/proto/mmlogic.proto
 func (s *mmlogicAPI) CreateResults(c context.Context, mmfr *mmlogic.MMFResults) (*mmlogic.Result, error) {
 
-	list := s.cfg.GetString("ignoreLists.deindexedPlayers")
+	list := s.cfg.GetString("ignoreLists.deindexedPlayers.key")
 
 	// Get redis connection from pool
 	redisConn := s.pool.Get()
@@ -268,7 +274,7 @@ func (s *mmlogicAPI) CreateResults(c context.Context, mmfr *mmlogic.MMFResults) 
 
 	// Write group
 	playerIDs := getPlayerIdsFromRoster(mmfr.Roster)
-	err := ignorelist.Update(redisConn, list, playerIDs)
+	err := ignorelist.Add(redisConn, list, playerIDs)
 	if err != nil {
 		// TODO: update fields
 		mlLog.WithFields(log.Fields{
@@ -397,7 +403,7 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map
 // API_GetPlayerPoolServer returns mutiple PlayerPool messages - they should
 // all be reassembled into one set on the calling side, as they are just
 // paginated subsets of the player pool.
-func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.API_GetPlayerPoolServer) error {
+func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLogic_GetPlayerPoolServer) error {
 
 	// TODO: quit if context is cancelled
 	ctx, cancel := context.WithCancel(context.Background())
@@ -513,7 +519,7 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.API_
 		partialRoster.Players = append(partialRoster.Players, player)
 
 	}
-	// TODO: send last page
+
 	mlLog.WithFields(log.Fields{"count": len(overlap), "pool": pool.Name}).Debug("Player pool streaming complete")
 
 	return nil
@@ -521,9 +527,10 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.API_
 
 // ListIgnoredPlayers is this service's implementation of the gRPC call defined in
 // mmlogicapi/proto/mmlogic.proto
-func (s *mmlogicAPI) ListIgnoredPlayers(c context.Context, olderThan *mmlogic.Timestamp) (*mmlogic.Roster, error) {
+func (s *mmlogicAPI) ListIgnoredPlayers(c context.Context, olderThan *mmlogic.IlInput) (*mmlogic.Roster, error) {
 
-	list := s.cfg.GetString("ignoreLists.proposedPlayers")
+	// TODO: is this supposed to able to take any list?
+	ilName := "proposed"
 
 	// Get redis connection from pool
 	redisConn := s.pool.Get()
@@ -533,15 +540,15 @@ func (s *mmlogicAPI) ListIgnoredPlayers(c context.Context, olderThan *mmlogic.Ti
 	funcName := "ListIgnoredPlayers"
 	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
 
-	mlLog.WithFields(log.Fields{"ignorelist": list}).Info("Attempting to get ignorelist")
+	mlLog.WithFields(log.Fields{"ignorelist": ilName}).Info("Attempting to get ignorelist")
 
 	// retreive ignore list
-	il, err := ignorelist.Retrieve(redisConn, list, olderThan.Ts)
+	il, err := ignorelist.Retrieve(redisConn, s.cfg, ilName)
 	if err != nil {
 		mlLog.WithFields(log.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
-			"key":       list,
+			"key":       ilName,
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, MlGrpcErrors.M(1))
@@ -586,17 +593,17 @@ func (s *mmlogicAPI) allIgnoreLists(c context.Context, in *mmlogic.IlInput) (all
 	mlLog.Info("Attempting to get and combine ignorelists")
 	funcName := "allIgnoreLists"
 
-	for _, il := range s.cfg.GetStringMapString("ignoreLists") {
-		mlLog.Debug(funcName, " Found IL named ", il)
-		thisIl, err := ignorelist.Retrieve(redisConn, il, time.Now().Unix())
+	for _, ilName := range s.cfg.GetStringMapString("ignoreLists") {
+		mlLog.Debug(funcName, " Found IL named ", ilName)
+		thisIl, err := ignorelist.Retrieve(redisConn, s.cfg, ilName)
 		if err != nil {
 			panic(err)
 		}
 
 		allIgnored := union(allIgnored, thisIl)
 
-		mlLog.WithFields(log.Fields{"count": len(allIgnored), "ignorelist": il}).Debug("Amount of overlap (this should never decrease)")
-		mlLog.WithFields(log.Fields{"ignorelist": il, "first10": allIgnored[:min(10, len(allIgnored))]}).Debug("Sample of overlap")
+		mlLog.WithFields(log.Fields{"count": len(allIgnored), "ignorelist": ilName}).Debug("Amount of overlap (this should never decrease)")
+		mlLog.WithFields(log.Fields{"ignorelist": ilName, "first10": allIgnored[:min(10, len(allIgnored))]}).Debug("Sample of overlap")
 
 	}
 

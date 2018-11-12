@@ -1,0 +1,91 @@
+syntax = 'proto3';
+package messages;
+option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
+
+message Profile{
+  string id = 1;                        // By convention, a UUID
+  string properties = 2;                // By convention, a JSON-encoded string
+  string name = 3;                      // OPTIONAL: Arbitrary developer-chosen, human-readable string.
+  // When you send a Profile to the backendAPI, it looks to see if you populated
+  // this field with protobuf-encoded PlayerPool objects containing valid the filters 
+  // objects.  If you did, they are used by OM.  If you didn't, the backendAPI
+  // next looks in your properties blob at the key specified in the 'jsonkeys.pools'
+  // config value from config/matchmaker_config.json - If it finds valid player
+  // pool definitions at that key, it will try to unmarshal them into this field. 
+  // If you didn't specify valid player pools in either place, OM assumes you
+  // know what you're doing and just leaves this unpopulatd.
+  repeated PlayerPool pools = 4;    // Reserved by OM to store protobuf-encoded copies of your player pools.
+}
+
+// A MMF takes the Profile object above, and generates a MatchObject.
+message MatchObject{
+  string id = 1;                        // By convention, a UUID
+  string properties = 2;                // By convention, a JSON-encoded string
+  repeated Roster rosters = 3;          // OUTPUT: Reserved by OM to store protobuf-encoded copies of the matchobject rosters.
+  repeated PlayerPool pools = 4;        // OUTPUT: Reserved by OM to return filter stats, useful to backend API clients.
+}
+
+// Data structure to hold a list of players in a match.
+message Roster{
+    string name = 1;                 // OPTIONAL: Arbitrary developer-chosen, human-readable string. By convention, set to team name. 
+    repeated Player players = 2;     // REQUIRED: Player profiles on this roster.
+}
+
+// A filter to apply to the player pool.
+message Filter{
+    string name = 1;                // OPTIONAL: Arbitrary developer-chosen, human-readable name of this filter. Appears in logs and metrics. 
+    string attribute = 2;           // REQUIRED: Name of the player attribute this filter operates on. 
+    int64 maxv = 3;                 // OPTIONAL: Maximum value.  Defaults to +inf.
+    int64 minv = 4;                 // OPTIONAL: Minimum value.  Defaults to 0.  
+    Stats stats = 5;                // OUTPUT: Once a filter has been applied, this will be populated with information.
+}
+
+message Stats{
+    int64 count = 1;                // OUTPUT: Number of results returned from state storage.
+    double elapsed = 2;             // OUTPUT: How long the state storage query took. 
+}
+
+message PlayerPool{
+    string name = 1;                // REQUIRED: Arbitrary developer-chosen, human-readable string.
+    repeated Filter filters = 2;    // REQUIRED: All filters are logical AND-ed (a player must match every filter to be returned).
+    Roster roster = 3;              // OUTPUT: Roster of players that matched all filters.
+    Stats stats = 4;                // OUTPUT: Stats for all combined filters.
+}
+
+// Data structure for a profile to pass to the matchmaking function.
+message Player{
+  message Attribute{
+    string name = 1;                // Name should match a Filter.attribute field. 
+    int64 value = 2;
+  }
+  string id = 1;                    // By convention, a UUID 
+  string properties = 2;            // By convention, a JSON-encoded string
+  string pool = 3;                  // A PlayerPool with this name will be searched for this player. 
+  repeated Attribute attributes= 4; // Attributes of this player.
+}
+
+
+// Simple message to return success/failure and error status.
+message Result{
+    bool success = 1;
+    string error = 2;
+}
+
+// IlInput is an empty message reserved for future use.
+message IlInput{
+}
+
+// Epoch timestamp in seconds.
+message Timestamp{
+  int64 ts = 1;
+}
+
+// Simple message used to pass the connection string for the DGS to the player. 
+message ConnectionInfo{
+    string connection_string = 1;   // Passed by the matchmaker to game clients without modification. 
+}
+
+message Assignments{
+    repeated Roster rosters = 1;
+    ConnectionInfo connection_info = 2;
+}

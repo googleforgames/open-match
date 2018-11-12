@@ -21,12 +21,13 @@ was added to the list.
 package ignorelist
 
 import (
+	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 // Logrus structured logging setup
@@ -51,50 +52,112 @@ func Create(redisConn redis.Conn, ignorelistID string, playerIDs []string) error
 	ilLog.WithFields(log.Fields{
 		"query": cmd,
 		"args":  cmdArgs,
-	}).Debug("Statestorage operation")
+	}).Debug("state storage operation")
 
 	// Run the Redis command.
 	_, err := redisConn.Do(cmd, cmdArgs...)
 	return err
 }
 
-// Update is an alias for Create() in this implementation
-func Update(redisConn redis.Conn, ignorelistID string, playerIDs []string) error {
-	return Create(redisConn, ignorelistID, playerIDs)
-}
+// SendAdd is identical to Add only does a redigo 'Send' as part of a MULTI command.
+func SendAdd(redisConn redis.Conn, ignorelistID string, playerIDs []string) {
 
-// Retrieve returns a list of playerIDs added to the ignorelist, older than the given timestamp.
-// To get the full list, just send the current epoch timestamp.
-func Retrieve(redisConn redis.Conn, ignorelistID string, olderThanTS int64) ([]string, error) {
-	cmd := "ZRANGEBYSCORE"
+	// Logrus logging
+	cmd := "ZADD"
 
-	results, err := redis.Strings(redisConn.Do(cmd, ignorelistID, "-inf", strconv.Itoa(int(olderThanTS))))
-	return results, err
-}
-
-// Delete removes players from the sorted set.
-func Delete(redisConn redis.Conn, ignorelistID string, playerIDs string) error {
-
-	cmd := "ZREM"
-
-	// Make array of arguments ot the ZREM command.  First element is the key (ignorelist ID)
-	cmdArgs := make([]interface{}, 0)
-	cmdArgs = append(cmdArgs, ignorelistID)
-
-	// Add player IDs to the array.
-	players := strings.Split(playerIDs, " ")
-	for _, pId := range players {
-		cmdArgs = append(cmdArgs, pId)
-	}
+	cmdArgs := buildElementValueList(ignorelistID, playerIDs)
 
 	ilLog.WithFields(log.Fields{
 		"query": cmd,
 		"args":  cmdArgs,
-	}).Debug("Statestorage operation")
+	}).Debug("state storage transaction operation")
+
+	// Run the Redis command.
+	redisConn.Send(cmd, cmdArgs...)
+}
+
+// Add is an alias for Create() in this implementation
+func Add(redisConn redis.Conn, ignorelistID string, playerIDs []string) error {
+	return Create(redisConn, ignorelistID, playerIDs)
+}
+
+// Remove deletes playerIDs from an ignorelist.
+func Remove(redisConn redis.Conn, ignorelistID string, playerIDs []string) error {
+
+	// Logrus logging
+	cmd := "ZREM"
+
+	cmdArgs := buildElementValueList(ignorelistID, playerIDs)
+
+	ilLog.WithFields(log.Fields{
+		"query": cmd,
+		"args":  cmdArgs,
+	}).Debug("state storage operation")
 
 	// Run the Redis command.
 	_, err := redisConn.Do(cmd, cmdArgs...)
 	return err
+}
+
+// SendRemove is identical to Remove only does a redigo 'Send' as part of a MULTI command.
+func SendRemove(redisConn redis.Conn, ignorelistID string, playerIDs []string) {
+
+	// Logrus logging
+	cmd := "ZREM"
+
+	cmdArgs := buildElementValueList(ignorelistID, playerIDs)
+
+	ilLog.WithFields(log.Fields{
+		"query": cmd,
+		"args":  cmdArgs,
+	}).Debug("state storage transaction operation")
+
+	// Run the Redis command.
+	redisConn.Send(cmd, cmdArgs...)
+}
+
+// Retrieve returns a list of playerIDs in the ignorelist
+func Retrieve(redisConn redis.Conn, cfg *viper.Viper, il string) ([]string, error) {
+
+	// String var init
+	cmd := "ZRANGEBYSCORE"
+	expire := fmt.Sprintf("ignoreLists.%v.expireAfter", il)
+	offset := fmt.Sprintf("ignoreLists.%v.ignoreAfter", il)
+
+	// Timestamp var init
+	now := time.Now().Unix()
+	minTS := int64(0)
+	maxTS := now
+
+	// Ignorelists are sorted sets with a 'score' that is the epoch timestamp
+	// (in seconds) of when a player was added. Ignorelist entries are are valid
+	// if the timestamp is (now - 'ignoreAfter'), and are expired/invalid if the
+	// timestamp is (now - 'expireAfter'), so use those as min/max scores in the
+	// sorted set query.
+	if cfg.IsSet(expire) {
+		minTS = now - cfg.GetInt64(expire)
+	}
+	if cfg.IsSet(offset) {
+		maxTS = maxTS - cfg.GetInt64(offset)
+	}
+
+	ilLog.WithFields(log.Fields{
+		"query": cmd,
+		"minv":  minTS,
+		"maxv":  maxTS,
+	}).Debug("state storage transaction operation")
+
+	results, err := redis.Strings(redisConn.Do(cmd, il, maxTS, minTS))
+
+	return results, err
+}
+
+func retrieve(redisConn redis.Conn, ignorelistID string, from int64, until int64) ([]string, error) {
+	cmd := "ZRANGEBYSCORE"
+
+	// ignorelists are sorted sets with scores set to epoch timestamps (in seconds)
+	results, err := redis.Strings(redisConn.Do(cmd, ignorelistID, from, until))
+	return results, err
 }
 
 // buildElemmentValueLIst builds an array of strings to send to the redis commad.

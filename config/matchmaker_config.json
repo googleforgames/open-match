@@ -29,8 +29,18 @@
         }
     },
     "ignoreLists": {
-        "proposedPlayers": "proposedil",
-        "deindexedPlayers": "deindexedil"
+        "proposed": {
+            "key": "proposed",
+            "expireAfter": 800
+        },
+        "deindexed": {
+            "key": "deindexed",
+            "expireAfter": 800
+        },
+        "inactive": {
+            "key": "timestamp",
+            "ignoreAfter": 800
+        }
     },
     "defaultImages": {
         "evaluator": {
@@ -67,5 +77,23 @@
     "interval": {
         "evaluator": 10,
         "resultsTimeout": 30
-    }
+    },
+    "playerIndices": [
+        "char.cleric",
+        "char.knight",
+        "char.paladin",
+        "map.aleroth",
+        "map.oasis",
+        "mmr.rating",
+        "mode.battleroyale",
+        "mode.ctf",
+        "region.europe-east1",
+        "region.europe-west1",
+        "region.europe-west2",
+        "region.europe-west3",
+        "region.europe-west4",
+        "role.dps",
+        "role.support",
+        "role.tank"
+    ]
 }
