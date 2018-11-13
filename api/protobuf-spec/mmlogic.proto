@@ -7,8 +7,8 @@ import 'api/protobuf-spec/messages.proto';
 
 service MmLogic {
   // Profile and match object functions
-  // If your matchmaking logic makes a group, it should CreateProposal.  If it 
-  // cannot make a group, it should ReturnError.  
+  // If your matchmaking logic makes a match, it should CreateProposal.  If it 
+  // cannot, it should ReturnError.  
 
   //  Send GetProfile an profile with the ID field populated, it will return a
   //  'filled' one.

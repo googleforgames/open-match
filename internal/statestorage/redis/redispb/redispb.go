@@ -24,6 +24,7 @@ package redispb
 import (
 	"context"
 	"reflect"
+	"strings"
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
@@ -37,7 +38,7 @@ var (
 	rpLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
-		"caller":    "statestorage/redis/matchobject/matchobject.go",
+		"caller":    "internal/statestorage/redis/redispb/redispb.go",
 	}
 	rpLog = log.WithFields(rpLogFields)
 )
@@ -81,7 +82,7 @@ func MarshalToRedis(pb proto.Message, pool *redis.Pool) (err error) {
 	// Use reflection to get the field names from the protobuf message.
 	pbInfo := reflect.ValueOf(pb).Elem()
 	for i := 0; i < pbInfo.NumField(); i++ {
-		field := pbInfo.Type().Field(i).Name
+		field := strings.ToLower(pbInfo.Type().Field(i).Name)
 		value := gjson.Get(jsonMsg, field)
 		if field != "id" {
 			// This isn't the ID field, so write it to the redis hash.

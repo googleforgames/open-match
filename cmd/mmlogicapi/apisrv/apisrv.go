@@ -169,7 +169,7 @@ func (s *mmlogicAPI) GetProfile(c context.Context, in *mmlogic.Profile) (*mmlogi
 func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject) (*mmlogic.Result, error) {
 
 	// Retreive configured redis keys.
-	list := s.cfg.GetString("ignoreLists.proposedPlayers.key")
+	list := "proposed"
 	proposalq := s.cfg.GetString("queues.proposals.name")
 
 	// Get redis connection from pool
@@ -200,9 +200,8 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 		return &mmlogic.Result{Success: false, Error: err.Error()}, err
 	}
 
-	mo := &mmlogic.MatchObject{}
 	// Write all non-id fields from the protobuf message to state storage.
-	err = redispb.MarshalToRedis(mo, s.pool)
+	err = redispb.MarshalToRedis(prop, s.pool)
 	/*	key := prop.Id
 		cmd := "HSET"
 		moInfo := reflect.ValueOf(prop).Elem()
@@ -304,7 +303,10 @@ func (s *mmlogicAPI) CreateResults(c context.Context, mmfr *mmlogic.MMFResults) 
 // argument.  This can be likely sped up later using concurrent access, but
 // with small enough player pools (less than the 'redis.queryArgs.count' config
 // parameter) the amount of work is identical, so this is fine as a starting point.
+// If the provided field is not indexed or the provided range is too large, a nil result
+// is returned and this filter should be disregarded when applying filter overlaps.
 func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map[string]int64, error) {
+	type pName string
 
 	// Default maximum value is positive infinity (i.e. highest possible number in redis)
 	// https://redis.io/commands/zrangebyscore
@@ -322,31 +324,33 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map
 	// Check how many expected matches for this filter before we start retrieving.
 	cmd := "ZCOUNT"
 	count, err := redis.Int64(redisConn.Do(cmd, filter.Attribute, filter.Minv, maxv))
-	countLog := mlLog.WithFields(log.Fields{
+	//DEBUG: count, err := redis.Int64(redisConn.Do(cmd, "BLARG", filter.Minv, maxv))
+	mlLog := mlLog.WithFields(log.Fields{
 		"query": cmd,
 		"field": filter.Attribute,
 		"minv":  filter.Minv,
 		"maxv":  maxv,
+		"count": count,
 	})
-
-	// Cases where the redis query succeeded but we don't want to process
-	// the results.
-	// 500,000 results is an arbitrary number; OM doesn't encourage
-	// patterns where MMFs look at this large of a pool.
-	if err == nil && (count == 0 || count > 500000) {
-		err = errors.New("Number of player this filter applies to is either too large or too small, ignoring")
-	}
 	if err != nil {
-		countLog.WithFields(log.Fields{"error": err.Error(), "count": count}).Error("statestorage error")
+		mlLog.WithFields(log.Fields{"error": err.Error()}).Error("state storage error")
 		return nil, err
 	}
 
-	// Cases where we continue.
-	if count < 100000 {
-		mlLog.WithFields(log.Fields{"count": count}).Info("number of players this filter applies to")
+	if count == 0 {
+		err = errors.New("filter applies to no players")
+		mlLog.Error(err.Error())
+		return nil, err
+	} else if count > 500000 {
+		// 500,000 results is an arbitrary number; OM doesn't encourage
+		// patterns where MMFs look at this large of a pool.
+		mlLog.Warn("filter applies to too many players, ignoring")
+		return nil, nil
+	} else if count < 100000 {
+		mlLog.Info("filter processed")
 	} else {
 		// Send a warning to the logs.
-		mlLog.WithFields(log.Fields{"count": count}).Warn("number of players this filter applies to is very large")
+		mlLog.Warn("filter applies to a large number of players")
 	}
 
 	// Amount of results look okay and no redis error, begin
@@ -388,12 +392,12 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map
 	}
 
 	// Log completion and return
-	mlLog.WithFields(log.Fields{
-		"poolSize": len(pool),
-		"field":    filter.Attribute,
-		"minv":     filter.Minv,
-		"maxv":     maxv,
-	}).Info("Player pool filter processed")
+	//mlLog.WithFields(log.Fields{
+	//	"poolSize": len(pool),
+	//	"field":    filter.Attribute,
+	//	"minv":     filter.Minv,
+	//	"maxv":     maxv,
+	//}).Debug("Player pool filter processed")
 
 	return pool, nil
 }
@@ -409,6 +413,16 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Create context for tagging OpenCensus metrics.
+	funcName := "GetPlayerPool"
+	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
+
+	mlLog.WithFields(log.Fields{
+		"filterCount": len(pool.Filters),
+		"pool":        pool.Name,
+		"funcName":    funcName,
+	}).Info("attempting to retreive player pool from state storage")
+
 	// One working Roster per filter in the set.  Combined at the end.
 	filteredRosters := make(map[string][]string)
 	// Temp store the results so we can also populate some field values in the final return roster.
@@ -421,7 +435,20 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 
 		filterStart := time.Now()
 		results, err := s.applyFilter(ctx, thisFilter)
+		if results == nil && err == nil {
+			// Filter applies to so many players that we can't filter on it.
+			// Ignore this filter and attempt to process all the rest.
+			thisFilter.Stats = &mmlogic.Stats{Elapsed: time.Since(filterStart).Seconds()}
+			continue
+		}
+
 		thisFilter.Stats = &mmlogic.Stats{Count: int64(len(results)), Elapsed: time.Since(filterStart).Seconds()}
+		mlLog.WithFields(log.Fields{
+			"count":      int64(len(results)),
+			"elapsed":    time.Since(filterStart).Seconds(),
+			"filterName": thisFilter.Name,
+		}).Debug("Filter stats")
+
 		if err != nil {
 			mlLog.WithFields(log.Fields{"error": err.Error(), "filterName": thisFilter.Name}).Debug("Error applying filter")
 
@@ -434,15 +461,17 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 					"count":      0,
 					"filterName": thisFilter.Name,
 					"pool":       pool.Name,
-				}).Info("This filter returned zero players. Returning empty pool")
+				}).Warn("returning empty pool")
 
 				// Fill in the stats for this player pool.
 				pool.Stats = &mmlogic.Stats{Count: int64(len(results)), Elapsed: time.Since(filterStart).Seconds()}
 
 				// Send the empty pool and exit.
 				if err = stream.Send(pool); err != nil {
+					stats.Record(fnCtx, MlGrpcErrors.M(1))
 					return err
 				}
+				stats.Record(fnCtx, MlGrpcRequests.M(1))
 				return nil
 			}
 
@@ -468,8 +497,9 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 	for field, thesePlayers := range filteredRosters {
 		overlap = intersection(overlap, thesePlayers)
 
-		mlLog.WithFields(log.Fields{"count": len(overlap), "field": field}).Debug("Amount of overlap")
-		mlLog.WithFields(log.Fields{"field": field, "first10": overlap[:min(len(overlap), 10)]}).Debug("Sample of overlap")
+		_ = field
+		//mlLog.WithFields(log.Fields{"count": len(overlap), "field": field}).Debug("Amount of overlap")
+		//mlLog.WithFields(log.Fields{"field": field, "first10": overlap[:min(len(overlap), 10)]}).Debug("Sample of overlap")
 	}
 
 	// Get contents of all ignore lists and remove those players from the pool.
@@ -477,10 +507,10 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 	if err != nil {
 		mlLog.Error(err)
 	}
-	playerList := difference(overlap, il) // removes ignorelist from the Roster
-	mlLog.WithFields(log.Fields{"count": len(overlap)}).Debug("Overlap size")
+	mlLog.WithFields(log.Fields{"count": len(overlap)}).Debug("Pool size before applying ignorelists")
 	mlLog.WithFields(log.Fields{"count": len(il)}).Debug("Ignorelist size")
-	mlLog.WithFields(log.Fields{"count": len(playerList)}).Debug("Pool size")
+	playerList := difference(overlap, il) // removes ignorelist from the Roster
+	mlLog.WithFields(log.Fields{"count": len(playerList)}).Debug("Final Pool size")
 
 	// Reformat the playerList as a gRPC PlayerPool message. Send partial results as we go.
 	// This is pretty agressive in the partial result 'page'
@@ -503,6 +533,7 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 				Roster:  &partialRoster,
 			}
 			if err = stream.Send(poolChunk); err != nil {
+				stats.Record(fnCtx, MlGrpcErrors.M(1))
 				return err
 			}
 			partialRoster.Players = []*mmlogic.Player{}
@@ -522,6 +553,7 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 
 	mlLog.WithFields(log.Fields{"count": len(overlap), "pool": pool.Name}).Debug("Player pool streaming complete")
 
+	stats.Record(fnCtx, MlGrpcRequests.M(1))
 	return nil
 }
 
@@ -591,20 +623,17 @@ func (s *mmlogicAPI) allIgnoreLists(c context.Context, in *mmlogic.IlInput) (all
 	defer redisConn.Close()
 
 	mlLog.Info("Attempting to get and combine ignorelists")
-	funcName := "allIgnoreLists"
 
-	for _, ilName := range s.cfg.GetStringMapString("ignoreLists") {
-		mlLog.Debug(funcName, " Found IL named ", ilName)
-		thisIl, err := ignorelist.Retrieve(redisConn, s.cfg, ilName)
+	// Loop through all ignorelists configured in the config file.
+	for il := range s.cfg.GetStringMap("ignoreLists") {
+		ilCfg := s.cfg.Sub(fmt.Sprintf("ignoreLists.%v", il))
+		thisIl, err := ignorelist.Retrieve(redisConn, ilCfg, il)
 		if err != nil {
 			panic(err)
 		}
 
-		allIgnored := union(allIgnored, thisIl)
-
-		mlLog.WithFields(log.Fields{"count": len(allIgnored), "ignorelist": ilName}).Debug("Amount of overlap (this should never decrease)")
-		mlLog.WithFields(log.Fields{"ignorelist": ilName, "first10": allIgnored[:min(10, len(allIgnored))]}).Debug("Sample of overlap")
-
+		// Join this ignorelist to the others we've retrieved
+		allIgnored = union(allIgnored, thisIl)
 	}
 
 	return allIgnored, err

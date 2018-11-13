@@ -30,16 +30,16 @@
     },
     "ignoreLists": {
         "proposed": {
-            "key": "proposed",
-            "expireAfter": 800
+            "offset": 0,
+            "duration": 800
         },
         "deindexed": {
-            "key": "deindexed",
-            "expireAfter": 800
+            "offset": 0,
+            "duration": 800
         },
-        "inactive": {
-            "key": "timestamp",
-            "ignoreAfter": 800
+        "timestamp": {
+            "offset": 800,
+            "duration": 0 
         }
     },
     "defaultImages": {

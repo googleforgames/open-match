@@ -1,10 +1,17 @@
 #! /usr/bin/env python3
-def makeMatches(profile_dict, player_pool):
+import random
+
+def makeMatches(profile_dict, player_pools):
     ###########################################################################
     # This is the exciting part, and where most of your custom code would go! #
     ###########################################################################
 
     # for example, if your JSON format includes 'red' and 'blue' teams at the 'teams' key:
-    #profile_dict['teams']['blue'] = ['player1', 'player2', 'player3', 'player4']
-    #profile_dict['teams']['red'] = ['player5', 'player6', 'player7', 'player8']
+    for roster in profile_dict['properties']['rosters']:
+        for player in roster['players']:
+            if 'pool' in player:
+                player['id']  = random.choice(list(player_pools[player['pool']]))
+                print("Selected player %s from pool %s (strategy: RANDOM)" % (player['id'], player['pool']))
+            else:
+                print(player)
     return profile_dict

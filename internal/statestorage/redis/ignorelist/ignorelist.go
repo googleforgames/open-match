@@ -21,7 +21,6 @@ was added to the list.
 package ignorelist
 
 import (
-	"fmt"
 	"strconv"
 	"time"
 
@@ -117,37 +116,43 @@ func SendRemove(redisConn redis.Conn, ignorelistID string, playerIDs []string) {
 }
 
 // Retrieve returns a list of playerIDs in the ignorelist
+// 'cfg' is a viper.Sub sub-tree of the config file with just the parameters for
+// this ignorelist.
 func Retrieve(redisConn redis.Conn, cfg *viper.Viper, il string) ([]string, error) {
 
 	// String var init
 	cmd := "ZRANGEBYSCORE"
-	expire := fmt.Sprintf("ignoreLists.%v.expireAfter", il)
-	offset := fmt.Sprintf("ignoreLists.%v.ignoreAfter", il)
 
 	// Timestamp var init
 	now := time.Now().Unix()
-	minTS := int64(0)
-	maxTS := now
+	var minTS, maxTS int64
+
+	// Default to all players on the list
+	maxTS = now
+	minTS = 0
 
 	// Ignorelists are sorted sets with a 'score' that is the epoch timestamp
-	// (in seconds) of when a player was added. Ignorelist entries are are valid
-	// if the timestamp is (now - 'ignoreAfter'), and are expired/invalid if the
-	// timestamp is (now - 'expireAfter'), so use those as min/max scores in the
-	// sorted set query.
-	if cfg.IsSet(expire) {
-		minTS = now - cfg.GetInt64(expire)
+	// (in seconds) of when a player was added.
+	// examples: Assume current timestamp is 1000001000
+	//  duration is 800 and offset is 0:
+	// Ignore all players in the list with timestamps between 1000000200 - 1000001000
+	//  duration is 0 and offset is 500:
+	// Ignore players in the list with timestamps between 0 - 1000000500
+	if cfg.IsSet("offset") && cfg.GetInt64("offset") > 0 {
+		maxTS = now - cfg.GetInt64("offset")
 	}
-	if cfg.IsSet(offset) {
-		maxTS = maxTS - cfg.GetInt64(offset)
+	if cfg.IsSet("duration") && cfg.GetInt64("duration") > 0 {
+		minTS = maxTS - cfg.GetInt64("duration")
 	}
 
 	ilLog.WithFields(log.Fields{
 		"query": cmd,
+		"key":   il,
 		"minv":  minTS,
 		"maxv":  maxTS,
 	}).Debug("state storage transaction operation")
 
-	results, err := redis.Strings(redisConn.Do(cmd, il, maxTS, minTS))
+	results, err := redis.Strings(redisConn.Do(cmd, il, minTS, maxTS))
 
 	return results, err
 }

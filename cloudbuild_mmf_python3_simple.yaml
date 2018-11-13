@@ -1,0 +1,12 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'pull', 'gcr.io/$PROJECT_ID/openmatch-mmf:py' ]
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+            'build', 
+            '--tag=gcr.io/$PROJECT_ID/openmatch-mmf:py', 
+            '--cache-from=gcr.io/$PROJECT_ID/openmatch-mmf:py', 
+            '-f', 'Dockerfile.mmfpy', 
+            '.'
+        ]
+images: ['gcr.io/$PROJECT_ID/openmatch-mmf:py']
