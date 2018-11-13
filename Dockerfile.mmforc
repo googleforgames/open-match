@@ -20,5 +20,5 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
 
 # Uncomment to build production images (removes all troubleshooting tools)
 #FROM scratch
-#COPY --from=builder /go/src/github.com/GoogleCloudPlatform/openmatch/mmforc mmforc 
+#COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/cmd/mmforc/mmforc .
 CMD ["./mmforc"]
