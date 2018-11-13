@@ -120,10 +120,10 @@ By default, Open Match expects you to run Redis *somewhere*. Connection informat
 
 **Note:** These examples will be expanded on in future releases.
 
-The following examples of how to call the APIs are provided in the repository. Both have associated `Dockerfile`s and `cloudbuild_COMPONENT.yaml` files:
+The following examples of how to call the APIs are provided in the repository. Both have a `Dockerfile` and `cloudbuild.yaml` files in their respective directories:
 
-* `frontendstub/main.go` calls the Frontend API continually, putting players into the queue with simulated latencies from major metropolitan cities.
-* `backendstub/main.go` calls the Backend API and passes in the profile found in `backendstub/profiles/testprofile.json` to the `ListMatches` API endpoint, then prints the results.
+* `examples/frontendclient/main.go` acts as a client to the the Frontend API, putting a player into the queue with simulated latencies from major metropolitan cities and a couple of other matchmaking attributes. It then waits for you to manually put a value in Redis to simulate a server connection string being written using the backend API 'CreateAssignments' call, and displays that value on stdout for you to verify.
+* `examples/backendclient/main.go` calls the Backend API and passes in the profile found in `backendstub/profiles/testprofile.json` to the `ListMatches` API endpoint, then continually prints the results until you exit, or there are insufficient players to make a match based on the profile..
 
 ## Usage
 
