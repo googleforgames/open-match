@@ -31,7 +31,8 @@ with  grpc.insecure_channel(api_conn_info) as channel:
 
     # Step 3 - Read the profile written to the Backend API.
     # Get profile from redis
-    profile_pb = mmlogic_api.GetProfile(mmlogic.Profile(id=os.environ["MMF_PROFILE_ID"]))
+    profile_pb = mmlogic_api.GetProfile(mmlogic.MatchObject(id=os.environ["MMF_PROFILE_ID"]))
+    pp.pprint(profile_pb)
     profile_dict = json.loads(profile_pb.properties)
 
     # Step 4 - Select the player data from Redis that we want for our matchmaking logic.

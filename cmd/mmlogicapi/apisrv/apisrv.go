@@ -33,12 +33,9 @@ import (
 	mmlogic "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
-	"github.com/gogo/protobuf/jsonpb"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
-
-	"github.com/tidwall/gjson"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/spf13/viper"
@@ -112,7 +109,7 @@ func (s *mmlogicAPI) GetProposal(c context.Context, in *mmlogic.MatchObject) (*m
 
 // GetProfile is this service's implementation of the gRPC call defined in
 // mmlogicapi/proto/mmlogic.proto
-func (s *mmlogicAPI) GetProfile(c context.Context, in *mmlogic.Profile) (*mmlogic.Profile, error) {
+func (s *mmlogicAPI) GetProfile(c context.Context, profile *mmlogic.MatchObject) (*mmlogic.MatchObject, error) {
 
 	// Get redis connection from pool
 	redisConn := s.pool.Get()
@@ -122,45 +119,47 @@ func (s *mmlogicAPI) GetProfile(c context.Context, in *mmlogic.Profile) (*mmlogi
 	funcName := "GetProfile"
 	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
 
-	mlLog.WithFields(log.Fields{"profileid": in.Id}).Info("Attempting retreival of profile")
-
-	// Write group
-	profile, err := redis.StringMap(redisConn.Do("HGETALL", in.Id))
+	// Get profile.
+	mlLog.WithFields(log.Fields{"profileid": profile.Id}).Info("Attempting retreival of profile")
+	err := redispb.UnmarshalFromRedis(c, s.pool, profile)
+	mlLog.Warn("returned profile from redispb", profile)
 	if err != nil {
 		mlLog.WithFields(log.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
-			"profileid": in.Id,
+			"profileid": profile.Id,
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, MlGrpcErrors.M(1))
-		return &mmlogic.Profile{Id: in.Id, Properties: ""}, err
+		return profile, err
 	}
-	out := &mmlogic.Profile{Id: in.Id, Properties: profile["properties"], Pools: []*mmlogic.PlayerPool{}}
-	mlLog.WithFields(log.Fields{"profileid": in.Id, "contents": profile}).Debug("Retrieved profile from state storage")
+	mlLog.WithFields(log.Fields{"profileid": profile.Id}).Debug("Retrieved profile from state storage")
 
-	// Unmarshal the player pools: the backend api writes the PlayerPools
-	// protobuf message to redis by Marshalling it to a JSON string, so
-	// Unmarshal here to get back a protobuf messages.
-	ppools := gjson.Get(profile["playerPools"], "playerPools")
-	for _, pool := range ppools.Array() {
-		pp := mmlogic.PlayerPool{}
-		err = jsonpb.UnmarshalString(pool.String(), &pp)
-		if err != nil {
-			mlLog.WithFields(log.Fields{
-				"error":     err.Error(),
-				"component": "jsonpb.UnmarshalString",
-				"profileid": in.Id,
-				"JSON":      pool.String(),
-			}).Error("Failure to Unmarshal Player Pool JSON to protobuf message")
+	/*
+		// Unmarshal the player pools: the backend api writes the PlayerPools
+		// protobuf message to redis by Marshalling it to a JSON string, so
+		// Unmarshal here to get back a protobuf messages.
+		ppools := gjson.Get(profileMap["playerPools"], "playerPools")
+		for _, pool := range ppools.Array() {
+			pp := mmlogic.PlayerPool{}
+			err = jsonpb.UnmarshalString(pool.String(), &pp)
+			if err != nil {
+				mlLog.WithFields(log.Fields{
+					"error":     err.Error(),
+					"component": "jsonpb.UnmarshalString",
+					"profileid": profile.Id,
+					"JSON":      pool.String(),
+				}).Error("Failure to Unmarshal Player Pool JSON to protobuf message")
+			}
+			out.Pools = append(out.Pools, &pp)
 		}
-		out.Pools = append(out.Pools, &pp)
-	}
+	*/
 
-	mlLog.Debug(out)
+	mlLog.Debug(profile)
 
 	stats.Record(fnCtx, MlGrpcRequests.M(1))
-	return out, err
+	//return out, err
+	return profile, err
 
 }
 
@@ -201,7 +200,7 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 	}
 
 	// Write all non-id fields from the protobuf message to state storage.
-	err = redispb.MarshalToRedis(prop, s.pool)
+	err = redispb.MarshalToRedis(c, prop, s.pool)
 	/*	key := prop.Id
 		cmd := "HSET"
 		moInfo := reflect.ValueOf(prop).Elem()

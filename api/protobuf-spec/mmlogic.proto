@@ -10,11 +10,11 @@ service MmLogic {
   // If your matchmaking logic makes a match, it should CreateProposal.  If it 
   // cannot, it should ReturnError.  
 
-  //  Send GetProfile an profile with the ID field populated, it will return a
+  //  Send GetProfile a match object with the ID field populated, it will return a
   //  'filled' one.
   //  Note: filters are assumed to have been checked for validity by the
   //  backendapi  when accepting a profile
-  rpc GetProfile(messages.Profile) returns (messages.Profile) {}
+  rpc GetProfile(messages.MatchObject) returns (messages.MatchObject) {}
 
   // CreateProposal  does the following:
   //  - adds all players in the Roster to the proposed player ignore list

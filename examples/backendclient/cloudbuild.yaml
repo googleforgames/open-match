@@ -5,7 +5,7 @@ steps:
   args: [
             'build', 
             '--tag=gcr.io/$PROJECT_ID/openmatch-backendclient:dev', 
-            '--cache-from=gcr.io/$PROJECT_ID/openmatch-backendclient:dev', 
+            '--cache-from=gcr.io/$PROJECT_ID/openmatch-backendclient:dev',
             '.'
         ]
 images: ['gcr.io/$PROJECT_ID/openmatch-backendclient:dev']

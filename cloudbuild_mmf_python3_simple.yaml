@@ -6,7 +6,7 @@ steps:
             'build', 
             '--tag=gcr.io/$PROJECT_ID/openmatch-mmf:py', 
             '--cache-from=gcr.io/$PROJECT_ID/openmatch-mmf:py', 
-            '-f', 'Dockerfile.mmfpy', 
+            '-f', 'Dockerfile.mmf_python3_simple', 
             '.'
         ]
 images: ['gcr.io/$PROJECT_ID/openmatch-mmf:py']

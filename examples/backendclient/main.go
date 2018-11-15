@@ -30,9 +30,9 @@ import (
 	"log"
 	"net"
 	"os"
-	"strings"
 
-	backend "github.com/GoogleCloudPlatform/open-match/examples/backendclient/proto"
+	backend "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/tidwall/gjson"
 	"google.golang.org/grpc"
 )
@@ -70,6 +70,13 @@ func main() {
 	}
 
 	jsonProfile := buffer.String()
+	pbProfile := &backend.MatchObject{}
+	err = jsonpb.UnmarshalString(jsonProfile, pbProfile)
+	if err != nil {
+		log.Println(err)
+	}
+	pbProfile.Properties = jsonProfile
+
 	log.Println("Requesting matches that fit profile:")
 	ppJSON(jsonProfile)
 	//jsonProfile := bytesToString(jsonData)
@@ -84,29 +91,34 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err.Error())
 	}
-	client := backend.NewAPIClient(conn)
+	client := backend.NewBackendClient(conn)
 	log.Println("API client connected to", ip[0]+":50505")
 
 	profileName := "test-dm-usc1f"
+	_ = profileName
 	if gjson.Get(jsonProfile, "name").Exists() {
 		profileName = gjson.Get(jsonProfile, "name").String()
 	}
 
-	// Test CreateMatch
-	p := &backend.Profile{
-		Id: profileName,
-		// Make a stub debug hostname from the current time
-		Properties: jsonProfile,
-	}
+	/*
+		// Test CreateMatch
+		p := &backend.MatchObject{
+			Id: profileName,
+			// Make a stub debug hostname from the current time
+			Properties: jsonProfile,
+		}
+	*/
 
 	//
 	//log.Printf("Looking for matches for profile for the next 5 seconds:")
 	log.Printf("Establishing HTTPv2 stream...")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	//match, err := client.CreateMatch(ctx, pbProfile)
+
 	for {
 		log.Println("Attempting to send ListMatches call")
-		stream, err := client.ListMatches(ctx, p)
+		stream, err := client.ListMatches(ctx, pbProfile)
 		if err != nil {
 			log.Fatalf("Attempting to open stream for ListMatches(_) = _, %v", err)
 		}
@@ -122,8 +134,6 @@ func main() {
 				break
 			}
 
-			log.Println("Received match:")
-			ppJSON(match.Properties)
 			if match.Properties == "{error: insufficient_players}" {
 				log.Println("Waiting for a larger player pool...")
 				break
@@ -133,41 +143,43 @@ func main() {
 			if !gjson.Valid(string(match.Properties)) {
 				log.Fatal(errors.New("invalid json"))
 			}
+			log.Println("Received match:")
+			ppJSON(match.Properties)
 
-			// Get players from the json properties.roster field
-			log.Println("Gathering roster from received match...")
-			players := make([]string, 0)
-			result := gjson.Get(match.Properties, "properties.roster")
-			result.ForEach(func(teamName, teamRoster gjson.Result) bool {
-				teamRoster.ForEach(func(_, player gjson.Result) bool {
-					players = append(players, player.String())
+			/*
+				// Get players from the json properties.roster field
+				log.Println("Gathering roster from received match...")
+				players := make([]string, 0)
+				result := gjson.Get(match.Properties, "properties.roster")
+				result.ForEach(func(teamName, teamRoster gjson.Result) bool {
+					teamRoster.ForEach(func(_, player gjson.Result) bool {
+						players = append(players, player.String())
+						return true // keep iterating
+					})
 					return true // keep iterating
 				})
-				return true // keep iterating
-			})
-			//log.Printf("players = %+v\n", players)
+				//log.Printf("players = %+v\n", players)
 
-			// Assign players in this match to our server
-			log.Println("Assigning players to DGS at example.com:12345")
+				// Assign players in this match to our server
+				log.Println("Assigning players to DGS at example.com:12345")
 
-			playerstr := strings.Join(players, " ")
+				playerstr := strings.Join(players, " ")
 
-			roster := &backend.Roster{PlayerIds: playerstr}
-			ci := &backend.ConnectionInfo{ConnectionString: "example.com:12345"}
+				roster := &backend.Roster{PlayerIds: playerstr}
+				ci := &backend.ConnectionInfo{ConnectionString: "example.com:12345"}
 
-			assign := &backend.Assignments{Roster: roster, ConnectionInfo: ci}
-			_, err = client.CreateAssignments(context.Background(), assign)
-			if err != nil {
-				panic(err)
-			}
+				assign := &backend.Assignments{Roster: roster, ConnectionInfo: ci}
+				_, err = client.CreateAssignments(context.Background(), assign)
+				if err != nil {
+					panic(err)
+				}
+			*/
 
 		}
 
-		/*
-			log.Println("deleting assignments")
-			playerstr = strings.Join(players[0:len(players)/2], " ")
-			roster.PlayerIds = playerstr
-			_, err = client.DeleteAssignments(context.Background(), roster)
-		*/
+		//log.Println("deleting assignments")
+		//playerstr = strings.Join(players[0:len(players)/2], " ")
+		//roster.PlayerIds = playerstr
+		//_, err = client.DeleteAssignments(context.Background(), roster)
 	}
 }

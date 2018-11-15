@@ -252,8 +252,6 @@ func mmfunc(ctx context.Context, scID string, cfg *viper.Viper, clientset *kuber
 	timestamp := strconv.Itoa(int(time.Now().Unix()))
 	jobName := timestamp + "." + moID + "." + profID + "." + jobType
 	propID := "proposal." + timestamp + "." + moID + "." + profID
-	rosterID := "roster." + timestamp + "." + moID + "." + profID
-	fsID := "filterset." + timestamp + "." + moID + "." + profID
 
 	// Extra fields for structured logging
 	lf := log.Fields{"jobName": jobName}
@@ -261,7 +259,6 @@ func mmfunc(ctx context.Context, scID string, cfg *viper.Viper, clientset *kuber
 		lf = log.Fields{
 			"jobType":             jobType,
 			"backendMatchObject":  moID,
-			"filterset":           fsID,
 			"profile":             profID,
 			"jobTimestamp":        timestamp,
 			"containerImage":      imageName,
@@ -272,7 +269,8 @@ func mmfunc(ctx context.Context, scID string, cfg *viper.Viper, clientset *kuber
 	mmfuncLog := mmforcLog.WithFields(lf)
 
 	// Read the full profile from redis and access any keys that are important to deciding how MMFs are run.
-	profile, err := redisHelpers.Retrieve(ctx, pool, profID)
+	// TODO: convert this to using redispb and directly access the protobuf message instead of retrieving as a map?
+	profile, err := redisHelpers.RetrieveAll(ctx, pool, profID)
 	if err != nil {
 		// Log failure to read this profile and return - won't run an MMF for an unreadable profile.
 		mmfuncLog.WithFields(log.Fields{"error": err.Error()}).Error("Failure retreiving profile from statestorage")
@@ -280,8 +278,8 @@ func mmfunc(ctx context.Context, scID string, cfg *viper.Viper, clientset *kuber
 	}
 
 	// Got profile from state storage, make sure it is valid
-	if gjson.Valid(profile) {
-		profileImage := gjson.Get(profile, cfg.GetString("jsonkeys.mmfImage"))
+	if gjson.Valid(profile["properties"]) {
+		profileImage := gjson.Get(profile["properties"], cfg.GetString("jsonkeys.mmfImage"))
 		if profileImage.Exists() {
 			imageName = profileImage.String()
 			mmfuncLog = mmfuncLog.WithFields(log.Fields{"containerImage": imageName})
@@ -293,11 +291,9 @@ func mmfunc(ctx context.Context, scID string, cfg *viper.Viper, clientset *kuber
 
 	// Kick off k8s job
 	envvars := []apiv1.EnvVar{
-		{Name: "MMF_FILTERSET_ID", Value: fsID},
 		{Name: "MMF_PROFILE_ID", Value: profID},
 		{Name: "MMF_PROPOSAL_ID", Value: propID},
 		{Name: "MMF_REQUEST_ID", Value: moID},
-		{Name: "MMF_ROSTER_ID", Value: rosterID},
 		{Name: "MMF_SHORTCIRCUIT_MATCHOBJECT_ID", Value: scID},
 		{Name: "MMF_TIMESTAMP", Value: timestamp},
 	}

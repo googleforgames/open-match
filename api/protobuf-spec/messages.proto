@@ -21,8 +21,9 @@ message Profile{
 message MatchObject{
   string id = 1;                        // By convention, a UUID
   string properties = 2;                // By convention, a JSON-encoded string
-  repeated Roster rosters = 3;          // OUTPUT: Reserved by OM to store protobuf-encoded copies of the matchobject rosters.
-  repeated PlayerPool pools = 4;        // OUTPUT: Reserved by OM to return filter stats, useful to backend API clients.
+  string error = 3;                     // OUTPUT: Reserved by OM to return errors, useful to backend clients.
+  repeated Roster rosters = 4;          // OUTPUT: Reserved by OM to store protobuf-encoded copies of the matchobject rosters.
+  repeated PlayerPool pools = 5;        // OUTPUT: Reserved by OM to return filter stats, useful to backend API clients.
 }
 
 // Data structure to hold a list of players in a match.

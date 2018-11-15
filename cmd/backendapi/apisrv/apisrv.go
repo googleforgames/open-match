@@ -31,7 +31,9 @@ import (
 	backend "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
+	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	"github.com/gogo/protobuf/jsonpb"
+	"github.com/gogo/protobuf/proto"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/stats"
@@ -105,22 +107,8 @@ func (s *BackendAPI) Open() error {
 	return nil
 }
 
-// CreateMatch is this service's implementation of the CreateMatch gRPC method
-// defined in ../proto/backend.proto
-func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject) (*backend.MatchObject, error) {
-
-	// Get a cancel-able context
-	ctx, cancel := context.WithCancel(c)
-	defer cancel()
-
-	// Create context for tagging OpenCensus metrics.
-	funcName := "CreateMatch"
-	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
-
-	beLog = beLog.WithFields(log.Fields{"func": funcName})
-	beLog.WithFields(log.Fields{
-		"profileID": profile.Id,
-	}).Info("gRPC call executing")
+func (s *backendAPI) marshalPools() error {
+	profile := &backend.MatchObject{}
 
 	// Validate the player pools
 	if profile.Pools == nil && s.cfg.IsSet("jsonkeys.pools") {
@@ -143,104 +131,146 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 			}
 			profile.Pools = append(profile.Pools, &pp)
 		}
-
-		// Write profile to state storage
-		_, err := redisHelpers.Create(ctx, s.pool, profile.Id, profile.Properties)
-		if err != nil {
-			beLog.WithFields(log.Fields{
-				"error":     err.Error(),
-				"component": "statestorage",
-			}).Error("State storage failure to create match profile")
-
-			// Failure! Return empty match object and the error
-			stats.Record(fnCtx, BeGrpcErrors.M(1))
-			return &backend.MatchObject{}, err
-		}
-
-		beLog.WithFields(log.Fields{
-			"profileID": profile.Id,
-		}).Info("Profile written to state storage")
-
-		// Generate a request to fill the profile
-		// Make a unique request ID
-		moID := strings.Replace(uuid.New().String(), "-", "", -1)
-		profileRequestKey := moID + "." + profile.Id
-
-		// queue the ID to be sent to an MMF
-		_, err = redisHelpers.Update(ctx, s.pool, s.cfg.GetString("queues.profiles.name"), profileRequestKey)
-		if err != nil {
-			beLog.WithFields(log.Fields{
-				"error":     err.Error(),
-				"component": "statestorage",
-			}).Error("State storage failure to queue profile")
-
-			// Failure! Return empty match object and the error
-			stats.Record(fnCtx, BeGrpcErrors.M(1))
-			return &backend.MatchObject{}, err
-		}
-
-		beLog.WithFields(log.Fields{
-			"profileID":         profile.Id,
-			"matchObjectID":     moID,
-			"profileRequestKey": profileRequestKey,
-		}).Info("Profile added to processing queue")
-
-		// get and return matchobject
-		watchChan := redisHelpers.Watcher(ctx, s.pool, profileRequestKey) // Watcher() runs the appropriate Redis commands.
-		mo := &backend.MatchObject{Id: profile.Id, Properties: ""}
-		errString := ("Error retrieving matchmaking results from state storage")
-		timeout := time.Duration(s.cfg.GetInt("interval.resultsTimeout")) * time.Second
-
-		select {
-		case <-time.After(timeout):
-			// TODO:Timeout: deal with the fallout.  There are some edge cases here.
-			// When there is a timeout, need to send a stop to the watch channel.
-			stats.Record(fnCtx, BeGrpcRequests.M(1))
-			return mo, errors.New(errString + ": timeout exceeded")
-
-		case properties, ok := <-watchChan:
-			if !ok {
-				// ok is false if watchChan has been closed by redisHelpers.Watcher()
-				stats.Record(fnCtx, BeGrpcRequests.M(1))
-				return mo, errors.New(errString + ": channel closed - was the context cancelled?")
-			}
-
-			beLog.WithFields(log.Fields{
-				"profileRequestKey": profileRequestKey,
-				"matchObjectID":     moID,
-				// DEBUG ONLY: This prints the entire result from redis to the logs
-				"matchProperties": properties, // very verbose!
-			}).Debug("Received match object from state storage")
-
-			// 'ok' was true, so properties should contain the results from redis.
-			// Do some error checking on the returned JSON
-			if !gjson.Valid(properties) {
-				// Just splitting this across lines for readability/wrappability
-				thisError := ": Retreived json was malformed"
-				thisError = thisError + " - did the evaluator write a valid JSON match object?"
-				stats.Record(fnCtx, BeGrpcErrors.M(1))
-				return mo, errors.New(errString + thisError)
-			}
-
-			mmfError := gjson.Get(properties, "error")
-			if mmfError.Exists() {
-				stats.Record(fnCtx, BeGrpcErrors.M(1))
-				return mo, errors.New(errString + ": " + mmfError.String())
-			}
-
-			// Passed error checking; safe to send this property blob to the calling client.
-			mo.Properties = properties
-		}
-
-		beLog.WithFields(log.Fields{
-			"profileID":         profile.Id,
-			"matchObjectID":     moID,
-			"profileRequestKey": profileRequestKey,
-		}).Info("Matchmaking results received, returning to backend client")
-
-		stats.Record(fnCtx, BeGrpcRequests.M(1))
-		return mo, err
 	}
+	return nil
+}
+
+// CreateMatch is this service's implementation of the CreateMatch gRPC method
+// defined in ../proto/backend.proto
+func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject) (*backend.MatchObject, error) {
+
+	// Get a cancel-able context
+	ctx, cancel := context.WithCancel(c)
+	defer cancel()
+
+	// Create context for tagging OpenCensus metrics.
+	funcName := "CreateMatch"
+	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
+
+	// Generate a request to fill the profile. Make a unique request ID.
+	moID := strings.Replace(uuid.New().String(), "-", "", -1)
+	requestKey := moID + "." + profile.Id
+
+	/*
+		beLog.Info("Pools nil? ", (profile.Pools == nil))
+		beLog.Info("Pools empty? ", (len(profile.Pools) == 0))
+		beLog.Info("Rosters nil? ", (profile.Rosters == nil))
+		beLog.Info("Rosters empty? ", (len(profile.Rosters) == 0))
+		beLog.Info("config set for json.pools?", s.cfg.IsSet("jsonkeys.pools"))
+		beLog.Info("contents key?", s.cfg.GetString("jsonkeys.pools"))
+		beLog.Info("contents exist?", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).Exists())
+	*/
+	// Case where no protobuf pools was passed; check if there's a JSON version in the properties.
+	if profile.Pools == nil && s.cfg.IsSet("jsonkeys.pools") &&
+		gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).Exists() {
+		poolsJSON := fmt.Sprintf("{\"pools\": %v}", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).String())
+		ppLog := beLog.WithFields(log.Fields{"jsonkey": s.cfg.GetString("jsonkeys.pools")})
+		ppLog.Info("poolsJSON: ", poolsJSON)
+
+		ppools := &backend.MatchObject{}
+		err := jsonpb.UnmarshalString(poolsJSON, ppools)
+		if err != nil {
+			ppLog.Error("failed to parse JSON to protobuf pools")
+		} else {
+			profile.Pools = ppools.Pools
+			ppLog.Info("parsed JSON to protobuf pools")
+		}
+	}
+
+	// Case where no protobuf roster was passed; check if there's a JSON version in the properties.
+	if profile.Rosters == nil && s.cfg.IsSet("jsonkeys.rosters") &&
+		gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.rosters")).Exists() {
+		rostersJSON := fmt.Sprintf("{\"rosters\": %v}", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.rosters")).String())
+		rLog := beLog.WithFields(log.Fields{"jsonkey": s.cfg.GetString("jsonkeys.rosters")})
+
+		prosters := &backend.MatchObject{}
+		err := jsonpb.UnmarshalString(rostersJSON, prosters)
+		if err != nil {
+			rLog.Error("failed to parse JSON to protobuf rosters")
+		} else {
+			profile.Rosters = prosters.Rosters
+			rLog.Info("parsed JSON to protobuf rosters")
+		}
+	}
+
+	// Add fields for all subsequent logging
+	beLog = beLog.WithFields(log.Fields{
+		"profileID":     profile.Id,
+		"func":          funcName,
+		"matchObjectID": moID,
+		"requestKey":    requestKey,
+	})
+	beLog.Info("gRPC call executing")
+	beLog.Info("profile is")
+	beLog.Info(profile)
+
+	// Write profile to state storage
+	//_, err := redisHelpers.Create(ctx, s.pool, profile.Id, profile.Properties)
+	err := redispb.MarshalToRedis(ctx, profile, s.pool)
+	if err != nil {
+		beLog.WithFields(log.Fields{
+			"error":     err.Error(),
+			"component": "statestorage",
+		}).Error("State storage failure to create match profile")
+
+		// Failure! Return empty match object and the error
+		stats.Record(fnCtx, BeGrpcErrors.M(1))
+		return &backend.MatchObject{}, err
+	}
+	beLog.Info("Profile written to state storage")
+
+	// Queue the request ID to be sent to an MMF
+	_, err = redisHelpers.Update(ctx, s.pool, s.cfg.GetString("queues.profiles.name"), requestKey)
+	if err != nil {
+		beLog.WithFields(log.Fields{
+			"error":     err.Error(),
+			"component": "statestorage",
+		}).Error("State storage failure to queue profile")
+
+		// Failure! Return empty match object and the error
+		stats.Record(fnCtx, BeGrpcErrors.M(1))
+		return &backend.MatchObject{}, err
+	}
+	beLog.Info("Profile added to processing queue")
+
+	// get and return matchobject, it will be written to the requestKey when the MMF has finished.
+	newMO := backend.MatchObject{Id: requestKey}
+	watchChan := redispb.Watcher(ctx, s.pool, newMO) // Watcher() runs the appropriate Redis commands.
+	errString := ("Error retrieving matchmaking results from state storage")
+	timeout := time.Duration(s.cfg.GetInt("interval.resultsTimeout")) * time.Second
+
+	select {
+	case <-time.After(timeout):
+		// TODO:Timeout: deal with the fallout.  There are some edge cases here.
+		// When there is a timeout, need to send a stop to the watch channel.
+		stats.Record(fnCtx, BeGrpcRequests.M(1))
+		return profile, errors.New(errString + ": timeout exceeded")
+
+	case newMO, ok := <-watchChan:
+		if !ok {
+			// ok is false if watchChan has been closed by redispb.Watcher()
+			newMO.Error = newMO.Error + "; channel closed - was the context cancelled?"
+		} else {
+			// 'ok' was true, so properties should contain the results from redis.
+			// Do basic error checking on the returned JSON
+			if !gjson.Valid(profile.Properties) {
+				newMO.Error = "retreived properties json was malformed"
+			}
+		}
+
+		// TODO test that this is the correct condition for an empty error.
+		if newMO.Error != "" {
+			stats.Record(fnCtx, BeGrpcErrors.M(1))
+			return &newMO, errors.New(newMO.Error)
+		}
+
+		// Got results; close the channel so the Watcher() function stops querying redis.
+	}
+
+	beLog.Info("Matchmaking results received, returning to backend client")
+
+	stats.Record(fnCtx, BeGrpcRequests.M(1))
+	return &newMO, err
 }
 
 // ListMatches is this service's implementation of the ListMatches gRPC method
@@ -275,7 +305,13 @@ func (s *backendAPI) ListMatches(p *backend.MatchObject, matchStream backend.Bac
 
 		default:
 			// Retreive results from Redis
-			mo, err := s.CreateMatch(ctx, p)
+			requestProfile := proto.Clone(p).(*backend.MatchObject)
+			/*
+				beLog.Debug("new profile requested!")
+				beLog.Debug(requestProfile)
+				beLog.Debug(&requestProfile)
+			*/
+			mo, err := s.CreateMatch(ctx, requestProfile)
 
 			beLog = beLog.WithFields(log.Fields{"func": funcName})
 

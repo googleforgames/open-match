@@ -6,4 +6,4 @@ COPY config config
 WORKDIR /usr/src/open-match/examples/functions/python3/simple
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "./mmf.py"]
+CMD ["python", "./harness.py"]
