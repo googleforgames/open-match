@@ -5,10 +5,11 @@ option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
 // The protobuf messages sent in the gRPC calls are defined 'messages.proto'.
 import 'api/protobuf-spec/messages.proto';
 
+// The MMLogic API provides utility functions for common MMF functionality, such
+// as retreiving profiles and players from state storage, writing results to state storage,
+// and exposing metrics and statistics.
 service MmLogic {
   // Profile and match object functions
-  // If your matchmaking logic makes a match, it should CreateProposal.  If it 
-  // cannot, it should ReturnError.  
 
   //  Send GetProfile a match object with the ID field populated, it will return a
   //  'filled' one.
@@ -16,16 +17,20 @@ service MmLogic {
   //  backendapi  when accepting a profile
   rpc GetProfile(messages.MatchObject) returns (messages.MatchObject) {}
 
-  // CreateProposal  does the following:
+  // CreateProposal is called by MMFs that wish to write their results to
+  // a proposed MatchObject, that can be sent out the Backend API once it has
+  // been approved (by default, by the evaluator process).
   //  - adds all players in the Roster to the proposed player ignore list
   //  - writes the proposed match to the provided key
-  //  - adds that key to the list of proposals to be considered
+  //  - [NYI] adds that key to the list of proposals to be considered
   rpc CreateProposal(messages.MatchObject) returns (messages.Result) {}
+  // NYI
+  // ReturnError is called by MMFs that wish to notify that backend of an error.
   rpc ReturnError(messages.Result) returns (messages.Result) {}
 
   // Player listing and filtering functions
   //
-  // RetrievePlayerPool gets the list of players for every Filter in the
+  // RetrievePlayerPool gets the list of players that match every Filter in the
   // PlayerPool, and then removes all players it finds in the ignore list.  It
   // combines the results, and returns the resulting player pool.
   rpc GetPlayerPool(messages.PlayerPool) returns (stream messages.PlayerPool) {}
@@ -37,4 +42,9 @@ service MmLogic {
   // RetrieveIgnoreList retrieves players from the ignore list specified in the
   // config file under 'ignoreLists.proposedPlayers.key'.
   rpc ListIgnoredPlayers(messages.IlInput) returns (messages.Roster) {}
+
+  // NYI
+  // UpdateMetrics sends stats about the MMF run to export to a metrics aggregation tool 
+  // like Prometheus or StackDriver.
+  // rpc UpdateMetrics(messages.NYI) returns (messages.Results) {}
 }
