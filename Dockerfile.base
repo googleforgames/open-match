@@ -1,0 +1,7 @@
+# Golang application builder steps
+FROM golang:1.10.3 as builder
+WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match
+COPY config config
+COPY internal internal
+WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/internal
+RUN go get -d -v ...

@@ -25,6 +25,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -141,10 +142,11 @@ func main() {
 
 			// Validate JSON before trying to  parse it
 			if !gjson.Valid(string(match.Properties)) {
-				log.Fatal(errors.New("invalid json"))
+				log.Println(errors.New("invalid json"))
 			}
 			log.Println("Received match:")
 			ppJSON(match.Properties)
+			fmt.Println(match)
 
 			/*
 				// Get players from the json properties.roster field

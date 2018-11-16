@@ -1,0 +1,10 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+            'build', 
+            '--tag=gcr.io/$PROJECT_ID/openmatch-devbase:latest', 
+            '--cache-from=gcr.io/$PROJECT_ID/openmatch-devbase:latest', 
+            '-f', 'Dockerfile.base', 
+            '.'
+        ]
+images: ['gcr.io/$PROJECT_ID/openmatch-devbase:latest']

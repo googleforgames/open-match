@@ -29,6 +29,7 @@
                   "name":"om-mmforc",
                   "image":"gcr.io/matchmaker-dev-201405/openmatch-mmforc:dev",
                   "imagePullPolicy":"Always",
+                  "command": ["sleep", "30000"],
                   "ports": [
                     {
                       "name": "metrics",

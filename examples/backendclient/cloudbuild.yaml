@@ -1,11 +1,11 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'pull', 'gcr.io/$PROJECT_ID/openmatch-backendclient:dev' ]
+  args: [ 'pull', 'gcr.io/$PROJECT_ID/openmatch-devbase' ]
 - name: 'gcr.io/cloud-builders/docker'
   args: [
             'build', 
             '--tag=gcr.io/$PROJECT_ID/openmatch-backendclient:dev', 
-            '--cache-from=gcr.io/$PROJECT_ID/openmatch-backendclient:dev',
+            '--cache-from=gcr.io/$PROJECT_ID/openmatch-devbase:latest',
             '.'
         ]
 images: ['gcr.io/$PROJECT_ID/openmatch-backendclient:dev']

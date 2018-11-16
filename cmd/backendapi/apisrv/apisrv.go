@@ -234,6 +234,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 	beLog.Info("Profile added to processing queue")
 
 	// get and return matchobject, it will be written to the requestKey when the MMF has finished.
+	var ok bool
 	newMO := backend.MatchObject{Id: requestKey}
 	watchChan := redispb.Watcher(ctx, s.pool, newMO) // Watcher() runs the appropriate Redis commands.
 	errString := ("Error retrieving matchmaking results from state storage")
@@ -246,7 +247,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 		stats.Record(fnCtx, BeGrpcRequests.M(1))
 		return profile, errors.New(errString + ": timeout exceeded")
 
-	case newMO, ok := <-watchChan:
+	case newMO, ok = <-watchChan:
 		if !ok {
 			// ok is false if watchChan has been closed by redispb.Watcher()
 			newMO.Error = newMO.Error + "; channel closed - was the context cancelled?"
@@ -320,7 +321,7 @@ func (s *backendAPI) ListMatches(p *backend.MatchObject, matchStream backend.Bac
 				stats.Record(fnCtx, BeGrpcErrors.M(1))
 				return err
 			}
-			beLog.WithFields(log.Fields{"matchProperties": fmt.Sprintf("%v", &mo)}).Debug("Streaming back match object")
+			beLog.WithFields(log.Fields{"matchProperties": fmt.Sprintf("%v", mo)}).Debug("Streaming back match object")
 			matchStream.Send(mo)
 
 			// TODO: This should be tunable, but there should be SOME sleep here, to give a requestor a window
