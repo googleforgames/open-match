@@ -6,7 +6,15 @@ def makeMatches(profile_dict, player_pools):
     # This is the exciting part, and where most of your custom code would go! #
     ###########################################################################
 
-    # for example, if your JSON format includes 'red' and 'blue' teams at the 'teams' key:
+    # The python3 MMF harness passed this function filtered players and their
+    # filtered attributes in the player_pools dictionary.  If we wanted to evaluate
+    # other player attributes, we could connect to redis directly and query the
+    # players by their ID to get the entire 'properties' player JSON passed in
+    # to the frontend API when they entered matchmaking.
+
+    # This basic example just pulls players at random from the specified pools in the 
+    # profile.  This just serves to show how the dictionaries are accessed and you 
+    # should write your own rigourous logic here.
     for roster in profile_dict['properties']['rosters']:
         for player in roster['players']:
             if 'pool' in player:
