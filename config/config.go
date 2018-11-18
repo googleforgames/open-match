@@ -48,7 +48,6 @@ var (
 		"redis.pool.maxIdle":     "REDIS_POOL_MAXIDLE",
 		"redis.pool.maxActive":   "REDIS_POOL_MAXACTIVE",
 		"redis.pool.idleTimeout": "REDIS_POOL_IDLETIMEOUT",
-		"debug":                  "DEBUG",
 	}
 
 	// Viper config management setup

@@ -102,7 +102,7 @@ Example MMFs are provided in Golang and C#.
 
 ### Structured logging
 
-Logging for Open Match uses the [Golang logrus module](https://github.com/sirupsen/logrus) to provide structured logs. Logs are output to `stdout` in each component, as expected by Docker and Kubernetes. If you have a specific log aggregator as your final destination, we recommend you have a look at the logrus documentation as there is probably a log formatter that plays nicely with your stack.
+Logging for Open Match uses the [Golang logrus module](https://github.com/sirupsen/logrus) to provide structured logs. Logs are output to `stdout` in each component, as expected by Docker and Kubernetes. Level and format are configurable via config/matchmaker_config.json. If you have a specific log aggregator as your final destination, we recommend you have a look at the logrus documentation as there is probably a log formatter that plays nicely with your stack. If you 
 
 ### Instrumentation for metrics
 
@@ -138,6 +138,15 @@ Once we reach a 1.0 release, we plan to produce publicly available (Linux) Docke
 All components of Open Match produce (Linux) Docker container images as artifacts, and there are included `Dockerfile`s for each. [Google Cloud Platform Cloud Build](https://cloud.google.com/cloud-build/docs/) users will also find `cloudbuild_COMPONENT.yaml` files for each component in the repository root.
 
 All the core components for Open Match are written in Golang and use the [Dockerfile multistage builder pattern](https://docs.docker.com/develop/develop-images/multistage-build/). This pattern uses intermediate Docker containers as a Golang build environment while producing lightweight, minimized container images as final build artifacts. When the project is ready for production, we will modify the `Dockerfile`s to uncomment the last build stage. Although this pattern is great for production container images, it removes most of the utilities required to troubleshoot issues during development.
+
+### Example compiling components
+```
+docker build -t openmatch-backendapi -f Dockerfile.backendapi .
+docker build -t openmatch-frontendapi -f Dockerfile.frontendapi .
+docker build -t openmatch-mmforc -f Dockerfile.mmforc .
+docker build -t openmatch-evaluator -f Dockerfile.evaluator .
+docker build -t openmatch-mmf -f Dockerfile.mmf .
+```
 
 ## Configuration
 
