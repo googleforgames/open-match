@@ -59,53 +59,49 @@ with  grpc.insecure_channel(api_conn_info) as channel:
                 raise
         print("\n'%s': count %06d | elapsed %0.3f" % (empty_pool.name, len(player_pools[empty_pool.name]),timer() - start))
 
+    #################################################################
     # Step 5 - Run custom matchmaking logic to try to find a match
     # This is in the file mmf.py
     results = mmf.makeMatches(profile_dict, player_pools)
-    match_properties = json.dumps(results)
-    print("======== match_properties")
-    pp.pprint(results) # DEBUG
-    #mo = Parse(match_properties, mmlogic.MatchObject(), ignore_unknown_fields=True) 
+    #################################################################
 
+    # Convert results to JSON string.
+    match_properties = json.dumps(results)
+    # DEBUG
+    print("======== match_properties")
+    pp.pprint(results) 
 
     try:
-#    # Step 6 - Write the outcome of the matchmaking logic back to state storage.
-#    # Step 7 - Remove the selected players from consideration by other MMFs.
-#    # CreateProposal does both of these for you, and some other items as well.
-        print("-------1")
+        # Step 6 - Write the outcome of the matchmaking logic back to state storage.
+        # Step 7 - Remove the selected players from consideration by other MMFs.
+        # CreateProposal does both of these for you, and some other items as well.
         mo = mmlogic.MatchObject(
-            id = os.environ["MMF_SHORTCIRCUIT_MATCHOBJECT_ID"], 
+            id = os.environ["MMF_ERROR_ID"], #DEBUG: writing to error key prevents evalutor run 
+            error = "skip evaluator",
             properties = match_properties,
             )
+
         # These look odd but it's how you assign to repeated protobuf fields.
         # https://developers.google.com/protocol-buffers/docs/reference/python-generated#repeated-fields
-        print("-----2")
         mo.pools.extend(profile_pb.pools[:])
-        print("-----3")
         rosters_dict = results
 
         # Access the rosters in dict form within the properties json.
         # It is stored at the key specified in the config file.
-        print("-----4")
         for partial_key in cfg['jsonkeys']['rosters'].split('.'):
-            print("-----0.1 %s" % partial_key)
             rosters_dict = rosters_dict.get(partial_key, {})
 
         # Unmarshal the rosters into the MatchObject 
-        print("-----5")
         for roster in rosters_dict:
-            print("-----0.2")
             mo.rosters.extend([Parse(json.dumps(roster), mmlogic.Roster(), ignore_unknown_fields=True)])
 
         print("======== mo") 
         pp.pprint(mo)
         success = mmlogic_api.CreateProposal(mo)
-        print("======== sucess") 
-        pp.pprint(success)
+        print("======== success: %s" % success) 
     except Exception as err:
         print(err)
         sys.exit(0)
-#
+
 #    # [OPTIONAL] Step 8 - Export stats about this run.
 #    # TODO 
-#

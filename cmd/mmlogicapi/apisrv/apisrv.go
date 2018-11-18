@@ -103,10 +103,6 @@ func (s *MmlogicAPI) Open() error {
 	return nil
 }
 
-func (s *mmlogicAPI) GetProposal(c context.Context, in *mmlogic.MatchObject) (*mmlogic.MatchObject, error) {
-	return &mmlogic.MatchObject{}, nil
-}
-
 // GetProfile is this service's implementation of the gRPC call defined in
 // mmlogicapi/proto/mmlogic.proto
 func (s *mmlogicAPI) GetProfile(c context.Context, profile *mmlogic.MatchObject) (*mmlogic.MatchObject, error) {
@@ -135,26 +131,6 @@ func (s *mmlogicAPI) GetProfile(c context.Context, profile *mmlogic.MatchObject)
 	}
 	mlLog.WithFields(log.Fields{"profileid": profile.Id}).Debug("Retrieved profile from state storage")
 
-	/*
-		// Unmarshal the player pools: the backend api writes the PlayerPools
-		// protobuf message to redis by Marshalling it to a JSON string, so
-		// Unmarshal here to get back a protobuf messages.
-		ppools := gjson.Get(profileMap["playerPools"], "playerPools")
-		for _, pool := range ppools.Array() {
-			pp := mmlogic.PlayerPool{}
-			err = jsonpb.UnmarshalString(pool.String(), &pp)
-			if err != nil {
-				mlLog.WithFields(log.Fields{
-					"error":     err.Error(),
-					"component": "jsonpb.UnmarshalString",
-					"profileid": profile.Id,
-					"JSON":      pool.String(),
-				}).Error("Failure to Unmarshal Player Pool JSON to protobuf message")
-			}
-			out.Pools = append(out.Pools, &pp)
-		}
-	*/
-
 	mlLog.Debug(profile)
 
 	stats.Record(fnCtx, MlGrpcRequests.M(1))
@@ -179,6 +155,14 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 	funcName := "CreateProposal"
 	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
 
+	// Log what kind of results we received.
+	cpLog := mlLog.WithFields(log.Fields{"id": prop.Id})
+	if len(prop.Error) == 0 {
+		cpLog.Info("writing MMF propsal to state storage")
+	} else {
+		cpLog.Info("writing MMF error to state storage")
+	}
+
 	// Write all non-id fields from the protobuf message to state storage.
 	err := redispb.MarshalToRedis(c, prop, s.pool)
 	if err != nil {
@@ -186,11 +170,9 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 		return &mmlogic.Result{Success: false, Error: err.Error()}, err
 	}
 
-	// check to see if we are returning a proposal or an error
+	// Proposals need two more actions: players added to ignorelist, and adding
+	// the proposalkey to the proposal queue for the evaluator to read.
 	if len(prop.Error) == 0 {
-		// This is a proposal
-		cpLog := mlLog.WithFields(log.Fields{"proposalid": prop.Id})
-
 		// look for players to add to the ignorelist
 		cpLog.Info("parsing rosters")
 		playerIDs := make([]string, 0)
@@ -222,47 +204,22 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 		}
 
 		// add propkey to proposalsq
+		pqLog := cpLog.WithFields(log.Fields{
+			"component": "statestorage",
+			"queue":     proposalq,
+		})
+		pqLog.Info("adding propsal to queue")
+
 		_, err = redisConn.Do("SADD", proposalq, prop.Id)
 		if err != nil {
-			cpLog.WithFields(log.Fields{
-				"error":     err.Error(),
-				"component": "statestorage",
-				"queue":     proposalq,
-			}).Error("State storage error")
+			pqLog.WithFields(log.Fields{"error": err.Error()}).Error("State storage error")
 
 			// record error.
 			stats.Record(fnCtx, MlGrpcErrors.M(1))
 			return &mmlogic.Result{Success: false, Error: err.Error()}, err
 		}
-	} else {
-		// This is an error
-		cpLog := mlLog.WithFields(log.Fields{"mmfErrorId": prop.Id})
 	}
-
 	/*
-			// update ignorelist
-			cpLog.Info("parsing rosters")
-			playerIDs := make([]string, 0)
-			for _, roster := range prop.Rosters {
-				playerIDs = append(playerIDs, getPlayerIdsFromRoster(roster)...)
-			}
-			if len(playerIDs) > 0 {
-				cpLog.Info("adding players to proposed ignorelist")
-				err := ignorelist.Add(redisConn, list, playerIDs)
-				if err != nil {
-					// TODO: update fields
-					cpLog.WithFields(log.Fields{
-						"error":      err.Error(),
-						"component":  "statestorage",
-						"ignorelist": list,
-					}).Error("State storage error")
-
-					stats.Record(fnCtx, MlGrpcErrors.M(1))
-					return &mmlogic.Result{Success: false, Error: err.Error()}, err
-				}
-			} else {
-
-			}
 		//  add propkey to proposalsq
 			_, err = redisConn.Do("SADD", proposalq, prop.Id)
 			if err != nil {
@@ -281,18 +238,158 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 	return &mmlogic.Result{Success: true, Error: ""}, err
 }
 
-// ReturnError is this service's implementation of the gRPC call defined in
+// GetPlayerPool is this service's implementation of the gRPC call defined in
 // mmlogicapi/proto/mmlogic.proto
-func (s *mmlogicAPI) ReturnError(c context.Context, in *mmlogic.MatchObject) (*mmlogic.Result, error) {
+// API_GetPlayerPoolServer returns mutiple PlayerPool messages - they should
+// all be reassembled into one set on the calling side, as they are just
+// paginated subsets of the player pool.
+func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLogic_GetPlayerPoolServer) error {
+
+	// TODO: quit if context is cancelled
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	// Create context for tagging OpenCensus metrics.
-	funcName := "ReturnError"
-	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
+	funcName := "GetPlayerPool"
+	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
-	il, err := s.allIgnoreLists(c, in)
+	mlLog.WithFields(log.Fields{
+		"filterCount": len(pool.Filters),
+		"pool":        pool.Name,
+		"funcName":    funcName,
+	}).Info("attempting to retreive player pool from state storage")
+
+	// One working Roster per filter in the set.  Combined at the end.
+	filteredRosters := make(map[string][]string)
+	// Temp store the results so we can also populate some field values in the final return roster.
+	filteredResults := make(map[string]map[string]int64)
+	overlap := make([]string, 0)
+	fnStart := time.Now()
+
+	// Loop over all filters, get results, combine
+	for _, thisFilter := range pool.Filters {
+
+		filterStart := time.Now()
+		results, err := s.applyFilter(ctx, thisFilter)
+		if results == nil && err == nil {
+			// Filter applies to so many players that we can't filter on it.
+			// Ignore this filter and attempt to process all the rest.
+			thisFilter.Stats = &mmlogic.Stats{Elapsed: time.Since(filterStart).Seconds()}
+			continue
+		}
+
+		thisFilter.Stats = &mmlogic.Stats{Count: int64(len(results)), Elapsed: time.Since(filterStart).Seconds()}
+		mlLog.WithFields(log.Fields{
+			"count":      int64(len(results)),
+			"elapsed":    time.Since(filterStart).Seconds(),
+			"filterName": thisFilter.Name,
+		}).Debug("Filter stats")
+
+		if err != nil {
+			mlLog.WithFields(log.Fields{"error": err.Error(), "filterName": thisFilter.Name}).Debug("Error applying filter")
+
+			if len(results) == 0 {
+				// One simple optimization here: check the count returned by a
+				// ZCOUNT query for each filter before doing anything.  If any of the
+				// filters return a ZCOUNT of 0, then the logical AND of all filters will
+				// container no players and we can shortcircuit and quit.
+				mlLog.WithFields(log.Fields{
+					"count":      0,
+					"filterName": thisFilter.Name,
+					"pool":       pool.Name,
+				}).Warn("returning empty pool")
+
+				// Fill in the stats for this player pool.
+				pool.Stats = &mmlogic.Stats{Count: int64(len(results)), Elapsed: time.Since(filterStart).Seconds()}
+
+				// Send the empty pool and exit.
+				if err = stream.Send(pool); err != nil {
+					stats.Record(fnCtx, MlGrpcErrors.M(1))
+					return err
+				}
+				stats.Record(fnCtx, MlGrpcRequests.M(1))
+				return nil
+			}
+
+		}
+
+		// Make an array of only the player IDs; used to do unions and find the
+		// logical AND
+		m := make([]string, len(results))
+		i := 0
+		for playerID := range results {
+			m[i] = playerID
+			i++
+		}
+
+		// Store the array of player IDs as well as the full results for later
+		// retrieval
+		filteredRosters[thisFilter.Attribute] = m
+		filteredResults[thisFilter.Attribute] = results
+		overlap = m
+	}
+
+	// Player must be in every filtered pool to be returned
+	for field, thesePlayers := range filteredRosters {
+		overlap = intersection(overlap, thesePlayers)
+
+		_ = field
+		//mlLog.WithFields(log.Fields{"count": len(overlap), "field": field}).Debug("Amount of overlap")
+	}
+
+	// Get contents of all ignore lists and remove those players from the pool.
+	il, err := s.allIgnoreLists(ctx, &mmlogic.IlInput{})
+	if err != nil {
+		mlLog.Error(err)
+	}
+	mlLog.WithFields(log.Fields{"count": len(overlap)}).Debug("Pool size before applying ignorelists")
+	mlLog.WithFields(log.Fields{"count": len(il)}).Debug("Ignorelist size")
+	playerList := difference(overlap, il) // removes ignorelist from the Roster
+	mlLog.WithFields(log.Fields{"count": len(playerList)}).Debug("Final Pool size")
+
+	// Reformat the playerList as a gRPC PlayerPool message. Send partial results as we go.
+	// This is pretty agressive in the partial result 'page'
+	// sizes it sends, and that is partially because it assumes you're running
+	// everything on a local network.  If you aren't, you may need to tune this
+	// pageSize.
+	pageSize := s.cfg.GetInt("redis.results.pageSize")
+	pageCount := int(math.Ceil((float64(len(playerList)) / float64(pageSize)))) // Divides and rounds up on any remainder
+	//TODO: change if removing filtersets from rosters in favor of it being in pools
+	partialRoster := mmlogic.Roster{Name: fmt.Sprintf("%v.partialRoster", pool.Name)}
+	pool.Stats = &mmlogic.Stats{Count: int64(len(playerList)), Elapsed: time.Since(fnStart).Seconds()}
+	for i := 0; i < len(playerList); i++ {
+		// Check if we've filled in enough players to fill a page of results.
+		if (i > 0 && i%pageSize == 0) || i == (len(playerList)-1) {
+			pageName := fmt.Sprintf("%v.page%v/%v", pool.Name, i/pageSize+1, pageCount)
+			poolChunk := &mmlogic.PlayerPool{
+				Name:    pageName,
+				Filters: pool.Filters,
+				Stats:   pool.Stats,
+				Roster:  &partialRoster,
+			}
+			if err = stream.Send(poolChunk); err != nil {
+				stats.Record(fnCtx, MlGrpcErrors.M(1))
+				return err
+			}
+			partialRoster.Players = []*mmlogic.Player{}
+		}
+
+		// Add one additional player result to the partial pool.
+		player := &mmlogic.Player{Id: playerList[i], Attributes: []*mmlogic.Player_Attribute{}}
+		// Collect all the filtered attributes into the player protobuf.
+		for attribute, fr := range filteredResults {
+			if value, ok := fr[playerList[i]]; ok {
+				player.Attributes = append(player.Attributes, &mmlogic.Player_Attribute{Name: attribute, Value: value})
+			}
+		}
+		partialRoster.Players = append(partialRoster.Players, player)
+
+	}
+
+	mlLog.WithFields(log.Fields{"count": len(playerList), "pool": pool.Name}).Debug("player pool streaming complete")
 
 	stats.Record(fnCtx, MlGrpcRequests.M(1))
-	return &mmlogic.Result{}, nil
+	return nil
 }
 
 // applyFilter is a sequential query of every entry in the Redis sorted set
@@ -399,159 +496,20 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map
 	return pool, nil
 }
 
-// GetPlayerPool is this service's implementation of the gRPC call defined in
+// GetAllIgnoredPlayers is this service's implementation of the gRPC call defined in
 // mmlogicapi/proto/mmlogic.proto
-// API_GetPlayerPoolServer returns mutiple PlayerPool messages - they should
-// all be reassembled into one set on the calling side, as they are just
-// paginated subsets of the player pool.
-func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLogic_GetPlayerPoolServer) error {
-
-	// TODO: quit if context is cancelled
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+// This is a wrapper around allIgnoreLists, and converts the []string return
+// value of that function to a gRPC Roster message to send out over the wire.
+func (s *mmlogicAPI) GetAllIgnoredPlayers(c context.Context, in *mmlogic.IlInput) (*mmlogic.Roster, error) {
 
 	// Create context for tagging OpenCensus metrics.
-	funcName := "GetPlayerPool"
-	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
+	funcName := "GetAllIgnoredPlayers"
+	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
 
-	mlLog.WithFields(log.Fields{
-		"filterCount": len(pool.Filters),
-		"pool":        pool.Name,
-		"funcName":    funcName,
-	}).Info("attempting to retreive player pool from state storage")
-
-	// One working Roster per filter in the set.  Combined at the end.
-	filteredRosters := make(map[string][]string)
-	// Temp store the results so we can also populate some field values in the final return roster.
-	filteredResults := make(map[string]map[string]int64)
-	overlap := make([]string, 0)
-	fnStart := time.Now()
-
-	// Loop over all filters, get results, combine
-	for _, thisFilter := range pool.Filters {
-
-		filterStart := time.Now()
-		results, err := s.applyFilter(ctx, thisFilter)
-		if results == nil && err == nil {
-			// Filter applies to so many players that we can't filter on it.
-			// Ignore this filter and attempt to process all the rest.
-			thisFilter.Stats = &mmlogic.Stats{Elapsed: time.Since(filterStart).Seconds()}
-			continue
-		}
-
-		thisFilter.Stats = &mmlogic.Stats{Count: int64(len(results)), Elapsed: time.Since(filterStart).Seconds()}
-		mlLog.WithFields(log.Fields{
-			"count":      int64(len(results)),
-			"elapsed":    time.Since(filterStart).Seconds(),
-			"filterName": thisFilter.Name,
-		}).Debug("Filter stats")
-
-		if err != nil {
-			mlLog.WithFields(log.Fields{"error": err.Error(), "filterName": thisFilter.Name}).Debug("Error applying filter")
-
-			if len(results) == 0 {
-				// One simple optimization here: check the count returned by a
-				// ZCOUNT query for each filter before doing anything.  If any of the
-				// filters return a ZCOUNT of 0, then the logical AND of all filters will
-				// container no players and we can shortcircuit and quit.
-				mlLog.WithFields(log.Fields{
-					"count":      0,
-					"filterName": thisFilter.Name,
-					"pool":       pool.Name,
-				}).Warn("returning empty pool")
-
-				// Fill in the stats for this player pool.
-				pool.Stats = &mmlogic.Stats{Count: int64(len(results)), Elapsed: time.Since(filterStart).Seconds()}
-
-				// Send the empty pool and exit.
-				if err = stream.Send(pool); err != nil {
-					stats.Record(fnCtx, MlGrpcErrors.M(1))
-					return err
-				}
-				stats.Record(fnCtx, MlGrpcRequests.M(1))
-				return nil
-			}
-
-		}
-
-		// Make an array of only the player IDs; used to do unions and find the
-		// logical AND
-		m := make([]string, len(results))
-		i := 0
-		for playerID := range results {
-			m[i] = playerID
-			i++
-		}
-
-		// Store the array of player IDs as well as the full results for later
-		// retrieval
-		filteredRosters[thisFilter.Attribute] = m
-		filteredResults[thisFilter.Attribute] = results
-		overlap = m
-	}
-
-	// Player must be in every filtered pool to be returned
-	for field, thesePlayers := range filteredRosters {
-		overlap = intersection(overlap, thesePlayers)
-
-		_ = field
-		//mlLog.WithFields(log.Fields{"count": len(overlap), "field": field}).Debug("Amount of overlap")
-		//mlLog.WithFields(log.Fields{"field": field, "first10": overlap[:min(len(overlap), 10)]}).Debug("Sample of overlap")
-	}
-
-	// Get contents of all ignore lists and remove those players from the pool.
-	il, err := s.allIgnoreLists(ctx, &mmlogic.IlInput{})
-	if err != nil {
-		mlLog.Error(err)
-	}
-	mlLog.WithFields(log.Fields{"count": len(overlap)}).Debug("Pool size before applying ignorelists")
-	mlLog.WithFields(log.Fields{"count": len(il)}).Debug("Ignorelist size")
-	playerList := difference(overlap, il) // removes ignorelist from the Roster
-	mlLog.WithFields(log.Fields{"count": len(playerList)}).Debug("Final Pool size")
-
-	// Reformat the playerList as a gRPC PlayerPool message. Send partial results as we go.
-	// This is pretty agressive in the partial result 'page'
-	// sizes it sends, and that is partially because it assumes you're running
-	// everything on a local network.  If you aren't, you may need to tune this
-	// pageSize.
-	pageSize := s.cfg.GetInt("redis.results.pageSize")
-	pageCount := int(math.Ceil((float64(len(playerList)) / float64(pageSize)))) // Divides and rounds up on any remainder
-	//TODO: change if removing filtersets from rosters in favor of it being in pools
-	partialRoster := mmlogic.Roster{Name: fmt.Sprintf("%v.partialRoster", pool.Name)}
-	pool.Stats = &mmlogic.Stats{Count: int64(len(playerList)), Elapsed: time.Since(fnStart).Seconds()}
-	for i := 0; i < len(playerList); i++ {
-		// Check if we've filled in enough players to fill a page of results.
-		if (i > 0 && i%pageSize == 0) || i == (len(playerList)-1) {
-			pageName := fmt.Sprintf("%v.page%v/%v", pool.Name, i/pageSize+1, pageCount)
-			poolChunk := &mmlogic.PlayerPool{
-				Name:    pageName,
-				Filters: pool.Filters,
-				Stats:   pool.Stats,
-				Roster:  &partialRoster,
-			}
-			if err = stream.Send(poolChunk); err != nil {
-				stats.Record(fnCtx, MlGrpcErrors.M(1))
-				return err
-			}
-			partialRoster.Players = []*mmlogic.Player{}
-		}
-
-		// Add one additional player result to the partial pool.
-		player := &mmlogic.Player{Id: playerList[i], Attributes: []*mmlogic.Player_Attribute{}}
-		// Collect all the filtered attributes into the player protobuf.
-		for attribute, fr := range filteredResults {
-			if value, ok := fr[playerList[i]]; ok {
-				player.Attributes = append(player.Attributes, &mmlogic.Player_Attribute{Name: attribute, Value: value})
-			}
-		}
-		partialRoster.Players = append(partialRoster.Players, player)
-
-	}
-
-	mlLog.WithFields(log.Fields{"count": len(overlap), "pool": pool.Name}).Debug("Player pool streaming complete")
+	il, err := s.allIgnoreLists(c, in)
 
 	stats.Record(fnCtx, MlGrpcRequests.M(1))
-	return nil
+	return createRosterfromPlayerIds(il), err
 }
 
 // ListIgnoredPlayers is this service's implementation of the gRPC call defined in
@@ -590,22 +548,6 @@ func (s *mmlogicAPI) ListIgnoredPlayers(c context.Context, olderThan *mmlogic.Il
 	return createRosterfromPlayerIds(il), err
 }
 
-// GetAllIgnoredPlayers is this service's implementation of the gRPC call defined in
-// mmlogicapi/proto/mmlogic.proto
-// This is a wrapper around allIgnoreLists, and converts the []string return
-// value of that function to a gRPC Roster message to send out over the wire.
-func (s *mmlogicAPI) GetAllIgnoredPlayers(c context.Context, in *mmlogic.IlInput) (*mmlogic.Roster, error) {
-
-	// Create context for tagging OpenCensus metrics.
-	funcName := "GetAllIgnoredPlayers"
-	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
-
-	il, err := s.allIgnoreLists(c, in)
-
-	stats.Record(fnCtx, MlGrpcRequests.M(1))
-	return createRosterfromPlayerIds(il), err
-}
-
 // allIgnoreLists combines all the ignore lists and returns them.
 func (s *mmlogicAPI) allIgnoreLists(c context.Context, in *mmlogic.IlInput) (allIgnored []string, err error) {
 
@@ -630,6 +572,8 @@ func (s *mmlogicAPI) allIgnoreLists(c context.Context, in *mmlogic.IlInput) (all
 	return allIgnored, err
 }
 
+// Set data structure functions.
+// TODO: maybe move these into an internal module if they are useful elsewhere.
 func intersection(a []string, b []string) (out []string) {
 
 	hash := make(map[string]bool)
@@ -693,6 +637,7 @@ func difference(a []string, b []string) (out []string) {
 	return out
 }
 
+// Functions for getting or setting player IDs to/from rosters
 func getPlayerIdsFromRoster(r *mmlogic.Roster) []string {
 	playerIDs := make([]string, 0)
 	for _, p := range r.Players {
@@ -710,11 +655,4 @@ func createRosterfromPlayerIds(playerIDs []string) *mmlogic.Roster {
 	}
 	return &mmlogic.Roster{Players: players}
 
-}
-
-func min(x, y int) int {
-	if x < y {
-		return x
-	}
-	return y
 }
