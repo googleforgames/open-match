@@ -20,13 +20,37 @@ service MmLogic {
   // CreateProposal is called by MMFs that wish to write their results to
   // a proposed MatchObject, that can be sent out the Backend API once it has
   // been approved (by default, by the evaluator process).
-  //  - adds all players in the Roster to the proposed player ignore list
+  //  - adds all players in all Rosters to the proposed player ignore list
   //  - writes the proposed match to the provided key
-  //  - [NYI] adds that key to the list of proposals to be considered
+  //  - adds that key to the list of proposals to be considered
+  // INPUT: 
+  //  * TO RETURN A MATCHOBJECT AFTER A SUCCESSFUL MMF RUN
+  //    To create a match MatchObject message with these fields populated:
+  //      - id, set to the value of the MMF_PROPOSAL_ID env var
+  //      - properties
+  //      - error.  You must explicitly set this to an empty string if your MMF
+  //      - roster, with the playerIDs filled in the 'players' repeated field. 
+  //      - [optional] pools, set to the output from the 'GetPlayerPools' call,
+  //        will populate the pools with stats about how many players the filters
+  //        matched and how long the filters took to run, which will be sent out
+  //        the backend api along with your match results.
+  //        was successful.
+  //  * TO RETURN AN ERROR 
+  //    To report a failure or error, send a MatchObject message with these
+  //    these fields populated:
+  //      - id, set to the value of the MMF_ERROR_ID env var. 
+  //      - error, set to a string value describing the error your MMF encountered.
+  //      - [optional] properties, anything you put here is returned to the
+  //        backend along with your error.
+  //      - [optional] rosters, anything you put here is returned to the
+  //        backend along with your error.
+  //      - [optional] pools, set to the output from the 'GetPlayerPools' call,
+  //        will populate the pools with stats about how many players the filters
+  //        matched and how long the filters took to run, which will be sent out
+  //        the backend api along with your match results.
+  // OUTPUT: a Result message with a boolean success value and an error string
+  // if an error was encountered
   rpc CreateProposal(messages.MatchObject) returns (messages.Result) {}
-  // NYI
-  // ReturnError is called by MMFs that wish to notify that backend of an error.
-  rpc ReturnError(messages.Result) returns (messages.Result) {}
 
   // Player listing and filtering functions
   //

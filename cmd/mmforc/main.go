@@ -240,13 +240,13 @@ func main() {
 }
 
 // mmfunc generates a k8s job that runs the specified mmf container image.
-// scID is the redis key that the Backend API is monitoring for results; we can 'short circuit' and write errors directly to this key if we can't run the MMF for some reason.
-func mmfunc(ctx context.Context, scID string, cfg *viper.Viper, clientset *kubernetes.Clientset, pool *redis.Pool) {
+// resultsID is the redis key that the Backend API is monitoring for results; we can 'short circuit' and write errors directly to this key if we can't run the MMF for some reason.
+func mmfunc(ctx context.Context, resultsID string, cfg *viper.Viper, clientset *kubernetes.Clientset, pool *redis.Pool) {
 
 	// Generate the various keys/names, some of which must be populated to the k8s job.
 	imageName := cfg.GetString("defaultImages.mmf.name") + ":" + cfg.GetString("defaultImages.mmf.tag")
 	jobType := "mmf"
-	ids := strings.Split(scID, ".") // scID comes in as dot-concatinated moID and profID.
+	ids := strings.Split(resultsID, ".") // comes in as dot-concatinated moID and profID.
 	moID := ids[0]
 	profID := ids[1]
 	timestamp := strconv.Itoa(int(time.Now().Unix()))
@@ -294,7 +294,7 @@ func mmfunc(ctx context.Context, scID string, cfg *viper.Viper, clientset *kuber
 		{Name: "MMF_PROFILE_ID", Value: profID},
 		{Name: "MMF_PROPOSAL_ID", Value: propID},
 		{Name: "MMF_REQUEST_ID", Value: moID},
-		{Name: "MMF_SHORTCIRCUIT_MATCHOBJECT_ID", Value: scID},
+		{Name: "MMF_ERROR_ID", Value: resultsID},
 		{Name: "MMF_TIMESTAMP", Value: timestamp},
 	}
 	err = submitJob(clientset, jobType, jobName, imageName, envvars)
@@ -341,7 +341,6 @@ func evaluator(ctx context.Context, cfg *viper.Viper, clientset *kubernetes.Clie
 
 // submitJob submits a job to kubernetes
 func submitJob(clientset *kubernetes.Clientset, jobType string, jobName string, imageName string, envvars []apiv1.EnvVar) error {
-	//func submitJob(clientset *kubernetes.Clientset, jobType string, jobName string, imageName string, timestamp string, profID string, propID string, scID string) error {
 
 	// DEPRECATED: will be removed in a future vrsion.  Please switch to using the 'MMF_*' environment variables.
 	v := strings.Split(jobName, ".")

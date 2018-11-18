@@ -179,123 +179,121 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 	funcName := "CreateProposal"
 	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
 
-	mlLog.Info("Attempting to create proposal")
-
-	// update ignorelist
-	playerIDs := make([]string, 0)
-	for _, roster := range prop.Rosters {
-		playerIDs = append(playerIDs, getPlayerIdsFromRoster(roster)...)
-	}
-	err := ignorelist.Add(redisConn, list, playerIDs)
+	// Write all non-id fields from the protobuf message to state storage.
+	err := redispb.MarshalToRedis(c, prop, s.pool)
 	if err != nil {
-		// TODO: update fields
-		mlLog.WithFields(log.Fields{
-			"error":      err.Error(),
-			"component":  "statestorage",
-			"ignorelist": list,
-		}).Error("State storage error")
-
 		stats.Record(fnCtx, MlGrpcErrors.M(1))
 		return &mmlogic.Result{Success: false, Error: err.Error()}, err
 	}
 
-	// Write all non-id fields from the protobuf message to state storage.
-	err = redispb.MarshalToRedis(c, prop, s.pool)
-	/*	key := prop.Id
-		cmd := "HSET"
-		moInfo := reflect.ValueOf(prop).Elem()
-		for i := 0; i < moInfo.NumField(); i++ {
-			field := strings.ToLower(moInfo.Type().Field(i).Name)
-			value := moInfo.Field(i).Interface()
-			if field != "id" {
-				_, err = redisConn.Do(cmd, key, field, value)
+	// check to see if we are returning a proposal or an error
+	if len(prop.Error) == 0 {
+		// This is a proposal
+		cpLog := mlLog.WithFields(log.Fields{"proposalid": prop.Id})
+
+		// look for players to add to the ignorelist
+		cpLog.Info("parsing rosters")
+		playerIDs := make([]string, 0)
+		for _, roster := range prop.Rosters {
+			playerIDs = append(playerIDs, getPlayerIdsFromRoster(roster)...)
+		}
+
+		// If players were on the roster, add them to the ignorelist
+		if len(playerIDs) > 0 {
+			cpLog.WithFields(log.Fields{
+				"count":      len(playerIDs),
+				"ignorelist": list,
+			}).Info("adding players to ignorelist")
+
+			err := ignorelist.Add(redisConn, list, playerIDs)
+			if err != nil {
+				cpLog.WithFields(log.Fields{
+					"error":      err.Error(),
+					"component":  "statestorage",
+					"ignorelist": list,
+				}).Error("State storage error")
+
+				// record error.
+				stats.Record(fnCtx, MlGrpcErrors.M(1))
+				return &mmlogic.Result{Success: false, Error: err.Error()}, err
+			}
+		} else {
+			cpLog.Warn("found no players in rosters, not adding any players to the proposed ignorelist")
+		}
+
+		// add propkey to proposalsq
+		_, err = redisConn.Do("SADD", proposalq, prop.Id)
+		if err != nil {
+			cpLog.WithFields(log.Fields{
+				"error":     err.Error(),
+				"component": "statestorage",
+				"queue":     proposalq,
+			}).Error("State storage error")
+
+			// record error.
+			stats.Record(fnCtx, MlGrpcErrors.M(1))
+			return &mmlogic.Result{Success: false, Error: err.Error()}, err
+		}
+	} else {
+		// This is an error
+		cpLog := mlLog.WithFields(log.Fields{"mmfErrorId": prop.Id})
+	}
+
+	/*
+			// update ignorelist
+			cpLog.Info("parsing rosters")
+			playerIDs := make([]string, 0)
+			for _, roster := range prop.Rosters {
+				playerIDs = append(playerIDs, getPlayerIdsFromRoster(roster)...)
+			}
+			if len(playerIDs) > 0 {
+				cpLog.Info("adding players to proposed ignorelist")
+				err := ignorelist.Add(redisConn, list, playerIDs)
 				if err != nil {
-					mlLog.WithFields(log.Fields{
-						"error":     err.Error(),
-						"component": "statestorage",
-						"key":       prop.Id,
-						"field":     field,
+					// TODO: update fields
+					cpLog.WithFields(log.Fields{
+						"error":      err.Error(),
+						"component":  "statestorage",
+						"ignorelist": list,
 					}).Error("State storage error")
+
 					stats.Record(fnCtx, MlGrpcErrors.M(1))
 					return &mmlogic.Result{Success: false, Error: err.Error()}, err
 				}
-				mlLog.WithFields(log.Fields{
-					"component": "statestorage",
-					"cmd":       cmd,
-					"key":       key,
-					"field":     field,
-					"value":     value,
-				}).Debug("State storage operation")
+			} else {
 
 			}
-		}
+		//  add propkey to proposalsq
+			_, err = redisConn.Do("SADD", proposalq, prop.Id)
+			if err != nil {
+				cpLog.WithFields(log.Fields{
+					"error":     err.Error(),
+					"component": "statestorage",
+					"key":       proposalq,
+					"proposal":  prop.Id,
+				}).Error("State storage error")
+				stats.Record(fnCtx, MlGrpcErrors.M(1))
+				return &mmlogic.Result{Success: false, Error: err.Error()}, err
+			}
 	*/
-	if err != nil {
-		stats.Record(fnCtx, MlGrpcErrors.M(1))
-		return &mmlogic.Result{Success: false, Error: err.Error()}, err
-	}
-
-	//  add propkey to proposalsq
-	_, err = redisConn.Do("SADD", proposalq, prop.Id)
-	if err != nil {
-		mlLog.WithFields(log.Fields{
-			"error":     err.Error(),
-			"component": "statestorage",
-			"key":       proposalq,
-			"proposal":  prop.Id,
-		}).Error("State storage error")
-		stats.Record(fnCtx, MlGrpcErrors.M(1))
-		return &mmlogic.Result{Success: false, Error: err.Error()}, err
-	}
 
 	stats.Record(fnCtx, MlGrpcRequests.M(1))
 	return &mmlogic.Result{Success: true, Error: ""}, err
-
 }
 
-/*
-// CreateMatchObject is this service's implementation of the gRPC call defined in
+// ReturnError is this service's implementation of the gRPC call defined in
 // mmlogicapi/proto/mmlogic.proto
-func (s *mmlogicAPI) CreateResults(c context.Context, mmfr *mmlogic.MMFResults) (*mmlogic.Result, error) {
-
-	list := s.cfg.GetString("ignoreLists.deindexedPlayers.key")
-
-	// Get redis connection from pool
-	redisConn := s.pool.Get()
-	defer redisConn.Close()
+func (s *mmlogicAPI) ReturnError(c context.Context, in *mmlogic.MatchObject) (*mmlogic.Result, error) {
 
 	// Create context for tagging OpenCensus metrics.
-	funcName := "TODO"
+	funcName := "ReturnError"
 	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
 
-	mlLog.Info("Attempting to create match object with mmf results")
+	il, err := s.allIgnoreLists(c, in)
 
-	// Write group
-	playerIDs := getPlayerIdsFromRoster(mmfr.Roster)
-	err := ignorelist.Add(redisConn, list, playerIDs)
-	if err != nil {
-		// TODO: update fields
-		mlLog.WithFields(log.Fields{
-			"error":     err.Error(),
-			"component": "statestorage",
-			"key":       list,
-		}).Error("State storage error")
-
-		stats.Record(fnCtx, MlGrpcErrors.M(1))
-		return &mmlogic.Result{Success: false, Error: err.Error()}, err
-	}
-
-	// TODO: deindex
-	// for playerID in mo.Roster.Profile
-	//	go player.Deindex(playerID)
-
-	// TODO: wite match to key
-
-	// TODO: decrement the running MMFs
-
-	return &mmlogic.Result{Success: true, Error: ""}, err
+	stats.Record(fnCtx, MlGrpcRequests.M(1))
+	return &mmlogic.Result{}, nil
 }
-*/
 
 // applyFilter is a sequential query of every entry in the Redis sorted set
 // that fall beween the minimum and maximum values passed in through the filter
@@ -606,12 +604,6 @@ func (s *mmlogicAPI) GetAllIgnoredPlayers(c context.Context, in *mmlogic.IlInput
 
 	stats.Record(fnCtx, MlGrpcRequests.M(1))
 	return createRosterfromPlayerIds(il), err
-}
-
-// Create Error is this service's implementation of the gRPC call defined in
-// mmlogicapi/proto/mmlogic.proto
-func (s *mmlogicAPI) ReturnError(c context.Context, in *mmlogic.Result) (*mmlogic.Result, error) {
-	return &mmlogic.Result{}, nil
 }
 
 // allIgnoreLists combines all the ignore lists and returns them.

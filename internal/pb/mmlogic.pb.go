@@ -33,15 +33,45 @@ type MmLogicClient interface {
 	//  Note: filters are assumed to have been checked for validity by the
 	//  backendapi  when accepting a profile
 	GetProfile(ctx context.Context, in *MatchObject, opts ...grpc.CallOption) (*MatchObject, error)
-	// CreateProposal  does the following:
-	//  - adds all players in the Roster to the proposed player ignore list
+	// CreateProposal is called by MMFs that wish to write their results to
+	// a proposed MatchObject, that can be sent out the Backend API once it has
+	// been approved (by default, by the evaluator process).
+	//  - adds all players in all Rosters to the proposed player ignore list
 	//  - writes the proposed match to the provided key
 	//  - adds that key to the list of proposals to be considered
+	// INPUT:
+	//  * TO RETURN A MATCHOBJECT AFTER A SUCCESSFUL MMF RUN
+	//    To create a match MatchObject message with these fields populated:
+	//      - id, set to the value of the MMF_PROPOSAL_ID env var
+	//      - properties
+	//      - error.  You must explicitly set this to an empty string if your MMF
+	//      - roster, with the playerIDs filled in the 'players' repeated field, if
+	//        you want those players to be added to the ignore list of proposed
+	//        players (recommended)
+	//      - [optional] pools, set to the output from the 'GetPlayerPools' call,
+	//        will populate the pools with stats about how many players the filters
+	//        matched and how long the filters took to run, which will be sent out
+	//        the backend api along with your match results.
+	//        was successful.
+	//  * TO RETURN AN ERROR
+	//    To report a failure or error, send a MatchObject message with these
+	//    these fields populated:
+	//      - id, set to the value of the MMF_ERROR_ID env var.
+	//      - error, set to a string value describing the error your MMF encountered.
+	//      - [optional] properties, anything you put here is returned to the
+	//        backend along with your error.
+	//      - [optional] rosters, anything you put here is returned to the
+	//        backend along with your error.
+	//      - [optional] pools, set to the output from the 'GetPlayerPools' call,
+	//        will populate the pools with stats about how many players the filters
+	//        matched and how long the filters took to run, which will be sent out
+	//        the backend api along with your match results.
+	// OUTPUT: a Result message with a boolean success value and an error string
+	// if an error was encountered
 	CreateProposal(ctx context.Context, in *MatchObject, opts ...grpc.CallOption) (*Result, error)
-	ReturnError(ctx context.Context, in *Result, opts ...grpc.CallOption) (*Result, error)
 	// Player listing and filtering functions
 	//
-	// RetrievePlayerPool gets the list of players for every Filter in the
+	// RetrievePlayerPool gets the list of players that match every Filter in the
 	// PlayerPool, and then removes all players it finds in the ignore list.  It
 	// combines the results, and returns the resulting player pool.
 	GetPlayerPool(ctx context.Context, in *PlayerPool, opts ...grpc.CallOption) (MmLogic_GetPlayerPoolClient, error)
@@ -74,15 +104,6 @@ func (c *mmLogicClient) GetProfile(ctx context.Context, in *MatchObject, opts ..
 func (c *mmLogicClient) CreateProposal(ctx context.Context, in *MatchObject, opts ...grpc.CallOption) (*Result, error) {
 	out := new(Result)
 	err := grpc.Invoke(ctx, "/api.MmLogic/CreateProposal", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *mmLogicClient) ReturnError(ctx context.Context, in *Result, opts ...grpc.CallOption) (*Result, error) {
-	out := new(Result)
-	err := grpc.Invoke(ctx, "/api.MmLogic/ReturnError", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -147,15 +168,45 @@ type MmLogicServer interface {
 	//  Note: filters are assumed to have been checked for validity by the
 	//  backendapi  when accepting a profile
 	GetProfile(context.Context, *MatchObject) (*MatchObject, error)
-	// CreateProposal  does the following:
-	//  - adds all players in the Roster to the proposed player ignore list
+	// CreateProposal is called by MMFs that wish to write their results to
+	// a proposed MatchObject, that can be sent out the Backend API once it has
+	// been approved (by default, by the evaluator process).
+	//  - adds all players in all Rosters to the proposed player ignore list
 	//  - writes the proposed match to the provided key
 	//  - adds that key to the list of proposals to be considered
+	// INPUT:
+	//  * TO RETURN A MATCHOBJECT AFTER A SUCCESSFUL MMF RUN
+	//    To create a match MatchObject message with these fields populated:
+	//      - id, set to the value of the MMF_PROPOSAL_ID env var
+	//      - properties
+	//      - error.  You must explicitly set this to an empty string if your MMF
+	//      - roster, with the playerIDs filled in the 'players' repeated field, if
+	//        you want those players to be added to the ignore list of proposed
+	//        players (recommended)
+	//      - [optional] pools, set to the output from the 'GetPlayerPools' call,
+	//        will populate the pools with stats about how many players the filters
+	//        matched and how long the filters took to run, which will be sent out
+	//        the backend api along with your match results.
+	//        was successful.
+	//  * TO RETURN AN ERROR
+	//    To report a failure or error, send a MatchObject message with these
+	//    these fields populated:
+	//      - id, set to the value of the MMF_ERROR_ID env var.
+	//      - error, set to a string value describing the error your MMF encountered.
+	//      - [optional] properties, anything you put here is returned to the
+	//        backend along with your error.
+	//      - [optional] rosters, anything you put here is returned to the
+	//        backend along with your error.
+	//      - [optional] pools, set to the output from the 'GetPlayerPools' call,
+	//        will populate the pools with stats about how many players the filters
+	//        matched and how long the filters took to run, which will be sent out
+	//        the backend api along with your match results.
+	// OUTPUT: a Result message with a boolean success value and an error string
+	// if an error was encountered
 	CreateProposal(context.Context, *MatchObject) (*Result, error)
-	ReturnError(context.Context, *Result) (*Result, error)
 	// Player listing and filtering functions
 	//
-	// RetrievePlayerPool gets the list of players for every Filter in the
+	// RetrievePlayerPool gets the list of players that match every Filter in the
 	// PlayerPool, and then removes all players it finds in the ignore list.  It
 	// combines the results, and returns the resulting player pool.
 	GetPlayerPool(*PlayerPool, MmLogic_GetPlayerPoolServer) error
@@ -204,24 +255,6 @@ func _MmLogic_CreateProposal_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MmLogicServer).CreateProposal(ctx, req.(*MatchObject))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MmLogic_ReturnError_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Result)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MmLogicServer).ReturnError(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/api.MmLogic/ReturnError",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MmLogicServer).ReturnError(ctx, req.(*Result))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -296,10 +329,6 @@ var _MmLogic_serviceDesc = grpc.ServiceDesc{
 			Handler:    _MmLogic_CreateProposal_Handler,
 		},
 		{
-			MethodName: "ReturnError",
-			Handler:    _MmLogic_ReturnError_Handler,
-		},
-		{
 			MethodName: "GetAllIgnoredPlayers",
 			Handler:    _MmLogic_GetAllIgnoredPlayers_Handler,
 		},
@@ -321,23 +350,22 @@ var _MmLogic_serviceDesc = grpc.ServiceDesc{
 func init() { proto.RegisterFile("api/protobuf-spec/mmlogic.proto", fileDescriptor2) }
 
 var fileDescriptor2 = []byte{
-	// 276 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x91, 0x4d, 0x4b, 0x03, 0x31,
-	0x10, 0x40, 0xab, 0x82, 0x42, 0x44, 0xd1, 0x50, 0x2f, 0xbd, 0x28, 0xbd, 0xb7, 0x11, 0x8b, 0x78,
-	0x50, 0x11, 0x2d, 0x52, 0x0a, 0x2d, 0x96, 0x1e, 0xbd, 0x65, 0xd7, 0xe9, 0x36, 0x32, 0xc9, 0x84,
-	0xc9, 0xe4, 0xe0, 0x1f, 0xf7, 0x2c, 0xdb, 0x82, 0x8b, 0xb8, 0x5e, 0xbc, 0xbe, 0xbc, 0x37, 0xf9,
-	0x52, 0xe7, 0x36, 0x3a, 0x13, 0x99, 0x84, 0x8a, 0xbc, 0x1a, 0xa4, 0x08, 0xa5, 0xf1, 0x1e, 0xa9,
-	0x72, 0xe5, 0x70, 0x43, 0xf5, 0x9e, 0x8d, 0xae, 0x77, 0xd1, 0x62, 0x41, 0x4a, 0xb6, 0x82, 0xb4,
-	0xd5, 0xae, 0x3e, 0x77, 0xd5, 0xc1, 0xdc, 0xcf, 0xea, 0x50, 0xdf, 0x29, 0x35, 0x01, 0x59, 0x30,
-	0xad, 0x1c, 0x82, 0x3e, 0x1b, 0x7e, 0xab, 0x73, 0x2b, 0xe5, 0xfa, 0xa5, 0x78, 0x87, 0x52, 0x7a,
-	0xed, 0xb8, 0xdf, 0xd1, 0xb7, 0xea, 0x78, 0xcc, 0x60, 0x05, 0x16, 0x4c, 0x91, 0x92, 0xc5, 0xbf,
-	0x26, 0x9c, 0x34, 0x78, 0x09, 0x29, 0x63, 0x1d, 0x8f, 0xd4, 0xe1, 0x12, 0x24, 0x73, 0x78, 0x66,
-	0x26, 0xd6, 0xbf, 0x94, 0xd6, 0xe8, 0x41, 0x1d, 0xd5, 0xe7, 0x45, 0xfb, 0x01, 0xbc, 0x20, 0x42,
-	0xdd, 0x6d, 0xa4, 0x86, 0xf6, 0x5a, 0x69, 0xbf, 0x73, 0xb9, 0xa3, 0xef, 0x55, 0x77, 0x02, 0xf2,
-	0x88, 0x38, 0xad, 0x02, 0x31, 0xbc, 0x6d, 0x97, 0x93, 0x3e, 0x6d, 0x8a, 0x29, 0x4e, 0x43, 0xcc,
-	0x3f, 0xf7, 0xa7, 0x24, 0xc0, 0x9b, 0x1b, 0xeb, 0x99, 0x4b, 0xf2, 0xaf, 0xf8, 0xe9, 0xe6, 0xf5,
-	0xba, 0x72, 0xb2, 0xce, 0xc5, 0xb0, 0x24, 0x6f, 0x26, 0x44, 0x15, 0xc2, 0x18, 0x29, 0xd7, 0x73,
-	0x64, 0x45, 0xec, 0x0d, 0x45, 0x08, 0x03, 0x5f, 0x3f, 0x9c, 0x71, 0x41, 0x80, 0x83, 0x45, 0x13,
-	0x8b, 0x62, 0x7f, 0xf3, 0x71, 0xa3, 0xaf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x6f, 0x3d, 0x07, 0xbf,
-	0x02, 0x02, 0x00, 0x00,
+	// 263 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x91, 0x41, 0x4b, 0xf4, 0x30,
+	0x10, 0x40, 0xf7, 0xfb, 0x04, 0x85, 0x80, 0xa2, 0x61, 0xbd, 0xf4, 0xa2, 0xec, 0x7d, 0x1b, 0x51,
+	0xc4, 0x83, 0x8a, 0xe8, 0x1e, 0x4a, 0x61, 0x17, 0x8b, 0x47, 0x6f, 0x69, 0x9d, 0x76, 0x23, 0x93,
+	0x4e, 0x48, 0x26, 0x07, 0x7f, 0x9e, 0xff, 0x4c, 0xd2, 0x05, 0x8b, 0x50, 0x2f, 0x5e, 0x5f, 0xde,
+	0x9b, 0x09, 0x89, 0x38, 0xd3, 0xce, 0x28, 0xe7, 0x89, 0xa9, 0x8e, 0xed, 0x32, 0x38, 0x68, 0x94,
+	0xb5, 0x48, 0x9d, 0x69, 0xf2, 0x81, 0xca, 0x3d, 0xed, 0x4c, 0x76, 0x3e, 0x61, 0x41, 0x08, 0xba,
+	0x83, 0xb0, 0xd3, 0x2e, 0x3f, 0xff, 0x8b, 0x83, 0x8d, 0x5d, 0xa7, 0x50, 0xde, 0x09, 0x51, 0x00,
+	0x57, 0x9e, 0x5a, 0x83, 0x20, 0x4f, 0xf3, 0x6f, 0x75, 0xa3, 0xb9, 0xd9, 0x3e, 0xd7, 0xef, 0xd0,
+	0x70, 0x36, 0x8d, 0x17, 0x33, 0x79, 0x2b, 0x8e, 0x56, 0x1e, 0x34, 0x43, 0xe5, 0xc9, 0x51, 0xd0,
+	0xf8, 0xdb, 0x84, 0xe3, 0x11, 0xbf, 0x40, 0x88, 0x98, 0xe2, 0x07, 0x71, 0x98, 0x56, 0xa3, 0xfe,
+	0x00, 0x5f, 0x11, 0xa1, 0x9c, 0x8f, 0xd2, 0x48, 0xb3, 0x49, 0xba, 0x98, 0x5d, 0xfc, 0x93, 0xf7,
+	0x62, 0x5e, 0x00, 0x3f, 0x22, 0x96, 0x5d, 0x4f, 0x1e, 0xde, 0x76, 0xc7, 0x41, 0x9e, 0x8c, 0x45,
+	0x89, 0x65, 0xef, 0xe2, 0xcf, 0xfd, 0x14, 0x18, 0xfc, 0x70, 0x79, 0xb9, 0x36, 0x81, 0xff, 0x14,
+	0x3f, 0xdd, 0xbc, 0x5e, 0x77, 0x86, 0xb7, 0xb1, 0xce, 0x1b, 0xb2, 0xaa, 0x20, 0xea, 0x10, 0x56,
+	0x48, 0x31, 0xcd, 0xe1, 0x96, 0xbc, 0x55, 0xe4, 0xa0, 0x5f, 0xda, 0xf4, 0x06, 0xca, 0xf4, 0x0c,
+	0xbe, 0xd7, 0xa8, 0x5c, 0x5d, 0xef, 0x0f, 0x7f, 0x70, 0xf5, 0x15, 0x00, 0x00, 0xff, 0xff, 0xf5,
+	0xe5, 0x29, 0xa6, 0xcd, 0x01, 0x00, 0x00,
 }
