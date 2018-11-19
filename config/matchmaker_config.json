@@ -30,14 +30,17 @@
     },
     "ignoreLists": {
         "proposed": {
+            "name": "proposed",
             "offset": 0,
             "duration": 800
         },
         "deindexed": {
+            "name": "deindexed",
             "offset": 0,
             "duration": 800
         },
-        "timestamp": {
+        "expired": {
+            "name": "timestamp",
             "offset": 800,
             "duration": 0 
         }
@@ -49,7 +52,7 @@
         },
         "mmf": {
             "name": "gcr.io/matchmaker-dev-201405/openmatch-mmf",
-            "tag": "py"
+            "tag": "py3"
         }
     },
     "redis": {

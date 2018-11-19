@@ -1,0 +1,141 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-backendapi
+spec:
+  selector:
+    app: openmatch
+    component: backend
+  ports:
+  - protocol: TCP
+    port: 50505
+    targetPort: grpc
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-backendapi
+  labels:
+    app: openmatch
+    component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openmatch
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: openmatch
+        component: backend
+    spec:
+      containers:
+      - name: om-backend
+        image: gcr.io/unite-au-demo/openmatch-backendapi:dev
+        imagePullPolicy: Always
+        ports:
+        - name: grpc
+          containerPort: 50505
+        - name: metrics
+          containerPort: 9555
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-frontendapi
+spec:
+  selector:
+    app: openmatch
+    component: frontend
+  ports:
+  - protocol: TCP
+    port: 50504
+    targetPort: grpc
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-frontendapi
+  labels:
+    app: openmatch
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openmatch
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: openmatch
+        component: frontend
+    spec:
+      containers:
+      - name: om-frontendapi
+        image: gcr.io/unite-au-demo/openmatch-frontendapi:dev
+        imagePullPolicy: Always
+        ports:
+        - name: grpc
+          containerPort: 50504
+        - name: metrics
+          containerPort: 9555
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: mmf-sa
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-mmforc
+  labels:
+    app: openmatch
+    component: mmforc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openmatch
+      component: mmforc
+  template:
+    metadata:
+      labels:
+        app: openmatch
+        component: mmforc
+    spec:
+      containers:
+      - name: om-mmforc
+        image: gcr.io/unite-au-demo/openmatch-mmforc:dev
+        imagePullPolicy: Always
+        ports:
+        - name: metrics
+          containerPort: 9555
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+        env:
+        - name: METADATA_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace

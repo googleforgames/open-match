@@ -1,5 +1,16 @@
 #! /usr/bin/env python3
-# Step 1 - Package this in a linux container image.  Python runs fine in Linux.
+#Copyright 2018 Google LLC
+#Licensed under the Apache License, Version 2.0 (the "License");
+#you may not use this file except in compliance with the License.
+#You may obtain a copy of the License at
+#
+#    https://www.apache.org/licenses/LICENSE-2.0
+#
+#Unless required by applicable law or agreed to in writing, software
+#distributed under the License is distributed on an "AS IS" BASIS,
+#WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#See the License for the specific language governing permissions and
+#limitations under the License.
 # Note:
 # This harness exits with a success code even in cases of error as  
 # kubernetes jobs will re-run until it sees a successful exit code.
@@ -92,9 +103,9 @@ with  grpc.insecure_channel(api_conn_info) as channel:
         mo.rosters.extend([Parse(json.dumps(roster), mmlogic.Roster(), ignore_unknown_fields=True)])
 
     #DEBUG: writing to error key prevents evalutor run 
-    if cfg['debug']
-        mo.id = os.environ["MMF_ERROR_ID"] 
-        mo.error = "skip evaluator"
+    if cfg['debug']:
+        #mo.id = os.environ["MMF_ERROR_ID"] 
+        #mo.error = "skip evaluator"
         print("======== MMF results:") 
         pp.pprint(mo)
 
@@ -104,7 +115,5 @@ with  grpc.insecure_channel(api_conn_info) as channel:
     success = mmlogic_api.CreateProposal(mo)
     print("======== MMF write to state storage:  %s" % success) 
 
-
-#    # [OPTIONAL] Step 8 - Export stats about this run.
-#    # TODO 
-
+    # [OPTIONAL] Step 8 - Export stats about this run.
+    # TODO 

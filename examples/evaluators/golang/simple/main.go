@@ -25,12 +25,15 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 	"time"
 
+	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	"github.com/gobs/pretty"
 	"github.com/gomodule/redigo/redis"
 	"github.com/spf13/viper"
@@ -79,7 +82,7 @@ func main() {
 
 	start := time.Now()
 
-	proposedMatchIds, overloadedPlayers, overloadedMatches, approvedMatches, err := stub(cfg, redisConn)
+	proposedMatchIds, overloadedPlayers, overloadedMatches, approvedMatches, err := stub(cfg, &pool)
 	overloadedPlayerList, overloadedMatchList, approvedMatchList := generateLists(overloadedPlayers, overloadedMatches, approvedMatches)
 
 	fmt.Println("overloadedPlayers")
@@ -99,13 +102,16 @@ func main() {
 		// The match object was already written by the MMF, just change the
 		// name to what the Backend API (apisrv.go) is looking for.
 		proposedID := proposedMatchIds[proposalIndex]
+		// Incoming proposal keys look like this:
+		// proposal.1542600048.80e43fa085844eebbf53fc736150ef96.testprofile
+		// format:
+		// "proposal".timestamp.unique_matchobject_id.profile_name
 		values := strings.Split(proposedID, ".")
-		timestamp, moID, proID := values[0], values[1], values[2]
-		proposalID := "proposal." + timestamp + "." + moID + "." + proID
+		moID, proID := values[2], values[3]
 		backendID := moID + "." + proID
 		fmt.Printf("approving proposal #%+v:%+v\n", proposalIndex, moID)
-		fmt.Println("RENAME", proposalID, backendID)
-		_, err = redisConn.Do("RENAME", proposalID, backendID)
+		fmt.Println("RENAME", proposedID, backendID)
+		_, err = redisConn.Do("RENAME", proposedID, backendID)
 		if err != nil {
 			// RENAME only fails if the source key doesn't exist
 			fmt.Printf("err = %+v\n", err)
@@ -175,10 +181,14 @@ func readConfig(filename string, defaults map[string]interface{}) (*viper.Viper,
 	return v, err
 }
 
-func stub(cfg *viper.Viper, redisConn redis.Conn) ([]string, map[string][]int, map[int][]int, map[int]bool, error) {
+func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[int][]int, map[int]bool, error) {
 	//Init Logger
 	lgr := log.New(os.Stdout, "MMFEvalStub: ", log.LstdFlags)
 	lgr.Println("Initializing example MMF proposal evaluator")
+
+	// Get redis conneciton
+	redisConn := pool.Get()
+	defer redisConn.Close()
 
 	// Put some config vars into other vars for readability
 	proposalq := cfg.GetString("queues.proposals.name")
@@ -186,18 +196,11 @@ func stub(cfg *viper.Viper, redisConn redis.Conn) ([]string, map[string][]int, m
 	lgr.Println("SCARD", proposalq)
 	numProposals, err := redis.Int(redisConn.Do("SCARD", proposalq))
 	lgr.Println("SPOP", proposalq, numProposals)
-	propKeys, err := redis.Strings(redisConn.Do("SPOP", proposalq, numProposals))
+	proposals, err := redis.Strings(redisConn.Do("SPOP", proposalq, numProposals))
 	if err != nil {
 		lgr.Println(err)
 	}
-	fmt.Printf("propKeys = %+v\n", propKeys)
-
-	// Convert []string to []interface{} so it can be passed as variadic input
-	// https://golang.org/doc/faq#convert_slice_of_interface
-	rosterKeys := propToRoster(propKeys)
-	lgr.Printf("MGET %+v", rosterKeys)
-	rosters, err := redis.Strings(redisConn.Do("MGET", rosterKeys...))
-	pretty.PrettyPrint(rosters)
+	fmt.Printf("proposals = %+v\n", proposals)
 
 	// This is a far cry from effecient but we expect a pretty small set of players under consideration
 	// at any given time
@@ -206,11 +209,16 @@ func stub(cfg *viper.Viper, redisConn redis.Conn) ([]string, map[string][]int, m
 	overloadedMatches := make(map[int][]int)
 	approvedMatches := make(map[int]bool)
 	allPlayers := make(map[string]int)
-	for index := range rosters {
-		approvedMatches[index] = true
-	}
-	for index, playerList := range rosters {
-		for _, pID := range strings.Split(playerList, " ") {
+
+	// Loop through each proposal, and look for 'overloaded' players (players in multiple proposals)
+	for index, propKey := range proposals {
+		approvedMatches[index] = true // This proposal is approved until proven otherwise
+		playerList, err := getProposedPlayers(pool, propKey)
+		if err != nil {
+			lgr.Println(err)
+		}
+
+		for _, pID := range playerList {
 			if allPlayers[pID] != 0 {
 				// Seen this player at least once before; gather the indicies of all the match
 				// proposals with this player
@@ -235,10 +243,33 @@ func stub(cfg *viper.Viper, redisConn redis.Conn) ([]string, map[string][]int, m
 			}
 		}
 	}
-	return propKeys, overloadedPlayers, overloadedMatches, approvedMatches, err
+	return proposals, overloadedPlayers, overloadedMatches, approvedMatches, err
+}
+
+// getProposedPlayers is a function that may be moved to an API call in the future.
+func getProposedPlayers(pool *redis.Pool, propKey string) ([]string, error) {
+
+	// Get the proposal match object from redis
+	mo := &om_messages.MatchObject{Id: propKey}
+	err := redispb.UnmarshalFromRedis(context.Background(), pool, mo)
+	if err != nil {
+		return nil, err
+	}
+
+	// Loop through all rosters, appending players IDs to a list.
+	playerList := make([]string, 0)
+	for _, r := range mo.Rosters {
+		for _, p := range r.Players {
+			playerList = append(playerList, p.Id)
+		}
+	}
+
+	return playerList, err
 }
 
 func propToRoster(in []string) []interface{} {
+	// Convert []string to []interface{} so it can be passed as variadic input
+	// https://golang.org/doc/faq#convert_slice_of_interface
 	out := make([]interface{}, len(in))
 	for i, v := range in {
 		values := strings.Split(v, ".")

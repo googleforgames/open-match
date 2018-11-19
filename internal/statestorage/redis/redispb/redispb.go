@@ -128,8 +128,8 @@ func MarshalToRedis(ctx context.Context, pb proto.Message, pool *redis.Pool) (er
 	return
 }
 
-// UnmarshalFromRedis unmarshals a pb from a redis hash.
-// The incoming protobuf message in question must have an 'id' field.
+// UnmarshalFromRedis unmarshals a MatchObject from a redis hash.
+// This can probably be made generic to work with other pb messages in the future.
 // In every case where we don't get an update, we return an error.
 func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.MatchObject) error {
 
@@ -175,116 +175,6 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 	return err
 }
 
-/*
-func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb proto.Message) error {
-
-	// Get the Redis connection.
-	redisConn, err := pool.GetContext(context.Background())
-	defer redisConn.Close()
-	if err != nil {
-		rpLog.WithFields(log.Fields{
-			"error":     err.Error(),
-			"component": "statestorage",
-		}).Error("failed to connect to redis")
-		return err
-	}
-
-	// We want to serialize to redis as JSON, not the typical protobuf string
-	// serializer, so start by marshalling to json.
-	this := jsonpb.Marshaler{}
-	jsonMsg, err := this.MarshalToString(pb)
-	if err != nil {
-		rpLog.WithFields(log.Fields{
-			"error":     err.Error(),
-			"component": "statestorage",
-			"protobuf":  pb,
-		}).Error("failure marshaling protobuf message to JSON")
-		return err
-	}
-
-	// Get redis key and command ready.
-	keyResult := gjson.Get(jsonMsg, "id")
-
-	// Return error if the provided protobuf message doesn't have an ID field
-	if !keyResult.Exists() {
-		err = errors.New("cannot unmarshal protobuf messages without an id field")
-		rpLog.WithFields(log.Fields{
-			"error":     err.Error(),
-			"component": "statestorage",
-		}).Error("failed to retrieve from redis")
-		return err
-	}
-	key := keyResult.String()
-
-	// Prepare redis command.
-	cmd := "HGETALL"
-	resultLog := rpLog.WithFields(log.Fields{
-		"component": "statestorage",
-		"cmd":       cmd,
-		"key":       key,
-	})
-	pbMap, err := redis.StringMap(redisConn.Do(cmd, key))
-	if err != nil {
-		resultLog.Error(err.Error())
-		return err
-	}
-	if len(pbMap) == 0 {
-		err = errors.New("Redis results are empty")
-		resultLog.Error(err.Error())
-		return err
-	}
-	resultLog.Info("State storage operation")
-
-	//DEBUG
-	resultLog.Debug("Tried to retreive all from ", key)
-	for i, k := range pbMap {
-		resultLog.Debug(i, " : ", k)
-		jsonField, err := json.Marshal(k)
-		if err != nil {
-			log.Fatal(err)
-		}
-		resultLog.Debug(i)
-		resultLog.Debug(jsonField)
-	}
-
-	// Take the map[string]string and convert to JSON, then JSON to pb.
-	jPb, err := json.Marshal(pbMap)
-	if err != nil {
-		resultLog.Error("failed to marshal JSON to string")
-		return err
-	}
-	resultLog.Debug("Finished hash to JSON marshal:", string(jPb))
-
-	// TODO: clean this up, it's a hack
-	//	stringJsonPB := fixThis(string(jPb))
-	stringJsonPB := string(jPb)
-	resultLog.Debug("Fixed JSON", stringJsonPB)
-	if string(jPb) == stringJsonPB {
-		resultLog.Debug("WTF, replace does nothing")
-	}
-
-	err = jsonpb.UnmarshalString(stringJsonPB, pb)
-	if err != nil {
-		resultLog.Error("failed to marshal JSON to protobuf")
-		resultLog.Error(err.Error())
-		return err
-	}
-	resultLog.Debug("Finished json to pb marshal:", pb)
-
-	// Assert: this should be no errors!
-	return err
-}
-
-func fixThis(jpb string) string {
-	jpb = strings.Replace(jpb, "\"[", "[", -1)
-	jpb = strings.Replace(jpb, "]\"", "]", -1)
-	jpb = strings.Replace(jpb, "\"{", "{", -1)
-	jpb = strings.Replace(jpb, "}\"", "}", -1)
-	jpb = strings.Replace(jpb, "\\"", "\\", -1)
-	return jpb
-}
-*/
-
 // Watcher makes a channel and returns it immediately.  It also launches an
 // asynchronous goroutine that watches a redis key and returns updates to
 // that key on the channel.
@@ -325,39 +215,3 @@ func Watcher(ctx context.Context, pool *redis.Pool, pb om_messages.MatchObject) 
 
 	return watchChan
 }
-
-/*
-func Watcher(ctx context.Context, pool *redis.Pool, pb proto.Message) <-chan proto.Message {
-
-	watchChan := make(chan proto.Message)
-	results := proto.Clone(pb)
-
-	go func() {
-		// var declaration
-		var err = errors.New("haven't queried Redis yet")
-
-		// Loop, querying redis until this key has a value
-		for err != nil {
-			select {
-			case <-ctx.Done():
-				// Cleanup
-				close(watchChan)
-				return
-			default:
-				//results, err = Retrieve(ctx, pool, key)
-				results = proto.Clone(pb)
-				err = UnmarshalFromRedis(ctx, pool, results)
-				if err != nil || results == nil {
-					rpLog.Debug("No new results")
-					time.Sleep(2 * time.Second) // TODO: exp bo + jitter
-				}
-			}
-		}
-		// Return value retreived from Redis asynchonously and tell calling function we're done
-		rpLog.Debug("state storage watched record update detected")
-		watchChan <- results
-	}()
-
-	return watchChan
-}
-*/

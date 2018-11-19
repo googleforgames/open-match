@@ -107,34 +107,6 @@ func (s *BackendAPI) Open() error {
 	return nil
 }
 
-func (s *backendAPI) marshalPools() error {
-	profile := &backend.MatchObject{}
-
-	// Validate the player pools
-	if profile.Pools == nil && s.cfg.IsSet("jsonkeys.pools") {
-		// Get pools from the properties JSON.
-		ppools := gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools"))
-
-		// Loop over every entry and validate.
-		for _, pool := range ppools.Array() {
-			pp := backend.PlayerPool{}
-			err := jsonpb.UnmarshalString(pool.String(), &pp)
-
-			// If this Player Pool can't be marshaled, log an error.
-			if err != nil {
-				beLog.WithFields(log.Fields{
-					"error":     err.Error(),
-					"component": "jsonpb.UnmarshalString",
-					"profileid": profile.Id,
-					"JSON":      pool.String(),
-				}).Error("Failure to Unmarshal Player Pool JSON to protobuf message")
-			}
-			profile.Pools = append(profile.Pools, &pp)
-		}
-	}
-	return nil
-}
-
 // CreateMatch is this service's implementation of the CreateMatch gRPC method
 // defined in ../proto/backend.proto
 func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject) (*backend.MatchObject, error) {
@@ -152,6 +124,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 	requestKey := moID + "." + profile.Id
 
 	/*
+		// Debugging logs
 		beLog.Info("Pools nil? ", (profile.Pools == nil))
 		beLog.Info("Pools empty? ", (len(profile.Pools) == 0))
 		beLog.Info("Rosters nil? ", (profile.Rosters == nil))
@@ -160,7 +133,10 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 		beLog.Info("contents key?", s.cfg.GetString("jsonkeys.pools"))
 		beLog.Info("contents exist?", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).Exists())
 	*/
+
 	// Case where no protobuf pools was passed; check if there's a JSON version in the properties.
+	// This is for backwards compatibility, it is recommended you populate the
+	// pools before calling CreateMatch/ListMatches
 	if profile.Pools == nil && s.cfg.IsSet("jsonkeys.pools") &&
 		gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).Exists() {
 		poolsJSON := fmt.Sprintf("{\"pools\": %v}", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).String())
@@ -178,6 +154,8 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 	}
 
 	// Case where no protobuf roster was passed; check if there's a JSON version in the properties.
+	// This is for backwards compatibility, it is recommended you populate the
+	// pools before calling CreateMatch/ListMatches
 	if profile.Rosters == nil && s.cfg.IsSet("jsonkeys.rosters") &&
 		gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.rosters")).Exists() {
 		rostersJSON := fmt.Sprintf("{\"rosters\": %v}", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.rosters")).String())
@@ -397,12 +375,11 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 			s.cfg.GetString("jsonkeys.connstring"): a.ConnectionInfo.ConnectionString,
 		}).Debug("state storage operation")
 		redisConn.Send("HSET", playerID, s.cfg.GetString("jsonkeys.connstring"), a.ConnectionInfo.ConnectionString)
-		redisConn.Send("ZREM", s.cfg.GetString("blacklists.players.name"), playerID)
 	}
 	// Remove these players from the proposed list.
-	ignorelist.SendRemove(redisConn, s.cfg.GetString("ignoreLists.proposedPlayers"), assignments)
-	// Add these players from the proposed list.
-	ignorelist.SendAdd(redisConn, s.cfg.GetString("ignoreLists.deindexedPlayers"), assignments)
+	ignorelist.SendRemove(redisConn, "proposed", assignments)
+	// Add these players from the deindexed list.
+	ignorelist.SendAdd(redisConn, "deindexed", assignments)
 
 	// Send the multi-command transaction to Redis.
 	_, err := redisConn.Do("EXEC")
@@ -431,7 +408,6 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 
 // DeleteAssignments is this service's implementation of the DeleteAssignments gRPC method
 // defined in ../proto/backend.proto
-
 func (s *backendAPI) DeleteAssignments(ctx context.Context, r *backend.Roster) (*backend.Result, error) {
 	// TODO: make playerIDs a repeated protobuf message field and iterate over it
 	//assignments := strings.Split(a.PlayerIds, " ")
@@ -485,18 +461,3 @@ func getPlayerIdsFromRoster(r *backend.Roster) []string {
 	return playerIDs
 
 }
-
-/*
-func createRosterfromPlayerIds(playerIDs []string) *backend.Roster {
-
-	players := make([]*backend.Player, 0)
-	for _, id := range playerIDs {
-		players = append(players, &backend.Player{Id: id})
-	}
-	return &backend.Roster{Players: players}
-
-}
-	    "ignoreLists": {
-        "proposedPlayers": "proposedil",
-        "deindexedPlayers": "deindexedil"
-*/

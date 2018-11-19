@@ -123,6 +123,11 @@ func Retrieve(redisConn redis.Conn, cfg *viper.Viper, il string) ([]string, erro
 	// String var init
 	cmd := "ZRANGEBYSCORE"
 
+	ilName := il
+	if cfg.IsSet("name") && cfg.GetString("name") != "" {
+		ilName = cfg.GetString("name")
+	}
+
 	// Timestamp var init
 	now := time.Now().Unix()
 	var minTS, maxTS int64
@@ -147,12 +152,12 @@ func Retrieve(redisConn redis.Conn, cfg *viper.Viper, il string) ([]string, erro
 
 	ilLog.WithFields(log.Fields{
 		"query": cmd,
-		"key":   il,
+		"key":   ilName,
 		"minv":  minTS,
 		"maxv":  maxTS,
 	}).Debug("state storage transaction operation")
 
-	results, err := redis.Strings(redisConn.Do(cmd, il, minTS, maxTS))
+	results, err := redis.Strings(redisConn.Do(cmd, ilName, minTS, maxTS))
 
 	return results, err
 }

@@ -12,6 +12,10 @@ This project attempts to solve the networking and plumbing problems, so game dev
 ## Disclaimer
 This software is currently alpha, and subject to change. **It is not yet ready to be used in production.**
 
+## Version
+The current stable version in master is 0.1.0.  
+The 0.2.0 RC1 is now available.
+
 # Core Concepts
 
 [Watch the introduction of Open Match at Unite Berlin 2018 on YouTube](https://youtu.be/qasAmy_ko2o)
@@ -24,7 +28,7 @@ Open Match is designed to support massively concurrent matchmaking, and to be sc
 * **Component** &mdash; One of the discrete processes in an Open Match deployment. Open Match is composed of multiple scalable microservices called 'components'.
 * **Roster** &mdash; A list of all the players in a match.
 * **Profile** &mdash; The json blob containing all the parameters used to select which players go into a roster.
-* **Match Object** &mdash; A json blob to contain the results of the matchmaking function. Sent with an empty roster section to the backend API from your game backend and then returned with the matchmaking results filled in.
+* **Match Object** &mdash; A protobuffer message format that contains the Profile and the results of the matchmaking function. Sent to the backend API from yoru game backend with an empty roster  and then returned from your MMF with the matchmaking results filled in.
 * **MMFOrc** &mdash; Matchmaker function orchestrator. This Open Match core component is in charge of kicking off custom matchmaking functions (MMFs) and evaluator processes.
 * **State Storage** &mdash; The storage software used by Open Match to hold all the matchmaking state. Open Match ships with [Redis](https://redis.io/) as the default state storage.
 * **Assignment** &mdash; Refers to assigning a player or group of players to a dedicated game server instance. Open Match offers a path to send dedicated game server connection details from your backend to your game clients after a match has been made.
@@ -41,11 +45,12 @@ Open Match is a set of processes designed to run on Kubernetes. It contains thes
 1. Frontend API
 1. Backend API
 1. Matchmaker Function Orchestrator (MMFOrc)
+1. Matchmaking Logic (MMLogic) API 
 
 It also explicitly depends on these two **customizable** components.
 
 1. Matchmaking "Function" (MMF)
-1. Evaluator
+1. Evaluator (may be deprecated in future versions)
 
 While **core** components are fully open source and *can* be modified, they are designed to support the majority of matchmaking scenarios *without need to change the source code*. The Open Match repository ships with simple **customizable** example MMF and Evaluator processes, but it is expected that most users will want full control over the logic in these, so they have been designed to be as easy to modify or replace as possible.
 
@@ -69,11 +74,26 @@ The Backend API is a server application that implements the [gRPC](https://grpc.
 
 Your game backend is expected to maintain a connection, waiting for 'filled' match objects containing a roster of players. The Backend API also provides a return path for your game backend to return dedicated game server connection details (an 'assignment') to the game client, and to delete these 'assignments'.
 
+
 ### Matchmaking Function Orchestrator (MMFOrc)
 
 The MMFOrc kicks off your custom matchmaking function (MMF) for every profile submitted to the Backend API. It also runs the Evaluator to resolve conflicts in case more than one of your profiles matched the same players.
 
 The MMFOrc exists to orchestrate/schedule your **custom components**, running them as often as required to meet the demands of your game. MMFOrc runs in an endless loop, submitting MMFs and Evaluator jobs to Kubernetes.
+
+### Matchmaking Logic (MMLogic) API
+
+The MMLogic API provides a series of gRPC functions that act as a Matchmaking Function SDK.  Much of the basic, boilerplate code for an MMF is the same regardless of what players you want to match together.  The MMLogic API offers a gRPC interface for many common MMF tasks, such as:
+
+1. Reading a profile from state storage.
+1. Running filters on players in state strorage.
+1. Removing chosen players from consideration by other MMFs (by adding them to an ignore list).
+1. Writing the matchmaking results to state storage.
+1. (Optional, NYI) Exporting MMF stats for metrics collection.
+
+More details about the available gRPC calls can be found in the [API Specification](api/protobuf-spec/messages.proto).
+
+**Note**: using the MMLogic API is **optional**.  It tries to simplify the development of MMFs, but if you want to take care of these tasks on your own, you can make few or no calls to the MMLogic API as long as your MMF still completes all the required tasks.  Read the [Matchmaking Functions section](https://github.com/GoogleCloudPlatform/open-match#matchmaking-functions-mmfs) for more details of what work an MMF must do.
 
 ### Evaluator
 
@@ -187,28 +207,37 @@ Open Match is in active development - we would love your help in shaping its fut
 
 Apache 2.0
 
-# Missing functionality
-
-* Player/Group records generated when a client enters the matchmaking pool need to be removed after a certain amount of time with no activity. When using Redis, this will be implemented as a expiration on the player record.
-* Instrumentation of MMFs is in the planning stages.  Since MMFs are by design meant to be completely customizable (to the point of allowing any process that can be packaged in a Docker container), metrics/stats will need to have an expected format and formalized outgoing pathway.  Currently the thought is that it might be that the metrics should be written to a particular key in statestorage in a format compatible with opencensus, and will be collected, aggreggated, and exported to Prometheus using another process.
-* The Kubernetes service account used by the MMFOrc should be updated to have min required permissions.
-* Autoscaling isn't turned on for the Frontend or Backend API Kubernetes deployments by default.
-* Match profiles should be able to define multiple MMF container images to run, but this is not currently supported. This enables A/B testing and several other scenarios.
-* Out-of-the-box, the Redis deployment should be a HA configuration using [Redis Sentinel](https://redis.io/topics/sentinel).
-* Redis watch should be unified to watch a hash and stream updates.  The code for this is written and validated but not committed yet. We don't want to support two redis watcher code paths, so the backend watch of the match object should be switched to unify the way the frontend and backend watch keys.  Unfortunately this change touches the whole chain of components that touch backend match objects (mmf, evaluator, backendapi) and so needs additional work and testing before it is integrated.
 
 # Planned improvements
 
-* “Writing your first matchmaker” getting started guide will be included in an upcoming version.
-* Documentation for using the example customizable components and the `backendstub` and `frontendstub` applications to do an end-to-end (e2e) test will be written. This all works now, but needs to be written up.
-* A [Helm](https://helm.sh/) chart to stand up Open Match will be provided in an upcoming version.
-* We plan to host 'official' docker images for all release versions of the core components in publicly available docker registries soon.
-* CI/CD for this repo and the associated status tags are planned.
-* Documentation on release process and release calendar.
-* [OpenCensus tracing](https://opencensus.io/core-concepts/tracing/) will be implemented in an upcoming version.
-* Read logrus logging configuration from matchmaker_config.json.
-* Golang unit tests will be shipped in an upcoming version.
-* A full load-testing and e2e testing suite will be included in an upcoming version.
-* All state storage operations should be isolated from core components into the `statestorage/` modules.  This is necessary precursor work to enabling Open Match state storage to use software other than Redis.
-* The MMFOrc component name will be updated in a future version to something easier to understand.  Suggestions welcome!
-* The MMFOrc component currently requires a default service account with permission to kick of k8s jobs, but the revision today makes the service account have full permissions.  This needs to be reworked to have min required RBAC permissions before it is used in production, but is fine for closed testing and development.
+## Documentation 
+- [ ] “Writing your first matchmaker” getting started guide will be included in an upcoming version.
+- [ ] Documentation for using the example customizable components and the `backendstub` and `frontendstub` applications to do an end-to-end (e2e) test will be written. This all works now, but needs to be written up.
+- [ ] Documentation on release process and release calendar.
+
+## State storage
+- [ ] All state storage operations should be isolated from core components into the `statestorage/` modules.  This is necessary precursor work to enabling Open Match state storage to use software other than Redis.
+- [ ] The Redis deployment should have an example HA configuration using HAProxy 
+- [ ] Redis watch should be unified to watch a hash and stream updates.  The code for this is written and validated but not committed yet. We don't want to support two redis watcher code paths, so the backend watch of the match object should be switched to unify the way the frontend and backend watch keys.  The backend part of this is in but the frontend part is in another branch and will be committed later. 
+
+## Instrumentation / Metrics / Analytics
+- [ ] Instrumentation of MMFs is in the planning stages.  Since MMFs are by design meant to be completely customizable (to the point of allowing any process that can be packaged in a Docker container), metrics/stats will need to have an expected format and formalized outgoing pathway.  Currently the thought is that it might be that the metrics should be written to a particular key in statestorage in a format compatible with opencensus, and will be collected, aggreggated, and exported to Prometheus using another process.
+- [ ] [OpenCensus tracing](https://opencensus.io/core-concepts/tracing/) will be implemented in an upcoming version.
+- [ ] Read logrus logging configuration from matchmaker_config.json.
+
+## Security
+- [ ] The Kubernetes service account used by the MMFOrc should be updated to have min required permissions.
+
+## Kubernetes
+- [ ] Autoscaling isn't turned on for the Frontend or Backend API Kubernetes deployments by default.
+- [ ] A [Helm](https://helm.sh/) chart to stand up Open Match will be provided in an upcoming version. For now just use the [installation YAMLs](./install/yaml).
+
+- [ ] Player/Group records generated when a client enters the matchmaking pool need to be removed after a certain amount of time with no activity. When using Redis, this will be implemented as a expiration on the player record.
+## CI / CD / Build
+- [ ] We plan to host 'official' docker images for all release versions of the core components in publicly available docker registries soon.
+- [ ] CI/CD for this repo and the associated status tags are planned.
+- [ ] Golang unit tests will be shipped in an upcoming version.
+- [ ] A full load-testing and e2e testing suite will be included in an upcoming version.
+
+## Will not Implement 
+- [X] Match profiles should be able to define multiple MMF container images to run, but this is not currently supported. This enables A/B testing and several other scenarios.

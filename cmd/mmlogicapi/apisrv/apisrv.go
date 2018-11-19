@@ -638,6 +638,7 @@ func difference(a []string, b []string) (out []string) {
 }
 
 // Functions for getting or setting player IDs to/from rosters
+// Probably should get moved to an internal module in a future version.
 func getPlayerIdsFromRoster(r *mmlogic.Roster) []string {
 	playerIDs := make([]string, 0)
 	for _, p := range r.Players {
