@@ -28,7 +28,7 @@ Open Match is designed to support massively concurrent matchmaking, and to be sc
 * **Component** &mdash; One of the discrete processes in an Open Match deployment. Open Match is composed of multiple scalable microservices called 'components'.
 * **Roster** &mdash; A list of all the players in a match.
 * **Profile** &mdash; The json blob containing all the parameters used to select which players go into a roster.
-* **Match Object** &mdash; A protobuffer message format that contains the Profile and the results of the matchmaking function. Sent to the backend API from yoru game backend with an empty roster  and then returned from your MMF with the matchmaking results filled in.
+* **Match Object** &mdash; A protobuffer message format that contains the Profile and the results of the matchmaking function. Sent to the backend API from your game backend with an empty roster  and then returned from your MMF with the matchmaking results filled in.
 * **MMFOrc** &mdash; Matchmaker function orchestrator. This Open Match core component is in charge of kicking off custom matchmaking functions (MMFs) and evaluator processes.
 * **State Storage** &mdash; The storage software used by Open Match to hold all the matchmaking state. Open Match ships with [Redis](https://redis.io/) as the default state storage.
 * **Assignment** &mdash; Refers to assigning a player or group of players to a dedicated game server instance. Open Match offers a path to send dedicated game server connection details from your backend to your game clients after a match has been made.
