@@ -29,7 +29,6 @@
                   "name":"om-mmlogic",
                   "image":"gcr.io/matchmaker-dev-201405/openmatch-mmlogicapi:dev",
                   "imagePullPolicy":"Always",
-                  "command": ["sleep", "30000"],
                   "ports": [
                     {
                       "name": "grpc",
