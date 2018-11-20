@@ -75,7 +75,7 @@ func New(cfg *viper.Viper, pool *redis.Pool) *FrontendAPI {
 	return &s
 }
 
-// Open opens the api grpc service, starting it listening on the configured port.
+// Open starts the api grpc service listening on the configured port.
 func (s *FrontendAPI) Open() error {
 	ln, err := net.Listen("tcp", ":"+s.cfg.GetString("api.frontend.port"))
 	if err != nil {

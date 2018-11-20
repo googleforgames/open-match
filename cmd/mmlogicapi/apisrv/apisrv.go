@@ -80,7 +80,7 @@ func New(cfg *viper.Viper, pool *redis.Pool) *MmlogicAPI {
 	return &s
 }
 
-// Open opens the api grpc service, starting it listening on the configured port.
+// Open starts the api grpc service listening on the configured port.
 func (s *MmlogicAPI) Open() error {
 	ln, err := net.Listen("tcp", ":"+s.cfg.GetString("api.mmlogic.port"))
 	if err != nil {
