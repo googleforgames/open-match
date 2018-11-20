@@ -2,7 +2,6 @@
 FROM golang:1.10.3 as builder
 WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match
 COPY cmd/frontendapi cmd/frontendapi
-COPY api/protobuf-spec/frontend.pb.go cmd/frontendapi/proto/
 COPY config config
 COPY internal internal
 WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/cmd/frontendapi
