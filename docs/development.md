@@ -32,7 +32,7 @@ gcloud compute zones list
 
 ## Configuration
 
-Currently, each component reads a local config file `matchmaker_config.json` , and all components assume they have the same configuration.  To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally.
+Currently, each component reads a local config file `matchmaker_config.json`, and all components assume they have the same configuration.  To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally.
 
 **NOTE** 'defaultImages' container images names in the config file will need to be updated with **your container registry URI**.  Here's an example command in Linux to do this (just replace YOUR_REGISTRY_URI with the appropriate location in your environment, should be run from the config directory):
 ```
@@ -74,7 +74,12 @@ kubectl apply -f frontendapi_deployment.json
 kubectl apply -f frontendapi_service.json
 kubectl apply -f mmforc_deployment.json
 kubectl apply -f mmforc_serviceaccount.json
+kubectl apply -f mmlogic_deployment.json
+kubectl apply -f mmlogic_service.json
 ```
+* [optional, but recommended] Run the MMLogic API 
+```
+kubectl apply -f metrics_services.json
 * [optional, but recommended] Configure the OpenCensus metrics services:
 ```
 kubectl apply -f metrics_services.json

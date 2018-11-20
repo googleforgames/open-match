@@ -139,3 +139,52 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-mmlogicapi
+  labels:
+    app: openmatch
+    component: mmlogic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openmatch
+      component: mmlogic
+  template:
+    metadata:
+      labels:
+        app: openmatch
+        component: mmlogic
+    spec:
+      containers:
+      - name: om-mmlogic
+        image: gcr.io/matchmaker-dev-201405/openmatch-mmlogicapi:dev
+        imagePullPolicy: Always
+        command:
+        - sleep
+        - '30000'
+        ports:
+        - name: grpc
+          containerPort: 50503
+        - name: metrics
+          containerPort: 9555
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-mmlogicapi
+spec:
+  selector:
+    app: openmatch
+    component: mmlogic
+  ports:
+  - protocol: TCP
+    port: 50503
+    targetPort: grpc
