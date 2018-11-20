@@ -65,7 +65,7 @@ If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT
 kubectl apply -f redis_deployment.json
 kubectl apply -f redis_service.json
 ```
-* Run the **core components**: the frontend API, the backend API, and the matchmaker function orchestrator (MMFOrc).
+* Run the **core components**: the frontend API, the backend API, the matchmaker function orchestrator (MMFOrc), and the matchmaking logic API.
 **NOTE** In order to kick off jobs, the matchmaker function orchestrator needs a service account with permission to administer the cluster. This should be updated to have min required perms before launch, this is pretty permissive but acceptable for closed testing:
 ```
 kubectl apply -f backendapi_deployment.json
@@ -77,9 +77,6 @@ kubectl apply -f mmforc_serviceaccount.json
 kubectl apply -f mmlogic_deployment.json
 kubectl apply -f mmlogic_service.json
 ```
-* [optional, but recommended] Run the MMLogic API 
-```
-kubectl apply -f metrics_services.json
 * [optional, but recommended] Configure the OpenCensus metrics services:
 ```
 kubectl apply -f metrics_services.json
