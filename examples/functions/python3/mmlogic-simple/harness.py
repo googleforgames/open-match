@@ -67,8 +67,8 @@ with  grpc.insecure_channel(api_conn_info) as channel:
                 for player in partial_results.roster.players:
                     if not player.id in player_pools[empty_pool.name]:
                         player_pools[empty_pool.name][player.id] = dict()
-                    for prop in player.properties:
-                        player_pools[empty_pool.name][player.id][prop.name] = prop.value
+                    for attr in player.attributes:
+                        player_pools[empty_pool.name][player.id][attr.name] = attr.value
             except Exception as err:
                 print("Error encountered: %s" % err) 
         if cfg['debug']:
