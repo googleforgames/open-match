@@ -124,25 +124,25 @@ func Delete(redisConn redis.Conn, playerID string) (err error) {
 	return
 }
 
-// Deindex a BLARG without deleting there JSON object representation from
-// state storage.  Unindexing is done in two stages: first the BLARG is added to an ignore list, which 'atomically' removes them from consideration. A Goroutine is then kicked off to 'lazily' remove them from any field indicies that contain them.
-func Deindex(redisConn redis.Conn, BLARGID string) (err error) {
+// Deindex a player without deleting there JSON object representation from
+// state storage.  Unindexing is done in two stages: first the player is added to an ignore list, which 'atomically' removes them from consideration. A Goroutine is then kicked off to 'lazily' remove them from any field indicies that contain them.
+func Deindex(redisConn redis.Conn, playerID string) (err error) {
 
 	//TODO: remove deindexing from delete and call this instead
 
-	results, err := Retrieve(redisConn, BLARGID)
+	results, err := Retrieve(redisConn, playerID)
 	if err != nil {
-		log.Println("couldn't retreive player properties for ", BLARGID)
+		log.Println("couldn't retreive player properties for ", playerID)
 	}
 
 	redisConn.Send("MULTI")
 
-	// Remove BLARGID from indices
+	// Remove playerID from indices
 	for iName := range results {
 		log.WithFields(log.Fields{
 			"field": iName,
-			"key":   BLARGID}).Debug("Un-indexing field")
-		redisConn.Send("ZREM", iName, BLARGID)
+			"key":   playerID}).Debug("Un-indexing field")
+		redisConn.Send("ZREM", iName, playerID)
 	}
 	_, err = redisConn.Do("EXEC")
 	check(err, "")

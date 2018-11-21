@@ -55,7 +55,7 @@ service MmLogic {
   // Player listing and filtering functions
   //
   // RetrievePlayerPool gets the list of players that match every Filter in the
-  // PlayerPool, and then removes all players it finds in the ignore list.  It
+  // PlayerPool, .excluding players in any configured ignore lists.  It
   // combines the results, and returns the resulting player pool.
   rpc GetPlayerPool(messages.PlayerPool) returns (stream messages.PlayerPool) {}
 
@@ -63,8 +63,8 @@ service MmLogic {
   //
   // IlInput is an empty message reserved for future use.
   rpc GetAllIgnoredPlayers(messages.IlInput) returns (messages.Roster) {}
-  // RetrieveIgnoreList retrieves players from the ignore list specified in the
-  // config file under 'ignoreLists.proposedPlayers.key'.
+  // ListIgnoredPlayers retrieves players from the ignore list specified in the
+  // config file under 'ignoreLists.proposed.name'.
   rpc ListIgnoredPlayers(messages.IlInput) returns (messages.Roster) {}
 
   // NYI

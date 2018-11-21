@@ -346,8 +346,6 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, mo *backend.MatchObject) (
 // defined in ../proto/backend.proto
 func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignments) (*backend.Result, error) {
 
-	// TODO: make playerIDs a repeated protobuf message field and iterate over it
-	//assignments := strings.Split(a.Roster.PlayerIds, " ")
 	assignments := make([]string, 0)
 	for _, roster := range a.Rosters {
 		assignments = append(assignments, getPlayerIdsFromRoster(roster)...)

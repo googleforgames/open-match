@@ -33,7 +33,6 @@ import (
 	"os"
 
 	backend "github.com/GoogleCloudPlatform/open-match/internal/pb"
-	"github.com/gogo/protobuf/jsonpb"
 	"github.com/tidwall/gjson"
 	"google.golang.org/grpc"
 )
@@ -72,10 +71,12 @@ func main() {
 
 	jsonProfile := buffer.String()
 	pbProfile := &backend.MatchObject{}
-	err = jsonpb.UnmarshalString(jsonProfile, pbProfile)
-	if err != nil {
-		log.Println(err)
-	}
+	/*
+		err = jsonpb.UnmarshalString(jsonProfile, pbProfile)
+		if err != nil {
+			log.Println(err)
+		}
+	*/
 	pbProfile.Properties = jsonProfile
 
 	log.Println("Requesting matches that fit profile:")
@@ -101,17 +102,9 @@ func main() {
 		profileName = gjson.Get(jsonProfile, "name").String()
 	}
 
-	/*
-		// Test CreateMatch
-		p := &backend.MatchObject{
-			Id: profileName,
-			// Make a stub debug hostname from the current time
-			Properties: jsonProfile,
-		}
-	*/
+	pbProfile.Id = profileName
+	pbProfile.Properties = jsonProfile
 
-	//
-	//log.Printf("Looking for matches for profile for the next 5 seconds:")
 	log.Printf("Establishing HTTPv2 stream...")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

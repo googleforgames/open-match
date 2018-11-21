@@ -240,4 +240,4 @@ Apache 2.0
 - [ ] A full load-testing and e2e testing suite will be included in an upcoming version.
 
 ## Will not Implement 
-- [X] Match profiles should be able to define multiple MMF container images to run, but this is not currently supported. This enables A/B testing and several other scenarios.
+- [X] Defining multiple images inside a profile for the purposes of experimentation adds another layer of complexity into profiles that can instead be handled outside of open match with custom match functions in collaboration with a director (thing that calls backend to schedule matchmaking) 

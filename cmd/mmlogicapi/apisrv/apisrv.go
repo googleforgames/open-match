@@ -271,13 +271,6 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 
 		filterStart := time.Now()
 		results, err := s.applyFilter(ctx, thisFilter)
-		if results == nil && err == nil {
-			// Filter applies to so many players that we can't filter on it.
-			// Ignore this filter and attempt to process all the rest.
-			thisFilter.Stats = &mmlogic.Stats{Elapsed: time.Since(filterStart).Seconds()}
-			continue
-		}
-
 		thisFilter.Stats = &mmlogic.Stats{Count: int64(len(results)), Elapsed: time.Since(filterStart).Seconds()}
 		mlLog.WithFields(log.Fields{
 			"count":      int64(len(results)),
@@ -400,7 +393,9 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 // If the provided field is not indexed or the provided range is too large, a nil result
 // is returned and this filter should be disregarded when applying filter overlaps.
 func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map[string]int64, error) {
+
 	type pName string
+	pool := make(map[string]int64)
 
 	// Default maximum value is positive infinity (i.e. highest possible number in redis)
 	// https://redis.io/commands/zrangebyscore
@@ -438,8 +433,13 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map
 	} else if count > 500000 {
 		// 500,000 results is an arbitrary number; OM doesn't encourage
 		// patterns where MMFs look at this large of a pool.
-		mlLog.Warn("filter applies to too many players, ignoring")
-		return nil, nil
+		err = errors.New("filter applies to too many players")
+		mlLog.Error(err.Error())
+		for i := 0; i < int(count); i++ {
+			// Send back an empty pool, used by the calling function to calculate the number of results
+			pool[strconv.Itoa(i)] = 0
+		}
+		return pool, err
 	} else if count < 100000 {
 		mlLog.Info("filter processed")
 	} else {
@@ -451,7 +451,6 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map
 	// var init for player retrieval
 	cmd = "ZRANGEBYSCORE"
 	offset := 0
-	pool := make(map[string]int64)
 
 	// Loop, retrieving players in chunks.
 	for len(pool) == offset {
