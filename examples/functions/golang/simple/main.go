@@ -20,16 +20,11 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/GoogleCloudPlatform/open-match/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/playerq"
-	"github.com/gobs/pretty"
 	"github.com/gomodule/redigo/redis"
-	intersect "github.com/juliangruber/go-intersect"
 	"github.com/spf13/viper"
 	"github.com/tidwall/gjson"
-	"github.com/tidwall/sjson"
 )
 
 /*
@@ -73,6 +68,12 @@ func main() {
 	profileKey := os.Getenv("OM_PROFILE_ID")
 	errorKey := os.Getenv("OM_ERROR_ID")
 	rosterKey := os.Getenv("OM_ROSTER_ID")
+	_ = jobName
+	_ = timestamp
+	_ = proposalKey
+	_ = profileKey
+	_ = errorKey
+	_ = rosterKey
 
 	fmt.Println("MMF request inserted at ", timestamp)
 	fmt.Println("Looking for profile in key", profileKey)
@@ -93,151 +94,159 @@ func main() {
 	fmt.Println("=========Pools")
 	fmt.Printf("pool.String() = %+v\n", pools.String())
 
-	filters := make(map[string]map[string]int64)
+	// Parse all the pools.
+	// Note: When using pool definitions like these that are using the
+	// PlayerPool protobuf message data schema, you can avoid all of this by
+	// using the MMLogic API call to automatically parse the pools, run the
+	// filters, and return the results in one gRPC call per pool.
+	ppools := make(map[string]map[string]map[string]int64)
 	pools.ForEach(func(_, pool gjson.Result) bool {
 		// Loop through each pool.
-		pfilters := gjson.Get(pool.String(), "filters")
-		pfilters.ForEach(func(_, filter gjson.Result) bool {
+		pName := gjson.Get(pool.String(), "name").String()
+		pFilters := gjson.Get(pool.String(), "filters")
+		ppools[pName] = make(map[string]map[string]int64)
+		pFilters.ForEach(func(_, filter gjson.Result) bool {
 			// Make a map entry for this filter.
+			// This only works when running only one filter on each attribute!
 			searchKey := gjson.Get(filter.String(), "attribute").String()
-			filters[searchKey] = map[string]int64{"min": 0, "max": 9999999999}
+			ppools[pName][searchKey] = map[string]int64{"min": 0, "max": 9999999999}
 
 			// Parse the min and max values.  JSON format is "min-max"
 			min := gjson.Get(filter.String(), "minv")
 			if min.Bool() {
-				filters[searchKey]["min"] = int64(min.Int())
+				ppools[pName][searchKey]["min"] = int64(min.Int())
 			}
 			max := gjson.Get(filter.String(), "maxv")
 			if max.Bool() {
-				filters[searchKey]["max"] = int64(max.Int())
+				ppools[pName][searchKey]["max"] = int64(max.Int())
 			}
-			fmt.Printf("%v\n", searchKey)
-			fmt.Printf("%v\n", filters[searchKey])
+			fmt.Printf("%v: %v: %v\n", pName, searchKey, ppools[pName][searchKey])
 
 			return true // keep iterating
 		})
+		if len(ppools[pName]) < 1 {
+			fmt.Printf("Error: pool %v with no filters in profile, %v\n", pName, profileKey)
+			fmt.Println("SET", errorKey, `{"error": "insufficient_filters"}`)
+			redisConn.Do("SET", errorKey, `{"error": "insufficient_filters"}`)
+			os.Exit(1)
+		}
 		return true // keep iterating
 	})
-	os.Exit(0)
 
-	if len(filters) < 1 {
-		fmt.Printf("No filters in the default pool for the profile, %v\n", len(filters))
-		fmt.Println("SET", errorKey, `{"error": "insufficient_filters"}`)
-		redisConn.Do("SET", errorKey, `{"error": "insufficient_filters"}`)
-		return
-	}
+	/*
 
-	//init 2d array
-	stuff := make([][]string, len(filters))
-	for i := range stuff {
-		stuff[i] = make([]string, 0)
-	}
-
-	i := 0
-	for key, value := range filters {
-		// TODO: this needs a lot of time and effort on building sane values for how many IDs to pull at once.
-		// TODO: this should also be run concurrently per index we're filtering on
-		fmt.Printf("key = %+v\n", key)
-		fmt.Printf("value = %+v\n", value)
-		results, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", key, value["min"], value["max"], "LIMIT", "0", "10000"))
-		if err != nil {
-			panic(err)
+		//init 2d array
+		stuff := make([][]string, len(filters))
+		for i := range stuff {
+			stuff[i] = make([]string, 0)
 		}
 
-		// Store off these results in the 2d array used to calculate intersections below.
-		stuff[i] = append(stuff[i], results...)
-		i++
-	}
+		i := 0
+		for key, value := range filters {
+			// TODO: this needs a lot of time and effort on building sane values for how many IDs to pull at once.
+			// TODO: this should also be run concurrently per index we're filtering on
+			fmt.Printf("key = %+v\n", key)
+			fmt.Printf("value = %+v\n", value)
+			results, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", key, value["min"], value["max"], "LIMIT", "0", "10000"))
+			if err != nil {
+				panic(err)
+			}
 
-	fmt.Println("overlap")
-	overlap := stuff[0]
-	for i := range stuff {
-		if i > 0 {
-			set := fmt.Sprint(intersect.Hash(overlap, stuff[i]))
-			overlap = strings.Split(set[1:len(set)-1], " ")
+			// Store off these results in the 2d array used to calculate intersections below.
+			stuff[i] = append(stuff[i], results...)
+			i++
 		}
-	}
-	pretty.PrettyPrint(overlap)
 
-	// TODO: rigourous logic to put players in desired groups
-	teamRosters := make(map[string][]string)
-	rosterProfile := gjson.Get(profile["properties"], "properties.roster")
-	fmt.Printf("rosterProfile.String() = %+v\n", rosterProfile.String())
+		fmt.Println("overlap")
+		overlap := stuff[0]
+		for i := range stuff {
+			if i > 0 {
+				set := fmt.Sprint(intersect.Hash(overlap, stuff[i]))
+				overlap = strings.Split(set[1:len(set)-1], " ")
+			}
+		}
+		pretty.PrettyPrint(overlap)
 
-	// TODO: get this by parsing the JSON instead of cheating
-	rosterSize := int(gjson.Get(profile["properties"], "properties.roster.blue").Int() + gjson.Get(profile["properties"], "properties.roster.red").Int())
-	matchRoster := make([]string, 0)
-
-	if len(overlap) < rosterSize {
-		fmt.Printf("Not enough players in the pool to fill %v player slots in requested roster", rosterSize)
+		// TODO: rigourous logic to put players in desired groups
+		teamRosters := make(map[string][]string)
+		rosterProfile := gjson.Get(profile["properties"], "properties.roster")
 		fmt.Printf("rosterProfile.String() = %+v\n", rosterProfile.String())
-		fmt.Println("SET", errorKey, `{"error": "insufficient_players"}`)
-		redisConn.Do("SET", errorKey, `{"error": "insufficient_players"}`)
-		return
-	}
-	rosterProfile.ForEach(func(name, size gjson.Result) bool {
-		teamKey := name.String()
-		teamRosters[teamKey] = make([]string, size.Int())
-		for i := 0; i < int(size.Int()); i++ {
-			var playerID string
-			// Functionally a Pop from the overlap array into playerID
-			playerID, overlap = overlap[0], overlap[1:]
-			teamRosters[teamKey][i] = playerID
-			matchRoster = append(matchRoster, playerID)
+
+		// TODO: get this by parsing the JSON instead of cheating
+		rosterSize := int(gjson.Get(profile["properties"], "properties.roster.blue").Int() + gjson.Get(profile["properties"], "properties.roster.red").Int())
+		matchRoster := make([]string, 0)
+
+		if len(overlap) < rosterSize {
+			fmt.Printf("Not enough players in the pool to fill %v player slots in requested roster", rosterSize)
+			fmt.Printf("rosterProfile.String() = %+v\n", rosterProfile.String())
+			fmt.Println("SET", errorKey, `{"error": "insufficient_players"}`)
+			redisConn.Do("SET", errorKey, `{"error": "insufficient_players"}`)
+			return
 		}
-		return true
-	})
+		rosterProfile.ForEach(func(name, size gjson.Result) bool {
+			teamKey := name.String()
+			teamRosters[teamKey] = make([]string, size.Int())
+			for i := 0; i < int(size.Int()); i++ {
+				var playerID string
+				// Functionally a Pop from the overlap array into playerID
+				playerID, overlap = overlap[0], overlap[1:]
+				teamRosters[teamKey][i] = playerID
+				matchRoster = append(matchRoster, playerID)
+			}
+			return true
+		})
 
-	pretty.PrettyPrint(teamRosters)
-	pretty.PrettyPrint(matchRoster)
+		pretty.PrettyPrint(teamRosters)
+		pretty.PrettyPrint(matchRoster)
 
-	profile["properties"], err = sjson.Set(profile["properties"], "properties.roster", teamRosters)
-	if err != nil {
-		panic(err)
-	}
-
-	// Write the match object that will be sent back to the DGS
-	fmt.Println("Proposing the following group  ", proposalKey)
-	fmt.Println("HSET", proposalKey, "properties", profile)
-	_, err = redisConn.Do("HSET", proposalKey, "properties", profile)
-	if err != nil {
-		panic(err)
-	}
-
-	// Write the roster that will be sent to the evaluator
-	fmt.Println("Sending the following roster to the evaluator under key ", rosterKey)
-	fmt.Println("SET", rosterKey, strings.Join(matchRoster, " "))
-	_, err = redisConn.Do("SET", rosterKey, strings.Join(matchRoster, " "))
-	if err != nil {
-		panic(err)
-	}
-
-	//TODO: make this auto-correcting if the player doesn't end up in a group.
-	for _, playerID := range matchRoster {
-		fmt.Printf("Attempting to remove player %v from indices\n", playerID)
-		// TODO: make playerq module available to everything
-		err := playerq.Deindex(redisConn, playerID)
+		profile["properties"], err = sjson.Set(profile["properties"], "properties.roster", teamRosters)
 		if err != nil {
 			panic(err)
 		}
 
-	}
+		// Write the match object that will be sent back to the DGS
+		fmt.Println("Proposing the following group  ", proposalKey)
+		fmt.Println("HSET", proposalKey, "properties", profile)
+		_, err = redisConn.Do("HSET", proposalKey, "properties", profile)
+		if err != nil {
+			panic(err)
+		}
 
-	//Finally, write the propsal key to trigger the evaluation of these
-	//results
-	// TODO: read this from a config ala proposalq := cfg.GetString("queues.proposals.name")
-	proposalq := "proposalq"
-	fmt.Println("SADD", proposalq, jobName)
-	_, err = redisConn.Do("SADD", proposalq, jobName)
-	if err != nil {
-		panic(err)
-	}
-	// DEBUG
-	results, err := redis.Strings(redisConn.Do("SMEMBERS", proposalq))
-	if err != nil {
-		panic(err)
-	}
-	pretty.PrettyPrint(results)
+		// Write the roster that will be sent to the evaluator
+		fmt.Println("Sending the following roster to the evaluator under key ", rosterKey)
+		fmt.Println("SET", rosterKey, strings.Join(matchRoster, " "))
+		_, err = redisConn.Do("SET", rosterKey, strings.Join(matchRoster, " "))
+		if err != nil {
+			panic(err)
+		}
+
+		//TODO: make this auto-correcting if the player doesn't end up in a group.
+		for _, playerID := range matchRoster {
+			fmt.Printf("Attempting to remove player %v from indices\n", playerID)
+			// TODO: make playerq module available to everything
+			err := playerq.Deindex(redisConn, playerID)
+			if err != nil {
+				panic(err)
+			}
+
+		}
+
+		//Finally, write the propsal key to trigger the evaluation of these
+		//results
+		// TODO: read this from a config ala proposalq := cfg.GetString("queues.proposals.name")
+		proposalq := "proposalq"
+		fmt.Println("SADD", proposalq, jobName)
+		_, err = redisConn.Do("SADD", proposalq, jobName)
+		if err != nil {
+			panic(err)
+		}
+		// DEBUG
+		results, err := redis.Strings(redisConn.Do("SMEMBERS", proposalq))
+		if err != nil {
+			panic(err)
+		}
+		pretty.PrettyPrint(results)
+	*/
 }
 
 func check(err error, action string) {
