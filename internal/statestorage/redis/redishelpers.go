@@ -328,7 +328,7 @@ func Count(ctx context.Context, pool *redis.Pool, key string) (int, error) {
 }
 
 // Increment increments a redis value at key.
-func Increment(ctx context.Context, pool *redis.Pool, key string) (string, error) {
+func Increment(ctx context.Context, pool *redis.Pool, key string) (interface{}, error) {
 
 	// Add the key as a field to all logs for the execution of this function.
 	rhLog = rhLog.WithFields(log.Fields{"key": key})
@@ -349,11 +349,11 @@ func Increment(ctx context.Context, pool *redis.Pool, key string) (string, error
 	}
 
 	// Run redis query and return
-	return redis.String(redisConn.Do("INCR", key))
+	return redisConn.Do("INCR", key)
 }
 
 // Decrement decrements a redis value at key.
-func Decrement(ctx context.Context, pool *redis.Pool, key string) (string, error) {
+func Decrement(ctx context.Context, pool *redis.Pool, key string) (interface{}, error) {
 
 	// Add the key as a field to all logs for the execution of this function.
 	rhLog = rhLog.WithFields(log.Fields{"key": key})
@@ -374,7 +374,7 @@ func Decrement(ctx context.Context, pool *redis.Pool, key string) (string, error
 	}
 
 	// Run redis query and return
-	return redis.String(redisConn.Do("DECR", key))
+	return redisConn.Do("DECR", key)
 }
 
 // JSONStringToMap converts a JSON blob (which is how we store many things in

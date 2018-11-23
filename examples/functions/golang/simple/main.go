@@ -16,16 +16,18 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/playerq"
 	"github.com/gobs/pretty"
 	"github.com/gomodule/redigo/redis"
 	intersect "github.com/juliangruber/go-intersect"
+	"github.com/spf13/viper"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
@@ -43,80 +45,85 @@ Here are the things a MMF needs to do:
 *(Optional, but recommended) Export stats for metrics collection.
 */
 func main() {
+	// Read config file.
+	cfg := viper.New()
+	cfg, err := config.Read()
+
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
 	redisURL := "redis://" + os.Getenv("REDIS_SENTINEL_SERVICE_HOST") + ":" + os.Getenv("REDIS_SENTINEL_SERVICE_PORT")
-
-	//Single redis connection
 	fmt.Println("Connecting to Redis at", redisURL)
 	redisConn, err := redis.DialURL(redisURL)
 	check(err, "QUIT")
 	defer redisConn.Close()
+
+	// decrement the number of running MMFs once finished
 	defer func() {
-		// decrement the number of running MMFs since this one is finished
-		fmt.Println("DECR concurrentMMFs")
+		fmt.Println("DECR moncurrentMMFs")
 		_, err = redisConn.Do("DECR", "concurrentMMFs")
 		if err != nil {
 			fmt.Println(err)
 		}
 	}()
 
-	// PROFILE is passed via the k8s downward API through an env set to jobName.
+	// Environment vars set by the MMForc
 	jobName := os.Getenv("PROFILE")
 	timestamp := os.Getenv("OM_TIMESTAMP")
-	moID := os.Getenv("OM_PROPOSAL_ID")
+	proposalKey := os.Getenv("OM_PROPOSAL_ID")
 	profileKey := os.Getenv("OM_PROFILE_ID")
-	errorKey := os.Getenv("OM_SHORTCIRCUIT_MATCHOBJECT_ID")
+	errorKey := os.Getenv("OM_ERROR_ID")
 	rosterKey := os.Getenv("OM_ROSTER_ID")
 
 	fmt.Println("MMF request inserted at ", timestamp)
 	fmt.Println("Looking for profile in key", profileKey)
-	fmt.Println("Placing results in MatchObjectID", moID)
+	fmt.Println("Placing results in MatchObjectID", proposalKey)
 
-	profile, err := redis.String(redisConn.Do("GET", profileKey))
+	profile, err := redis.StringMap(redisConn.Do("HGETALL", profileKey))
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("Got profile!")
-	fmt.Println(profile)
-
-	// Redis key under which to store results
-	resultsKey := "proposal." + jobName
-	rosterKey := "roster." + jobName
-	shortcutKey := moID + "." + profileKey
+	p, err := json.MarshalIndent(profile, "", "  ")
+	fmt.Println(string(p))
 
 	// select players
 	const numPlayers = 8
 	// ZRANGE is 0-indexed
-	defaultPool := gjson.Get(profile, "properties.playerPool")
-	fmt.Println("defaultPool")
-	fmt.Printf("defaultPool.String() = %+v\n", defaultPool.String())
+	pools := gjson.Get(profile["properties"], cfg.GetString("jsonkeys.pools"))
+	fmt.Println("=========Pools")
+	fmt.Printf("pool.String() = %+v\n", pools.String())
 
-	filters := make(map[string]map[string]int)
-	defaultPool.ForEach(func(key, value gjson.Result) bool {
-		// Make a map entry for this filter.
-		searchKey := key.String()
-		filters[searchKey] = map[string]int{"min": 0, "max": 9999999999}
+	filters := make(map[string]map[string]int64)
+	pools.ForEach(func(_, pool gjson.Result) bool {
+		// Loop through each pool.
+		pfilters := gjson.Get(pool.String(), "filters")
+		pfilters.ForEach(func(_, filter gjson.Result) bool {
+			// Make a map entry for this filter.
+			searchKey := gjson.Get(filter.String(), "attribute").String()
+			filters[searchKey] = map[string]int64{"min": 0, "max": 9999999999}
 
-		// Parse the min and max values.  JSON format is "min-max"
-		r := strings.Split(value.String(), "-")
-		filters[searchKey]["min"], err = strconv.Atoi(r[0])
-		if err != nil {
-			log.Println(err)
-		}
-		filters[searchKey]["max"], err = strconv.Atoi(r[1])
-		if err != nil {
-			log.Println(err)
-		}
+			// Parse the min and max values.  JSON format is "min-max"
+			min := gjson.Get(filter.String(), "minv")
+			if min.Bool() {
+				filters[searchKey]["min"] = int64(min.Int())
+			}
+			max := gjson.Get(filter.String(), "maxv")
+			if max.Bool() {
+				filters[searchKey]["max"] = int64(max.Int())
+			}
+			fmt.Printf("%v\n", searchKey)
+			fmt.Printf("%v\n", filters[searchKey])
 
+			return true // keep iterating
+		})
 		return true // keep iterating
 	})
-	pretty.PrettyPrint(filters)
+	os.Exit(0)
 
 	if len(filters) < 1 {
 		fmt.Printf("No filters in the default pool for the profile, %v\n", len(filters))
-		fmt.Println("SET", moID+"."+profileKey, `{"error": "insufficient_filters"}`)
-		redisConn.Do("SET", moID+"."+profileKey, `{"error": "insufficient_filters"}`)
+		fmt.Println("SET", errorKey, `{"error": "insufficient_filters"}`)
+		redisConn.Do("SET", errorKey, `{"error": "insufficient_filters"}`)
 		return
 	}
 
@@ -154,18 +161,18 @@ func main() {
 
 	// TODO: rigourous logic to put players in desired groups
 	teamRosters := make(map[string][]string)
-	rosterProfile := gjson.Get(profile, "properties.roster")
+	rosterProfile := gjson.Get(profile["properties"], "properties.roster")
 	fmt.Printf("rosterProfile.String() = %+v\n", rosterProfile.String())
 
 	// TODO: get this by parsing the JSON instead of cheating
-	rosterSize := int(gjson.Get(profile, "properties.roster.blue").Int() + gjson.Get(profile, "properties.roster.red").Int())
+	rosterSize := int(gjson.Get(profile["properties"], "properties.roster.blue").Int() + gjson.Get(profile["properties"], "properties.roster.red").Int())
 	matchRoster := make([]string, 0)
 
 	if len(overlap) < rosterSize {
 		fmt.Printf("Not enough players in the pool to fill %v player slots in requested roster", rosterSize)
 		fmt.Printf("rosterProfile.String() = %+v\n", rosterProfile.String())
-		fmt.Println("SET", moID+"."+profileKey, `{"error": "insufficient_players"}`)
-		redisConn.Do("SET", moID+"."+profileKey, `{"error": "insufficient_players"}`)
+		fmt.Println("SET", errorKey, `{"error": "insufficient_players"}`)
+		redisConn.Do("SET", errorKey, `{"error": "insufficient_players"}`)
 		return
 	}
 	rosterProfile.ForEach(func(name, size gjson.Result) bool {
@@ -184,15 +191,15 @@ func main() {
 	pretty.PrettyPrint(teamRosters)
 	pretty.PrettyPrint(matchRoster)
 
-	profile, err = sjson.Set(profile, "properties.roster", teamRosters)
+	profile["properties"], err = sjson.Set(profile["properties"], "properties.roster", teamRosters)
 	if err != nil {
 		panic(err)
 	}
 
 	// Write the match object that will be sent back to the DGS
-	fmt.Println("Proposing the following group  ", resultsKey)
-	fmt.Println("SET", resultsKey, profile)
-	_, err = redisConn.Do("SET", resultsKey, profile)
+	fmt.Println("Proposing the following group  ", proposalKey)
+	fmt.Println("HSET", proposalKey, "properties", profile)
+	_, err = redisConn.Do("HSET", proposalKey, "properties", profile)
 	if err != nil {
 		panic(err)
 	}

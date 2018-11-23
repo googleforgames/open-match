@@ -31,6 +31,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	mmlogic "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	log "github.com/sirupsen/logrus"
@@ -219,20 +220,23 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 			return &mmlogic.Result{Success: false, Error: err.Error()}, err
 		}
 	}
-	/*
-		//  add propkey to proposalsq
-			_, err = redisConn.Do("SADD", proposalq, prop.Id)
-			if err != nil {
-				cpLog.WithFields(log.Fields{
-					"error":     err.Error(),
-					"component": "statestorage",
-					"key":       proposalq,
-					"proposal":  prop.Id,
-				}).Error("State storage error")
-				stats.Record(fnCtx, MlGrpcErrors.M(1))
-				return &mmlogic.Result{Success: false, Error: err.Error()}, err
-			}
-	*/
+
+	// Mark this MMF as finished by decrementing the concurrent MMFs.
+	// This is used to trigger the evaluator early if all MMFs have finished
+	// before its next scheduled run.
+	cmLog := cpLog.WithFields(log.Fields{
+		"component": "statestorage",
+		"key":       "concurrentMMFs",
+	})
+	cmLog.Info("marking MMF finished for evaluator")
+	_, err = redishelpers.Decrement(fnCtx, s.pool, "concurrentMMFs")
+	if err != nil {
+		cmLog.WithFields(log.Fields{"error": err.Error()}).Error("State storage error")
+
+		// record error.
+		stats.Record(fnCtx, MlGrpcErrors.M(1))
+		return &mmlogic.Result{Success: false, Error: err.Error()}, err
+	}
 
 	stats.Record(fnCtx, MlGrpcRequests.M(1))
 	return &mmlogic.Result{Success: true, Error: ""}, err
