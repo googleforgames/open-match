@@ -31,6 +31,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	mmlogic "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	"github.com/GoogleCloudPlatform/open-match/internal/set"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
@@ -310,7 +311,7 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 
 		}
 
-		// Make an array of only the player IDs; used to do unions and find the
+		// Make an array of only the player IDs; used to do set.Unions and find the
 		// logical AND
 		m := make([]string, len(results))
 		i := 0
@@ -328,7 +329,7 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 
 	// Player must be in every filtered pool to be returned
 	for field, thesePlayers := range filteredRosters {
-		overlap = intersection(overlap, thesePlayers)
+		overlap = set.Intersection(overlap, thesePlayers)
 
 		_ = field
 		//mlLog.WithFields(log.Fields{"count": len(overlap), "field": field}).Debug("Amount of overlap")
@@ -341,7 +342,7 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 	}
 	mlLog.WithFields(log.Fields{"count": len(overlap)}).Debug("Pool size before applying ignorelists")
 	mlLog.WithFields(log.Fields{"count": len(il)}).Debug("Ignorelist size")
-	playerList := difference(overlap, il) // removes ignorelist from the Roster
+	playerList := set.Difference(overlap, il) // removes ignorelist from the Roster
 	mlLog.WithFields(log.Fields{"count": len(playerList)}).Debug("Final Pool size")
 
 	// Reformat the playerList as a gRPC PlayerPool message. Send partial results as we go.
@@ -569,75 +570,10 @@ func (s *mmlogicAPI) allIgnoreLists(c context.Context, in *mmlogic.IlInput) (all
 		}
 
 		// Join this ignorelist to the others we've retrieved
-		allIgnored = union(allIgnored, thisIl)
+		allIgnored = set.Union(allIgnored, thisIl)
 	}
 
 	return allIgnored, err
-}
-
-// Set data structure functions.
-// TODO: maybe move these into an internal module if they are useful elsewhere.
-func intersection(a []string, b []string) (out []string) {
-
-	hash := make(map[string]bool)
-
-	for _, v := range a {
-		hash[v] = true
-	}
-
-	for _, v := range b {
-		if _, found := hash[v]; found {
-			out = append(out, v)
-		}
-	}
-
-	return out
-
-}
-
-func union(a []string, b []string) (out []string) {
-
-	hash := make(map[string]bool)
-
-	// collect all values from input args
-	for _, v := range a {
-		hash[v] = true
-	}
-
-	for _, v := range b {
-		hash[v] = true
-	}
-
-	// put values into string array
-	for k := range hash {
-		out = append(out, k)
-	}
-
-	return out
-
-}
-
-func difference(a []string, b []string) (out []string) {
-
-	hash := make(map[string]bool)
-	out = append([]string{}, a...)
-
-	for _, v := range b {
-		hash[v] = true
-	}
-
-	// Iterate through output, removing items found in b
-	for i := 0; i < len(out); i++ {
-		if _, found := hash[out[i]]; found {
-			// Remove this element by moving the copying the last element of the
-			// array to this index and then slicing off the last element.
-			// https://stackoverflow.com/a/37335777/3113674
-			out[i] = out[len(out)-1]
-			out = out[:len(out)-1]
-		}
-	}
-
-	return out
 }
 
 // Functions for getting or setting player IDs to/from rosters

@@ -4,8 +4,8 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [
             'build', 
-            '--tag=gcr.io/$PROJECT_ID/openmatch-mmf:dev', 
-            '-f', 'Dockerfile.mmf', 
+            '--tag=gcr.io/$PROJECT_ID/openmatch-mmf:go', 
+            '-f', 'Dockerfile.mmf_go', 
             '.'
         ]
-images: ['gcr.io/$PROJECT_ID/openmatch-mmf:dev']
+images: ['gcr.io/$PROJECT_ID/openmatch-mmf:go']

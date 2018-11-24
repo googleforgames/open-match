@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/gomodule/redigo/redis"
@@ -79,6 +80,8 @@ func main() {
 	fmt.Println("Looking for profile in key", profileKey)
 	fmt.Println("Placing results in MatchObjectID", proposalKey)
 
+	// Retrieve profile from Redis.
+	// NOTE: This can also be done with a call to the MMLogic API.
 	profile, err := redis.StringMap(redisConn.Do("HGETALL", profileKey))
 	if err != nil {
 		panic(err)
@@ -95,78 +98,92 @@ func main() {
 	fmt.Printf("pool.String() = %+v\n", pools.String())
 
 	// Parse all the pools.
-	// Note: When using pool definitions like these that are using the
-	// PlayerPool protobuf message data schema, you can avoid all of this by
-	// using the MMLogic API call to automatically parse the pools, run the
-	// filters, and return the results in one gRPC call per pool.
-	ppools := make(map[string]map[string]map[string]int64)
+	// NOTE: When using pool definitions like these that are using the
+	//   PlayerPool protobuf message data schema, you can avoid all of this by
+	//   using the MMLogic API call to automatically parse the pools, run the
+	//   filters, and return the results in one gRPC call per pool.
+	//
+	// ex: poolRosters["defaultPool"]["mmr.rating"]=[]string{"abc", "def", "ghi"}
+	poolRosters := make(map[string]map[string][]string)
+	// ex: poolDefinitions["defaultPool"]["mmr.rating"]["min"]=0
+	//poolDefinitions := make(map[string]map[string]map[string]int64)
+
+	// Loop through each pool.
 	pools.ForEach(func(_, pool gjson.Result) bool {
-		// Loop through each pool.
 		pName := gjson.Get(pool.String(), "name").String()
 		pFilters := gjson.Get(pool.String(), "filters")
-		ppools[pName] = make(map[string]map[string]int64)
+		//poolDefinitions[pName] = make(map[string]map[string]int64)
+		poolRosters[pName] = make(map[string][]string)
+
+		// Loop through each filter for this pool
 		pFilters.ForEach(func(_, filter gjson.Result) bool {
-			// Make a map entry for this filter.
-			// This only works when running only one filter on each attribute!
+			// Note: This only works when running only one filter on each attribute!
 			searchKey := gjson.Get(filter.String(), "attribute").String()
-			ppools[pName][searchKey] = map[string]int64{"min": 0, "max": 9999999999}
+			//poolDefinitions[pName][searchKey] = map[string]int64{"min": 0, "max": 9999999999}
+			min := int64(0)
+			max := int64(time.Now().Unix())
+			poolRosters[pName][searchKey] = make([]string, 0)
 
 			// Parse the min and max values.  JSON format is "min-max"
-			min := gjson.Get(filter.String(), "minv")
-			if min.Bool() {
-				ppools[pName][searchKey]["min"] = int64(min.Int())
+			if minv := gjson.Get(filter.String(), "minv"); minv.Bool() {
+				//poolDefinitions[pName][searchKey]["min"] = int64(min.Int())
+				min = int64(minv.Int())
 			}
-			max := gjson.Get(filter.String(), "maxv")
-			if max.Bool() {
-				ppools[pName][searchKey]["max"] = int64(max.Int())
+			if maxv := gjson.Get(filter.String(), "maxv"); maxv.Bool() {
+				//poolDefinitions[pName][searchKey]["max"] = int64(max.Int())
+				max = int64(maxv.Int())
 			}
-			fmt.Printf("%v: %v: %v\n", pName, searchKey, ppools[pName][searchKey])
+			//fmt.Printf("%v: %v: %v\n", pName, searchKey, poolDefinitions[pName][searchKey])
+			fmt.Printf("%v: %v: [%v-%v]\n", pName, searchKey, min, max)
 
-			return true // keep iterating
-		})
-		if len(ppools[pName]) < 1 {
-			fmt.Printf("Error: pool %v with no filters in profile, %v\n", pName, profileKey)
-			fmt.Println("SET", errorKey, `{"error": "insufficient_filters"}`)
-			redisConn.Do("SET", errorKey, `{"error": "insufficient_filters"}`)
-			os.Exit(1)
-		}
-		return true // keep iterating
-	})
-
-	/*
-
-		//init 2d array
-		stuff := make([][]string, len(filters))
-		for i := range stuff {
-			stuff[i] = make([]string, 0)
-		}
-
-		i := 0
-		for key, value := range filters {
-			// TODO: this needs a lot of time and effort on building sane values for how many IDs to pull at once.
-			// TODO: this should also be run concurrently per index we're filtering on
-			fmt.Printf("key = %+v\n", key)
-			fmt.Printf("value = %+v\n", value)
-			results, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", key, value["min"], value["max"], "LIMIT", "0", "10000"))
+			// NOTE: This only pulls the first 10000 matches for a given index!
+			//   This is an example, and probably shouldn't be used outside of testing without some
+			//   performance tuning based on the size of your indexes.
+			//   In prodution, this could be run concurrently on multiple parts of the index, and combined.
+			// NOTE: It is recommended you also send back some stats about this
+			//   query along with your MMF, which can be useful when your backend
+			//   API client is deciding which profiles to send. This example does
+			//   not implement this, but when using the MMLogic API, this is done
+			//   for you.
+			poolRosters[pName][searchKey], err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", searchKey, min, max, "WITHSCORES", "LIMIT", "0", "10000"))
 			if err != nil {
 				panic(err)
 			}
 
-			// Store off these results in the 2d array used to calculate intersections below.
-			stuff[i] = append(stuff[i], results...)
-			i++
-		}
+			return true // keep iterating
+		})
 
-		fmt.Println("overlap")
-		overlap := stuff[0]
-		for i := range stuff {
-			if i > 0 {
-				set := fmt.Sprint(intersect.Hash(overlap, stuff[i]))
-				overlap = strings.Split(set[1:len(set)-1], " ")
+		// Quit if we see a malformed pool.
+		//		if len(poolDefinitions[pName]) < 1 {
+		//			fmt.Printf("Error: pool %v with no filters in profile, %v\n", pName, profileKey)
+		//			fmt.Println("SET", errorKey, `{"error": "insufficient_filters"}`)
+		//			redisConn.Do("SET", errorKey, `{"error": "insufficient_filters"}`)
+		//			os.Exit(1)
+		//		}
+
+		return true // keep iterating
+	})
+
+	for pName, p := range poolRosters {
+		fmt.Println("overlap", pName)
+		_ = p
+		for fName, roster := range p {
+			fmt.Println("filter name", fName)
+			if len(roster) > 10 {
+				fmt.Println(roster[:10])
 			}
 		}
-		pretty.PrettyPrint(overlap)
+		//overlap := stuff[0]
+		//for i := range stuff {
+		//	if i > 0 {
+		//		set := fmt.Sprint(intersect.Hash(overlap, stuff[i]))
+		//		overlap = strings.Split(set[1:len(set)-1], " ")
+		//	}
+		//}
+		//pretty.PrettyPrint(overlap)
+	}
 
+	/*
 		// TODO: rigourous logic to put players in desired groups
 		teamRosters := make(map[string][]string)
 		rosterProfile := gjson.Get(profile["properties"], "properties.roster")
