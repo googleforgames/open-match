@@ -18,27 +18,31 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/set"
+	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/gomodule/redigo/redis"
 	"github.com/spf13/viper"
 	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 /*
 Here are the things a MMF needs to do:
 
-*Read/write from the Open Match state storage — Open Match ships with Redis as the default state storage.
+*Read/write from the Open Match state storage — Open Match ships with Redis as
+the default state storage.
 *Be packaged in a (Linux) Docker container.
 *Read a profile you wrote to state storage using the Backend API.
 *Select from the player data you wrote to state storage using the Frontend API.
 *Run your custom logic to try to find a match.
 *Write the match object it creates to state storage at a specified key.
 *Remove the players it selected from consideration by other MMFs.
-*(Optional, but recommended) Export stats for metrics collection.
+*Notify the MMForc of completion.
+*(Optional & NYI, but recommended) Export stats for metrics collection.
 */
 func main() {
 	// Read config file.
@@ -50,7 +54,9 @@ func main() {
 	redisURL := "redis://" + os.Getenv("REDIS_SENTINEL_SERVICE_HOST") + ":" + os.Getenv("REDIS_SENTINEL_SERVICE_PORT")
 	fmt.Println("Connecting to Redis at", redisURL)
 	redisConn, err := redis.DialURL(redisURL)
-	check(err, "QUIT")
+	if err != nil {
+		panic(err)
+	}
 	defer redisConn.Close()
 
 	// decrement the number of running MMFs once finished
@@ -105,47 +111,42 @@ func main() {
 	//
 	// ex: poolRosters["defaultPool"]["mmr.rating"]=[]string{"abc", "def", "ghi"}
 	poolRosters := make(map[string]map[string][]string)
-	// ex: poolDefinitions["defaultPool"]["mmr.rating"]["min"]=0
-	//poolDefinitions := make(map[string]map[string]map[string]int64)
 
 	// Loop through each pool.
 	pools.ForEach(func(_, pool gjson.Result) bool {
 		pName := gjson.Get(pool.String(), "name").String()
 		pFilters := gjson.Get(pool.String(), "filters")
-		//poolDefinitions[pName] = make(map[string]map[string]int64)
 		poolRosters[pName] = make(map[string][]string)
 
 		// Loop through each filter for this pool
 		pFilters.ForEach(func(_, filter gjson.Result) bool {
 			// Note: This only works when running only one filter on each attribute!
 			searchKey := gjson.Get(filter.String(), "attribute").String()
-			//poolDefinitions[pName][searchKey] = map[string]int64{"min": 0, "max": 9999999999}
 			min := int64(0)
 			max := int64(time.Now().Unix())
 			poolRosters[pName][searchKey] = make([]string, 0)
 
-			// Parse the min and max values.  JSON format is "min-max"
+			// Parse the min and max values.
 			if minv := gjson.Get(filter.String(), "minv"); minv.Bool() {
-				//poolDefinitions[pName][searchKey]["min"] = int64(min.Int())
 				min = int64(minv.Int())
 			}
 			if maxv := gjson.Get(filter.String(), "maxv"); maxv.Bool() {
-				//poolDefinitions[pName][searchKey]["max"] = int64(max.Int())
 				max = int64(maxv.Int())
 			}
-			//fmt.Printf("%v: %v: %v\n", pName, searchKey, poolDefinitions[pName][searchKey])
 			fmt.Printf("%v: %v: [%v-%v]\n", pName, searchKey, min, max)
 
-			// NOTE: This only pulls the first 10000 matches for a given index!
-			//   This is an example, and probably shouldn't be used outside of testing without some
-			//   performance tuning based on the size of your indexes.
-			//   In prodution, this could be run concurrently on multiple parts of the index, and combined.
+			// NOTE: This only pulls the first 50000 matches for a given index!
+			//   This is an example, and probably shouldn't be used outside of
+			//   testing without some performance tuning based on the size of
+			//   your indexes. In prodution, this could be run concurrently on
+			//   multiple parts of the index, and combined.
 			// NOTE: It is recommended you also send back some stats about this
 			//   query along with your MMF, which can be useful when your backend
 			//   API client is deciding which profiles to send. This example does
-			//   not implement this, but when using the MMLogic API, this is done
+			//   not return stats, but when using the MMLogic API, this is done
 			//   for you.
-			poolRosters[pName][searchKey], err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", searchKey, min, max, "WITHSCORES", "LIMIT", "0", "10000"))
+			poolRosters[pName][searchKey], err = redis.Strings(
+				redisConn.Do("ZRANGEBYSCORE", searchKey, min, max, "LIMIT", "0", "50000"))
 			if err != nil {
 				panic(err)
 			}
@@ -153,125 +154,180 @@ func main() {
 			return true // keep iterating
 		})
 
-		// Quit if we see a malformed pool.
-		//		if len(poolDefinitions[pName]) < 1 {
-		//			fmt.Printf("Error: pool %v with no filters in profile, %v\n", pName, profileKey)
-		//			fmt.Println("SET", errorKey, `{"error": "insufficient_filters"}`)
-		//			redisConn.Do("SET", errorKey, `{"error": "insufficient_filters"}`)
-		//			os.Exit(1)
-		//		}
-
 		return true // keep iterating
 	})
 
-	for pName, p := range poolRosters {
-		fmt.Println("overlap", pName)
-		_ = p
-		for fName, roster := range p {
-			fmt.Println("filter name", fName)
-			if len(roster) > 10 {
-				fmt.Println(roster[:10])
-			}
+	// Get ignored players.
+	combinedIgnoreList := make([]string, 0)
+	fmt.Println("Attempting to get and combine ignorelists")
+	// Loop through all ignorelists configured in the config file.
+	for il := range cfg.GetStringMap("ignoreLists") {
+		ilCfg := cfg.Sub(fmt.Sprintf("ignoreLists.%v", il))
+		thisIl, err := ignorelist.Retrieve(redisConn, ilCfg, il)
+		if err != nil {
+			panic(err)
 		}
-		//overlap := stuff[0]
-		//for i := range stuff {
-		//	if i > 0 {
-		//		set := fmt.Sprint(intersect.Hash(overlap, stuff[i]))
-		//		overlap = strings.Split(set[1:len(set)-1], " ")
-		//	}
-		//}
-		//pretty.PrettyPrint(overlap)
+
+		// Join this ignorelist to the others we've retrieved
+		combinedIgnoreList = set.Union(combinedIgnoreList, thisIl)
 	}
 
-	/*
-		// TODO: rigourous logic to put players in desired groups
-		teamRosters := make(map[string][]string)
-		rosterProfile := gjson.Get(profile["properties"], "properties.roster")
-		fmt.Printf("rosterProfile.String() = %+v\n", rosterProfile.String())
+	// Cycle through all filters for each pool, and calculate the overlap
+	// (players that match all filters)
+	overlaps := make(map[string][]string)
+	// Loop through pools
+	for pName, p := range poolRosters {
+		fmt.Println(pName)
 
-		// TODO: get this by parsing the JSON instead of cheating
-		rosterSize := int(gjson.Get(profile["properties"], "properties.roster.blue").Int() + gjson.Get(profile["properties"], "properties.roster.red").Int())
-		matchRoster := make([]string, 0)
+		// Var init
+		overlaps[pName] = make([]string, 0)
+		first := true // Flag used to initialize the overlap on the first iteration.
 
-		if len(overlap) < rosterSize {
-			fmt.Printf("Not enough players in the pool to fill %v player slots in requested roster", rosterSize)
-			fmt.Printf("rosterProfile.String() = %+v\n", rosterProfile.String())
-			fmt.Println("SET", errorKey, `{"error": "insufficient_players"}`)
-			redisConn.Do("SET", errorKey, `{"error": "insufficient_players"}`)
-			return
+		// Loop through rosters that matched each filter
+		for fName, roster := range p {
+			if first {
+				first = false
+				overlaps[pName] = roster
+			}
+			// Calculate overlap
+			overlaps[pName] = set.Intersection(overlaps[pName], roster)
+
+			// Print out for visibility/debugging
+			fmt.Printf("  filtering: %-20v | participants remaining: %-5v\n", fName, len(overlaps[pName]))
 		}
-		rosterProfile.ForEach(func(name, size gjson.Result) bool {
-			teamKey := name.String()
-			teamRosters[teamKey] = make([]string, size.Int())
-			for i := 0; i < int(size.Int()); i++ {
-				var playerID string
-				// Functionally a Pop from the overlap array into playerID
-				playerID, overlap = overlap[0], overlap[1:]
-				teamRosters[teamKey][i] = playerID
-				matchRoster = append(matchRoster, playerID)
+
+		// Remove players on ignorelists
+		overlaps[pName] = set.Difference(overlaps[pName], combinedIgnoreList)
+	}
+
+	// Loop through each roster in the profile and fill in players.
+	rosters := gjson.Get(profile["properties"], cfg.GetString("jsonkeys.rosters"))
+	fmt.Println("=========Rosters")
+	fmt.Printf("rosters.String() = %+v\n", rosters.String())
+
+	// Parse all the rosters in the profile, adding players if we can.
+	// NOTE: This is using roster definitions that follow the Roster protobuf
+	// message data schema.
+	profileRosters := make(map[string][]string)
+	proposedRosters := make([]string, 0)
+	// List of all player IDs on all proposed rosters, used to add players to
+	// the ignore list.
+	// NOTE: when using the MMLogic API, writing your final proposal to state
+	// storage will automatically add players to the ignorelist, so you don't
+	// need to track them separately and add them to the ignore list yourself.
+	playerList := make([]string, 0)
+	rosters.ForEach(func(_, roster gjson.Result) bool {
+		rName := gjson.Get(roster.String(), "name").String()
+		fmt.Println(rName)
+		rPlayers := gjson.Get(roster.String(), "players")
+		profileRosters[rName] = make([]string, 0)
+
+		rPlayers.ForEach(func(_, player gjson.Result) bool {
+			// TODO: This is  where you would put your own custom matchmaking
+			// logic.  MMFs have full access to the state storage in Redis, so
+			// you can choose some participants from the pool according to your
+			// favored strategy. You have complete freedom to read the
+			// participant's records from Redis and make decisions accordingly.
+			//
+			// This example just chooses the players in the order they were
+			// returned from state storage.
+
+			//fmt.Printf("  %v\n", player.String()) //DEBUG
+			proposedPlayer := player.String()
+			// Get the name of the pool that the profile wanted this player pulled from.
+			desiredPool := gjson.Get(player.String(), "pool").String()
+
+			if _, ok := overlaps[desiredPool]; ok {
+				// There are players that match all the desired filters.
+				if len(overlaps[desiredPool]) > 0 {
+					// Propose the next player returned from state storage for this
+					// slot in the match rosters.
+
+					// Functionally, a pop from the overlap array into the proposed slot.
+					playerID := ""
+					playerID, overlaps[desiredPool] = overlaps[desiredPool][0], overlaps[desiredPool][1:]
+
+					proposedPlayer, err = sjson.Set(proposedPlayer, "id", playerID)
+					if err != nil {
+						panic(err)
+					}
+					profileRosters[rName] = append(profileRosters[rName], proposedPlayer)
+					playerList = append(playerList, playerID)
+					fmt.Printf("  proposing: %v\n", proposedPlayer)
+
+				} else {
+					// Not enough players, exit.
+					fmt.Println("Not enough players in the pool to fill all player slots in requested roster", rName)
+					fmt.Printf("%+v\n", roster.String())
+					fmt.Println("SET", errorKey, `{"error": "insufficient_players"}`)
+					redisConn.Do("SET", errorKey, `{"error": "insufficient_players"}`)
+					os.Exit(1)
+				}
+
 			}
 			return true
 		})
 
-		pretty.PrettyPrint(teamRosters)
-		pretty.PrettyPrint(matchRoster)
-
-		profile["properties"], err = sjson.Set(profile["properties"], "properties.roster", teamRosters)
+		proposedRoster, err := sjson.Set(roster.String(), "players", profileRosters[rName])
+		//fmt.Sprintf("[%v]", strings.Join(profileRosters[rName], ",")))
 		if err != nil {
 			panic(err)
 		}
+		proposedRosters = append(proposedRosters, proposedRoster)
 
-		// Write the match object that will be sent back to the DGS
-		fmt.Println("Proposing the following group  ", proposalKey)
-		fmt.Println("HSET", proposalKey, "properties", profile)
-		_, err = redisConn.Do("HSET", proposalKey, "properties", profile)
-		if err != nil {
-			panic(err)
-		}
+		return true
+	})
 
-		// Write the roster that will be sent to the evaluator
-		fmt.Println("Sending the following roster to the evaluator under key ", rosterKey)
+	fmt.Println(proposedRosters)
+
+	// Write back the match object to state storage so the evaluator can look at it, and update the ignorelist.
+	// NOTE: the MMLogic API CreateProposal automates most of this for you, as
+	//  long as you send it properly formatted data (i.e. data that fits the schema of
+	//  the protobuf messages)
+	// Add proposed players to the ignorelist so other MMFs won't consider them.
+	err = ignorelist.Add(redisConn, "proposed", playerList)
+	if err != nil {
+		fmt.Println("Unable to add proposed players to the ignorelist")
+		panic(err)
+	}
+
+	// Write the match object that will be sent back to the DGS
+	proposal, err := sjson.Set(profile["properties"], cfg.GetString("jsonkeys.roster"), proposedRosters)
+	fmt.Println("Proposal ID: ", proposalKey)
+	fmt.Println("Proposed Properties:", proposal)
+	jsonProfile, err := json.Marshal(profile)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("HSET", proposalKey, "properties", string(jsonProfile))
+	_, err = redisConn.Do("HSET", proposalKey, "properties", string(jsonProfile))
+	if err != nil {
+		panic(err)
+	}
+
+	// Write the roster that will be sent to the evaluator.  This needs to be written to the
+	// "rosters" key of the match object, in the protobuf format for an array of
+	// rosters protobuf messages.  You can write this output by hand (not recommended)
+	// or use the MMLogic API call CreateProposal will a filled out MatchObject protobuf message
+	// and let it do the work for you.
+	/*
+		fmt.Println("Proposed Roster:", proposedRosters)
 		fmt.Println("SET", rosterKey, strings.Join(matchRoster, " "))
 		_, err = redisConn.Do("SET", rosterKey, strings.Join(matchRoster, " "))
 		if err != nil {
 			panic(err)
 		}
-
-		//TODO: make this auto-correcting if the player doesn't end up in a group.
-		for _, playerID := range matchRoster {
-			fmt.Printf("Attempting to remove player %v from indices\n", playerID)
-			// TODO: make playerq module available to everything
-			err := playerq.Deindex(redisConn, playerID)
-			if err != nil {
-				panic(err)
-			}
-
-		}
-
-		//Finally, write the propsal key to trigger the evaluation of these
-		//results
-		// TODO: read this from a config ala proposalq := cfg.GetString("queues.proposals.name")
-		proposalq := "proposalq"
-		fmt.Println("SADD", proposalq, jobName)
-		_, err = redisConn.Do("SADD", proposalq, jobName)
-		if err != nil {
-			panic(err)
-		}
-		// DEBUG
-		results, err := redis.Strings(redisConn.Do("SMEMBERS", proposalq))
-		if err != nil {
-			panic(err)
-		}
-		pretty.PrettyPrint(results)
 	*/
-}
 
-func check(err error, action string) {
+	//Finally, write the propsal key to trigger the evaluation of these
+	//results
+	// TODO: read this from a config ala proposalq := cfg.GetString("queues.proposals.name")
+	proposalq := "proposalq"
+	fmt.Println("SADD", proposalq, jobName)
+	_, err = redisConn.Do("SADD", proposalq, jobName)
 	if err != nil {
-		if action == "QUIT" {
-			log.Fatal(err)
-		} else {
-			log.Print(err)
-		}
+		panic(err)
 	}
+
 }

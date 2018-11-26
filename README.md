@@ -114,6 +114,7 @@ Matchmaking Functions (MMFs) are run by the Matchmaker Function Orchestrator (MM
 1. Run your custom logic to try to find a match.
 1. Write the match object it creates to state storage at a specified key.
 1. Remove the players it selected from consideration by other MMFs.
+1. Notify the MMFOrc of completion.
 1. (Optional, but recommended) Export stats for metrics collection.
 
 Example MMFs are provided in Golang and C#.
