@@ -14,11 +14,17 @@ option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
 // MatchObject as input only require a few of them to be filled in.  Check the
 // gRPC function in question for more details.
 message MatchObject{
-  string id = 1;                        // By convention, a UUID
-  string properties = 2;                // By convention, a JSON-encoded string
-  string error = 3;                     // Last error encountered. 
-  repeated Roster rosters = 4;          // Rosters of players.  
-  repeated PlayerPool pools = 5;        // 'Hard' filters, and the players who match them.  
+    string id = 1;                  // By convention, a UUID
+    string properties = 2;          // By convention, a JSON-encoded string
+    string error = 3;               // Last error encountered.
+    repeated Roster rosters = 4;    // Rosters of players.
+    repeated PlayerPool pools = 5;  // 'Hard' filters, and the players who match them.
+    enum Status {
+        INCONCLUSIVE = 0;           // Unable to find a match
+        INVALID = 1;                // The roster found in the match should be removed from matchmaking for some reason
+        VALID = 2;                  // The roster found is a positive match and should be used for creating a game
+    }
+    Status status = 6;              // Resulting status of the match function
 }
 
 // Data structure to hold a list of players in a match.  
@@ -87,4 +93,13 @@ message ConnectionInfo{
 message Assignments{
     repeated Roster rosters = 1;
     ConnectionInfo connection_info = 2;
+}
+
+message Profile {
+    string job_name = 1;
+    string profile_id = 2;
+    string proposal_id = 3;
+    string request_id = 4;
+    string error_id = 5;
+    string timestamp = 6;
 }

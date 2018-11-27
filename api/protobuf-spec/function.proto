@@ -1,0 +1,10 @@
+syntax = 'proto3';
+package api;
+option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
+
+// The protobuf messages sent in the gRPC calls are defined 'messages.proto'.
+import 'api/protobuf-spec/messages.proto';
+
+service Function {
+    rpc Run(messages.Profile) returns (messages.Result);
+}
