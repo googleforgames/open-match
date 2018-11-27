@@ -96,10 +96,9 @@ message Assignments{
 }
 
 message Profile {
-    string job_name = 1;
-    string profile_id = 2;
-    string proposal_id = 3;
-    string request_id = 4;
-    string error_id = 5;
-    string timestamp = 6;
+    string profile_id = 1;
+    string proposal_id = 2;
+    string request_id = 3;
+    string error_id = 4;
+    string timestamp = 5;
 }

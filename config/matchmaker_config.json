@@ -12,6 +12,9 @@
         "mmlogic": {
             "hostname": "om-mmlogicapi",
             "port": 50503
+        },
+        "functions": {
+            "port": 50502
         }
     },
     "metrics": {
@@ -72,6 +75,7 @@
     },
     "jsonkeys": {
         "mmfImage": "imagename",
+        "mmfService": "hostname",
         "rosters": "properties.rosters",
         "connstring": "connstring",
         "pools": "properties.pools"
