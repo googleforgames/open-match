@@ -19,11 +19,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/config"
+	messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/set"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gomodule/redigo/redis"
 	"github.com/spf13/viper"
 	"github.com/tidwall/gjson"
@@ -92,7 +95,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Got profile!")
+	fmt.Println("=========Profile")
 	p, err := json.MarshalIndent(profile, "", "  ")
 	fmt.Println(string(p))
 
@@ -159,7 +162,6 @@ func main() {
 
 	// Get ignored players.
 	combinedIgnoreList := make([]string, 0)
-	fmt.Println("Attempting to get and combine ignorelists")
 	// Loop through all ignorelists configured in the config file.
 	for il := range cfg.GetStringMap("ignoreLists") {
 		ilCfg := cfg.Sub(fmt.Sprintf("ignoreLists.%v", il))
@@ -198,6 +200,7 @@ func main() {
 
 		// Remove players on ignorelists
 		overlaps[pName] = set.Difference(overlaps[pName], combinedIgnoreList)
+		fmt.Printf("  removing: %-21v | participants remaining: %-5v\n", "(ignorelists)", len(overlaps[pName]))
 	}
 
 	// Loop through each roster in the profile and fill in players.
@@ -209,18 +212,23 @@ func main() {
 	// NOTE: This is using roster definitions that follow the Roster protobuf
 	// message data schema.
 	profileRosters := make(map[string][]string)
-	proposedRosters := make([]string, 0)
+	//proposedRosters := make([]string, 0)
+	mo := &messages.MatchObject{}
+	mo.Rosters = make([]*messages.Roster, 0)
+
 	// List of all player IDs on all proposed rosters, used to add players to
 	// the ignore list.
 	// NOTE: when using the MMLogic API, writing your final proposal to state
 	// storage will automatically add players to the ignorelist, so you don't
 	// need to track them separately and add them to the ignore list yourself.
 	playerList := make([]string, 0)
+
 	rosters.ForEach(func(_, roster gjson.Result) bool {
 		rName := gjson.Get(roster.String(), "name").String()
 		fmt.Println(rName)
 		rPlayers := gjson.Get(roster.String(), "players")
 		profileRosters[rName] = make([]string, 0)
+		pbRoster := messages.Roster{Name: rName, Players: []*messages.Player{}}
 
 		rPlayers.ForEach(func(_, player gjson.Result) bool {
 			// TODO: This is  where you would put your own custom matchmaking
@@ -252,8 +260,10 @@ func main() {
 						panic(err)
 					}
 					profileRosters[rName] = append(profileRosters[rName], proposedPlayer)
-					playerList = append(playerList, playerID)
 					fmt.Printf("  proposing: %v\n", proposedPlayer)
+
+					pbRoster.Players = append(pbRoster.Players, &messages.Player{Id: playerID, Pool: desiredPool})
+					playerList = append(playerList, playerID)
 
 				} else {
 					// Not enough players, exit.
@@ -268,23 +278,23 @@ func main() {
 			return true
 		})
 
-		proposedRoster, err := sjson.Set(roster.String(), "players", profileRosters[rName])
+		//proposedRoster, err := sjson.Set(roster.String(), "players", profileRosters[rName])
+		mo.Rosters = append(mo.Rosters, &pbRoster)
 		//fmt.Sprintf("[%v]", strings.Join(profileRosters[rName], ",")))
-		if err != nil {
-			panic(err)
-		}
-		proposedRosters = append(proposedRosters, proposedRoster)
+		//if err != nil {
+		//	panic(err)
+		//}
+		//proposedRosters = append(proposedRosters, proposedRoster)
 
 		return true
 	})
-
-	fmt.Println(proposedRosters)
 
 	// Write back the match object to state storage so the evaluator can look at it, and update the ignorelist.
 	// NOTE: the MMLogic API CreateProposal automates most of this for you, as
 	//  long as you send it properly formatted data (i.e. data that fits the schema of
 	//  the protobuf messages)
 	// Add proposed players to the ignorelist so other MMFs won't consider them.
+	fmt.Printf("Adding %v players to ignorelist\n", len(playerList))
 	err = ignorelist.Add(redisConn, "proposed", playerList)
 	if err != nil {
 		fmt.Println("Unable to add proposed players to the ignorelist")
@@ -292,40 +302,52 @@ func main() {
 	}
 
 	// Write the match object that will be sent back to the DGS
-	proposal, err := sjson.Set(profile["properties"], cfg.GetString("jsonkeys.roster"), proposedRosters)
-	fmt.Println("Proposal ID: ", proposalKey)
-	fmt.Println("Proposed Properties:", proposal)
-	jsonProfile, err := json.Marshal(profile)
-	if err != nil {
-		panic(err)
-	}
+	jmarshaler := jsonpb.Marshaler{}
+	moJson, err := jmarshaler.MarshalToString(mo)
+	proposedRosters := gjson.Get(moJson, "rosters")
 
-	fmt.Println("HSET", proposalKey, "properties", string(jsonProfile))
-	_, err = redisConn.Do("HSET", proposalKey, "properties", string(jsonProfile))
+	fmt.Println("===========Proposal")
+	// Set the properties field.
+	// This is a filthy hack due to the way sjson escapes & quotes values it inserts.
+	// Better in most cases than trying to marshal the JSON into giant multi-dimensional
+	// interface maps only to dump it back out to a string after.
+	// Note: this hack isn't necessary for most users, who just use this same
+	// data directly from the protobuf message 'rosters' field, or write custom
+	// rosters directly to the JSON properties when choosing players.  This is here
+	// for backwards compatibility with backends that haven't been updated to take
+	// advantage of the new rosters field in the MatchObject protobuf message introduced
+	// in 0.2.0.
+	profile["properties"], err = sjson.Set(profile["properties"], cfg.GetString("jsonkeys.rosters"), proposedRosters.String())
+	profile["properties"] = strings.Replace(profile["properties"], "\\", "", -1)
+	profile["properties"] = strings.Replace(profile["properties"], "]\"", "]", -1)
+	profile["properties"] = strings.Replace(profile["properties"], "\"[", "[", -1)
 	if err != nil {
-		panic(err)
+		fmt.Println("problem with sjson")
+		fmt.Println(err)
 	}
+	fmt.Printf("Proposed ID: %v | Properties: %v", proposalKey, profile["properties"])
 
 	// Write the roster that will be sent to the evaluator.  This needs to be written to the
 	// "rosters" key of the match object, in the protobuf format for an array of
 	// rosters protobuf messages.  You can write this output by hand (not recommended)
 	// or use the MMLogic API call CreateProposal will a filled out MatchObject protobuf message
 	// and let it do the work for you.
-	/*
-		fmt.Println("Proposed Roster:", proposedRosters)
-		fmt.Println("SET", rosterKey, strings.Join(matchRoster, " "))
-		_, err = redisConn.Do("SET", rosterKey, strings.Join(matchRoster, " "))
-		if err != nil {
-			panic(err)
-		}
-	*/
+	profile["rosters"] = proposedRosters.String()
 
-	//Finally, write the propsal key to trigger the evaluation of these
-	//results
-	// TODO: read this from a config ala proposalq := cfg.GetString("queues.proposals.name")
-	proposalq := "proposalq"
-	fmt.Println("SADD", proposalq, jobName)
-	_, err = redisConn.Do("SADD", proposalq, jobName)
+	fmt.Println("===========Redis")
+	// Start writing proposed results to Redis.
+	redisConn.Send("MULTI")
+	for key, value := range profile {
+		if key != "id" {
+			fmt.Println("HSET", proposalKey, key, value)
+			redisConn.Send("HSET", proposalKey, key, value)
+		}
+	}
+
+	//Finally, write the propsal key to trigger the evaluation of these results
+	fmt.Println("SADD", cfg.GetString("queues.proposals.name"), proposalKey)
+	redisConn.Send("SADD", cfg.GetString("queues.proposals.name"), proposalKey)
+	_, err = redisConn.Do("EXEC")
 	if err != nil {
 		panic(err)
 	}
