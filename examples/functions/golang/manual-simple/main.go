@@ -73,11 +73,11 @@ func main() {
 
 	// Environment vars set by the MMForc
 	jobName := os.Getenv("PROFILE")
-	timestamp := os.Getenv("OM_TIMESTAMP")
-	proposalKey := os.Getenv("OM_PROPOSAL_ID")
-	profileKey := os.Getenv("OM_PROFILE_ID")
-	errorKey := os.Getenv("OM_ERROR_ID")
-	rosterKey := os.Getenv("OM_ROSTER_ID")
+	timestamp := os.Getenv("MMF_TIMESTAMP")
+	proposalKey := os.Getenv("MMF_PROPOSAL_ID")
+	profileKey := os.Getenv("MMF_PROFILE_ID")
+	errorKey := os.Getenv("MMF_ERROR_ID")
+	rosterKey := os.Getenv("MMF_ROSTER_ID")
 	_ = jobName
 	_ = timestamp
 	_ = proposalKey
@@ -303,8 +303,8 @@ func main() {
 
 	// Write the match object that will be sent back to the DGS
 	jmarshaler := jsonpb.Marshaler{}
-	moJson, err := jmarshaler.MarshalToString(mo)
-	proposedRosters := gjson.Get(moJson, "rosters")
+	moJSON, err := jmarshaler.MarshalToString(mo)
+	proposedRosters := gjson.Get(moJSON, "rosters")
 
 	fmt.Println("===========Proposal")
 	// Set the properties field.
