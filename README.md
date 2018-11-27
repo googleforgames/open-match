@@ -93,7 +93,7 @@ The MMLogic API provides a series of gRPC functions that act as a Matchmaking Fu
 
 More details about the available gRPC calls can be found in the [API Specification](api/protobuf-spec/messages.proto).
 
-**Note**: using the MMLogic API is **optional**.  It tries to simplify the development of MMFs, but if you want to take care of these tasks on your own, you can make few or no calls to the MMLogic API as long as your MMF still completes all the required tasks.  Read the [Matchmaking Functions section](https://github.com/GoogleCloudPlatform/open-match#matchmaking-functions-mmfs) for more details of what work an MMF must do.
+**Note**: using the MMLogic API is **optional**.  It tries to simplify the development of MMFs, but if you want to take care of these tasks on your own, you can make few or no calls to the MMLogic API as long as your MMF still completes all the required tasks.  Read the [Matchmaking Functions section](#matchmaking-functions-mmfs) for more details of what work an MMF must do.
 
 ### Evaluator
 
@@ -107,15 +107,17 @@ Large-scale concurrent matchmaking functions is a complex topic, and users who w
 
 Matchmaking Functions (MMFs) are run by the Matchmaker Function Orchestrator (MMFOrc) &mdash; once per profile it sees in state storage. The MMF is run as a Job in Kubernetes, and has full access to read and write from state storage. At a high level, the encouraged pattern is to write a MMF in whatever language you are comfortable in that can do the following things:
 
-1. Be packaged in a (Linux) Docker container.
-1. Read/write from the Open Match state storage &mdash; Open Match ships with Redis as the default state storage.
-1. Read a profile you wrote to state storage using the Backend API.
-1. Select from the player data you wrote to state storage using the Frontend API.
-1. Run your custom logic to try to find a match.
-1. Write the match object it creates to state storage at a specified key.
-1. Remove the players it selected from consideration by other MMFs.
-1. Notify the MMFOrc of completion.
-1. (Optional, but recommended) Export stats for metrics collection.
+[x] Be packaged in a (Linux) Docker container.
+[x] Read/write from the Open Match state storage &mdash; Open Match ships with Redis as the default state storage.
+[x] Read a profile you wrote to state storage using the Backend API.
+[x] Select from the player data you wrote to state storage using the Frontend API.
+[ ] Run your custom logic to try to find a match.
+[x] Write the match object it creates to state storage at a specified key.
+[x] Remove the players it selected from consideration by other MMFs.
+[x] Notify the MMFOrc of completion.
+[x] (Optional, but recommended) Export stats for metrics collection.
+
+** Open Match offers [matchmaking logic API](#matchmaking-logic-mmlogic-api) calls for handling the checked items, as long as you are willing to format your input and output in the data schema Open Match expects (defined in the [protobuf messages](api/protobuf-spec/messages.proto)). **  You can to do this work yourself if you don't want to or can't use the data schema Open Match is looking for.  However, the data formats expected by Open Match are pretty generalized and will work with most common matchmaking scenarios and game types.  If you have questions about how to fit your data into the formats specified, feel free to ask us in the Slack or mailing group.
 
 Example MMFs are provided in Golang and C#.
 
