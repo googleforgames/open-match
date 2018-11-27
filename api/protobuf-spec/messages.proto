@@ -19,12 +19,7 @@ message MatchObject{
     string error = 3;               // Last error encountered.
     repeated Roster rosters = 4;    // Rosters of players.
     repeated PlayerPool pools = 5;  // 'Hard' filters, and the players who match them.
-    enum Status {
-        INCONCLUSIVE = 0;           // Unable to find a match
-        INVALID = 1;                // The roster found in the match should be removed from matchmaking for some reason
-        VALID = 2;                  // The roster found is a positive match and should be used for creating a game
-    }
-    Status status = 6;              // Resulting status of the match function
+    string status = 6;              // Resulting status of the match function
 }
 
 // Data structure to hold a list of players in a match.  
