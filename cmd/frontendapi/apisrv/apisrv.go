@@ -98,7 +98,7 @@ func (s *FrontendAPI) Open() error {
 	return nil
 }
 
-// CreateRequest is this service's implementation of the CreateRequest gRPC method // defined in ../proto/frontend.proto
+// CreateRequest is this service's implementation of the CreateRequest gRPC method defined in frontend.proto
 func (s *frontendAPI) CreateRequest(c context.Context, g *frontend.Group) (*frontend.Result, error) {
 
 	// Get redis connection from pool
@@ -129,8 +129,7 @@ func (s *frontendAPI) CreateRequest(c context.Context, g *frontend.Group) (*fron
 
 }
 
-// DeleteRequest is this service's implementation of the DeleteRequest gRPC method defined in
-// frontendapi/proto/frontend.proto
+// DeleteRequest is this service's implementation of the DeleteRequest gRPC method defined in frontend.proto
 func (s *frontendAPI) DeleteRequest(c context.Context, g *frontend.Group) (*frontend.Result, error) {
 	// Get redis connection from pool
 	redisConn := s.pool.Get()
@@ -157,8 +156,7 @@ func (s *frontendAPI) DeleteRequest(c context.Context, g *frontend.Group) (*fron
 
 }
 
-// GetAssignment is this service's implementation of the GetAssignment gRPC method defined in
-// frontendapi/proto/frontend.proto
+// GetAssignment is this service's implementation of the GetAssignment gRPC method defined in frontend.proto
 func (s *frontendAPI) GetAssignment(c context.Context, p *frontend.PlayerId) (*frontend.ConnectionInfo, error) {
 	// Get cancellable context
 	ctx, cancel := context.WithCancel(c)
@@ -198,8 +196,7 @@ func (s *frontendAPI) GetAssignment(c context.Context, p *frontend.PlayerId) (*f
 	return &frontend.ConnectionInfo{ConnectionString: connString}, nil
 }
 
-// DeleteAssignment is this service's implementation of the DeleteAssignment gRPC method defined in
-// frontendapi/proto/frontend.proto
+// DeleteAssignment is this service's implementation of the DeleteAssignment gRPC method defined in frontend.proto
 func (s *frontendAPI) DeleteAssignment(c context.Context, p *frontend.PlayerId) (*frontend.Result, error) {
 
 	// Get redis connection from pool
