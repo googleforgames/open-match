@@ -107,15 +107,15 @@ Large-scale concurrent matchmaking functions is a complex topic, and users who w
 
 Matchmaking Functions (MMFs) are run by the Matchmaker Function Orchestrator (MMFOrc) &mdash; once per profile it sees in state storage. The MMF is run as a Job in Kubernetes, and has full access to read and write from state storage. At a high level, the encouraged pattern is to write a MMF in whatever language you are comfortable in that can do the following things:
 
-[x] Be packaged in a (Linux) Docker container.
-[x] Read/write from the Open Match state storage &mdash; Open Match ships with Redis as the default state storage.
-[x] Read a profile you wrote to state storage using the Backend API.
-[x] Select from the player data you wrote to state storage using the Frontend API.
-[ ] Run your custom logic to try to find a match.
-[x] Write the match object it creates to state storage at a specified key.
-[x] Remove the players it selected from consideration by other MMFs.
-[x] Notify the MMFOrc of completion.
-[x] (Optional, but recommended) Export stats for metrics collection.
+- [x] Be packaged in a (Linux) Docker container.
+- [x] Read/write from the Open Match state storage &mdash; Open Match ships with Redis as the default state storage.
+- [x] Read a profile you wrote to state storage using the Backend API.
+- [x] Select from the player data you wrote to state storage using the Frontend API.
+- [ ] Run your custom logic to try to find a match.
+- [x] Write the match object it creates to state storage at a specified key.
+- [x] Remove the players it selected from consideration by other MMFs.
+- [x] Notify the MMFOrc of completion.
+- [x] (Optional, but recommended) Export stats for metrics collection.
 
 ** Open Match offers [matchmaking logic API](#matchmaking-logic-mmlogic-api) calls for handling the checked items, as long as you are willing to format your input and output in the data schema Open Match expects (defined in the [protobuf messages](api/protobuf-spec/messages.proto)). **  You can to do this work yourself if you don't want to or can't use the data schema Open Match is looking for.  However, the data formats expected by Open Match are pretty generalized and will work with most common matchmaking scenarios and game types.  If you have questions about how to fit your data into the formats specified, feel free to ask us in the [Slack or mailing group](#get-involved).
 
