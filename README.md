@@ -119,7 +119,11 @@ Matchmaking Functions (MMFs) are run by the Matchmaker Function Orchestrator (MM
 
 ** Open Match offers [matchmaking logic API](#matchmaking-logic-mmlogic-api) calls for handling the checked items, as long as you are willing to format your input and output in the data schema Open Match expects (defined in the [protobuf messages](api/protobuf-spec/messages.proto)). **  You can to do this work yourself if you don't want to or can't use the data schema Open Match is looking for.  However, the data formats expected by Open Match are pretty generalized and will work with most common matchmaking scenarios and game types.  If you have questions about how to fit your data into the formats specified, feel free to ask us in the [Slack or mailing group](#get-involved).
 
-Example MMFs are provided in Golang and C#.
+Example MMFs are provided in these languages:
+- [C#](examples/functions/csharp/simple) (doesn't use the MMLogic API)
+- [Python3](examples/functions/python3/mmlogic-simple) (MMLogic API enabled)
+- [PHP](examples/functions/php/mmlogic-simple)  (MMLogic API enabled)
+- [golang](examples/functions/golang/manual-simple)  (doesn't use the MMLogic API)
 
 ## Open Source Software integrations
 
@@ -244,3 +248,6 @@ Apache 2.0
 
 ## Will not Implement 
 - [X] Defining multiple images inside a profile for the purposes of experimentation adds another layer of complexity into profiles that can instead be handled outside of open match with custom match functions in collaboration with a director (thing that calls backend to schedule matchmaking) 
+
+### Special Thanks
+- Thanks to https://jbt.github.io/markdown-editor/ for help in marking this document down.
