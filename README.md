@@ -118,7 +118,7 @@ Matchmaking Functions (MMFs) are run by the Matchmaker Function Orchestrator (MM
 - [x] Notify the MMFOrc of completion.
 - [x] (Optional, but recommended) Export stats for metrics collection.
 
-** Open Match offers [matchmaking logic API](#matchmaking-logic-mmlogic-api) calls for handling the checked items, as long as you are willing to format your input and output in the data schema Open Match expects (defined in the [protobuf messages](api/protobuf-spec/messages.proto)). **  You can to do this work yourself if you don't want to or can't use the data schema Open Match is looking for.  However, the data formats expected by Open Match are pretty generalized and will work with most common matchmaking scenarios and game types.  If you have questions about how to fit your data into the formats specified, feel free to ask us in the [Slack or mailing group](#get-involved).
+**Open Match offers [matchmaking logic API](#matchmaking-logic-mmlogic-api) calls for handling the checked items, as long as you are able to format your input and output in the data schema Open Match expects (defined in the [protobuf messages](api/protobuf-spec/messages.proto)).**  You can to do this work yourself if you don't want to or can't use the data schema Open Match is looking for.  However, the data formats expected by Open Match are pretty generalized and will work with most common matchmaking scenarios and game types.  If you have questions about how to fit your data into the formats specified, feel free to ask us in the [Slack or mailing group](#get-involved).
 
 Example MMFs are provided in these languages:
 - [C#](examples/functions/csharp/simple) (doesn't use the MMLogic API)
@@ -225,8 +225,9 @@ Apache 2.0
 
 ## State storage
 - [ ] All state storage operations should be isolated from core components into the `statestorage/` modules.  This is necessary precursor work to enabling Open Match state storage to use software other than Redis.
-- [ ] The Redis deployment should have an example HA configuration using HAProxy 
+- [ ] [The Redis deployment should have an example HA configuration](https://github.com/GoogleCloudPlatform/open-match/issues/41)
 - [ ] Redis watch should be unified to watch a hash and stream updates.  The code for this is written and validated but not committed yet. We don't want to support two redis watcher code paths, so the backend watch of the match object should be switched to unify the way the frontend and backend watch keys.  The backend part of this is in but the frontend part is in another branch and will be committed later. 
+- [ ] Player/Group records generated when a client enters the matchmaking pool need to be removed after a certain amount of time with no activity. When using Redis, this will be implemented as a expiration on the player record.
 
 ## Instrumentation / Metrics / Analytics
 - [ ] Instrumentation of MMFs is in the planning stages.  Since MMFs are by design meant to be completely customizable (to the point of allowing any process that can be packaged in a Docker container), metrics/stats will need to have an expected format and formalized outgoing pathway.  Currently the thought is that it might be that the metrics should be written to a particular key in statestorage in a format compatible with opencensus, and will be collected, aggreggated, and exported to Prometheus using another process.
@@ -240,7 +241,6 @@ Apache 2.0
 - [ ] Autoscaling isn't turned on for the Frontend or Backend API Kubernetes deployments by default.
 - [ ] A [Helm](https://helm.sh/) chart to stand up Open Match will be provided in an upcoming version. For now just use the [installation YAMLs](./install/yaml).
 
-- [ ] Player/Group records generated when a client enters the matchmaking pool need to be removed after a certain amount of time with no activity. When using Redis, this will be implemented as a expiration on the player record.
 ## CI / CD / Build
 - [ ] We plan to host 'official' docker images for all release versions of the core components in publicly available docker registries soon.
 - [ ] CI/CD for this repo and the associated status tags are planned.

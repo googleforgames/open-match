@@ -116,7 +116,6 @@ You should now be able to see the core component pods running using a `kubectl g
 
 Here's an example output from `kubectl get all` if everything started correctly, and you included all the optional components (note: this could become out-of-date with upcoming versions; apologies if that happens):
 ```
-joeholley@jholley-ub-lx-ase1:~/go/src/github.com/GoogleCloudPlatform/open-match/install/yaml$ kubectl get all
 NAME                                       READY     STATUS    RESTARTS   AGE
 pod/om-backendapi-84bc9d8fff-q89kr         1/1       Running   0          9m
 pod/om-frontendapi-55d5bb7946-c5ccb        1/1       Running   0          9m
