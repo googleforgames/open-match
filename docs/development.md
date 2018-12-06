@@ -4,7 +4,19 @@ All components of Open Match produce (Linux) Docker container images as artifact
 
 Note: Although Google Cloud Platform includes some free usage, you may incur charges following this guide if you use GCP products.
 
+## Security Disclaimer
 **This project has not completed a first-line security audit, and there are definitely going to be some service accounts that are too permissive.  This should be fine for testing/development in a local environment, but absolutely should not be used as-is in a production environment without your team/organization evaluating it's permissions.**
+
+## Before getting started
+**NOTE**: Before starting with this guide, you'll need to update all the URIs from the tutorial's gcr.io container image registry with the URI for your own image registry. If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT_NAME>`.  Here's an example command in Linux to do the replacement for you this (replace YOUR_REGISTRY_URI with your URI, this should be run from the repository root directory):
+```
+# Linux
+egrep -lR 'gcr.io/matchmaker-dev-201405' . | xargs sed -i -e 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g'
+```
+```
+# Mac OS, you can delete the .backup files after if all looks good 
+egrep -lR 'gcr.io/matchmaker-dev-201405' . | xargs sed -i'.backup' -e 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g'
+```
 
 ## Example of building using Google Cloud Builder
 
@@ -13,21 +25,22 @@ The [Quickstart for Docker](https://cloud.google.com/cloud-build/docs/quickstart
 * Clone this repo to a local machine or Google Cloud Shell session, and cd into it.
 * In Linux, you can run the following one-line bash script to compile all the images for the first time, and push them to your gcr.io registry. You must enable the [Container Registry API](https://console.cloud.google.com/flows/enableapi?apiid=containerregistry.googleapis.com) first.
     ```
-    for dfile in $(ls Dockerfile.*); do gcloud builds submit --config cloudbuild_${dfile##*.}.yaml & done
+    # First, build the 'base' image.  Some other images depend on this so it must complete first.
+    gcloud build submit --config cloudbuild_base.yaml
+    # Build all other images. 
+    for dfile in $(ls Dockerfile.* | grep -v base); do gcloud builds submit --config cloudbuild_${dfile##*.}.yaml & done
     ```
-* Once the cloud builds have completed, you can verify that all the builds succeeded by checking the list of images in your **gcr.io** registry:
+* Once the cloud builds have completed, you can verify that all the builds succeeded in the cloud console or by by checking the list of images in your **gcr.io** registry:
     ```
     gcloud container images list
     ```
-    If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT_NAME>` - your output will display your gcr.io registry, instead of the example one below:
+    (your registry name will be different)
     ```
     NAME
     gcr.io/matchmaker-dev-201405/openmatch-backendapi
-    gcr.io/matchmaker-dev-201405/openmatch-backendclient
-    gcr.io/matchmaker-dev-201405/openmatch-clientloadgen
+    gcr.io/matchmaker-dev-201405/openmatch-devbase
     gcr.io/matchmaker-dev-201405/openmatch-evaluator
     gcr.io/matchmaker-dev-201405/openmatch-frontendapi
-    gcr.io/matchmaker-dev-201405/openmatch-frontendclient
     gcr.io/matchmaker-dev-201405/openmatch-mmf
     gcr.io/matchmaker-dev-201405/openmatch-mmforc
     gcr.io/matchmaker-dev-201405/openmatch-mmlogicapi
@@ -62,28 +75,9 @@ gcloud compute zones list
 
 Currently, each component reads a local config file `matchmaker_config.json`, and all components assume they have the same configuration (if you would like to help us design the replacement config solution, please join the [discussion](https://github.com/GoogleCloudPlatform/open-match/issues/42).  To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally.
 
-**NOTE** `defaultImages` container images names in the config file will need to be updated with **your container registry URI**. If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT_NAME>`.  Here's an example command in Linux to do this (just replace YOUR_REGISTRY_URI with the appropriate location in your environment, should be run from the config directory):
-```
-sed -i 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' matchmaker_config.json
-```
-For MacOS the `-i` flag creates backup files when changing the original file in place. You can use the following command, and then delete the `*.backup` files afterwards if you don't need them anymore:
-```
-sed -i'.backup' -e 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' matchmaker_config.json
-```
-
 ## Running Open Match in a development environment
 
 The rest of this guide assumes you have a cluster (example is using GKE, but works on any cluster with a little tweaking), and kubectl configured to administer that cluster, and you've built all the Docker container images described by `Dockerfiles` in the repository root directory and given them the docker tag 'dev'.  It assumes you are in the `<REPO_ROOT>/deployments/k8s/` directory.
-
-**NOTE** Kubernetes resources that use container images will need to be updated with **your container registry URI**. Here's an example command in Linux to do this (just replace YOUR_REGISTRY_URI with the appropriate location in your environment):
-```
-sed -i 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' *deployment.json
-```
-For MacOS the `-i` flag creates backup files when changing the original file in place. You can use the following command, and then delete the `*.backup` files afterwards if you don't need them anymore:
-```
-sed -i'.backup' -e 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g' *deployment.json
-```
-If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT_NAME>`.
 
 * Start a copy of redis and a service in front of it:
     ```
@@ -119,6 +113,66 @@ If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT
     kubectl apply -f metrics_servicemonitor.json
     ```
 You should now be able to see the core component pods running using a `kubectl get pods`, and the core component metrics in the Prometheus Web UI by running `kubectl proxy <PROMETHEUS_POD_NAME> 9090:9090` in your local shell, then opening http://localhost:9090/targets in your browser to see which services Prometheus is collecting from.
+
+Here's an example output from `kubectl get all` if everything started correctly, and you included all the optional components (note: this could become out-of-date with upcoming versions; apologies if that happens):
+```
+joeholley@jholley-ub-lx-ase1:~/go/src/github.com/GoogleCloudPlatform/open-match/install/yaml$ kubectl get all
+NAME                                       READY     STATUS    RESTARTS   AGE
+pod/om-backendapi-84bc9d8fff-q89kr         1/1       Running   0          9m
+pod/om-frontendapi-55d5bb7946-c5ccb        1/1       Running   0          9m
+pod/om-mmforc-85bfd7f4f6-wmwhc             1/1       Running   0          9m
+pod/om-mmlogicapi-6488bc7fc6-g74dm         1/1       Running   0          9m
+pod/prometheus-operator-5c8774cdd8-7c5qm   1/1       Running   0          9m
+pod/prometheus-prometheus-0                2/2       Running   0          9m
+pod/redis-master-9b6b86c46-b7ggn           1/1       Running   0          9m
+
+NAME                          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+service/kubernetes            ClusterIP   10.59.240.1     <none>        443/TCP          19m
+service/om-backend-metrics    ClusterIP   10.59.254.43    <none>        29555/TCP        9m
+service/om-backendapi         ClusterIP   10.59.240.211   <none>        50505/TCP        9m
+service/om-frontend-metrics   ClusterIP   10.59.246.228   <none>        19555/TCP        9m
+service/om-frontendapi        ClusterIP   10.59.250.59    <none>        50504/TCP        9m
+service/om-mmforc-metrics     ClusterIP   10.59.240.59    <none>        39555/TCP        9m
+service/om-mmlogicapi         ClusterIP   10.59.248.3     <none>        50503/TCP        9m
+service/prometheus            NodePort    10.59.252.212   <none>        9090:30900/TCP   9m
+service/prometheus-operated   ClusterIP   None            <none>        9090/TCP         9m
+service/redis-sentinel        ClusterIP   10.59.249.197   <none>        6379/TCP         9m
+
+NAME                                        DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+deployment.extensions/om-backendapi         1         1         1            1           9m
+deployment.extensions/om-frontendapi        1         1         1            1           9m
+deployment.extensions/om-mmforc             1         1         1            1           9m
+deployment.extensions/om-mmlogicapi         1         1         1            1           9m
+deployment.extensions/prometheus-operator   1         1         1            1           9m
+deployment.extensions/redis-master          1         1         1            1           9m
+
+NAME                                                   DESIRED   CURRENT   READY     AGE
+replicaset.extensions/om-backendapi-84bc9d8fff         1         1         1         9m
+replicaset.extensions/om-frontendapi-55d5bb7946        1         1         1         9m
+replicaset.extensions/om-mmforc-85bfd7f4f6             1         1         1         9m
+replicaset.extensions/om-mmlogicapi-6488bc7fc6         1         1         1         9m
+replicaset.extensions/prometheus-operator-5c8774cdd8   1         1         1         9m
+replicaset.extensions/redis-master-9b6b86c46           1         1         1         9m
+
+NAME                                  DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/om-backendapi         1         1         1            1           9m
+deployment.apps/om-frontendapi        1         1         1            1           9m
+deployment.apps/om-mmforc             1         1         1            1           9m
+deployment.apps/om-mmlogicapi         1         1         1            1           9m
+deployment.apps/prometheus-operator   1         1         1            1           9m
+deployment.apps/redis-master          1         1         1            1           9m
+
+NAME                                             DESIRED   CURRENT   READY     AGE
+replicaset.apps/om-backendapi-84bc9d8fff         1         1         1         9m
+replicaset.apps/om-frontendapi-55d5bb7946        1         1         1         9m
+replicaset.apps/om-mmforc-85bfd7f4f6             1         1         1         9m
+replicaset.apps/om-mmlogicapi-6488bc7fc6         1         1         1         9m
+replicaset.apps/prometheus-operator-5c8774cdd8   1         1         1         9m
+replicaset.apps/redis-master-9b6b86c46           1         1         1         9m
+
+NAME                                     DESIRED   CURRENT   AGE
+statefulset.apps/prometheus-prometheus   1         1         9m
+```
 
 ### End-to-End testing
 

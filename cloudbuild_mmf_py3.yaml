@@ -1,11 +1,8 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'pull', 'gcr.io/$PROJECT_ID/openmatch-mmf:py3' ]
-- name: 'gcr.io/cloud-builders/docker'
   args: [
             'build', 
             '--tag=gcr.io/$PROJECT_ID/openmatch-mmf:py3', 
-            '--cache-from=gcr.io/$PROJECT_ID/openmatch-mmf:py3', 
             '-f', 'Dockerfile.mmf_py3', 
             '.'
         ]
