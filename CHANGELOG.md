@@ -1,6 +1,6 @@
 # Release history
 
-##v0.2.0 RC2 (alpha)
+##v0.2.0 (alpha)
   This is a pretty large update.  Custom MMFs or evaluators from 0.1.0 may need some tweaking to work with this version. Some Backend API function arguments have changed. Please join the [Slack channel](https://open-match.slack.com/) if you need help ([Signup link](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLWQzMzE1MGY5YmYyYWY3ZjE2MjNjZTdmYmQ1ZTQzMmNiNGViYmQyN2M4ZmVkMDY2YzZlOTUwMTYwMzI1Y2I2MjU))!
 
   v0.2.0 focused on adding additional functionality to Backend API calls and on **reducing the amount of boilerplate code required to make a custom Matchmaking Function**.  For this, a new internal API for use by MMFs called the [Matchmaking Logic API (MMLogic API)](README.md#matchmaking-logic-mmlogic-api) has been added.  Many of the core components and examples had to be updated to use the new Backend API arguments and the modules to support them, so we recommend you rebuild and redeploy all the components to use v0.2.0. 
