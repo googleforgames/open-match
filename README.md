@@ -13,8 +13,7 @@ This project attempts to solve the networking and plumbing problems, so game dev
 This software is currently alpha, and subject to change. **It is not yet ready to be used in production.**
 
 ## Version
-The current stable version in master is 0.1.0.  
-The 0.2.0 RC1 is now available.
+The current stable version in master is 0.2.0.  
 
 # Core Concepts
 
