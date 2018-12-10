@@ -1,5 +1,5 @@
 # Golang application builder steps
-FROM golang:1.10.3 as builder
+FROM gcr.io/matchmaker-dev-201405/openmatch-base:dev as builder
 
 # Necessary to get a specific version of the golang k8s client
 RUN go get github.com/tools/godep
@@ -12,8 +12,6 @@ RUN rm -rf /go/src/github.com/golang/protobuf/
 
 WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/
 COPY cmd/mmforc cmd/mmforc
-COPY config config
-COPY internal internal
 WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/cmd/mmforc/
 RUN go get -d -v 
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .

@@ -1,6 +1,5 @@
 # Golang application builder steps
-# FROM golang:1.10.3 as builder
-FROM gcr.io/matchmaker-dev-201405/openmatch-devbase as builder
+FROM gcr.io/matchmaker-dev-201405/openmatch-base:dev as builder
 WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match
 COPY examples/functions/golang/manual-simple examples/functions/golang/manual-simple 
 WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/examples/functions/golang/manual-simple

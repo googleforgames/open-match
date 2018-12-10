@@ -1,9 +1,7 @@
 # Golang application builder steps
-FROM golang:1.10.3 as builder
+FROM gcr.io/matchmaker-dev-201405/openmatch-base:dev as builder
 WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match
 COPY cmd/backendapi cmd/backendapi
-COPY config config
-COPY internal internal
 WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/cmd/backendapi
 RUN go get -d -v
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
