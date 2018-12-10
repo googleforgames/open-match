@@ -41,22 +41,12 @@ The [Quickstart for Docker](https://cloud.google.com/cloud-build/docs/quickstart
     gcr.io/matchmaker-dev-201405/openmatch-devbase
     gcr.io/matchmaker-dev-201405/openmatch-evaluator
     gcr.io/matchmaker-dev-201405/openmatch-frontendapi
-    gcr.io/matchmaker-dev-201405/openmatch-mmf
+    gcr.io/matchmaker-dev-201405/openmatch-mmf-golang-manual-simple
+    gcr.io/matchmaker-dev-201405/openmatch-mmf-php-mmlogic-simple
+    gcr.io/matchmaker-dev-201405/openmatch-mmf-py3-mmlogic-simple
     gcr.io/matchmaker-dev-201405/openmatch-mmforc
     gcr.io/matchmaker-dev-201405/openmatch-mmlogicapi
     ```
-* The default example MMF images all use the same name (`openmatch-mmf`), with different image tags designating the different examples.  You can check that these exist by running this command (again, substituting your **gcr.io** registry):
-    ```
-    gcloud container images list-tags gcr.io/matchmaker-dev-201405/openmatch-mmf
-    ```
-    You should see tags for several of the example MMFs.  By default, Open Match will try to use the `openmatch-mmf:py3` image in the examples below, so it is important that the image build was successful and a `py3` image tag exists in your **gcr.io** registry before you continue:
-    ```
-    DIGEST        TAGS     TIMESTAMP
-    5345475e026c  php      2018-12-05T00:06:47
-    e5c274c3509c  go       2018-12-05T00:02:17
-    1b3ec3176d0f  py3      2018-12-05T00:02:07
-    ```
-
 ## Example of starting a GKE cluster
 
 A cluster with mostly default settings will work for this development guide.  In the Cloud SDK command below we start it with machines that have 4 vCPUs.  Alternatively, you can use the 'Create Cluster' button in [Google Cloud Console]("https://console.cloud.google.com/kubernetes").
