@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
