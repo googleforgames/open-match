@@ -14,7 +14,7 @@ option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
 // MatchObject as input only require a few of them to be filled in.  Check the
 // gRPC function in question for more details.
 message MatchObject{
-  string id = 1;                        // By convention, a UUID
+  string id = 1;                        // By convention, an Xid
   string properties = 2;                // By convention, a JSON-encoded string
   string error = 3;                     // Last error encountered. 
   repeated Roster rosters = 4;          // Rosters of players.  
@@ -61,7 +61,7 @@ message Player{
     string name = 1;                // Name should match a Filter.attribute field. 
     int64 value = 2;
   }
-  string id = 1;                    // By convention, a UUID 
+  string id = 1;                    // By convention, an Xid
   string properties = 2;            // By convention, a JSON-encoded string
   string pool = 3;                  // Optionally used to specify the PlayerPool in which to find a player. 
   repeated Attribute attributes= 4; // Attributes of this player.
