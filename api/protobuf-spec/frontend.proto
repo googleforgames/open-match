@@ -19,5 +19,5 @@ message Group{
 }
 
 message PlayerId {
-    string id = 1;          // By convention, a UUID
+    string id = 1;          // By convention, an Xid
 }

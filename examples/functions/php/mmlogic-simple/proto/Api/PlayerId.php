@@ -14,7 +14,7 @@ use Google\Protobuf\Internal\GPBUtil;
 class PlayerId extends \Google\Protobuf\Internal\Message
 {
     /**
-     * By convention, a UUID
+     * By convention, an Xid
      *
      * Generated from protobuf field <code>string id = 1;</code>
      */
@@ -27,7 +27,7 @@ class PlayerId extends \Google\Protobuf\Internal\Message
      *     Optional. Data for populating the Message object.
      *
      *     @type string $id
-     *           By convention, a UUID
+     *           By convention, an Xid
      * }
      */
     public function __construct($data = NULL) {
@@ -36,7 +36,7 @@ class PlayerId extends \Google\Protobuf\Internal\Message
     }
 
     /**
-     * By convention, a UUID
+     * By convention, an Xid
      *
      * Generated from protobuf field <code>string id = 1;</code>
      * @return string
@@ -47,7 +47,7 @@ class PlayerId extends \Google\Protobuf\Internal\Message
     }
 
     /**
-     * By convention, a UUID
+     * By convention, an Xid
      *
      * Generated from protobuf field <code>string id = 1;</code>
      * @param string $var
