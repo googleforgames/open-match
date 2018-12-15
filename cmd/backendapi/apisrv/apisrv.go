@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
@@ -42,7 +41,7 @@ import (
 	"github.com/tidwall/gjson"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/google/uuid"
+	"github.com/rs/xid"
 	"github.com/spf13/viper"
 
 	"google.golang.org/grpc"
@@ -120,7 +119,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
 	// Generate a request to fill the profile. Make a unique request ID.
-	moID := strings.Replace(uuid.New().String(), "-", "", -1)
+	moID := xid.New().String()
 	requestKey := moID + "." + profile.Id
 
 	/*
