@@ -166,7 +166,7 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *mmlogic.MatchObject
 	}
 
 	// Write all non-id fields from the protobuf message to state storage.
-	err := redispb.MarshalToRedis(c, prop, s.pool)
+	err := redispb.MarshalToRedis(c, s.pool, prop)
 	if err != nil {
 		stats.Record(fnCtx, MlGrpcErrors.M(1))
 		return &mmlogic.Result{Success: false, Error: err.Error()}, err

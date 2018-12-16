@@ -277,14 +277,16 @@ func Update(ctx context.Context, pool *redis.Pool, key string, value string) (st
 	return "", err
 }
 
-// Delete is a concurrent-safe, context-aware redis DEL on the input key
-func Delete(ctx context.Context, pool *redis.Pool, key string) (string, error) {
+// UpdateMultiFields is a concurrent-safe, context-aware Redis HSET of the input field
+// Keys to update and the values to set the field to are passed in the 'kv' map.
+// Example usage is to set multiple player's "assignment" field to various game server connection strings.
+// "field" := "assignment"
+// "kv" := map[string]string{ "player1": "servername:10000", "player2": "otherservername:10002" }
+func UpdateMultiFields(ctx context.Context, pool *redis.Pool, kv map[string]string, field string) error {
 
-	// Add the key as a field to all logs for the execution of this function.
-	rhLog = rhLog.WithFields(log.Fields{"key": key})
-
-	cmd := "DEL"
-	rhLog.WithFields(log.Fields{"query": cmd}).Debug("state storage operation")
+	// Add the cmd & field to all logs for the execution of this function.
+	cmd := "HSET"
+	dfLog := rhLog.WithFields(log.Fields{"field": field, "query": cmd})
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
@@ -292,15 +294,75 @@ func Delete(ctx context.Context, pool *redis.Pool, key string) (string, error) {
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
-		rhLog.WithFields(log.Fields{
+		dfLog.WithFields(log.Fields{
 			"error": err.Error(),
-			"query": cmd}).Error("state storage connection error")
-		return "", err
+		}).Error("state storage connection error")
+		return err
 	}
 
 	// Run redis query and return
-	_, err = redisConn.Do("DEL", key)
-	return "", err
+	redisConn.Send("MULTI")
+	for key, value := range kv {
+		dfLog.WithFields(log.Fields{"key": key, "value": value}).Debug("state storage operation")
+		redisConn.Send(cmd, key, field, value)
+	}
+	_, err = redisConn.Do("EXEC")
+	return err
+}
+
+// Delete is a concurrent-safe, context-aware redis DEL on the input key
+func Delete(ctx context.Context, pool *redis.Pool, key string) error {
+
+	// Add the key as a field to all logs for the execution of this function.
+	cmd := "DEL"
+	dLog := rhLog.WithFields(log.Fields{"key": key, "query": cmd})
+	dLog.Debug("state storage operation")
+
+	// Get a connection to redis
+	redisConn, err := pool.GetContext(ctx)
+	defer redisConn.Close()
+
+	// Encountered an issue getting a connection from the pool.
+	if err != nil {
+		dLog.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("state storage connection error")
+		return err
+	}
+
+	// Run redis query and return
+	_, err = redisConn.Do(cmd, key)
+	return err
+}
+
+// DeleteMultiFields is a concurrent-safe, context-aware Redis DEL of the input field
+// from the input keys
+func DeleteMultiFields(ctx context.Context, pool *redis.Pool, keys []string, field string) error {
+
+	// Add the cmd & field to all logs for the execution of this function.
+	cmd := "HDEL"
+	dfLog := rhLog.WithFields(log.Fields{"field": field, "query": cmd})
+
+	// Get a connection to redis
+	redisConn, err := pool.GetContext(ctx)
+	defer redisConn.Close()
+
+	// Encountered an issue getting a connection from the pool.
+	if err != nil {
+		dfLog.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("state storage connection error")
+		return err
+	}
+
+	// Run redis query and return
+	redisConn.Send("MULTI")
+	for _, key := range keys {
+		dfLog.WithFields(log.Fields{"key": key}).Debug("state storage operation")
+		redisConn.Send(cmd, key, field)
+	}
+	_, err = redisConn.Do("EXEC")
+	return err
 }
 
 // Count is a concurrent-safe, context-aware redis SCARD on the input key
