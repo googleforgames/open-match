@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
       - name: om-backend
-        image: gcr.io/unite-au-demo/openmatch-backendapi:dev
+        image: gcr.io/matchmaker-dev-201405/openmatch-backendapi:dev
         imagePullPolicy: Always
         ports:
         - name: grpc
@@ -79,7 +79,7 @@ spec:
     spec:
       containers:
       - name: om-frontendapi
-        image: gcr.io/unite-au-demo/openmatch-frontendapi:dev
+        image: gcr.io/matchmaker-dev-201405/openmatch-frontendapi:dev
         imagePullPolicy: Always
         ports:
         - name: grpc
@@ -125,7 +125,7 @@ spec:
     spec:
       containers:
       - name: om-mmforc
-        image: gcr.io/unite-au-demo/openmatch-mmforc:dev
+        image: gcr.io/matchmaker-dev-201405/openmatch-mmforc:dev
         imagePullPolicy: Always
         ports:
         - name: metrics

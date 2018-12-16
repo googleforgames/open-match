@@ -1,20 +1,18 @@
 # Open Match
 
-Open Match is an open source game matchmaker designed to allow game creators to re-use a common matchmaker framework. It’s designed to be flexible (run it anywhere Kubernetes runs), extensible (match logic can be customized to work for any game), and scalable.
+Open Match is an open source game matchmaking framework designed to allow game creators to build matchmakers of any size easily and with as much possibility for sharing and code re-use as possible. It’s designed to be flexible (run it anywhere Kubernetes runs), extensible (match logic can be customized to work for any game), and scalable.
 
 Matchmaking is a complicated process, and when large player populations are involved, many popular matchmaking approaches touch on significant areas of computer science including graph theory and massively concurrent processing. Open Match is an effort to provide a foundation upon which these difficult problems can be addressed by the wider game development community. As Josh Menke &mdash; famous for working on matchmaking for many popular triple-A franchises &mdash; put it:
 
 ["Matchmaking, a lot of it actually really is just really good engineering. There's a lot of really hard networking and plumbing problems that need to be solved, depending on the size of your audience."](https://youtu.be/-pglxege-gU?t=830)
 
-
 This project attempts to solve the networking and plumbing problems, so game developers can focus on the logic to match players into great games.
 
 ## Disclaimer
-This software is currently alpha, and subject to change. **It is not yet ready to be used in production.**
+This software is currently alpha, and subject to change.  Although Open Match has already been used to run [production workloads within Google](https://cloud.google.com/blog/topics/inside-google-cloud/no-tricks-just-treats-globally-scaling-the-halloween-multiplayer-doodle-with-open-match-on-google-cloud), but it's still early days on the way to our final goal. There's plenty left to write and we welcome contributions. **We strongly encourage you to engage with the community through the [Slack or Mailing lists](#get-involved) if you're considering using Open Match in production before the 1.0 release, as the documentation is likely to lag behind the latest version a bit while we focus on getting out of alpha/beta as soon as possible.**
 
 ## Version
-The current stable version in master is 0.1.0.  
-The 0.2.0 RC1 is now available.
+[The current stable version in master is 0.2.0 (alpha)](https://github.com/GoogleCloudPlatform/open-match/releases/tag/020).  
 
 # Core Concepts
 
@@ -32,6 +30,7 @@ Open Match is designed to support massively concurrent matchmaking, and to be sc
 * **MMFOrc** &mdash; Matchmaker function orchestrator. This Open Match core component is in charge of kicking off custom matchmaking functions (MMFs) and evaluator processes.
 * **State Storage** &mdash; The storage software used by Open Match to hold all the matchmaking state. Open Match ships with [Redis](https://redis.io/) as the default state storage.
 * **Assignment** &mdash; Refers to assigning a player or group of players to a dedicated game server instance. Open Match offers a path to send dedicated game server connection details from your backend to your game clients after a match has been made.
+* **DGS** &mdash; Dedicated game server
 
 ## Requirements
 * [Kubernetes](https://kubernetes.io/) cluster &mdash; tested with version 1.9.
@@ -107,19 +106,23 @@ Large-scale concurrent matchmaking functions is a complex topic, and users who w
 
 Matchmaking Functions (MMFs) are run by the Matchmaker Function Orchestrator (MMFOrc) &mdash; once per profile it sees in state storage. The MMF is run as a Job in Kubernetes, and has full access to read and write from state storage. At a high level, the encouraged pattern is to write a MMF in whatever language you are comfortable in that can do the following things:
 
-[x] Be packaged in a (Linux) Docker container.
-[x] Read/write from the Open Match state storage &mdash; Open Match ships with Redis as the default state storage.
-[x] Read a profile you wrote to state storage using the Backend API.
-[x] Select from the player data you wrote to state storage using the Frontend API.
-[ ] Run your custom logic to try to find a match.
-[x] Write the match object it creates to state storage at a specified key.
-[x] Remove the players it selected from consideration by other MMFs.
-[x] Notify the MMFOrc of completion.
-[x] (Optional, but recommended) Export stats for metrics collection.
+- [x] Be packaged in a (Linux) Docker container.
+- [x] Read/write from the Open Match state storage &mdash; Open Match ships with Redis as the default state storage.
+- [x] Read a profile you wrote to state storage using the Backend API.
+- [x] Select from the player data you wrote to state storage using the Frontend API.
+- [ ] Run your custom logic to try to find a match.
+- [x] Write the match object it creates to state storage at a specified key.
+- [x] Remove the players it selected from consideration by other MMFs.
+- [x] Notify the MMFOrc of completion.
+- [x] (Optional, but recommended) Export stats for metrics collection.
 
-** Open Match offers [matchmaking logic API](#matchmaking-logic-mmlogic-api) calls for handling the checked items, as long as you are willing to format your input and output in the data schema Open Match expects (defined in the [protobuf messages](api/protobuf-spec/messages.proto)). **  You can to do this work yourself if you don't want to or can't use the data schema Open Match is looking for.  However, the data formats expected by Open Match are pretty generalized and will work with most common matchmaking scenarios and game types.  If you have questions about how to fit your data into the formats specified, feel free to ask us in the Slack or mailing group.
+**Open Match offers [matchmaking logic API](#matchmaking-logic-mmlogic-api) calls for handling the checked items, as long as you are able to format your input and output in the data schema Open Match expects (defined in the [protobuf messages](api/protobuf-spec/messages.proto)).**  You can to do this work yourself if you don't want to or can't use the data schema Open Match is looking for.  However, the data formats expected by Open Match are pretty generalized and will work with most common matchmaking scenarios and game types.  If you have questions about how to fit your data into the formats specified, feel free to ask us in the [Slack or mailing group](#get-involved).
 
-Example MMFs are provided in Golang and C#.
+Example MMFs are provided in these languages:
+- [C#](examples/functions/csharp/simple) (doesn't use the MMLogic API)
+- [Python3](examples/functions/python3/mmlogic-simple) (MMLogic API enabled)
+- [PHP](examples/functions/php/mmlogic-simple)  (MMLogic API enabled)
+- [golang](examples/functions/golang/manual-simple)  (doesn't use the MMLogic API)
 
 ## Open Source Software integrations
 
@@ -152,11 +155,11 @@ The following examples of how to call the APIs are provided in the repository. B
 
 Documentation and usage guides on how to set up and customize Open Match.
 
-## Precompiled container images
+### Precompiled container images
 
 Once we reach a 1.0 release, we plan to produce publicly available (Linux) Docker container images of major releases in a public image registry. Until then, refer to the 'Compiling from source' section below.
 
-## Compiling from source
+### Compiling from source
 
 All components of Open Match produce (Linux) Docker container images as artifacts, and there are included `Dockerfile`s for each. [Google Cloud Platform Cloud Build](https://cloud.google.com/cloud-build/docs/) users will also find `cloudbuild_COMPONENT.yaml` files for each component in the repository root.
 
@@ -172,7 +175,6 @@ docker build -t openmatch-mmf -f Dockerfile.mmf .
 ```
 
 ## Configuration
-
 Currently, each component reads a local config file `matchmaker_config.json`, and all components assume they have the same configuration. To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally. When `docker build`ing the component container images, the Dockerfile copies the centralized config file into the component directory.
 
 We plan to replace this with a Kubernetes-managed config with dynamic reloading when development time allows. Pull requests are welcome!
@@ -229,8 +231,9 @@ Apache 2.0
 
 ## State storage
 - [ ] All state storage operations should be isolated from core components into the `statestorage/` modules.  This is necessary precursor work to enabling Open Match state storage to use software other than Redis.
-- [ ] The Redis deployment should have an example HA configuration using HAProxy 
+- [ ] [The Redis deployment should have an example HA configuration](https://github.com/GoogleCloudPlatform/open-match/issues/41)
 - [ ] Redis watch should be unified to watch a hash and stream updates.  The code for this is written and validated but not committed yet. We don't want to support two redis watcher code paths, so the backend watch of the match object should be switched to unify the way the frontend and backend watch keys.  The backend part of this is in but the frontend part is in another branch and will be committed later. 
+- [ ] Player/Group records generated when a client enters the matchmaking pool need to be removed after a certain amount of time with no activity. When using Redis, this will be implemented as a expiration on the player record.
 
 ## Instrumentation / Metrics / Analytics
 - [ ] Instrumentation of MMFs is in the planning stages.  Since MMFs are by design meant to be completely customizable (to the point of allowing any process that can be packaged in a Docker container), metrics/stats will need to have an expected format and formalized outgoing pathway.  Currently the thought is that it might be that the metrics should be written to a particular key in statestorage in a format compatible with opencensus, and will be collected, aggreggated, and exported to Prometheus using another process.
@@ -244,7 +247,6 @@ Apache 2.0
 - [ ] Autoscaling isn't turned on for the Frontend or Backend API Kubernetes deployments by default.
 - [ ] A [Helm](https://helm.sh/) chart to stand up Open Match will be provided in an upcoming version. For now just use the [installation YAMLs](./install/yaml).
 
-- [ ] Player/Group records generated when a client enters the matchmaking pool need to be removed after a certain amount of time with no activity. When using Redis, this will be implemented as a expiration on the player record.
 ## CI / CD / Build
 - [ ] We plan to host 'official' docker images for all release versions of the core components in publicly available docker registries soon.
 - [ ] CI/CD for this repo and the associated status tags are planned.
@@ -253,3 +255,6 @@ Apache 2.0
 
 ## Will not Implement 
 - [X] Defining multiple images inside a profile for the purposes of experimentation adds another layer of complexity into profiles that can instead be handled outside of open match with custom match functions in collaboration with a director (thing that calls backend to schedule matchmaking) 
+
+### Special Thanks
+- Thanks to https://jbt.github.io/markdown-editor/ for help in marking this document down.
