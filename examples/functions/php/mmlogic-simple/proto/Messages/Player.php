@@ -16,7 +16,7 @@ use Google\Protobuf\Internal\GPBUtil;
 class Player extends \Google\Protobuf\Internal\Message
 {
     /**
-     * By convention, a UUID 
+     * By convention, an Xid 
      *
      * Generated from protobuf field <code>string id = 1;</code>
      */
@@ -47,7 +47,7 @@ class Player extends \Google\Protobuf\Internal\Message
      *     Optional. Data for populating the Message object.
      *
      *     @type string $id
-     *           By convention, a UUID 
+     *           By convention, an Xid 
      *     @type string $properties
      *           By convention, a JSON-encoded string
      *     @type string $pool
@@ -62,7 +62,7 @@ class Player extends \Google\Protobuf\Internal\Message
     }
 
     /**
-     * By convention, a UUID 
+     * By convention, an Xid 
      *
      * Generated from protobuf field <code>string id = 1;</code>
      * @return string
@@ -73,7 +73,7 @@ class Player extends \Google\Protobuf\Internal\Message
     }
 
     /**
-     * By convention, a UUID 
+     * By convention, an Xid 
      *
      * Generated from protobuf field <code>string id = 1;</code>
      * @param string $var
