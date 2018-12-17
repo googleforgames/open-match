@@ -34,7 +34,7 @@ service/om-mmforc-metrics     ClusterIP   10.59.240.59    <none>        39555/TC
 service/om-mmlogicapi         ClusterIP   10.59.248.3     <none>        50503/TCP        9m
 service/prometheus            NodePort    10.59.252.212   <none>        9090:30900/TCP   9m
 service/prometheus-operated   ClusterIP   None            <none>        9090/TCP         9m
-service/redis-sentinel        ClusterIP   10.59.249.197   <none>        6379/TCP         9m
+service/redis                 ClusterIP   10.59.249.197   <none>        6379/TCP         9m
 
 NAME                                        DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
 deployment.extensions/om-backendapi         1         1         1            1           9m
