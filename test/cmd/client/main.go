@@ -31,14 +31,14 @@ import (
 func main() {
 
 	conf, err := readConfig("", map[string]interface{}{
-		"REDIS_SENTINEL_SERVICE_HOST": "127.0.0.1",
-		"REDIS_SENTINEL_SERVICE_PORT": "6379",
+		"REDIS_SERVICE_HOST": "127.0.0.1",
+		"REDIS_SERVICE_PORT": "6379",
 	})
 	check(err, "QUIT")
 
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
-	redisURL := "redis://" + conf.GetString("REDIS_SENTINEL_SERVICE_HOST") + ":" + conf.GetString("REDIS_SENTINEL_SERVICE_PORT")
+	redisURL := "redis://" + conf.GetString("REDIS_SERVICE_HOST") + ":" + conf.GetString("REDIS_SERVICE_PORT")
 
 	pool := redis.Pool{
 		MaxIdle:     3,
