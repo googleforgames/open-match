@@ -18,8 +18,8 @@ namespace mmfdotnet
     {
         static void Main(string[] args)
         {
-            string host = Environment.GetEnvironmentVariable("REDIS_SENTINEL_SERVICE_HOST");
-            string port = Environment.GetEnvironmentVariable("REDIS_SENTINEL_SERVICE_PORT");
+            string host = Environment.GetEnvironmentVariable("REDIS_SERVICE_HOST");
+            string port = Environment.GetEnvironmentVariable("REDIS_SERVICE_PORT");
 
             // Single connection to the open match redis cluster
             Console.WriteLine($"Connecting to redis...{host}:{port}");

@@ -140,7 +140,7 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: redis-sentinel
+  name: redis
 spec:
   selector:
     app: openmatch

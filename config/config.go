@@ -43,8 +43,8 @@ var (
 	// REDIS_SENTINEL_PORT_6379_TCP_PROTO=tcp
 	// REDIS_SENTINEL_SERVICE_HOST=10.55.253.195
 	envMappings = map[string]string{
-		"redis.hostname":         "REDIS_SENTINEL_SERVICE_HOST",
-		"redis.port":             "REDIS_SENTINEL_SERVICE_PORT",
+		"redis.hostname":         "REDIS_SERVICE_HOST",
+		"redis.port":             "REDIS_SERVICE_PORT",
 		"redis.pool.maxIdle":     "REDIS_POOL_MAXIDLE",
 		"redis.pool.maxActive":   "REDIS_POOL_MAXACTIVE",
 		"redis.pool.idleTimeout": "REDIS_POOL_IDLETIMEOUT",

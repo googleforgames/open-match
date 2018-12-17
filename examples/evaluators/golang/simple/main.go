@@ -48,8 +48,8 @@ func main() {
 	// Read config
 	lgr.Println("Initializing config...")
 	cfg, err := readConfig("matchmaker_config", map[string]interface{}{
-		"REDIS_SENTINEL_SERVICE_HOST": "redis-sentinel",
-		"REDIS_SENTINEL_SERVICE_PORT": "6379",
+		"REDIS_SERVICE_HOST": "redis",
+		"REDIS_SERVICE_PORT": "6379",
 		"auth": map[string]string{
 			// Read from k8s secret eventually
 			// Probably doesn't need a map, just here for reference
@@ -63,7 +63,7 @@ func main() {
 	// Connect to redis
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz // redis pool docs: https://godoc.org/github.com/gomodule/redigo/redis#Pool
-	redisURL := "redis://" + cfg.GetString("REDIS_SENTINEL_SERVICE_HOST") + ":" + cfg.GetString("REDIS_SENTINEL_SERVICE_PORT")
+	redisURL := "redis://" + cfg.GetString("REDIS_SERVICE_HOST") + ":" + cfg.GetString("REDIS_SERVICE_PORT")
 	lgr.Println("Connecting to redis at", redisURL)
 	pool := redis.Pool{
 		MaxIdle:     3,
@@ -157,10 +157,10 @@ func readConfig(filename string, defaults map[string]interface{}) (*viper.Viper,
 	   REDIS_SENTINEL_PORT_6379_TCP=tcp://10.55.253.195:6379
 	   REDIS_SENTINEL_PORT=tcp://10.55.253.195:6379
 	   REDIS_SENTINEL_PORT_6379_TCP_ADDR=10.55.253.195
-	   REDIS_SENTINEL_SERVICE_PORT=6379
+	   REDIS_SERVICE_PORT=6379
 	   REDIS_SENTINEL_PORT_6379_TCP_PORT=6379
 	   REDIS_SENTINEL_PORT_6379_TCP_PROTO=tcp
-	   REDIS_SENTINEL_SERVICE_HOST=10.55.253.195
+	   REDIS_SERVICE_HOST=10.55.253.195
 	*/
 	v := viper.New()
 	for key, value := range defaults {
