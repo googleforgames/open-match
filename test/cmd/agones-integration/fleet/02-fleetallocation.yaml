@@ -1,0 +1,8 @@
+apiVersion: "stable.agones.dev/v1alpha1"
+kind: FleetAllocation
+metadata:
+  # generate a unique name
+  # will need to be created with `kubectl create`
+  generateName: udp-server-
+spec:
+  fleetName: udp-server
