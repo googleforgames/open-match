@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"agones.dev/agones/pkg/util/signals"
-	"agones.dev/agones/sdks/go"
+	sdk "agones.dev/agones/sdks/go"
 )
 
 const maxBufferSize = 1024
@@ -48,7 +48,7 @@ func main() {
 		log.Fatalf("Could not send ready message")
 	}
 
-	err = server(ctx, "localhost:7007")
+	err = server(ctx, ":10001") // Bind to all IPs for the machine
 	if err != nil {
 		log.Print(err)
 	}
@@ -56,6 +56,7 @@ func main() {
 
 func server(ctx context.Context, address string) (err error) {
 	// Start listening
+	log.Printf("Listening on %v:%v", address)
 	pc, err := net.ListenPacket("udp", address)
 	if err != nil {
 		return
