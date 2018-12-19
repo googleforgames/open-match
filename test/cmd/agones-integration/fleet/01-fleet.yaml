@@ -3,14 +3,15 @@ kind: Fleet
 metadata:
   name: udp-server
 spec:
-  replicas: 2
+  replicas: 1
   template:
     spec:
       ports:
       - name: default
-        containerPort: 7007
+        portPolicy: "dynamic"
+        containerPort: 10001 
       template:
         spec:
           containers:
           - name: simple-udp
-            image: gcr.io/open-match-222408/udp-server:latest
+            image: gcr.io/matchmaker-dev-201405/udp-server:latest

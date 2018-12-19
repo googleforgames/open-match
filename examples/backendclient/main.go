@@ -141,34 +141,34 @@ func main() {
 			ppJSON(match.Properties)
 			fmt.Println(match)
 
-			/*
-				// Get players from the json properties.roster field
-				log.Println("Gathering roster from received match...")
-				players := make([]string, 0)
-				result := gjson.Get(match.Properties, "properties.roster")
-				result.ForEach(func(teamName, teamRoster gjson.Result) bool {
-					teamRoster.ForEach(func(_, player gjson.Result) bool {
-						players = append(players, player.String())
-						return true // keep iterating
-					})
+			// Get players from the json properties.roster field
+			log.Println("Gathering roster from received match...")
+			players := make([]string, 0)
+			result := gjson.Get(match.Properties, "properties.roster")
+			result.ForEach(func(teamName, teamRoster gjson.Result) bool {
+				teamRoster.ForEach(func(_, player gjson.Result) bool {
+					players = append(players, player.String())
 					return true // keep iterating
 				})
-				//log.Printf("players = %+v\n", players)
+				return true // keep iterating
+			})
+			//log.Printf("players = %+v\n", players)
 
-				// Assign players in this match to our server
-				log.Println("Assigning players to DGS at example.com:12345")
+			// Assign players in this match to our server
+			connstring := "example.com:12345"
+			if len(os.Args) >= 1 {
+				connstring = os.Args[1]
+			}
+			log.Println("Assigning players to DGS at", connstring)
 
-				playerstr := strings.Join(players, " ")
+			ci := &backend.ConnectionInfo{ConnectionString: connstring}
 
-				roster := &backend.Roster{PlayerIds: playerstr}
-				ci := &backend.ConnectionInfo{ConnectionString: "example.com:12345"}
-
-				assign := &backend.Assignments{Roster: roster, ConnectionInfo: ci}
-				_, err = client.CreateAssignments(context.Background(), assign)
-				if err != nil {
-					panic(err)
-				}
-			*/
+			assign := &backend.Assignments{Rosters: match.Rosters, ConnectionInfo: ci}
+			_, err = client.CreateAssignments(context.Background(), assign)
+			if err != nil {
+				panic(err)
+			}
+			log.Println("Success.  Not deleting assignments [demo mode].")
 
 		}
 
