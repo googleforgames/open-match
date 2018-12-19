@@ -1,5 +1,9 @@
 {
     "debug": true,
+    "logging":{
+        "level": "debug",
+        "format": "json"
+    },
     "api": {
         "backend": {
             "hostname": "om-backendapi",

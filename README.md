@@ -128,7 +128,7 @@ Example MMFs are provided in these languages:
 
 ### Structured logging
 
-Logging for Open Match uses the [Golang logrus module](https://github.com/sirupsen/logrus) to provide structured logs. Logs are output to `stdout` in each component, as expected by Docker and Kubernetes. If you have a specific log aggregator as your final destination, we recommend you have a look at the logrus documentation as there is probably a log formatter that plays nicely with your stack.
+Logging for Open Match uses the [Golang logrus module](https://github.com/sirupsen/logrus) to provide structured logs. Logs are output to `stdout` in each component, as expected by Docker and Kubernetes. Level and format are configurable via config/matchmaker_config.json. If you have a specific log aggregator as your final destination, we recommend you have a look at the logrus documentation as there is probably a log formatter that plays nicely with your stack. If you 
 
 ### Instrumentation for metrics
 
@@ -165,8 +165,16 @@ All components of Open Match produce (Linux) Docker container images as artifact
 
 All the core components for Open Match are written in Golang and use the [Dockerfile multistage builder pattern](https://docs.docker.com/develop/develop-images/multistage-build/). This pattern uses intermediate Docker containers as a Golang build environment while producing lightweight, minimized container images as final build artifacts. When the project is ready for production, we will modify the `Dockerfile`s to uncomment the last build stage. Although this pattern is great for production container images, it removes most of the utilities required to troubleshoot issues during development.
 
-### Configuration
+### Example compiling components
+```
+docker build -t openmatch-backendapi -f Dockerfile.backendapi .
+docker build -t openmatch-frontendapi -f Dockerfile.frontendapi .
+docker build -t openmatch-mmforc -f Dockerfile.mmforc .
+docker build -t openmatch-evaluator -f Dockerfile.evaluator .
+docker build -t openmatch-mmf -f Dockerfile.mmf .
+```
 
+## Configuration
 Currently, each component reads a local config file `matchmaker_config.json`, and all components assume they have the same configuration. To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally. When `docker build`ing the component container images, the Dockerfile copies the centralized config file into the component directory.
 
 We plan to replace this with a Kubernetes-managed config with dynamic reloading when development time allows. Pull requests are welcome!

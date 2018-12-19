@@ -1,5 +1,7 @@
-// Package redispb marshals and unmarshals protobuf messages for redis state storage.
-//  More details about the protobuf messages used in Open Match can be found in the api/protobuf-spec/om_messages.proto file.
+// Package redispb marshals and unmarshals Open Match Backend protobuf messages
+// ('MatchObject') for redis state storage.
+//  More details about the protobuf messages used in Open Match can be found in
+//  the api/protobuf-spec/om_messages.proto file.
 /*
 Copyright 2018 Google LLC
 
@@ -48,7 +50,7 @@ var (
 
 // MarshalToRedis marshals a protobuf message to a redis hash.
 // The protobuf message in question must have an 'id' field.
-func MarshalToRedis(ctx context.Context, pb proto.Message, pool *redis.Pool) (err error) {
+func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message) (err error) {
 
 	// We want to serialize to redis as JSON, not the typical protobuf string
 	// serializer, so start by marshalling to json.
@@ -153,8 +155,12 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 		"key":       key,
 	})
 	pbMap, err := redis.StringMap(redisConn.Do(cmd, key))
+
+	// Put values from redis into the MatchObject message
 	pb.Error = pbMap["error"]
 	pb.Properties = pbMap["properties"]
+
+	// TODO: Room for improvement here.
 	poolsJSON := fmt.Sprintf("{\"pools\": %v}", pbMap["pools"])
 	err = jsonpb.UnmarshalString(poolsJSON, pb)
 	if err != nil {

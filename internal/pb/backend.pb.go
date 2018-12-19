@@ -11,8 +11,6 @@ It is generated from these files:
 	api/protobuf-spec/messages.proto
 
 It has these top-level messages:
-	Group
-	PlayerId
 	MatchObject
 	Roster
 	Filter
@@ -21,7 +19,6 @@ It has these top-level messages:
 	Player
 	Result
 	IlInput
-	ConnectionInfo
 	Assignments
 */
 package pb

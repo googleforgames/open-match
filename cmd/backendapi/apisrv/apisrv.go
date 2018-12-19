@@ -1,5 +1,6 @@
 /*
-package apisrv provides an implementation of the gRPC server defined in ../../../api/protobuf-spec/backend.proto
+package apisrv provides an implementation of the gRPC server defined in
+../../../api/protobuf-spec/backend.proto
 
 Copyright 2018 Google LLC
 
@@ -24,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
@@ -42,7 +42,7 @@ import (
 	"github.com/tidwall/gjson"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/google/uuid"
+	"github.com/rs/xid"
 	"github.com/spf13/viper"
 
 	"google.golang.org/grpc"
@@ -120,7 +120,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
 	// Generate a request to fill the profile. Make a unique request ID.
-	moID := strings.Replace(uuid.New().String(), "-", "", -1)
+	moID := xid.New().String()
 	requestKey := moID + "." + profile.Id
 
 	/*
@@ -135,8 +135,8 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 	*/
 
 	// Case where no protobuf pools was passed; check if there's a JSON version in the properties.
-	// This is for backwards compatibility, it is recommended you populate the
-	// pools before calling CreateMatch/ListMatches
+	// This is for backwards compatibility, it is recommended you populate the protobuf's
+	// 'pools' field directly and pass it to CreateMatch/ListMatches
 	if profile.Pools == nil && s.cfg.IsSet("jsonkeys.pools") &&
 		gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).Exists() {
 		poolsJSON := fmt.Sprintf("{\"pools\": %v}", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).String())
@@ -155,7 +155,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 
 	// Case where no protobuf roster was passed; check if there's a JSON version in the properties.
 	// This is for backwards compatibility, it is recommended you populate the
-	// pools before calling CreateMatch/ListMatches
+	// protobuf's 'rosters' field directly and pass it to CreateMatch/ListMatches
 	if profile.Rosters == nil && s.cfg.IsSet("jsonkeys.rosters") &&
 		gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.rosters")).Exists() {
 		rostersJSON := fmt.Sprintf("{\"rosters\": %v}", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.rosters")).String())
@@ -183,8 +183,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 	beLog.Info(profile)
 
 	// Write profile to state storage
-	//_, err := redisHelpers.Create(ctx, s.pool, profile.Id, profile.Properties)
-	err := redispb.MarshalToRedis(ctx, profile, s.pool)
+	err := redispb.MarshalToRedis(ctx, s.pool, profile)
 	if err != nil {
 		beLog.WithFields(log.Fields{
 			"error":     err.Error(),
@@ -323,7 +322,7 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, mo *backend.MatchObject) (
 		"matchObjectID": mo.Id,
 	}).Info("gRPC call executing")
 
-	_, err := redisHelpers.Delete(ctx, s.pool, mo.Id)
+	err := redisHelpers.Delete(ctx, s.pool, mo.Id)
 	if err != nil {
 		beLog.WithFields(log.Fields{
 			"error":     err.Error(),
@@ -346,9 +345,21 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, mo *backend.MatchObject) (
 // defined in ../proto/backend.proto
 func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignments) (*backend.Result, error) {
 
-	assignments := make([]string, 0)
-	for _, roster := range a.Rosters {
-		assignments = append(assignments, getPlayerIdsFromRoster(roster)...)
+	// Make a map of players and what assignments we want to send them.
+	playerIDs := make([]string, 0)
+	players := make(map[string]string, 0)
+	for _, roster := range a.Rosters { // Loop through all rosters
+		for _, player := range roster.Players { // Loop through all players in this roster
+			if player.Id != "" {
+				if player.Assignment == "" {
+					// No player-specific assignment, so use the default one in
+					// the Assignment message.
+					player.Assignment = a.Assignment
+				}
+				players[player.Id] = player.Assignment
+			}
+		}
+		playerIDs = append(playerIDs, getPlayerIdsFromRoster(roster)...)
 	}
 
 	// Create context for tagging OpenCensus metrics.
@@ -357,30 +368,37 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 
 	beLog = beLog.WithFields(log.Fields{"func": funcName})
 	beLog.WithFields(log.Fields{
-		"numAssignments": len(assignments),
+		"numAssignments": len(players),
 	}).Info("gRPC call executing")
 
-	// TODO: relocate this redis functionality to a module
-	redisConn := s.pool.Get()
-	defer redisConn.Close()
+	/*
+		// TODO: relocate this redis functionality to a module
+		redisConn := s.pool.Get()
+		defer redisConn.Close()
 
-	// Create player assignments in a transaction.
-	redisConn.Send("MULTI")
-	for _, playerID := range assignments {
-		beLog.WithFields(log.Fields{
-			"query":                                "HSET",
-			"playerID":                             playerID,
-			s.cfg.GetString("jsonkeys.connstring"): a.ConnectionInfo.ConnectionString,
-		}).Debug("state storage operation")
-		redisConn.Send("HSET", playerID, s.cfg.GetString("jsonkeys.connstring"), a.ConnectionInfo.ConnectionString)
-	}
-	// Remove these players from the proposed list.
-	ignorelist.SendRemove(redisConn, "proposed", assignments)
-	// Add these players from the deindexed list.
-	ignorelist.SendAdd(redisConn, "deindexed", assignments)
+		// Create player assignments in a transaction.
+		redisConn.Send("MULTI")
+		for _, playerID := range assignments {
+			beLog.WithFields(log.Fields{
+				"query":                                "HSET",
+				"playerID":                             playerID,
+				s.cfg.GetString("jsonkeys.connstring"): a.ConnectionInfo.ConnectionString,
+			}).Debug("state storage operation")
+			redisConn.Send("HSET", playerID, s.cfg.GetString("jsonkeys.connstring"), a.ConnectionInfo.ConnectionString)
+		}
+	*/
+	// TODO: These two calls are done in two different transactions; could be
+	// combined as an optimization but probably not particularly necessary
+	// Send the players their assignments.
+	err := redisHelpers.UpdateMultiFields(ctx, s.pool, players, "assignments")
 
-	// Send the multi-command transaction to Redis.
-	_, err := redisConn.Do("EXEC")
+	// Move these players from the proposed list to the deindexed list.
+	ignorelist.Move(ctx, s.pool, playerIDs, "proposed", "deindexed")
+
+	/*
+		// Send the multi-command transaction to Redis.
+		_, err = redisConn.Do("EXEC")
+	*/
 
 	// Issue encountered
 	if err != nil {
@@ -390,25 +408,23 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
-		stats.Record(fnCtx, BeAssignmentFailures.M(int64(len(assignments))))
+		stats.Record(fnCtx, BeAssignmentFailures.M(int64(len(players))))
 		return &backend.Result{Success: false, Error: err.Error()}, err
 	}
 
 	// Success!
 	beLog.WithFields(log.Fields{
-		"numAssignments": len(assignments),
+		"numPlayers": len(players),
 	}).Info("Assignments complete")
 
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
-	stats.Record(fnCtx, BeAssignments.M(int64(len(assignments))))
+	stats.Record(fnCtx, BeAssignments.M(int64(len(players))))
 	return &backend.Result{Success: true, Error: ""}, err
 }
 
 // DeleteAssignments is this service's implementation of the DeleteAssignments gRPC method
 // defined in ../proto/backend.proto
 func (s *backendAPI) DeleteAssignments(ctx context.Context, r *backend.Roster) (*backend.Result, error) {
-	// TODO: make playerIDs a repeated protobuf message field and iterate over it
-	//assignments := strings.Split(a.PlayerIds, " ")
 	assignments := getPlayerIdsFromRoster(r)
 
 	// Create context for tagging OpenCensus metrics.
@@ -420,18 +436,21 @@ func (s *backendAPI) DeleteAssignments(ctx context.Context, r *backend.Roster) (
 		"numAssignments": len(assignments),
 	}).Info("gRPC call executing")
 
-	// TODO: relocate this redis functionality to a module
-	redisConn := s.pool.Get()
-	defer redisConn.Close()
+	/*
+		// TODO: relocate this redis functionality to a module
+		redisConn := s.pool.Get()
+		defer redisConn.Close()
 
-	// Remove player assignments in a transaction
-	redisConn.Send("MULTI")
-	// TODO: make playerIDs a repeated protobuf message field and iterate over it
-	for _, playerID := range assignments {
-		beLog.WithFields(log.Fields{"query": "DEL", "key": playerID}).Debug("state storage operation")
-		redisConn.Send("DEL", playerID)
-	}
-	_, err := redisConn.Do("EXEC")
+		// Remove player assignments in a transaction
+		redisConn.Send("MULTI")
+		// TODO: make playerIDs a repeated protobuf message field and iterate over it
+		for _, playerID := range assignments {
+			beLog.WithFields(log.Fields{"query": "DEL", "key": playerID}).Debug("state storage operation")
+			redisConn.Send("DEL", playerID)
+		}
+		_, err := redisConn.Do("EXEC")
+	*/
+	err := redisHelpers.DeleteMultiFields(ctx, s.pool, assignments, "assignment")
 
 	// Issue encountered
 	if err != nil {

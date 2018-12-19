@@ -48,7 +48,6 @@ var (
 		"redis.pool.maxIdle":     "REDIS_POOL_MAXIDLE",
 		"redis.pool.maxActive":   "REDIS_POOL_MAXACTIVE",
 		"redis.pool.idleTimeout": "REDIS_POOL_IDLETIMEOUT",
-		"debug":                  "DEBUG",
 	}
 
 	// Viper config management setup
@@ -70,7 +69,10 @@ var (
 func Read() (*viper.Viper, error) {
 
 	// Viper config management initialization
+	// Support either json or yaml file types (json for backwards compatibility
+	// with previous versions)
 	cfg.SetConfigType("json")
+	cfg.SetConfigType("yaml")
 	cfg.SetConfigName("matchmaker_config")
 	cfg.AddConfigPath(".")
 
@@ -109,5 +111,11 @@ func Read() (*viper.Viper, error) {
 
 	}
 
+	// Look for updates to the config; in Kubernetes, this is implemented using
+	// a ConfigMap that is written to the matchmaker_config.yaml file, which is
+	// what the Open Match components using Viper monitor for changes.
+	// More details about Open Match's use of Kubernetes ConfigMaps at:
+	// https://github.com/GoogleCloudPlatform/open-match/issues/42
+	cfg.WatchConfig() // Watch and re-read config file.
 	return cfg, err
 }

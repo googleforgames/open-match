@@ -25,9 +25,11 @@ import (
 	"net"
 	"time"
 
-	frontend "github.com/GoogleCloudPlatform/open-match/cmd/frontendapi/proto"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	playerq "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/playerq"
+	frontend "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/playerindices"
+	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
@@ -70,7 +72,7 @@ func New(cfg *viper.Viper, pool *redis.Pool) *FrontendAPI {
 	log.AddHook(metrics.NewHook(FeLogLines, KeySeverity))
 
 	// Register gRPC server
-	frontend.RegisterAPIServer(s.grpc, (*frontendAPI)(&s))
+	frontend.RegisterFrontendServer(s.grpc, (*frontendAPI)(&s))
 	feLog.Info("Successfully registered gRPC server")
 	return &s
 }
@@ -98,22 +100,21 @@ func (s *FrontendAPI) Open() error {
 	return nil
 }
 
-// CreateRequest is this service's implementation of the CreateRequest gRPC method // defined in ../proto/frontend.proto
-func (s *frontendAPI) CreateRequest(c context.Context, g *frontend.Group) (*frontend.Result, error) {
+// CreateRequest is this service's implementation of the CreateRequest gRPC method defined in frontend.proto
+func (s *frontendAPI) CreateRequest(ctx context.Context, group *frontend.Player) (*frontend.Result, error) {
 
-	// Get redis connection from pool
-	redisConn := s.pool.Get()
-	defer redisConn.Close()
+	/*
+		// Get redis connection from pool
+		redisConn := s.pool.Get()
+		defer redisConn.Close()
+	*/
 
 	// Create context for tagging OpenCensus metrics.
 	funcName := "CreateRequest"
-	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
+	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
 	// Write group
-	// TODO: Remove playerq module and just use redishelper module once
-	// indexing has its own implementation
-	err := playerq.Create(redisConn, g.Id, g.Properties)
-
+	err := redispb.MarshalToRedis(ctx, s.pool, group)
 	if err != nil {
 		feLog.WithFields(log.Fields{
 			"error":     err.Error(),
@@ -124,24 +125,34 @@ func (s *frontendAPI) CreateRequest(c context.Context, g *frontend.Group) (*fron
 		return &frontend.Result{Success: false, Error: err.Error()}, err
 	}
 
+	// Index group
+	err = playerindices.Create(ctx, s.pool, s.cfg, *group)
+	if err != nil {
+		feLog.WithFields(log.Fields{
+			"error":     err.Error(),
+			"component": "statestorage",
+		}).Error("State storage error")
+
+		stats.Record(fnCtx, FeGrpcErrors.M(1))
+		return &frontend.Result{Success: false, Error: err.Error()}, err
+	}
+
+	// Return success.
 	stats.Record(fnCtx, FeGrpcRequests.M(1))
 	return &frontend.Result{Success: true, Error: ""}, err
 
 }
 
-// DeleteRequest is this service's implementation of the DeleteRequest gRPC method defined in
-// frontendapi/proto/frontend.proto
-func (s *frontendAPI) DeleteRequest(c context.Context, g *frontend.Group) (*frontend.Result, error) {
-	// Get redis connection from pool
-	redisConn := s.pool.Get()
-	defer redisConn.Close()
+// DeleteRequest is this service's implementation of the DeleteRequest gRPC method defined in frontend.proto
+func (s *frontendAPI) DeleteRequest(ctx context.Context, group *frontend.Player) (*frontend.Result, error) {
 
 	// Create context for tagging OpenCensus metrics.
 	funcName := "DeleteRequest"
-	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
+	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
-	// Write group
-	err := playerq.Delete(redisConn, g.Id)
+	// Deindex this player; at that point they don't show up in MMFs anymore.  We can then delete
+	// their actual player object from Redis later.
+	err := playerindices.Delete(ctx, s.pool, s.cfg, group.Id)
 	if err != nil {
 		feLog.WithFields(log.Fields{
 			"error":     err.Error(),
@@ -151,15 +162,31 @@ func (s *frontendAPI) DeleteRequest(c context.Context, g *frontend.Group) (*fron
 		stats.Record(fnCtx, FeGrpcErrors.M(1))
 		return &frontend.Result{Success: false, Error: err.Error()}, err
 	}
+	// Kick off delete but don't wait for it to complete.
+	go s.deletePlayer(group.Id)
 
 	stats.Record(fnCtx, FeGrpcRequests.M(1))
 	return &frontend.Result{Success: true, Error: ""}, err
 
 }
 
-// GetAssignment is this service's implementation of the GetAssignment gRPC method defined in
-// frontendapi/proto/frontend.proto
-func (s *frontendAPI) GetAssignment(c context.Context, p *frontend.PlayerId) (*frontend.ConnectionInfo, error) {
+// deletePlayer is a 'lazy' player delete, and should only be called after
+// confirmation that a player has been deindexed (and therefore nothing can
+// find the player to read them anyway)
+func (s *frontendAPI) deletePlayer(id string) {
+
+	_, err := redisHelpers.Delete(context.Background(), s.pool, id)
+	if err != nil {
+		feLog.WithFields(log.Fields{
+			"error":     err.Error(),
+			"component": "statestorage",
+		}).Warn("Error deleting player from state storage, this could leak state storage memory but is usually not a fatal error")
+	}
+
+}
+
+// GetAssignment is this service's implementation of the GetAssignment gRPC method defined in frontend.proto
+func (s *frontendAPI) GetAssignment(c context.Context, p *frontend.Player) (*frontend.ConnectionInfo, error) {
 	// Get cancellable context
 	ctx, cancel := context.WithCancel(c)
 	defer cancel()
@@ -198,9 +225,9 @@ func (s *frontendAPI) GetAssignment(c context.Context, p *frontend.PlayerId) (*f
 	return &frontend.ConnectionInfo{ConnectionString: connString}, nil
 }
 
-// DeleteAssignment is this service's implementation of the DeleteAssignment gRPC method defined in
-// frontendapi/proto/frontend.proto
-func (s *frontendAPI) DeleteAssignment(c context.Context, p *frontend.PlayerId) (*frontend.Result, error) {
+/*
+// DeleteAssignment is this service's implementation of the DeleteAssignment gRPC method defined in frontend.proto
+func (s *frontendAPI) DeleteAssignment(c context.Context, p *frontend.Player) (*frontend.Result, error) {
 
 	// Get redis connection from pool
 	redisConn := s.pool.Get()
@@ -226,6 +253,7 @@ func (s *frontendAPI) DeleteAssignment(c context.Context, p *frontend.PlayerId) 
 	return &frontend.Result{Success: true, Error: ""}, err
 
 }
+*/
 
 //TODO: Everything below this line will be moved to the redis statestorage library
 // in an upcoming version.
