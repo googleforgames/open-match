@@ -65,7 +65,7 @@ func main() {
 
 		elapsed := time.Since(start)
 		check(err, "")
-		fmt.Printf("Redis queries and UUID generation took %s\n", elapsed)
+		fmt.Printf("Redis queries and Xid generation took %s\n", elapsed)
 		fmt.Println("Sleeping")
 		time.Sleep(5 * time.Second)
 	}

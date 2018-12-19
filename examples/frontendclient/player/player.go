@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/rs/xid"
 )
 
 var (
@@ -132,10 +132,9 @@ func New() {
 // For PoC, we're flattening the JSON so it can be easily indexed in Redis.
 // Flattened keys are joined using periods.
 // That should be abstracted out of this level and into the db storage module
-func Generate() (UUID string, properties map[string]int, debug map[string]string) {
-	//return UUID, properties, debug
-	// https://stackoverflow.com/a/37944520/3113674
-	UUID = strings.Replace(uuid.New().String(), "-", "", -1)
+func Generate() (Xid string, properties map[string]int, debug map[string]string) {
+	//return xid, properties, debug
+	Xid = xid.New().String()
 	properties = make(map[string]int)
 	debug = make(map[string]string)
 

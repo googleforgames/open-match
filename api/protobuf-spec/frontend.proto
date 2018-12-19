@@ -5,19 +5,13 @@ option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
 import 'api/protobuf-spec/messages.proto';
 
 service Frontend {
-    rpc CreateRequest(Group) returns (messages.Result) {}
-    rpc DeleteRequest(Group) returns (messages.Result) {}
-    rpc GetAssignment(PlayerId) returns (messages.ConnectionInfo) {}
-    rpc DeleteAssignment(PlayerId) returns (messages.Result) {}
-}
+    // CreateRequest only uses the 'id' and the 'properties' fields.
+    rpc CreateRequest(messages.Player) returns (messages.Result) {}
+    // DeleteRequest only looks at the Player's 'id' field.
+    rpc DeleteRequest(messages.Player) returns (messages.Result) {}
 
-// Data structure for a group of players  to pass to the matchmaking function.
-// Obviously, the group can be a group of one!
-message Group{
-  string id = 1;            // By convention, string of space-delimited playerIDs 
-  string properties = 2;    // By convention, a JSON-encoded string
-}
-
-message PlayerId {
-    string id = 1;          // By convention, a UUID
+    // GetAssignment only looks at the Player's 'id' field.
+    rpc GetAssignment(messages.Player) returns (stream messages.Player) {}
+    // DeleteAssignment only uses the Player's 'id' field.
+    // rpc DeleteAssignment(messages.Player) returns (messages.Result) {}
 }

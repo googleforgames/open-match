@@ -21,6 +21,7 @@ was added to the list.
 package ignorelist
 
 import (
+	"context"
 	"strconv"
 	"time"
 
@@ -55,6 +56,28 @@ func Create(redisConn redis.Conn, ignorelistID string, playerIDs []string) error
 
 	// Run the Redis command.
 	_, err := redisConn.Do(cmd, cmdArgs...)
+	return err
+}
+
+// Move moves a list of players from one ignorelist to another.
+// TODO: Make cancellable with context
+func Move(ctx context.Context, pool *redis.Pool, playerIDs []string, src string, dest string) error {
+
+	// Get redis connection
+	redisConn := pool.Get()
+	defer redisConn.Close()
+
+	// Setup default logging
+	ilLog.WithFields(log.Fields{
+		"src":        src,
+		"dest":       dest,
+		"numPlayers": len(playerIDs),
+	}).Debug("moving players to a different ignorelist")
+
+	redisConn.Send("MULTI")
+	SendAdd(redisConn, dest, playerIDs)
+	SendRemove(redisConn, src, playerIDs)
+	_, err := redisConn.Do("EXEC")
 	return err
 }
 

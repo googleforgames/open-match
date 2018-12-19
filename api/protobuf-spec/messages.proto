@@ -14,7 +14,7 @@ option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
 // MatchObject as input only require a few of them to be filled in.  Check the
 // gRPC function in question for more details.
 message MatchObject{
-  string id = 1;                        // By convention, a UUID
+  string id = 1;                        // By convention, an Xid
   string properties = 2;                // By convention, a JSON-encoded string
   string error = 3;                     // Last error encountered. 
   repeated Roster rosters = 4;          // Rosters of players.  
@@ -56,15 +56,21 @@ message PlayerPool{
 }
 
 // Data structure to hold details about a player
+// Players contain a number of fields, but many gRPC calls that take a
+// Player as input only require a few of them to be filled in.  Check the
+// gRPC function in question for more details.
 message Player{
   message Attribute{                
     string name = 1;                // Name should match a Filter.attribute field. 
     int64 value = 2;
   }
-  string id = 1;                    // By convention, a UUID 
+  string id = 1;                    // By convention, an Xid
   string properties = 2;            // By convention, a JSON-encoded string
   string pool = 3;                  // Optionally used to specify the PlayerPool in which to find a player. 
   repeated Attribute attributes= 4; // Attributes of this player.
+  string assignment = 5;            // By convention, ip:port of a DGS to connect to 
+  string status = 6;                // 
+  string error = 7;                 // 
 }
 
 
@@ -78,13 +84,7 @@ message Result{
 message IlInput{
 }
 
-// Simple message used to pass the connection string for the DGS to the player. 
-// DEPRECATED: Likely to be integrated into another protobuf message in a future version. 
-message ConnectionInfo{
-    string connection_string = 1;   // Passed by the matchmaker to game clients without modification. 
-}
-
 message Assignments{
     repeated Roster rosters = 1;
-    ConnectionInfo connection_info = 2;
+    string assignment = 10; 
 }
