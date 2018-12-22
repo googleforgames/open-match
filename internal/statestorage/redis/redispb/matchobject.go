@@ -155,27 +155,35 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 		"key":       key,
 	})
 	pbMap, err := redis.StringMap(redisConn.Do(cmd, key))
+	if len(pbMap) == 0 {
+		return errors.New("matchobject key does not exist")
+	}
 
 	// Put values from redis into the MatchObject message
 	pb.Error = pbMap["error"]
 	pb.Properties = pbMap["properties"]
 
 	// TODO: Room for improvement here.
-	poolsJSON := fmt.Sprintf("{\"pools\": %v}", pbMap["pools"])
-	err = jsonpb.UnmarshalString(poolsJSON, pb)
-	if err != nil {
-		resultLog.Error("failure on pool")
-		resultLog.Error(pbMap["pools"])
-		resultLog.Error(err)
+	if j := pbMap["pools"]; j != "" {
+		poolsJSON := fmt.Sprintf("{\"pools\": %v}", j)
+		err = jsonpb.UnmarshalString(poolsJSON, pb)
+		if err != nil {
+			resultLog.Error("failure on pool")
+			resultLog.Error(j)
+			resultLog.Error(err)
+		}
 	}
 
-	rostersJSON := fmt.Sprintf("{\"rosters\": %v}", pbMap["rosters"])
-	err = jsonpb.UnmarshalString(rostersJSON, pb)
-	if err != nil {
-		resultLog.Error("failure on roster")
-		resultLog.Error(pbMap["rosters"])
-		log.Error(err)
+	if j := pbMap["rosters"]; j != "" {
+		rostersJSON := fmt.Sprintf("{\"rosters\": %v}", j)
+		err = jsonpb.UnmarshalString(rostersJSON, pb)
+		if err != nil {
+			resultLog.Error("failure on roster")
+			resultLog.Error(j)
+			resultLog.Error(err)
+		}
 	}
+
 	rpLog.Debug("Final pb:")
 	rpLog.Debug(pb)
 	return err
