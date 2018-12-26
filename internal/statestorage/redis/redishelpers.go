@@ -42,7 +42,6 @@ var (
 
 // ConnectionPool reads the configuration and attempts to instantiate a redis connection
 // pool based on the configured hostname and port.
-// TODO: needs to be reworked to use redis sentinel when we're ready to support it.
 func ConnectionPool(cfg *viper.Viper) *redis.Pool {
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
