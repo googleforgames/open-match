@@ -55,7 +55,6 @@ var (
 	mmforcLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "mmforc",
-		"caller":    "mmforc/main.go",
 	}
 	mmforcLog = log.WithFields(mmforcLogFields)
 

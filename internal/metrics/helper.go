@@ -37,7 +37,6 @@ var (
 	metricsLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "metrics",
-		"caller":    "metrics/helper.go",
 	}
 	mhLog = log.WithFields(metricsLogFields)
 )

@@ -35,7 +35,6 @@ var (
 	rhLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "redishelpers",
-		"caller":    "statestorage/redis/redishelpers.go",
 	}
 	rhLog = log.WithFields(rhLogFields)
 )

@@ -40,7 +40,6 @@ var (
 	sLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
-		"caller":    "internal/statestorage/redis/redispb/shared.go",
 	}
 	sLog = log.WithFields(sLogFields)
 )

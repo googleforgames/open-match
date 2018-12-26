@@ -206,7 +206,7 @@ func (s *frontendAPI) GetAssignment(p *frontend.Player, assignmentStream fronten
 		//case <-time.After(time.Duration(s.cfg.GetInt("api.frontend.timeout")) * time.Second):
 		case <-timeoutChan:
 			// TODO:Timeout: deal with the fallout
-			err := errors.New("did not see matchmaking results in redis before timeout")
+			err := errors.New("server timeout reached without client closing connection")
 			feLog.WithFields(log.Fields{
 				"error":     err.Error(),
 				"component": "statestorage",

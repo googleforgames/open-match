@@ -39,7 +39,6 @@ var (
 	moLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
-		"caller":    "internal/statestorage/redis/redispb/matchobject.go",
 	}
 	moLog = log.WithFields(moLogFields)
 )
