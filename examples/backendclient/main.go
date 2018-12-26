@@ -52,10 +52,12 @@ func main() {
 
 	// Read the profile
 	filename := "profiles/testprofile.json"
-	if len(os.Args) > 1 {
-		filename = os.Args[1]
-	}
-	log.Println("Reading profile from ", filename)
+	/*
+		if len(os.Args) > 1 {
+			filename = os.Args[1]
+		}
+		log.Println("Reading profile from ", filename)
+	*/
 	jsonFile, err := os.Open(filename)
 	if err != nil {
 		panic("Failed to open file specified at command line.  Did you forget to specify one?")
@@ -116,9 +118,9 @@ func main() {
 		if err != nil {
 			log.Fatalf("Attempting to open stream for ListMatches(_) = _, %v", err)
 		}
-		log.Printf("Waiting for matches...")
 		//for i := 0; i < 2; i++ {
 		for {
+			log.Printf("Waiting for matches...")
 			match, err := stream.Recv()
 			if err == io.EOF {
 				break
@@ -130,7 +132,7 @@ func main() {
 
 			if match.Properties == "{error: insufficient_players}" {
 				log.Println("Waiting for a larger player pool...")
-				break
+				//break
 			}
 
 			// Validate JSON before trying to  parse it
@@ -141,19 +143,6 @@ func main() {
 			ppJSON(match.Properties)
 			fmt.Println(match)
 
-			// Get players from the json properties.roster field
-			log.Println("Gathering roster from received match...")
-			players := make([]string, 0)
-			result := gjson.Get(match.Properties, "properties.roster")
-			result.ForEach(func(teamName, teamRoster gjson.Result) bool {
-				teamRoster.ForEach(func(_, player gjson.Result) bool {
-					players = append(players, player.String())
-					return true // keep iterating
-				})
-				return true // keep iterating
-			})
-			//log.Printf("players = %+v\n", players)
-
 			// Assign players in this match to our server
 			connstring := "example.com:12345"
 			if len(os.Args) >= 1 {
@@ -161,14 +150,15 @@ func main() {
 			}
 			log.Println("Assigning players to DGS at", connstring)
 
-			ci := &backend.ConnectionInfo{ConnectionString: connstring}
+			//ci := &backend.ConnectionInfo{ConnectionString: connstring}
 
-			assign := &backend.Assignments{Rosters: match.Rosters, ConnectionInfo: ci}
+			assign := &backend.Assignments{Rosters: match.Rosters, Assignment: connstring}
+			log.Printf("Waiting for matches...")
 			_, err = client.CreateAssignments(context.Background(), assign)
 			if err != nil {
-				panic(err)
+				log.Println(err)
 			}
-			log.Println("Success.  Not deleting assignments [demo mode].")
+			log.Println("Success!  Not deleting assignments [demo mode].")
 
 		}
 

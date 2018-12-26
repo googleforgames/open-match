@@ -32,6 +32,7 @@ def makeMatches(profile_dict, player_pools):
         for player in roster['players']:
             if 'pool' in player:
                 player['id']  = random.choice(list(player_pools[player['pool']]))
+                del player_pools[player['pool']][player['id']]
                 print("Selected player %s from pool %s (strategy: RANDOM)" % (player['id'], player['pool']))
             else:
                 print(player)

@@ -357,6 +357,7 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 					player.Assignment = a.Assignment
 				}
 				players[player.Id] = player.Assignment
+				beLog.Debug(fmt.Sprintf("playerid %v assignment %v", player.Id, player.Assignment))
 			}
 		}
 		playerIDs = append(playerIDs, getPlayerIdsFromRoster(roster)...)
@@ -390,7 +391,7 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 	// TODO: These two calls are done in two different transactions; could be
 	// combined as an optimization but probably not particularly necessary
 	// Send the players their assignments.
-	err := redisHelpers.UpdateMultiFields(ctx, s.pool, players, "assignments")
+	err := redisHelpers.UpdateMultiFields(ctx, s.pool, players, "assignment")
 
 	// Move these players from the proposed list to the deindexed list.
 	ignorelist.Move(ctx, s.pool, playerIDs, "proposed", "deindexed")

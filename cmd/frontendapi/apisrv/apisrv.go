@@ -112,6 +112,7 @@ func (s *frontendAPI) CreateRequest(ctx context.Context, group *frontend.Player)
 	// Create context for tagging OpenCensus metrics.
 	funcName := "CreateRequest"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
+	feLog.WithFields(log.Fields{"a": "=========="}).Debug(group)
 
 	// Write group
 	err := redispb.MarshalToRedis(ctx, s.pool, group)
@@ -175,7 +176,7 @@ func (s *frontendAPI) DeleteRequest(ctx context.Context, group *frontend.Player)
 // find the player to read them anyway)
 func (s *frontendAPI) deletePlayer(id string) {
 
-	_, err := redisHelpers.Delete(context.Background(), s.pool, id)
+	err := redisHelpers.Delete(context.Background(), s.pool, id)
 	if err != nil {
 		feLog.WithFields(log.Fields{
 			"error":     err.Error(),
@@ -186,43 +187,56 @@ func (s *frontendAPI) deletePlayer(id string) {
 }
 
 // GetAssignment is this service's implementation of the GetAssignment gRPC method defined in frontend.proto
-func (s *frontendAPI) GetAssignment(c context.Context, p *frontend.Player) (*frontend.ConnectionInfo, error) {
-	// Get cancellable context
-	ctx, cancel := context.WithCancel(c)
-	defer cancel()
+//func (s *frontendAPI) GetAssignment(c context.Context, p *frontend.Player) (*frontend.Player, error) {
+func (s *frontendAPI) GetAssignment(p *frontend.Player, assignmentStream frontend.Frontend_GetAssignmentServer) error {
+	/*
+		// Get cancellable context
+		ctx, cancel := context.WithCancel(c)
+		defer cancel()
+	*/
+	ctx := assignmentStream.Context()
 
 	// Create context for tagging OpenCensus metrics.
 	funcName := "GetAssignment"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
 	// get and return connection string
-	var connString string
 	watchChan := s.watcher(ctx, s.pool, p.Id) // watcher() runs the appropriate Redis commands.
 
-	select {
-	case <-time.After(30 * time.Second): // TODO: Make this configurable.
-		err := errors.New("did not see matchmaking results in redis before timeout")
-		// TODO:Timeout: deal with the fallout
-		// When there is a timeout, need to send a stop to the watch channel.
-		// cancelling ctx isn't doing it.
-		//cancel()
-		feLog.WithFields(log.Fields{
-			"error":     err.Error(),
-			"component": "statestorage",
-			"playerid":  p.Id,
-		}).Error("State storage error")
+	for {
 
-		errTag, _ := tag.NewKey("errtype")
-		fnCtx, _ := tag.New(ctx, tag.Insert(errTag, "watch_timeout"))
-		stats.Record(fnCtx, FeGrpcErrors.M(1))
-		return &frontend.ConnectionInfo{ConnectionString: ""}, err
+		select {
+		case <-ctx.Done():
+			// Context cancelled
+			// TODO: elaborate
+			stats.Record(fnCtx, FeGrpcRequests.M(1))
+			return nil
+		//case <-time.After(30 * time.Second): // TODO: Make this configurable.
+		case <-time.After(300 * time.Second): // TODO: Make this configurable.
+			err := errors.New("did not see matchmaking results in redis before timeout")
+			// TODO:Timeout: deal with the fallout
+			// When there is a timeout, need to send a stop to the watch channel.
+			// cancelling ctx isn't doing it.
+			//cancel()
+			feLog.WithFields(log.Fields{
+				"error":     err.Error(),
+				"component": "statestorage",
+				"playerid":  p.Id,
+			}).Error("State storage error")
 
-	case connString = <-watchChan:
-		feLog.Debug(p.Id, "connString:", connString)
+			errTag, _ := tag.NewKey("errtype")
+			fnCtx, _ := tag.New(ctx, tag.Insert(errTag, "watch_timeout"))
+			stats.Record(fnCtx, FeGrpcErrors.M(1))
+			return err
+
+		case a := <-watchChan:
+			feLog.Debug(p.Id, "assignment:", a)
+			assignmentStream.Send(&frontend.Player{Assignment: a})
+			stats.Record(fnCtx, FeGrpcRequests.M(1))
+			return nil
+		}
 	}
 
-	stats.Record(fnCtx, FeGrpcRequests.M(1))
-	return &frontend.ConnectionInfo{ConnectionString: connString}, nil
 }
 
 /*
@@ -279,16 +293,16 @@ func (s *frontendAPI) watcher(ctx context.Context, pool *redis.Pool, key string)
 		var err = errors.New("haven't queried Redis yet")
 
 		// Loop, querying redis until this key has a value
-		for err != nil {
+		for err != nil || results == "" {
 			select {
 			case <-ctx.Done():
 				// Cleanup
 				close(watchChan)
 				return
 			default:
-				results, err = s.retrieveConnstring(ctx, pool, key, s.cfg.GetString("jsonkeys.connstring"))
-				if err != nil {
-					time.Sleep(5 * time.Second) // TODO: exp bo + jitter
+				results, err = s.retrieveConnstring(ctx, pool, key, "assignment")
+				if err != nil || results == "" {
+					time.Sleep(2 * time.Second) // TODO: exp bo + jitter
 				}
 			}
 		}
@@ -309,7 +323,7 @@ func (s *frontendAPI) retrieveConnstring(ctx context.Context, pool *redis.Pool, 
 	feLog = feLog.WithFields(log.Fields{"key": key})
 
 	cmd := "HGET"
-	feLog.WithFields(log.Fields{"query": cmd}).Debug("Statestorage operation")
+	feLog.WithFields(log.Fields{"field": field, "query": cmd}).Debug("Statestorage operation")
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)

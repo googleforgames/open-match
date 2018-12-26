@@ -21,7 +21,8 @@ package playerindices
 import (
 	"context"
 	"errors"
-	"strconv"
+	"fmt"
+	"regexp"
 	"time"
 
 	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
@@ -116,14 +117,38 @@ func Create(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, player om_
 	redisConn.Send("MULTI")
 	// Loop through all attributes we want to index.
 	for _, attribute := range indices {
-		value := gjson.Get(player.Properties, attribute)
+		value := gjson.Get(player.Properties, regexp.QuoteMeta(attribute))
+		/*
+			if gjson.Valid(player.Properties) {
+				fmt.Println("VALID JSON")
+				fmt.Println(player.Properties)
+				fmt.Println(attribute)
+				fmt.Println("VALID JSON")
+
+			} else {
+				fmt.Println("inVALID JSON")
+				fmt.Println(player.Properties)
+				fmt.Println(attribute)
+				fmt.Println("inVALID JSON")
+			}
+			fmt.Println("VALUE")
+			fmt.Println(value.Type)
+			fmt.Println(value.Str)
+			fmt.Println(value.Num)
+			fmt.Println(value.Raw)
+			fmt.Println(value.Index)
+			fmt.Println("VALUE")
+		*/
+
 		// Check that value contains a valid 64-bit integer
 		if value.Exists() {
-			if _, err := strconv.ParseInt(value.String(), 10, 64); err == nil {
-				redisConn.Send("ZADD", attribute, player.Id, value)
+			if 0 <= value.Uint() && value.Uint() <= 18446744073709551615 {
+				//if _, err := strconv.ParseInt(value.String(), 10, 64); err == nil {
+				iLog.Debug(fmt.Sprintf("%v %v %v %v", "ZADD", attribute, player.Id, value))
+				redisConn.Send("ZADD", attribute, value, player.Id)
 			} else {
 				// Value was malformed or missing; use current epoch timestamp instead.
-				redisConn.Send("ZADD", attribute, player.Id, time.Now().Unix())
+				redisConn.Send("ZADD", attribute, time.Now().Unix(), player.Id)
 			}
 		} else {
 			iLog.WithFields(log.Fields{"attribute": attribute}).Debug("No such attribute to index!")

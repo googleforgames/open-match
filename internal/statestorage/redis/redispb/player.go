@@ -34,6 +34,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Logrus structured logging setup
+var (
+	pLogFields = log.Fields{
+		"app":       "openmatch",
+		"component": "statestorage",
+		"caller":    "internal/statestorage/redis/redispb/player.go",
+	}
+	pLog = log.WithFields(pLogFields)
+)
+
 // UnmarshalPlayerFromRedis unmarshals a Player from a redis hash.
 // This can probably be deprecated if we work on getting the above generic enough.
 // The problem is that protobuf message reflection is pretty messy.
@@ -43,7 +53,7 @@ func UnmarshalPlayerFromRedis(ctx context.Context, pool *redis.Pool, player *om_
 	redisConn, err := pool.GetContext(context.Background())
 	defer redisConn.Close()
 	if err != nil {
-		rpLog.WithFields(log.Fields{
+		pLog.WithFields(log.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("failed to connect to redis")
@@ -53,7 +63,7 @@ func UnmarshalPlayerFromRedis(ctx context.Context, pool *redis.Pool, player *om_
 	// Prepare redis command.
 	cmd := "HGETALL"
 	key := player.Id
-	resultLog := rpLog.WithFields(log.Fields{
+	resultLog := pLog.WithFields(log.Fields{
 		"component": "statestorage",
 		"cmd":       cmd,
 		"key":       key,
@@ -75,8 +85,8 @@ func UnmarshalPlayerFromRedis(ctx context.Context, pool *redis.Pool, player *om_
 		resultLog.Error(playerMap["attributes"])
 		log.Error(err)
 	}
-	rpLog.Debug("Final player:")
-	rpLog.Debug(player)
+	pLog.Debug("Final player:")
+	pLog.Debug(player)
 	return err
 
 }
@@ -108,13 +118,13 @@ func PlayerWatcher(ctx context.Context, pool *redis.Pool, pb om_messages.Player)
 				results = om_messages.Player{Id: pb.Id}
 				err = UnmarshalPlayerFromRedis(ctx, pool, &results)
 				if err != nil {
-					rpLog.Debug("No new results")
+					pLog.Debug("No new results")
 					time.Sleep(2 * time.Second) // TODO: exp bo + jitter
 				}
 			}
 		}
 		// Return value retreived from Redis asynchonously and tell calling function we're done
-		rpLog.Debug("state storage watched player record update detected")
+		pLog.Debug("state storage watched player record update detected")
 		watchChan <- results
 	}()
 
