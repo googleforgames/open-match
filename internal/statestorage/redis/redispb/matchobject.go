@@ -26,109 +26,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
-	"strings"
 	"time"
 
 	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/gogo/protobuf/jsonpb"
-	"github.com/gogo/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
-	"github.com/tidwall/gjson"
 )
 
 // Logrus structured logging setup
 var (
-	rpLogFields = log.Fields{
+	moLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
-		"caller":    "internal/statestorage/redis/redispb/redispb.go",
+		"caller":    "internal/statestorage/redis/redispb/matchobject.go",
 	}
-	rpLog = log.WithFields(rpLogFields)
+	moLog = log.WithFields(moLogFields)
 )
-
-// MarshalToRedis marshals a protobuf message to a redis hash.
-// The protobuf message in question must have an 'id' field.
-func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message) (err error) {
-
-	// We want to serialize to redis as JSON, not the typical protobuf string
-	// serializer, so start by marshalling to json.
-	this := jsonpb.Marshaler{}
-	jsonMsg, err := this.MarshalToString(pb)
-	if err != nil {
-		rpLog.WithFields(log.Fields{
-			"error":     err.Error(),
-			"component": "statestorage",
-			"protobuf":  pb,
-		}).Error("failure marshaling protobuf message to JSON")
-		return
-	}
-
-	// Get redis key
-	keyResult := gjson.Get(jsonMsg, "id")
-
-	// Return error if the provided protobuf message doesn't have an ID field
-	if !keyResult.Exists() {
-		err = errors.New("cannot unmarshal protobuf messages without an id field")
-		rpLog.WithFields(log.Fields{
-			"error":     err.Error(),
-			"component": "statestorage",
-		}).Error("failed to retrieve from redis")
-		return
-	}
-	key := keyResult.String()
-
-	// Prepare redis command.
-	cmd := "HSET"
-	resultLog := rpLog.WithFields(log.Fields{
-		"key": key,
-		"cmd": cmd,
-	})
-
-	// Get the Redis connection.
-	redisConn, err := pool.GetContext(context.Background())
-	defer redisConn.Close()
-	if err != nil {
-		rpLog.WithFields(log.Fields{
-			"error":     err.Error(),
-			"component": "statestorage",
-		}).Error("failed to connect to redis")
-		return
-	}
-	redisConn.Send("MULTI")
-
-	// Write all non-id fields from the protobuf message to state storage.
-	// Use reflection to get the field names from the protobuf message.
-	pbInfo := reflect.ValueOf(pb).Elem()
-	for i := 0; i < pbInfo.NumField(); i++ {
-		// TODO: change this to use the json name field from the struct tags
-		//  something like parseTag() in src/encoding/json/tags.go
-		//field := strings.ToLower(pbInfo.Type().Field(i).Tag.Get("json"))
-		field := strings.ToLower(pbInfo.Type().Field(i).Name)
-		value := gjson.Get(jsonMsg, field)
-		if field != "id" {
-			// This isn't the ID field, so write it to the redis hash.
-			redisConn.Send(cmd, key, field, value)
-			if err != nil {
-				resultLog.WithFields(log.Fields{
-					"error":     err.Error(),
-					"component": "statestorage",
-					"field":     field,
-				}).Error("State storage error")
-				return
-			}
-			resultLog.WithFields(log.Fields{
-				"component": "statestorage",
-				"field":     field,
-				"value":     value,
-			}).Info("State storage operation")
-
-		}
-	}
-	_, err = redisConn.Do("EXEC")
-	return
-}
 
 // UnmarshalFromRedis unmarshals a MatchObject from a redis hash.
 // This can probably be made generic to work with other pb messages in the future.
@@ -139,7 +53,7 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 	redisConn, err := pool.GetContext(context.Background())
 	defer redisConn.Close()
 	if err != nil {
-		rpLog.WithFields(log.Fields{
+		moLog.WithFields(log.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("failed to connect to redis")
@@ -149,7 +63,7 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 	// Prepare redis command.
 	cmd := "HGETALL"
 	key := pb.Id
-	resultLog := rpLog.WithFields(log.Fields{
+	resultLog := moLog.WithFields(log.Fields{
 		"component": "statestorage",
 		"cmd":       cmd,
 		"key":       key,
@@ -176,8 +90,8 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 		resultLog.Error(pbMap["rosters"])
 		log.Error(err)
 	}
-	rpLog.Debug("Final pb:")
-	rpLog.Debug(pb)
+	moLog.Debug("Final pb:")
+	moLog.Debug(pb)
 	return err
 }
 
@@ -209,13 +123,13 @@ func Watcher(ctx context.Context, pool *redis.Pool, pb om_messages.MatchObject) 
 				results = om_messages.MatchObject{Id: pb.Id}
 				err = UnmarshalFromRedis(ctx, pool, &results)
 				if err != nil {
-					rpLog.Debug("No new results")
+					moLog.Debug("No new results")
 					time.Sleep(2 * time.Second) // TODO: exp bo + jitter
 				}
 			}
 		}
 		// Return value retreived from Redis asynchonously and tell calling function we're done
-		rpLog.Debug("state storage watched record update detected")
+		moLog.Debug("state storage watched record update detected")
 		watchChan <- results
 	}()
 

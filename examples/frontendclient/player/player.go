@@ -171,5 +171,9 @@ func Generate() (Xid string, properties map[string]int, debug map[string]string)
 	properties["mode.ctf"] = now
 	properties["timestamp.enter"] = now
 
+	// DEBUG
+	properties["mmr.rating"] = 1000
+	properties["region.europe-west1"] = 100
+
 	return
 }

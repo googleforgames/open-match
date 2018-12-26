@@ -28,6 +28,7 @@
                {
                   "name":"om-backend",
                   "image":"gcr.io/matchmaker-dev-201405/openmatch-backendapi:dev",
+                  "command": ["sleep", "30000"],
                   "imagePullPolicy":"Always",
                   "ports": [
                     {

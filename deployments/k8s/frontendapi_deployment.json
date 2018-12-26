@@ -27,6 +27,7 @@
             "containers":[
                {
                   "name":"om-frontendapi",
+                  "command": ["sleep", "30000"],
                   "image":"gcr.io/matchmaker-dev-201405/openmatch-frontendapi:dev",
                   "imagePullPolicy":"Always",
                   "ports": [
