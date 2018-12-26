@@ -1,10 +1,13 @@
 # Release history
 
 ##v0.3.0 (alpha)
+  This update is focused on the Frontend API and Player Records, including more robust code for indexing, deindexing, reading, writing, and expiring player requests from Open Match state storage.  All Frontend API function argument have changed, although many only slightly.Please join the [Slack channel](https://open-match.slack.com/) if you need help ([Signup link](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLWQzMzE1MGY5YmYyYWY3ZjE2MjNjZTdmYmQ1ZTQzMmNiNGViYmQyN2M4ZmVkMDY2YzZlOTUwMTYwMzI1Y2I2MjU))!
 
 ### Release notes
+ - The Player record in state storage has changed to a more complete hash format, and it no longer makes sense to remove a player's assignment from the Frontend as a separate action to removing their record entirely.  `DeleteAssignment()` has therefore been removed.  Just use `DeleteRequest` instead; you'll always want the client to re-request matching with its latest attributes anyway.
  - [Issue #41](https://github.com/GoogleCloudPlatform/open-match/issues/41)[PR #48](https://github.com/GoogleCloudPlatform/open-match/pull/48) There is now a HA Redis install available in `install/yaml/01-redis-failover.yaml`.  This would be used as a drop-in replacement for a single-instance Redis configuration in `install/yaml/01-redis.yaml`.  The HA configuration requires that you install the [Redis Operator](https://github.com/spotahome/redis-operator) (note: Currently Alpha, use at your own risk) in your Kubernetes cluster.
   - As part of this change, the kubernetes service name is now `redis` not `redis-sentinel` to denote that it is accessed using a standard Redis client.
+ - Open Match uses a new feature of the go module [logrus](github.com/sirupsen/logrus) to put filenames and line numbers.  If you have an older version in your local build environment, you may need to delete the module and `go get github.com/sirupsen/logrus` again.  When building using the provided `cloudbuild.yaml` and `Dockerfile`s this is handled for you.
 
 
 ##v0.2.0 (alpha)

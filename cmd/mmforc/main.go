@@ -216,7 +216,7 @@ func main() {
 				}).Info("Proposals available, evaluating!")
 				go evaluator(ctx, cfg, clientset)
 			}
-			_, err = redisHelpers.Delete(context.Background(), pool, "concurrentMMFs")
+			err = redisHelpers.Delete(context.Background(), pool, "concurrentMMFs")
 			if err != nil {
 				mmforcLog.WithFields(log.Fields{
 					"error": err.Error(),

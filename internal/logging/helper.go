@@ -5,9 +5,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-// ConfigureLogging sets up open match logging using the logging section of the matchmaker_config.json
-// This includes formatting (text[default] or json) and
-// logging levels (debug, info [default], warn, error, fatal, panic)
+// ConfigureLogging sets up open match logrus instance using the logging section of the matchmaker_config.json
+//  - log line format (text[default] or json)
+//  - min log level to include (debug, info [default], warn, error, fatal, panic)
+//  - include source file and line number for every event (false [default], true)
+// It also adds the default logrus fields.
 func ConfigureLogging(cfg *viper.Viper) {
 	switch cfg.GetString("logging.format") {
 	case "json":
@@ -33,4 +35,11 @@ func ConfigureLogging(cfg *viper.Viper) {
 	default:
 		logrus.SetLevel(logrus.InfoLevel)
 	}
+
+	switch cfg.GetBool("logging.source") {
+	case true:
+		logrus.SetReportCaller(true)
+	}
+
+	logrus = logrus.WithFields(logrus.Fields{"foo": "bar"})
 }

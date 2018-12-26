@@ -1,8 +1,8 @@
 {
-    "debug": true,
     "logging":{
         "level": "debug",
-        "format": "json"
+        "format": "text",
+        "source": true
     },
     "api": {
         "backend": {
@@ -11,7 +11,8 @@
         },
         "frontend": {
             "hostname": "om-frontendapi",
-            "port": 50504
+            "port": 50504,
+            "timeout": 300
         },
         "mmlogic": {
             "hostname": "om-mmlogicapi",

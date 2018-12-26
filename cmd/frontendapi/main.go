@@ -55,6 +55,9 @@ func init() {
 	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
 	log.AddHook(metrics.NewHook(apisrv.FeLogLines, apisrv.KeySeverity))
 
+	// Add a hook to the logger to log the filename & line number.
+	log.SetReportCaller(true)
+
 	// Viper config management initialization
 	cfg, err = config.Read()
 	if err != nil {
@@ -86,7 +89,7 @@ func main() {
 	defer pool.Close()
 
 	// Instantiate the gRPC server with the connections we've made
-	feLog.WithFields(log.Fields{"testfield": "test"}).Info("Attempting to start gRPC server")
+	feLog.Info("Attempting to start gRPC server")
 	srv := apisrv.New(cfg, pool)
 
 	// Run the gRPC server
