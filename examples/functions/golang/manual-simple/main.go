@@ -54,7 +54,7 @@ func main() {
 
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
-	redisURL := "redis://" + os.Getenv("REDIS_SENTINEL_SERVICE_HOST") + ":" + os.Getenv("REDIS_SENTINEL_SERVICE_PORT")
+	redisURL := "redis://" + os.Getenv("REDIS_SERVICE_HOST") + ":" + os.Getenv("REDIS_SERVICE_PORT")
 	fmt.Println("Connecting to Redis at", redisURL)
 	redisConn, err := redis.DialURL(redisURL)
 	if err != nil {

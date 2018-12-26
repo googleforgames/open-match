@@ -1,0 +1,152 @@
+apiVersion: storage.spotahome.com/v1alpha2
+kind: RedisFailover
+metadata:
+  name: redisfailover
+  labels:
+    tier: storage
+spec:
+  hardAntiAffinity: true                     # Optional. Value by default. If true, the pods will not be scheduled on the same node.
+  sentinel:
+    replicas: 3                              # Optional. 3 by default, can be set higher.
+    resources:                               # Optional. If not set, it won't be defined on created resources.
+      requests:
+        cpu: 100m
+      limits:
+        memory: 100Mi
+    customConfig: []                         # Optional. Empty by default.
+  redis:
+    replicas: 3                              # Optional. 3 by default, can be set higher.
+    image: redis                             # Optional. "redis" by default.
+    version: 4.0.11-alpine                   # Optional. "3.2-alpine" by default.
+    resources:                               # Optional. If not set, it won't be defined on created resources
+      requests:
+        cpu: 100m
+        memory: 100Mi
+      limits:
+        cpu: 400m
+        memory: 500Mi
+    exporter: false                          # Optional. False by default. Adds a redis-exporter container to export metrics.
+    exporterImage: oliver006/redis_exporter  # Optional. oliver006/redis_exporter by default.
+    exporterVersion: v0.11.3                 # Optional. v0.11.3 by default.
+    disableExporterProbes: false             # Optional. False by default. Disables the readiness and liveness probes for the exporter.
+    storage:
+      emptyDir: {}                           # Optional. emptyDir by default.
+    customConfig: []                         # Optional. Empty by default.\
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-master-proxy-configmap
+data:
+  haproxy.cfg: |
+    defaults REDIS
+      mode tcp
+      timeout connect 5s
+      timeout client 61s # should respect 'redis.pool.idleTimeout' from open-match config
+      timeout server 61s
+    global
+      stats socket ipv4@127.0.0.1:9999 level admin
+      stats timeout 2m
+    frontend fe_redis
+      bind *:17000 name redis
+      default_backend be_redis
+    backend be_redis
+      server redis-master-serv 127.0.0.1:6379
+
+  redis-master-finder.sh: |
+    #!/bin/sh
+    set -e
+    set -u
+ 
+    SENTINEL_HOST="rfs-redisfailover" # change this if RedisFailover name changes
+
+    LAST_MASTER_IP=""
+    LAST_MASTER_PORT=""
+
+    update_master_addr() {
+        # lookup current master address
+        local r="SENTINEL get-master-addr-by-name mymaster"
+        local r_out=$(echo $r | nc -q1 $SENTINEL_HOST 26379)
+
+        # parse output
+        local master_ip=$(echo "${r_out}" | tail -n+3 | head -n1 | tr -d '\r') # IP is on 3d line
+        local master_port=$(echo "${r_out}" | tail -n+5 | head -n1 | tr -d '\r') # 5th line is port number
+
+        # update HAProxy cfg if needed
+        if [ "$master_ip" != "$LAST_MASTER_IP" ] || [ "$master_port" != "$LAST_MASTER_PORT" ]; then
+            local s="set server be_redis/redis-master-serv addr ${master_ip} port ${master_port}"
+            echo $s | nc 127.0.0.1 9999 # haproxy is in the same pod
+            
+            LAST_MASTER_IP=$master_ip
+            LAST_MASTER_PORT=$master_port
+            echo "New master address is ${LAST_MASTER_IP}:${LAST_MASTER_PORT}"
+        fi
+    }
+
+    while :; do update_master_addr; sleep 1; done
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: redis-master-proxy
+  labels:
+    app: openmatch
+    component: redis
+    tier: storage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openmatch
+      component: redis
+      tier: storage
+  template:
+    metadata:
+      labels:
+        app: openmatch
+        component: redis
+        tier: storage
+    spec:
+      volumes:
+      - name: configmap
+        configMap:
+          name: redis-master-proxy-configmap
+          defaultMode: 0700
+      containers:
+      - name: redis-master-haproxy
+        image: haproxy:1.8-alpine
+        ports:
+        - name: haproxy
+          containerPort: 17000
+        - name: haproxy-stats
+          containerPort: 9999
+        volumeMounts:
+        - name: configmap
+          mountPath: /usr/local/etc/haproxy/haproxy.cfg
+          subPath: haproxy.cfg
+      - name: redis-master-finder
+        image: subfuzion/netcat # alpine image with only netcat-openbsd installed
+        imagePullPolicy: Always
+        command: ["redis-master-finder.sh"]
+        volumeMounts:
+        - name: configmap
+          mountPath: /usr/local/bin/redis-master-finder.sh
+          subPath: redis-master-finder.sh
+        resources:
+          requests:
+            memory: 20Mi
+            cpu: 100m
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: redis
+spec:
+  selector:
+    app: openmatch
+    component: redis
+    tier: storage
+  ports:
+  - protocol: TCP
+    port: 6379
+    targetPort: haproxy
