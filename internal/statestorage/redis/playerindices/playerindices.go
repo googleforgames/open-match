@@ -37,7 +37,6 @@ var (
 	piLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
-		"caller":    "statestorage/redis/playerindices/playerindices.go",
 	}
 	piLog = log.WithFields(piLogFields)
 )

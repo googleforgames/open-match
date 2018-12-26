@@ -35,7 +35,6 @@ var (
 	ilLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
-		"caller":    "statestorage/redis/ignorelist/ignorelist.go",
 	}
 	ilLog = log.WithFields(ilLogFields)
 )

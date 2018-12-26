@@ -42,7 +42,6 @@ var (
 	feLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "frontend",
-		"caller":    "frontendapi/main.go",
 	}
 	feLog = log.WithFields(feLogFields)
 

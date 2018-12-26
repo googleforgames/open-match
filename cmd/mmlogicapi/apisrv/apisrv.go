@@ -51,7 +51,6 @@ var (
 	mlLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "mmlogic",
-		"caller":    "mmlogicapi/apisrv/apisrv.go",
 	}
 	mlLog = log.WithFields(mlLogFields)
 )

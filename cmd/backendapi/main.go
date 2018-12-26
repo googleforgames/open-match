@@ -42,7 +42,6 @@ var (
 	beLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "backend",
-		"caller":    "backendapi/main.go",
 	}
 	beLog = log.WithFields(beLogFields)
 

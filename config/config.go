@@ -29,7 +29,6 @@ var (
 	logFields = log.Fields{
 		"app":       "openmatch",
 		"component": "config",
-		"caller":    "config/main.go",
 	}
 	cfgLog = log.WithFields(logFields)
 
