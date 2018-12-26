@@ -54,7 +54,7 @@ func main() {
 	var err error
 	// Set to true if you don't have an MMF set up to find this player and want
 	// to manually enter their assignment in redis
-	var manualAssignment bool
+	var manualAssignment bool = true
 
 	// Try to read number of players from command line.
 	if len(os.Args) > 1 {
@@ -114,7 +114,8 @@ func main() {
 	// wait for value to  be inserted that will be returned by Get ssignment
 	test := strings.Split(g.Id, " ")[0] // First player ID will be the one we look in.
 	if manualAssignment {
-		log.Println("Pausing: go put a value to return in Redis using HSET", test, "assignments <YOUR_TEST_STRING>")
+		log.Println("Pausing: go put a value to return in Redis using:")
+		log.Println("HSET", test, "assignment <YOUR_TEST_STRING>")
 		log.Println("Hit Enter to test GetAssignment...")
 		reader := bufio.NewReader(os.Stdin)
 		_, _ = reader.ReadString('\n')
@@ -137,9 +138,13 @@ func main() {
 				break
 			}
 			if len(a.Assignment) > 0 {
-				log.Println("Assignment recieved from Open Match!")
-				pretty.PrettyPrint(a.Assignment)
-				break
+				log.Println("Result recieved from Open Match!")
+				pretty.PrettyPrint(a)
+				log.Println("To stop getting updates, go put this in Redis:")
+				log.Println("HSET", test, "status break")
+				if a.Status == "break" {
+					break
+				}
 			}
 		}
 	}

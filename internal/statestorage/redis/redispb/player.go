@@ -24,7 +24,6 @@ package redispb
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -39,7 +38,6 @@ var (
 	pLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
-		"caller":    "internal/statestorage/redis/redispb/player.go",
 	}
 	pLog = log.WithFields(pLogFields)
 )
@@ -68,6 +66,8 @@ func UnmarshalPlayerFromRedis(ctx context.Context, pool *redis.Pool, player *om_
 		"cmd":       cmd,
 		"key":       key,
 	})
+
+	// Run redis command
 	playerMap, err := redis.StringMap(redisConn.Do(cmd, key))
 
 	// Put values from redis into the Player message
@@ -78,54 +78,91 @@ func UnmarshalPlayerFromRedis(ctx context.Context, pool *redis.Pool, player *om_
 	player.Error = playerMap["error"]
 
 	// TODO: Room for improvement here.
-	attrsJSON := fmt.Sprintf("{\"attributes\": %v}", playerMap["attributes"])
-	err = jsonpb.UnmarshalString(attrsJSON, player)
-	if err != nil {
-		resultLog.Error("failure on attributes")
-		resultLog.Error(playerMap["attributes"])
-		log.Error(err)
+	if a := playerMap["attributes"]; a != "" {
+		attrsJSON := fmt.Sprintf("{\"attributes\": %v}", a)
+		err = jsonpb.UnmarshalString(attrsJSON, player)
+		if err != nil {
+			resultLog.Error("failure on attributes")
+			resultLog.Error(a)
+		}
 	}
-	pLog.Debug("Final player:")
-	pLog.Debug(player)
+
+	resultLog.Debug("state storage operation: player unmarshalled")
 	return err
 
 }
 
-// Watcher makes a channel and returns it immediately.  It also launches an
+// PlayerWatcher makes a channel and returns it immediately.  It also launches an
 // asynchronous goroutine that watches a redis key and returns updates to
 // that key on the channel.
 //
 // The pattern for this function is from 'Go Concurrency Patterns', it is a function
 // that wraps a closure goroutine, and returns a channel.
 // reference: https://talks.golang.org/2012/concurrency.slide#25
+//
+// NOTE: this function will never stop querying Redis during normal operation! You need to
+//  disconnect the client from the frontend API (which closes the context) once
+//  you've received the results you were waiting for to stop doing work!
 func PlayerWatcher(ctx context.Context, pool *redis.Pool, pb om_messages.Player) <-chan om_messages.Player {
 
+	// Establish channel to return results on.
 	watchChan := make(chan om_messages.Player)
 	results := om_messages.Player{Id: pb.Id}
 
+	pwLog := pLog.WithFields(log.Fields{"playerId": pb.Id})
+
 	go func() {
 		// var declaration
-		var err = errors.New("haven't queried Redis yet")
+		var prevResults = ""
 
-		// Loop, querying redis until this key has a value
-		for err != nil {
+		// Loop, querying redis until this key has a value or the Redis query fails.
+		for {
 			select {
 			case <-ctx.Done():
-				// Cleanup
+				// Player stopped asking for updates; clean up
 				close(watchChan)
 				return
 			default:
+				// Get player from redis.
 				results = om_messages.Player{Id: pb.Id}
-				err = UnmarshalPlayerFromRedis(ctx, pool, &results)
+				err := UnmarshalPlayerFromRedis(ctx, pool, &results)
 				if err != nil {
-					pLog.Debug("No new results")
-					time.Sleep(2 * time.Second) // TODO: exp bo + jitter
+					// Return error and quit.
+					pwLog.Debug("State storage error:", err.Error())
+					results.Error = err.Error()
+					watchChan <- results
+					close(watchChan)
+					return
+				} else {
+					// Check for new results and send them. Store a copy of the
+					// latest version in string form so we can compare it easily in
+					// future loops.
+					//
+					// If we decide to watch other message fields for updates,
+					// they will need to be added here.
+					//
+					// This can be made much cleaner if protobuffer reflection gets
+					// sorted.
+					curResults := fmt.Sprintf("%v%v%v", results.Assignment, results.Status, results.Error)
+					if prevResults == curResults {
+						pwLog.Debug("No new results, backing off")
+						time.Sleep(2 * time.Second) // TODO: exp bo + jitter
+					} else {
+						// Return value retreived from Redis
+						pwLog.Debug("state storage watched player record changed")
+						watchedFields := om_messages.Player{
+							// Return only the watched fields to minimize traffic
+							Id:         results.Id,
+							Assignment: results.Assignment,
+							Status:     results.Status,
+							Error:      results.Error,
+						}
+						watchChan <- watchedFields
+						prevResults = curResults
+					}
 				}
 			}
 		}
-		// Return value retreived from Redis asynchonously and tell calling function we're done
-		pLog.Debug("state storage watched player record update detected")
-		watchChan <- results
 	}()
 
 	return watchChan

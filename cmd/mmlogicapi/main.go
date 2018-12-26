@@ -88,7 +88,7 @@ func main() {
 	defer pool.Close()
 
 	// Instantiate the gRPC server with the connections we've made
-	mlLog.WithFields(log.Fields{"testfield": "test"}).Info("Attempting to start gRPC server")
+	mlLog.Info("Attempting to start gRPC server")
 	srv := apisrv.New(cfg, pool)
 
 	// Run the gRPC server
