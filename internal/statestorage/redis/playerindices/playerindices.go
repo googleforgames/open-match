@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
@@ -32,17 +33,23 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// Logrus structured logging setup
 var (
+	// Logrus structured logging setup
 	piLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
 	}
 	piLog = log.WithFields(piLogFields)
+
+	// OM Internal metadata indices
+	MetaIndices = []string{
+		"OM_METADATA.created",
+		"OM_METADATA.accessed",
+	}
 )
 
 // Indexing is fairly limited right now.  It is all done using Sorted Sets in
-// Redis, which require integer 'scores' in order to index players.
+// Redis, which require integer 'scores' for each attribute in order to index players.
 //
 // Here are the guidelines if you want to index a player attribute in your
 // Properties JSON blob when the  player's request comes in the Frontend  API
@@ -107,6 +114,8 @@ func Create(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, player om_
 
 	// Get the indices from viper
 	indices, err := Retrieve(cfg)
+	// Get metadata indicies
+	indices = append(indices, MetaIndices...)
 	if err != nil {
 		iLog.Error(err.Error())
 		return err
@@ -116,43 +125,50 @@ func Create(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, player om_
 	redisConn.Send("MULTI")
 	// Loop through all attributes we want to index.
 	for _, attribute := range indices {
-		value := gjson.Get(player.Properties, regexp.QuoteMeta(attribute))
-		/*
-			if gjson.Valid(player.Properties) {
-				fmt.Println("VALID JSON")
-				fmt.Println(player.Properties)
-				fmt.Println(attribute)
-				fmt.Println("VALID JSON")
+		// Default value for all attributes if missing or malformed is the current epoch timestamp.
+		value := time.Now().Unix()
 
-			} else {
-				fmt.Println("inVALID JSON")
-				fmt.Println(player.Properties)
-				fmt.Println(attribute)
-				fmt.Println("inVALID JSON")
-			}
-			fmt.Println("VALUE")
-			fmt.Println(value.Type)
-			fmt.Println(value.Str)
-			fmt.Println(value.Num)
-			fmt.Println(value.Raw)
-			fmt.Println(value.Index)
-			fmt.Println("VALUE")
-		*/
+		// If this is a user-defined index, look for it in the input player properties JSON
+		if !strings.HasPrefix(attribute, "OM_METADATA") {
+			v := gjson.Get(player.Properties, regexp.QuoteMeta(attribute))
 
-		// Check that value contains a valid 64-bit integer
-		if value.Exists() {
-			if 0 <= value.Uint() && value.Uint() <= 18446744073709551615 {
-				//if _, err := strconv.ParseInt(value.String(), 10, 64); err == nil {
-				iLog.Debug(fmt.Sprintf("%v %v %v %v", "ZADD", attribute, player.Id, value))
-				redisConn.Send("ZADD", attribute, value, player.Id)
+			/*
+				// DEBUG
+				if gjson.Valid(player.Properties) {
+					fmt.Println("VALID JSON")
+					fmt.Println(player.Properties)
+					fmt.Println(attribute)
+					fmt.Println("VALID JSON")
+
+				} else {
+					fmt.Println("inVALID JSON")
+					fmt.Println(player.Properties)
+					fmt.Println(attribute)
+					fmt.Println("inVALID JSON")
+				}
+				fmt.Println("VALUE")
+				fmt.Println(value.Type)
+				fmt.Println(value.Str)
+				fmt.Println(value.Num)
+				fmt.Println(value.Raw)
+				fmt.Println(value.Index)
+				fmt.Println("VALUE")
+			*/
+
+			// Check that value contains a valid unsigned 64-bit integer
+			if v.Exists() && -9223372036854775808 <= v.Int() && v.Int() <= 9223372036854775807 {
+				value = v.Int()
 			} else {
-				// Value was malformed or missing; use current epoch timestamp instead.
-				redisConn.Send("ZADD", attribute, time.Now().Unix(), player.Id)
+				iLog.WithFields(log.Fields{"attribute": attribute}).Debug("No valid value for attribute, not indexing")
 			}
-		} else {
-			iLog.WithFields(log.Fields{"attribute": attribute}).Debug("No such attribute to index!")
+
 		}
+		// Index the attribute by value.
+		iLog.Debug(fmt.Sprintf("%v %v %v %v", "ZADD", attribute, player.Id, value))
+		redisConn.Send("ZADD", attribute, value, player.Id)
 	}
+
+	// Run pipelined Redis commands.
 	_, err = redisConn.Do("EXEC")
 
 	return err
@@ -165,17 +181,18 @@ func Create(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, player om_
 // TODO: make this quit cleanly if the context is cancelled.
 func Delete(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, playerID string) error {
 
+	diLog := piLog.WithFields(log.Fields{"playerID": playerID})
+
 	// Connect to redis
 	redisConn := rPool.Get()
 	defer redisConn.Close()
 
-	//TODO: remove deindexing from delete and call this instead
-	diLog := piLog.WithFields(log.Fields{"playerID": playerID})
-
-	// Get the indices from viper
+	// Get the list of indices to delete
 	indices, err := Retrieve(cfg)
+	// Look for previously configured indices
+	indices = append(indices, RetrievePrevious(cfg)...)
 	if err != nil {
-		piLog.Error(err.Error())
+		diLog.Error(err.Error())
 		return err
 	}
 
@@ -190,25 +207,72 @@ func Delete(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, playerID s
 
 }
 
+// DeleteMeta removes a player's internal Open Match metadata indices, and should only be used
+// after deleting their JSON object representation from state storage.
+// Note: In Open Match, it is best practice to 'lazily' remove indices
+// by running this as a goroutine.
+// TODO: make this quit cleanly if the context is cancelled.
+func DeleteMeta(ctx context.Context, rPool *redis.Pool, playerID string) {
+
+	dmLog := piLog.WithFields(log.Fields{"playerID": playerID})
+
+	// Connect to redis
+	redisConn := rPool.Get()
+	defer redisConn.Close()
+
+	// Remove playerID from metaindices
+	redisConn.Send("MULTI")
+	for _, attribute := range MetaIndices {
+		dmLog.WithFields(log.Fields{"attribute": attribute}).Debug("De-indexing from metadata")
+		redisConn.Send("ZREM", attribute, playerID)
+	}
+	_, err := redisConn.Do("EXEC")
+	if err != nil {
+		dmLog.WithFields(log.Fields{"error": err.Error}).Error("Error de-indexing from metadata")
+	}
+}
+
+// Touch is analogous to the Unix touch command.  It updates the accessed time of the player
+// in the OM_METADATA.accessed index to the current epoch timestamp.
+func Touch(ctx context.Context, rPool *redis.Pool, playerID string) error {
+	// Connect to redis
+	redisConn := rPool.Get()
+	defer redisConn.Close()
+
+	_, err := redisConn.Do("ZADD", "OM_METADATA.accessed", time.Now().Unix(), playerID)
+	return err
+}
+
 // Retrieve pulls the player indices from the Viper config
 func Retrieve(cfg *viper.Viper) (indices []string, err error) {
 
+	// In addition to the user-defined indices from the config file, Open Match
+	// forces the following indicies to exist for all players.  'created' is
+	// used to calculate how long a player has been waiting for a match,
+	// 'accessed' is used to determine when a player needs to be expired out of
+	// state storage.
+	indices = append(indices, []string{}...)
+
 	if cfg.IsSet("playerIndices") {
-		indices = cfg.GetStringSlice("playerIndices")
+		indices = append(indices, cfg.GetStringSlice("playerIndices")...)
 	} else {
 		err = errors.New("Failure to get list of indices")
 		return nil, err
 	}
-	// This code attempts to handle an edge case when the user has removed an
-	// index from the list of player indices but players still exist who are
-	// indexed using the (now no longer used) index. The user should put the
-	// index they are no longer using into this config parameter so that
-	// deleting players with previous indexes doesn't result in a Redis memory
-	// leak.  In a future version, Open Match should track previous indices
-	// itself and handle this for the user.
-	if cfg.IsSet("previousPlayerIndices") {
-		indices = append(indices, cfg.GetStringSlice("previousPlayerIndices")...)
-	}
 
 	return
+}
+
+// RetrievePrevious attempts to handle an edge case when the user has removed an
+// index from the list of player indices but players still exist who are
+// indexed using the (now no longer used) index. The user should put the
+// index they are no longer using into this config parameter so that
+// deleting players with previous indexes doesn't result in a Redis memory
+// leak.  In a future version, Open Match should track previous indices
+// itself and handle this for the user.
+func RetrievePrevious(cfg *viper.Viper) []string {
+	if cfg.IsSet("previousPlayerIndices") {
+		return cfg.GetStringSlice("previousPlayerIndices")
+	}
+	return nil
 }

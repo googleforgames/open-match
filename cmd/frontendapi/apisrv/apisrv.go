@@ -105,7 +105,6 @@ func (s *frontendAPI) CreateRequest(ctx context.Context, group *frontend.Player)
 	// Create context for tagging OpenCensus metrics.
 	funcName := "CreateRequest"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
-	feLog.WithFields(log.Fields{"a": "=========="}).Debug(group)
 
 	// Write group
 	err := redispb.MarshalToRedis(ctx, s.pool, group)
@@ -166,8 +165,9 @@ func (s *frontendAPI) DeleteRequest(ctx context.Context, group *frontend.Player)
 
 // deletePlayer is a 'lazy' player delete
 // It should always be called as a goroutine and should only be called after
-// confirmation that a player has been deindexed (and therefore nothing can
+// confirmation that a player has been deindexed (and therefore MMF's can't
 // find the player to read them anyway)
+// As a final action, it also kicks off a lazy delete of the player's metadata
 func (s *frontendAPI) deletePlayer(id string) {
 
 	err := redisHelpers.Delete(context.Background(), s.pool, id)
@@ -177,7 +177,7 @@ func (s *frontendAPI) deletePlayer(id string) {
 			"component": "statestorage",
 		}).Warn("Error deleting player from state storage, this could leak state storage memory but is usually not a fatal error")
 	}
-
+	go playerindices.DeleteMeta(context.Background(), s.pool, id)
 }
 
 // GetAssignment is this service's implementation of the GetAssignment gRPC method defined in frontend.proto
