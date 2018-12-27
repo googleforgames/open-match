@@ -28,11 +28,57 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for Frontend service
 
 type FrontendClient interface {
-	// CreateRequest only uses the 'id' and the 'properties' fields.
+	// CreateRequests will put the player (or group, if your 'Player'
+	// message represents multiple players) in state storage, and then look
+	// through the 'properties' field for the attributes you have defined as
+	// indices your matchmaker config.  If the attributes exist and are valid
+	// integers, they will be indexed.
+	// INPUT: Player message with these fields populated:
+	//  - id
+	//  - properties
+	// OUTPUT: Result message denoting success or failure (and an error if
+	// necessary)
 	CreateRequest(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Result, error)
-	// DeleteRequest only looks at the Player's 'id' field.
+	// DeleteRequest removes the players (or group, if your 'Player'
+	// message represents multiple players) from state storage by doing the
+	// following:
+	//  1) Delete player from configured indices.  This effectively removes the
+	//     player from matchmaking when using recommended MMF patterns.
+	//     Everything after this is just cleanup to save stage storage space.
+	//  2) 'Lazily' delete the player's state storage record.  This is kicked
+	//     off in the background and may take some time to complete.
+	//  2) 'Lazily' delete the player's metadata indicies (like, the time they
+	//     created the request, and the last time the record was accessed).  This
+	//     is also kicked off in the background and may take some time to complete.
+	// INPUT: Player message with the 'id' field populated.
+	// OUTPUT: Result message denoting success or failure (and an error if
+	// necessary)
 	DeleteRequest(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Result, error)
-	// GetAssignment only looks at the Player's 'id' field.
+	// GetAssignment streams matchmaking results from Open Match for the
+	// provided player ID.
+	// INPUT: Player message with the 'id' field populated.
+	// OUTPUT: a stream of player objects with one or more of the following
+	// fields populated, if an update is seen in state storage:
+	//  - 'assignment': string that usually contains game server connection information.
+	//  - 'status': string to communicate current matchmaking status to the client.
+	//  - 'error': string to pass along error information to the client.
+	//
+	// During normal operation, the expectation is that the player's 'assignment' field
+	// will be updated by a Backend process calling the 'CreateAssignments' Backend API
+	// endpoint.  'Status' and 'Error' are free for developers to use as they see fit.
+	// Even if you had multiple players enter a matchmaking request as a group, the
+	// Backend API 'CreateAssignments' call will write the results to state
+	// storage separately under each player's ID. OM expects you to make all game
+	// clients 'GetAssignment' with their own ID from the Frontend API to get
+	// their results.
+	//
+	// NOTE: This call generates a small amount of load on the Frontend API and state
+	//  storage while watching the player record for updates. You are expected
+	//  to close the stream from your client after receiving your matchmaking
+	//  results (or a reasonable timeout), or you will continue to
+	//  generate load on OM until you do!
+	// NOTE: Just bear in mind that every update will send egress traffic from
+	//  Open Match to game clients! Frugality is recommended.
 	GetAssignment(ctx context.Context, in *Player, opts ...grpc.CallOption) (Frontend_GetAssignmentClient, error)
 }
 
@@ -97,11 +143,57 @@ func (x *frontendGetAssignmentClient) Recv() (*Player, error) {
 // Server API for Frontend service
 
 type FrontendServer interface {
-	// CreateRequest only uses the 'id' and the 'properties' fields.
+	// CreateRequests will put the player (or group, if your 'Player'
+	// message represents multiple players) in state storage, and then look
+	// through the 'properties' field for the attributes you have defined as
+	// indices your matchmaker config.  If the attributes exist and are valid
+	// integers, they will be indexed.
+	// INPUT: Player message with these fields populated:
+	//  - id
+	//  - properties
+	// OUTPUT: Result message denoting success or failure (and an error if
+	// necessary)
 	CreateRequest(context.Context, *Player) (*Result, error)
-	// DeleteRequest only looks at the Player's 'id' field.
+	// DeleteRequest removes the players (or group, if your 'Player'
+	// message represents multiple players) from state storage by doing the
+	// following:
+	//  1) Delete player from configured indices.  This effectively removes the
+	//     player from matchmaking when using recommended MMF patterns.
+	//     Everything after this is just cleanup to save stage storage space.
+	//  2) 'Lazily' delete the player's state storage record.  This is kicked
+	//     off in the background and may take some time to complete.
+	//  2) 'Lazily' delete the player's metadata indicies (like, the time they
+	//     created the request, and the last time the record was accessed).  This
+	//     is also kicked off in the background and may take some time to complete.
+	// INPUT: Player message with the 'id' field populated.
+	// OUTPUT: Result message denoting success or failure (and an error if
+	// necessary)
 	DeleteRequest(context.Context, *Player) (*Result, error)
-	// GetAssignment only looks at the Player's 'id' field.
+	// GetAssignment streams matchmaking results from Open Match for the
+	// provided player ID.
+	// INPUT: Player message with the 'id' field populated.
+	// OUTPUT: a stream of player objects with one or more of the following
+	// fields populated, if an update is seen in state storage:
+	//  - 'assignment': string that usually contains game server connection information.
+	//  - 'status': string to communicate current matchmaking status to the client.
+	//  - 'error': string to pass along error information to the client.
+	//
+	// During normal operation, the expectation is that the player's 'assignment' field
+	// will be updated by a Backend process calling the 'CreateAssignments' Backend API
+	// endpoint.  'Status' and 'Error' are free for developers to use as they see fit.
+	// Even if you had multiple players enter a matchmaking request as a group, the
+	// Backend API 'CreateAssignments' call will write the results to state
+	// storage separately under each player's ID. OM expects you to make all game
+	// clients 'GetAssignment' with their own ID from the Frontend API to get
+	// their results.
+	//
+	// NOTE: This call generates a small amount of load on the Frontend API and state
+	//  storage while watching the player record for updates. You are expected
+	//  to close the stream from your client after receiving your matchmaking
+	//  results (or a reasonable timeout), or you will continue to
+	//  generate load on OM until you do!
+	// NOTE: Just bear in mind that every update will send egress traffic from
+	//  Open Match to game clients! Frugality is recommended.
 	GetAssignment(*Player, Frontend_GetAssignmentServer) error
 }
 

@@ -31,7 +31,7 @@ service Backend {
   // (All other fields are ignored.)
   rpc DeleteMatch(messages.MatchObject) returns (messages.Result) {}
 
-  // Call fors communication of connection info to players. 
+  // Calls for communication of connection info to players. 
 
   // Write the connection info for the list of players in the
   // Assignments.messages.Rosters to state storage.  The FrontendAPI is
