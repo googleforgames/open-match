@@ -181,9 +181,9 @@ func main() {
 		// waiting to run the evaluator when all your MMFs are already
 		// finished.
 		switch {
-		case time.Since(start).Seconds() >= float64(cfg.GetInt("interval.evaluator")):
+		case time.Since(start).Seconds() >= float64(cfg.GetInt("evaluator.interval")):
 			mmforcLog.WithFields(log.Fields{
-				"interval": cfg.GetInt("interval.evaluator"),
+				"interval": cfg.GetInt("evaluator.interval"),
 			}).Info("Maximum evaluator interval exceeded")
 			checkProposals = true
 
