@@ -150,8 +150,6 @@ func main() {
 			}
 			log.Println("Assigning players to DGS at", connstring)
 
-			//ci := &backend.ConnectionInfo{ConnectionString: connstring}
-
 			assign := &backend.Assignments{Rosters: match.Rosters, Assignment: connstring}
 			log.Printf("Waiting for matches...")
 			_, err = client.CreateAssignments(context.Background(), assign)

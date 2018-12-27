@@ -371,22 +371,6 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 		"numAssignments": len(players),
 	}).Info("gRPC call executing")
 
-	/*
-		// TODO: relocate this redis functionality to a module
-		redisConn := s.pool.Get()
-		defer redisConn.Close()
-
-		// Create player assignments in a transaction.
-		redisConn.Send("MULTI")
-		for _, playerID := range assignments {
-			beLog.WithFields(log.Fields{
-				"query":                                "HSET",
-				"playerID":                             playerID,
-				s.cfg.GetString("jsonkeys.connstring"): a.ConnectionInfo.ConnectionString,
-			}).Debug("state storage operation")
-			redisConn.Send("HSET", playerID, s.cfg.GetString("jsonkeys.connstring"), a.ConnectionInfo.ConnectionString)
-		}
-	*/
 	// TODO: These two calls are done in two different transactions; could be
 	// combined as an optimization but probably not particularly necessary
 	// Send the players their assignments.
@@ -394,11 +378,6 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 
 	// Move these players from the proposed list to the deindexed list.
 	ignorelist.Move(ctx, s.pool, playerIDs, "proposed", "deindexed")
-
-	/*
-		// Send the multi-command transaction to Redis.
-		_, err = redisConn.Do("EXEC")
-	*/
 
 	// Issue encountered
 	if err != nil {
