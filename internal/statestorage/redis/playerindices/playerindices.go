@@ -48,8 +48,8 @@ var (
 	}
 )
 
-// Indexing is fairly limited right now.  It is all done using Sorted Sets in
-// Redis, which require integer 'scores' for each attribute in order to index players.
+// Indexing  is all done using Sorted Sets in Redis, which require integer
+// 'scores' for each attribute in order to index players.
 //
 // Here are the guidelines if you want to index a player attribute in your
 // Properties JSON blob when the  player's request comes in the Frontend  API
@@ -58,19 +58,22 @@ var (
 //  - Fields you want to index in your JSON should always be a key with an integer value, so use dictionaries/maps/hashes instad of lists/arrays for your data. (see examples below)
 //  - When indexing fields in a player's JSON object, the key to index should be compatible with dot notation.  (see configured list of indices below)
 //  - If you're trying to index a flag, just use the epoch timestamp of the request as the value unless you have a compelling reason to do otherwise.
+//
 // For example, if you want to index the following:
-//  - Player's ping value to us-east
-//  - Bool flag 'true' denoting player's choice to play CTF mode
-//  - Bool flag 'true' denoting player's choice to play TeamDM mode
-//  - Bool flag 'true' denoting player's choice to play SunsetValley map
-//  - Players' matchmaking ranking value
+//    - Player's ping value to us-east
+//    - Bool flag 'true' denoting player's choice to play CTF mode
+//    - Bool flag 'true' denoting player's choice to play TeamDM mode
+//    - Bool flag 'true' denoting player's choice to play SunsetValley map
+//    - Players' matchmaking ranking value
+//
 // DON'T structure your JSON like this:
 //   player {
 //     "pings": {"us-east": 70, "eu-central": 120 },
 //     "maps":  ["sunsetvalley", "bigskymountain"] ,
 //     "modes": "ctf"
 //   }
-// But instead, use dictionaries with key/value pairs instead of lists (use epoch timestamp as the value):
+// Instead, use dictionaries with key/value pairs instead of lists (use epoch
+// timestamp as the value if your attribute should act as a boolean flag):
 //   player {
 //     "pings": {"us-east": 70, "eu-central": 120 },
 //     "maps":  {"sunsetvalley": 1234567890, "bigskymountain": 1234567890 } ,
@@ -84,6 +87,7 @@ var (
 //     "maps.sunsetvalley",
 //     "mmr.rating",
 //   ]
+//
 // For now, OM reads your 'config/matchmaker_config.(json|yaml)' file for a
 // list of indices, which it monitors using the golang module Viper
 // (https://github.com/spf13/viper).
@@ -132,31 +136,12 @@ func Create(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, player om_
 		if !strings.HasPrefix(attribute, "OM_METADATA") {
 			v := gjson.Get(player.Properties, regexp.QuoteMeta(attribute))
 
-			/*
-				// DEBUG
-				if gjson.Valid(player.Properties) {
-					fmt.Println("VALID JSON")
-					fmt.Println(player.Properties)
-					fmt.Println(attribute)
-					fmt.Println("VALID JSON")
-
-				} else {
-					fmt.Println("inVALID JSON")
-					fmt.Println(player.Properties)
-					fmt.Println(attribute)
-					fmt.Println("inVALID JSON")
-				}
-				fmt.Println("VALUE")
-				fmt.Println(value.Type)
-				fmt.Println(value.Str)
-				fmt.Println(value.Num)
-				fmt.Println(value.Raw)
-				fmt.Println(value.Index)
-				fmt.Println("VALUE")
-			*/
-
-			// Check that value contains a valid unsigned 64-bit integer
-			if v.Exists() && -9223372036854775808 <= v.Int() && v.Int() <= 9223372036854775807 {
+			// If this attribue wasn't provided in the JSON, continue to the
+			// next attribute to index.
+			if !v.Exists() {
+				continue
+			} else if -9223372036854775808 <= v.Int() && v.Int() <= 9223372036854775807 {
+				// value contains a valid unsigned 64-bit integer
 				value = v.Int()
 			} else {
 				iLog.WithFields(log.Fields{"attribute": attribute}).Debug("No valid value for attribute, not indexing")
