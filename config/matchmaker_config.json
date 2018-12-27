@@ -45,7 +45,7 @@
             "duration": 800
         },
         "expired": {
-            "name": "timestamp",
+            "name": "OM_METADATA.modified",
             "offset": 800,
             "duration": 0 
         }

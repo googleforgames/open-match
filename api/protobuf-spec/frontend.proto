@@ -10,8 +10,21 @@ service Frontend {
     // DeleteRequest only looks at the Player's 'id' field.
     rpc DeleteRequest(messages.Player) returns (messages.Result) {}
 
-    // GetAssignment only looks at the Player's 'id' field.
+    // GetAssignment only looks at the Player's 'id' field.  It streams back
+    // player objects with one or more of the following fields populated, if an
+    // update is seen in state storage:
+    //  - 'assignment': string that usually contains game server connection information.
+    //  - 'status': string to communicate current matchmaking status to the client.
+    //  - 'error': string to pass along error information to the client.
+    // During normal operation, the expectation is that the player's 'assignment' field
+    // will be updated by a Backend process calling the 'CreateAssignments' Backend API
+    // endpoint.  'Status' and 'Error' are free for developers to use as they see fit.  Just
+    // bear in mind that every update will send egress traffic from Open Match to game 
+    // clients!
+    //
+    // NOTE: This call generates a small amount of load on the Frontend API and state
+    //  storage while watching the player record for updates. You are expected to disconnect
+    //  your client after receiving your matchmaking results, or after a reasonable 
+    //  timeout, or you will continue to generate load on OM until you do!
     rpc GetAssignment(messages.Player) returns (stream messages.Player) {}
-    // DeleteAssignment only uses the Player's 'id' field.
-    // rpc DeleteAssignment(messages.Player) returns (messages.Result) {}
 }
