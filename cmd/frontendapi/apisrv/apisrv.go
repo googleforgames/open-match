@@ -200,12 +200,13 @@ func (s *frontendAPI) GetAssignment(p *frontend.Player, assignmentStream fronten
 		select {
 		case <-ctx.Done():
 			// Context cancelled
-			// TODO: elaborate
+			feLog.WithFields(log.Fields{
+				"playerid": p.Id,
+			}).Info("client closed connection successfully")
 			stats.Record(fnCtx, FeGrpcRequests.M(1))
 			return nil
-		//case <-time.After(time.Duration(s.cfg.GetInt("api.frontend.timeout")) * time.Second):
-		case <-timeoutChan:
-			// TODO:Timeout: deal with the fallout
+		case <-timeoutChan: // Timeout reached without client closing connection
+			// TODO:deal with the fallout
 			err := errors.New("server timeout reached without client closing connection")
 			feLog.WithFields(log.Fields{
 				"error":     err.Error(),
@@ -220,7 +221,12 @@ func (s *frontendAPI) GetAssignment(p *frontend.Player, assignmentStream fronten
 			return err
 
 		case a := <-watchChan:
-			feLog.Debug("Sending updated player info to ", p.Id)
+			feLog.WithFields(log.Fields{
+				"assignment": a.Assignment,
+				"playerid":   a.Id,
+				"status":     a.Status,
+				"error":      a.Error,
+			}).Info("updating client")
 			assignmentStream.Send(&a)
 			stats.Record(fnCtx, FeGrpcStreamedResponses.M(1))
 			// Reset timeout.
