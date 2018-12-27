@@ -1,7 +1,7 @@
 /*
 This application handles all the startup and connection scaffolding for
 running a gRPC server serving the APIService as defined in
-mmlogic/proto/mmlogic.pb.go
+${OM_ROOT}/internal/pb/mmlogic.pb.go
 
 All the actual important bits are in the API Server source code: apisrv/apisrv.go
 

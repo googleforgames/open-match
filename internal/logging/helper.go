@@ -9,7 +9,6 @@ import (
 //  - log line format (text[default] or json)
 //  - min log level to include (debug, info [default], warn, error, fatal, panic)
 //  - include source file and line number for every event (false [default], true)
-// It also adds the default logrus fields.
 func ConfigureLogging(cfg *viper.Viper) {
 	switch cfg.GetString("logging.format") {
 	case "json":
@@ -41,5 +40,4 @@ func ConfigureLogging(cfg *viper.Viper) {
 		logrus.SetReportCaller(true)
 	}
 
-	logrus = logrus.WithFields(logrus.Fields{"foo": "bar"})
 }
