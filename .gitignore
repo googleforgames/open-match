@@ -27,6 +27,7 @@ populations
 # Discarded code snippets
 build.sh
 *-fast.yaml
+detritus/
 
 # Dotnet Core ignores
 *.swp
