@@ -1,6 +1,7 @@
 /*
 This application handles all the startup and connection scaffolding for
-running a gRPC server serving the APIService as defined in proto/backend.proto
+running a gRPC server serving the APIService as defined in
+${OM_ROOT}/internal/pb/backend.pb.go
 
 All the actual important bits are in the API Server source code: apisrv/apisrv.go
 
