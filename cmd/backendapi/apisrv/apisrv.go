@@ -214,7 +214,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 	newMO := backend.MatchObject{Id: requestKey}
 	watchChan := redispb.Watcher(ctx, s.pool, newMO) // Watcher() runs the appropriate Redis commands.
 	errString := ("Error retrieving matchmaking results from state storage")
-	timeout := time.Duration(s.cfg.GetInt("interval.resultsTimeout")) * time.Second
+	timeout := time.Duration(s.cfg.GetInt("api.backend.timeout")) * time.Second
 
 	select {
 	case <-time.After(timeout):
