@@ -126,7 +126,7 @@ func main() {
 	for len(a.Assignment) == 0 {
 		stream, err := client.GetAssignment(ctx, &frontend.Player{Id: test})
 		for {
-			log.Println("No assignment recieved from Open Match yet")
+			log.Println("Waiting for Assignment from Open Match...")
 			a, err = stream.Recv()
 			if err == io.EOF {
 				log.Println("io.EOF recieved")
