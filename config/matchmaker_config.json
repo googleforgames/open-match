@@ -60,7 +60,7 @@
             "tag": "dev"
         },
         "mmf": {
-            "name": "gcr.io/matchmaker-dev-201405/openmatch-mmf",
+            "name": "gcr.io/matchmaker-dev-201405/openmatch-mmf-py3-mmlogic-simple",
             "tag": "py3"
         }
     },

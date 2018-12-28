@@ -1,6 +1,6 @@
 # Compiling from source
 
-All components of Open Match produce (Linux) Docker container images as artifacts, and there are included `Dockerfile`s for each. [Google Cloud Platform Cloud Build](https://cloud.google.com/cloud-build/docs/) users will also find `cloudbuild_<name>.yaml` files for each component in the repository root.
+All components of Open Match produce (Linux) Docker container images as artifacts, and there are included `Dockerfile`s for each. [Google Cloud Platform Cloud Build](https://cloud.google.com/cloud-build/docs/) users will also find `cloudbuild.yaml` files for each component in their respective directories.  Note that most of them build from an 'base' image called `openmatch-devbase`.  You can find a `Dockerfile` and `cloudbuild_base.yaml` file for this in the repository root.  Build it first! 
 
 Note: Although Google Cloud Platform includes some free usage, you may incur charges following this guide if you use GCP products.
 
@@ -28,7 +28,12 @@ The [Quickstart for Docker](https://cloud.google.com/cloud-build/docs/quickstart
     # First, build the 'base' image.  Some other images depend on this so it must complete first.
     gcloud build submit --config cloudbuild_base.yaml
     # Build all other images. 
-    for dfile in $(ls Dockerfile.* | grep -v base); do gcloud builds submit --config cloudbuild_${dfile##*.}.yaml & done
+    for dfile in $(find . -name "Dockerfile" -iregex "./\(cmd\|test\|examples\)/.*"); do cd $(dirname ${dfile}); gcloud builds submit --config cloudbuild.yaml & cd -; done
+    ```
+    Note: as of v0.3.0 alpha, the Python and PHP MMF examples still depend on the previous way of building until [issue #42, introducing new config management](https://github.com/GoogleCloudPlatform/open-match/issues/42) is resolved (apologies for the inconvenience):
+    ```
+    gcloud builds submit --config cloudbuild_mmf_py3.yaml
+    gcloud builds submit --config cloudbuild_mmf_php.yaml
     ```
 * Once the cloud builds have completed, you can verify that all the builds succeeded in the cloud console or by by checking the list of images in your **gcr.io** registry:
     ```
@@ -41,22 +46,12 @@ The [Quickstart for Docker](https://cloud.google.com/cloud-build/docs/quickstart
     gcr.io/matchmaker-dev-201405/openmatch-devbase
     gcr.io/matchmaker-dev-201405/openmatch-evaluator
     gcr.io/matchmaker-dev-201405/openmatch-frontendapi
-    gcr.io/matchmaker-dev-201405/openmatch-mmf
+    gcr.io/matchmaker-dev-201405/openmatch-mmf-golang-manual-simple
+    gcr.io/matchmaker-dev-201405/openmatch-mmf-php-mmlogic-simple
+    gcr.io/matchmaker-dev-201405/openmatch-mmf-py3-mmlogic-simple
     gcr.io/matchmaker-dev-201405/openmatch-mmforc
     gcr.io/matchmaker-dev-201405/openmatch-mmlogicapi
     ```
-* The default example MMF images all use the same name (`openmatch-mmf`), with different image tags designating the different examples.  You can check that these exist by running this command (again, substituting your **gcr.io** registry):
-    ```
-    gcloud container images list-tags gcr.io/matchmaker-dev-201405/openmatch-mmf
-    ```
-    You should see tags for several of the example MMFs.  By default, Open Match will try to use the `openmatch-mmf:py3` image in the examples below, so it is important that the image build was successful and a `py3` image tag exists in your **gcr.io** registry before you continue:
-    ```
-    DIGEST        TAGS     TIMESTAMP
-    5345475e026c  php      2018-12-05T00:06:47
-    e5c274c3509c  go       2018-12-05T00:02:17
-    1b3ec3176d0f  py3      2018-12-05T00:02:07
-    ```
-
 ## Example of starting a GKE cluster
 
 A cluster with mostly default settings will work for this development guide.  In the Cloud SDK command below we start it with machines that have 4 vCPUs.  Alternatively, you can use the 'Create Cluster' button in [Google Cloud Console]("https://console.cloud.google.com/kubernetes").
@@ -179,7 +174,7 @@ statefulset.apps/prometheus-prometheus   1         1         9m
 
 In the end: *caveat emptor*. These tools all work and are quite small, and as such are fairly easy for developers to understand by looking at the code and logging output. They are provided as-is just as a reference point of how to begin experimenting with Open Match integrations.  
 
-* `examples/frontendclient` is a fake client for the Frontend API.  It pretends to be a real game client connecting to Open Match and requests a game, then dumps out the connection string it receives.  Note that it doesn't actually test the return path by looking for arbitrary results from your matchmaking function; it pauses and tells you the name of a key to set a connection string in directly using a redis-cli client.  **Note**: If you're using the rest of these test programs, you're probably using the Backend Client below.  The default profiles that sends to the backend look for way more than one player, so if you want to see meaningful results from running this Frontend Client, you're going to need to generate a bunch of fake players using the client load simulation tool at the same time. Otherwise, expect to wait until it times out as your matchmaker never has enough players to make a successful match.
+* `examples/frontendclient` is a fake client for the Frontend API.  It pretends to be gropu of real game clients connecting to Open Match and requests a game, then dumps out the results it receives. **Note**: If you're using the rest of these test programs, you're probably using the Backend Client below.  The default profiles that sends to the backend look for way more than one player, so if you want to see meaningful results from running this Frontend Client, you're going to need to generate a bunch of fake players using the client load simulation tool at the same time. Otherwise, expect to wait until it times out as your matchmaker never has enough players to make a successful match.
 * `examples/backendclient` is a fake client for the Backend API.  It pretends to be a dedicated game server backend connecting to openmatch and sending in a match profile to fill.  Once it receives a match object with a roster, it will also issue a call to assign the player IDs, and gives an example connection string.  If it never seems to get a match, make sure you're adding players to the pool using the other two tools. Note: building this image requires that you first build the 'base' dev image (look for `cloudbuild_base.yaml` and `Dockerfile.base` in the root directory) and then update the first step to point to that image in your registry.  This will be simplified in a future release.  **Note**: If you run this by itself, expect it to wait about 30 seconds, then return a result of 'insufficient players' and exit - this is working as intended.  Use the client load simulation tool below to add players to the pool or you'll never be able to make a successful match. 
 * `test/cmd/client` is a (VERY) basic client load simulation tool.  It does **not** test the Frontend API - in fact, it ignores it and writes players directly to state storage on its own.  It doesn't do anything but loop endlessly, writing players into state storage so you can test your backend integration, and run your custom MMFs and Evaluators (which are only triggered when there are players in the pool). 
 
