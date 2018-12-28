@@ -67,31 +67,31 @@ type BackendClient interface {
 	//  - rosters, if you choose to fill them in your MMF. (Recommended)
 	//  - pools, if you used the MMLogicAPI in your MMF. (Recommended, and provides stats)
 	CreateMatch(ctx context.Context, in *MatchObject, opts ...grpc.CallOption) (*MatchObject, error)
-	// Continually run MMF and stream matchobjects that fit this profile until
-	// client closes the connection.  Same inputs/outputs as CreateMatch.
+	// Continually run MMF and stream MatchObjects that fit this profile until
+	// the backend client closes the connection.  Same inputs/outputs as CreateMatch.
 	ListMatches(ctx context.Context, in *MatchObject, opts ...grpc.CallOption) (Backend_ListMatchesClient, error)
-	// Delete a matchobject from state storage manually. (Matchobjects in state
-	// storage will also automatically expire after a while)
+	// Delete a MatchObject from state storage manually. (MatchObjects in state
+	// storage will also automatically expire after a while, defined in the config)
 	// INPUT: MatchObject message with the 'id' field populated.
 	// (All other fields are ignored.)
 	DeleteMatch(ctx context.Context, in *MatchObject, opts ...grpc.CallOption) (*Result, error)
 	// Write the connection info for the list of players in the
-	// Assignments.messages.Rosters to state storage.  The FrontendAPI is
+	// Assignments.messages.Rosters to state storage.  The Frontend API is
 	// responsible for sending anything sent here to the game clients.
 	// Sending a player to this function kicks off a process that removes
 	// the player from future matchmaking functions by adding them to the
 	// 'deindexed' player list and then deleting their player ID from state storage
 	// indexes.
 	// INPUT: Assignments message with these fields populated:
-	//  - connection_info, anything you write to this string is sent to Frontend API
+	//  - assignment, anything you write to this string is sent to Frontend API
 	//  - rosters. You can send any number of rosters, containing any number of
-	//     player messages. All players from all rosters will be sent the connection_info.
-	//     The only field in the Player object that is used by CreateAssignments is
-	//     the id field.  All others are silently ignored.
+	//     player messages. All players from all rosters will be sent the assignment.
+	//     The only field in the Roster's Player messages used by CreateAssignments is
+	//     the id field.  All other fields in the Player messages are silently ignored.
 	CreateAssignments(ctx context.Context, in *Assignments, opts ...grpc.CallOption) (*Result, error)
 	// Remove DGS connection info from state storage for players.
 	// INPUT: Roster message with the 'players' field populated.
-	//    The only field in the Player object that is used by
+	//    The only field in the Roster's Player messages used by
 	//    DeleteAssignments is the 'id' field.  All others are silently ignored.  If
 	//    you need to delete multiple rosters, make multiple calls.
 	DeleteAssignments(ctx context.Context, in *Roster, opts ...grpc.CallOption) (*Result, error)
@@ -189,31 +189,31 @@ type BackendServer interface {
 	//  - rosters, if you choose to fill them in your MMF. (Recommended)
 	//  - pools, if you used the MMLogicAPI in your MMF. (Recommended, and provides stats)
 	CreateMatch(context.Context, *MatchObject) (*MatchObject, error)
-	// Continually run MMF and stream matchobjects that fit this profile until
-	// client closes the connection.  Same inputs/outputs as CreateMatch.
+	// Continually run MMF and stream MatchObjects that fit this profile until
+	// the backend client closes the connection.  Same inputs/outputs as CreateMatch.
 	ListMatches(*MatchObject, Backend_ListMatchesServer) error
-	// Delete a matchobject from state storage manually. (Matchobjects in state
-	// storage will also automatically expire after a while)
+	// Delete a MatchObject from state storage manually. (MatchObjects in state
+	// storage will also automatically expire after a while, defined in the config)
 	// INPUT: MatchObject message with the 'id' field populated.
 	// (All other fields are ignored.)
 	DeleteMatch(context.Context, *MatchObject) (*Result, error)
 	// Write the connection info for the list of players in the
-	// Assignments.messages.Rosters to state storage.  The FrontendAPI is
+	// Assignments.messages.Rosters to state storage.  The Frontend API is
 	// responsible for sending anything sent here to the game clients.
 	// Sending a player to this function kicks off a process that removes
 	// the player from future matchmaking functions by adding them to the
 	// 'deindexed' player list and then deleting their player ID from state storage
 	// indexes.
 	// INPUT: Assignments message with these fields populated:
-	//  - connection_info, anything you write to this string is sent to Frontend API
+	//  - assignment, anything you write to this string is sent to Frontend API
 	//  - rosters. You can send any number of rosters, containing any number of
-	//     player messages. All players from all rosters will be sent the connection_info.
-	//     The only field in the Player object that is used by CreateAssignments is
-	//     the id field.  All others are silently ignored.
+	//     player messages. All players from all rosters will be sent the assignment.
+	//     The only field in the Roster's Player messages used by CreateAssignments is
+	//     the id field.  All other fields in the Player messages are silently ignored.
 	CreateAssignments(context.Context, *Assignments) (*Result, error)
 	// Remove DGS connection info from state storage for players.
 	// INPUT: Roster message with the 'players' field populated.
-	//    The only field in the Player object that is used by
+	//    The only field in the Roster's Player messages used by
 	//    DeleteAssignments is the 'id' field.  All others are silently ignored.  If
 	//    you need to delete multiple rosters, make multiple calls.
 	DeleteAssignments(context.Context, *Roster) (*Result, error)

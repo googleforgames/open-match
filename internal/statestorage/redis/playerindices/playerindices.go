@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -55,9 +54,15 @@ var (
 // Properties JSON blob when the  player's request comes in the Frontend  API
 // so that you can filter on that  attribute in the Profiles you pass to the
 // Backend API.
-//  - Fields you want to index in your JSON should always be a key with an integer value, so use dictionaries/maps/hashes instad of lists/arrays for your data. (see examples below)
-//  - When indexing fields in a player's JSON object, the key to index should be compatible with dot notation.  (see configured list of indices below)
-//  - If you're trying to index a flag, just use the epoch timestamp of the request as the value unless you have a compelling reason to do otherwise.
+//  - Fields you want to index in your JSON should always be a key with an
+//    integer value, so use dictionaries/maps/hashes instad of lists/arrays for
+//    your data. (see examples below)
+//  - When indexing fields in a player's JSON object, the key to index should
+//    be compatible with dot notation. This means no keys with meta characters
+//    (anything escaped by regexp.QuoteMeta() shouldn't be used in your key
+//    name!)
+//  - If you're trying to index a flag, just use the epoch timestamp of the
+//    request as the value unless you have a compelling reason to do otherwise.
 //
 // For example, if you want to index the following:
 //    - Player's ping value to us-east
@@ -134,11 +139,16 @@ func Create(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, player om_
 
 		// If this is a user-defined index, look for it in the input player properties JSON
 		if !strings.HasPrefix(attribute, "OM_METADATA") {
-			v := gjson.Get(player.Properties, regexp.QuoteMeta(attribute))
+			// NOTE: This gjson call has issues with JSON keys containing meta characters (dot, slash, etc).
+			//   The regexp.QuoteMeta below gets around those issues, but won't pick up dot-notation keys!
+			//   End result is that you shouldn't use meta characters in your JSON property keys!
+			//v := gjson.Get(player.Properties, regexp.QuoteMeta(attribute))
+			v := gjson.Get(player.Properties, attribute)
 
 			// If this attribue wasn't provided in the JSON, continue to the
 			// next attribute to index.
 			if !v.Exists() {
+				iLog.WithFields(log.Fields{"attribute": attribute, "value": v.Raw}).Debug("Couldn't find index in JSON: ", player.Properties)
 				continue
 			} else if -9223372036854775808 <= v.Int() && v.Int() <= 9223372036854775807 {
 				// value contains a valid unsigned 64-bit integer
