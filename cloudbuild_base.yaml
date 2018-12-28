@@ -2,8 +2,8 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [
             'build', 
-            '--tag=gcr.io/$PROJECT_ID/openmatch-devbase:latest', 
+            '--tag=gcr.io/$PROJECT_ID/openmatch-base:dev', 
             '-f', 'Dockerfile.base', 
             '.'
         ]
-images: ['gcr.io/$PROJECT_ID/openmatch-devbase:latest']
+images: ['gcr.io/$PROJECT_ID/openmatch-base:dev']

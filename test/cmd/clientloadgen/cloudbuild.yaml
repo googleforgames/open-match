@@ -2,7 +2,7 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [
             'build', 
-            '--tag=gcr.io/$PROJECT_ID/openmatch-clientloadgen:$TAG_NAME', 
+            '--tag=gcr.io/$PROJECT_ID/openmatch-clientloadgen:dev', 
             '.'
         ]
-images: ['gcr.io/$PROJECT_ID/openmatch-clientloadgen:$TAG_NAME']
+images: ['gcr.io/$PROJECT_ID/openmatch-clientloadgen:dev']

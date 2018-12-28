@@ -1,11 +1,10 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/$PROJECT_ID/openmatch-mmf:latest']
+  args: [ 'pull', 'gcr.io/$PROJECT_ID/openmatch-base:dev' ]
 - name: 'gcr.io/cloud-builders/docker'
   args: [
             'build', 
-            '--tag=gcr.io/$PROJECT_ID/openmatch-mmf:$TAG_NAME', 
-            '--cache-from', 'gcr.io/$PROJECT_ID/openmatch-mmf:latest',
+            '--tag=gcr.io/$PROJECT_ID/openmatch-mmf-golang-manual-simple', 
             '.'
         ]
-images: ['gcr.io/$PROJECT_ID/openmatch-mmf:$TAG_NAME']
+  images: ['gcr.io/$PROJECT_ID/openmatch-mmf-golang-manual-simple']

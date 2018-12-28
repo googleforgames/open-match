@@ -1,5 +1,5 @@
 {
-  "imagename":"gcr.io/matchmaker-dev-201405/openmatch-mmf:py3",
+  "imagename":"gcr.io/matchmaker-dev-201405/openmatch-mmf-py3-mmlogic-simple:dev",
   "name":"testprofilev1",
   "id":"testprofile",
   "properties":{
