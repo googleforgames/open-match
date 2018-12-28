@@ -1,5 +1,5 @@
 # Frontend API Client Stub
-`frontendclient` is a fake client for the Frontend API. It pretends to be a real game client connecting to Open Match and requests a game, then dumps out the connection string it receives. Note that it doesn't actually test the return path by looking for arbitrary results from your matchmaking function; it pauses and tells you the name of a key to set a connection string in directly using a redis-cli client.
+`frontendclient` is a fake client for the Frontend API. It pretends to be a number of real game clients connecting to Open Match and requests a match, as a group. It then waits for results to come back from the Frontend API, and prints them to your screen.  You can generate these results using the entire Open Match end-to-end workflow - querying the backend, running an MMF, and assigning players to a match - or you can manually test the results pathway by directly putting the results you want into redis.
 
 Only to be used for testing, and only in isolated environments (not in production!)
 

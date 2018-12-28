@@ -21,8 +21,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/test/cmd/client/player"
-	"github.com/GoogleCloudPlatform/open-match/test/cmd/client/redis/playerq"
+	"github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/player"
+	"github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/redis/playerq"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/spf13/viper"

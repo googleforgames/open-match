@@ -128,52 +128,60 @@ func New() {
 	return
 }
 
+/*
+f = map[string]interface{}{
+    "Name": "Wednesday",
+    "Age":  6,
+    "Parents": []interface{}{
+        "Gomez",
+        "Morticia",
+    },
+}*/
+
 // Generate a player
 // For PoC, we're flattening the JSON so it can be easily indexed in Redis.
 // Flattened keys are joined using periods.
 // That should be abstracted out of this level and into the db storage module
-func Generate() (Xid string, properties map[string]int, debug map[string]string) {
-	//return xid, properties, debug
-	Xid = xid.New().String()
-	properties = make(map[string]int)
-	debug = make(map[string]string)
+func Generate() (string, map[string]interface{}) {
 
+	id := xid.New().String()
 	city := pick()
-	debug["city"] = city
-	//fmt.Println("Chose city", city)
+	properties := make(map[string]interface{})
 
-	//m := [4]string{"avg", "min", "max", "std"}
-
+	// Generate some fake latencies
+	regions := make(map[string]int)
 	for region := range pingStats {
 		//fmt.Print(region, " ")
-		properties["region."+region] = normalDist(
+		regions[region] = normalDist(
 			pingStats[region][city]["avg"],
 			pingStats[region][city]["min"],
 			pingStats[region][city]["max"],
 			pingStats[region][city]["std"],
 		)
-		/*for _, key := range m {
-			fmt.Print(key, " ", pingStats[region][city][key], " ")
-		}
-		fmt.Println()
-		*/
 	}
+	properties["region"] = regions
+
 	// Insert other properties here
 	// For example, a random skill modeled on a normal distribution
-	properties["mmr.rating"] = normalDist(1500, -1000, 4000, 350)
+	properties["mmr"] = map[string]int{"rating": normalDist(1500, -1000, 4000, 350)}
 
 	// For properties that are just flags, the key is the important bit.
 	// It's existance denotes a boolean true value.
 	// Just use an epoch timestamp as the value.
 	now := int(time.Now().Unix())
-	properties["char.paladin"] = now
-	properties["map.eastworld"] = now
-	properties["mode.ctf"] = now
-	properties["timestamp.enter"] = now
+	properties["char"] = map[string]int{
+		"paladin":   now,
+		"knight":    now,
+		"barbarian": now,
+	}
+	properties["map"] = map[string]int{
+		"oasis": now,
+		"dirt":  now,
+	}
+	properties["mode"] = map[string]int{
+		"ctf":          now,
+		"battleroyale": now,
+	}
 
-	// DEBUG
-	properties["mmr.rating"] = 1000
-	properties["region.europe-west1"] = 100
-
-	return
+	return id, properties
 }

@@ -216,8 +216,12 @@ func (m *PlayerPool) GetStats() *Stats {
 	return nil
 }
 
-// Data structure to hold details about a player
-// Players contain a number of fields, but many gRPC calls that take a
+// Open Match's internal representation and wire protocol format for "Players".
+// In order to enter matchmaking using the Frontend API, your client code should generate
+// a consistent (same result for each client every time they launch) with an ID and
+// properties filled in (for more details about valid values for these fields,
+// see the documentation).
+// Players contain a number of fields, but the gRPC calls that take a
 // Player as input only require a few of them to be filled in.  Check the
 // gRPC function in question for more details.
 type Player struct {

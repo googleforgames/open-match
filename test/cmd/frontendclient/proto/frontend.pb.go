@@ -28,8 +28,7 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for Frontend service
 
 type FrontendClient interface {
-	// CreateRequests will put the player (or group, if your 'Player'
-	// message represents multiple players) in state storage, and then look
+	// CreatePlayer will put the player  in state storage, and then look
 	// through the 'properties' field for the attributes you have defined as
 	// indices your matchmaker config.  If the attributes exist and are valid
 	// integers, they will be indexed.
@@ -38,23 +37,22 @@ type FrontendClient interface {
 	//  - properties
 	// OUTPUT: Result message denoting success or failure (and an error if
 	// necessary)
-	CreateRequest(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Result, error)
-	// DeleteRequest removes the players (or group, if your 'Player'
-	// message represents multiple players) from state storage by doing the
+	CreatePlayer(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Result, error)
+	// DeletePlayer removes the player from state storage by doing the
 	// following:
 	//  1) Delete player from configured indices.  This effectively removes the
 	//     player from matchmaking when using recommended MMF patterns.
 	//     Everything after this is just cleanup to save stage storage space.
 	//  2) 'Lazily' delete the player's state storage record.  This is kicked
 	//     off in the background and may take some time to complete.
-	//  2) 'Lazily' delete the player's metadata indicies (like, the time they
-	//     created the request, and the last time the record was accessed).  This
+	//  2) 'Lazily' delete the player's metadata indicies (like, the timestamp when
+	//     they called CreatePlayer, and the last time the record was accessed).  This
 	//     is also kicked off in the background and may take some time to complete.
 	// INPUT: Player message with the 'id' field populated.
 	// OUTPUT: Result message denoting success or failure (and an error if
 	// necessary)
-	DeleteRequest(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Result, error)
-	// GetAssignment streams matchmaking results from Open Match for the
+	DeletePlayer(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Result, error)
+	// GetResults streams matchmaking results from Open Match for the
 	// provided player ID.
 	// INPUT: Player message with the 'id' field populated.
 	// OUTPUT: a stream of player objects with one or more of the following
@@ -69,7 +67,7 @@ type FrontendClient interface {
 	// Even if you had multiple players enter a matchmaking request as a group, the
 	// Backend API 'CreateAssignments' call will write the results to state
 	// storage separately under each player's ID. OM expects you to make all game
-	// clients 'GetAssignment' with their own ID from the Frontend API to get
+	// clients 'GetResults' with their own ID from the Frontend API to get
 	// their results.
 	//
 	// NOTE: This call generates a small amount of load on the Frontend API and state
@@ -79,7 +77,7 @@ type FrontendClient interface {
 	//  generate load on OM until you do!
 	// NOTE: Just bear in mind that every update will send egress traffic from
 	//  Open Match to game clients! Frugality is recommended.
-	GetAssignment(ctx context.Context, in *Player, opts ...grpc.CallOption) (Frontend_GetAssignmentClient, error)
+	GetPlayer(ctx context.Context, in *Player, opts ...grpc.CallOption) (Frontend_GetPlayerClient, error)
 }
 
 type frontendClient struct {
@@ -90,30 +88,30 @@ func NewFrontendClient(cc *grpc.ClientConn) FrontendClient {
 	return &frontendClient{cc}
 }
 
-func (c *frontendClient) CreateRequest(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Result, error) {
+func (c *frontendClient) CreatePlayer(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Result, error) {
 	out := new(Result)
-	err := grpc.Invoke(ctx, "/api.Frontend/CreateRequest", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/api.Frontend/CreatePlayer", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *frontendClient) DeleteRequest(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Result, error) {
+func (c *frontendClient) DeletePlayer(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Result, error) {
 	out := new(Result)
-	err := grpc.Invoke(ctx, "/api.Frontend/DeleteRequest", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/api.Frontend/DeletePlayer", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *frontendClient) GetAssignment(ctx context.Context, in *Player, opts ...grpc.CallOption) (Frontend_GetAssignmentClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_Frontend_serviceDesc.Streams[0], c.cc, "/api.Frontend/GetAssignment", opts...)
+func (c *frontendClient) GetPlayer(ctx context.Context, in *Player, opts ...grpc.CallOption) (Frontend_GetPlayerClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_Frontend_serviceDesc.Streams[0], c.cc, "/api.Frontend/GetPlayer", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &frontendGetAssignmentClient{stream}
+	x := &frontendGetPlayerClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -123,16 +121,16 @@ func (c *frontendClient) GetAssignment(ctx context.Context, in *Player, opts ...
 	return x, nil
 }
 
-type Frontend_GetAssignmentClient interface {
+type Frontend_GetPlayerClient interface {
 	Recv() (*Player, error)
 	grpc.ClientStream
 }
 
-type frontendGetAssignmentClient struct {
+type frontendGetPlayerClient struct {
 	grpc.ClientStream
 }
 
-func (x *frontendGetAssignmentClient) Recv() (*Player, error) {
+func (x *frontendGetPlayerClient) Recv() (*Player, error) {
 	m := new(Player)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -143,8 +141,7 @@ func (x *frontendGetAssignmentClient) Recv() (*Player, error) {
 // Server API for Frontend service
 
 type FrontendServer interface {
-	// CreateRequests will put the player (or group, if your 'Player'
-	// message represents multiple players) in state storage, and then look
+	// CreatePlayer will put the player  in state storage, and then look
 	// through the 'properties' field for the attributes you have defined as
 	// indices your matchmaker config.  If the attributes exist and are valid
 	// integers, they will be indexed.
@@ -153,23 +150,22 @@ type FrontendServer interface {
 	//  - properties
 	// OUTPUT: Result message denoting success or failure (and an error if
 	// necessary)
-	CreateRequest(context.Context, *Player) (*Result, error)
-	// DeleteRequest removes the players (or group, if your 'Player'
-	// message represents multiple players) from state storage by doing the
+	CreatePlayer(context.Context, *Player) (*Result, error)
+	// DeletePlayer removes the player from state storage by doing the
 	// following:
 	//  1) Delete player from configured indices.  This effectively removes the
 	//     player from matchmaking when using recommended MMF patterns.
 	//     Everything after this is just cleanup to save stage storage space.
 	//  2) 'Lazily' delete the player's state storage record.  This is kicked
 	//     off in the background and may take some time to complete.
-	//  2) 'Lazily' delete the player's metadata indicies (like, the time they
-	//     created the request, and the last time the record was accessed).  This
+	//  2) 'Lazily' delete the player's metadata indicies (like, the timestamp when
+	//     they called CreatePlayer, and the last time the record was accessed).  This
 	//     is also kicked off in the background and may take some time to complete.
 	// INPUT: Player message with the 'id' field populated.
 	// OUTPUT: Result message denoting success or failure (and an error if
 	// necessary)
-	DeleteRequest(context.Context, *Player) (*Result, error)
-	// GetAssignment streams matchmaking results from Open Match for the
+	DeletePlayer(context.Context, *Player) (*Result, error)
+	// GetResults streams matchmaking results from Open Match for the
 	// provided player ID.
 	// INPUT: Player message with the 'id' field populated.
 	// OUTPUT: a stream of player objects with one or more of the following
@@ -184,7 +180,7 @@ type FrontendServer interface {
 	// Even if you had multiple players enter a matchmaking request as a group, the
 	// Backend API 'CreateAssignments' call will write the results to state
 	// storage separately under each player's ID. OM expects you to make all game
-	// clients 'GetAssignment' with their own ID from the Frontend API to get
+	// clients 'GetResults' with their own ID from the Frontend API to get
 	// their results.
 	//
 	// NOTE: This call generates a small amount of load on the Frontend API and state
@@ -194,67 +190,67 @@ type FrontendServer interface {
 	//  generate load on OM until you do!
 	// NOTE: Just bear in mind that every update will send egress traffic from
 	//  Open Match to game clients! Frugality is recommended.
-	GetAssignment(*Player, Frontend_GetAssignmentServer) error
+	GetPlayer(*Player, Frontend_GetPlayerServer) error
 }
 
 func RegisterFrontendServer(s *grpc.Server, srv FrontendServer) {
 	s.RegisterService(&_Frontend_serviceDesc, srv)
 }
 
-func _Frontend_CreateRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Frontend_CreatePlayer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Player)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FrontendServer).CreateRequest(ctx, in)
+		return srv.(FrontendServer).CreatePlayer(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Frontend/CreateRequest",
+		FullMethod: "/api.Frontend/CreatePlayer",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FrontendServer).CreateRequest(ctx, req.(*Player))
+		return srv.(FrontendServer).CreatePlayer(ctx, req.(*Player))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Frontend_DeleteRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Frontend_DeletePlayer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Player)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FrontendServer).DeleteRequest(ctx, in)
+		return srv.(FrontendServer).DeletePlayer(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Frontend/DeleteRequest",
+		FullMethod: "/api.Frontend/DeletePlayer",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FrontendServer).DeleteRequest(ctx, req.(*Player))
+		return srv.(FrontendServer).DeletePlayer(ctx, req.(*Player))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Frontend_GetAssignment_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Frontend_GetPlayer_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Player)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(FrontendServer).GetAssignment(m, &frontendGetAssignmentServer{stream})
+	return srv.(FrontendServer).GetPlayer(m, &frontendGetPlayerServer{stream})
 }
 
-type Frontend_GetAssignmentServer interface {
+type Frontend_GetPlayerServer interface {
 	Send(*Player) error
 	grpc.ServerStream
 }
 
-type frontendGetAssignmentServer struct {
+type frontendGetPlayerServer struct {
 	grpc.ServerStream
 }
 
-func (x *frontendGetAssignmentServer) Send(m *Player) error {
+func (x *frontendGetPlayerServer) Send(m *Player) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -263,18 +259,18 @@ var _Frontend_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*FrontendServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CreateRequest",
-			Handler:    _Frontend_CreateRequest_Handler,
+			MethodName: "CreatePlayer",
+			Handler:    _Frontend_CreatePlayer_Handler,
 		},
 		{
-			MethodName: "DeleteRequest",
-			Handler:    _Frontend_DeleteRequest_Handler,
+			MethodName: "DeletePlayer",
+			Handler:    _Frontend_DeletePlayer_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "GetAssignment",
-			Handler:       _Frontend_GetAssignment_Handler,
+			StreamName:    "GetPlayer",
+			Handler:       _Frontend_GetPlayer_Handler,
 			ServerStreams: true,
 		},
 	},
@@ -284,18 +280,18 @@ var _Frontend_serviceDesc = grpc.ServiceDesc{
 func init() { proto.RegisterFile("api/protobuf-spec/frontend.proto", fileDescriptor1) }
 
 var fileDescriptor1 = []byte{
-	// 205 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0xcf, 0x31, 0x4b, 0x43, 0x31,
-	0x14, 0xc5, 0xf1, 0x16, 0x41, 0x24, 0x50, 0x90, 0x37, 0x76, 0x92, 0xee, 0x7d, 0x11, 0xa5, 0x74,
-	0xd6, 0x8a, 0x5d, 0x4b, 0x47, 0xb7, 0x9b, 0xd7, 0xf3, 0xd2, 0x40, 0x92, 0x1b, 0x73, 0x6f, 0x06,
-	0x3f, 0x96, 0xdf, 0x50, 0x6c, 0x45, 0x1c, 0x04, 0x71, 0x3d, 0xfc, 0x7f, 0xc3, 0x31, 0x37, 0x54,
-	0x82, 0x2d, 0x95, 0x95, 0x5d, 0x1b, 0x97, 0x52, 0x30, 0xd8, 0xb1, 0x72, 0x56, 0xe4, 0x43, 0x7f,
-	0x9a, 0xbb, 0x0b, 0x2a, 0x61, 0xfe, 0x4b, 0x96, 0x20, 0x42, 0x1e, 0x72, 0xce, 0xee, 0xde, 0xa7,
-	0xe6, 0xea, 0xf9, 0x4b, 0x76, 0x2b, 0x33, 0xdb, 0x54, 0x90, 0x62, 0x8f, 0xd7, 0x06, 0xd1, 0xee,
-	0xba, 0xff, 0xce, 0x77, 0x91, 0xde, 0x50, 0xe7, 0x3f, 0x96, 0x3d, 0xa4, 0x45, 0x5d, 0x4c, 0x3e,
-	0xd9, 0x13, 0x22, 0xfe, 0xcb, 0xd6, 0x66, 0xb6, 0x85, 0x3e, 0x88, 0x04, 0x9f, 0x13, 0xf2, 0x1f,
-	0xec, 0xbc, 0x2c, 0x26, 0xb7, 0xd3, 0xc7, 0xf5, 0xcb, 0xca, 0x07, 0x3d, 0x36, 0xd7, 0x0f, 0x9c,
-	0xec, 0x96, 0xd9, 0x47, 0x6c, 0x22, 0xb7, 0xc3, 0x2e, 0x92, 0x8e, 0x5c, 0x93, 0xe5, 0x82, 0xbc,
-	0x4c, 0xa4, 0xc3, 0xd1, 0x86, 0xac, 0xa8, 0x99, 0xa2, 0x2d, 0xce, 0x5d, 0x9e, 0x3e, 0xdf, 0x7f,
-	0x04, 0x00, 0x00, 0xff, 0xff, 0xb5, 0xc6, 0x9a, 0xe0, 0x3e, 0x01, 0x00, 0x00,
+	// 196 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0xcf, 0xb1, 0x4e, 0x85, 0x30,
+	0x14, 0xc6, 0x71, 0x88, 0x89, 0xd1, 0xc6, 0xc1, 0x30, 0x32, 0x19, 0x76, 0xa8, 0x11, 0x8d, 0xbb,
+	0x18, 0x59, 0x89, 0xa3, 0xdb, 0x29, 0x1c, 0xa0, 0x49, 0xdb, 0xd3, 0xb4, 0xa7, 0x83, 0xcf, 0xe4,
+	0x4b, 0x1a, 0xc1, 0xdc, 0xdc, 0xe1, 0x0e, 0xf7, 0xae, 0xff, 0x7c, 0xbf, 0xe1, 0x13, 0x0f, 0xe0,
+	0xb5, 0xf4, 0x81, 0x98, 0x54, 0x9a, 0xeb, 0xe8, 0x71, 0x94, 0x73, 0x20, 0xc7, 0xe8, 0xa6, 0x66,
+	0xcb, 0xc5, 0x15, 0x78, 0x5d, 0x9e, 0x98, 0x59, 0x8c, 0x11, 0x16, 0x8c, 0xfb, 0xec, 0xe9, 0x27,
+	0x17, 0x37, 0x1f, 0xff, 0xb2, 0x78, 0x16, 0x77, 0x5d, 0x40, 0x60, 0x1c, 0x0c, 0x7c, 0x63, 0x28,
+	0xee, 0x9b, 0xc3, 0x7a, 0x2f, 0xe5, 0x51, 0xf9, 0xc4, 0x98, 0x0c, 0x57, 0xd9, 0x9f, 0x7a, 0x47,
+	0x83, 0x17, 0xaa, 0x56, 0xdc, 0xf6, 0xc8, 0xe7, 0x90, 0xbd, 0x54, 0xd9, 0x63, 0xfe, 0xf6, 0xfa,
+	0xf5, 0xb2, 0x68, 0x5e, 0x93, 0x6a, 0x46, 0xb2, 0xb2, 0x27, 0x5a, 0x0c, 0x76, 0x86, 0xd2, 0x34,
+	0x18, 0xe0, 0x99, 0x82, 0x95, 0xe4, 0xd1, 0xd5, 0x16, 0x78, 0x5c, 0xa5, 0x76, 0x8c, 0xc1, 0x81,
+	0x91, 0x5e, 0xa9, 0xeb, 0xed, 0x6d, 0xfb, 0x1b, 0x00, 0x00, 0xff, 0xff, 0x44, 0x87, 0x56, 0x93,
+	0x38, 0x01, 0x00, 0x00,
 }

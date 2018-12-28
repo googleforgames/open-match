@@ -4,10 +4,9 @@ option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
 import 'api/protobuf-spec/messages.proto';
 
 service Frontend {
-    // Calls to start matchmaking for a player or group
+    // Call to start matchmaking for a player
 
-    // CreateRequests will put the player (or group, if your 'Player'
-    // message represents multiple players) in state storage, and then look
+    // CreatePlayer will put the player  in state storage, and then look
     // through the 'properties' field for the attributes you have defined as
     // indices your matchmaker config.  If the attributes exist and are valid
     // integers, they will be indexed.
@@ -16,27 +15,28 @@ service Frontend {
     //  - properties
     // OUTPUT: Result message denoting success or failure (and an error if
     // necessary)
-    rpc CreateRequest(messages.Player) returns (messages.Result) {}
+    rpc CreatePlayer(messages.Player) returns (messages.Result) {}
 
-    // DeleteRequest removes the players (or group, if your 'Player'
-    // message represents multiple players) from state storage by doing the
+    // Call to stop matchmaking for a player
+
+    // DeletePlayer removes the player from state storage by doing the
     // following:
     //  1) Delete player from configured indices.  This effectively removes the
     //     player from matchmaking when using recommended MMF patterns.
     //     Everything after this is just cleanup to save stage storage space.
     //  2) 'Lazily' delete the player's state storage record.  This is kicked
     //     off in the background and may take some time to complete.
-    //  2) 'Lazily' delete the player's metadata indicies (like, the time they
-    //     created the request, and the last time the record was accessed).  This 
+    //  2) 'Lazily' delete the player's metadata indicies (like, the timestamp when 
+    //     they called CreatePlayer, and the last time the record was accessed).  This 
     //     is also kicked off in the background and may take some time to complete.
     // INPUT: Player message with the 'id' field populated.
     // OUTPUT: Result message denoting success or failure (and an error if
     // necessary)
-    rpc DeleteRequest(messages.Player) returns (messages.Result) {}
+    rpc DeletePlayer(messages.Player) returns (messages.Result) {}
 
     // Calls to access matchmaking results for a player
 
-    // GetAssignment streams matchmaking results from Open Match for the
+    // GetResults streams matchmaking results from Open Match for the
     // provided player ID.
     // INPUT: Player message with the 'id' field populated.
     // OUTPUT: a stream of player objects with one or more of the following
@@ -51,7 +51,7 @@ service Frontend {
     // Even if you had multiple players enter a matchmaking request as a group, the
     // Backend API 'CreateAssignments' call will write the results to state
     // storage separately under each player's ID. OM expects you to make all game
-    // clients 'GetAssignment' with their own ID from the Frontend API to get
+    // clients 'GetResults' with their own ID from the Frontend API to get
     // their results.
     //
     // NOTE: This call generates a small amount of load on the Frontend API and state
@@ -61,5 +61,5 @@ service Frontend {
     //  generate load on OM until you do!
     // NOTE: Just bear in mind that every update will send egress traffic from
     //  Open Match to game clients! Frugality is recommended.
-    rpc GetAssignment(messages.Player) returns (stream messages.Player) {}
+    rpc GetPlayer(messages.Player) returns (stream messages.Player) {}
 }

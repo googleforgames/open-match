@@ -99,11 +99,11 @@ func (s *FrontendAPI) Open() error {
 	return nil
 }
 
-// CreateRequest is this service's implementation of the CreateRequest gRPC method defined in frontend.proto
-func (s *frontendAPI) CreateRequest(ctx context.Context, group *frontend.Player) (*frontend.Result, error) {
+// CreatePlayer is this service's implementation of the CreatePlayer gRPC method defined in frontend.proto
+func (s *frontendAPI) CreatePlayer(ctx context.Context, group *frontend.Player) (*frontend.Result, error) {
 
 	// Create context for tagging OpenCensus metrics.
-	funcName := "CreateRequest"
+	funcName := "CreatePlayer"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
 	// Write group
@@ -136,11 +136,11 @@ func (s *frontendAPI) CreateRequest(ctx context.Context, group *frontend.Player)
 
 }
 
-// DeleteRequest is this service's implementation of the DeleteRequest gRPC method defined in frontend.proto
-func (s *frontendAPI) DeleteRequest(ctx context.Context, group *frontend.Player) (*frontend.Result, error) {
+// DeletePlayer is this service's implementation of the DeletePlayer gRPC method defined in frontend.proto
+func (s *frontendAPI) DeletePlayer(ctx context.Context, group *frontend.Player) (*frontend.Result, error) {
 
 	// Create context for tagging OpenCensus metrics.
-	funcName := "DeleteRequest"
+	funcName := "DeletePlayer"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
 	// Deindex this player; at that point they don't show up in MMFs anymore.  We can then delete
@@ -180,9 +180,8 @@ func (s *frontendAPI) deletePlayer(id string) {
 	go playerindices.DeleteMeta(context.Background(), s.pool, id)
 }
 
-// GetAssignment is this service's implementation of the GetAssignment gRPC method defined in frontend.proto
-//func (s *frontendAPI) GetAssignment(c context.Context, p *frontend.Player) (*frontend.Player, error) {
-func (s *frontendAPI) GetAssignment(p *frontend.Player, assignmentStream frontend.Frontend_GetAssignmentServer) error {
+// GetPlayer is this service's implementation of the GetPlayer gRPC method defined in frontend.proto
+func (s *frontendAPI) GetPlayer(p *frontend.Player, assignmentStream frontend.Frontend_GetPlayerServer) error {
 	// Get cancellable context
 	ctx, cancel := context.WithCancel(assignmentStream.Context())
 	defer cancel()
