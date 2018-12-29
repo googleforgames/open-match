@@ -17,8 +17,10 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/player"
@@ -28,7 +30,12 @@ import (
 	"github.com/spf13/viper"
 )
 
+var interactive = flag.Bool("i", false, "toggle interactive mode")
+var genPlayers = flag.Int("n", 20, "number of players to generate at each iteration in non-intercative mode")
+var sleep = flag.Int("s", 5, "number of seconds to sleep after each iteration in non-interactive mode")
+
 func main() {
+	flag.Parse()
 
 	conf, err := readConfig("", map[string]interface{}{
 		"REDIS_SERVICE_HOST": "127.0.0.1",
@@ -52,10 +59,26 @@ func main() {
 	// Make a new player generator
 	player.New()
 
-	const numPlayers = 20
 	fmt.Println("Starting client api stub...")
 
 	for {
+		var numPlayers int
+		if *interactive {
+			fmt.Println(">> Input number of players to generate")
+
+			var t string
+			fmt.Scanln(&t)
+			numPlayers, err = strconv.Atoi(t)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			numPlayers = *genPlayers
+		}
+		if numPlayers <= 0 {
+			panic("num players must be positive integer")
+		}
+
 		start := time.Now()
 
 		for i := 1; i <= numPlayers; i++ {
@@ -66,8 +89,11 @@ func main() {
 		elapsed := time.Since(start)
 		check(err, "")
 		fmt.Printf("Redis queries and Xid generation took %s\n", elapsed)
-		fmt.Println("Sleeping")
-		time.Sleep(5 * time.Second)
+
+		if !*interactive {
+			fmt.Println("Sleeping")
+			time.Sleep(time.Duration(*sleep) * time.Second)
+		}
 	}
 }
 

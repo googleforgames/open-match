@@ -25,6 +25,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -138,21 +139,41 @@ func main() {
 	}
 	log.Printf("CreateRequest() returned %v", results)
 
-	// Get updates for each player and display them the 'q' key is pressed.
-	quitChan := make(chan bool)
-	go waitForQuit(quitChan)
-	quit := false
-	for !quit {
+	// Get updates for each player and display them until the 'enter' key is pressed.
+	quitChan := make(chan struct{})
+	go func(q chan<- struct{}) {
+		r := bufio.NewReader(os.Stdin)
+		r.ReadString('\n')
+		close(q)
+	}(quitChan)
+L:
+	for {
 		log.Println("Waiting for results from Open Match...")
 		log.Println("**Press Enter to disconnect from Open Match frontend**")
 
 		select {
-		case a := <-resultsChan:
-			pretty.PrettyPrint(a)
 		case <-quitChan:
 			log.Println("Disconnect from Frontend requested")
 			cancel() // Quit listening for results.
-			quit = true
+			break L
+
+		case a := <-resultsChan:
+			pretty.PrettyPrint(a)
+			if a.Pool != "" {
+				players[0].Pool = a.Pool
+			}
+			if a.Status != "" {
+				players[0].Status = a.Status
+			}
+			if a.Error != "" {
+				players[0].Error = a.Error
+			}
+			if a.Properties != "" {
+				players[0].Properties = a.Properties
+			}
+			if a.Assignment != "" {
+				players[0].Assignment = a.Assignment
+			}
 		}
 	}
 
@@ -160,20 +181,21 @@ func main() {
 	// screen the contents of the packets it recieves
 	player := players[0]
 	if *connect && player.Assignment != "" {
-		err = udpClient(context.Background(), player.Assignment)
+		udpCtx, stopUDP := context.WithCancel(context.Background())
+
+		cmdChan := make(chan string)
+		go func() {
+			waitForInput(cmdChan)
+			stopUDP()
+		}()
+
+		err = udpClient(udpCtx, player.Assignment, player.Id, cmdChan)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	return
-}
-
-func waitForQuit(quitChan chan<- bool) {
-	// Don't do anything with the input; any input means to quit.
-	reader := bufio.NewReader(os.Stdin)
-	_, _ = reader.ReadString('\n')
-	quitChan <- true
 }
 
 // waitForResults loops until the context is cancelled, looking for assignment/status/error updates for a player.
@@ -188,8 +210,7 @@ func waitForResults(resultsChan chan pb.Player, stream pb.Frontend_GetUpdatesCli
 			if strings.HasSuffix(err.Error(), "context canceled") {
 				break
 			}
-			log.Println("Error encountered")
-			log.Printf("Error reading stream for GetAssignments(_) = _, %v", err)
+			log.Printf("Error reading stream for GetAssignments(_) = _, %v\n", err)
 			break
 		}
 		log.Println("Result recieved from Open Match!")
@@ -197,54 +218,99 @@ func waitForResults(resultsChan chan pb.Player, stream pb.Frontend_GetUpdatesCli
 	}
 }
 
-func udpClient(ctx context.Context, address string) (err error) {
-	// Resolve address
+func waitForInput(cmdChan chan string) {
+	helpText := `(Type commands; start it with "<-" to send to server; type "QUIT" to terminate communication and exit; messages received from server start with "->";)`
+	fmt.Println(helpText)
+
+	for {
+		r := bufio.NewReader(os.Stdin)
+		line, err := r.ReadString('\n')
+		if err != nil {
+			panic(err)
+		}
+
+		s := strings.TrimSpace(line)
+		switch {
+		case strings.ToUpper(s) == "QUIT":
+			return
+
+		case strings.HasPrefix(s, "<-"):
+			cmd := strings.TrimSpace(strings.TrimPrefix(s, "<-"))
+			cmdChan <- cmd
+
+		default:
+			fmt.Println(helpText)
+		}
+	}
+}
+
+func udpClient(ctx context.Context, address, playerID string, cmdChan <-chan string) (err error) {
+	log.Printf("Connecting to udp-server at %s...\n", address)
 	raddr, err := net.ResolveUDPAddr("udp", address)
 	if err != nil {
 		return
 	}
-
-	// Connect
 	conn, err := net.DialUDP("udp", nil, raddr)
 	if err != nil {
 		return
 	}
 	defer conn.Close()
 
-	// Subscribe and loop, printing received timestamps
-	doneChan := make(chan error, 1)
-	go func() {
-		// Send one packet to servers so it will start sending us timestamps
-		log.Println("Connecting...")
-		b := bytes.NewBufferString("subscribe")
-		_, err := io.Copy(conn, b)
-		if err != nil {
-			doneChan <- err
-			return
-		}
+	errChan := make(chan error, 2)
+	doneChan := make(chan struct{})
 
+	go func() {
 		// Loop forever, reading
 		buffer := make([]byte, 1024)
 		for {
-			n, _, err := conn.ReadFrom(buffer)
-			if err != nil {
-				doneChan <- err
+			select {
+			case <-doneChan:
 				return
+			default:
+				n, _, err := conn.ReadFrom(buffer)
+				if err != nil {
+					errChan <- err
+					return
+				}
+				s := string(buffer[:n])
+				fmt.Println("->", s)
 			}
-
-			log.Printf("received %v\n", string(buffer[:n]))
-
 		}
 	}()
 
-	// Exit if listening loop has an error or context is cancelled
+	go func() {
+		// Send the user input to server
+		for {
+			select {
+			case <-doneChan:
+				return
+			case cmd := <-cmdChan:
+				msg := cmd
+				if !strings.HasPrefix(cmd, playerID) {
+					msg = playerID + " " + cmd
+				}
+				log.Printf("sending \"%v\"", msg)
+				_, err := conn.Write([]byte(msg))
+				if err != nil {
+					errChan <- err
+					return
+				}
+			}
+		}
+	}()
+
+	// Wait for error or context cancelation
 	select {
 	case <-ctx.Done():
-		log.Println("context cancelled")
-		err = ctx.Err()
-	case err = <-doneChan:
+		log.Println("UDP client context cancelled")
+		if ctx.Err() != context.Canceled {
+			err = ctx.Err()
+		}
+	case err = <-errChan:
 	}
 
+	// Stop reading and wiriting goroutines
+	close(doneChan)
 	return
 }
 

@@ -171,6 +171,7 @@ func Generate() (Xid string, properties map[string]int, debug map[string]string)
 	properties["map.eastworld"] = now
 	properties["mode.ctf"] = now
 	properties["timestamp.enter"] = now
+	properties["mode.demo"] = now
 
 	return
 }

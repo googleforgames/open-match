@@ -1,0 +1,31 @@
+#!/usr/bin/env kubectl apply -f
+apiVersion: "stable.agones.dev/v1alpha1"
+kind: Fleet
+metadata:
+  name: udp-server
+spec:
+  replicas: 2
+  template:
+    spec:
+      ports:
+      - name: default
+        portPolicy: "dynamic"
+        containerPort: 10001 
+      template:
+        spec:
+          containers:
+          - name: simple-udp
+            image: gcr.io/open-match-public-images/example-udp-server:latest
+---
+apiVersion: "stable.agones.dev/v1alpha1"
+kind: FleetAutoscaler
+metadata:
+  name: fleet-autoscaler-example
+spec:
+  fleetName: udp-server
+  policy:
+    type: Buffer
+    buffer:
+      bufferSize: 1
+      minReplicas: 2
+      maxReplicas: 20

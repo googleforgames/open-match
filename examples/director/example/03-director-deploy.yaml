@@ -1,0 +1,38 @@
+#!/usr/bin/env kubectl apply -f
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-director
+  labels:
+    app: openmatch
+    component: director
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openmatch
+      component: director
+  template:
+    metadata:
+      labels:
+        app: openmatch
+        component: director
+    spec:
+      containers:
+      - name: director
+        image: gcr.io/open-match-public-images/openmatch-director:dev
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: director-data
+          subPath: director_config.yaml
+          mountPath: /home/director/director_config.yaml
+          readOnly: true
+        - name: director-data
+          subPath: profile.json
+          mountPath: /home/director/profile.json
+          readOnly: true
+      volumes:
+      - name: director-data
+        configMap:
+          name: om-director-data
+      # restartPolicy: Never

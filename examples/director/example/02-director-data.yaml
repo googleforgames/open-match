@@ -1,0 +1,53 @@
+#!/usr/bin/env kubectl apply -f
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: om-director-data
+data:
+  director_config.yaml: |
+    logging:
+      format: text
+      level: debug
+      source: false
+
+    debug:
+      maxSends: 0
+      maxMatchesPerSend: 0
+      sleepBetweenSendsSeconds: 30
+      
+    agones:
+      namespace: default
+      fleetName: udp-server
+      generateName: udp-server-
+
+  ###
+
+  profile.json: |
+    {
+      "id": "partial",
+      "name": "partialv1",
+      "imagename": "gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple:dev",
+      
+      "properties": {
+        "pools": [
+          {
+            "name": "demoPool",
+            "filters": [
+              { "name": "demoAttribute", "attribute": "mode.demo", "minv": "0" }
+            ]
+          }
+        ],
+        "rosters": [
+          {
+            "name": "demoRoster",
+            "players": [
+              { "pool": "demoPool" },
+              { "pool": "demoPool" },
+              { "pool": "demoPool" },
+              { "pool": "demoPool" }
+            ]
+          }
+        ]
+      }
+    }
+  

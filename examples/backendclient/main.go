@@ -144,7 +144,7 @@ func main() {
 			if !gjson.Valid(string(match.Properties)) {
 				log.Println(errors.New("invalid json"))
 			}
-			log.Println("Received match:")
+			log.Println("Received match", match.Id)
 			ppJSON(match.Properties)
 			//fmt.Println(match)  // Debug
 

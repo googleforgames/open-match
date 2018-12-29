@@ -1,0 +1,12 @@
+steps:
+- id: 'Docker Image: openmatch-director'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-director:dev', 'cmd/director']
+
+- id: 'Docker Image: openmatch-director-example-udp-server'
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/example-udp-server:dev', 'test/example/udp-server']
+
+images:
+- 'gcr.io/$PROJECT_ID/openmatch-director:dev'
+- 'gcr.io/$PROJECT_ID/example-udp-server:dev'
