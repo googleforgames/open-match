@@ -27,7 +27,7 @@
             "containers":[
                {
                   "name":"om-mmlogic",
-                  "image":"gcr.io/matchmaker-dev-201405/openmatch-mmlogicapi:dev",
+                  "image":"gcr.io/open-match-public-images/openmatch-mmlogicapi:dev",
                   "imagePullPolicy":"Always",
                   "ports": [
                     {

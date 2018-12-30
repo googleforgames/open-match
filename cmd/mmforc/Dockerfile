@@ -1,5 +1,5 @@
 # Golang application builder steps
-FROM gcr.io/matchmaker-dev-201405/openmatch-base:dev as builder
+FROM gcr.io/open-match-public-images/openmatch-base:dev as builder
 
 # Necessary to get a specific version of the golang k8s client
 RUN go get github.com/tools/godep

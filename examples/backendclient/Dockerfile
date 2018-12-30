@@ -1,5 +1,5 @@
 #FROM golang:1.10.3 as builder
-FROM gcr.io/matchmaker-dev-201405/openmatch-base:dev as builder
+FROM gcr.io/open-match-public-images/openmatch-base:dev as builder
 WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/examples/backendclient
 COPY ./ ./
 RUN go get -d -v 

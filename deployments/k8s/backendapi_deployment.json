@@ -27,8 +27,7 @@
             "containers":[
                {
                   "name":"om-backend",
-                  "image":"gcr.io/matchmaker-dev-201405/openmatch-backendapi:dev",
-                  "command": ["sleep", "30000"],
+                  "image":"gcr.io/open-match-public-images/openmatch-backendapi:dev",
                   "imagePullPolicy":"Always",
                   "ports": [
                     {
