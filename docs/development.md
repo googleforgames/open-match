@@ -42,15 +42,15 @@ The [Quickstart for Docker](https://cloud.google.com/cloud-build/docs/quickstart
     (your registry name will be different)
     ```
     NAME
-    open-match-public-images/openmatch-backendapi
-    open-match-public-images/openmatch-devbase
-    open-match-public-images/openmatch-evaluator
-    open-match-public-images/openmatch-frontendapi
-    open-match-public-images/openmatch-mmf-golang-manual-simple
-    open-match-public-images/openmatch-mmf-php-mmlogic-simple
-    open-match-public-images/openmatch-mmf-py3-mmlogic-simple
-    open-match-public-images/openmatch-mmforc
-    open-match-public-images/openmatch-mmlogicapi
+    gcr.io/open-match-public-images/openmatch-backendapi
+    gcr.io/open-match-public-images/openmatch-devbase
+    gcr.io/open-match-public-images/openmatch-evaluator
+    gcr.io/open-match-public-images/openmatch-frontendapi
+    gcr.io/open-match-public-images/openmatch-mmf-golang-manual-simple
+    gcr.io/open-match-public-images/openmatch-mmf-php-mmlogic-simple
+    gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple
+    gcr.io/open-match-public-images/openmatch-mmforc
+    gcr.io/open-match-public-images/openmatch-mmlogicapi
     ```
 ## Example of starting a GKE cluster
 
@@ -88,8 +88,8 @@ The rest of this guide assumes you have a cluster (example is using GKE, but wor
     kubectl apply -f frontendapi_service.json
     kubectl apply -f mmforc_deployment.json
     kubectl apply -f mmforc_serviceaccount.json
-    kubectl apply -f mmlogic_deployment.json
-    kubectl apply -f mmlogic_service.json
+    kubectl apply -f mmlogicapi_deployment.json
+    kubectl apply -f mmlogicapi_service.json
     ```
 * [optional, but recommended] Configure the OpenCensus metrics services:
     ```

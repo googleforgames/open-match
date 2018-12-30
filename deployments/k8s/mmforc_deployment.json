@@ -27,7 +27,7 @@
             "containers":[
                {
                   "name":"om-mmforc",
-                  "image":"gcr.io/matchmaker-dev-201405/openmatch-mmforc:dev",
+                  "image":"gcr.io/open-match-public-images/openmatch-mmforc:dev",
                   "imagePullPolicy":"Always",
                   "ports": [
                     {

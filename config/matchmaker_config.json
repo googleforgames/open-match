@@ -1,4 +1,5 @@
 {
+    "debug": true,
     "logging":{
         "level": "debug",
         "format": "text",
@@ -56,11 +57,11 @@
     },
     "defaultImages": {
         "evaluator": {
-            "name": "gcr.io/matchmaker-dev-201405/openmatch-evaluator",
+            "name": "gcr.io/open-match-public-images/openmatch-evaluator",
             "tag": "dev"
         },
         "mmf": {
-            "name": "gcr.io/matchmaker-dev-201405/openmatch-mmf-py3-mmlogic-simple",
+            "name": "gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple",
             "tag": "py3"
         }
     },

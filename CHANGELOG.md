@@ -17,6 +17,7 @@
 - Open Match uses a new feature of the go module [logrus](github.com/sirupsen/logrus) to include filenames and line numbers.  If you have an older version in your local build environment, you may need to delete the module and `go get github.com/sirupsen/logrus` again.  When building using the provided `cloudbuild.yaml` and `Dockerfile`s this is handled for you.
 - The program that was formerly in `examples/frontendclient` has been expanded and has been moved to the `test` directory under (`test/cmd/frontendclient/`)[test/cmd/frontendclient/].
 - The client load generator program has been moved from `test/cmd/client` to (`test/cmd/clientloadgen/`)[test/cmd/clientloadgen/] to better reflect what it does.
+- [Issue #45](https://github.com/GoogleCloudPlatform/open-match/issues/45) The process for moving the build files (`Dockerfile` and `cloudbuild.yaml`) for each component, example, and test program to their respective directories and out of the repository root has started but won't be completed until a future version.
 
 ## v0.2.0 (alpha)
   This is a pretty large update.  Custom MMFs or evaluators from 0.1.0 may need some tweaking to work with this version. Some Backend API function arguments have changed. Please join the [Slack channel](https://open-match.slack.com/) if you need help ([Signup link](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLWQzMzE1MGY5YmYyYWY3ZjE2MjNjZTdmYmQ1ZTQzMmNiNGViYmQyN2M4ZmVkMDY2YzZlOTUwMTYwMzI1Y2I2MjU))!
