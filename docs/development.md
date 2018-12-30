@@ -11,11 +11,11 @@ Note: Although Google Cloud Platform includes some free usage, you may incur cha
 **NOTE**: Before starting with this guide, you'll need to update all the URIs from the tutorial's gcr.io container image registry with the URI for your own image registry. If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT_NAME>`.  Here's an example command in Linux to do the replacement for you this (replace YOUR_REGISTRY_URI with your URI, this should be run from the repository root directory):
 ```
 # Linux
-egrep -lR 'gcr.io/matchmaker-dev-201405' . | xargs sed -i -e 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g'
+egrep -lR 'open-match-public-images' . | xargs sed -i -e 's|open-match-public-images|YOUR_REGISTRY_URI|g'
 ```
 ```
 # Mac OS, you can delete the .backup files after if all looks good 
-egrep -lR 'gcr.io/matchmaker-dev-201405' . | xargs sed -i'.backup' -e 's|gcr.io/matchmaker-dev-201405|YOUR_REGISTRY_URI|g'
+egrep -lR 'open-match-public-images' . | xargs sed -i'.backup' -e 's|open-match-public-images|YOUR_REGISTRY_URI|g'
 ```
 
 ## Example of building using Google Cloud Builder
@@ -42,15 +42,15 @@ The [Quickstart for Docker](https://cloud.google.com/cloud-build/docs/quickstart
     (your registry name will be different)
     ```
     NAME
-    gcr.io/matchmaker-dev-201405/openmatch-backendapi
-    gcr.io/matchmaker-dev-201405/openmatch-devbase
-    gcr.io/matchmaker-dev-201405/openmatch-evaluator
-    gcr.io/matchmaker-dev-201405/openmatch-frontendapi
-    gcr.io/matchmaker-dev-201405/openmatch-mmf-golang-manual-simple
-    gcr.io/matchmaker-dev-201405/openmatch-mmf-php-mmlogic-simple
-    gcr.io/matchmaker-dev-201405/openmatch-mmf-py3-mmlogic-simple
-    gcr.io/matchmaker-dev-201405/openmatch-mmforc
-    gcr.io/matchmaker-dev-201405/openmatch-mmlogicapi
+    open-match-public-images/openmatch-backendapi
+    open-match-public-images/openmatch-devbase
+    open-match-public-images/openmatch-evaluator
+    open-match-public-images/openmatch-frontendapi
+    open-match-public-images/openmatch-mmf-golang-manual-simple
+    open-match-public-images/openmatch-mmf-php-mmlogic-simple
+    open-match-public-images/openmatch-mmf-py3-mmlogic-simple
+    open-match-public-images/openmatch-mmforc
+    open-match-public-images/openmatch-mmlogicapi
     ```
 ## Example of starting a GKE cluster
 
