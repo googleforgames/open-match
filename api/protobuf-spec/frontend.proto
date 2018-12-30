@@ -36,22 +36,22 @@ service Frontend {
 
     // Calls to access matchmaking results for a player
 
-    // GetResults streams matchmaking results from Open Match for the
+    // GetUpdates streams matchmaking results from Open Match for the
     // provided player ID.
     // INPUT: Player message with the 'id' field populated.
     // OUTPUT: a stream of player objects with one or more of the following
-    // fields populated, if an update is seen in state storage:
+    // fields populated, if an update to that field is seen in state storage:
     //  - 'assignment': string that usually contains game server connection information.
     //  - 'status': string to communicate current matchmaking status to the client.
     //  - 'error': string to pass along error information to the client.
     //
-    // During normal operation, the expectation is that the player's 'assignment' field
+    // During normal operation, the expectation is that the 'assignment' field
     // will be updated by a Backend process calling the 'CreateAssignments' Backend API
     // endpoint.  'Status' and 'Error' are free for developers to use as they see fit.  
     // Even if you had multiple players enter a matchmaking request as a group, the
     // Backend API 'CreateAssignments' call will write the results to state
     // storage separately under each player's ID. OM expects you to make all game
-    // clients 'GetResults' with their own ID from the Frontend API to get
+    // clients 'GetUpdates' with their own ID from the Frontend API to get
     // their results.
     //
     // NOTE: This call generates a small amount of load on the Frontend API and state
@@ -61,5 +61,5 @@ service Frontend {
     //  generate load on OM until you do!
     // NOTE: Just bear in mind that every update will send egress traffic from
     //  Open Match to game clients! Frugality is recommended.
-    rpc GetPlayer(messages.Player) returns (stream messages.Player) {}
+    rpc GetUpdates(messages.Player) returns (stream messages.Player) {}
 }

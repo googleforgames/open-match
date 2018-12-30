@@ -180,8 +180,8 @@ func (s *frontendAPI) deletePlayer(id string) {
 	go playerindices.DeleteMeta(context.Background(), s.pool, id)
 }
 
-// GetPlayer is this service's implementation of the GetPlayer gRPC method defined in frontend.proto
-func (s *frontendAPI) GetPlayer(p *frontend.Player, assignmentStream frontend.Frontend_GetPlayerServer) error {
+// GetUpdates is this service's implementation of the GetUpdates gRPC method defined in frontend.proto
+func (s *frontendAPI) GetUpdates(p *frontend.Player, assignmentStream frontend.Frontend_GetUpdatesServer) error {
 	// Get cancellable context
 	ctx, cancel := context.WithCancel(assignmentStream.Context())
 	defer cancel()

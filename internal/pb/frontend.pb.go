@@ -52,22 +52,22 @@ type FrontendClient interface {
 	// OUTPUT: Result message denoting success or failure (and an error if
 	// necessary)
 	DeletePlayer(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Result, error)
-	// GetResults streams matchmaking results from Open Match for the
+	// GetUpdates streams matchmaking results from Open Match for the
 	// provided player ID.
 	// INPUT: Player message with the 'id' field populated.
 	// OUTPUT: a stream of player objects with one or more of the following
-	// fields populated, if an update is seen in state storage:
+	// fields populated, if an update to that field is seen in state storage:
 	//  - 'assignment': string that usually contains game server connection information.
 	//  - 'status': string to communicate current matchmaking status to the client.
 	//  - 'error': string to pass along error information to the client.
 	//
-	// During normal operation, the expectation is that the player's 'assignment' field
+	// During normal operation, the expectation is that the 'assignment' field
 	// will be updated by a Backend process calling the 'CreateAssignments' Backend API
 	// endpoint.  'Status' and 'Error' are free for developers to use as they see fit.
 	// Even if you had multiple players enter a matchmaking request as a group, the
 	// Backend API 'CreateAssignments' call will write the results to state
 	// storage separately under each player's ID. OM expects you to make all game
-	// clients 'GetResults' with their own ID from the Frontend API to get
+	// clients 'GetUpdates' with their own ID from the Frontend API to get
 	// their results.
 	//
 	// NOTE: This call generates a small amount of load on the Frontend API and state
@@ -77,7 +77,7 @@ type FrontendClient interface {
 	//  generate load on OM until you do!
 	// NOTE: Just bear in mind that every update will send egress traffic from
 	//  Open Match to game clients! Frugality is recommended.
-	GetPlayer(ctx context.Context, in *Player, opts ...grpc.CallOption) (Frontend_GetPlayerClient, error)
+	GetUpdates(ctx context.Context, in *Player, opts ...grpc.CallOption) (Frontend_GetUpdatesClient, error)
 }
 
 type frontendClient struct {
@@ -106,12 +106,12 @@ func (c *frontendClient) DeletePlayer(ctx context.Context, in *Player, opts ...g
 	return out, nil
 }
 
-func (c *frontendClient) GetPlayer(ctx context.Context, in *Player, opts ...grpc.CallOption) (Frontend_GetPlayerClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_Frontend_serviceDesc.Streams[0], c.cc, "/api.Frontend/GetPlayer", opts...)
+func (c *frontendClient) GetUpdates(ctx context.Context, in *Player, opts ...grpc.CallOption) (Frontend_GetUpdatesClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_Frontend_serviceDesc.Streams[0], c.cc, "/api.Frontend/GetUpdates", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &frontendGetPlayerClient{stream}
+	x := &frontendGetUpdatesClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -121,16 +121,16 @@ func (c *frontendClient) GetPlayer(ctx context.Context, in *Player, opts ...grpc
 	return x, nil
 }
 
-type Frontend_GetPlayerClient interface {
+type Frontend_GetUpdatesClient interface {
 	Recv() (*Player, error)
 	grpc.ClientStream
 }
 
-type frontendGetPlayerClient struct {
+type frontendGetUpdatesClient struct {
 	grpc.ClientStream
 }
 
-func (x *frontendGetPlayerClient) Recv() (*Player, error) {
+func (x *frontendGetUpdatesClient) Recv() (*Player, error) {
 	m := new(Player)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -165,22 +165,22 @@ type FrontendServer interface {
 	// OUTPUT: Result message denoting success or failure (and an error if
 	// necessary)
 	DeletePlayer(context.Context, *Player) (*Result, error)
-	// GetResults streams matchmaking results from Open Match for the
+	// GetUpdates streams matchmaking results from Open Match for the
 	// provided player ID.
 	// INPUT: Player message with the 'id' field populated.
 	// OUTPUT: a stream of player objects with one or more of the following
-	// fields populated, if an update is seen in state storage:
+	// fields populated, if an update to that field is seen in state storage:
 	//  - 'assignment': string that usually contains game server connection information.
 	//  - 'status': string to communicate current matchmaking status to the client.
 	//  - 'error': string to pass along error information to the client.
 	//
-	// During normal operation, the expectation is that the player's 'assignment' field
+	// During normal operation, the expectation is that the 'assignment' field
 	// will be updated by a Backend process calling the 'CreateAssignments' Backend API
 	// endpoint.  'Status' and 'Error' are free for developers to use as they see fit.
 	// Even if you had multiple players enter a matchmaking request as a group, the
 	// Backend API 'CreateAssignments' call will write the results to state
 	// storage separately under each player's ID. OM expects you to make all game
-	// clients 'GetResults' with their own ID from the Frontend API to get
+	// clients 'GetUpdates' with their own ID from the Frontend API to get
 	// their results.
 	//
 	// NOTE: This call generates a small amount of load on the Frontend API and state
@@ -190,7 +190,7 @@ type FrontendServer interface {
 	//  generate load on OM until you do!
 	// NOTE: Just bear in mind that every update will send egress traffic from
 	//  Open Match to game clients! Frugality is recommended.
-	GetPlayer(*Player, Frontend_GetPlayerServer) error
+	GetUpdates(*Player, Frontend_GetUpdatesServer) error
 }
 
 func RegisterFrontendServer(s *grpc.Server, srv FrontendServer) {
@@ -233,24 +233,24 @@ func _Frontend_DeletePlayer_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Frontend_GetPlayer_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Frontend_GetUpdates_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Player)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(FrontendServer).GetPlayer(m, &frontendGetPlayerServer{stream})
+	return srv.(FrontendServer).GetUpdates(m, &frontendGetUpdatesServer{stream})
 }
 
-type Frontend_GetPlayerServer interface {
+type Frontend_GetUpdatesServer interface {
 	Send(*Player) error
 	grpc.ServerStream
 }
 
-type frontendGetPlayerServer struct {
+type frontendGetUpdatesServer struct {
 	grpc.ServerStream
 }
 
-func (x *frontendGetPlayerServer) Send(m *Player) error {
+func (x *frontendGetUpdatesServer) Send(m *Player) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -269,8 +269,8 @@ var _Frontend_serviceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "GetPlayer",
-			Handler:       _Frontend_GetPlayer_Handler,
+			StreamName:    "GetUpdates",
+			Handler:       _Frontend_GetUpdates_Handler,
 			ServerStreams: true,
 		},
 	},
@@ -280,18 +280,18 @@ var _Frontend_serviceDesc = grpc.ServiceDesc{
 func init() { proto.RegisterFile("api/protobuf-spec/frontend.proto", fileDescriptor1) }
 
 var fileDescriptor1 = []byte{
-	// 196 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0xcf, 0xb1, 0x4e, 0x85, 0x30,
-	0x14, 0xc6, 0x71, 0x88, 0x89, 0xd1, 0xc6, 0xc1, 0x30, 0x32, 0x19, 0x76, 0xa8, 0x11, 0x8d, 0xbb,
-	0x18, 0x59, 0x89, 0xa3, 0xdb, 0x29, 0x1c, 0xa0, 0x49, 0xdb, 0xd3, 0xb4, 0xa7, 0x83, 0xcf, 0xe4,
-	0x4b, 0x1a, 0xc1, 0xdc, 0xdc, 0xe1, 0x0e, 0xf7, 0xae, 0xff, 0x7c, 0xbf, 0xe1, 0x13, 0x0f, 0xe0,
-	0xb5, 0xf4, 0x81, 0x98, 0x54, 0x9a, 0xeb, 0xe8, 0x71, 0x94, 0x73, 0x20, 0xc7, 0xe8, 0xa6, 0x66,
-	0xcb, 0xc5, 0x15, 0x78, 0x5d, 0x9e, 0x98, 0x59, 0x8c, 0x11, 0x16, 0x8c, 0xfb, 0xec, 0xe9, 0x27,
-	0x17, 0x37, 0x1f, 0xff, 0xb2, 0x78, 0x16, 0x77, 0x5d, 0x40, 0x60, 0x1c, 0x0c, 0x7c, 0x63, 0x28,
-	0xee, 0x9b, 0xc3, 0x7a, 0x2f, 0xe5, 0x51, 0xf9, 0xc4, 0x98, 0x0c, 0x57, 0xd9, 0x9f, 0x7a, 0x47,
-	0x83, 0x17, 0xaa, 0x56, 0xdc, 0xf6, 0xc8, 0xe7, 0x90, 0xbd, 0x54, 0xd9, 0x63, 0xfe, 0xf6, 0xfa,
-	0xf5, 0xb2, 0x68, 0x5e, 0x93, 0x6a, 0x46, 0xb2, 0xb2, 0x27, 0x5a, 0x0c, 0x76, 0x86, 0xd2, 0x34,
-	0x18, 0xe0, 0x99, 0x82, 0x95, 0xe4, 0xd1, 0xd5, 0x16, 0x78, 0x5c, 0xa5, 0x76, 0x8c, 0xc1, 0x81,
-	0x91, 0x5e, 0xa9, 0xeb, 0xed, 0x6d, 0xfb, 0x1b, 0x00, 0x00, 0xff, 0xff, 0x44, 0x87, 0x56, 0x93,
-	0x38, 0x01, 0x00, 0x00,
+	// 201 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0xcf, 0x3d, 0x6b, 0xc3, 0x30,
+	0x10, 0xc6, 0x71, 0x9b, 0x42, 0x29, 0xa2, 0x43, 0xf1, 0xe8, 0xa9, 0x78, 0xb7, 0x55, 0xfa, 0x42,
+	0xf7, 0xba, 0xd4, 0xab, 0x29, 0x74, 0xe9, 0x76, 0xb2, 0xcf, 0xb6, 0x40, 0xd2, 0x09, 0xe9, 0x34,
+	0xf4, 0x3b, 0xf5, 0x43, 0x86, 0xd8, 0x21, 0x64, 0x08, 0x81, 0xac, 0x7f, 0x9e, 0xdf, 0xf0, 0x88,
+	0x47, 0xf0, 0x5a, 0xfa, 0x40, 0x4c, 0x2a, 0x4d, 0x75, 0xf4, 0x38, 0xc8, 0x29, 0x90, 0x63, 0x74,
+	0x63, 0xb3, 0xe6, 0xe2, 0x06, 0xbc, 0x2e, 0xcf, 0xcc, 0x2c, 0xc6, 0x08, 0x33, 0xc6, 0x6d, 0xf6,
+	0xfc, 0x9f, 0x8b, 0xbb, 0xaf, 0x83, 0x2c, 0x5e, 0xc5, 0x7d, 0x1b, 0x10, 0x18, 0x7b, 0x03, 0x7f,
+	0x18, 0x8a, 0x87, 0xe6, 0xb8, 0xde, 0x4a, 0x79, 0x52, 0xbe, 0x31, 0x26, 0xc3, 0x55, 0xb6, 0x57,
+	0x9f, 0x68, 0xf0, 0x6a, 0x25, 0x3a, 0xe4, 0x1f, 0x3f, 0x02, 0x63, 0xbc, 0x6c, 0xb6, 0x52, 0x65,
+	0x4f, 0xf9, 0xc7, 0xfb, 0xef, 0xdb, 0xac, 0x79, 0x49, 0xaa, 0x19, 0xc8, 0xca, 0x8e, 0x68, 0x36,
+	0xd8, 0x1a, 0x4a, 0x63, 0x6f, 0x80, 0x27, 0x0a, 0x56, 0x92, 0x47, 0x57, 0x5b, 0xe0, 0x61, 0x91,
+	0xda, 0x31, 0x06, 0x07, 0x46, 0x7a, 0xa5, 0x6e, 0xd7, 0xbb, 0x2f, 0xbb, 0x00, 0x00, 0x00, 0xff,
+	0xff, 0xe8, 0x9b, 0x69, 0x06, 0x39, 0x01, 0x00, 0x00,
 }
