@@ -26,7 +26,7 @@ The [Quickstart for Docker](https://cloud.google.com/cloud-build/docs/quickstart
 * In Linux, you can run the following one-line bash script to compile all the images for the first time, and push them to your gcr.io registry. You must enable the [Container Registry API](https://console.cloud.google.com/flows/enableapi?apiid=containerregistry.googleapis.com) first.
     ```
     # First, build the 'base' image.  Some other images depend on this so it must complete first.
-    gcloud build submit --config cloudbuild_base.yaml
+    gcloud builds submit --config cloudbuild_base.yaml
     # Build all other images. 
     for dfile in $(find . -name "Dockerfile" -iregex "./\(cmd\|test\|examples\)/.*"); do cd $(dirname ${dfile}); gcloud builds submit --config cloudbuild.yaml & cd -; done
     ```
