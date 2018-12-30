@@ -109,7 +109,7 @@ func main() {
 		players[i].Properties = playerDataToJSONString(playerData)
 
 		// Start watching for results for this player (assignment/status/error)
-		responseStream, _ := client.GetPlayer(ctx, players[i])
+		responseStream, _ := client.GetUpdates(ctx, players[i])
 		go waitForResults(resultsChan, responseStream)
 		log.Printf("Generated player \"%v\": %v", players[i].Id, players[i].Properties)
 
@@ -182,7 +182,7 @@ func waitForQuit(quitChan chan<- bool) {
 }
 
 // waitForResults loops until the context is cancelled, looking for assignment/status/error updates for a player.
-func waitForResults(resultsChan chan frontend.Player, stream frontend.Frontend_GetPlayerClient) {
+func waitForResults(resultsChan chan frontend.Player, stream frontend.Frontend_GetUpdatesClient) {
 	for {
 		a, err := stream.Recv()
 		if err == io.EOF {
