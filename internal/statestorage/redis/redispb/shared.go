@@ -46,7 +46,8 @@ var (
 
 // MarshalToRedis marshals a protobuf message to a redis hash.
 // The protobuf message in question must have an 'id' field.
-func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message) error {
+// If a positive integer TTL is provided, it will also be set.
+func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message, ttl int) error {
 
 	// We want to serialize to redis as JSON, not the typical protobuf string
 	// serializer, so start by marshalling to json.
@@ -127,6 +128,19 @@ func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message) err
 
 		}
 	}
+	if ttl > 0 {
+		redisConn.Send("EXPIRE", key, ttl)
+		resultLog.WithFields(log.Fields{
+			"component": "statestorage",
+			"ttl":       ttl,
+		}).Info("State storage expiration set")
+	} else {
+		resultLog.WithFields(log.Fields{
+			"component": "statestorage",
+			"ttl":       ttl,
+		}).Debug("State storage expiration not set")
+	}
+
 	_, err = redisConn.Do("EXEC")
 	return err
 }
