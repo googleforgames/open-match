@@ -182,7 +182,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 	beLog.Info(profile)
 
 	// Write profile to state storage
-	err := redispb.MarshalToRedis(ctx, s.pool, profile)
+	err := redispb.MarshalToRedis(ctx, s.pool, profile, s.cfg.GetInt("redis.expirations.matchobject"))
 	if err != nil {
 		beLog.WithFields(log.Fields{
 			"error":     err.Error(),

@@ -107,7 +107,7 @@ func (s *frontendAPI) CreatePlayer(ctx context.Context, group *frontend.Player) 
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
 	// Write group
-	err := redispb.MarshalToRedis(ctx, s.pool, group)
+	err := redispb.MarshalToRedis(ctx, s.pool, group, s.cfg.GetInt("redis.expirations.player"))
 	if err != nil {
 		feLog.WithFields(log.Fields{
 			"error":     err.Error(),
