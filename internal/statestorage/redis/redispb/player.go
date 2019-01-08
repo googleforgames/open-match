@@ -128,7 +128,7 @@ func PlayerWatcher(ctx context.Context, pool *redis.Pool, pb om_messages.Player)
 				if err != nil {
 					// Not fatal, but this error should be addressed.  This could
 					// cause the player to expire while still actively connected!
-					pwLog.Error("State storage error:", err.Error())
+					pwLog.WithFields(log.Fields{"error": err.Error()}).Error("Unable to update accessed metadata timestamp")
 				}
 
 				// Get player from redis.
@@ -153,7 +153,9 @@ func PlayerWatcher(ctx context.Context, pool *redis.Pool, pb om_messages.Player)
 				// This can be made much cleaner if protobuffer reflection improves.
 				curResults := fmt.Sprintf("%v%v%v", results.Assignment, results.Status, results.Error)
 				if prevResults == curResults {
-					pwLog.Debug("No new results, backing off")
+					pwLog.Debug("No new watcher results")
+					// TODO: change the debug message once exp bo + jitter is implemented
+					//pwLog.Debug("No new results, backing off")
 					time.Sleep(2 * time.Second) // TODO: exp bo + jitter
 				} else {
 					// Return value retreived from Redis

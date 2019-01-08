@@ -217,6 +217,9 @@ func (s *frontendAPI) GetUpdates(p *frontend.Player, assignmentStream frontend.F
 			errTag, _ := tag.NewKey("errtype")
 			fnCtx, _ := tag.New(ctx, tag.Insert(errTag, "watch_timeout"))
 			stats.Record(fnCtx, FeGrpcErrors.M(1))
+			//TODO: we could generate a frontend.player message with an error
+			//field and stream it to the client before throwing the error here
+			//if we wanted to send more useful client retry information
 			return err
 
 		case a := <-watchChan:
