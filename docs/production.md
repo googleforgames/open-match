@@ -12,6 +12,8 @@ All the usual guidance around hardening and securing Kubernetes are applicable t
 ### Kubernetes Jobs (MMFOrc)
 The 0.3.0 MMFOrc component runs your MMFs as Kubernetes Jobs. You should periodically delete these jobs to keep the cluster running smoothly.  How often you need to delete them is dependant on  how many you are running.  There are a number of open source solutions to do this for you. ***Note that once you delete the job, you won't have access to that job's logs anymore unless you're sending your logs from kubernetes to a log aggregator like Google Stackdriver.  This can make it a challenge to troubleshoot issues***
 
+## Open Match config
+Debug logging and the extra debug code paths should be disabled in the `config/matchmaker_config.json` file (as of the time of this writing, 0.3.0).
 
 ## Public APIs for Open Match
 In many cases, you may choose to configure your game clients to connect to the Open Match Frontend API, and in a few select cases (such as using it for P2P non-dedicated game server hosting), the game client may also need to connect to the Backend API.  In these cases, it is important to secure the API endpoints against common attacks, such as DDoS or malformed packet floods.  
