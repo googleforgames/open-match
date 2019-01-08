@@ -12,7 +12,8 @@ This project attempts to solve the networking and plumbing problems, so game dev
 This software is currently alpha, and subject to change.  Although Open Match has already been used to run [production workloads within Google](https://cloud.google.com/blog/topics/inside-google-cloud/no-tricks-just-treats-globally-scaling-the-halloween-multiplayer-doodle-with-open-match-on-google-cloud), but it's still early days on the way to our final goal. There's plenty left to write and we welcome contributions. **We strongly encourage you to engage with the community through the [Slack or Mailing lists](#get-involved) if you're considering using Open Match in production before the 1.0 release, as the documentation is likely to lag behind the latest version a bit while we focus on getting out of alpha/beta as soon as possible.**
 
 ## Version
-[The current stable version in master is 0.2.0 (alpha)](https://github.com/GoogleCloudPlatform/open-match/releases/tag/020).  
+[The current stable version in master is 0.3.0 (alpha)](https://github.com/GoogleCloudPlatform/open-match/releases/tag/030).  At this time only bugfixes and doc update pull requests will be considered.
+Version 0.4.0 is in active development; please target code changes to the 040wip branch.
 
 # Core Concepts
 
@@ -22,15 +23,28 @@ Open Match is designed to support massively concurrent matchmaking, and to be sc
 
 ## Glossary
 
-* **MMF** &mdash; Matchmaking function. This is the customizable matchmaking logic.
-* **Component** &mdash; One of the discrete processes in an Open Match deployment. Open Match is composed of multiple scalable microservices called 'components'.
-* **Roster** &mdash; A list of all the players in a match.
-* **Profile** &mdash; The json blob containing all the parameters used to select which players go into a roster.
-* **Match Object** &mdash; A protobuffer message format that contains the Profile and the results of the matchmaking function. Sent to the backend API from your game backend with an empty roster  and then returned from your MMF with the matchmaking results filled in.
-* **MMFOrc** &mdash; Matchmaker function orchestrator. This Open Match core component is in charge of kicking off custom matchmaking functions (MMFs) and evaluator processes.
-* **State Storage** &mdash; The storage software used by Open Match to hold all the matchmaking state. Open Match ships with [Redis](https://redis.io/) as the default state storage.
-* **Assignment** &mdash; Refers to assigning a player or group of players to a dedicated game server instance. Open Match offers a path to send dedicated game server connection details from your backend to your game clients after a match has been made.
+### General
 * **DGS** &mdash; Dedicated game server
+* **Client** &mdash; The game client program the player uses when playing the game
+* **Session** &mdash; In Open Match, players are matched together, then assigned to a server which hosts the game _session_.  Depending on context, this may be referred to as a _match_, _map_, or just _game_ elsewhere in the industry.  
+
+### Open Match
+* **Component** &mdash; One of the discrete processes in an Open Match deployment. Open Match is composed of multiple scalable microservices called _components_.
+* **State Storage** &mdash; The storage software used by Open Match to hold all the matchmaking state. Open Match ships with [Redis](https://redis.io/) as the default state storage.
+* **MMFOrc** &mdash; Matchmaker function orchestrator. This Open Match core component is in charge of kicking off custom matchmaking functions (MMFs) and evaluator processes.
+* **MMF** &mdash; Matchmaking function. This is the customizable matchmaking logic.
+* **MMLogic API** &mdash; An API that provides MMF SDK functionality. It is optional - you can also do all the state storage read and write operations yourself if you have a good reason to do so.
+* **Director** &mdash; The software you (as a developer) write against the Open Match Backend API. The _Director_ decides which MMFs to run, and is responsible for sending MMF results to a DGS to host the session.
+
+### Data Model 
+* **Player** &mdash; An ID and list of attributes with values for a player who wants to participate in matchmaking.
+* **Roster** &mdash; A list of player objects.  Used to hold all the players on a single team.
+* **Filter** &mdash; A _filter_ is used to narrow down the players to only those who have an attribute value within a certain integer range.  All attributes are integer values in Open Match because [that is how indices are implemented](internal/statestorage/redis/playerindices/playerindices.go). A _filter_ is defined in a _player pool_.
+* **Player Pool** &mdash; A list of all the players who fit all the _filters_ defined in the pool.
+* **Match Object** &mdash; A protobuffer message format that contains the _profile_ and the results of the matchmaking function. Sent to the backend API from your game backend with the _roster_(s) empty and then returned from your MMF with the matchmaking results filled in.
+* **Profile** &mdash; The json blob containing all the parameters used by your MMF to select which players go into a roster together.
+* **Assignment** &mdash; Refers to assigning a player or group of players to a dedicated game server instance. Open Match offers a path to send dedicated game server connection details from your backend to your game clients after a match has been made.
+* **Ignore List** &mdash; Removing players from matchmaking consideration is accomplished using _ignore lists_.  They contain lists of player IDs that your MMF should not include when making matches.
 
 ## Requirements
 * [Kubernetes](https://kubernetes.io/) cluster &mdash; tested with version 1.9.
@@ -43,15 +57,17 @@ Open Match is a set of processes designed to run on Kubernetes. It contains thes
 
 1. Frontend API
 1. Backend API
-1. Matchmaker Function Orchestrator (MMFOrc)
+1. Matchmaker Function Orchestrator (MMFOrc) (may be deprecated in future versions)
+
+It includes these **optional** (but recommended) components:
 1. Matchmaking Logic (MMLogic) API 
 
 It also explicitly depends on these two **customizable** components.
 
 1. Matchmaking "Function" (MMF)
-1. Evaluator (may be deprecated in future versions)
+1. Evaluator (may be optional in future versions)
 
-While **core** components are fully open source and *can* be modified, they are designed to support the majority of matchmaking scenarios *without need to change the source code*. The Open Match repository ships with simple **customizable** example MMF and Evaluator processes, but it is expected that most users will want full control over the logic in these, so they have been designed to be as easy to modify or replace as possible.
+While **core** components are fully open source and _can_ be modified, they are designed to support the majority of matchmaking scenarios *without need to change the source code*. The Open Match repository ships with simple **customizable** MMF and Evaluator examples, but it is expected that most users will want full control over the logic in these, so they have been designed to be as easy to modify or replace as possible.
 
 ### Frontend API
 
@@ -65,18 +81,20 @@ The client is expected to maintain a connection, waiting for an update from the 
 
 ### Backend API
 
-The Backend API puts match profiles in state storage which the Matchmaking Function (MMF) can access and use to decide which players should be put into a match together, then return those matches to dedicated game server instances.
+The Backend API writes match objects to state storage which the Matchmaking Functions (MMFs) access to decide which players should be matched. It returns the results from those MMFs.
 
-The Backend API is a server application that implements the [gRPC](https://grpc.io/) service defined in `api/protobuf-spec/backend.proto`. At the most basic level, it expects to be connected to your online infrastructure (probably to your server scaling manager or scheduler, or even directly to a dedicated game server), and to receive:
+The Backend API is a server application that implements the [gRPC](https://grpc.io/) service defined in `api/protobuf-spec/backend.proto`. At the most basic level, it expects to be connected to your online infrastructure (probably to your server scaling manager or **director**, or even directly to a dedicated game server), and to receive:
 * A **unique ID** for a matchmaking profile.
-* A **json blob** containing all the match-related data you want to use in your matchmaking function, in an 'empty' match object.
+* A **json blob** containing all the matching-related data and filters you want to use in your matchmaking function.
+* An optional list of **roster**s to hold the resulting teams chosen by your matchmaking function.
+* An optional set of **filters** that define player pools your matchmaking function will choose players from.  
 
-Your game backend is expected to maintain a connection, waiting for 'filled' match objects containing a roster of players. The Backend API also provides a return path for your game backend to return dedicated game server connection details (an 'assignment') to the game client, and to delete these 'assignments'.
+Your game backend is expected to maintain a connection, waiting for 'filled' match objects containing a roster of players. The Backend API also provides a return path for your game backend to return dedicated game server connection details (an 'assignment') to the game client, and to delete these 'assignments'.  
 
 
 ### Matchmaking Function Orchestrator (MMFOrc)
 
-The MMFOrc kicks off your custom matchmaking function (MMF) for every profile submitted to the Backend API. It also runs the Evaluator to resolve conflicts in case more than one of your profiles matched the same players.
+The MMFOrc kicks off your custom matchmaking function (MMF) for every unique profile submitted to the Backend API in a match object. It also runs the Evaluator to resolve conflicts in case more than one of your profiles matched the same players.
 
 The MMFOrc exists to orchestrate/schedule your **custom components**, running them as often as required to meet the demands of your game. MMFOrc runs in an endless loop, submitting MMFs and Evaluator jobs to Kubernetes.
 
@@ -85,8 +103,8 @@ The MMFOrc exists to orchestrate/schedule your **custom components**, running th
 The MMLogic API provides a series of gRPC functions that act as a Matchmaking Function SDK.  Much of the basic, boilerplate code for an MMF is the same regardless of what players you want to match together.  The MMLogic API offers a gRPC interface for many common MMF tasks, such as:
 
 1. Reading a profile from state storage.
-1. Running filters on players in state strorage.
-1. Removing chosen players from consideration by other MMFs (by adding them to an ignore list).
+1. Running filters on players in state strorage. It automatically removes players on ignore lists as well!
+1. Removing chosen players from consideration by other MMFs (by adding them to an ignore list). It does it automatically for you when writing your results!
 1. Writing the matchmaking results to state storage.
 1. (Optional, NYI) Exporting MMF stats for metrics collection.
 
@@ -96,9 +114,9 @@ More details about the available gRPC calls can be found in the [API Specificati
 
 ### Evaluator
 
-The Evaluator resolves conflicts when multiple matches want to include the same player(s).
+The Evaluator resolves conflicts when multiple MMFs select the same player(s).
 
-The Evaluator is a component run by the Matchmaker Function Orchestrator (MMFOrc) after the matchmaker functions have been run, and some proposed results are available.  The Evaluator looks at all the proposed matches, and if multiple proposals contain the same player(s), it breaks the tie. In many simple matchmaking setups with only a few game modes and matchmaking functions that always look at different parts of the matchmaking pool, the Evaluator may functionally be a no-op or first-in-first-out algorithm. In complex matchmaking setups where, for example, a player can queue for multiple types of matches, the Evaluator provides the critical customizability to evaluate all available proposals and approve those that will passed to your game servers.
+The Evaluator is a component run by the Matchmaker Function Orchestrator (MMFOrc) after the matchmaker functions have been run, and some proposed results are available.  The Evaluator looks at all the proposals, and if multiple proposals contain the same player(s), it breaks the tie. In many simple matchmaking setups with only a few game modes and well-tuned matchmaking functions, the Evaluator may functionally be a no-op or first-in-first-out algorithm. In complex matchmaking setups where, for example, a player can queue for multiple types of matches, the Evaluator provides the critical customizability to evaluate all available proposals and approve those that will passed to your game servers.
 
 Large-scale concurrent matchmaking functions is a complex topic, and users who wish to do this are encouraged to engage with the [Open Match community](https://github.com/GoogleCloudPlatform/open-match#get-involved) about patterns and best practices.
 
@@ -109,10 +127,10 @@ Matchmaking Functions (MMFs) are run by the Matchmaker Function Orchestrator (MM
 - [x] Be packaged in a (Linux) Docker container.
 - [x] Read/write from the Open Match state storage &mdash; Open Match ships with Redis as the default state storage.
 - [x] Read a profile you wrote to state storage using the Backend API.
-- [x] Select from the player data you wrote to state storage using the Frontend API.
+- [x] Select from the player data you wrote to state storage using the Frontend API.  It must respect all the ignore lists defined in the matchmaker config.
 - [ ] Run your custom logic to try to find a match.
 - [x] Write the match object it creates to state storage at a specified key.
-- [x] Remove the players it selected from consideration by other MMFs.
+- [x] Remove the players it selected from consideration by other MMFs by adding them to the appropriate ignore list.
 - [x] Notify the MMFOrc of completion.
 - [x] (Optional, but recommended) Export stats for metrics collection.
 
@@ -168,10 +186,10 @@ All the core components for Open Match are written in Golang and use the [Docker
 ## Configuration
 Currently, each component reads a local config file `matchmaker_config.json`, and all components assume they have the same configuration. To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally. When `docker build`ing the component container images, the Dockerfile copies the centralized config file into the component directory.
 
-We plan to replace this with a Kubernetes-managed config with dynamic reloading when development time allows. Pull requests are welcome!
+We plan to replace this with a Kubernetes-managed config with dynamic reloading, please join the discussion in [Issue #42](issues/42). 
 
 ### Guides
-* [Production guide](./docs/production.md) Lots of best practices to be written here before 1.0 release. **WIP**
+* [Production guide](./docs/production.md) Lots of best practices to be written here before 1.0 release, right now it's a scattered collection of notes. **WIP**
 * [Development guide](./docs/development.md)
 
 ### Reference
@@ -212,7 +230,6 @@ Open Match is in active development - we would love your help in shaping its fut
 
 Apache 2.0
 
-
 # Planned improvements
 
 ## Documentation 
@@ -221,25 +238,27 @@ Apache 2.0
 - [ ] Documentation on release process and release calendar.
 
 ## State storage
-- [ ] All state storage operations should be isolated from core components into the `statestorage/` modules.  This is necessary precursor work to enabling Open Match state storage to use software other than Redis.
-- [ ] [The Redis deployment should have an example HA configuration](https://github.com/GoogleCloudPlatform/open-match/issues/41)
-- [ ] Redis watch should be unified to watch a hash and stream updates.  The code for this is written and validated but not committed yet. We don't want to support two redis watcher code paths, so the backend watch of the match object should be switched to unify the way the frontend and backend watch keys.  The backend part of this is in but the frontend part is in another branch and will be committed later. 
-- [ ] Player/Group records generated when a client enters the matchmaking pool need to be removed after a certain amount of time with no activity. When using Redis, this will be implemented as a expiration on the player record.
+- [X] All state storage operations should be isolated from core components into the `statestorage/` modules.  This is necessary precursor work to enabling Open Match state storage to use software other than Redis.
+- [X] [The Redis deployment should have an example HA configuration](https://github.com/GoogleCloudPlatform/open-match/issues/41)
+- [X] Redis watch should be unified to watch a hash and stream updates.  The code for this is written and validated but not committed yet. 
+- [ ] We don't want to support two redis watcher code paths, but we will until golang protobuf reflection is a bit more usable. [Design doc](https://docs.google.com/document/d/19kfhro7-CnBdFqFk7l4_HmwaH2JT_Rhw5-2FLWLEGGk/edit#heading=h.q3iwtwhfujjx), [github issue](https://github.com/golang/protobuf/issues/364)
+- [X] Player/Group records generated when a client enters the matchmaking pool need to be removed after a certain amount of time with no activity. When using Redis, this will be implemented as a expiration on the player record.
 
 ## Instrumentation / Metrics / Analytics
 - [ ] Instrumentation of MMFs is in the planning stages.  Since MMFs are by design meant to be completely customizable (to the point of allowing any process that can be packaged in a Docker container), metrics/stats will need to have an expected format and formalized outgoing pathway.  Currently the thought is that it might be that the metrics should be written to a particular key in statestorage in a format compatible with opencensus, and will be collected, aggreggated, and exported to Prometheus using another process.
-- [ ] [OpenCensus tracing](https://opencensus.io/core-concepts/tracing/) will be implemented in an upcoming version.
-- [ ] Read logrus logging configuration from matchmaker_config.json.
+- [ ] [OpenCensus tracing](https://opencensus.io/core-concepts/tracing/) will be implemented in an upcoming version.  This is likely going to require knative.
+- [X] Read logrus logging configuration from matchmaker_config.json.
 
 ## Security
-- [ ] The Kubernetes service account used by the MMFOrc should be updated to have min required permissions.
+- [ ] The Kubernetes service account used by the MMFOrc should be updated to have min required permissions. [Issue 52](issues/52)
 
 ## Kubernetes
 - [ ] Autoscaling isn't turned on for the Frontend or Backend API Kubernetes deployments by default.
-- [ ] A [Helm](https://helm.sh/) chart to stand up Open Match will be provided in an upcoming version. For now just use the [installation YAMLs](./install/yaml).
+- [ ] A [Helm](https://helm.sh/) chart to stand up Open Match may be provided in an upcoming version. For now just use the [installation YAMLs](./install/yaml).
+- [ ] A knative-based implementation of MMFs is in the planning stages.
 
 ## CI / CD / Build
-- [ ] We plan to host 'official' docker images for all release versions of the core components in publicly available docker registries soon.
+- [ ] We plan to host 'official' docker images for all release versions of the core components in publicly available docker registries soon.  This is tracked in [Issue #45](issues/45) and is blocked by [Issue 42](issues/42).
 - [ ] CI/CD for this repo and the associated status tags are planned.
 - [ ] Golang unit tests will be shipped in an upcoming version.
 - [ ] A full load-testing and e2e testing suite will be included in an upcoming version.
