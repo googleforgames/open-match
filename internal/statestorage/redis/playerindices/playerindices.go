@@ -151,7 +151,7 @@ func Create(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, player om_
 				iLog.WithFields(log.Fields{"attribute": attribute, "value": v.Raw}).Debug("Couldn't find index in JSON: ", player.Properties)
 				continue
 			} else if -9223372036854775808 <= v.Int() && v.Int() <= 9223372036854775807 {
-				// value contains a valid unsigned 64-bit integer
+				// value contains a valid 64-bit integer
 				value = v.Int()
 			} else {
 				iLog.WithFields(log.Fields{"attribute": attribute}).Debug("No valid value for attribute, not indexing")

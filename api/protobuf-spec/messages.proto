@@ -73,8 +73,8 @@ message Player{
   string pool = 3;                  // Optionally used to specify the PlayerPool in which to find a player. 
   repeated Attribute attributes= 4; // Attributes of this player.
   string assignment = 5;            // By convention, ip:port of a DGS to connect to 
-  string status = 6;                // 
-  string error = 7;                 // 
+  string status = 6;                // Arbitrary developer-chosen string. 
+  string error = 7;                 // Arbitrary developer-chosen string.
 }
 
 

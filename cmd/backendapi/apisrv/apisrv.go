@@ -107,7 +107,7 @@ func (s *BackendAPI) Open() error {
 }
 
 // CreateMatch is this service's implementation of the CreateMatch gRPC method
-// defined in ../proto/backend.proto
+// defined in api/protobuf-spec/backend.proto
 func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject) (*backend.MatchObject, error) {
 
 	// Get a cancel-able context
@@ -309,7 +309,7 @@ func (s *backendAPI) ListMatches(p *backend.MatchObject, matchStream backend.Bac
 }
 
 // DeleteMatch is this service's implementation of the DeleteMatch gRPC method
-// defined in ../proto/backend.proto
+// defined in api/protobuf-spec/backend.proto
 func (s *backendAPI) DeleteMatch(ctx context.Context, mo *backend.MatchObject) (*backend.Result, error) {
 
 	// Create context for tagging OpenCensus metrics.
@@ -341,7 +341,7 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, mo *backend.MatchObject) (
 }
 
 // CreateAssignments is this service's implementation of the CreateAssignments gRPC method
-// defined in ../proto/backend.proto
+// defined in api/protobuf-spec/backend.proto
 func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignments) (*backend.Result, error) {
 
 	// Make a map of players and what assignments we want to send them.
@@ -402,7 +402,7 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 }
 
 // DeleteAssignments is this service's implementation of the DeleteAssignments gRPC method
-// defined in ../proto/backend.proto
+// defined in api/protobuf-spec/backend.proto
 func (s *backendAPI) DeleteAssignments(ctx context.Context, r *backend.Roster) (*backend.Result, error) {
 	assignments := getPlayerIdsFromRoster(r)
 
@@ -415,20 +415,6 @@ func (s *backendAPI) DeleteAssignments(ctx context.Context, r *backend.Roster) (
 		"numAssignments": len(assignments),
 	}).Info("gRPC call executing")
 
-	/*
-		// TODO: relocate this redis functionality to a module
-		redisConn := s.pool.Get()
-		defer redisConn.Close()
-
-		// Remove player assignments in a transaction
-		redisConn.Send("MULTI")
-		// TODO: make playerIDs a repeated protobuf message field and iterate over it
-		for _, playerID := range assignments {
-			beLog.WithFields(log.Fields{"query": "DEL", "key": playerID}).Debug("state storage operation")
-			redisConn.Send("DEL", playerID)
-		}
-		_, err := redisConn.Do("EXEC")
-	*/
 	err := redisHelpers.DeleteMultiFields(ctx, s.pool, assignments, "assignment")
 
 	// Issue encountered
@@ -449,6 +435,8 @@ func (s *backendAPI) DeleteAssignments(ctx context.Context, r *backend.Roster) (
 	return &backend.Result{Success: true, Error: ""}, err
 }
 
+// getPlayerIdsFromRoster returns the slice of player ID strings contained in
+// the input roster.
 func getPlayerIdsFromRoster(r *backend.Roster) []string {
 	playerIDs := make([]string, 0)
 	for _, p := range r.Players {
