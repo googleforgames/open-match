@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
       - name: om-backend
-        image: gcr.io/open-match-public-images/openmatch-backendapi:dev
+        image: gcr.io/corded-velocity-228104/openmatch-backendapi:dev
         imagePullPolicy: Always
         ports:
         - name: grpc
@@ -79,7 +79,7 @@ spec:
     spec:
       containers:
       - name: om-frontendapi
-        image: gcr.io/open-match-public-images/openmatch-frontendapi:dev
+        image: gcr.io/corded-velocity-228104/openmatch-frontendapi:dev
         imagePullPolicy: Always
         ports:
         - name: grpc
@@ -125,7 +125,7 @@ spec:
     spec:
       containers:
       - name: om-mmforc
-        image: gcr.io/open-match-public-images/openmatch-mmforc:dev
+        image: gcr.io/corded-velocity-228104/openmatch-mmforc:dev
         imagePullPolicy: Always
         ports:
         - name: metrics
@@ -161,11 +161,8 @@ spec:
     spec:
       containers:
       - name: om-mmlogic
-        image: gcr.io/open-match-public-images/openmatch-mmlogicapi:dev
+        image: gcr.io/corded-velocity-228104/openmatch-mmlogicapi:dev
         imagePullPolicy: Always
-        command:
-        - sleep
-        - '30000'
         ports:
         - name: grpc
           containerPort: 50503
