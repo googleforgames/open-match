@@ -57,11 +57,11 @@
     },
     "defaultImages": {
         "evaluator": {
-            "name": "gcr.io/corded-velocity-228104/openmatch-evaluator",
+            "name": "gcr.io/open-match-public-images/openmatch-evaluator",
             "tag": "dev"
         },
         "mmf": {
-            "name": "gcr.io/corded-velocity-228104/openmatch-mmf-py3-mmlogic-simple",
+            "name": "gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple",
             "tag": "dev"
         }
     },
