@@ -49,7 +49,7 @@ Open Match is designed to support massively concurrent matchmaking, and to be sc
 ## Requirements
 * [Kubernetes](https://kubernetes.io/) cluster &mdash; tested with version 1.9.
 * [Redis 4+](https://redis.io/) &mdash; tested with 4.0.11.
-* Open Match is compiled against the latest release of [Golang](https://golang.org/) &mdash; tested with 1.10.3.
+* Open Match is compiled against the latest release of [Golang](https://golang.org/) &mdash; tested with 1.10.9.
 
 ## Components
 
