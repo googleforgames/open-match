@@ -231,6 +231,7 @@ Open Match is in active development - we would love your help in shaping its fut
 Apache 2.0
 
 # Planned improvements
+See the [provisional roadmap](docs/roadmap.md) for more information on upcoming releases.
 
 ## Documentation 
 - [ ] “Writing your first matchmaker” getting started guide will be included in an upcoming version.
