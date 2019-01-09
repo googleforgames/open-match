@@ -25,7 +25,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -141,12 +140,13 @@ func main() {
 			}
 			log.Println("Received match:")
 			ppJSON(match.Properties)
-			fmt.Println(match)
+			//fmt.Println(match)  // Debug
 
 			// Assign players in this match to our server
 			connstring := "example.com:12345"
-			if len(os.Args) >= 1 {
+			if len(os.Args) >= 2 {
 				connstring = os.Args[1]
+				log.Printf("Player assignment '%v' specified at commandline", connstring)
 			}
 			log.Println("Assigning players to DGS at", connstring)
 
