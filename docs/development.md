@@ -11,11 +11,11 @@ Note: Although Google Cloud Platform includes some free usage, you may incur cha
 **NOTE**: Before starting with this guide, you'll need to update all the URIs from the tutorial's gcr.io container image registry with the URI for your own image registry. If you are using the gcr.io registry on GCP, the default URI is `gcr.io/<PROJECT_NAME>`.  Here's an example command in Linux to do the replacement for you this (replace YOUR_REGISTRY_URI with your URI, this should be run from the repository root directory):
 ```
 # Linux
-egrep -lR 'open-match-public-images' . | xargs sed -i -e 's|open-match-public-images|YOUR_REGISTRY_URI|g'
+egrep -lR 'open-match-public-images' . | xargs sed -i -e 's|open-match-public-images|<PROJECT_NAME>|g'
 ```
 ```
 # Mac OS, you can delete the .backup files after if all looks good 
-egrep -lR 'open-match-public-images' . | xargs sed -i'.backup' -e 's|open-match-public-images|YOUR_REGISTRY_URI|g'
+egrep -lR 'open-match-public-images' . | xargs sed -i'.backup' -e 's|open-match-public-images|<PROJECT_NAME>|g'
 ```
 
 ## Example of building using Google Cloud Builder
@@ -68,7 +68,7 @@ gcloud compute zones list
 
 ## Configuration
 
-Currently, each component reads a local config file `matchmaker_config.json`, and all components assume they have the same configuration (if you would like to help us design the replacement config solution, please join the [discussion](https://github.com/GoogleCloudPlatform/open-match/issues/42).  To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally.
+Currently, each component reads a local config file `matchmaker_config.json`, and all components assume they have the same configuration (if you would like to help us design the replacement config solution, please join the [discussion](https://github.com/GoogleCloudPlatform/open-match/issues/42).  To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally.  Note: [there is an issue with symlinks on Windows](../issues/57).
 
 ## Running Open Match in a development environment
 
