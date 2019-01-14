@@ -33,8 +33,12 @@ spec:
     spec:
       containers:
       - name: om-backend
-        image: gcr.io/open-match-public-images/openmatch-backendapi:dev
+        image: gcr.io/open-match-222408/openmatch-backendapi:dev
         imagePullPolicy: Always
+        volumeMounts:
+        - name: om-configmap
+          subPath: matchmaker_config.yaml
+          mountPath: /go/src/github.com/GoogleCloudPlatform/open-match/config/matchmaker_config.yaml
         ports:
         - name: grpc
           containerPort: 50505
@@ -44,6 +48,10 @@ spec:
           requests:
             memory: 100Mi
             cpu: 100m
+      volumes:
+      - name: om-configmap
+        configMap:
+          name: om-configmap
 ---
 kind: Service
 apiVersion: v1
@@ -79,8 +87,12 @@ spec:
     spec:
       containers:
       - name: om-frontendapi
-        image: gcr.io/open-match-public-images/openmatch-frontendapi:dev
+        image: gcr.io/open-match-222408/openmatch-frontendapi:dev
         imagePullPolicy: Always
+        volumeMounts:
+        - name: om-configmap
+          subPath: matchmaker_config.yaml
+          mountPath: /go/src/github.com/GoogleCloudPlatform/open-match/config/matchmaker_config.yaml
         ports:
         - name: grpc
           containerPort: 50504
@@ -90,6 +102,10 @@ spec:
           requests:
             memory: 100Mi
             cpu: 100m
+      volumes:
+      - name: om-configmap
+        configMap:
+          name: om-configmap
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -125,8 +141,12 @@ spec:
     spec:
       containers:
       - name: om-mmforc
-        image: gcr.io/open-match-public-images/openmatch-mmforc:dev
+        image: gcr.io/open-match-222408/openmatch-mmforc:dev
         imagePullPolicy: Always
+        volumeMounts:
+        - name: om-configmap
+          subPath: matchmaker_config.yaml
+          mountPath: /go/src/github.com/GoogleCloudPlatform/open-match/config/matchmaker_config.yaml
         ports:
         - name: metrics
           containerPort: 9555
@@ -139,6 +159,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+      volumes:
+      - name: om-configmap
+        configMap:
+          name: om-configmap
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -161,8 +185,12 @@ spec:
     spec:
       containers:
       - name: om-mmlogic
-        image: gcr.io/open-match-public-images/openmatch-mmlogicapi:dev
+        image: gcr.io/open-match-222408/openmatch-mmlogicapi:dev
         imagePullPolicy: Always
+        volumeMounts:
+        - name: om-configmap
+          subPath: matchmaker_config.yaml
+          mountPath: /go/src/github.com/GoogleCloudPlatform/open-match/config/matchmaker_config.yaml
         ports:
         - name: grpc
           containerPort: 50503
@@ -172,6 +200,10 @@ spec:
           requests:
             memory: 100Mi
             cpu: 100m
+      volumes:
+      - name: om-configmap
+        configMap:
+          name: om-configmap
 ---
 kind: Service
 apiVersion: v1
