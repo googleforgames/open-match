@@ -12,7 +12,7 @@ This project attempts to solve the networking and plumbing problems, so game dev
 This software is currently alpha, and subject to change.  Although Open Match has already been used to run [production workloads within Google](https://cloud.google.com/blog/topics/inside-google-cloud/no-tricks-just-treats-globally-scaling-the-halloween-multiplayer-doodle-with-open-match-on-google-cloud), but it's still early days on the way to our final goal. There's plenty left to write and we welcome contributions. **We strongly encourage you to engage with the community through the [Slack or Mailing lists](#get-involved) if you're considering using Open Match in production before the 1.0 release, as the documentation is likely to lag behind the latest version a bit while we focus on getting out of alpha/beta as soon as possible.**
 
 ## Version
-[The current stable version in master is 0.3.0 (alpha)](https://github.com/GoogleCloudPlatform/open-match/releases/tag/030).  At this time only bugfixes and doc update pull requests will be considered.
+[The current stable version in master is 0.3.1 (alpha)](releases/tag/v0.3.1-alpha).  At this time only bugfixes and doc update pull requests will be considered.
 Version 0.4.0 is in active development; please target code changes to the 040wip branch.
 
 # Core Concepts
