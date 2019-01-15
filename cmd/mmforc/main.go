@@ -292,6 +292,11 @@ func mmfunc(ctx context.Context, resultsID string, cfg *viper.Viper, clientset *
 		{Name: "MMF_REQUEST_ID", Value: moID},
 		{Name: "MMF_ERROR_ID", Value: resultsID},
 		{Name: "MMF_TIMESTAMP", Value: timestamp},
+		// Deprecated: 0.1.0 compatibility config vars.
+		{Name: "DEBUG", Value: cfg.GetString("debug")},
+		{Name: "JSONKEYS_ROSTERS", Value: cfg.GetString("jsonkeys.rosters")},
+		{Name: "JSONKEYS_MMFIMAGE", Value: cfg.GetString("jsonkeys.mmfImage")},
+		{Name: "JSONKEYS_POOLS", Value: cfg.GetString("jsonkeys.pools")},
 	}
 	err = submitJob(clientset, jobType, jobName, imageName, envvars)
 	if err != nil {
