@@ -41,12 +41,18 @@ var (
 	// REDIS_SENTINEL_PORT_6379_TCP_PORT=6379
 	// REDIS_SENTINEL_PORT_6379_TCP_PROTO=tcp
 	// REDIS_SENTINEL_SERVICE_HOST=10.55.253.195
+	//
+	// MMFs are expected to get their configuation from env vars instead
+	// of reading the config file.  So, config parameters that are required
+	// by MMFs should be populated to env vars.
 	envMappings = map[string]string{
 		"redis.hostname":         "REDIS_SERVICE_HOST",
 		"redis.port":             "REDIS_SERVICE_PORT",
 		"redis.pool.maxIdle":     "REDIS_POOL_MAXIDLE",
 		"redis.pool.maxActive":   "REDIS_POOL_MAXACTIVE",
 		"redis.pool.idleTimeout": "REDIS_POOL_IDLETIMEOUT",
+		"api.mmlogic.hostname":   "OM_MMLOGICAPI_SERVICE_HOST",
+		"api.mmlogic.port":       "OM_MMLOGICAPI_SERVICE_PORT",
 	}
 
 	// Viper config management setup
