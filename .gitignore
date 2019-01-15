@@ -24,6 +24,9 @@
 *.cities
 populations
 
+# local config files
+*.json
+
 # Discarded code snippets
 build.sh
 *-fast.yaml
