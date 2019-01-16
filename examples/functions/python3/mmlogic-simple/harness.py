@@ -28,7 +28,7 @@ from timeit import default_timer as timer
 
 # Step 2 - Talk to Redis.  This example uses the MM Logic API in OM to read/write to/from redis.
 # Establish grpc channel and make the API client stub
-api_conn_info = "%s:%d" % (os.environ["OM_MMLOGICAPI_SERVICE_HOST"],os.environ["OM_MMLOGICAPI_SERVICE_PORT"])
+api_conn_info = "%s:%s" % (os.environ["OM_MMLOGICAPI_SERVICE_HOST"],os.environ["OM_MMLOGICAPI_SERVICE_PORT"])
 with  grpc.insecure_channel(api_conn_info) as channel:
     mmlogic_api = mmlogic_pb2_grpc.MmLogicStub(channel)
 
