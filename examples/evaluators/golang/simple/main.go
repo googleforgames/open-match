@@ -167,7 +167,7 @@ func readConfig(filename string, defaults map[string]interface{}) (*viper.Viper,
 		v.SetDefault(key, value)
 	}
 	v.SetConfigName(filename)
-	v.SetConfigType("json")
+	v.SetConfigType("yaml")
 	v.AddConfigPath(".")
 	v.AutomaticEnv()
 
