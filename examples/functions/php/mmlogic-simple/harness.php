@@ -10,12 +10,11 @@ function dump_pb_message($msg) {
     print($msg->serializeToJsonString() . "\n");
 }
 
-# Load config file
-$cfg = json_decode(file_get_contents('matchmaker_config.json'), true);
+$debug = strtolower(trim(getenv('DEBUG'))) == 'true';
 
 # Step 2 - Talk to Redis.  This example uses the MM Logic API in OM to read/write to/from redis.
 # Establish grpc channel and make the API client stub
-$api_conn_info = sprintf('%s:%s', $cfg['api']['mmlogic']['hostname'], $cfg['api']['mmlogic']['port']);
+$api_conn_info = sprintf('%s:%s', getenv('OM_MMLOGICAPI_SERVICE_HOST'), getenv('OM_MMLOGICAPI_SERVICE_PORT'));
 
 $mmlogic_api = new Api\MmLogicClient($api_conn_info, [
     'credentials' => Grpc\ChannelCredentials::createInsecure(),
@@ -24,8 +23,8 @@ $mmlogic_api = new Api\MmLogicClient($api_conn_info, [
 # Step 3 - Read the profile written to the Backend API.
 # Get profile from redis
 $match_object = new Messages\MatchObject([
-    'id' => getenv('MMF_PROFILE_ID'
-)]);
+    'id' => getenv('MMF_PROFILE_ID')
+]);
 list($profile_pb, $status) = $mmlogic_api->GetProfile($match_object)->wait();
 dump_pb_message($profile_pb);
 
@@ -47,7 +46,7 @@ foreach ($profile_pb->getPools() as $empty_pool) {
         $empty_pool->setStats(new Messages\Stats());
     }
 
-    if ($cfg['debug']) {
+    if ($debug) {
         $start = microtime(true);
     }
 
@@ -73,7 +72,7 @@ foreach ($profile_pb->getPools() as $empty_pool) {
             }
         }
     }
-    if ($cfg['debug']) {
+    if ($debug) {
         $end = microtime(true);
         printf("\n'%s': count %06d | elapsed %0.3f\n", $empty_pool_name, count($player_pools[$empty_pool_name]), $end - $start);
     }
@@ -85,8 +84,7 @@ foreach ($profile_pb->getPools() as $empty_pool) {
 $results = make_matches($profile_dict, $player_pools);
 #################################################################
 
-# DEBUG
-if ($cfg['debug']) {
+if (debug) {
     print("======= match_properties\n");
     var_export($results);
 }
@@ -101,7 +99,7 @@ $mo->setPools($profile_pb->getPools());
 # Access the rosters in dict form within the properties json.
 # It is stored at the key specified in the config file.
 $rosters_dict = $results;
-foreach (explode('.', $cfg['jsonkeys']['rosters']) as $partial_key) {
+foreach (explode('.', getenv('JSONKEYS_ROSTERS')) as $partial_key) {
     $rosters_dict = $rosters_dict[$partial_key] ?? [];
 }
 
@@ -112,8 +110,7 @@ foreach ($rosters_dict as $roster) {
     $mo->getRosters() []= $r; 
 }
 
-#DEBUG: writing to error key prevents evalutor run 
-if ($cfg['debug']) {
+if ($debug) {
     print("======== MMF results:\n");
     dump_pb_message($mo);
 }
