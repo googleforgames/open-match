@@ -355,8 +355,18 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 	partialRoster := mmlogic.Roster{Name: fmt.Sprintf("%v.partialRoster", pool.Name)}
 	pool.Stats = &mmlogic.Stats{Count: int64(len(playerList)), Elapsed: time.Since(fnStart).Seconds()}
 	for i := 0; i < len(playerList); i++ {
+		// Add one additional player result to the partial pool.
+		player := &mmlogic.Player{Id: playerList[i], Attributes: []*mmlogic.Player_Attribute{}}
+		// Collect all the filtered attributes into the player protobuf.
+		for attribute, fr := range filteredResults {
+			if value, ok := fr[playerList[i]]; ok {
+				player.Attributes = append(player.Attributes, &mmlogic.Player_Attribute{Name: attribute, Value: value})
+			}
+		}
+		partialRoster.Players = append(partialRoster.Players, player)
+
 		// Check if we've filled in enough players to fill a page of results.
-		if (i > 0 && i%pageSize == 0) || i == (len(playerList)-1) {
+		if ((i+1)%pageSize == 0) || i == (len(playerList)-1) {
 			pageName := fmt.Sprintf("%v.page%v/%v", pool.Name, i/pageSize+1, pageCount)
 			poolChunk := &mmlogic.PlayerPool{
 				Name:    pageName,
@@ -370,17 +380,6 @@ func (s *mmlogicAPI) GetPlayerPool(pool *mmlogic.PlayerPool, stream mmlogic.MmLo
 			}
 			partialRoster.Players = []*mmlogic.Player{}
 		}
-
-		// Add one additional player result to the partial pool.
-		player := &mmlogic.Player{Id: playerList[i], Attributes: []*mmlogic.Player_Attribute{}}
-		// Collect all the filtered attributes into the player protobuf.
-		for attribute, fr := range filteredResults {
-			if value, ok := fr[playerList[i]]; ok {
-				player.Attributes = append(player.Attributes, &mmlogic.Player_Attribute{Name: attribute, Value: value})
-			}
-		}
-		partialRoster.Players = append(partialRoster.Players, player)
-
 	}
 
 	mlLog.WithFields(log.Fields{"count": len(playerList), "pool": pool.Name}).Debug("player pool streaming complete")
