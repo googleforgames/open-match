@@ -69,6 +69,10 @@ with  grpc.insecure_channel(api_conn_info) as channel:
         if os.environ["DEBUG"]:
             print("\n'%s': count %06d | elapsed %0.3f" % (empty_pool.name, len(player_pools[empty_pool.name]),timer() - start))
 
+    num_players_total = 0
+    for _, pool in player_pools.items():
+        num_players_total += len(pool)
+
     #################################################################
     # Step 5 - Run custom matchmaking logic to try to find a match
     # This is in the file mmf.py
@@ -104,7 +108,14 @@ with  grpc.insecure_channel(api_conn_info) as channel:
         print("======== MMF results:") 
         pp.pprint(mo)
 
-    # Step 6 - Write the outcome of the matchmaking logic back to state storage.
+    # Return error when there are no players in the pools
+    if num_players_total == 0:
+        if cfg['debug']:
+            print("All player pools are empty, writing to error to skip the evaluator")
+        mo.id = os.environ["MMF_ERROR_ID"]
+        mo.error = "insufficient players"
+
+    # Step 6 - Write the outcome of the matchmaking logic back to state storage.    
     # Step 7 - Remove the selected players from consideration by other MMFs.
     # CreateProposal does both of these for you, and some other items as well.
     success = mmlogic_api.CreateProposal(mo)

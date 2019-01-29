@@ -31,9 +31,13 @@ def makeMatches(profile_dict, player_pools):
     for roster in profile_dict['properties']['rosters']:
         for player in roster['players']:
             if 'pool' in player:
-                player['id']  = random.choice(list(player_pools[player['pool']]))
-                del player_pools[player['pool']][player['id']]
-                print("Selected player %s from pool %s (strategy: RANDOM)" % (player['id'], player['pool']))
+                player_pool = list(player_pools[player['pool']])
+                if len(player_pool) > 0:
+                    player['id'] = random.choice(player_pool)
+                    del player_pools[player['pool']][player['id']]
+                    print("Selected player %s from pool %s (strategy: RANDOM)" % (player['id'], player['pool']))
+                else:
+                    print("Player pool %s is empty (roster %s)" % (player['pool'], roster['name']))
             else:
                 print(player)
     return profile_dict
