@@ -29,6 +29,7 @@ import (
 	"time"
 
 	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
@@ -108,35 +109,38 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 // The pattern for this function is from 'Go Concurrency Patterns', it is a function
 // that wraps a closure goroutine, and returns a channel.
 // reference: https://talks.golang.org/2012/concurrency.slide#25
-func Watcher(ctx context.Context, pool *redis.Pool, pb om_messages.MatchObject) <-chan om_messages.MatchObject {
+//
+// NOTE: runs until cancelled, timed out or result is found in Redis.
+func Watcher(bo backoff.BackOffContext, pool *redis.Pool, pb om_messages.MatchObject) <-chan om_messages.MatchObject {
 
 	watchChan := make(chan om_messages.MatchObject)
 	results := om_messages.MatchObject{Id: pb.Id}
 
 	go func() {
+		defer close(watchChan)
+
 		// var declaration
 		var err = errors.New("haven't queried Redis yet")
 
 		// Loop, querying redis until this key has a value
-		for err != nil {
-			select {
-			case <-ctx.Done():
-				// Cleanup
-				close(watchChan)
+		for {
+			results = om_messages.MatchObject{Id: pb.Id}
+			err = UnmarshalFromRedis(bo.Context(), pool, &results)
+			if err == nil {
+				// Return value retreived from Redis asynchonously and tell calling function we're done
+				moLog.Debug("state storage watched record update detected")
+				watchChan <- results
 				return
-			default:
-				//results, err = Retrieve(ctx, pool, key)
-				results = om_messages.MatchObject{Id: pb.Id}
-				err = UnmarshalFromRedis(ctx, pool, &results)
-				if err != nil {
-					moLog.Debug("No new results")
-					time.Sleep(2 * time.Second) // TODO: exp bo + jitter
-				}
+			}
+
+			if d := bo.NextBackOff(); d != backoff.Stop {
+				moLog.Debug("No new results, backing off")
+				time.Sleep(d)
+			} else {
+				moLog.Debug("No new results after all backoff attempts")
+				return
 			}
 		}
-		// Return value retreived from Redis asynchonously and tell calling function we're done
-		moLog.Debug("state storage watched record update detected")
-		watchChan <- results
 	}()
 
 	return watchChan

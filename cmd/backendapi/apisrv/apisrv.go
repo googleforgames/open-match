@@ -27,11 +27,13 @@ import (
 	"net"
 	"time"
 
+	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	backend "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
+	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	log "github.com/sirupsen/logrus"
@@ -209,43 +211,41 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 	}
 	beLog.Info("Profile added to processing queue")
 
+	watcherBO := backoff.NewExponentialBackOff()
+	if err := expbo.UnmarshalExponentialBackOff(s.cfg.GetString("api.backend.backoff"), watcherBO); err != nil {
+		beLog.WithError(err).Warn("Could not parse backoff string, using default backoff parameters for MatchObject watcher")
+	}
+
+	watcherBOCtx := backoff.WithContext(watcherBO, ctx)
+
 	// get and return matchobject, it will be written to the requestKey when the MMF has finished.
-	var ok bool
-	newMO := backend.MatchObject{Id: requestKey}
-	watchChan := redispb.Watcher(ctx, s.pool, newMO) // Watcher() runs the appropriate Redis commands.
-	errString := ("Error retrieving matchmaking results from state storage")
-	timeout := time.Duration(s.cfg.GetInt("api.backend.timeout")) * time.Second
-
-	select {
-	case <-time.After(timeout):
-		// TODO:Timeout: deal with the fallout.  There are some edge cases here.
-		// When there is a timeout, need to send a stop to the watch channel.
+	watchChan := redispb.Watcher(watcherBOCtx, s.pool, backend.MatchObject{Id: requestKey}) // Watcher() runs the appropriate Redis commands.
+	newMO, ok := <-watchChan
+	if !ok {
+		// ok is false if watchChan has been closed by redispb.Watcher()
+		// This happens when Watcher stops because of context cancellation or backing off reached time limit
 		stats.Record(fnCtx, BeGrpcRequests.M(1))
-		return profile, errors.New(errString + ": timeout exceeded")
-
-	case newMO, ok = <-watchChan:
-		if !ok {
-			// ok is false if watchChan has been closed by redispb.Watcher()
-			newMO.Error = newMO.Error + "; channel closed - was the context cancelled?"
+		if watcherBOCtx.Context().Err() != nil {
+			newMO.Error = "channel closed: " + watcherBOCtx.Context().Err().Error()
 		} else {
-			// 'ok' was true, so properties should contain the results from redis.
-			// Do basic error checking on the returned JSON
-			if !gjson.Valid(profile.Properties) {
-				newMO.Error = "retreived properties json was malformed"
-			}
+			newMO.Error = "channel closed: backoff deadline exceeded"
 		}
+		return &newMO, errors.New("Error retrieving matchmaking results from state storage: " + newMO.Error)
+	}
 
-		// TODO test that this is the correct condition for an empty error.
-		if newMO.Error != "" {
-			stats.Record(fnCtx, BeGrpcErrors.M(1))
-			return &newMO, errors.New(newMO.Error)
-		}
+	// 'ok' was true, so properties should contain the results from redis.
+	// Do basic error checking on the returned JSON
+	if !gjson.Valid(profile.Properties) {
+		newMO.Error = "retreived properties json was malformed"
+	}
 
-		// Got results; close the channel so the Watcher() function stops querying redis.
+	// TODO test that this is the correct condition for an empty error.
+	if newMO.Error != "" {
+		stats.Record(fnCtx, BeGrpcErrors.M(1))
+		return &newMO, errors.New(newMO.Error)
 	}
 
 	beLog.Info("Matchmaking results received, returning to backend client")
-
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
 	return &newMO, err
 }
