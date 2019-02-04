@@ -29,6 +29,7 @@ import (
 
 	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/playerindices"
+	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
@@ -104,73 +105,72 @@ func UnmarshalPlayerFromRedis(ctx context.Context, pool *redis.Pool, player *om_
 // NOTE: this function will never stop querying Redis during normal operation! You need to
 //  disconnect the client from the frontend API (which closes the context) once
 //  you've received the results you were waiting for to stop doing work!
-func PlayerWatcher(ctx context.Context, pool *redis.Pool, pb om_messages.Player) <-chan om_messages.Player {
+func PlayerWatcher(bo backoff.BackOffContext, pool *redis.Pool, pb om_messages.Player) <-chan om_messages.Player {
 
 	pwLog := pLog.WithFields(log.Fields{"playerId": pb.Id})
 
 	// Establish channel to return results on.
-	watchChan := make(chan om_messages.Player)
+	watchChan := make(chan om_messages.Player, 1)
 
 	go func() {
+		defer close(watchChan)
+
 		// var declaration
 		var prevResults = ""
 
-		// Loop, querying redis until this key has a value or the Redis query fails.
+		// Loop, querying redis until this key has a value or the Redis query fails
 		for {
-			select {
-			case <-ctx.Done():
-				// Player stopped asking for updates; clean up
-				close(watchChan)
+			// Update the player's 'accessed' timestamp to denote they haven't disappeared
+			err := playerindices.Touch(bo.Context(), pool, pb.Id)
+			if err != nil {
+				// Not fatal, but this error should be addressed.  This could
+				// cause the player to expire while still actively connected!
+				pwLog.WithFields(log.Fields{"error": err.Error()}).Error("Unable to update accessed metadata timestamp")
+			}
+
+			// Get player from redis.
+			results := om_messages.Player{Id: pb.Id}
+			err = UnmarshalPlayerFromRedis(bo.Context(), pool, &results)
+			if err != nil {
+				// Return error and quit.
+				pwLog.Debug("State storage error:", err.Error())
+				results.Error = err.Error()
+				watchChan <- results
 				return
-			default:
-				// Update the player's 'accessed' timestamp to denote they haven't disappeared
-				err := playerindices.Touch(ctx, pool, pb.Id)
-				if err != nil {
-					// Not fatal, but this error should be addressed.  This could
-					// cause the player to expire while still actively connected!
-					pwLog.WithFields(log.Fields{"error": err.Error()}).Error("Unable to update accessed metadata timestamp")
-				}
+			}
 
-				// Get player from redis.
-				results := om_messages.Player{Id: pb.Id}
-				err = UnmarshalPlayerFromRedis(ctx, pool, &results)
-				if err != nil {
-					// Return error and quit.
-					pwLog.Debug("State storage error:", err.Error())
-					results.Error = err.Error()
-					watchChan <- results
-					close(watchChan)
-					return
+			// Check for new results and send them. Store a copy of the
+			// latest version in string form so we can compare it easily in
+			// future loops.
+			//
+			// If we decide to watch other message fields for updates,
+			// they will need to be added here.
+			//
+			// This can be made much cleaner if protobuffer reflection improves.
+			curResults := fmt.Sprintf("%v%v%v", results.Assignment, results.Status, results.Error)
+			if prevResults == curResults {
+				pwLog.Debug("No new results, backing off")
+			} else {
+				// Return value retreived from Redis
+				pwLog.Debug("state storage watched player record changed")
+				watchedFields := om_messages.Player{
+					// Return only the watched fields to minimize traffic
+					Id:         results.Id,
+					Assignment: results.Assignment,
+					Status:     results.Status,
+					Error:      results.Error,
 				}
+				watchChan <- watchedFields
+				prevResults = curResults
 
-				// Check for new results and send them. Store a copy of the
-				// latest version in string form so we can compare it easily in
-				// future loops.
-				//
-				// If we decide to watch other message fields for updates,
-				// they will need to be added here.
-				//
-				// This can be made much cleaner if protobuffer reflection improves.
-				curResults := fmt.Sprintf("%v%v%v", results.Assignment, results.Status, results.Error)
-				if prevResults == curResults {
-					pwLog.Debug("No new watcher results")
-					// TODO: change the debug message once exp bo + jitter is implemented
-					//pwLog.Debug("No new results, backing off")
-					time.Sleep(2 * time.Second) // TODO: exp bo + jitter
-				} else {
-					// Return value retreived from Redis
-					pwLog.Debug("state storage watched player record changed")
-					watchedFields := om_messages.Player{
-						// Return only the watched fields to minimize traffic
-						Id:         results.Id,
-						Assignment: results.Assignment,
-						Status:     results.Status,
-						Error:      results.Error,
-					}
-					watchChan <- watchedFields
-					prevResults = curResults
-					time.Sleep(2 * time.Second) // TODO: reset exp bo + jitter
-				}
+				// Reset backoff & timeout counters
+				bo.Reset()
+			}
+
+			if d := bo.NextBackOff(); d != backoff.Stop {
+				time.Sleep(d)
+			} else {
+				return
 			}
 		}
 	}()
