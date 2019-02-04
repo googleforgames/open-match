@@ -23,13 +23,15 @@ import (
 	"context"
 	"errors"
 	"net"
-	"time"
 
+	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	frontend "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/playerindices"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
+
+	"github.com/cenkalti/backoff"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
@@ -190,39 +192,47 @@ func (s *frontendAPI) GetUpdates(p *frontend.Player, assignmentStream frontend.F
 	funcName := "GetAssignment"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
+	watcherBO := backoff.NewExponentialBackOff()
+	if err := expbo.UnmarshalExponentialBackOff(s.cfg.GetString("api.frontend.backoff"), watcherBO); err != nil {
+		feLog.WithError(err).Warn("Could not parse backoff string, using default backoff parameters for Player watcher")
+	}
+
+	// We have to stop Watcher manually because in a normal case client closes channel before the timeout
+	watcherCtx, stopWatcher := context.WithCancel(context.Background())
+	defer stopWatcher()
+	watcherBOCtx := backoff.WithContext(watcherBO, watcherCtx)
+
 	// get and return connection string
-	watchChan := redispb.PlayerWatcher(ctx, s.pool, *p) // watcher() runs the appropriate Redis commands.
-	timeoutChan := time.After(time.Duration(s.cfg.GetInt("api.frontend.timeout")) * time.Second)
+	watchChan := redispb.PlayerWatcher(watcherBOCtx, s.pool, *p) // watcher() runs the appropriate Redis commands.
 
 	for {
-
 		select {
 		case <-ctx.Done():
 			// Context cancelled
-			feLog.WithFields(log.Fields{
-				"playerid": p.Id,
-			}).Info("client closed connection successfully")
+			feLog.WithField("playerid", p.Id).Info("client closed connection successfully")
 			stats.Record(fnCtx, FeGrpcRequests.M(1))
 			return nil
-		case <-timeoutChan: // Timeout reached without client closing connection
-			// TODO:deal with the fallout
-			err := errors.New("server timeout reached without client closing connection")
-			feLog.WithFields(log.Fields{
-				"error":     err.Error(),
-				"component": "statestorage",
-				"playerid":  p.Id,
-			}).Error("State storage error")
 
-			// Count errors for metrics
-			errTag, _ := tag.NewKey("errtype")
-			fnCtx, _ := tag.New(ctx, tag.Insert(errTag, "watch_timeout"))
-			stats.Record(fnCtx, FeGrpcErrors.M(1))
-			//TODO: we could generate a frontend.player message with an error
-			//field and stream it to the client before throwing the error here
-			//if we wanted to send more useful client retry information
-			return err
+		case a, ok := <-watchChan:
+			if !ok {
+				// Timeout reached without client closing connection
+				err := errors.New("server timeout reached without client closing connection")
+				feLog.WithFields(log.Fields{
+					"error":     err.Error(),
+					"component": "statestorage",
+					"playerid":  p.Id,
+				}).Error("State storage error")
 
-		case a := <-watchChan:
+				// Count errors for metrics
+				errTag, _ := tag.NewKey("errtype")
+				fnCtx, _ := tag.New(ctx, tag.Insert(errTag, "watch_timeout"))
+				stats.Record(fnCtx, FeGrpcErrors.M(1))
+				//TODO: we could generate a frontend.player message with an error
+				//field and stream it to the client before throwing the error here
+				//if we wanted to send more useful client retry information
+				return err
+			}
+
 			feLog.WithFields(log.Fields{
 				"assignment": a.Assignment,
 				"playerid":   a.Id,
@@ -231,8 +241,6 @@ func (s *frontendAPI) GetUpdates(p *frontend.Player, assignmentStream frontend.F
 			}).Info("updating client")
 			assignmentStream.Send(&a)
 			stats.Record(fnCtx, FeGrpcStreamedResponses.M(1))
-			// Reset timeout.
-			timeoutChan = time.After(time.Duration(s.cfg.GetInt("api.frontend.timeout")) * time.Second)
 		}
 	}
 
