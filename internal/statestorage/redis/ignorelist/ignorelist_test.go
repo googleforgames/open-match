@@ -14,6 +14,6 @@ func TestCreate(t *testing.T) {
 	redisConn.GenericCommand("ZADD").Expect("ok")
 	err := Create(redisConn, ilid, pids)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 }
