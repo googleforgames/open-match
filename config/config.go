@@ -46,6 +46,8 @@ var (
 	// of reading the config file.  So, config parameters that are required
 	// by MMFs should be populated to env vars.
 	envMappings = map[string]string{
+		"redis.user":             "REDIS_USER",
+		"redis.password":         "REDIS_PASSWORD",
 		"redis.hostname":         "REDIS_SERVICE_HOST",
 		"redis.port":             "REDIS_SERVICE_PORT",
 		"redis.pool.maxIdle":     "REDIS_POOL_MAXIDLE",

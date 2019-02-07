@@ -59,8 +59,6 @@ defaultImages:
     tag: dev
 
 redis: 
-  user: ""
-  password: ""
   pool: 
     maxIdle: 3
     maxActive: 0

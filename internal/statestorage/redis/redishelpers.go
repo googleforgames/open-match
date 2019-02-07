@@ -47,13 +47,15 @@ func ConnectionPool(cfg *viper.Viper) (*redis.Pool, error) {
 
 	// Add redis user and password to connection url if they exist
 	redisURL := "redis://"
-	if cfg.IsSet("redis.user") && cfg.GetString("redis.user") != "" &&
-		cfg.IsSet("redis.password") && cfg.GetString("redis.password") != "" {
+	maskedURL := redisURL
+	if cfg.IsSet("redis.password") && cfg.GetString("redis.password") != "" {
 		redisURL += cfg.GetString("redis.user") + ":" + cfg.GetString("redis.password") + "@"
+		maskedURL += cfg.GetString("redis.user") + ":******@"
 	}
 	redisURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
+	maskedURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
 
-	rhLog.WithFields(log.Fields{"redisURL": redisURL}).Debug("Attempting to connect to Redis")
+	rhLog.WithField("redisURL", maskedURL).Debug("Attempting to connect to Redis")
 	pool := &redis.Pool{
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
@@ -72,7 +74,7 @@ func ConnectionPool(cfg *viper.Viper) (*redis.Pool, error) {
 		rhLog.WithFields(log.Fields{
 			"error": err.Error(),
 			"query": "SELECT 0"}).Error("state storage connection error")
-		return nil, fmt.Errorf("cannot connect to Redis at %s, %s", redisURL, err)
+		return nil, fmt.Errorf("cannot connect to Redis at %s, %s", maskedURL, err)
 	}
 
 	rhLog.Info("Connected to Redis")
