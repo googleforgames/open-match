@@ -5,6 +5,6 @@ COPY . .
 RUN go get -d -v
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o mmf .
 
-#FROM scratch
-#COPY --from=builder /go/src/github.com/GoogleCloudPlatform/mmfstub/mmfstub mmfstub
-CMD ["./mmf"]
+FROM gcr.io/distroless/static
+COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/examples/functions/golang/manual-simple/mmf .
+CMD ["/mmf"]

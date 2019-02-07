@@ -25,6 +25,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/config"
 	messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/set"
+	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gomodule/redigo/redis"
@@ -51,12 +52,17 @@ func main() {
 	// Read config file.
 	cfg := viper.New()
 	cfg, err := config.Read()
+	if err != nil {
+		panic(err)
+	}
 
-	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
-	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
-	redisURL := "redis://" + os.Getenv("REDIS_SERVICE_HOST") + ":" + os.Getenv("REDIS_SERVICE_PORT")
-	fmt.Println("Connecting to Redis at", redisURL)
-	redisConn, err := redis.DialURL(redisURL)
+	pool, err := redishelpers.ConnectionPool(cfg)
+	if err != nil {
+		panic(err)
+	}
+	defer pool.Close()
+
+	redisConn := pool.Get()
 	if err != nil {
 		panic(err)
 	}
@@ -64,7 +70,7 @@ func main() {
 
 	// decrement the number of running MMFs once finished
 	defer func() {
-		fmt.Println("DECR moncurrentMMFs")
+		fmt.Println("DECR concurrentMMFs")
 		_, err = redisConn.Do("DECR", "concurrentMMFs")
 		if err != nil {
 			fmt.Println(err)
@@ -102,7 +108,7 @@ func main() {
 	// select players
 	const numPlayers = 8
 	// ZRANGE is 0-indexed
-	pools := gjson.Get(profile["properties"], cfg.GetString("jsonkeys.pools"))
+	pools := gjson.Get(profile["properties"], os.Getenv("JSONKEYS_POOLS"))
 	fmt.Println("=========Pools")
 	fmt.Printf("pool.String() = %+v\n", pools.String())
 
@@ -204,7 +210,7 @@ func main() {
 	}
 
 	// Loop through each roster in the profile and fill in players.
-	rosters := gjson.Get(profile["properties"], cfg.GetString("jsonkeys.rosters"))
+	rosters := gjson.Get(profile["properties"], os.Getenv("JSONKEYS_ROSTERS"))
 	fmt.Println("=========Rosters")
 	fmt.Printf("rosters.String() = %+v\n", rosters.String())
 
@@ -269,9 +275,9 @@ func main() {
 					// Not enough players, exit.
 					fmt.Println("Not enough players in the pool to fill all player slots in requested roster", rName)
 					fmt.Printf("%+v\n", roster.String())
-					fmt.Println("SET", errorKey, `{"error": "insufficient_players"}`)
-					redisConn.Do("SET", errorKey, `{"error": "insufficient_players"}`)
-					os.Exit(1)
+					fmt.Println("HSET", errorKey, "error", "insufficient_players")
+					redisConn.Do("HSET", errorKey, "error", "insufficient_players")
+					os.Exit(0)
 				}
 
 			}
@@ -317,7 +323,7 @@ func main() {
 	// for backwards compatibility with backends that haven't been updated to take
 	// advantage of the new rosters field in the MatchObject protobuf message introduced
 	// in 0.2.0.
-	profile["properties"], err = sjson.Set(profile["properties"], cfg.GetString("jsonkeys.rosters"), proposedRosters.String())
+	profile["properties"], err = sjson.Set(profile["properties"], os.Getenv("JSONKEYS_ROSTERS"), proposedRosters.String())
 	profile["properties"] = strings.Replace(profile["properties"], "\\", "", -1)
 	profile["properties"] = strings.Replace(profile["properties"], "]\"", "]", -1)
 	profile["properties"] = strings.Replace(profile["properties"], "\"[", "[", -1)
