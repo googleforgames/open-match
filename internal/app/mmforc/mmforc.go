@@ -64,6 +64,16 @@ var (
 	// Default kubernetes namespace
 	namespace = apiv1.NamespaceDefault
 
+	redisCredentialsSecret = struct {
+		name        string
+		userKey     string
+		passwordKey string
+	}{
+		name:        "",
+		userKey:     "",
+		passwordKey: "",
+	}
+
 	// Viper config management setup
 	cfg = viper.New()
 	err = errors.New("")
@@ -88,6 +98,10 @@ func initializeApplication() {
 	if len(metaNamespace) != 0 {
 		namespace = metaNamespace
 	}
+
+	redisCredentialsSecret.name = os.Getenv("REDIS_CREDENTIALS_SECRET_NAME")
+	redisCredentialsSecret.userKey = os.Getenv("REDIS_CREDENTIALS_SECRET_USER_KEY")
+	redisCredentialsSecret.passwordKey = os.Getenv("REDIS_CREDENTIALS_SECRET_PASSWORD_KEY")
 
 	// Configure OpenCensus exporter to Prometheus
 	// metrics.ConfigureOpenCensusPrometheusExporter expects that every OpenCensus view you
@@ -344,7 +358,7 @@ func mmfunc(ctx context.Context, resultsID string, cfg *viper.Viper, clientset *
 			{Name: "JSONKEYS_MMFIMAGE", Value: cfg.GetString("jsonkeys.mmfImage")},
 			{Name: "JSONKEYS_POOLS", Value: cfg.GetString("jsonkeys.pools")},
 		}
-		err = submitJob(clientset, jobType, jobName, imageName, envvars)
+		err = submitJob(cfg, clientset, jobType, jobName, imageName, envvars)
 	}
 
 	if err != nil {
@@ -435,7 +449,7 @@ func evaluator(ctx context.Context, cfg *viper.Viper, clientset *kubernetes.Clie
 
 	// Kick off k8s job
 	envvars := []apiv1.EnvVar{{Name: "MMF_TIMESTAMP", Value: timestamp}}
-	err = submitJob(clientset, jobType, jobName, imageName, envvars)
+	err = submitJob(cfg, clientset, jobType, jobName, imageName, envvars)
 	if err != nil {
 		// Record failure & log
 		stats.Record(ctx, mmforcEvalFailures.M(1))
@@ -451,11 +465,47 @@ func evaluator(ctx context.Context, cfg *viper.Viper, clientset *kubernetes.Clie
 }
 
 // submitJob submits a job to kubernetes
-func submitJob(clientset *kubernetes.Clientset, jobType string, jobName string, imageName string, envvars []apiv1.EnvVar) error {
+func submitJob(cfg *viper.Viper, clientset *kubernetes.Clientset, jobType string, jobName string, imageName string, envvars []apiv1.EnvVar) error {
 
 	// DEPRECATED: will be removed in a future vrsion.  Please switch to using the 'MMF_*' environment variables.
 	v := strings.Split(jobName, ".")
-	envvars = append(envvars, apiv1.EnvVar{Name: "PROFILE", Value: strings.Join(v[:len(v)-1], ".")})
+	envvars = append(envvars,
+		apiv1.EnvVar{Name: "PROFILE", Value: strings.Join(v[:len(v)-1], ".")},
+		apiv1.EnvVar{Name: "REDIS_POOL_MAXIDLE", Value: cfg.GetString("redis.pool.maxIdle")},
+		apiv1.EnvVar{Name: "REDIS_POOL_MAXACTIVE", Value: cfg.GetString("redis.pool.maxActive")},
+		apiv1.EnvVar{Name: "REDIS_POOL_IDLETIMEOUT", Value: cfg.GetString("redis.pool.idleTimeout")},
+	)
+
+	if redisCredentialsSecret.name != "" {
+		if redisCredentialsSecret.userKey != "" {
+			envvars = append(envvars,
+				apiv1.EnvVar{
+					Name: "REDIS_USER",
+					ValueFrom: &apiv1.EnvVarSource{
+						SecretKeyRef: &apiv1.SecretKeySelector{
+							LocalObjectReference: apiv1.LocalObjectReference{
+								Name: redisCredentialsSecret.name,
+							},
+							Key: redisCredentialsSecret.userKey,
+						},
+					},
+				})
+		}
+		if redisCredentialsSecret.passwordKey != "" {
+			envvars = append(envvars,
+				apiv1.EnvVar{
+					Name: "REDIS_PASSWORD",
+					ValueFrom: &apiv1.EnvVarSource{
+						SecretKeyRef: &apiv1.SecretKeySelector{
+							LocalObjectReference: apiv1.LocalObjectReference{
+								Name: redisCredentialsSecret.name,
+							},
+							Key: redisCredentialsSecret.passwordKey,
+						},
+					},
+				})
+		}
+	}
 
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -484,6 +534,26 @@ func submitJob(clientset *kubernetes.Clientset, jobType string, jobName string, 
 							Image:           imageName,
 							ImagePullPolicy: "Always",
 							Env:             envvars,
+							VolumeMounts: []apiv1.VolumeMount{
+								{
+									Name:      "om-configmap",
+									SubPath:   "matchmaker_config.yaml",
+									MountPath: "matchmaker_config.yaml",
+									ReadOnly:  true,
+								},
+							},
+						},
+					},
+					Volumes: []apiv1.Volume{
+						{
+							Name: "om-configmap",
+							VolumeSource: apiv1.VolumeSource{
+								ConfigMap: &apiv1.ConfigMapVolumeSource{
+									LocalObjectReference: apiv1.LocalObjectReference{
+										Name: "om-configmap",
+									},
+								},
+							},
 						},
 					},
 				},
