@@ -376,7 +376,7 @@ func callRestFunction(hostName string, strPort string, jobName string, profID st
 	}
 	body := strings.NewReader(string(b))
 
-	// TODO: This is designed to include service discovery from within this network (in this case kubernetes or internal dns)
+	// TODO: This is designed to include service discovery from within this network (kubernetes or internal dns)
 	// How this is constructed and discovered should be more configurable by the external scheduling mechanism
 	host, err := net.LookupHost(hostName)
 	if err != nil {
