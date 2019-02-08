@@ -1,0 +1,12 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-mmlogicapi
+spec:
+  selector:
+    app: openmatch
+    component: mmlogic
+  ports:
+  - protocol: TCP
+    port: 50503
+    targetPort: grpc

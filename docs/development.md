@@ -76,24 +76,24 @@ The rest of this guide assumes you have a cluster (example is using GKE, but wor
 
 * Start a copy of redis and a service in front of it:
     ```
-    kubectl apply -f redis_deployment.json
-    kubectl apply -f redis_service.json
+    kubectl apply -f redis_deployment.yaml
+    kubectl apply -f redis_service.yaml
     ```
 * Run the **core components**: the frontend API, the backend API, the matchmaker function orchestrator (MMFOrc), and the matchmaking logic API.
 **NOTE** In order to kick off jobs, the matchmaker function orchestrator needs a service account with permission to administer the cluster. This should be updated to have min required perms before launch, this is pretty permissive but acceptable for closed testing:
     ```
-    kubectl apply -f backendapi_deployment.json
-    kubectl apply -f backendapi_service.json
-    kubectl apply -f frontendapi_deployment.json
-    kubectl apply -f frontendapi_service.json
-    kubectl apply -f mmforc_deployment.json
-    kubectl apply -f mmforc_serviceaccount.json
-    kubectl apply -f mmlogicapi_deployment.json
-    kubectl apply -f mmlogicapi_service.json
+    kubectl apply -f backendapi_deployment.yaml
+    kubectl apply -f backendapi_service.yaml
+    kubectl apply -f frontendapi_deployment.yaml
+    kubectl apply -f frontendapi_service.yaml
+    kubectl apply -f mmforc_deployment.yaml
+    kubectl apply -f mmforc_serviceaccount.yaml
+    kubectl apply -f mmlogicapi_deployment.yaml
+    kubectl apply -f mmlogicapi_service.yaml
     ```
 * [optional, but recommended] Configure the OpenCensus metrics services:
     ```
-    kubectl apply -f metrics_services.json
+    kubectl apply -f metrics_services.yaml
     ```
 * [optional] Trying to apply the Kubernetes Prometheus Operator resource definition files without a cluster-admin rolebinding on GKE doesn't work without running the following command first. See https://github.com/coreos/prometheus-operator/issues/357
     ```
@@ -102,10 +102,10 @@ The rest of this guide assumes you have a cluster (example is using GKE, but wor
 * [optional, uses beta software] If using Prometheus as your metrics gathering backend, configure the [Prometheus Kubernetes Operator](https://github.com/coreos/prometheus-operator):
     
     ```
-    kubectl apply -f prometheus_operator.json
-    kubectl apply -f prometheus.json
-    kubectl apply -f prometheus_service.json
-    kubectl apply -f metrics_servicemonitor.json
+    kubectl apply -f prometheus_operator.yaml
+    kubectl apply -f prometheus.yaml
+    kubectl apply -f prometheus_service.yaml
+    kubectl apply -f metrics_servicemonitor.yaml
     ```
 You should now be able to see the core component pods running using a `kubectl get pods`, and the core component metrics in the Prometheus Web UI by running `kubectl proxy <PROMETHEUS_POD_NAME> 9090:9090` in your local shell, then opening http://localhost:9090/targets in your browser to see which services Prometheus is collecting from.
 
