@@ -21,7 +21,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -58,6 +61,9 @@ var (
 	}
 	mmforcLog = log.WithFields(mmforcLogFields)
 
+	// Default kubernetes namespace
+	namespace = apiv1.NamespaceDefault
+
 	// Viper config management setup
 	cfg = viper.New()
 	err = errors.New("")
@@ -78,6 +84,11 @@ func init() {
 	// Configure open match logging defaults
 	logging.ConfigureLogging(cfg)
 
+	metaNamespace := os.Getenv("METADATA_NAMESPACE")
+	if len(metaNamespace) != 0 {
+		namespace = metaNamespace
+	}
+
 	// Configure OpenCensus exporter to Prometheus
 	// metrics.ConfigureOpenCensusPrometheusExporter expects that every OpenCensus view you
 	// want to register is in an array, so append any views you want from other
@@ -91,7 +102,6 @@ func init() {
 }
 
 func main() {
-
 	pool := redisHelpers.ConnectionPool(cfg)
 	redisConn := pool.Get()
 	defer redisConn.Close()
@@ -257,7 +267,6 @@ func mmfunc(ctx context.Context, resultsID string, cfg *viper.Viper, clientset *
 			"backendMatchObject":  moID,
 			"profile":             profID,
 			"jobTimestamp":        timestamp,
-			"containerImage":      imageName,
 			"jobName":             jobName,
 			"profileImageJSONKey": cfg.GetString("jsonkeys.mmfImage"),
 		}
@@ -274,34 +283,128 @@ func mmfunc(ctx context.Context, resultsID string, cfg *viper.Viper, clientset *
 	}
 
 	// Got profile from state storage, make sure it is valid
-	if gjson.Valid(profile["properties"]) {
-		profileImage := gjson.Get(profile["properties"], cfg.GetString("jsonkeys.mmfImage"))
-		if profileImage.Exists() {
+	if !gjson.Valid(profile["properties"]) {
+		mmforcLog.WithFields(log.Fields{
+			"jobName": jobName,
+		}).Warn("Profile JSON was invalid")
+		return
+	}
+
+	// Determine what kind of job orchestration the profile requires
+	profileHostName := gjson.Get(profile["properties"], cfg.GetString("jsonkeys.mmfHostName"))
+	profileImage := gjson.Get(profile["properties"], cfg.GetString("jsonkeys.mmfImage"))
+
+	// If a hostname was provided, try making a restful POST to the existing endpoint
+	if profileHostName.Exists() && len(profileHostName.String()) > 0 {
+		port := "80"
+		profilePort := gjson.Get(profile["properties"], cfg.GetString("jsonkeys.mmfPort"))
+		if profilePort.Exists() {
+			port = profilePort.String()
+		} else {
+			mmfuncLog.Debug("No port specified in configured properties json key, using default port instead")
+		}
+
+		mmforcLog.WithFields(log.Fields{
+			"jobName":  jobName,
+			"hostName": profileHostName,
+			"port":     port,
+		}).Debug("Profile specifies a host name for running the match function as a POST rest service call")
+
+		// Make a rest service call
+		err = callRestFunction(profileHostName.String(), port, jobName, profID, moID, propID, resultsID, timestamp)
+
+	} else {
+		// Otherwise, if a profile image is available, use a k8s job
+		if profileImage.Exists() && len(profileImage.String()) > 0 {
 			imageName = profileImage.String()
-			mmfuncLog = mmfuncLog.WithFields(log.Fields{"containerImage": imageName})
 		} else {
 			mmfuncLog.Warn("Failed to read image name from profile at configured json key, using default image instead")
 		}
-	}
-	mmfuncLog.Info("Attempting to create mmf k8s job")
 
-	// Kick off k8s job
-	envvars := []apiv1.EnvVar{
-		{Name: "MMF_PROFILE_ID", Value: profID},
-		{Name: "MMF_PROPOSAL_ID", Value: propID},
-		{Name: "MMF_REQUEST_ID", Value: moID},
-		{Name: "MMF_ERROR_ID", Value: resultsID},
-		{Name: "MMF_TIMESTAMP", Value: timestamp},
+		mmfuncLog = mmfuncLog.WithFields(log.Fields{"containerImage": imageName})
+		mmfuncLog.Info("Attempting to create mmf k8s job")
+
+		// Kick off k8s job
+		envvars := []apiv1.EnvVar{
+			{Name: "MMF_PROFILE_ID", Value: profID},
+			{Name: "MMF_PROPOSAL_ID", Value: propID},
+			{Name: "MMF_REQUEST_ID", Value: moID},
+			{Name: "MMF_ERROR_ID", Value: resultsID},
+			{Name: "MMF_TIMESTAMP", Value: timestamp},
+		}
+		err = submitJob(clientset, jobType, jobName, imageName, envvars)
 	}
-	err = submitJob(clientset, jobType, jobName, imageName, envvars)
+
 	if err != nil {
 		// Record failure & log
 		stats.Record(ctx, mmforcMmfFailures.M(1))
-		mmfuncLog.WithFields(log.Fields{"error": err.Error()}).Error("MMF job submission failure!")
+		mmfuncLog.WithFields(log.Fields{"error": err.Error()}).Error("MMF submission failure!")
 	} else {
 		// Record Success
 		stats.Record(ctx, mmforcMmfs.M(1))
 	}
+}
+
+// callRestFunction will lookup the provided hostname on the network, then execute a POST to the http /api/function endpoint hosted there
+// This method uses a non-optimized, synchronous, on-demand creation of the http client
+// Historically, this is a prototype for enabling knative match functions which temporarily requires http/1.1 communication
+func callRestFunction(hostName string, strPort string, jobName string, profID string, moID string, propID string, resultsID string, timestamp string) error {
+	// TODO: Better define this service contract in an official capacity
+	type Profile struct {
+		JobName   string
+		ProfId    string
+		MoId      string
+		PropId    string
+		ResultsId string
+		Timestamp string
+	}
+
+	profile := &Profile{
+		JobName:   jobName,
+		ProfId:    profID,
+		MoId:      moID,
+		PropId:    propID,
+		ResultsId: resultsID,
+		Timestamp: timestamp,
+	}
+	b, err := json.Marshal(profile)
+	if err != nil {
+		mmforcLog.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("Unable to marshal the profile into json for the MMF rest job call")
+		return err
+	}
+	body := strings.NewReader(string(b))
+
+	// TODO: This is designed to include service discovery from within this network (in this case kubernetes or internal dns)
+	// How this is constructed and discovered should be more configurable by the external scheduling mechanism
+	host, err := net.LookupHost(hostName)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Re-use a pool'd cache of host-specific http clients to save on creation cost every cycle
+	// TODO: Make the endpoint itself configurable to the specific request being produced by the external scheduling mechanism
+	// TODO: Configurable timeout and canceling (in-step with the evalutor cycling)
+	resp, err := http.Post("http://"+host[0]+":"+strPort+"/api/function", "application/json", body)
+	if err != nil {
+		// Don't panic, the process is fine, the match function is just erroring
+		mmforcLog.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("MMF rest job call failure!")
+		return err
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		// The function returned an erroring
+		mmforcLog.WithFields(log.Fields{
+			"status":     resp.StatusCode,
+			"host":       resp.Request.Host,
+			"requestURI": resp.Request.RequestURI,
+		}).Error("MMF rest job call failure!")
+	}
+
+	return nil
 }
 
 // evaluator generates a k8s job that runs the specified evaluator container image.
@@ -374,12 +477,6 @@ func submitJob(clientset *kubernetes.Clientset, jobType string, jobName string, 
 				},
 			},
 		},
-	}
-
-	// Get the namespace for the job from the current namespace, otherwise, use default
-	namespace := os.Getenv("METADATA_NAMESPACE")
-	if len(namespace) == 0 {
-		namespace = apiv1.NamespaceDefault
 	}
 
 	// Submit kubernetes job
