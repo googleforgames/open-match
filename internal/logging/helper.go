@@ -1,6 +1,7 @@
 package logging
 
 import (
+	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -11,6 +12,8 @@ import (
 //  - include source file and line number for every event (false [default], true)
 func ConfigureLogging(cfg *viper.Viper) {
 	switch cfg.GetString("logging.format") {
+	case "stackdriver":
+		logrus.SetFormatter(stackdriver.NewFormatter())
 	case "json":
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 	case "text":
