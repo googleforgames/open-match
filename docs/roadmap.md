@@ -4,7 +4,7 @@ Releases are scheduled for every 6 weeks.  **Every release is a stable, long-ter
 Our current thinking is to wait to take Open Match out of alpha/beta (and label it 1.0) until it can be used out-of-the-box, standalone, for developers that don’t have any existing platform services.  Which is to say, the majority of **established game developers likely won't have any reason to wait for the 1.0 release if Open Match already handles your needs**. If you already have live platform services that you plan to integrate Open Match with (player authentication, a group invite system, dedicated game servers, metrics collection, logging aggregation, etc), then a lot of the features planned between 0.4.0 and 1.0 likely aren't of much interest to you anyway.
 
 ## Upcoming releases
-* **0.4.0** &mdash; Agones Integration & MMF on [Knative](https://cloud.google.com/Knative/)
+* **0.4.0** &mdash; Agones Integration & MMF on [Knative](https://cloud.google.com/knative/)
     MMF instrumentation
     Match object expiration / lazy deletion
     API autoscaling by default

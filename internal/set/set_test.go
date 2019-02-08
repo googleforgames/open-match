@@ -49,6 +49,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestStringOperations(t *testing.T) {
+	t.Run("Difference: identical slices", testStringOperation(Difference, a1[:], a1[:], make([]string, 0)))
 	t.Run("Difference: valid slices", testStringOperation(Difference, a1[:], a2[:], d[:]))
 	t.Run("Difference: remove nil", testStringOperation(Difference, a1[:], nil, a1[:]))
 	t.Run("Difference: remove from nil", testStringOperation(Difference, nil, a2[:], nil))
@@ -66,7 +67,7 @@ func testStringOperation(thisFunc stringOperation, in1 []string, in2 []string, o
 		outputActual := thisFunc(in1, in2)
 
 		if len(outputActual) != len(outputExpected) {
-			t.Errorf("Length of output string slice incorrect, got %v, want %v", len(outputActual), outputExpected)
+			t.Errorf("Length of output string slice incorrect, got %v, want %v", len(outputActual), len(outputExpected))
 		}
 		for x := 0; x < len(outputActual); x++ {
 			found := false

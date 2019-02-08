@@ -74,13 +74,15 @@ func Difference(a []string, b []string) (out []string) {
 	}
 
 	// Iterate through output, removing items found in b
-	for i := 0; i < len(out); i++ {
+	for i := 0; i < len(out); {
 		if _, found := hash[out[i]]; found {
 			// Remove this element by moving the copying the last element of the
 			// array to this index and then slicing off the last element.
 			// https://stackoverflow.com/a/37335777/3113674
 			out[i] = out[len(out)-1]
 			out = out[:len(out)-1]
+		} else {
+			i++
 		}
 	}
 
