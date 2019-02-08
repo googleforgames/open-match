@@ -87,7 +87,9 @@
     "jsonkeys": {
         "mmfImage": "imagename",
         "rosters": "properties.rosters",
-        "pools": "properties.pools"
+        "pools": "properties.pools",
+        "mmfHostName": "hostname",
+        "mmfPort": "port"
     },
     "playerIndices": [
         "char.cleric",
