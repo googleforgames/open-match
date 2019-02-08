@@ -193,7 +193,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
 		return &backend.MatchObject{}, err
 	}
-	beLog.Info("Profile written to state storage")
+	beLog.Debug("Profile written to state storage")
 
 	// Queue the request ID to be sent to an MMF
 	_, err = redisHelpers.Update(ctx, s.pool, s.cfg.GetString("queues.profiles.name"), requestKey)

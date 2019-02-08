@@ -145,7 +145,7 @@ func main() {
 		} else {
 			mmforcLog.WithFields(log.Fields{
 				"profileQueueName": cfg.GetString("queues.profiles.name"),
-			}).Info("Unable to retreive match profiles from statestorage - have you entered any?")
+			}).Debug("Unable to retreive match profiles from statestorage - have you entered any?")
 		}
 
 		// Check to see if we should run the evaluator.

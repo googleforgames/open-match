@@ -28,6 +28,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/open-match/cmd/mmlogicapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 
@@ -62,10 +63,8 @@ func init() {
 		}).Error("Unable to load config file")
 	}
 
-	if cfg.GetBool("debug") == true {
-		log.SetLevel(log.DebugLevel) // debug only, verbose - turn off in production!
-		mlLog.Warn("Debug logging configured. Not recommended for production!")
-	}
+	// Configure open match logging defaults
+	logging.ConfigureLogging(cfg)
 
 	// Configure OpenCensus exporter to Prometheus
 	// metrics.ConfigureOpenCensusPrometheusExporter expects that every OpenCensus view you
