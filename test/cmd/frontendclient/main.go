@@ -194,7 +194,7 @@ func waitForResults(resultsChan chan frontend.Player, stream frontend.Frontend_G
 				break
 			}
 			log.Println("Error encountered")
-			log.Println("Error reading stream for GetAssignments(_) = _, %v", err)
+			log.Printf("Error reading stream for GetAssignments(_) = _, %v", err)
 			break
 		}
 		log.Println("Result recieved from Open Match!")
