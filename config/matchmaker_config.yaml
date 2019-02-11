@@ -17,6 +17,8 @@ api:
   mmlogic: 
     hostname: om-mmlogicapi
     port: 50503
+  functions:
+    port: 50502
   
 evalutor: 
   interval: 10
@@ -49,10 +51,10 @@ ignoreLists:
 
 defaultImages: 
   evaluator: 
-    name: gcr.io/open-match-public-images/openmatch-evaluator
+    name: gcr.io/matchmaker-dev-201405/openmatch-evaluator
     tag: dev
   mmf: 
-    name: gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple
+    name: gcr.io/matchmaker-dev-201405/openmatch-mmf-py3-mmlogic-simple
     tag: dev
 
 redis: 
@@ -72,6 +74,7 @@ redis:
 
 jsonkeys:
   mmfImage: imagename
+  mmfService: hostname
   rosters: properties.rosters
   pools: properties.pools
 
