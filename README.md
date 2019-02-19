@@ -47,9 +47,9 @@ Open Match is designed to support massively concurrent matchmaking, and to be sc
 * **Ignore List** &mdash; Removing players from matchmaking consideration is accomplished using _ignore lists_.  They contain lists of player IDs that your MMF should not include when making matches.
 
 ## Requirements
-* [Kubernetes](https://kubernetes.io/) cluster &mdash; tested with version 1.9.
+* [Kubernetes](https://kubernetes.io/) cluster &mdash; tested with version 1.11.7.
 * [Redis 4+](https://redis.io/) &mdash; tested with 4.0.11.
-* Open Match is compiled against the latest release of [Golang](https://golang.org/) &mdash; tested with 1.10.9.
+* Open Match is compiled against the latest release of [Golang](https://golang.org/) &mdash; tested with 1.11.5.
 
 ## Components
 
