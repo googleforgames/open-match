@@ -22,6 +22,7 @@ package main
 import (
 	"context"
 	"errors"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -30,10 +31,12 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
+	function "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/tidwall/gjson"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
+	"google.golang.org/grpc"
 
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
@@ -238,16 +241,113 @@ func main() {
 // mmfunc generates a k8s job that runs the specified mmf container image.
 // resultsID is the redis key that the Backend API is monitoring for results; we can 'short circuit' and write errors directly to this key if we can't run the MMF for some reason.
 func mmfunc(ctx context.Context, resultsID string, cfg *viper.Viper, clientset *kubernetes.Clientset, pool *redis.Pool) {
-
 	// Generate the various keys/names, some of which must be populated to the k8s job.
-	imageName := cfg.GetString("defaultImages.mmf.name") + ":" + cfg.GetString("defaultImages.mmf.tag")
-	jobType := "mmf"
 	ids := strings.Split(resultsID, ".") // comes in as dot-concatinated moID and profID.
 	moID := ids[0]
 	profID := ids[1]
 	timestamp := strconv.Itoa(int(time.Now().Unix()))
-	jobName := timestamp + "." + moID + "." + profID + "." + jobType
 	propID := "proposal." + timestamp + "." + moID + "." + profID
+
+	// Extra fields for structured logging
+	lf := log.Fields{}
+	if log.GetLevel() == log.DebugLevel { // Log a lot more info.
+		lf = log.Fields{
+			"backendMatchObject":  moID,
+			"profile":             profID,
+			"jobTimestamp":        timestamp,
+			"profileImageJSONKey": cfg.GetString("jsonkeys.mmfImage"),
+		}
+	}
+
+	mmfuncLog := mmforcLog.WithFields(lf)
+
+	// Read the full profile from redis and access any keys that are important to deciding how MMFs are run.
+	// TODO: convert this to using redispb and directly access the protobuf message instead of retrieving as a map?
+	profile, err := redisHelpers.RetrieveAll(ctx, pool, profID)
+	if err != nil {
+		// Log failure to read this profile and return - won't run an MMF for an unreadable profile.
+		mmfuncLog.WithFields(log.Fields{"error": err.Error()}).Error("Failure retreiving profile from statestorage")
+		return
+	}
+
+	// Got profile from state storage, make sure it is valid
+	if gjson.Valid(profile["properties"]) {
+		profileImage := gjson.Get(profile["properties"], cfg.GetString("jsonkeys.mmfImage"))
+		mmfService := gjson.Get(profile["properties"], cfg.GetString("jsonkeys.mmfService"))
+		if profileImage.Exists() {
+			// Run as a k8 job
+			imageName := profileImage.String()
+			k8mmfjob(clientset, imageName, profID, propID, moID, resultsID, timestamp)
+		} else if mmfService.Exists() {
+			// Run as a grpc function request
+			functionHost := mmfService.String()
+			functionPort := cfg.GetInt64("api.functions.port")
+			grpcmmf(functionHost, functionPort, profID, propID, moID, resultsID, timestamp)
+		} else {
+			// Run as the default k8 job
+			mmfuncLog.Warn("Failed to read image name from profile at configured json key, using default image instead")
+			imageName := cfg.GetString("defaultImages.mmf.name") + ":" + cfg.GetString("defaultImages.mmf.tag")
+			k8mmfjob(clientset, imageName, profID, propID, moID, resultsID, timestamp)
+		}
+	} else {
+		mmfuncLog.Warn("Profile properties are not valid json. ")
+		return
+	}
+
+	if err != nil {
+		// Record failure & log
+		stats.Record(ctx, mmforcMmfFailures.M(1))
+		mmfuncLog.WithFields(log.Fields{"error": err.Error()}).Error("MMF submission failure!")
+	} else {
+		// Record Success
+		stats.Record(ctx, mmforcMmfs.M(1))
+	}
+}
+
+func grpcmmf(host string, port int64, profID string, propID string, moID string, resultsID string, timestamp string) error {
+	mmforcLog.WithFields(log.Fields{
+		"backendMatchObject": moID,
+		"profile":            profID,
+		"host":               host,
+		"port":               port,
+	})
+
+	// Connect gRPC client
+	// TODO: Client pooling
+	ip, err := net.LookupHost(host)
+	if err != nil {
+		panic(err)
+	}
+
+	strPort := strconv.FormatInt(port, 10)
+
+	conn, err := grpc.Dial(ip[0]+":"+strPort, grpc.WithInsecure())
+	if err != nil {
+		mmforcLog.Fatalf("Failed to connect: %s", err.Error())
+	}
+	client := function.NewFunctionClient(conn)
+	mmforcLog.Debug("API client connected to", ip[0]+":"+strPort)
+
+	profile := &function.Profile{
+		ProfileId:  profID,
+		ProposalId: propID,
+		RequestId:  moID,
+		ErrorId:    resultsID,
+		Timestamp:  timestamp,
+	}
+
+	_, err = client.Run(context.Background(), profile)
+	if err != nil {
+		// Don't panic, mmforc process is fine, the match function just returned an error
+		mmforcLog.Error("MMF grpc call failed", err)
+	}
+
+	return errors.New("MMF grpc call failed")
+}
+
+func k8mmfjob(clientset *kubernetes.Clientset, imageName string, profID string, propID string, moID string, resultsID string, timestamp string) {
+	jobType := "mmf"
+	jobName := timestamp + "." + moID + "." + profID + "." + jobType
 
 	// Extra fields for structured logging
 	lf := log.Fields{"jobName": jobName}
@@ -264,27 +364,6 @@ func mmfunc(ctx context.Context, resultsID string, cfg *viper.Viper, clientset *
 	}
 	mmfuncLog := mmforcLog.WithFields(lf)
 
-	// Read the full profile from redis and access any keys that are important to deciding how MMFs are run.
-	// TODO: convert this to using redispb and directly access the protobuf message instead of retrieving as a map?
-	profile, err := redisHelpers.RetrieveAll(ctx, pool, profID)
-	if err != nil {
-		// Log failure to read this profile and return - won't run an MMF for an unreadable profile.
-		mmfuncLog.WithFields(log.Fields{"error": err.Error()}).Error("Failure retreiving profile from statestorage")
-		return
-	}
-
-	// Got profile from state storage, make sure it is valid
-	if gjson.Valid(profile["properties"]) {
-		profileImage := gjson.Get(profile["properties"], cfg.GetString("jsonkeys.mmfImage"))
-		if profileImage.Exists() {
-			imageName = profileImage.String()
-			mmfuncLog = mmfuncLog.WithFields(log.Fields{"containerImage": imageName})
-		} else {
-			mmfuncLog.Warn("Failed to read image name from profile at configured json key, using default image instead")
-		}
-	}
-	mmfuncLog.Info("Attempting to create mmf k8s job")
-
 	// Kick off k8s job
 	envvars := []apiv1.EnvVar{
 		{Name: "MMF_PROFILE_ID", Value: profID},
@@ -298,15 +377,9 @@ func mmfunc(ctx context.Context, resultsID string, cfg *viper.Viper, clientset *
 		{Name: "JSONKEYS_MMFIMAGE", Value: cfg.GetString("jsonkeys.mmfImage")},
 		{Name: "JSONKEYS_POOLS", Value: cfg.GetString("jsonkeys.pools")},
 	}
+
+	mmfuncLog.Info("Attempting to create mmf k8s job")
 	err = submitJob(clientset, jobType, jobName, imageName, envvars)
-	if err != nil {
-		// Record failure & log
-		stats.Record(ctx, mmforcMmfFailures.M(1))
-		mmfuncLog.WithFields(log.Fields{"error": err.Error()}).Error("MMF job submission failure!")
-	} else {
-		// Record Success
-		stats.Record(ctx, mmforcMmfs.M(1))
-	}
 }
 
 // evaluator generates a k8s job that runs the specified evaluator container image.
