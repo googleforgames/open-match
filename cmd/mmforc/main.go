@@ -248,29 +248,24 @@ func main() {
 // mmfunc generates a k8s job that runs the specified mmf container image.
 // resultsID is the redis key that the Backend API is monitoring for results; we can 'short circuit' and write errors directly to this key if we can't run the MMF for some reason.
 func mmfunc(ctx context.Context, resultsID string, cfg *viper.Viper, clientset *kubernetes.Clientset, pool *redis.Pool) {
-
 	// Generate the various keys/names, some of which must be populated to the k8s job.
-	imageName := cfg.GetString("defaultImages.mmf.name") + ":" + cfg.GetString("defaultImages.mmf.tag")
-	jobType := "mmf"
 	ids := strings.Split(resultsID, ".") // comes in as dot-concatinated moID and profID.
 	moID := ids[0]
 	profID := ids[1]
 	timestamp := strconv.Itoa(int(time.Now().Unix()))
-	jobName := timestamp + "." + moID + "." + profID + "." + jobType
 	propID := "proposal." + timestamp + "." + moID + "." + profID
 
 	// Extra fields for structured logging
-	lf := log.Fields{"jobName": jobName}
-	if cfg.GetBool("debug") { // Log a lot more info.
+	lf := log.Fields{}
+	if log.GetLevel() == log.DebugLevel { // Log a lot more info.
 		lf = log.Fields{
-			"jobType":             jobType,
 			"backendMatchObject":  moID,
 			"profile":             profID,
 			"jobTimestamp":        timestamp,
-			"jobName":             jobName,
 			"profileImageJSONKey": cfg.GetString("jsonkeys.mmfImage"),
 		}
 	}
+
 	mmfuncLog := mmforcLog.WithFields(lf)
 
 	// Read the full profile from redis and access any keys that are important to deciding how MMFs are run.
@@ -318,7 +313,10 @@ func mmfunc(ctx context.Context, resultsID string, cfg *viper.Viper, clientset *
 		if profileImage.Exists() && len(profileImage.String()) > 0 {
 			imageName = profileImage.String()
 		} else {
+			// Run as the default k8 job
 			mmfuncLog.Warn("Failed to read image name from profile at configured json key, using default image instead")
+			imageName := cfg.GetString("defaultImages.mmf.name") + ":" + cfg.GetString("defaultImages.mmf.tag")
+			k8mmfjob(clientset, imageName, profID, propID, moID, resultsID, timestamp)
 		}
 
 		mmfuncLog = mmfuncLog.WithFields(log.Fields{"containerImage": imageName})
