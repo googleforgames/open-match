@@ -1,3 +1,4 @@
+# kubectl create configmap om-configmap --from-file=config/matchmaker_config.yaml
 debug: true
 
 logging:

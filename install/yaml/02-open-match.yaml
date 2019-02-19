@@ -33,12 +33,12 @@ spec:
     spec:
       containers:
       - name: om-backend
-        image: gcr.io/open-match-222408/openmatch-backendapi:dev
+        image: gcr.io/matchmaker-dev-201405/openmatch-backendapi:0.4
         imagePullPolicy: Always
         volumeMounts:
         - name: om-configmap
           subPath: matchmaker_config.yaml
-          mountPath: /go/src/github.com/GoogleCloudPlatform/open-match/config/matchmaker_config.yaml
+          mountPath: matchmaker_config.yaml
         ports:
         - name: grpc
           containerPort: 50505
@@ -87,12 +87,12 @@ spec:
     spec:
       containers:
       - name: om-frontendapi
-        image: gcr.io/open-match-222408/openmatch-frontendapi:dev
+        image: gcr.io/matchmaker-dev-201405/openmatch-frontendapi:0.4
         imagePullPolicy: Always
         volumeMounts:
         - name: om-configmap
           subPath: matchmaker_config.yaml
-          mountPath: /go/src/github.com/GoogleCloudPlatform/open-match/config/matchmaker_config.yaml
+          mountPath: matchmaker_config.yaml
         ports:
         - name: grpc
           containerPort: 50504
@@ -141,12 +141,12 @@ spec:
     spec:
       containers:
       - name: om-mmforc
-        image: gcr.io/open-match-222408/openmatch-mmforc:dev
+        image: gcr.io/matchmaker-dev-201405/openmatch-mmforc:0.4
         imagePullPolicy: Always
         volumeMounts:
         - name: om-configmap
           subPath: matchmaker_config.yaml
-          mountPath: /go/src/github.com/GoogleCloudPlatform/open-match/config/matchmaker_config.yaml
+          mountPath: matchmaker_config.yaml
         ports:
         - name: metrics
           containerPort: 9555
@@ -185,12 +185,12 @@ spec:
     spec:
       containers:
       - name: om-mmlogic
-        image: gcr.io/open-match-222408/openmatch-mmlogicapi:dev
+        image: gcr.io/matchmaker-dev-201405/openmatch-mmlogicapi:0.4
         imagePullPolicy: Always
         volumeMounts:
         - name: om-configmap
           subPath: matchmaker_config.yaml
-          mountPath: /go/src/github.com/GoogleCloudPlatform/open-match/config/matchmaker_config.yaml
+          mountPath: matchmaker_config.yaml
         ports:
         - name: grpc
           containerPort: 50503
