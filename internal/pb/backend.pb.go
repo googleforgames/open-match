@@ -7,6 +7,7 @@ Package pb is a generated protocol buffer package.
 It is generated from these files:
 	api/protobuf-spec/backend.proto
 	api/protobuf-spec/frontend.proto
+	api/protobuf-spec/function.proto
 	api/protobuf-spec/mmlogic.proto
 	api/protobuf-spec/messages.proto
 
@@ -20,6 +21,8 @@ It has these top-level messages:
 	Result
 	IlInput
 	Assignments
+	Request
+	Arguments
 */
 package pb
 
