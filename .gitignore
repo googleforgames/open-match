@@ -70,3 +70,10 @@ msbuild.wrn
 
 # Goland
 .idea/
+
+# Compiled Binaries
+cmd/backendapi/backendapi
+cmd/frontendapi/frontendapi
+cmd/mmforc/mmforc
+cmd/mmlogicapi/mmlogicapi
+examples/backendclient/backendclient
