@@ -80,6 +80,7 @@ func Read() (*viper.Viper, error) {
 	cfg.SetConfigType("yaml")
 	cfg.SetConfigName("matchmaker_config")
 	cfg.AddConfigPath(".")
+	cfg.AddConfigPath("config")
 
 	// Read in config file using Viper
 	err := cfg.ReadInConfig()
