@@ -25,7 +25,7 @@
 populations
 
 # local config files
-*.json
+#*.json
 
 # Discarded code snippets
 build.sh
