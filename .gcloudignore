@@ -12,10 +12,4 @@
 # below:
 .git
 .gitignore
-
-# Don't include binaries in the build.
-cmd/backendapi/backendapi
-cmd/frontendapi/frontendapi
-cmd/mmforc/mmforc
-cmd/mmlogicapi/mmlogicapi
-examples/backendclient/backendclient
+#!include:.gitignore
