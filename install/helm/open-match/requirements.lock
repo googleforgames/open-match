@@ -1,0 +1,15 @@
+dependencies:
+- name: prometheus
+  repository: https://kubernetes-charts.storage.googleapis.com/
+  version: 8.7.1
+- name: redis
+  repository: https://kubernetes-charts.storage.googleapis.com/
+  version: 6.1.0
+- name: prometheus-operator
+  repository: https://kubernetes-charts.storage.googleapis.com/
+  version: 4.1.1
+- name: grafana
+  repository: https://kubernetes-charts.storage.googleapis.com/
+  version: 2.2.0
+digest: sha256:c05b47c666cfaf02c20f9e98761e4a822e5e3da3a8260ab7e9fa61176bb65538
+generated: 2019-02-28T07:29:16.776303908-08:00
