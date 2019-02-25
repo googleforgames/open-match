@@ -24,10 +24,6 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/app/mmforc"
 )
 
-func init() {
-	mmforc.InitializeApplication()
-}
-
 func main() {
 	mmforc.RunApplication()
 }

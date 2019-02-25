@@ -69,8 +69,7 @@ var (
 	err = errors.New("")
 )
 
-// InitializeApplication is a hook for the init() method in the main executable.
-func InitializeApplication() {
+func initializeApplication() {
 	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
 	log.AddHook(metrics.NewHook(MmforcLogLines, KeySeverity))
 
@@ -104,6 +103,8 @@ func InitializeApplication() {
 
 // RunApplication is a hook for the main() method in the main executable.
 func RunApplication() {
+	initializeApplication()
+
 	pool := redisHelpers.ConnectionPool(cfg)
 	redisConn := pool.Get()
 	defer redisConn.Close()

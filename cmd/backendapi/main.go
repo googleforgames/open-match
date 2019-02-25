@@ -26,10 +26,6 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/app/backendapi"
 )
 
-func init() {
-	backendapi.InitializeApplication()
-}
-
 func main() {
 	backendapi.RunApplication()
 }
