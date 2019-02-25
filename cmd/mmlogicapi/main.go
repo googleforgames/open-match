@@ -25,10 +25,6 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi"
 )
 
-func init() {
-	mmlogicapi.InitializeApplication()
-}
-
 func main() {
 	mmlogicapi.RunApplication()
 }
