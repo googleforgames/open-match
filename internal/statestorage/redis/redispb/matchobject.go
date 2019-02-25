@@ -131,7 +131,9 @@ func Watcher(ctx context.Context, pool *redis.Pool, pb om_messages.MatchObject) 
 				results = om_messages.MatchObject{Id: pb.Id}
 				err = UnmarshalFromRedis(ctx, pool, &results)
 				if err != nil {
-					moLog.Debugf("No new results %s", err)
+					moLog.WithFields(log.Fields{
+						"error": err.Error(),
+					}).Debug("no new results")
 					time.Sleep(2 * time.Second) // TODO: exp bo + jitter
 				}
 			}
