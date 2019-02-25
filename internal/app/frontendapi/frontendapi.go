@@ -100,8 +100,7 @@ func RunApplication() {
 	}
 
 	// Exit when we see a signal
-	terminate := make(chan os.Signal, 1)
-	signal.Notify(terminate, os.Interrupt)
-	<-terminate
+	wait, _ := signal.New()
+	wait()
 	feLog.Info("Shutting down gRPC server")
 }
