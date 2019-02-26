@@ -24,13 +24,13 @@ package backendapi
 
 import (
 	"errors"
-	"os"
-	"os/signal"
 
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/app/backendapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
+	"github.com/GoogleCloudPlatform/open-match/internal/signal"
+
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 
 	log "github.com/sirupsen/logrus"
@@ -98,8 +98,7 @@ func RunApplication() {
 	}
 
 	// Exit when we see a signal
-	terminate := make(chan os.Signal, 1)
-	signal.Notify(terminate, os.Interrupt)
-	<-terminate
+	wait, _ := signal.New()
+	wait()
 	beLog.Info("Shutting down gRPC server")
 }
