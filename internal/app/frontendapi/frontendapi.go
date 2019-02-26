@@ -83,7 +83,7 @@ func initializeApplication() {
 // RunApplication is a hook for the main() method in the main executable.
 func RunApplication() {
 	initializeApplication()
-	
+
 	// Connect to redis
 	pool, err := redishelpers.ConnectionPool(cfg)
 	if err != nil {
