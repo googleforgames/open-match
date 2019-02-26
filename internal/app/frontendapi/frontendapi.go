@@ -23,13 +23,12 @@ package frontendapi
 
 import (
 	"errors"
-	"os"
-	"os/signal"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
+	"github.com/GoogleCloudPlatform/open-match/internal/signal"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 
 	log "github.com/sirupsen/logrus"
