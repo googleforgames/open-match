@@ -1,7 +1,6 @@
 package signal
 
 import (
-	"sync"
 	"testing"
 	"time"
 )
@@ -72,28 +71,5 @@ func verifyWait(t *testing.T, wait func(), terminate func()) {
 		// Success
 	case <-time.After(defaultTimeout):
 		t.Error("WaitGroup did not complete within 1 second.")
-	}
-}
-
-func TestSignalWithWaitGroup(t *testing.T) {
-	var wg sync.WaitGroup
-	waiter := make(chan struct{})
-	wait, terminate := New()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		wait()
-	}()
-	terminate()
-
-	go func() {
-		wg.Wait()
-		waiter <- struct{}{}
-	}()
-	select {
-	case <-waiter:
-		// Success
-	case <-time.After(defaultTimeout):
-		t.Errorf("WaitGroup %v did not complete within 1 second.", wg)
 	}
 }
