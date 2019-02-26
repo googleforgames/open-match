@@ -85,7 +85,10 @@ func RunApplication() {
 	initializeApplication()
 	
 	// Connect to redis
-	pool := redishelpers.ConnectionPool(cfg)
+	pool, err := redishelpers.ConnectionPool(cfg)
+	if err != nil {
+		feLog.Fatal(err)
+	}
 	defer pool.Close()
 
 	// Instantiate the gRPC server with the connections we've made
@@ -93,7 +96,7 @@ func RunApplication() {
 	srv := apisrv.New(cfg, pool)
 
 	// Run the gRPC server
-	err := srv.Open()
+	err = srv.Open()
 	if err != nil {
 		feLog.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to start gRPC server")
 	}

@@ -33,7 +33,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/tidwall/gjson"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
@@ -105,7 +105,11 @@ func initializeApplication() {
 func RunApplication() {
 	initializeApplication()
 
-	pool := redisHelpers.ConnectionPool(cfg)
+	pool, err := redishelpers.ConnectionPool(cfg)
+	if err != nil {
+		mmforcLog.Fatal(err)
+	}
+
 	redisConn := pool.Get()
 	defer redisConn.Close()
 
@@ -153,7 +157,7 @@ func RunApplication() {
 				// Kick off the job asynchrnously
 				go mmfunc(ctx, profile, cfg, clientset, pool)
 				// Count the number of jobs running
-				redisHelpers.Increment(context.Background(), pool, "concurrentMMFs")
+				redishelpers.Increment(context.Background(), pool, "concurrentMMFs")
 			}
 		} else {
 			mmforcLog.WithFields(log.Fields{
@@ -163,7 +167,7 @@ func RunApplication() {
 
 		// Check to see if we should run the evaluator.
 		// Get number of running MMFs
-		r, err := redisHelpers.Retrieve(context.Background(), pool, "concurrentMMFs")
+		r, err := redishelpers.Retrieve(context.Background(), pool, "concurrentMMFs")
 
 		if err != nil {
 			if err.Error() == "redigo: nil returned" {
@@ -214,7 +218,7 @@ func RunApplication() {
 			// evaluator if there are none.
 			checkProposals = false
 			mmforcLog.Info("Checking statestorage for match object proposals")
-			results, err := redisHelpers.Count(context.Background(), pool, cfg.GetString("queues.proposals.name"))
+			results, err := redishelpers.Count(context.Background(), pool, cfg.GetString("queues.proposals.name"))
 			switch {
 			case err != nil:
 				mmforcLog.WithFields(log.Fields{
@@ -228,7 +232,7 @@ func RunApplication() {
 				}).Info("Proposals available, evaluating!")
 				go evaluator(ctx, cfg, clientset)
 			}
-			err = redisHelpers.Delete(context.Background(), pool, "concurrentMMFs")
+			err = redishelpers.Delete(context.Background(), pool, "concurrentMMFs")
 			if err != nil {
 				mmforcLog.WithFields(log.Fields{
 					"error": err.Error(),
@@ -278,7 +282,7 @@ func mmfunc(ctx context.Context, resultsID string, cfg *viper.Viper, clientset *
 
 	// Read the full profile from redis and access any keys that are important to deciding how MMFs are run.
 	// TODO: convert this to using redispb and directly access the protobuf message instead of retrieving as a map?
-	profile, err := redisHelpers.RetrieveAll(ctx, pool, profID)
+	profile, err := redishelpers.RetrieveAll(ctx, pool, profID)
 	if err != nil {
 		// Log failure to read this profile and return - won't run an MMF for an unreadable profile.
 		mmfuncLog.WithFields(log.Fields{"error": err.Error()}).Error("Failure retreiving profile from statestorage")

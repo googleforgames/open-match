@@ -28,7 +28,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/signal"
-	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -82,9 +82,12 @@ func initializeApplication() {
 // RunApplication is a hook for the main() method in the main executable.
 func RunApplication() {
 	initializeApplication()
-	
+
 	// Connect to redis
-	pool := redisHelpers.ConnectionPool(cfg)
+	pool, err := redishelpers.ConnectionPool(cfg)
+	if err != nil {
+		mlLog.Fatal(err)
+	}
 	defer pool.Close()
 
 	// Instantiate the gRPC server with the connections we've made
@@ -92,7 +95,7 @@ func RunApplication() {
 	srv := apisrv.New(cfg, pool)
 
 	// Run the gRPC server
-	err := srv.Open()
+	err = srv.Open()
 	if err != nil {
 		mlLog.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to start gRPC server")
 	}
