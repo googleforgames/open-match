@@ -1,4 +1,4 @@
-// Package redisHelpers is a package for wrapping redis functionality.
+// Package redishelpers is a package for wrapping redis functionality.
 /*
 Copyright 2018 Google LLC
 
@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package redisHelpers
+package redishelpers
 
 import (
 	"context"
@@ -41,7 +41,7 @@ var (
 
 // ConnectionPool reads the configuration and attempts to instantiate a redis connection
 // pool based on the configured hostname and port.
-func ConnectionPool(cfg *viper.Viper) *redis.Pool {
+func ConnectionPool(cfg *viper.Viper) (*redis.Pool, error) {
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
 
@@ -54,7 +54,7 @@ func ConnectionPool(cfg *viper.Viper) *redis.Pool {
 	redisURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
 
 	rhLog.WithFields(log.Fields{"redisURL": redisURL}).Debug("Attempting to connect to Redis")
-	pool := redis.Pool{
+	pool := &redis.Pool{
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
 		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout") * time.Second,
@@ -72,11 +72,11 @@ func ConnectionPool(cfg *viper.Viper) *redis.Pool {
 		rhLog.WithFields(log.Fields{
 			"error": err.Error(),
 			"query": "SELECT 0"}).Error("state storage connection error")
-		return nil
+		return nil, fmt.Errorf("cannot connect to Redis at %s, %s", redisURL, err)
 	}
 
 	rhLog.Info("Connected to Redis")
-	return &pool
+	return pool, nil
 }
 
 // Watcher makes a channel and returns it immediately.  It also launches an

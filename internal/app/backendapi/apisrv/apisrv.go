@@ -30,7 +30,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	backend "github.com/GoogleCloudPlatform/open-match/internal/pb"
-	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	"github.com/cenkalti/backoff"
@@ -198,7 +198,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 	beLog.Info("Profile written to state storage")
 
 	// Queue the request ID to be sent to an MMF
-	_, err = redisHelpers.Update(ctx, s.pool, s.cfg.GetString("queues.profiles.name"), requestKey)
+	_, err = redishelpers.Update(ctx, s.pool, s.cfg.GetString("queues.profiles.name"), requestKey)
 	if err != nil {
 		beLog.WithFields(log.Fields{
 			"error":     err.Error(),
@@ -321,7 +321,7 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, mo *backend.MatchObject) (
 		"matchObjectID": mo.Id,
 	}).Info("gRPC call executing")
 
-	err := redisHelpers.Delete(ctx, s.pool, mo.Id)
+	err := redishelpers.Delete(ctx, s.pool, mo.Id)
 	if err != nil {
 		beLog.WithFields(log.Fields{
 			"error":     err.Error(),
@@ -374,7 +374,7 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 	// TODO: These two calls are done in two different transactions; could be
 	// combined as an optimization but probably not particularly necessary
 	// Send the players their assignments.
-	err := redisHelpers.UpdateMultiFields(ctx, s.pool, players, "assignment")
+	err := redishelpers.UpdateMultiFields(ctx, s.pool, players, "assignment")
 
 	// Move these players from the proposed list to the deindexed list.
 	ignorelist.Move(ctx, s.pool, playerIDs, "proposed", "deindexed")
@@ -415,7 +415,7 @@ func (s *backendAPI) DeleteAssignments(ctx context.Context, r *backend.Roster) (
 		"numAssignments": len(assignments),
 	}).Info("gRPC call executing")
 
-	err := redisHelpers.DeleteMultiFields(ctx, s.pool, assignments, "assignment")
+	err := redishelpers.DeleteMultiFields(ctx, s.pool, assignments, "assignment")
 
 	// Issue encountered
 	if err != nil {

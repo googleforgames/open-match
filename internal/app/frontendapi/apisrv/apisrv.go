@@ -27,7 +27,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	frontend "github.com/GoogleCloudPlatform/open-match/internal/pb"
-	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/playerindices"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 
@@ -172,7 +172,7 @@ func (s *frontendAPI) DeletePlayer(ctx context.Context, group *frontend.Player) 
 // As a final action, it also kicks off a lazy delete of the player's metadata
 func (s *frontendAPI) deletePlayer(id string) {
 
-	err := redisHelpers.Delete(context.Background(), s.pool, id)
+	err := redishelpers.Delete(context.Background(), s.pool, id)
 	if err != nil {
 		feLog.WithFields(log.Fields{
 			"error":     err.Error(),
