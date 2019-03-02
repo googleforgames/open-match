@@ -73,9 +73,10 @@ type backendAPI BackendAPI
 // New returns an instantiated srvice
 func New(cfg *viper.Viper, pool *redis.Pool) *BackendAPI {
 	s := BackendAPI{
-		pool: pool,
-		grpc: grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{})),
-		cfg:  cfg,
+		pool:      pool,
+		grpc:      grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{})),
+		cfg:       cfg,
+		fnClients: make(map[string]backend.FunctionClient),
 	}
 
 	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
@@ -242,7 +243,7 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 			if err != nil {
 				beLog.Fatal("Failed to lookup host ", beRequest.Mmfspec.Host, " err ", err)
 			}
-			connstring := ip[0] + ":" + portstr
+			connstring := ip[0] + portstr
 			conn, err := grpc.Dial(connstring, grpc.WithInsecure())
 			if err != nil {
 				beLog.Fatal("Failed to connect ", err)
