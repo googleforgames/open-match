@@ -1,0 +1,41 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-functionapi
+  labels:
+    app: openmatch
+    component: function
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openmatch
+      component: function
+  template:
+    metadata:
+      labels:
+        app: openmatch
+        component: function
+    spec:
+      containers:
+      - name: om-function
+        image: gcr.io/matchmaker-dev-201405/openmatch-mmf-golang-serving-mmlogic-simple:latest
+        imagePullPolicy: Always
+        command: ["sleep", "30000"]
+        volumeMounts:
+        - name: om-configmap
+          subPath: matchmaker_config.yaml
+          mountPath: matchmaker_config.yaml
+        ports:
+        - name: grpc
+          containerPort: 50502
+        - name: metrics
+          containerPort: 9555
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+      volumes:
+      - name: om-configmap
+        configMap:
+          name: om-configmap

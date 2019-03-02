@@ -20,6 +20,29 @@ message MatchObject{
   repeated Roster rosters = 4;          // Rosters of players.  
   repeated PlayerPool pools = 5;        // 'Hard' filters, and the players who match them.  
   string status = 6;                    // Resulting status of the match function
+  string name = 7;                      // Arbitrary developer-chosen, human-readable string.  Optional.
+
+}
+
+message MmfSpec {
+    string name = 1;  // Arbitrary developer-chosen, human-readable string.  Optional.
+    string host = 2;  // Host or DNS name for service providing this MMF.  Must be resolve-able by the backend API.
+    int32 port = 3;   // Port number for service providing this MMF.
+    enum Type {
+        // Generic serving types.
+        GRPC = 0;
+        REST = 1;
+        // Knative types will be KNATIVEREST, KNATIVEGRPC, etc.
+
+        // Deprecated types
+        K8SJOB = 7;
+    }
+    Type type = 4;    // Type of MMF
+}
+
+message CreateMatchRequest {
+  MatchObject matchobject = 1;
+  MmfSpec mmfspec = 2;
 }
 
 // Data structure to hold a list of players in a match.  
@@ -98,13 +121,14 @@ message Assignments{
 
 // The message for passing in the per-request identifiers
 // to a matchmaking function; used so it knows which records to
-// write/update in state storage.
+// write/update in state storage.  Internal to Open Match; this is populated by
+// the Backend API and sent to your gRPC-served MMF.
 message Request {
-    string profile_id = 1;
-    string proposal_id = 2;
-    string request_id = 3;
-    string error_id = 4;
-    string timestamp = 5;
+    string profile_id = 1;  // Developer-chosen profile name, a copy of the MatchObject name.
+    string request_id = 2;  // Per-request generated unique ID, by convention XID.
+    string proposal_id = 3; // Intermediate result proposal ID. by convention, the string 'proposal.' prepended to the result_id. 
+    string result_id = 4;   // Final result ID. By convention, request_id.profile_id
+    int64 timestamp = 5;    // Reserved for future use.
 }
 
 // The message for passing all the necessary arguments to a 

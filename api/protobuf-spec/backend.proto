@@ -20,7 +20,7 @@ service Backend {
   //  - error. Empty if no error was encountered
   //  - rosters, if you choose to fill them in your MMF. (Recommended)
   //  - pools, if you used the MMLogicAPI in your MMF. (Recommended, and provides stats)
-  rpc CreateMatch(messages.MatchObject) returns (messages.MatchObject) {} 
+  rpc CreateMatch(messages.CreateMatchRequest) returns (messages.MatchObject) {} 
   // Continually run MMF and stream MatchObjects that fit this profile until
   // the backend client closes the connection.  Same inputs/outputs as CreateMatch.
   rpc ListMatches(messages.MatchObject) returns (stream messages.MatchObject) {}

@@ -1,0 +1,12 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-function
+spec:
+  selector:
+    app: openmatch
+    component: function 
+  ports:
+  - protocol: TCP
+    port: 50502
+    targetPort: grpc
