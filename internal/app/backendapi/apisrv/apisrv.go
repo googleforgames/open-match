@@ -134,17 +134,6 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 	}
 	mmfArgs := backend.Arguments{Matchobject: beRequest.Matchobject, Request: req}
 
-	/*
-		// Debugging logs
-		beLog.Info("Pools nil? ", (beRequest.Matchobject.Pools == nil))
-		beLog.Info("Pools empty? ", (len(beRequest.Matchobject.Pools) == 0))
-		beLog.Info("Rosters nil? ", (beRequest.Matchobject.Rosters == nil))
-		beLog.Info("Rosters empty? ", (len(beRequest.Matchobject.Rosters) == 0))
-		beLog.Info("config set for json.pools?", s.cfg.IsSet("jsonkeys.pools"))
-		beLog.Info("contents key?", s.cfg.GetString("jsonkeys.pools"))
-		beLog.Info("contents exist?", gjson.Get(beRequest.Matchobject.Properties, s.cfg.GetString("jsonkeys.pools")).Exists())
-	*/
-
 	// Case where no protobuf pools was passed; check if there's a JSON version in the properties.
 	// This is for backwards compatibility, it is recommended you populate the protobuf's
 	// 'pools' field directly and pass it to CreateMatch/ListMatches
@@ -232,33 +221,58 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 	case backend.MmfSpec_GRPC:
 		// Call the MMF directly as a gRPC endpoint
 
+		mgLog := beLog.WithFields(log.Fields{
+			"host": beRequest.Mmfspec.Host,
+			"port": beRequest.Mmfspec.Port,
+			"type": "grpc",
+		})
 		// See if we already have a connection to this MMF
 		portstr := ":" + strconv.FormatInt(int64(beRequest.Mmfspec.Port), 10)
 		clientKey := beRequest.Mmfspec.Host + portstr
 		var client backend.FunctionClient
 		var ok bool
+
+		// TODO: Validate what happens if the client was opened ages ago.
 		if client, ok = s.fnClients[clientKey]; !ok {
 			// No connection yet: init client
 			ip, err := net.LookupHost(beRequest.Mmfspec.Host)
 			if err != nil {
-				beLog.Fatal("Failed to lookup host ", beRequest.Mmfspec.Host, " err ", err)
+				mgLog.WithFields(log.Fields{
+					"error": err.Error(),
+				}).Error("Failed to lookup MMF service")
+				stats.Record(fnCtx, BeGrpcErrors.M(1))
+				return &backend.MatchObject{}, err
 			}
 			connstring := ip[0] + portstr
 			conn, err := grpc.Dial(connstring, grpc.WithInsecure())
 			if err != nil {
-				beLog.Fatal("Failed to connect ", err)
+				mgLog.WithFields(log.Fields{
+					"error": err.Error(),
+				}).Error("Failed to connect to MMF service")
+				stats.Record(fnCtx, BeGrpcErrors.M(1))
+				return &backend.MatchObject{}, err
 			}
 			client = backend.NewFunctionClient(conn)
 			s.fnClients[clientKey] = client
-			beLog.Println("API client connected to", connstring)
+			mgLog.Println("MMF service client connected")
 		} else if s.cfg.GetBool("debug") {
-			beLog.Debug("Re-using existing gRPC client for ", clientKey)
+			mgLog.Debug("Re-using existing gRPC client")
 		}
 
-		beLog.Printf("Connecting to function server at %v", clientKey)
-		match, err := client.Run(ctx, &mmfArgs)
-		beLog.Printf("results: %v, %v\n", match, err)
+		mgLog.Printf("Running MMF")
 
+		// Kick off the specified MMF.
+		// TODO: Decide if there's value in looking at the results beyond just checking for Errors.
+		_, err := client.Run(ctx, &mmfArgs)
+		if err != nil {
+			mgLog.WithFields(log.Fields{
+				"error": err.Error(),
+			}).Error("MMF service returned error")
+			stats.Record(fnCtx, BeGrpcErrors.M(1))
+			return &backend.MatchObject{}, err
+		}
+		// Increment number of currently running MMFs.
+		redisHelpers.Increment(context.Background(), s.pool, "concurrentMMFs")
 	}
 
 	watcherBO := backoff.NewExponentialBackOff()
