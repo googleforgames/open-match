@@ -45,6 +45,11 @@ message CreateMatchRequest {
   MmfSpec mmfspec = 2;
 }
 
+message ListMatchesRequest {
+  MatchObject matchobject = 1;
+  MmfSpec mmfspec = 2;
+}
+
 // Data structure to hold a list of players in a match.  
 message Roster{
     string name = 1;                 // Arbitrary developer-chosen, human-readable string. By convention, set to team name. 

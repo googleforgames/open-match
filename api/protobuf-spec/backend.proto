@@ -23,7 +23,7 @@ service Backend {
   rpc CreateMatch(messages.CreateMatchRequest) returns (messages.MatchObject) {} 
   // Continually run MMF and stream MatchObjects that fit this profile until
   // the backend client closes the connection.  Same inputs/outputs as CreateMatch.
-  rpc ListMatches(messages.MatchObject) returns (stream messages.MatchObject) {}
+  rpc ListMatches(messages.ListMatchesRequest) returns (stream messages.MatchObject) {}
 
   // Delete a MatchObject from state storage manually. (MatchObjects in state
   // storage will also automatically expire after a while, defined in the config)

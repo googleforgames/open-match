@@ -162,7 +162,6 @@ func main() {
 				pretty.PrettyPrint(match)
 
 				// Assign players in this match to our server
-				log.Printf("Player assignment '%v' specified at commandline", assignment)
 				log.Println("Assigning players to DGS at", assignment)
 
 				assign := &backend.Assignments{Rosters: match.Rosters, Assignment: assignment}
@@ -203,7 +202,10 @@ func main() {
 		matchChan <- match
 		<-doneChan
 	case "ListMatches":
-		stream, err := client.ListMatches(ctx, pbProfile)
+		stream, err := client.ListMatches(ctx, &backend.ListMatchesRequest{
+			Mmfspec:     req.Mmfspec,
+			Matchobject: req.Matchobject,
+		})
 		if err != nil {
 			log.Fatalf("Attempting to open stream for ListMatches(_) = _, %v", err)
 		}

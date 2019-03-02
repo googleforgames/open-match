@@ -51,12 +51,8 @@ ignoreLists:
     duration: 0 
 
 defaultImages: 
-  evaluator: 
-    name: gcr.io/matchmaker-dev-201405/openmatch-evaluator
-    tag: dev
-  mmf: 
-    name: gcr.io/matchmaker-dev-201405/openmatch-mmf-py3-mmlogic-simple
-    tag: dev
+  evaluator: gcr.io/matchmaker-dev-201405/openmatch-evaluator:dev
+  mmf: gcr.io/matchmaker-dev-201405/openmatch-mmf-py3-mmlogic-simple:dev
 
 redis: 
   user: ""

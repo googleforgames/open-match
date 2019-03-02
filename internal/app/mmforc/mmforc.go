@@ -419,7 +419,7 @@ func callRestFunction(hostName string, strPort string, jobName string, profID st
 // evaluator generates a k8s job that runs the specified evaluator container image.
 func evaluator(ctx context.Context, cfg *viper.Viper, clientset *kubernetes.Clientset) {
 
-	imageName := cfg.GetString("defaultImages.evaluator.name") + ":" + cfg.GetString("defaultImages.evaluator.tag")
+	imageName := cfg.GetString("defaultImages.evaluator")
 	// Generate the job name
 	timestamp := strconv.Itoa(int(time.Now().Unix()))
 	jobType := "evaluator"

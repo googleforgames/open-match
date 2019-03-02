@@ -38,6 +38,7 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	log "github.com/sirupsen/logrus"
+
 	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
@@ -124,20 +125,21 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
 	// Generate a request to fill the profile. Make a unique request ID.
-	moID := xid.New().String()
-	resultID := moID + "." + beRequest.Matchobject.Id
+	requestID := xid.New().String()
+	resultID := requestID + "." + beRequest.Matchobject.Id
 	req := &backend.Request{
-		ProfileId:  beRequest.Matchobject.Id,
-		RequestId:  moID,
-		ProposalId: "proposal." + resultID,
-		ResultId:   resultID,
+		// State storage keys
+		ProfileId:  beRequest.Matchobject.Id, // Location of original match object
+		RequestId:  requestID,                // Prefix to make results key unique.
+		ResultId:   resultID,                 // Final location of match results.
+		ProposalId: "proposal." + resultID,   // Intermediate location for results that may have collisions.
 	}
 	mmfArgs := backend.Arguments{Matchobject: beRequest.Matchobject, Request: req}
 
+	// DEPRECATED: In a future version, you'll have to set the protobuf 'pools' field to use the MMLogic API.
 	// Case where no protobuf pools was passed; check if there's a JSON version in the properties.
 	// This is for backwards compatibility, it is recommended you populate the protobuf's
 	// 'pools' field directly and pass it to CreateMatch/ListMatches
-	// DEPRECATED: In a future version, you'll have to set the protobuf 'pools' field to use the MMLogic API.
 	if beRequest.Matchobject.Pools == nil && s.cfg.IsSet("jsonkeys.pools") &&
 		gjson.Get(beRequest.Matchobject.Properties, s.cfg.GetString("jsonkeys.pools")).Exists() {
 		poolsJSON := fmt.Sprintf("{\"pools\": %v}", gjson.Get(beRequest.Matchobject.Properties, s.cfg.GetString("jsonkeys.pools")).String())
@@ -154,10 +156,10 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 		}
 	}
 
+	// DEPRECATED: In a future version, you'll have to set the protobuf 'rosters' field to use the MMLogic API.
 	// Case where no protobuf roster was passed; check if there's a JSON version in the properties.
 	// This is for backwards compatibility, it is recommended you populate the
 	// protobuf's 'rosters' field directly and pass it to CreateMatch/ListMatches
-	// DEPRECATED: In a future version, you'll have to set the protobuf 'rosters' field to use the MMLogic API.
 	if beRequest.Matchobject.Rosters == nil && s.cfg.IsSet("jsonkeys.rosters") &&
 		gjson.Get(beRequest.Matchobject.Properties, s.cfg.GetString("jsonkeys.rosters")).Exists() {
 		rostersJSON := fmt.Sprintf("{\"rosters\": %v}", gjson.Get(beRequest.Matchobject.Properties, s.cfg.GetString("jsonkeys.rosters")).String())
@@ -175,9 +177,9 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 
 	// Add fields for all subsequent logging
 	beLog = beLog.WithFields(log.Fields{
-		"beRequest.MatchobjectID": beRequest.Matchobject.Id,
-		"matchObjectID":           moID,
-		"resultID":                resultID,
+		"profileID": beRequest.Matchobject.Id,
+		"requestID": requestID,
+		"resultID":  resultID,
 	})
 	beLog.Info("gRPC call executing")
 	beLog.Debug("beRequest.Matchobject is")
@@ -318,7 +320,7 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 // defined in api/protobuf-spec/backend.proto
 // This is the streaming version of CreateMatch - continually submitting the
 // profile to be filled until the requesting service ends the connection.
-func (s *backendAPI) ListMatches(p *backend.MatchObject, matchStream backend.Backend_ListMatchesServer) error {
+func (s *backendAPI) ListMatches(req *backend.ListMatchesRequest, matchStream backend.Backend_ListMatchesServer) error {
 
 	// call creatematch in infinite loop as long as the stream is open
 	ctx := matchStream.Context() // https://talks.golang.org/2015/gotham-grpc.slide#30
@@ -327,46 +329,36 @@ func (s *backendAPI) ListMatches(p *backend.MatchObject, matchStream backend.Bac
 	funcName := "ListMatches"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
-	beLog = beLog.WithFields(log.Fields{"func": funcName})
-	beLog.WithFields(log.Fields{
-		"profileID": p.Id,
-	}).Info("gRPC call executing. Calling CreateMatch. Looping until cancelled.")
+	lmLog := beLog.WithFields(log.Fields{"func": funcName, "profileID": req.Matchobject.Id})
+	lmLog.Info("gRPC call recieved. Calling CreateMatch. Looping until cancelled.")
 
 	for {
 		select {
 		case <-ctx.Done():
 			// Context cancelled, probably because the client cancelled their request, time to exit.
-			beLog.WithFields(log.Fields{
-				"profileID": p.Id,
-			}).Info("gRPC Context cancelled; client is probably finished receiving matches")
+			lmLog.Info("gRPC Context cancelled; client is probably finished receiving matches")
 
 			// TODO: need to make sure that in-flight matches don't get leaked here.
+			// State storage match object and ignorelist expiration probably helps
 			stats.Record(fnCtx, BeGrpcRequests.M(1))
 			return nil
 
 		default:
 			// Retreive results from Redis
-			//requestProfile := proto.Clone(p).(*backend.MatchObject)
-			requestProfile := &backend.CreateMatchRequest{
-				Matchobject: proto.Clone(p).(*backend.MatchObject),
-				Mmfspec:     &backend.MmfSpec{},
+			cmReq := &backend.CreateMatchRequest{
+				Matchobject: proto.Clone(req.Matchobject).(*backend.MatchObject),
+				Mmfspec:     proto.Clone(req.Mmfspec).(*backend.MmfSpec),
 			}
 
-			/*
-				beLog.Debug("new profile requested!")
-				beLog.Debug(requestProfile)
-				beLog.Debug(&requestProfile)
-			*/
-			mo, err := s.CreateMatch(ctx, requestProfile)
-
-			beLog = beLog.WithFields(log.Fields{"func": funcName})
+			// Call CreateMatch
+			mo, err := s.CreateMatch(ctx, cmReq)
 
 			if err != nil {
-				beLog.WithFields(log.Fields{"error": err.Error()}).Error("Failure calling CreateMatch")
+				lmLog.WithFields(log.Fields{"error": err.Error()}).Error("Failure calling CreateMatch")
 				stats.Record(fnCtx, BeGrpcErrors.M(1))
 				return err
 			}
-			beLog.WithFields(log.Fields{"matchProperties": fmt.Sprintf("%v", mo)}).Debug("Streaming back match object")
+			lmLog.WithFields(log.Fields{"matchProperties": fmt.Sprintf("%v", mo)}).Debug("Streaming back match object")
 			matchStream.Send(mo)
 
 			// TODO: This should be tunable, but there should be SOME sleep here, to give a requestor a window
