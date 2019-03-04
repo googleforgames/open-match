@@ -1,0 +1,39 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-evaluator
+  labels:
+    app: openmatch
+    component: evaluator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openmatch
+      component: evaluator
+  template:
+    metadata:
+      labels:
+        app: openmatch
+        component: evaluator
+    spec:
+      containers:
+      - name: om-evaluator
+        image: gcr.io/matchmaker-dev-201405/openmatch-evaluator-service:latest
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: om-configmap
+          subPath: matchmaker_config.yaml
+          mountPath: matchmaker_config.yaml
+        ports:
+        - name: metrics
+          containerPort: 9555
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+      volumes:
+      - name: om-configmap
+        configMap:
+          name: om-configmap
+
