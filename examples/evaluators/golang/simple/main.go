@@ -26,36 +26,44 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"os"
+	"flag"
 	"strings"
 	"time"
 
+	"github.com/GoogleCloudPlatform/open-match/config"
 	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	"github.com/GoogleCloudPlatform/open-match/internal/set"
+	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	"github.com/gobs/pretty"
 	"github.com/gomodule/redigo/redis"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
+var (
+	lgr    *log.Logger
+	cfg    *viper.Viper
+	err    error
+	pool   *redis.Pool
+	dryrun bool
+)
+
 func main() {
+	flag.BoolVar(&dryrun, "dryrun", false, "Print eval results, but do not take approval or rejection actions")
+	flag.Parse()
 
 	//Init Logger
-	lgr := log.New(os.Stdout, "MMFEval: ", log.LstdFlags)
-	lgr.Println("Initializing example MMF proposal evaluator")
+	lgr = log.New()
+	lgr.Info("Initializing example MMF proposal evaluator")
 
 	// Read config
+	// This golang example uses the Open Match config module.  If you are
+	// writing an evaluator in another language, most libraries/modules that
+	// can parse a YAML file will work.
 	lgr.Println("Initializing config...")
-	cfg, err := readConfig("matchmaker_config", map[string]interface{}{
-		"REDIS_SERVICE_HOST": "redis",
-		"REDIS_SERVICE_PORT": "6379",
-		"auth": map[string]string{
-			// Read from k8s secret eventually
-			// Probably doesn't need a map, just here for reference
-			"password": "12fa",
-		},
-	})
+	cfg, err = config.Read()
 	if err != nil {
 		panic(nil)
 	}
@@ -63,14 +71,7 @@ func main() {
 	// Connect to redis
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz // redis pool docs: https://godoc.org/github.com/gomodule/redigo/redis#Pool
-	redisURL := "redis://" + cfg.GetString("REDIS_SERVICE_HOST") + ":" + cfg.GetString("REDIS_SERVICE_PORT")
-	lgr.Println("Connecting to redis at", redisURL)
-	pool := redis.Pool{
-		MaxIdle:     3,
-		MaxActive:   0,
-		IdleTimeout: 60 * time.Second,
-		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
-	}
+	pool := redishelpers.ConnectionPool(cfg)
 	redisConn := pool.Get()
 	defer redisConn.Close()
 
@@ -82,20 +83,27 @@ func main() {
 
 	start := time.Now()
 
-	proposedMatchIds, overloadedPlayers, overloadedMatches, approvedMatches, err := stub(cfg, &pool)
+	//proposedMatchIds  []string,
+	//overloadedPlayers map[string][]int
+	//overloadedMatches map[int][]int
+	//approvedMatches   map[int]bool
+	proposedMatchIds, overloadedPlayers, overloadedMatches, approvedMatches, err := stub(cfg, pool)
 	overloadedPlayerList, overloadedMatchList, approvedMatchList := generateLists(overloadedPlayers, overloadedMatches, approvedMatches)
 
-	fmt.Println("overloadedPlayers")
+	lgr.Info("overloadedPlayers")
 	pretty.PrettyPrint(overloadedPlayers)
-	fmt.Println("overloadePlayerList")
+	lgr.Info("overloadePlayerList")
 	pretty.PrettyPrint(overloadedPlayerList)
-	fmt.Println("overloadedMatchList")
+	lgr.Info("overloadedMatchList")
 	pretty.PrettyPrint(overloadedMatchList)
-	fmt.Println("approvedMatchList")
+	lgr.Info("approvedMatchList")
 	pretty.PrettyPrint(approvedMatchList)
 
+	// Choose matches to approve from among the overloaded ones.
 	approved, rejected, err := chooseMatches(overloadedMatchList)
 	approvedMatchList = append(approvedMatchList, approved...)
+	approvedPlayers := make([]string, 0)
+	potentiallyRejectedPlayers := make([]string, 0)
 
 	// run redis commands to approve matches
 	for _, proposalIndex := range approvedMatchList {
@@ -103,36 +111,79 @@ func main() {
 		// name to what the Backend API (apisrv.go) is looking for.
 		proposedID := proposedMatchIds[proposalIndex]
 		// Incoming proposal keys look like this:
-		// proposal.1542600048.80e43fa085844eebbf53fc736150ef96.testprofile
+		// proposal.80e43fa085844eebbf53fc736150ef96.testprofile
 		// format:
-		// "proposal".timestamp.unique_matchobject_id.profile_name
+		// "proposal".unique_matchobject_id.profile_name
 		values := strings.Split(proposedID, ".")
-		moID, proID := values[2], values[3]
+		moID, proID := values[1], values[2]
 		backendID := moID + "." + proID
-		fmt.Printf("approving proposal #%+v:%+v\n", proposalIndex, moID)
-		fmt.Println("RENAME", proposedID, backendID)
-		_, err = redisConn.Do("RENAME", proposedID, backendID)
+
+		// TODO: would be more efficient to gather this while looking for
+		// overlaps.  This is just a test to make sure this works.
+		a, err := getProposedPlayers(pool, proposedID)
 		if err != nil {
-			// RENAME only fails if the source key doesn't exist
-			fmt.Printf("err = %+v\n", err)
+			lgr.Error("Failed to get approved players ", err)
+		}
+		approvedPlayers = append(approvedPlayers, a...)
+
+		// Acrtually approve the match
+		lgr.Infof("approving proposal number %v, ID: %v -> %v\n", proposalIndex, proposedID, backendID)
+		if !dryrun {
+			lgr.Infof(" RENAME %v %v", proposedID, backendID)
+			_, err = redisConn.Do("RENAME", proposedID, backendID)
+			if err != nil {
+				// RENAME only fails if the source key doesn't exist
+				lgr.Error("Failure to move proposal to approved backendID! ", err)
+			}
+		}
+
+	}
+
+	// Dump out some info about rejected proposals
+	for _, proposalIndex := range rejected {
+		proposedID := proposedMatchIds[proposalIndex]
+
+		// TODO: would be more efficient to gather this while looking for
+		// overlaps.  This is just a test to make sure this works.
+		pr, err := getProposedPlayers(pool, proposedID)
+		if err != nil {
+			lgr.Error("Failed to get rejected players ", err)
+		}
+
+		potentiallyRejectedPlayers = append(potentiallyRejectedPlayers, pr...)
+		lgr.Infof("rejecting proposal number %v, ID: %v", proposalIndex, proposedID)
+		if !dryrun {
+			lgr.Infof(" DEL %v", proposedID)
+			_, err = redisConn.Do("DEL", proposedID)
+			if err != nil {
+				lgr.Error("Failure to delete rejected proposal! ", err)
+			}
 		}
 	}
 
-	//TODO: Need to requeue for another job run here.
-	for _, proposalIndex := range rejected {
-		fmt.Println("rejecting ", proposalIndex)
-		proposedID := proposedMatchIds[proposalIndex]
-		fmt.Printf("proposedID = %+v\n", proposedID)
-		values := strings.Split(proposedID, ".")
-		fmt.Printf("values = %+v\n", values)
-		timestamp, moID, proID := values[0], values[1], values[2]
-		fmt.Printf("timestamp = %+v\n", timestamp)
-		fmt.Printf("moID = %+v\n", moID)
-		fmt.Printf("proID = %+v\n", proID)
+	// Remove players that are (only) in the rejected games from the ignorelist
+	// overloadedPlayers map[string][]int
+	rejectedPlayers := set.Difference(potentiallyRejectedPlayers, approvedPlayers)
+	lgr.Info("approvedPlayers")
+	pretty.PrettyPrint(approvedPlayers)
+	lgr.Info("potentiallyRejectedPlayers")
+	pretty.PrettyPrint(potentiallyRejectedPlayers)
+	lgr.Info("rejectedPlayers")
+	pretty.PrettyPrint(rejectedPlayers)
+
+	if len(rejectedPlayers) > 0 {
+		lgr.Info("Removing rejectedPlayers from 'proposed' ignorelist")
+		if !dryrun {
+			err = ignorelist.Remove(redisConn, "proposed", rejectedPlayers)
+			if err != nil {
+				lgr.Error("Failed to remove rejected players from ignorelist", err)
+			}
+		}
+	} else {
+		lgr.Warning("No rejected players to re-queue!")
 	}
 
 	lgr.Printf("0 Finished in %v seconds.", time.Since(start).Seconds())
-
 }
 
 // chooseMatches looks through all match proposals that ard overloaded (that
@@ -141,49 +192,22 @@ func main() {
 // TODO: this needs a complete overhaul in a 'real' graph search
 func chooseMatches(overloaded []int) ([]int, []int, error) {
 	// Super naive - take one overloaded match and approved it, reject all others.
-	fmt.Printf("overloaded = %+v\n", overloaded)
-	fmt.Printf("len(overloaded) = %+v\n", len(overloaded))
+	lgr.Infof("overloaded = %+v\n", overloaded)
+	lgr.Infof("len(overloaded) = %+v\n", len(overloaded))
 	if len(overloaded) > 0 {
-		fmt.Printf("overloaded[0:2] = %+v\n", overloaded[0:0])
-		fmt.Printf("overloaded[1:] = %+v\n", overloaded[1:])
+		lgr.Infof("overloaded[0:0] = %+v\n", overloaded[0:0])
+		lgr.Infof("overloaded[1:] = %+v\n", overloaded[1:])
 		return overloaded[0:1], overloaded[1:], nil
 	}
 	return []int{}, overloaded, nil
 }
 
-func readConfig(filename string, defaults map[string]interface{}) (*viper.Viper, error) {
-	/*
-	   Examples of redis-related env vars as written by k8s
-	   REDIS_SENTINEL_PORT_6379_TCP=tcp://10.55.253.195:6379
-	   REDIS_SENTINEL_PORT=tcp://10.55.253.195:6379
-	   REDIS_SENTINEL_PORT_6379_TCP_ADDR=10.55.253.195
-	   REDIS_SERVICE_PORT=6379
-	   REDIS_SENTINEL_PORT_6379_TCP_PORT=6379
-	   REDIS_SENTINEL_PORT_6379_TCP_PROTO=tcp
-	   REDIS_SERVICE_HOST=10.55.253.195
-	*/
-	v := viper.New()
-	for key, value := range defaults {
-		v.SetDefault(key, value)
-	}
-	v.SetConfigName(filename)
-	v.SetConfigType("yaml")
-	v.AddConfigPath(".")
-	v.AutomaticEnv()
-
-	// Optional read from config if it exists
-	err := v.ReadInConfig()
-	if err != nil {
-		//lgr.Printf("error when reading config: %v\n", err)
-		//lgr.Println("continuing...")
-		err = nil
-	}
-	return v, err
-}
-
+// stub is the name of this function because it's just a functioning test, not
+// a recommended approach! Be sure to use robust evaluation logic for
+// production matchmakers!
 func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[int][]int, map[int]bool, error) {
 	//Init Logger
-	lgr := log.New(os.Stdout, "MMFEvalStub: ", log.LstdFlags)
+	lgr := log.New()
 	lgr.Println("Initializing example MMF proposal evaluator")
 
 	// Get redis conneciton
@@ -193,14 +217,18 @@ func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[i
 	// Put some config vars into other vars for readability
 	proposalq := cfg.GetString("queues.proposals.name")
 
-	lgr.Println("SCARD", proposalq)
 	numProposals, err := redis.Int(redisConn.Do("SCARD", proposalq))
-	lgr.Println("SPOP", proposalq, numProposals)
-	proposals, err := redis.Strings(redisConn.Do("SPOP", proposalq, numProposals))
+	lgr.Info("SCARD ", proposalq, " returned ", numProposals)
+	cmd := "SPOP"
+	if dryrun {
+		cmd = "SRANDMEMBER"
+	}
+	lgr.Println(cmd, proposalq, numProposals)
+	proposals, err := redis.Strings(redisConn.Do(cmd, proposalq, numProposals))
 	if err != nil {
 		lgr.Println(err)
 	}
-	fmt.Printf("proposals = %+v\n", proposals)
+	lgr.Infof("proposals = %+v\n", proposals)
 
 	// This is a far cry from effecient but we expect a pretty small set of players under consideration
 	// at any given time
@@ -251,6 +279,7 @@ func getProposedPlayers(pool *redis.Pool, propKey string) ([]string, error) {
 
 	// Get the proposal match object from redis
 	mo := &om_messages.MatchObject{Id: propKey}
+	lgr.Info("Getting matchobject with ID ", propKey)
 	err := redispb.UnmarshalFromRedis(context.Background(), pool, mo)
 	if err != nil {
 		return nil, err
@@ -265,19 +294,6 @@ func getProposedPlayers(pool *redis.Pool, propKey string) ([]string, error) {
 	}
 
 	return playerList, err
-}
-
-func propToRoster(in []string) []interface{} {
-	// Convert []string to []interface{} so it can be passed as variadic input
-	// https://golang.org/doc/faq#convert_slice_of_interface
-	out := make([]interface{}, len(in))
-	for i, v := range in {
-		values := strings.Split(v, ".")
-		timestamp, moID, proID := values[0], values[1], values[2]
-
-		out[i] = "roster." + timestamp + "." + moID + "." + proID
-	}
-	return out
 }
 
 func generateLists(overloadedPlayers map[string][]int, overloadedMatches map[int][]int, approvedMatches map[int]bool) ([]string, []int, []int) {
