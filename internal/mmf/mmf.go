@@ -53,7 +53,7 @@ func makeMatches(profile string, rosters []*api.Roster, pools []*api.PlayerPool)
 		}
 	}
 	mmfLog.Info(" Rosters complete.")
-	mmfLog.Debug(prettyPrint(rosters))
+	mmfLog.Debug(rosters)
 
 	// You can send back any arbitrary JSON in the first return value (the
 	// string).  In this example, all the players were chosen and populated to

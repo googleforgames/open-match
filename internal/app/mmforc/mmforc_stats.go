@@ -59,7 +59,7 @@ var (
 	// the logrus hook provided in metrics/helper.go after instantiating the
 	// logrus instance in your application code.
 	// https://godoc.org/github.com/sirupsen/logrus#LevelHooks
-	MmforcLogLines = stats.Int64("mmforc/logs_total", "Number of Backend API lines logged", "1")
+	MmforcLogLines = stats.Int64("mmforc/logs_total", "Number of MMF Orchestrator lines logged", "1")
 
 	// Counting operations
 	mmforcMmfs         = stats.Int64("mmforc/mmfs_total", "Number of  mmf jobs submitted to kubernetes", "1")

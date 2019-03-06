@@ -220,7 +220,7 @@ func RunApplication() {
 
 		// A sleep here is not critical but just a useful safety valve in case
 		// things are broken, to keep the main loop from going all-out and spamming the log.
-		sleepyTime := 100
+		sleepyTime := 1000
 		evLog.WithFields(log.Fields{"ms": sleepyTime}).Info("Sleeping...")
 		time.Sleep(time.Duration(sleepyTime) * time.Millisecond)
 	} // End main for loop
@@ -330,8 +330,19 @@ func evaluator(ctx context.Context) {
 	}
 
 	// Dump out some info about rejected proposals
+	rejectedMO = &om_messages.MatchObject{
+		Error: "Proposed match rejected due to player conflict",
+	}
+
 	for _, proposalIndex := range rejected {
 		proposedID := proposedMatchIds[proposalIndex]
+		// Incoming proposal keys look like this:
+		// proposal.80e43fa085844eebbf53fc736150ef96.testprofile
+		// format:
+		// "proposal".unique_matchobject_id.profile_name
+		values := strings.Split(proposedID, ".")
+		moID, proID := values[1], values[2]
+		backendID := moID + "." + proID
 
 		// TODO: would be more efficient to gather this while looking for
 		// overlaps.  This is just a test to make sure this works.
@@ -348,6 +359,15 @@ func evaluator(ctx context.Context) {
 			if err != nil {
 				evLog.Error("Failure to delete rejected proposal! ", err)
 			}
+			// Example of an actino you can take on rejection - notify the backend client
+			// and tell them to query again.  You could also kick off another MMF run (but be sure
+			// to have some condition after which you quit retrying)
+			rejectedMO.Id = backendID
+			err = redispb.MarshalToRedis(ctx, pool, rejectedMO, cfg.GetInt("redis.expirations.matchobject"))
+			if err != nil {
+				evLog.Error("Failure to notify backend of rejected proposal! ", err)
+			}
+
 		}
 	}
 

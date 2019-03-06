@@ -263,7 +263,7 @@ func mmfunc(ctx context.Context, resultsID string, cfg *viper.Viper, clientset *
 
 	// Extra fields for structured logging
 	lf := log.Fields{"jobName": jobName}
-	if cfg.GetBool("debug") { // Log a lot more info.
+	if cfg.IsSet("debug") && cfg.GetBool("debug") { // Log a lot more info.
 		lf = log.Fields{
 			"jobType":             jobType,
 			"backendMatchObject":  moID,

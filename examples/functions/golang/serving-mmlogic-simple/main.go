@@ -64,7 +64,7 @@ func init() {
 		}).Error("Unable to load config file")
 	}
 
-	if cfg.GetBool("debug") == true {
+	if cfg.IsSet("debug") && cfg.GetBool("debug") {
 		log.SetLevel(log.DebugLevel) // debug only, verbose - turn off in production!
 		fnLog.Warn("Debug logging configured. Not recommended for production!")
 	}

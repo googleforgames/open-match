@@ -26,8 +26,8 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 
@@ -63,7 +63,7 @@ func InitializeApplication() {
 		}).Error("Unable to load config file")
 	}
 
-	if cfg.GetBool("debug") == true {
+	if cfg.IsSet("debug") && cfg.GetBool("debug") {
 		log.SetLevel(log.DebugLevel) // debug only, verbose - turn off in production!
 		mlLog.Warn("Debug logging configured. Not recommended for production!")
 	}

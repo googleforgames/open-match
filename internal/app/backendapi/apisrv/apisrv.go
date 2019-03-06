@@ -257,7 +257,7 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 			client = backend.NewFunctionClient(conn)
 			s.fnClients[clientKey] = client
 			mgLog.Println("MMF service client connected")
-		} else if s.cfg.GetBool("debug") {
+		} else if s.cfg.IsSet("debug") && s.cfg.GetBool("debug") {
 			mgLog.Debug("Re-using existing gRPC client")
 		}
 

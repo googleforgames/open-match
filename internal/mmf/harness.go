@@ -50,7 +50,7 @@ func Run(fnArgs *api.Arguments, cfg *viper.Viper, mmlogic api.MmLogicClient) err
 		poolLog.Info("Retrieving pool")
 
 		// DEBUG: Print how long the filtering takes
-		if cfg.GetBool("debug") {
+		if cfg.IsSet("debug") && cfg.GetBool("debug") {
 			start = time.Now()
 		}
 
@@ -83,7 +83,7 @@ func Run(fnArgs *api.Arguments, cfg *viper.Viper, mmlogic api.MmLogicClient) err
 				}
 			}
 
-			if cfg.GetBool("debug") {
+			if cfg.IsSet("debug") && cfg.GetBool("debug") {
 				poolLog.WithFields(log.Fields{
 					"elapsed": time.Now().Sub(start).Seconds(),
 					"count":   len(playerPools[index].Roster.Players),
@@ -103,7 +103,7 @@ func Run(fnArgs *api.Arguments, cfg *viper.Viper, mmlogic api.MmLogicClient) err
 
 	// Return error when there are no players in the pools
 	if numPlayers == 0 {
-		if cfg.GetBool("debug") {
+		if cfg.IsSet("debug") && cfg.GetBool("debug") {
 			mmfLog.Info("All player pools are empty, writing to error to skip the evaluator")
 		}
 		// Writing to the error key skips the evaluator
@@ -133,7 +133,7 @@ func Run(fnArgs *api.Arguments, cfg *viper.Viper, mmlogic api.MmLogicClient) err
 	}
 
 	// DEBUG
-	if cfg.GetBool("debug") {
+	if cfg.IsSet("debug") && cfg.GetBool("debug") {
 		mmfLog.Debug("Output MatchObject:", mo)
 	}
 
