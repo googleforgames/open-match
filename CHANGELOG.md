@@ -6,7 +6,14 @@
 - Thanks to completion of Issues [#42](issues/42) and [#45](issues/45), there is no longer a need to use the `openmatch-base` image when building components of Open Match.  Each stand alone appliation now is self-contained in its `Dockerfile` and `cloudbuild.yaml` files, and builds have been substantially simplified.  **Note**: The default `Dockerfile` and `cloudbuild.yaml` now tag their images with the version number, not `dev`, and the YAML files in the `install` directory now reflect this.
  - This paves the way for CI/CD in an upcoming version.  
  - This paves the way for public images in an upcoming version!
-
+- The code to read pools from your `MatchObject` `Properties` JSON blob when you pass it into the Backend API and make Open Match 'native' protobuf `PlayerPool` messages out of them for use with the MMLogic API is deprecated and will be removed in a future version. When that happens, if you want to use the MMLogic API, you will be required to populate the MatchObjects's `pools` field yourself.
+- The same with the code that makes `Rosters` messages out of your `Properties` JSON blob.  You'll have to populate the `Rosters` field yourself to make use of the MMLogic API in upcoming versions.
+- Running MMFs as kubernetes `jobs` is deprecated.  This pattern and the `MMForc` component will be removed in a future version.
+- The Backend API no longer prepends the timestamp as part of the key under which results are stored in Redis. This simplifies and shortens the keys a bit.  Existing evaluators will need to be updated to parse the new key format when they read from the `proposalq`.
+- Evaluator sample in golang got a pretty big overhaul.
+    - Evaluator was packing all its own code for reading the config file and connecting to redis.  The golang sample now just uses the standard Open Match internal modules for this.  This is acceptable for a sample, but if you're writing your own evaluator in another language you'll need to write code to use your language modules to do this.
+    - [Issue #77](https://github.com/GoogleCloudPlatform/open-match/issues/77) Example evaluator now correctly removes players from the 'proposed' ignorelist if the player was (only) in rejected groups.
+- Everywhere that used to look for `debug: true` in the `matchmaker_config.yaml` file now checks if the key exists first.
 ## v0.3.0 (alpha)
   This update is focused on the Frontend API and Player Records, including more robust code for indexing, deindexing, reading, writing, and expiring player requests from Open Match state storage.  All Frontend API function argument have changed, although many only slightly. Please join the [Slack channel](https://open-match.slack.com/) if you need help ([Signup link](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLWQzMzE1MGY5YmYyYWY3ZjE2MjNjZTdmYmQ1ZTQzMmNiNGViYmQyN2M4ZmVkMDY2YzZlOTUwMTYwMzI1Y2I2MjU))!
 
