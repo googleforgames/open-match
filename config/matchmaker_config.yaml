@@ -22,7 +22,9 @@ api:
     port: 50502
   
 evalutor: 
-  interval: 10
+  # Evaluator intervals are in milliseconds
+  intervalMs: 10000
+  pollIntervalMs: 1000
 
 metrics: 
   port: 9555
@@ -51,7 +53,7 @@ ignoreLists:
     duration: 0 
 
 defaultImages: 
-  evaluator: gcr.io/matchmaker-dev-201405/openmatch-evaluator:dev
+  evaluator: gcr.io/matchmaker-dev-201405/openmatch-evaluator:0.4
   mmf: gcr.io/matchmaker-dev-201405/openmatch-mmf-py3-mmlogic-simple:dev
 
 redis: 
