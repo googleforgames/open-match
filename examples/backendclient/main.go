@@ -43,9 +43,11 @@ func bytesToString(data []byte) string {
 }
 
 func ppJSON(s string) {
-	buf := new(bytes.Buffer)
-	json.Indent(buf, []byte(s), "", "  ")
-	log.Println(buf)
+	if verbose {
+		buf := new(bytes.Buffer)
+		json.Indent(buf, []byte(s), "", "  ")
+		log.Println(buf)
+	}
 	return
 }
 
@@ -58,6 +60,7 @@ var (
 	beCall         string
 	assignment     string
 	delAssignments bool
+	verbose        bool
 )
 
 func main() {
@@ -69,11 +72,16 @@ func main() {
 	flag.StringVar(&bePort, "port", "50505", "Open Match backend port")
 	flag.StringVar(&assignment, "assignment", "example.server.dgs:12345", "Assignment to send to matched players")
 	flag.BoolVar(&delAssignments, "rm", false, "Delete assignments. Leave off to be able to manually validate assignments in state storage")
-
+	flag.BoolVar(&verbose, "verbose", false, "Print out as much as possible")
 	flag.Parse()
+
 	log.Print("Parsing flags:")
 	log.Printf(" [flags] Reading properties from file at %v", filename)
 	log.Printf(" [flags] Connecting to OM Backend at %v:%v", beHost, bePort)
+	if !(beCall == "CreateMatch" || beCall == "ListMatches") {
+		log.Printf(" [flags] Unknown OM Backend call %v! Exiting...", beCall)
+		return
+	}
 	log.Printf(" [flags] Using OM Backend %v call", beCall)
 	log.Printf(" [flags] Calling MMF via %v", mmfType)
 	log.Printf(" [flags] Assigning players to %v", assignment)
@@ -191,13 +199,14 @@ func main() {
 	}()
 
 	// Make the requested backend call: CreateMatch calls once, ListMatches continually calls.
-	log.Printf("Attempting to send %v call", beCall)
+	log.Printf("Attempting %v() call", beCall)
 	switch beCall {
 	case "CreateMatch":
 		match, err := client.CreateMatch(ctx, req)
 		if err != nil {
 			panic(err)
 		}
+		log.Printf("CreateMatch returned; processing match")
 
 		matchChan <- match
 		<-doneChan
