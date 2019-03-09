@@ -141,9 +141,6 @@ func Generate() (Xid string, properties map[string]int, debug map[string]string)
 
 	city := pick()
 	debug["city"] = city
-	//fmt.Println("Chose city", city)
-
-	//m := [4]string{"avg", "min", "max", "std"}
 
 	for region := range pingStats {
 		//fmt.Print(region, " ")
@@ -153,11 +150,6 @@ func Generate() (Xid string, properties map[string]int, debug map[string]string)
 			pingStats[region][city]["max"],
 			pingStats[region][city]["std"],
 		)
-		/*for _, key := range m {
-			fmt.Print(key, " ", pingStats[region][city][key], " ")
-		}
-		fmt.Println()
-		*/
 	}
 	// Insert other properties here
 	// For example, a random skill modeled on a normal distribution
