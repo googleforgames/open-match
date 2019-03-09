@@ -35,7 +35,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/set"
 	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
@@ -117,6 +117,9 @@ func RunApplication() {
 	checkProposals := true
 	pollSleep := cfg.GetInt("evaluator.pollIntervalMs")
 	interval := cfg.GetInt64("evaluator.intervalMs")
+
+	// TODO: remove
+	viper.Set("debug", false)
 
 	// Logging for the proposal queue
 	pqLog := evLog.WithFields(log.Fields{"proposalQueue": cfg.GetString("queues.proposals.name")})
@@ -248,6 +251,10 @@ func evaluator(ctx context.Context) {
 	redisConn := pool.Get()
 	defer redisConn.Close()
 
+	// TODO: remove
+	cfg.Set("debug", true)
+	defer cfg.Set("debug", false)
+
 	start := time.Now()
 
 	// Formats of vars:
@@ -330,7 +337,7 @@ func evaluator(ctx context.Context) {
 	}
 
 	// Dump out some info about rejected proposals
-	rejectedMO = &om_messages.MatchObject{
+	rejectedMO := &pb.MatchObject{
 		Error: "Proposed match rejected due to player conflict",
 	}
 
@@ -490,7 +497,7 @@ func chooseMatches(overloaded []int) ([]int, []int, error) {
 func getProposedPlayers(pool *redis.Pool, propKey string) ([]string, error) {
 
 	// Get the proposal match object from redis
-	mo := &om_messages.MatchObject{Id: propKey}
+	mo := &pb.MatchObject{Id: propKey}
 	evLog.Info("Getting matchobject with ID ", propKey)
 	err := redispb.UnmarshalFromRedis(context.Background(), pool, mo)
 	if err != nil {
