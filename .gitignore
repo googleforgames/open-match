@@ -77,3 +77,7 @@ cmd/frontendapi/frontendapi
 cmd/mmforc/mmforc
 cmd/mmlogicapi/mmlogicapi
 examples/backendclient/backendclient
+examples/evaluators/golang/simple/simple
+examples/functions/golang/manual-simple/manual-simple
+test/cmd/clientloadgen/clientloadgen
+test/cmd/frontendclient/frontendclient

@@ -22,14 +22,13 @@ package apisrv
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	backend "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
@@ -48,6 +47,8 @@ import (
 	"github.com/spf13/viper"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // Logrus structured logging setup
@@ -79,7 +80,7 @@ func New(cfg *viper.Viper, pool *redis.Pool) *BackendAPI {
 	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
 	log.AddHook(metrics.NewHook(BeLogLines, KeySeverity))
 
-	backend.RegisterBackendServer(s.grpc, (*backendAPI)(&s))
+	pb.RegisterBackendServer(s.grpc, (*backendAPI)(&s))
 	beLog.Info("Successfully registered gRPC server")
 	return &s
 }
@@ -110,7 +111,7 @@ func (s *BackendAPI) Open() error {
 
 // CreateMatch is this service's implementation of the CreateMatch gRPC method
 // defined in api/protobuf-spec/backend.proto
-func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject) (*backend.MatchObject, error) {
+func (s *backendAPI) CreateMatch(c context.Context, profile *pb.MatchObject) (*pb.MatchObject, error) {
 
 	// Get a cancel-able context
 	ctx, cancel := context.WithCancel(c)
@@ -144,7 +145,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 		ppLog := beLog.WithFields(log.Fields{"jsonkey": s.cfg.GetString("jsonkeys.pools")})
 		ppLog.Info("poolsJSON: ", poolsJSON)
 
-		ppools := &backend.MatchObject{}
+		ppools := &pb.MatchObject{}
 		err := jsonpb.UnmarshalString(poolsJSON, ppools)
 		if err != nil {
 			ppLog.Error("failed to parse JSON to protobuf pools")
@@ -162,7 +163,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 		rostersJSON := fmt.Sprintf("{\"rosters\": %v}", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.rosters")).String())
 		rLog := beLog.WithFields(log.Fields{"jsonkey": s.cfg.GetString("jsonkeys.rosters")})
 
-		prosters := &backend.MatchObject{}
+		prosters := &pb.MatchObject{}
 		err := jsonpb.UnmarshalString(rostersJSON, prosters)
 		if err != nil {
 			rLog.Error("failed to parse JSON to protobuf rosters")
@@ -193,7 +194,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 
 		// Failure! Return empty match object and the error
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
-		return &backend.MatchObject{}, err
+		return &pb.MatchObject{}, status.Error(codes.Unknown, err.Error())
 	}
 	beLog.Info("Profile written to state storage")
 
@@ -207,7 +208,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 
 		// Failure! Return empty match object and the error
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
-		return &backend.MatchObject{}, err
+		return &pb.MatchObject{}, status.Error(codes.Unknown, err.Error())
 	}
 	beLog.Info("Profile added to processing queue")
 
@@ -219,7 +220,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 	watcherBOCtx := backoff.WithContext(watcherBO, ctx)
 
 	// get and return matchobject, it will be written to the requestKey when the MMF has finished.
-	watchChan := redispb.Watcher(watcherBOCtx, s.pool, backend.MatchObject{Id: requestKey}) // Watcher() runs the appropriate Redis commands.
+	watchChan := redispb.Watcher(watcherBOCtx, s.pool, pb.MatchObject{Id: requestKey}) // Watcher() runs the appropriate Redis commands.
 	newMO, ok := <-watchChan
 	if !ok {
 		// ok is false if watchChan has been closed by redispb.Watcher()
@@ -230,7 +231,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 		} else {
 			newMO.Error = "channel closed: backoff deadline exceeded"
 		}
-		return &newMO, errors.New("Error retrieving matchmaking results from state storage: " + newMO.Error)
+		return &newMO, status.Errorf(codes.Unavailable, "Error retrieving matchmaking results from state storage: %s", newMO.Error)
 	}
 
 	// 'ok' was true, so properties should contain the results from redis.
@@ -242,19 +243,19 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *backend.MatchObject
 	// TODO test that this is the correct condition for an empty error.
 	if newMO.Error != "" {
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
-		return &newMO, errors.New(newMO.Error)
+		return &newMO, status.Error(codes.Unknown, newMO.Error)
 	}
 
 	beLog.Info("Matchmaking results received, returning to backend client")
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
-	return &newMO, err
+	return &newMO, nil
 }
 
 // ListMatches is this service's implementation of the ListMatches gRPC method
 // defined in api/protobuf-spec/backend.proto
 // This is the streaming version of CreateMatch - continually submitting the
 // profile to be filled until the requesting service ends the connection.
-func (s *backendAPI) ListMatches(p *backend.MatchObject, matchStream backend.Backend_ListMatchesServer) error {
+func (s *backendAPI) ListMatches(p *pb.MatchObject, matchStream pb.Backend_ListMatchesServer) error {
 
 	// call creatematch in infinite loop as long as the stream is open
 	ctx := matchStream.Context() // https://talks.golang.org/2015/gotham-grpc.slide#30
@@ -282,7 +283,7 @@ func (s *backendAPI) ListMatches(p *backend.MatchObject, matchStream backend.Bac
 
 		default:
 			// Retreive results from Redis
-			requestProfile := proto.Clone(p).(*backend.MatchObject)
+			requestProfile := proto.Clone(p).(*pb.MatchObject)
 			/*
 				beLog.Debug("new profile requested!")
 				beLog.Debug(requestProfile)
@@ -295,7 +296,7 @@ func (s *backendAPI) ListMatches(p *backend.MatchObject, matchStream backend.Bac
 			if err != nil {
 				beLog.WithFields(log.Fields{"error": err.Error()}).Error("Failure calling CreateMatch")
 				stats.Record(fnCtx, BeGrpcErrors.M(1))
-				return err
+				return status.Error(codes.Unavailable, err.Error())
 			}
 			beLog.WithFields(log.Fields{"matchProperties": fmt.Sprintf("%v", mo)}).Debug("Streaming back match object")
 			matchStream.Send(mo)
@@ -310,7 +311,7 @@ func (s *backendAPI) ListMatches(p *backend.MatchObject, matchStream backend.Bac
 
 // DeleteMatch is this service's implementation of the DeleteMatch gRPC method
 // defined in api/protobuf-spec/backend.proto
-func (s *backendAPI) DeleteMatch(ctx context.Context, mo *backend.MatchObject) (*backend.Result, error) {
+func (s *backendAPI) DeleteMatch(ctx context.Context, mo *pb.MatchObject) (*pb.Result, error) {
 
 	// Create context for tagging OpenCensus metrics.
 	funcName := "DeleteMatch"
@@ -329,7 +330,7 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, mo *backend.MatchObject) (
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
-		return &backend.Result{Success: false, Error: err.Error()}, err
+		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
 	}
 
 	beLog.WithFields(log.Fields{
@@ -337,12 +338,12 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, mo *backend.MatchObject) (
 	}).Info("Match Object deleted.")
 
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
-	return &backend.Result{Success: true, Error: ""}, err
+	return &pb.Result{Success: true, Error: ""}, nil
 }
 
 // CreateAssignments is this service's implementation of the CreateAssignments gRPC method
 // defined in api/protobuf-spec/backend.proto
-func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignments) (*backend.Result, error) {
+func (s *backendAPI) CreateAssignments(ctx context.Context, a *pb.Assignments) (*pb.Result, error) {
 
 	// Make a map of players and what assignments we want to send them.
 	playerIDs := make([]string, 0)
@@ -388,7 +389,7 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
 		stats.Record(fnCtx, BeAssignmentFailures.M(int64(len(players))))
-		return &backend.Result{Success: false, Error: err.Error()}, err
+		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Success!
@@ -398,12 +399,12 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
 	stats.Record(fnCtx, BeAssignments.M(int64(len(players))))
-	return &backend.Result{Success: true, Error: ""}, err
+	return &pb.Result{Success: true, Error: ""}, nil
 }
 
 // DeleteAssignments is this service's implementation of the DeleteAssignments gRPC method
 // defined in api/protobuf-spec/backend.proto
-func (s *backendAPI) DeleteAssignments(ctx context.Context, r *backend.Roster) (*backend.Result, error) {
+func (s *backendAPI) DeleteAssignments(ctx context.Context, r *pb.Roster) (*pb.Result, error) {
 	assignments := getPlayerIdsFromRoster(r)
 
 	// Create context for tagging OpenCensus metrics.
@@ -426,22 +427,21 @@ func (s *backendAPI) DeleteAssignments(ctx context.Context, r *backend.Roster) (
 
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
 		stats.Record(fnCtx, BeAssignmentDeletionFailures.M(int64(len(assignments))))
-		return &backend.Result{Success: false, Error: err.Error()}, err
+		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Success!
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
 	stats.Record(fnCtx, BeAssignmentDeletions.M(int64(len(assignments))))
-	return &backend.Result{Success: true, Error: ""}, err
+	return &pb.Result{Success: true, Error: ""}, nil
 }
 
 // getPlayerIdsFromRoster returns the slice of player ID strings contained in
 // the input roster.
-func getPlayerIdsFromRoster(r *backend.Roster) []string {
+func getPlayerIdsFromRoster(r *pb.Roster) []string {
 	playerIDs := make([]string, 0)
 	for _, p := range r.Players {
 		playerIDs = append(playerIDs, p.Id)
 	}
 	return playerIDs
-
 }
