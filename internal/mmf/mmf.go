@@ -1,6 +1,9 @@
 package mmf
 
 import (
+	"math/rand"
+	"time"
+
 	api "github.com/GoogleCloudPlatform/open-match/internal/pb"
 )
 
@@ -41,12 +44,17 @@ func makeMatches(profile string, rosters []*api.Roster, pools []*api.PlayerPool)
 		for si, slot := range team.Players {
 			for _, pool := range pools {
 				if slot.Pool == pool.Name && len(pool.Roster.Players) > 0 {
-					mmfLog.Info("   Looking for player in pool: ", pool.Name)
-					// Functionally, pop the first player from the pool into
-					// this roster slot
-					slot, pool.Roster.Players = pool.Roster.Players[0], pool.Roster.Players[1:]
-					mmfLog.Info("   Found player: ", slot.Id, " strategy: FIFO")
-					rosters[ti].Players[si] = slot
+					mmfLog.Info("   Looking for player in pool: ", pool.Name, len(pool.Roster.Players))
+					// Get a random index (subtract 1 because arrays are zero-indexed)
+					randPlayerIndex := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(len(pool.Roster.Players)) - 1
+					mmfLog.Infof("   Selected player index %v", randPlayerIndex)
+					selectedPlayer := pool.Roster.Players[randPlayerIndex]
+					mmfLog.Infof("   Selected player index %v: %v", randPlayerIndex, selectedPlayer.Id)
+					// Remove this player from the array.
+					pool.Roster.Players[randPlayerIndex] = pool.Roster.Players[0]
+					_, pool.Roster.Players = pool.Roster.Players[0], pool.Roster.Players[1:]
+					mmfLog.Info("   Found player: ", selectedPlayer.Id, " strategy: RANDOM")
+					rosters[ti].Players[si] = selectedPlayer
 					break
 				}
 			}

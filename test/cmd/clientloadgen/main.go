@@ -17,29 +17,34 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/player"
 	"github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/redis/playerq"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/spf13/viper"
+)
+
+var (
+	numPlayers int
+	sleep      int
 )
 
 func main() {
-
-	conf, err := readConfig("", map[string]interface{}{
-		"REDIS_SERVICE_HOST": "127.0.0.1",
-		"REDIS_SERVICE_PORT": "6379",
-	})
-	check(err, "QUIT")
+	// Parse command line flags
+	flag.IntVar(&numPlayers, "numplayers", 20, "Number of players to generate per cycle")
+	flag.IntVar(&sleep, "sleep", 1000, "Number of ms to sleep between cycles")
+	flag.Parse()
 
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
-	redisURL := "redis://" + conf.GetString("REDIS_SERVICE_HOST") + ":" + conf.GetString("REDIS_SERVICE_PORT")
+	redisURL := "redis://" + os.Getenv("REDIS_SERVICE_HOST") + ":" + os.Getenv("REDIS_SERVICE_PORT")
 
+	// Redis connection
 	pool := redis.Pool{
 		MaxIdle:     3,
 		IdleTimeout: 240 * time.Second,
@@ -52,22 +57,24 @@ func main() {
 	// Make a new player generator
 	player.New()
 
-	const numPlayers = 20
 	fmt.Println("Starting client api stub...")
 
+	// Loop forever, queuing players
 	for {
 		start := time.Now()
 
 		for i := 1; i <= numPlayers; i++ {
-			_, err = queuePlayer(redisConn)
-			check(err, "")
+			_, err := queuePlayer(redisConn)
+			if err != nil {
+				log.Println(err)
+			}
+
 		}
 
 		elapsed := time.Since(start)
-		check(err, "")
-		fmt.Printf("Redis queries and Xid generation took %s\n", elapsed)
-		fmt.Println("Sleeping")
-		time.Sleep(5 * time.Second)
+		fmt.Printf("Generated %v players in %s\n", numPlayers, elapsed)
+		fmt.Printf(" Sleeping for %vms\n", sleep)
+		time.Sleep(time.Duration(sleep) * time.Millisecond)
 	}
 }
 
@@ -77,46 +84,10 @@ func queuePlayer(redisConn redis.Conn) (playerID string, err error) {
 	_ = debug // TODO.  For now you could copy this into playerdata before creating player if you want it available in redis
 	pdJSON, _ := json.Marshal(playerData)
 	err = playerq.Create(redisConn, playerID, string(pdJSON))
-	check(err, "")
+	if err != nil {
+		log.Fatal(err)
+	}
 	// This assumes you have at least ping data for this one region, comment out if you don't need this output
-	fmt.Printf("Generated player %v in %v\n\tPing to %v: %3dms\n", playerID, debug["city"], "gcp.europe-west2", playerData["region.europe-west2"])
+	//fmt.Printf("Generated player %v in %v\n\tPing to %v: %3dms\n", playerID, debug["city"], "gcp.europe-west2", playerData["region.europe-west2"])
 	return
-}
-
-func check(err error, action string) {
-	if err != nil {
-		if action == "QUIT" {
-			log.Fatal(err)
-		} else {
-			log.Print(err)
-		}
-	}
-}
-
-func readConfig(filename string, defaults map[string]interface{}) (*viper.Viper, error) {
-	/*
-		REDIS_SENTINEL_PORT_6379_TCP=tcp://10.55.253.195:6379
-		REDIS_SENTINEL_PORT=tcp://10.55.253.195:6379
-		REDIS_SENTINEL_PORT_6379_TCP_ADDR=10.55.253.195
-		REDIS_SENTINEL_SERVICE_PORT=6379
-		REDIS_SENTINEL_PORT_6379_TCP_PORT=6379
-		REDIS_SENTINEL_PORT_6379_TCP_PROTO=tcp
-		REDIS_SENTINEL_SERVICE_HOST=10.55.253.195
-	*/
-	v := viper.New()
-	for key, value := range defaults {
-		v.SetDefault(key, value)
-	}
-	v.SetConfigName(filename)
-	v.AddConfigPath(".")
-	v.AutomaticEnv()
-
-	// Optional read from config if it exists
-	err := v.ReadInConfig()
-	if err != nil {
-		//fmt.Printf("error when reading config: %v\n", err)
-		//fmt.Println("continuing...")
-		err = nil
-	}
-	return v, err
 }

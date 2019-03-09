@@ -1,6 +1,6 @@
 # Client load generator
 
-This is an application that dumps players into the pool by writing to Redis state storage. As it writes directly to Redis state storage to simulate clients hitting the frontend API, it does not generate any load on the frontend API (or, in fact, even need it to be running). 
+This is an application that dumps players into the pool by writing to Redis state storage. As it writes directly to Redis state storage to simulate clients hitting the frontend API, it does not generate any load on the frontend API (or, in fact, even need it to be running).  By extension, it doesn't do full indexing of player, and the players it inserts don't expire!
 
 Only to be used for testing, and only in isolated environments (not in production!)
 

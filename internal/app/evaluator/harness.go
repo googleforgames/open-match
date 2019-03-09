@@ -498,7 +498,7 @@ func getProposedPlayers(pool *redis.Pool, propKey string) ([]string, error) {
 
 	// Get the proposal match object from redis
 	mo := &pb.MatchObject{Id: propKey}
-	evLog.Info("Getting matchobject with ID ", propKey)
+	evLog.WithFields(log.Fields{"id": propKey}).Info("Getting matchobject with ID ")
 	err := redispb.UnmarshalFromRedis(context.Background(), pool, mo)
 	if err != nil {
 		return nil, err

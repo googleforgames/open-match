@@ -153,7 +153,7 @@ func Generate() (Xid string, properties map[string]int, debug map[string]string)
 	}
 	// Insert other properties here
 	// For example, a random skill modeled on a normal distribution
-	properties["mmr.rating"] = normalDist(1500, -1000, 4000, 350)
+	properties["mmr.rating"] = normalDist(2266, 0, 4350, 610)
 
 	// For properties that are just flags, the key is the important bit.
 	// It's existance denotes a boolean true value.

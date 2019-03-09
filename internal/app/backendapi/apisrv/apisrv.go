@@ -235,6 +235,8 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 		var ok bool
 
 		// TODO: Validate what happens if the client was opened ages ago.
+		// TODO: It definitely fails if the particular insance the client was pointing to disappears.
+		//       Need to have it retry.  Also, chances are it is not loadbalancing.
 		if client, ok = s.fnClients[clientKey]; !ok {
 			// No connection yet: init client
 			ip, err := net.LookupHost(beRequest.Mmfspec.Host)
