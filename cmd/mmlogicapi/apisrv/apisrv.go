@@ -564,7 +564,7 @@ func (s *mmlogicAPI) allIgnoreLists(c context.Context, in *mmlogic.IlInput) (all
 		ilCfg := s.cfg.Sub(fmt.Sprintf("ignoreLists.%v", il))
 		thisIl, err := ignorelist.Retrieve(redisConn, ilCfg, il)
 		if err != nil {
-			panic(err)
+			return []string{}, err
 		}
 
 		// Join this ignorelist to the others we've retrieved

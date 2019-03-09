@@ -34,6 +34,7 @@ import (
 	backend "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/tidwall/gjson"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
 func bytesToString(data []byte) string {
@@ -125,7 +126,12 @@ func main() {
 				break
 			}
 			if err != nil {
-				log.Fatalf("Error reading stream for ListMatches(_) = _, %v", err)
+				stat, ok := status.FromError(err)
+				if ok {
+					log.Printf("Error reading stream for ListMatches() returned status: %s %s", stat.Code().String(), stat.Message())
+				} else {
+					log.Printf("Error reading stream for ListMatches() returned status: %s", err)
+				}
 				break
 			}
 
@@ -154,7 +160,13 @@ func main() {
 			log.Printf("Waiting for matches...")
 			_, err = client.CreateAssignments(context.Background(), assign)
 			if err != nil {
-				log.Println(err)
+				stat, ok := status.FromError(err)
+				if ok {
+					log.Printf("Error reading stream for ListMatches() returned status: %s %s", stat.Code().String(), stat.Message())
+				} else {
+					log.Printf("Error reading stream for ListMatches() returned status: %s", err)
+				}
+				break
 			}
 			log.Println("Success!  Not deleting assignments [demo mode].")
 
