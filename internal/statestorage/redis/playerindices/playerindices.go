@@ -145,7 +145,7 @@ func Create(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, player om_
 			//v := gjson.Get(player.Properties, regexp.QuoteMeta(attribute))
 			v := gjson.Get(player.Properties, attribute)
 
-			// If this attribue wasn't provided in the JSON, continue to the
+			// If this attribute wasn't provided in the JSON, continue to the
 			// next attribute to index.
 			if !v.Exists() {
 				iLog.WithFields(log.Fields{"attribute": attribute, "value": v.Raw}).Debug("Couldn't find index in JSON: ", player.Properties)

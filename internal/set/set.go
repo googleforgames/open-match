@@ -20,7 +20,7 @@ limitations under the License.
 
 package set
 
-// Intersection returns the interection of two sets.
+// Intersection returns the interaction of two sets.
 func Intersection(a []string, b []string) (out []string) {
 
 	hash := make(map[string]bool)
