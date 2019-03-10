@@ -29,8 +29,7 @@ func Run(fnArgs *api.Arguments, cfg *viper.Viper, mmlogic api.MmLogicClient) err
 	ctx, cancel := context.WithCancel(context.Background())
 	var start time.Time
 	defer cancel()
-	mmfLog.Info("Function called2!\n")
-	mmfLog.Debug("args: ", fnArgs.Request.ProfileId)
+	mmfLog.Debug("args: ", fnArgs.Request)
 
 	// Step 3 - Read the profile written to the Backend API
 	profile, err := mmlogic.GetProfile(ctx, &api.MatchObject{Id: fnArgs.Request.ProfileId})
