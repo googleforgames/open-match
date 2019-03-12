@@ -337,9 +337,9 @@ func evaluator(ctx context.Context) {
 	}
 
 	// Dump out some info about rejected proposals
-	rejectedMO := &pb.MatchObject{
-		Error: "Proposed match rejected due to player conflict",
-	}
+	//	rejectedMO := &pb.MatchObject{
+	//		Error: "Proposed match rejected due to player conflict",
+	//	}
 
 	for _, proposalIndex := range rejected {
 		proposedID := proposedMatchIds[proposalIndex]
@@ -361,19 +361,32 @@ func evaluator(ctx context.Context) {
 		potentiallyRejectedPlayers = append(potentiallyRejectedPlayers, pr...)
 		evLog.Infof("rejecting proposal number %v, ID: %v", proposalIndex, proposedID)
 		if !dryrun {
-			evLog.Infof(" DEL %v", proposedID)
-			_, err = redisConn.Do("DEL", proposedID)
+			// Set error message
+			_, err = redisConn.Do("HSET", proposedID, "error", "Proposed match rejected due to player conflict")
+			if err != nil {
+				evLog.Error("Failure to set rejected error! ", err)
+			}
+
+			// Remove any rosters
+			_, err = redisConn.Do("HSET", proposedID, "rosters", "")
+			if err != nil {
+				evLog.Error("Failure to delete rejected rosters! ", err)
+			}
+
+			// TODO: dry this with the approved flow
+			evLog.Infof(" RENAME %v", proposedID)
+			_, err = redisConn.Do("RENAME", proposedID, backendID)
 			if err != nil {
 				evLog.Error("Failure to delete rejected proposal! ", err)
 			}
 			// Example of an actino you can take on rejection - notify the backend client
 			// and tell them to query again.  You could also kick off another MMF run (but be sure
 			// to have some condition after which you quit retrying)
-			rejectedMO.Id = backendID
-			err = redispb.MarshalToRedis(ctx, pool, rejectedMO, cfg.GetInt("redis.expirations.matchobject"))
-			if err != nil {
-				evLog.Error("Failure to notify backend of rejected proposal! ", err)
-			}
+			//rejectedMO.Id = backendID
+			//err = redispb.MarshalToRedis(ctx, pool, rejectedMO, cfg.GetInt("redis.expirations.matchobject"))
+			//if err != nil {
+			//	evLog.Error("Failure to notify backend of rejected proposal! ", err)
+			//}
 
 		}
 	}

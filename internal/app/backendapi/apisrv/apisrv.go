@@ -310,7 +310,12 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 	// TODO test that this is the correct condition for an empty error.
 	if newMO.Error != "" {
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
-		return &newMO, errors.New(newMO.Error)
+		// Returning a non-nil error here results in the matchobject getting
+		// dropped and the error just being passed through as a gRPC error code
+		// + message.  Not ideal since the MO still contains things we want to
+		// pass back, like the pool statistics, etc
+		//return &newMO, errors.New(newMO.Error)
+		return &newMO, nil
 	}
 
 	beLog.Info("Matchmaking results received, returning to backend client")

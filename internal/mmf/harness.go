@@ -142,8 +142,10 @@ func Run(fnArgs *api.Arguments, cfg *viper.Viper, mmlogic api.MmLogicClient) err
 	success, err := mmlogic.CreateProposal(ctx, mo)
 	if err != nil {
 		mmfLog.Error(err)
+	} else {
+
+		mmfLog.WithFields(log.Fields{"id": fnArgs.Request.ProposalId, "success": success.Success}).Info("MMF write to state storage")
 	}
-	mmfLog.WithFields(log.Fields{"id": fnArgs.Request.ProposalId, "success": success.Success}).Info("MMF write to state storage")
 
 	// [OPTIONAL] Step 8 - Export stats about this run.
 	// TODO

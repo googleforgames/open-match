@@ -52,7 +52,6 @@ func makeMatches(profile string, rosters []*api.Roster, pools []*api.PlayerPool)
 					if randPlayerIndex < 0 {
 						randPlayerIndex = 0
 					}
-					mmfLog.Infof("   Selected player index %v", randPlayerIndex)
 					selectedPlayer := pool.Roster.Players[randPlayerIndex]
 					mmfLog.Infof("   Selected player index %v: %v", randPlayerIndex, selectedPlayer.Id)
 					// Remove this player from the array.

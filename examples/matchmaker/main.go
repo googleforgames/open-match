@@ -1,7 +1,7 @@
 /*
-Stubbed backend api client. This should be run within a k8s cluster, and
-assumes that the backend api is up and can be accessed through a k8s service
-named om-backendapi
+Stubbed pb api client. This should be run within a k8s cluster, and
+assumes that the pb api is up and can be accessed through a k8s service
+named om-pbapi
 
 Copyright 2018 Google LLC
 
@@ -26,17 +26,20 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net"
 	"os"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/examples/matchmaker/mo"
+	"github.com/gobs/pretty"
 
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
-	backend "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/tidwall/gjson"
 	"google.golang.org/grpc"
 )
@@ -64,6 +67,7 @@ var (
 	assignment     string
 	delAssignments bool
 	verbose        bool
+	resultsOnly    bool
 
 	concurrency int
 	wg          sync.WaitGroup
@@ -71,8 +75,11 @@ var (
 
 func main() {
 
+	// TODO: make flags if prove to be useful
+	printJSON := false
+
 	// Parse flags
-	flag.IntVar(&concurrency, "concurrency", 100, "[NYI] Max number of backend API calls to run concurrently")
+	flag.IntVar(&concurrency, "concurrency", 10, "[NYI] Max number of backend API calls to run concurrently")
 	flag.StringVar(&filename, "file", "profiles/testprofile.json", "JSON file from which to read match properties")
 	flag.StringVar(&mmfType, "type", "grpc", "MMF type")
 	flag.StringVar(&beCall, "call", "ListMatches", "Open Match backend match request gRPC call to test")
@@ -81,6 +88,7 @@ func main() {
 	flag.StringVar(&assignment, "assignment", "", "Assignment to send to matched players, set to empty to skip assigning")
 	flag.BoolVar(&delAssignments, "rm", false, "Delete assignments. Leave off to be able to manually validate assignments in state storage")
 	flag.BoolVar(&verbose, "verbose", false, "Print out as much as possible")
+	flag.BoolVar(&resultsOnly, "resultsonly", false, "Print out only results")
 	flag.Parse()
 
 	log.Print("Parsing flags:")
@@ -103,7 +111,7 @@ func main() {
 	}
 	defer jsonFile.Close()
 
-	// parse json data and remove extra whitespace before sending to the backend.
+	// parse json data and remove extra whitespace before sending to the pb.
 	jsonData, _ := ioutil.ReadAll(jsonFile) // this reads as a byte array
 	buffer := new(bytes.Buffer)             // convert byte array to buffer to send to json.Compact()
 	if err := json.Compact(buffer, jsonData); err != nil {
@@ -111,7 +119,7 @@ func main() {
 	}
 
 	jsonProfile := buffer.String()
-	pbProfile := &backend.MatchObject{}
+	pbProfile := &pb.MatchObject{}
 	pbProfile.Properties = jsonProfile
 
 	// Connect gRPC client
@@ -123,7 +131,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err.Error())
 	}
-	client := backend.NewBackendClient(conn)
+	client := pb.NewBackendClient(conn)
 	log.Println("Backend client connected to", beHost+":"+bePort)
 
 	if gjson.Get(jsonProfile, "name").Exists() {
@@ -137,46 +145,59 @@ func main() {
 	pbProfile.Properties = jsonProfile
 
 	// Generate Job Spec for different ways of running MMFs
-	mmfspec := &backend.MmfSpec{Name: "profileName"}
+	mmfspec := &pb.MmfSpec{Name: "profileName"}
 	switch mmfType {
 	case "grpc":
-		mmfspec.Type = backend.MmfSpec_GRPC
+		mmfspec.Type = pb.MmfSpec_GRPC
 		mmfspec.Host = gjson.Get(jsonProfile, "hostname").String()
 		mmfspec.Port = int32(gjson.Get(jsonProfile, "port").Int())
 	case "job":
-		mmfspec.Type = backend.MmfSpec_K8SJOB
+		mmfspec.Type = pb.MmfSpec_K8SJOB
 	}
-	req := backend.CreateMatchRequest{Mmfspec: mmfspec}
+	req := pb.CreateMatchRequest{Mmfspec: mmfspec}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Analyze match objects as they come in.
-	matchChan := make(chan *backend.MatchObject)
+	matchChan := make(chan *pb.MatchObject)
 	go func() {
 		for match := range matchChan {
+			errOutput := ""
+
+			if match.Error != "" {
+				errOutput = fmt.Sprintf("| %v", match.Error)
+			}
+			var poolOutput int64
+			poolOutput = 0
+			if len(match.Pools) > 0 &&
+				match.Pools[0].Stats != nil &&
+				match.Pools[0].Stats.Count != 0 {
+				poolOutput = match.Pools[0].Stats.Count
+			}
+
 			// Dump some info to screen
-			log.Printf("Received match: %42v | teams %v:%v %v:%v | pools %v:%v",
-				match.Id,
-				match.Rosters[0].Name,
-				len(match.Rosters[0].Players),
-				match.Rosters[1].Name,
-				len(match.Rosters[1].Players),
-				match.Pools[0].Name,
-				match.Pools[0].Stats.Count,
-			)
+			if !resultsOnly {
+				log.Printf("%45v | pools %6v %v",
+					strings.Split(match.Id, ".")[1],
+					poolOutput,
+					errOutput,
+				)
+			}
 
 			// Validate JSON before trying to  parse it
-			if !gjson.Valid(string(match.Properties)) {
-				log.Println(errors.New("invalid json"))
+			if printJSON {
+				if !gjson.Valid(string(match.Properties)) {
+					log.Println(errors.New("invalid json"))
+				}
+				pretty.PrettyPrint(match.Properties)
 			}
-			//pretty.PrettyPrint(match)
 
 			// Assign players in this match to our server
 			if assignment != "" {
 				log.Println("Assigning players to DGS at", assignment)
 
-				assign := &backend.Assignments{Rosters: match.Rosters, Assignment: assignment}
+				assign := &pb.Assignments{Rosters: match.Rosters, Assignment: assignment}
 				_, err = client.CreateAssignments(context.Background(), assign)
 				if err != nil {
 					log.Println(err)
@@ -193,17 +214,21 @@ func main() {
 				}
 			}
 
-			// Mark processing for this backend call as done
+			// Mark processing for this pb call as done
 			wg.Done()
 		}
 	}()
 
-	// Make the requested backend call: CreateMatch calls once, ListMatches continually calls.
+	// Make the requested pb call: CreateMatch calls once, ListMatches continually calls.
+	start := time.Now()
+	failcount := 0
+	okcount := 0
 	switch beCall {
 	case "CreateMatch":
 		// Get all combinations of profiles
 		moChan := make(chan *pb.MatchObject)
-		go mo.GenerateMatchObjects(moChan)
+		//go mo.GenerateMatchObjects(moChan)
+		go mo.ProcedurallyGenerateMatchObjects(concurrency, moChan)
 
 		for {
 			//for requestMO := range moChan {
@@ -218,22 +243,28 @@ func main() {
 						wg.Add(1)
 						//defer wg.Done()
 						requestMO.Properties = pbProfile.Properties
-						req := backend.CreateMatchRequest{
+						req := pb.CreateMatchRequest{
 							Matchobject: requestMO,
 							Mmfspec:     mmfspec,
 						}
-						log.Printf(" Attempting %26v %15v %v",
-							req.Matchobject.Id,
-							req.Matchobject.Pools[0].Filters[0].Name,
-							len(req.Matchobject.Rosters))
+						if !resultsOnly {
+							log.Printf(" Attempting %26v %15v %v",
+								req.Matchobject.Id,
+								req.Matchobject.Pools[0].Filters[1].Name,
+								len(req.Matchobject.Rosters))
+						}
 
-						// Call backend to fill this matchobject
+						// Call pb to fill this matchobject
 						match, err := client.CreateMatch(ctx, &req)
 						if err != nil {
 							wg.Done()
-							log.Printf("  Failed match: %42v | %v", req.Matchobject.Id, err)
+							if !resultsOnly {
+								log.Printf("  Failed match: %42v | %v", req.Matchobject.Id, err)
+							}
+							failcount++
 							return
 						}
+						okcount++
 
 						// Got matchobject, send to the printer
 						matchChan <- match
@@ -246,9 +277,15 @@ func main() {
 		}
 		wg.Wait()
 		close(matchChan)
+		log.Printf("Total Runtime: %v", time.Since(start))
+		log.Printf("Number of Failures: %v", failcount)
+		log.Printf("Number of Successes: %v", okcount)
+		log.Printf("Success percent: %v", float64(okcount)/float64(failcount+okcount))
+		log.Printf("Players matched: %v", okcount*16)
+		log.Printf("Throughput: %v pps", float64(okcount*16)/time.Since(start).Seconds())
 
 	case "ListMatches":
-		stream, err := client.ListMatches(ctx, &backend.ListMatchesRequest{
+		stream, err := client.ListMatches(ctx, &pb.ListMatchesRequest{
 			Mmfspec:     req.Mmfspec,
 			Matchobject: req.Matchobject,
 		})
