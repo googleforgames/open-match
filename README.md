@@ -179,7 +179,45 @@ Once we reach a 1.0 release, we plan to produce publicly available (Linux) Docke
 
 ### Compiling from source
 
-All components of Open Match produce (Linux) Docker container images as artifacts, and there are included `Dockerfile`s for each. [Google Cloud Platform Cloud Build](https://cloud.google.com/cloud-build/docs/) users will also find `cloudbuild.yaml` files for each component in the corresponding `cmd/<COMPONENT>` directories.
+The easiest way to build Open Match is to use the Makefile. Before you can use the Makefile make sure you have the following dependencies:
+
+```bash
+# Install Open Match Toolchain Dependencies (Debian other OSes including Mac OS X have similar dependencies)
+sudo apt-get update; sudo apt-get install -y python3 python3-virtualenv virtualenv make gcloud
+```
+
+Go 1.11+ is also required. If your distro is new enough you can probably run `sudo apt-get install -y golang` or download the newest version from https://golang.org/.
+
+To build all the artifacts of Open Match you can simply run the following commands.
+
+```bash
+# Downloads all the tools needed to build Open Match
+make install-toolchain
+# Generates protocol buffer code files
+make all-protos
+# Builds all the binaries
+make all
+# Builds all the images.
+make build-images
+```
+
+Once build you can use a command like `docker images` to see all the images that were build.
+
+Before creating a pull request you can run `make local-cloud-build` to simulate a Cloud Build run to check for regressions.
+
+The directory structure is a typical Go structure so if you do the following you should be able to work on this project within your IDE.
+
+```bash
+cd $GOPATH
+mkdir -p src/github.com/GoogleCloudPlatform/
+cd src/github.com/GoogleCloudPlatform/
+# If you're going to contribute you'll want to fork open-match, see CONTRIBUTING.md for details.
+git clone https://github.com/GoogleCloudPlatform/open-match.git
+cd open-match
+# Open IDE in this directory.
+```
+
+Lastly, this project uses go modules so you'll want to set `export GO111MODULE=on` before building.
 
 All the core components for Open Match are written in Golang and use the [Dockerfile multistage builder pattern](https://docs.docker.com/develop/develop-images/multistage-build/). This pattern uses intermediate Docker containers as a Golang build environment while producing lightweight, minimized container images as final build artifacts. When the project is ready for production, we will modify the `Dockerfile`s to uncomment the last build stage. Although this pattern is great for production container images, it removes most of the utilities required to troubleshoot issues during development.
 
