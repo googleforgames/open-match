@@ -26,8 +26,8 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
@@ -54,9 +54,6 @@ var (
 func InitializeApplication() {
 	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
 	log.AddHook(metrics.NewHook(apisrv.FeLogLines, apisrv.KeySeverity))
-
-	// Add a hook to the logger to log the filename & line number.
-	log.SetReportCaller(true)
 
 	// Viper config management initialization
 	cfg, err = config.Read()

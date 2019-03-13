@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	api "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/spf13/viper"
 )
@@ -26,6 +27,10 @@ var (
 
 // Run is used to kick off the served MMF.
 func Run(fnArgs *api.Arguments, cfg *viper.Viper, mmlogic api.MmLogicClient) error {
+
+	// Configure open match logging defaults
+	logging.ConfigureLogging(cfg)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	var start time.Time
 	defer cancel()

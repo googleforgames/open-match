@@ -119,7 +119,6 @@ func (s *mmlogicAPI) GetProfile(c context.Context, profile *mmlogic.MatchObject)
 	// Get profile.
 	mlLog.WithFields(log.Fields{"profileid": profile.Id}).Info("Attempting retreival of profile")
 	err := redispb.UnmarshalFromRedis(c, s.pool, profile)
-	mlLog.Warn("returned profile from redispb", profile)
 	if err != nil {
 		mlLog.WithFields(log.Fields{
 			"error":     err.Error(),
@@ -444,7 +443,7 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *mmlogic.Filter) (map
 		}
 		return pool, err
 	} else if count < 100000 {
-		mlLog.Info("filter processed")
+		mlLog.Debug("filter processed")
 	} else {
 		// Send a warning to the logs.
 		mlLog.Warn("filter applies to a large number of players")

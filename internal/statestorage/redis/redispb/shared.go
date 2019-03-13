@@ -124,7 +124,7 @@ func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message, ttl
 				"component": "statestorage",
 				"field":     field,
 				"value":     value,
-			}).Info("State storage operation")
+			}).Debug("State storage operation")
 
 		}
 	}
@@ -133,7 +133,7 @@ func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message, ttl
 		resultLog.WithFields(log.Fields{
 			"component": "statestorage",
 			"ttl":       ttl,
-		}).Info("State storage expiration set")
+		}).Debug("State storage expiration set")
 	} else {
 		resultLog.WithFields(log.Fields{
 			"component": "statestorage",

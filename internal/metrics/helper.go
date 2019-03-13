@@ -104,6 +104,7 @@ func ConfigureOpenCensusPrometheusExporter(cfg *viper.Viper, views []*view.View)
 type Hook struct {
 	count       *stats.Int64Measure
 	keySeverity tag.Key
+	keyName     tag.Key
 }
 
 // NewHook returns a new log.Hook for counting log lines using OpenCensus.
@@ -111,6 +112,15 @@ func NewHook(m *stats.Int64Measure, ks tag.Key) log.Hook {
 	return Hook{
 		count:       m,
 		keySeverity: ks,
+	}
+}
+
+// NewHook returns a new log.Hook for counting log lines using OpenCensus.
+func NewMmfHook(m *stats.Int64Measure, ks tag.Key, kn tag.Key) log.Hook {
+	return Hook{
+		count:       m,
+		keySeverity: ks,
+		keyName:     kn,
 	}
 }
 

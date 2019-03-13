@@ -143,6 +143,8 @@ func RunApplication() {
 	// finished.
 
 	for {
+		cycleStart := time.Now()
+
 		// Get number of running MMFs
 		// 'nil' return from redigo indicates that no new MMFs have even been started
 		// since the last time the evaluator ran.  We don't want to evaluate in that case.
@@ -224,7 +226,7 @@ func RunApplication() {
 		// A sleep here is not critical but just a useful safety valve in case
 		// things are broken, to keep the main loop from going all-out and spamming the log.
 		sleepyTime := 1000
-		evLog.WithFields(log.Fields{"ms": sleepyTime}).Info("Sleeping...")
+		evLog.WithFields(log.Fields{"sleepms": sleepyTime, "elapsed": time.Since(cycleStart)}).Info("Evaluation complete. Sleeping...")
 		time.Sleep(time.Duration(sleepyTime) * time.Millisecond)
 	} // End main for loop
 }
@@ -326,7 +328,7 @@ func evaluator(ctx context.Context) {
 		// Acrtually approve the match
 		evLog.Infof("approving proposal number %v, ID: %v -> %v\n", proposalIndex, proposedID, backendID)
 		if !dryrun {
-			evLog.Infof(" RENAME %v %v", proposedID, backendID)
+			evLog.Debugf(" RENAME %v %v", proposedID, backendID)
 			_, err = redisConn.Do("RENAME", proposedID, backendID)
 			if err != nil {
 				// RENAME only fails if the source key doesn't exist
@@ -374,7 +376,7 @@ func evaluator(ctx context.Context) {
 			}
 
 			// TODO: dry this with the approved flow
-			evLog.Infof(" RENAME %v", proposedID)
+			evLog.Debug(" RENAME %v", proposedID)
 			_, err = redisConn.Do("RENAME", proposedID, backendID)
 			if err != nil {
 				evLog.Error("Failure to delete rejected proposal! ", err)
@@ -415,7 +417,7 @@ func evaluator(ctx context.Context) {
 		evLog.Warning("No rejected players to re-queue!")
 	}
 
-	evLog.Printf("0 Finished in %v seconds.", time.Since(start).Seconds())
+	evLog.Printf("---- Finished in %v seconds.", time.Since(start).Seconds())
 }
 
 // stub is the name of this function because it's just a functioning test, not
@@ -434,7 +436,7 @@ func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[i
 	proposalq := cfg.GetString("queues.proposals.name")
 
 	numProposals, err := redis.Int(redisConn.Do("SCARD", proposalq))
-	evLog.Info("SCARD ", proposalq, " returned ", numProposals)
+	evLog.Debug("SCARD ", proposalq, " returned ", numProposals)
 	cmd := "SPOP"
 	if dryrun {
 		cmd = "SRANDMEMBER"
@@ -444,7 +446,7 @@ func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[i
 	if err != nil {
 		evLog.Println(err)
 	}
-	evLog.Infof("proposals = %+v\n", proposals)
+	evLog.Debug("proposals = %+v\n", proposals)
 
 	// This is a far cry from effecient but we expect a pretty small set of players under consideration
 	// at any given time
@@ -496,11 +498,11 @@ func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[i
 // TODO: this needs a complete overhaul in a 'real' graph search
 func chooseMatches(overloaded []int) ([]int, []int, error) {
 	// Super naive - take one overloaded match and approved it, reject all others.
-	evLog.Infof("overloaded = %+v\n", overloaded)
-	evLog.Infof("len(overloaded) = %+v\n", len(overloaded))
+	evLog.Debug("overloaded = %+v\n", overloaded)
+	evLog.Debug("len(overloaded) = %+v\n", len(overloaded))
 	if len(overloaded) > 0 {
-		evLog.Infof("overloaded[0:0] = %+v\n", overloaded[0:0])
-		evLog.Infof("overloaded[1:] = %+v\n", overloaded[1:])
+		evLog.Debug("overloaded[0:0] = %+v\n", overloaded[0:0])
+		evLog.Debug("overloaded[1:] = %+v\n", overloaded[1:])
 		return overloaded[0:1], overloaded[1:], nil
 	}
 	return []int{}, overloaded, nil
