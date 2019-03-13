@@ -79,7 +79,7 @@ func main() {
 	printJSON := false
 
 	// Parse flags
-	flag.IntVar(&concurrency, "concurrency", 10, "[NYI] Max number of backend API calls to run concurrently")
+	flag.IntVar(&concurrency, "concurrency", 20, "[NYI] Max number of backend API calls to run concurrently")
 	flag.StringVar(&filename, "file", "profiles/testprofile.json", "JSON file from which to read match properties")
 	flag.StringVar(&mmfType, "type", "grpc", "MMF type")
 	flag.StringVar(&beCall, "call", "ListMatches", "Open Match backend match request gRPC call to test")

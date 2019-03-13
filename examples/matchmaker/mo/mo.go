@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/GoogleCloudPlatform/open-match/examples/matchmaker/divs"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/gobs/pretty"
 	"github.com/gogo/protobuf/jsonpb"
@@ -137,9 +138,9 @@ func ProcedurallyGenerateMatchObjects(concurrency int, moChan chan *pb.MatchObje
 	debug = false
 	teamSize = 8
 	numTeams = 2
-	minMMR := 0
-	maxMMR := 4350
-	filterSize := (maxMMR - minMMR) / concurrency
+	//minMMR := 0
+	//maxMMR := 4350
+	//filterSize := (maxMMR - minMMR) / concurrency
 	minPing := 0
 	maxPing := 250
 	pingSize := (maxPing - minPing) / concurrency
@@ -176,16 +177,22 @@ func ProcedurallyGenerateMatchObjects(concurrency int, moChan chan *pb.MatchObje
 		filters[filter.Name] = filter
 	}
 
+	scores := divs.GenerateBuckets(int64(concurrency))
+	log.Println(scores)
+
+	//regions = make([]string, 0)
+
 	// Make backend match object
 	for _, region := range regions {
 		for j := 0; j < concurrency; j++ {
-			for i := 0; i < concurrency; i++ {
+			//for i := 0; i < concurrency; i++ {
+			for i := 0; i < len(scores)-1; i++ {
 
 				thisMinPing := minPing + (pingSize * j) + 1
 				thisMaxPing := minPing + (pingSize * (j + 1))
 				pingString := fmt.Sprintf("%v-%v", thisMinPing, thisMaxPing)
-				thisMinMMR := minMMR + (filterSize * i) + 1
-				thisMaxMMR := minMMR + (filterSize * (i + 1))
+				thisMinMMR := scores[i]
+				thisMaxMMR := scores[i+1]
 				rangeString := fmt.Sprintf("%v-%v", thisMinMMR, thisMaxMMR)
 				name := region + "=" + pingString + "=" + rangeString
 
