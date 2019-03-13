@@ -121,157 +121,130 @@ steps:
   args: ['install/yaml/01-redis.yaml', 'install/yaml/02-open-match.yaml']
   waitFor: ['-']
 
-- id: 'Setup: go mod'
+- id: 'Setup: Pull Dependencies'
   name: golang
   env: ['GO111MODULE=on', 'CGO_ENABLED=0']
-  args: ['go', 'mod', 'init', 'github.com/GoogleCloudPlatform/open-match']
+  args: ['go', 'mod', 'download']
   volumes:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['-']
 
-- id: 'Setup: Pull Dependencies'
+- id: 'Lint: Formatting'
   name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
-  args: ['go', 'mod', 'tidy']
-  volumes:
-  - name: 'go-vol'
-    path: '/go'
-  waitFor: ['Setup: go mod']
-
-- id: 'Setup: Fix k8s.io/api Dependency'
-  name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
-  args: ['go', 'mod', 'edit', '-require', 'k8s.io/api@v0.0.0-20190111032252-67edc246be36']
+  env: ['GO111MODULE=on', 'GOPROXY=off', 'CGO_ENABLED=0']
+  args: ['go', 'fmt', './...']
   volumes:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Setup: Pull Dependencies']
 
-- id: 'Setup: Vendor Dependencies'
-  name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
-  args: ['go', 'mod', 'vendor']
-  volumes:
-  - name: 'go-vol'
-    path: '/go'
-  waitFor: ['Setup: Fix k8s.io/api Dependency']
-
-- id: 'Lint: Formatting'
-  name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
-  args: ['go', 'fmt', './...']
-  volumes:
-  - name: 'go-vol'
-    path: '/go'
-  waitFor: ['Setup: Vendor Dependencies']
-
 - id: 'Lint: Vetting'
   name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
+  env: ['GO111MODULE=on', 'GOPROXY=off', 'CGO_ENABLED=0']
   args: ['go', 'vet', './...']
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Vendor Dependencies']
+  waitFor: ['Setup: Pull Dependencies']
 
 - id: 'Test: 10x with Race Detection and Coverage'
   name: golang
-  env: ['GO111MODULE=on']
+  env: ['GO111MODULE=on', 'GOPROXY=off']
   args: ['go', 'test', './...', '-race', '-test.count', '10', '-cover']
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Vendor Dependencies']
+  waitFor: ['Setup: Pull Dependencies']
 
 - id: 'Build: All Binaries'
   name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
+  env: ['GO111MODULE=on', 'GOPROXY=off', 'CGO_ENABLED=0']
   args: ['go', 'build', './...']
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Vendor Dependencies']
+  waitFor: ['Setup: Pull Dependencies']
 
 - id: 'Build: cmd/backendapi/backendapi'
   name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
+  env: ['GO111MODULE=on', 'GOPROXY=off', 'CGO_ENABLED=0']
   args: ['go', 'build', '-a', '-installsuffix', 'cgo', '.']
   dir: 'cmd/backendapi/'
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Vendor Dependencies']
+  waitFor: ['Setup: Pull Dependencies']
 
 - id: 'Build: cmd/frontendapi/frontendapi'
   name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
+  env: ['GO111MODULE=on', 'GOPROXY=off', 'CGO_ENABLED=0']
   args: ['go', 'build', '-a', '-installsuffix', 'cgo', '.']
   dir: 'cmd/frontendapi/'
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Vendor Dependencies']
+  waitFor: ['Setup: Pull Dependencies']
 
 - id: 'Build: cmd/mmforc/mmforc'
   name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
+  env: ['GO111MODULE=on', 'GOPROXY=off', 'CGO_ENABLED=0']
   args: ['go', 'build', '-a', '-installsuffix', 'cgo', '.']
   dir: 'cmd/mmforc/'
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Vendor Dependencies']
+  waitFor: ['Setup: Pull Dependencies']
 
 - id: 'Build: cmd/mmlogicapi/mmlogicapi'
   name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
+  env: ['GO111MODULE=on', 'GOPROXY=off', 'CGO_ENABLED=0']
   args: ['go', 'build', '-a', '-installsuffix', 'cgo', '.']
   dir: 'cmd/mmlogicapi/'
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Vendor Dependencies']
+  waitFor: ['Setup: Pull Dependencies']
 
 - id: 'Build: examples/functions/golang/manual-simple'
   name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
+  env: ['GO111MODULE=on', 'GOPROXY=off', 'CGO_ENABLED=0']
   args: ['go', 'build', '-a', '-installsuffix', 'cgo', '.']
   dir: 'examples/functions/golang/manual-simple/'
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Vendor Dependencies']
+  waitFor: ['Setup: Pull Dependencies']
 
 - id: 'Build: examples/backendclient'
   name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
+  env: ['GO111MODULE=on', 'GOPROXY=off', 'CGO_ENABLED=0']
   args: ['go', 'build', '-a', '-installsuffix', 'cgo', '.']
   dir: 'examples/backendclient/'
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Vendor Dependencies']
+  waitFor: ['Setup: Pull Dependencies']
 
 - id: 'Build: test/cmd/clientloadgen'
   name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
+  env: ['GO111MODULE=on', 'GOPROXY=off', 'CGO_ENABLED=0']
   args: ['go', 'build', '-a', '-installsuffix', 'cgo', '.']
   dir: 'test/cmd/clientloadgen/'
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Vendor Dependencies']
+  waitFor: ['Setup: Pull Dependencies']
 
 - id: 'Build: test/cmd/frontendclient'
   name: golang
-  env: ['GO111MODULE=on', 'CGO_ENABLED=0']
+  env: ['GO111MODULE=on', 'GOPROXY=off', 'CGO_ENABLED=0']
   args: ['go', 'build', '-a', '-installsuffix', 'cgo', '.']
   dir: 'test/cmd/frontendclient/'
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Vendor Dependencies']
+  waitFor: ['Setup: Pull Dependencies']
 
 artifacts:
     objects:
