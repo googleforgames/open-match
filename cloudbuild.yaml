@@ -121,7 +121,7 @@ steps:
 
 - id: 'Lint: Kubernetes Configs'
   name: garethr/kubeval
-  args: ['install/yaml/01-redis.yaml', 'install/yaml/02-open-match.yaml']
+  args: ['install/yaml/01-redis-simple.yaml', 'install/yaml/01-redis-chart.yaml', 'install/yaml/02-open-match.yaml']
   waitFor: ['-']
 
 - id: 'Setup: Pull Dependencies'
