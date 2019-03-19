@@ -13,7 +13,6 @@
 # limitations under the License.
 
 {{- if .Values.openmatch.mmforc.install }}
----
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -21,20 +20,15 @@ metadata:
   labels:
     app: {{ template "openmatch.name" . }}
     component: mmforc
-    chart: {{ template "openmatch.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: {{ template "openmatch.name" . }}
       component: mmforc
-      chart: {{ template "openmatch.chart" . }}
-      release: {{ .Release.Name }}
-      heritage: {{ .Release.Service }}
+      {{- include "openmatch.chartmeta" (set . "indent" 6) }}
   template:
-    namespace: {{ .Release.Namespace }}
     metadata:
       annotations:
       {{- if and (.Values.openmatch.metrics.prometheusServiceDiscovery) (.Values.openmatch.metrics.prometheusEnabled) }}
@@ -45,9 +39,7 @@ spec:
       labels:
         app: {{ template "openmatch.name" . }}
         component: mmforc
-        chart: {{ template "openmatch.chart" . }}
-        release: {{ .Release.Name }}
-        heritage: {{ .Release.Service }}
+        {{- include "openmatch.chartmeta" (set . "indent" 8) }}
     spec:
       containers:
       - name: om-mmforc
@@ -55,7 +47,7 @@ spec:
         imagePullPolicy: {{ .Values.openmatch.image.mmforc.pullPolicy }}
         volumeMounts:
         - name: om-config-volume
-          mountPath: {{ .Values.openmatch.config.matchmaker }}
+          mountPath: {{ .Values.openmatch.config.mountPath }}
         ports:
         - name: metrics
           containerPort: {{ .Values.openmatch.metrics.port }}
@@ -69,9 +61,16 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: REDIS_SERVICE_HOST
-          value: "$(OPEN_MATCH_REDIS_MASTER_SERVICE_HOST)"
+          value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
         - name: REDIS_SERVICE_PORT
-          value: "$(OPEN_MATCH_REDIS_MASTER_SERVICE_PORT)"
+          value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
+        {{- if .Values.redis.usePassword }}
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.redis.fullnameOverride }}
+              key: redis-password
+        {{- end}}
       volumes:
       - name: om-config-volume
         configMap:

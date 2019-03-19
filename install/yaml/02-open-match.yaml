@@ -1,145 +1,140 @@
-kind: Service
+---
+# Source: open-match/templates/om-configmap.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: om-backendapi
-spec:
-  selector:
-    app: openmatch
-    component: backend
-  ports:
-  - protocol: TCP
-    port: 50505
-    targetPort: grpc
----
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: om-backendapi
+  name: om-configmap
   labels:
-    app: openmatch
-    component: backend
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: openmatch
-      component: backend
-  template:
-    annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: 9555
-        prometheus.io/path: "/metrics"
-    metadata:
-      labels:
-        app: openmatch
-        component: backend
-    spec:
-      containers:
-      - name: om-backend
-        image: gcr.io/matchmaker-dev-201405/openmatch-backendapi:0.4
-        imagePullPolicy: Always
-        env:
-        - name: REDIS_USER
-          valueFrom:
-            secretKeyRef:
-              name: om-secret
-              key: redis.user
-              optional: true
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: om-secret
-              key: redis.password
-              optional: true
-        volumeMounts:
-        - name: om-configmap
-          subPath: matchmaker_config.yaml
-          mountPath: matchmaker_config.yaml
-        ports:
-        - name: grpc
-          containerPort: 50505
-        - name: metrics
-          containerPort: 9555
-        resources:
-          requests:
-            memory: 100Mi
-            cpu: 100m
-      volumes:
-      - name: om-configmap
-        configMap:
-          name: om-configmap
+    app: open-match
+    component: config
+data:
+  matchmaker_config.yaml: |-
+    # kubectl create configmap om-configmap --from-file=config/matchmaker_config.yaml
+    debug: true
+    
+    logging:
+      level: debug
+      format: text
+      source: true
+    
+    api: 
+      backend: 
+        hostname: om-backendapi
+        port: 50505
+        backoff: "[2 32] *2 ~0.33 <30"
+      frontend: 
+        hostname: om-frontendapi
+        port: 50504
+        backoff: "[2 32] *2 ~0.33 <300"
+      mmlogic: 
+        hostname: om-mmlogicapi
+        port: 50503
+      functions:
+        port: 50502
+      
+    evalutor: 
+      interval: 10
+    
+    metrics: 
+      port: 9555
+      endpoint: /metrics
+      reportingPeriod: 5
+    
+    queues: 
+      profiles: 
+        name: profileq
+        pullCount: 100
+      proposals: 
+        name: proposalq
+      
+    ignoreLists: 
+      proposed: 
+        name: proposed
+        offset: 0
+        duration: 800
+      deindexed: 
+        name: deindexed
+        offset: 0
+        duration: 800
+      expired: 
+        name: OM_METADATA.accessed
+        offset: 800
+        duration: 0 
+    
+    defaultImages: 
+      evaluator: 
+        name: gcr.io/open-match-public-images/openmatch-evaluator
+        tag: latest
+      mmf: 
+        name: gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple
+        tag: latest
+    
+    redis: 
+      pool: 
+        maxIdle: 3
+        maxActive: 0
+        idleTimeout: 60
+      queryArgs:
+        count: 10000
+      results: 
+        pageSize: 10000
+      expirations: 
+        player: 43200
+        matchobject: 43200 
+    
+    jsonkeys:
+      mmfImage: imagename
+      mmfService: hostname
+      rosters: properties.rosters
+      pools: properties.pools
+    
+    playerIndices:
+    - char.cleric
+    - char.knight
+    - char.paladin
+    - map.aleroth
+    - map.oasis
+    - mmr.rating
+    - mode.battleroyale
+    - mode.ctf
+    - mode.demo
+    - region.europe-east1
+    - region.europe-west1
+    - region.europe-west2
+    - region.europe-west3
+    - region.europe-west4
+    - role.dps
+    - role.support
+    - role.tank
+    
 ---
-kind: Service
-apiVersion: v1
-metadata:
-  name: om-frontendapi
-spec:
-  selector:
-    app: openmatch
-    component: frontend
-  ports:
-  - protocol: TCP
-    port: 50504
-    targetPort: grpc
----
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: om-frontendapi
-  labels:
-    app: openmatch
-    component: frontend
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: openmatch
-      component: frontend
-  template:
-    annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: 9555
-        prometheus.io/path: "/metrics"
-    metadata:
-      labels:
-        app: openmatch
-        component: frontend
-    spec:
-      containers:
-      - name: om-frontendapi
-        image: gcr.io/matchmaker-dev-201405/openmatch-frontendapi:0.4
-        imagePullPolicy: Always
-        env:
-        - name: REDIS_USER
-          valueFrom:
-            secretKeyRef:
-              name: om-secret
-              key: redis.user
-              optional: true
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: om-secret
-              key: redis.password
-              optional: true
-        volumeMounts:
-        - name: om-configmap
-          subPath: matchmaker_config.yaml
-          mountPath: matchmaker_config.yaml
-        ports:
-        - name: grpc
-          containerPort: 50504
-        - name: metrics
-          containerPort: 9555
-        resources:
-          requests:
-            memory: 100Mi
-            cpu: 100m
-      volumes:
-      - name: om-configmap
-        configMap:
-          name: om-configmap
----
+# Source: open-match/templates/service-account.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
@@ -152,117 +147,237 @@ roleRef:
   kind: ClusterRole
   name: cluster-admin
   apiGroup: rbac.authorization.k8s.io
+
+---
+# Source: open-match/templates/backendapi.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-backendapi
+  labels:
+    app: open-match
+spec:
+  selector:
+    app: open-match
+    component: backend
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: 50505
+    targetPort: grpc
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: om-mmforc
+  name: om-backendapi
   labels:
-    app: openmatch
-    component: mmforc
+    app: open-match
+    component: backend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: openmatch
-      component: mmforc
+      app: open-match
+      component: backend
   template:
-    annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: 9555
-        prometheus.io/path: "/metrics"
     metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9555"
+        prometheus.io/path: /metrics
       labels:
-        app: openmatch
-        component: mmforc
+        app: open-match
+        component: backend
     spec:
       containers:
-      - name: om-mmforc
-        image: gcr.io/matchmaker-dev-201405/openmatch-mmforc:0.4
+      - name: om-backend
+        image: "gcr.io/open-match-public-images/openmatch-backendapi:0.4.0"
         imagePullPolicy: Always
-        env:
-        - name: METADATA_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: REDIS_CREDENTIALS_SECRET_NAME
-          value: om-secret
-        - name: REDIS_CREDENTIALS_SECRET_USER_KEY
-          value: redis.user
-        - name: REDIS_CREDENTIALS_SECRET_PASSWORD_KEY
-          value: redis.password
-        - name: REDIS_USER
-          valueFrom:
-            secretKeyRef:
-              name: om-secret
-              key: redis.user
-              optional: true
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: om-secret
-              key: redis.password
-              optional: true
         volumeMounts:
-        - name: om-configmap
-          subPath: matchmaker_config.yaml
-          mountPath: matchmaker_config.yaml
+        - name: om-config-volume
+          mountPath: /config
         ports:
+        - name: grpc
+          containerPort: 50505
         - name: metrics
           containerPort: 9555
         resources:
           requests:
             memory: 100Mi
             cpu: 100m
+        env:
+        - name: REDIS_SERVICE_HOST
+          value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
+        - name: REDIS_SERVICE_PORT
+          value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: om-redis
+              key: redis-password
       volumes:
-      - name: om-configmap
+      - name: om-config-volume
         configMap:
           name: om-configmap
+
+---
+# Source: open-match/templates/frontendapi.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-frontendapi
+  labels:
+    app: open-match
+spec:
+  selector:
+    app: open-match
+    component: frontend
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: 50504
+    targetPort: grpc
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-frontendapi
+  labels:
+    app: open-match
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: open-match
+      component: frontend
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9555"
+        prometheus.io/path: /metrics
+      labels:
+        app: open-match
+        component: frontend
+    spec:
+      containers:
+      - name: om-frontendapi
+        image: "gcr.io/open-match-public-images/openmatch-frontendapi:0.4.0"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: om-config-volume
+          mountPath: /config
+        ports:
+        - name: grpc
+          containerPort: 50504
+        - name: metrics
+          containerPort: 9555
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+        env:
+        - name: REDIS_SERVICE_HOST
+          value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
+        - name: REDIS_SERVICE_PORT
+          value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: om-redis
+              key: redis-password
+      volumes:
+      - name: om-config-volume
+        configMap:
+          name: om-configmap
+
+---
+# Source: open-match/templates/mmlogicapi.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-mmlogicapi
+  labels:
+    app: open-match
+spec:
+  selector:
+    app: open-match
+    component: mmlogic
+  ports:
+  - protocol: TCP
+    port: 50503
+    targetPort: grpc
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-mmlogicapi
   labels:
-    app: openmatch
+    app: open-match
     component: mmlogic
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: openmatch
+      app: open-match
       component: mmlogic
   template:
-    annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: 9555
-        prometheus.io/path: "/metrics"
     metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9555"
+        prometheus.io/path: /metrics
       labels:
-        app: openmatch
+        app: open-match
         component: mmlogic
     spec:
       containers:
       - name: om-mmlogic
-        image: gcr.io/matchmaker-dev-201405/openmatch-mmlogicapi:0.4
+        image: "gcr.io/open-match-public-images/openmatch-mmlogicapi:0.4.0"
         imagePullPolicy: Always
-        env:
-        - name: REDIS_USER
-          valueFrom:
-            secretKeyRef:
-              name: om-secret
-              key: redis.user
-              optional: true
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: om-secret
-              key: redis.password
-              optional: true
         volumeMounts:
-        - name: om-configmap
-          subPath: matchmaker_config.yaml
-          mountPath: matchmaker_config.yaml
+        - name: om-config-volume
+          mountPath: /config
         ports:
         - name: grpc
           containerPort: 50503
@@ -272,20 +387,105 @@ spec:
           requests:
             memory: 100Mi
             cpu: 100m
+        env:
+        - name: REDIS_SERVICE_HOST
+          value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
+        - name: REDIS_SERVICE_PORT
+          value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: om-redis
+              key: redis-password
       volumes:
-      - name: om-configmap
+      - name: om-config-volume
         configMap:
           name: om-configmap
+
 ---
-kind: Service
-apiVersion: v1
+# Source: open-match/templates/mmforc.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: extensions/v1beta1
+kind: Deployment
 metadata:
-  name: om-mmlogicapi
+  name: om-mmforc
+  labels:
+    app: open-match
+    component: mmforc
 spec:
+  replicas: 1
   selector:
-    app: openmatch
-    component: mmlogic
-  ports:
-  - protocol: TCP
-    port: 50503
-    targetPort: grpc
+    matchLabels:
+      app: open-match
+      component: mmforc
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9555"
+        prometheus.io/path: /metrics
+      labels:
+        app: open-match
+        component: mmforc
+    spec:
+      containers:
+      - name: om-mmforc
+        image: "gcr.io/open-match-public-images/openmatch-mmforc:0.4.0"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: om-config-volume
+          mountPath: /config
+        ports:
+        - name: metrics
+          containerPort: 9555
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+        env:
+        - name: METADATA_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: REDIS_SERVICE_HOST
+          value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
+        - name: REDIS_SERVICE_PORT
+          value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: om-redis
+              key: redis-password
+      volumes:
+      - name: om-config-volume
+        configMap:
+          name: om-configmap
+
+---
+# Source: open-match/templates/grafana-dashboards.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+

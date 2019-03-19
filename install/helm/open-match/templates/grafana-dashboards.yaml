@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if .Values.grafana.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: open-match-rpc-dashboard
-  namespace: open-match
   labels:
      grafana_dashboard: "1"
 data:
   {{- (.Files.Glob "dashboards/*.json").AsConfig | nindent 2 }}
+{{- end }}

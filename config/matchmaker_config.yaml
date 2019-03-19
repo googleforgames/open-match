@@ -52,11 +52,11 @@ ignoreLists:
 
 defaultImages: 
   evaluator: 
-    name: gcr.io/matchmaker-dev-201405/openmatch-evaluator
-    tag: dev
+    name: gcr.io/open-match-public-images/openmatch-evaluator
+    tag: latest
   mmf: 
-    name: gcr.io/matchmaker-dev-201405/openmatch-mmf-py3-mmlogic-simple
-    tag: dev
+    name: gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple
+    tag: latest
 
 redis: 
   pool: 

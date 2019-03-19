@@ -12,16 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if .Values.openmatch.config.install }}
 apiVersion: v1
 kind: ConfigMap
-namespace: {{ .Release.Namespace }}
 metadata:
   name: om-configmap
   labels:
     app: {{ template "openmatch.name" . }}
-    component: mmlogic
-    chart: {{ template "openmatch.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    component: config
+    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
 data:
-  {{- (.Files.Glob "config/matchmaker_config.yaml").AsConfig | nindent 2 }}
+  {{- $root := . -}}
+  {{- $overrides := default (dict) $root.Values.openmatch.config.contents -}}
+
+  {{ range $path, $bytes := .Files.Glob "config/**.yaml" }}
+  {{- $override := index $overrides (base $path) -}}
+  {{- if not (empty $override) }}
+  {{ base $path }}: |- {{- tpl (toYaml $override | nindent 4) $root -}}
+  {{- else }}
+  {{ base $path }}: |- {{- $root.Files.Get $path | nindent 4 -}}
+  {{- end -}}
+  {{- end -}}
+{{- end }}
