@@ -56,11 +56,11 @@ TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
 TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
 PROTOC := $(TOOLCHAIN_BIN)/protoc
 PROTOC_INCLUDES := $(TOOLCHAIN_DIR)/include/
-GCP_PROJECT_ID =
+GCP_PROJECT_ID ?=
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
 OM_SITE_GCP_PROJECT_ID = open-match-site
 OM_SITE_GCP_PROJECT_FLAG = --project=$(OM_SITE_GCP_PROJECT_ID)
-REGISTRY = gcr.io/$(GCP_PROJECT_ID)
+REGISTRY ?= gcr.io/$(GCP_PROJECT_ID)
 TAG := $(VERSION)
 ALTERNATE_TAG := dev
 GKE_CLUSTER_NAME = om-cluster
@@ -68,7 +68,7 @@ GCP_REGION = us-west1
 GCP_ZONE = us-west1-a
 EXE_EXTENSION =
 LOCAL_CLOUD_BUILD_PUSH = # --push
-KUBECTL_RUN_ENV = --env='REDIS_SERVICE_HOST=$$(OPEN_MATCH_REDIS_MASTER_SERVICE_HOST)' --env='REDIS_SERVICE_PORT=$$(OPEN_MATCH_REDIS_MASTER_SERVICE_PORT)'
+KUBECTL_RUN_ENV = --env='REDIS_SERVICE_HOST=$$(OM_REDIS_MASTER_SERVICE_HOST)' --env='REDIS_SERVICE_PORT=$$(OM_REDIS_MASTER_SERVICE_PORT)'
 GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
 # Flags to simulate behavior of newer versions of Kubernetes
 KUBERNETES_COMPAT = --no-enable-basic-auth -no-issue-client-certificate --enable-ip-alias
@@ -81,6 +81,9 @@ TILLER = $(TOOLCHAIN_BIN)/tiller
 MINIKUBE = $(TOOLCHAIN_BIN)/minikube
 KUBECTL = $(TOOLCHAIN_BIN)/kubectl
 SERVICE = default
+NAMESPACE ?= open-match
+OPEN_MATCH_NAME ?= open-match
+REDIS_NAME = om-redis
 
 ## Make port forwards accessible outside of the proxy machine.
 PORT_FORWARD_ADDRESS_FLAG = --address 0.0.0.0
@@ -260,7 +263,7 @@ clean-images:
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator-simple:$(TAG) $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG)
 
 install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug redis stable/redis --namespace redis
+	$(HELM) upgrade --install --wait --debug $(REDIS_NAME) stable/redis --namespace $(NAMESPACE)
 
 chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd install/helm/open-match; $(HELM) dependency update)
@@ -269,34 +272,92 @@ print-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd install/helm; $(HELM) lint open-match; $(HELM) install --dry-run --debug open-match)
 
 install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug open-match install/helm/open-match \
-	  --namespace=open-match \
-	  --set openmatch.image.registry=$(REGISTRY) \
-	  --set openmatch.image.tag=$(TAG)
+	$(HELM) upgrade --install --wait --debug $(OPEN_MATCH_NAME) install/helm/open-match \
+		--namespace=$(NAMESPACE) \
+		--set openmatch.image.registry=$(REGISTRY) \
+		--set openmatch.image.tag=$(TAG)
 
 install-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug open-match-example install/helm/open-match-example \
-	  --namespace=open-match \
+	$(HELM) upgrade --install --wait --debug $(OPEN_MATCH_NAME)-example install/helm/open-match-example \
+	  --namespace=$(NAMESPACE) \
 	  --set openmatch.image.registry=$(REGISTRY) \
 	  --set openmatch.image.tag=$(TAG)
 
 delete-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	-$(HELM) delete --purge open-match-example
+	-$(HELM) delete --purge $(OPEN_MATCH_NAME)-example
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug --dry-run open-match install/helm/open-match \
-	  --namespace=open-match \
-	  --set openmatch.image.registry=$(REGISTRY) \
-	  --set openmatch.image.tag=$(TAG)
+	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_NAME) install/helm/open-match \
+		--namespace=$(NAMESPACE) \
+		--set openmatch.image.registry=$(REGISTRY) \
+		--set openmatch.image.tag=$(TAG)
 
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	-$(HELM) delete --purge open-match
+	-$(HELM) delete --purge $(OPEN_MATCH_NAME)
 	-$(KUBECTL) delete crd prometheuses.monitoring.coreos.com
 	-$(KUBECTL) delete crd servicemonitors.monitoring.coreos.com
 	-$(KUBECTL) delete crd prometheusrules.monitoring.coreos.com
 
 update-helm-deps:
 	(cd install/helm/open-match; helm dependencies update)
+
+gen-install: gen-redis-install gen-openmatch-install gen-prometheus-install gen-grafana-install
+
+gen-redis-install: build/toolchain/bin/helm$(EXE_EXTENSION)
+	$(HELM) template --name $(OPEN_MATCH_NAME) --namespace $(NAMESPACE) \
+		--set redis.fullnameOverride='$(REDIS_NAME)' \
+		--set openmatch.config.install=false \
+		--set openmatch.backendapi.install=false \
+		--set openmatch.frontendapi.install=false \
+		--set openmatch.mmlogicapi.install=false \
+		--set openmatch.mmforc.install=false \
+		--set prometheus.enabled=false \
+		--set grafana.enabled=false \
+		install/helm/open-match > install/yaml/01-redis-chart.yaml
+
+gen-openmatch-install: build/toolchain/bin/helm$(EXE_EXTENSION)
+	$(HELM) template --name $(OPEN_MATCH_NAME) --namespace $(NAMESPACE) \
+		--set redis.fullnameOverride='$(REDIS_NAME)' \
+		--set redis.enabled=false \
+		--set prometheus.enabled=false \
+		--set grafana.enabled=false \
+		--set openmatch.image.registry=$(REGISTRY) \
+		--set openmatch.image.tag=$(TAG) \
+		--set openmatch.noChartMeta=true \
+		install/helm/open-match > install/yaml/02-open-match.yaml
+
+gen-prometheus-install:
+	$(HELM) template --name $(OPEN_MATCH_NAME) --namespace $(NAMESPACE) \
+		--set redis.enabled=false \
+		--set openmatch.config.install=false \
+		--set openmatch.backendapi.install=false \
+		--set openmatch.frontendapi.install=false \
+		--set openmatch.mmlogicapi.install=false \
+		--set openmatch.mmforc.install=false \
+		--set grafana.enabled=false \
+		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
+
+gen-grafana-install:
+	$(HELM) template --name $(OPEN_MATCH_NAME) --namespace $(NAMESPACE) \
+		--set redis.enabled=false \
+		--set openmatch.config.install=false \
+		--set openmatch.backendapi.install=false \
+		--set openmatch.frontendapi.install=false \
+		--set openmatch.mmlogicapi.install=false \
+		--set openmatch.mmforc.install=false \
+		--set prometheus.enabled=false \
+		--set grafana.enabled=true \
+		install/helm/open-match > install/yaml/04-grafana-chart.yaml
+
+set-redis-password:
+	@stty -echo; \
+		printf "Redis password: "; \
+		read REDIS_PASSWORD; \
+		stty echo; \
+		printf "\n"; \
+		REDIS_PASSWORD=$$(printf "$$REDIS_PASSWORD" | base64); \
+		printf "apiVersion: v1\nkind: Secret\nmetadata:\n  name: $(REDIS_NAME)\n  namespace: $(NAMESPACE)\ndata:\n  redis-password: $$REDIS_PASSWORD\n" | \
+		$(KUBECTL) replace -f - --force
 
 install-toolchain: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)  build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/python/
 
@@ -513,21 +574,21 @@ clean-nodejs:
 clean: clean-images clean-binaries clean-site clean-toolchain clean-protos clean-nodejs
 
 run-backendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=open-match $(KUBECTL_RUN_ENV)
+	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=$(NAMESPACE) $(KUBECTL_RUN_ENV)
 
 run-frontendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) run om-frontendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-frontendclient:$(TAG) --namespace=open-match $(KUBECTL_RUN_ENV)
+	$(KUBECTL) run om-frontendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-frontendclient:$(TAG) --namespace=$(NAMESPACE) $(KUBECTL_RUN_ENV)
 
 run-clientloadgen: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) run om-clientloadgen --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-clientloadgen:$(TAG) --namespace=open-match $(KUBECTL_RUN_ENV)
+	$(KUBECTL) run om-clientloadgen --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-clientloadgen:$(TAG) --namespace=$(NAMESPACE) $(KUBECTL_RUN_ENV)
 
 proxy-grafana: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	echo "User: admin"
 	echo "Password: openmatch"
-	$(KUBECTL) port-forward --namespace open-match $(shell $(KUBECTL) get pod --namespace open-match --selector="app=grafana,release=open-match" --output jsonpath='{.items[0].metadata.name}') $(GRAFANA_PORT):3000 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(NAMESPACE) --selector="app=grafana,release=$(OPEN_MATCH_NAME)" --output jsonpath='{.items[0].metadata.name}') $(GRAFANA_PORT):3000 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) port-forward --namespace open-match $(shell $(KUBECTL) get pod --namespace open-match --selector="app=prometheus,component=server,release=open-match" --output jsonpath='{.items[0].metadata.name}') $(PROMETHEUS_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(NAMESPACE) --selector="app=prometheus,component=server,release=$(OPEN_MATCH_NAME)" --output jsonpath='{.items[0].metadata.name}') $(PROMETHEUS_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)

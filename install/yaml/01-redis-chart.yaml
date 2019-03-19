@@ -1,0 +1,576 @@
+---
+# Source: open-match/charts/redis/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: om-redis
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    release: "open-match"
+    heritage: "Tiller"
+type: Opaque
+data:
+  redis-password: "THRvTDJFSTFueg=="
+---
+# Source: open-match/charts/redis/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    heritage: Tiller
+    release: open-match
+  name: om-redis
+data:
+  redis.conf: |-
+    # User-supplied configuration:
+    # maxmemory-policy volatile-lru
+  master.conf: |-
+    dir /data
+  replica.conf: |-
+    dir /data
+
+---
+# Source: open-match/charts/redis/templates/health-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    heritage: Tiller
+    release: open-match
+  name: om-redis-health
+data:
+  ping_local.sh: |-
+    response=$(
+      timeout -s 9 $1 \
+      redis-cli \
+        -a $REDIS_PASSWORD \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_master.sh: |-
+    response=$(
+      timeout -s 9 $1 \
+      redis-cli \
+        -a $REDIS_MASTER_PASSWORD \
+        -h $REDIS_MASTER_HOST \
+        -p $REDIS_MASTER_PORT_NUMBER \
+        ping
+    )
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_local_and_master.sh: |-
+    script_dir="$(dirname "$0")"
+    exit_status=0
+    "$script_dir/ping_local.sh" $1 || exit_status=$?
+    "$script_dir/ping_master.sh" $1 || exit_status=$?
+    exit $exit_status
+
+---
+# Source: open-match/charts/redis/templates/metrics-svc.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: om-redis-metrics
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    release: "open-match"
+    heritage: "Tiller"
+  annotations:
+    prometheus.io/port: "9121"
+    prometheus.io/scrape: "true"
+    
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9121
+    targetPort: metrics
+  selector:
+    app: redis
+    release: open-match
+    role: metrics
+
+---
+# Source: open-match/charts/redis/templates/redis-master-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: om-redis-master
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    release: "open-match"
+    heritage: "Tiller"
+spec:
+  type: ClusterIP
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: redis
+  selector:
+    app: redis
+    release: "open-match"
+    role: master
+
+---
+# Source: open-match/charts/redis/templates/redis-slave-svc.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: om-redis-slave
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    release: "open-match"
+    heritage: "Tiller"
+spec:
+  type: ClusterIP
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: redis
+  selector:
+    app: redis
+    release: "open-match"
+    role: slave
+
+---
+# Source: open-match/charts/redis/templates/metrics-deployment.yaml
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-redis-metrics
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    release: "open-match"
+    heritage: "Tiller"
+spec:
+  selector:
+    matchLabels:
+        release: "open-match"
+        role: metrics
+        app: redis
+  template:
+    metadata:
+      labels:
+        release: "open-match"
+        chart: redis-6.1.0
+        role: metrics
+        app: redis
+      annotations:
+        checksum/secret: 6c82071c5941f518ba1085aa5b3151301b295f45f7c95af14240555c88b996d9
+    spec:
+      serviceAccountName: "default"
+      containers:
+      - name: metrics
+        image: docker.io/oliver006/redis_exporter:v0.28.0
+        imagePullPolicy: "IfNotPresent"
+        args:
+        env:
+        - name: REDIS_ADDR
+          value: "om-redis-master:6379,om-redis-slave:6379"
+        - name: REDIS_ALIAS
+          value: om-redis
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: om-redis
+              key: redis-password
+        volumeMounts:
+        ports:
+        - name: metrics
+          containerPort: 9121
+        resources:
+          null
+          
+      volumes:
+
+---
+# Source: open-match/charts/redis/templates/redis-slave-deployment.yaml
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-redis-slave
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    release: "open-match"
+    heritage: "Tiller"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+        release: "open-match"
+        role: slave
+        app: redis
+  template:
+    metadata:
+      labels:
+        release: "open-match"
+        chart: redis-6.1.0
+        role: slave
+        app: redis
+      annotations:
+        checksum/health: 864411661cdaa9c0274400b146a3e63de48ad757b5d55b2f5474821a9eb79b23
+        checksum/configmap: 76d42d5ea6d55f50ab5ed77bbeeed5ec90a2d11ca33b359933b5a677cf489b78
+        checksum/secret: 8b94a3d6b7d10599cba1ec384a354ca411db00278a3f43e3d4f30c0b5ebf9efb
+    spec:      
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+      serviceAccountName: "default"
+      containers:
+      - name: om-redis
+        image: docker.io/bitnami/redis:4.0.12
+        imagePullPolicy: "Always"
+        command:
+        - /bin/bash
+        - -c
+        - |
+          if [[ -n $REDIS_PASSWORD_FILE ]]; then
+            password_aux=`cat ${REDIS_PASSWORD_FILE}`
+            export REDIS_PASSWORD=$password_aux
+          fi
+          if [[ -n $REDIS_MASTER_PASSWORD_FILE ]]; then
+            password_aux=`cat ${REDIS_MASTER_PASSWORD_FILE}`
+            export REDIS_MASTER_PASSWORD=$password_aux
+          fi
+          ARGS=("--port" "${REDIS_PORT}")
+          ARGS+=("--requirepass" "${REDIS_PASSWORD}")
+          ARGS+=("--slaveof" "${REDIS_MASTER_HOST}" "${REDIS_MASTER_PORT_NUMBER}")
+          ARGS+=("--masterauth" "${REDIS_MASTER_PASSWORD}")
+          ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
+          ARGS+=("--include" "/opt/bitnami/redis/etc/replica.conf")
+          /run.sh "${ARGS[@]}"
+        env:
+        - name: REDIS_REPLICATION_MODE
+          value: slave
+        - name: REDIS_MASTER_HOST
+          value: om-redis-master
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_MASTER_PORT_NUMBER
+          value: "6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: om-redis
+              key: redis-password
+        - name: REDIS_MASTER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: om-redis
+              key: redis-password
+        ports:
+        - name: redis
+          containerPort: 6379        
+        livenessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 5
+          exec:
+            command:
+            - sh
+            - -c
+            - /health/ping_local_and_master.sh 5        
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 5
+          exec:
+            command:
+            - sh
+            - -c
+            - /health/ping_local_and_master.sh 1
+        resources:
+          null
+          
+        volumeMounts:
+        - name: health
+          mountPath: /health
+        - name: redis-data
+          mountPath: /data
+        - name: config
+          mountPath: /opt/bitnami/redis/etc
+      volumes:
+      - name: health
+        configMap:
+          name: om-redis-health
+          defaultMode: 0755
+      - name: config
+        configMap:
+          name: om-redis
+      - name: redis-data
+        emptyDir: {}
+
+---
+# Source: open-match/charts/redis/templates/redis-master-statefulset.yaml
+apiVersion: apps/v1beta2
+kind: StatefulSet
+metadata:
+  name: om-redis-master
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    release: "open-match"
+    heritage: "Tiller"
+spec:
+  selector:
+    matchLabels:
+      release: "open-match"
+      role: master
+      app: redis
+  serviceName: om-redis-master
+  template:
+    metadata:
+      labels:
+        release: "open-match"
+        chart: redis-6.1.0
+        role: master
+        app: redis
+      annotations:
+        checksum/health: 864411661cdaa9c0274400b146a3e63de48ad757b5d55b2f5474821a9eb79b23
+        checksum/configmap: 76d42d5ea6d55f50ab5ed77bbeeed5ec90a2d11ca33b359933b5a677cf489b78
+        checksum/secret: f974cc3953943ee0c54d6004ba35ebccdc15e3c96b93ea9aaf8a7d2162b2d03a
+    spec:
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+      serviceAccountName: "default"
+      containers:
+      - name: om-redis
+        image: "docker.io/bitnami/redis:4.0.12"
+        imagePullPolicy: "Always"
+        command:
+        - /bin/bash
+        - -c
+        - |
+          if [[ -n $REDIS_PASSWORD_FILE ]]; then
+            password_aux=`cat ${REDIS_PASSWORD_FILE}`
+            export REDIS_PASSWORD=$password_aux
+          fi
+          ARGS=("--port" "${REDIS_PORT}")
+          ARGS+=("--requirepass" "${REDIS_PASSWORD}")
+          ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
+          ARGS+=("--include" "/opt/bitnami/redis/etc/master.conf")
+          /run.sh ${ARGS[@]}
+        env:
+        - name: REDIS_REPLICATION_MODE
+          value: master
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: om-redis
+              key: redis-password
+        - name: REDIS_PORT
+          value: "6379"
+        ports:
+        - name: redis
+          containerPort: 6379
+        livenessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 5
+          exec:
+            command:
+            - sh
+            - -c
+            - /health/ping_local.sh 5
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 5
+          exec:
+            command:
+            - sh
+            - -c
+            - /health/ping_local.sh 5
+        resources:
+          null
+          
+        volumeMounts:
+        - name: health
+          mountPath: /health
+        - name: redis-data
+          mountPath: /data
+          subPath: 
+        - name: config
+          mountPath: /opt/bitnami/redis/etc
+      volumes:
+      - name: health
+        configMap:
+          name: om-redis-health
+          defaultMode: 0755
+      - name: config
+        configMap:
+          name: om-redis
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+        labels:
+          app: "redis"
+          component: "master"
+          release: "open-match"
+          heritage: "Tiller"
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "8Gi"
+  updateStrategy:
+    type: RollingUpdate
+
+---
+# Source: open-match/charts/redis/templates/metrics-prometheus.yaml
+
+---
+# Source: open-match/charts/redis/templates/networkpolicy.yaml
+
+
+---
+# Source: open-match/charts/redis/templates/redis-role.yaml
+
+---
+# Source: open-match/charts/redis/templates/redis-rolebinding.yaml
+
+---
+# Source: open-match/charts/redis/templates/redis-serviceaccount.yaml
+
+---
+# Source: open-match/templates/backendapi.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# Source: open-match/templates/frontendapi.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# Source: open-match/templates/grafana-dashboards.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# Source: open-match/templates/mmforc.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# Source: open-match/templates/mmlogicapi.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# Source: open-match/templates/om-configmap.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+# Source: open-match/templates/service-account.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+

@@ -46,3 +46,22 @@ Create chart name and version as used by the chart label.
 {{- define "openmatch.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
+
+{{/*
+Render chart metadata labels unless "openmatch.noChartMeta" is set.
+Expects to find in a scope a field "indent" with an integer value to pass to function "nindent".
+*/}}
+{{- define "openmatch.chartmeta" -}}
+{{- if not .Values.openmatch.noChartMeta -}}
+{{- include "openmatch.chartmetalabels" . | nindent .indent }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Print chart metadata labels: "chart", "release", "heritage".
+*/}}
+{{- define "openmatch.chartmetalabels" -}}
+chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+release: {{ .Release.Name }}
+heritage: {{ .Release.Service }}
+{{- end -}}

@@ -1,17 +1,7 @@
-apiVersion: v1
-kind: Secret
-metadata:
-  name: om-secret
-type: Opaque
-data:
-  # Set these keys to non-empty (base64 encoded) values to enable Redis authentication.
-  redis.user: |
-  redis.password: |
----
 kind: Service
 apiVersion: v1
 metadata:
-  name: redis
+  name: om-redis-master
 spec:
   selector:
     app: mm
@@ -48,8 +38,8 @@ spec:
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: om-secret
-              key: redis.password
+              name: om-redis
+              key: redis-password
               optional: true
         ports:
         - name: redis
