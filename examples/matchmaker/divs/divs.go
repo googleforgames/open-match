@@ -1,8 +1,6 @@
 package divs
 
 import (
-	"fmt"
-
 	"gonum.org/v1/gonum/stat"
 	"gonum.org/v1/gonum/stat/distuv"
 )
@@ -45,10 +43,11 @@ func GenerateBuckets(divs int64) []int {
 			scores = append(scores, i)
 			this = "======="
 		}
-		fmt.Printf("%v: %0.4v %0.4v %v %v %v %v %v\n", i, zscore, cdf, y, z, j, x, this)
+		//fmt.Printf("%v: %0.4v %0.4v %v %v %v %v %v\n", i, zscore, cdf, y, z, j, x, this)
+		_, _, _, _, _, _, _, _ = i, zscore, cdf, y, z, j, x, this
 	}
 	scores = append(scores, max)
-	fmt.Println(scores, len(scores))
+	//fmt.Println(scores, len(scores))
 
 	return scores
 }

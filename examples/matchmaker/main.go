@@ -68,6 +68,7 @@ var (
 	delAssignments bool
 	verbose        bool
 	resultsOnly    bool
+	summary        bool
 
 	concurrency int
 	wg          sync.WaitGroup
@@ -89,21 +90,24 @@ func main() {
 	flag.BoolVar(&delAssignments, "rm", false, "Delete assignments. Leave off to be able to manually validate assignments in state storage")
 	flag.BoolVar(&verbose, "verbose", false, "Print out as much as possible")
 	flag.BoolVar(&resultsOnly, "resultsonly", false, "Print out only results")
+	flag.BoolVar(&resultsOnly, "summary", false, "Print out only final summary")
 	flag.Parse()
 
-	log.Print("Parsing flags:")
-	log.Printf(" [flags] Reading properties from file at %v", filename)
-	log.Printf(" [flags] Connecting to OM Backend at %v:%v", beHost, bePort)
-	if !(beCall == "CreateMatch" || beCall == "ListMatches") {
-		log.Printf(" [flags] Unknown OM Backend call %v! Exiting...", beCall)
-		return
-	}
-	log.Printf(" [flags] Max concurrent OM Backend calls %v", concurrency)
-	log.Printf(" [flags] Using OM Backend %v call", beCall)
-	log.Printf(" [flags] Calling MMF via %v", mmfType)
-	log.Printf(" [flags] Assigning players to %v", assignment)
-	log.Printf(" [flags] Deleting assignments? %v", delAssignments)
+	if !summary && !resultsOnly {
+		log.Print("Parsing flags:")
+		log.Printf(" [flags] Reading properties from file at %v", filename)
+		log.Printf(" [flags] Connecting to OM Backend at %v:%v", beHost, bePort)
+		if !(beCall == "CreateMatch" || beCall == "ListMatches") {
+			log.Printf(" [flags] Unknown OM Backend call %v! Exiting...", beCall)
+			return
+		}
+		log.Printf(" [flags] Max concurrent OM Backend calls %v", concurrency)
+		log.Printf(" [flags] Using OM Backend %v call", beCall)
+		log.Printf(" [flags] Calling MMF via %v", mmfType)
+		log.Printf(" [flags] Assigning players to %v", assignment)
+		log.Printf(" [flags] Deleting assignments? %v", delAssignments)
 
+	}
 	// Read the profile
 	jsonFile, err := os.Open(filename)
 	if err != nil {
@@ -132,7 +136,9 @@ func main() {
 		log.Fatalf("failed to connect: %s", err.Error())
 	}
 	client := pb.NewBackendClient(conn)
-	log.Println("Backend client connected to", beHost+":"+bePort)
+	if !summary && !resultsOnly {
+		log.Println("Backend client connected to", beHost+":"+bePort)
+	}
 
 	if gjson.Get(jsonProfile, "name").Exists() {
 		profileName = gjson.Get(jsonProfile, "name").String()
@@ -158,6 +164,8 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	failcount := 0
+	okcount := 0
 
 	// Analyze match objects as they come in.
 	matchChan := make(chan *pb.MatchObject)
@@ -167,18 +175,26 @@ func main() {
 
 			if match.Error != "" {
 				errOutput = fmt.Sprintf("| %v", match.Error)
+				failcount++
+			} else {
+				okcount++
 			}
-			var poolOutput int64
-			poolOutput = 0
+			var poolOutput string
+			poolOutput = ""
 			if len(match.Pools) > 0 &&
 				match.Pools[0].Stats != nil &&
 				match.Pools[0].Stats.Count != 0 {
-				poolOutput = match.Pools[0].Stats.Count
+				poolOutput = fmt.Sprintf("%6v", match.Pools[0].Stats.Count)
+				if match.Pools[0].Stats.Elapsed != 0 {
+					poolOutput = fmt.Sprintf("%v | Elapsed %05.2f", poolOutput, match.Pools[0].Stats.Elapsed)
+				}
+			} else {
+				poolOutput = fmt.Sprintf("       | Elapsed  0.0 ")
 			}
 
 			// Dump some info to screen
-			if !resultsOnly {
-				log.Printf("%45v | pools %6v %v",
+			if !summary {
+				log.Printf("%31v | pools %6v %v",
 					strings.Split(match.Id, ".")[1],
 					poolOutput,
 					errOutput,
@@ -195,22 +211,21 @@ func main() {
 
 			// Assign players in this match to our server
 			if assignment != "" {
-				log.Println("Assigning players to DGS at", assignment)
+				if verbose {
+					log.Println("Assigning players to DGS at", assignment)
+				}
 
 				assign := &pb.Assignments{Rosters: match.Rosters, Assignment: assignment}
 				_, err = client.CreateAssignments(context.Background(), assign)
 				if err != nil {
 					log.Println(err)
 				}
-				log.Println("Success!")
 
 				if delAssignments {
 					log.Println("deleting assignments")
 					for _, a := range assign.Rosters {
 						_, err = client.DeleteAssignments(context.Background(), a)
 					}
-				} else {
-					log.Println("Not deleting assignments [demo mode].")
 				}
 			}
 
@@ -221,8 +236,6 @@ func main() {
 
 	// Make the requested pb call: CreateMatch calls once, ListMatches continually calls.
 	start := time.Now()
-	failcount := 0
-	okcount := 0
 	switch beCall {
 	case "CreateMatch":
 		// Get all combinations of profiles
@@ -247,10 +260,9 @@ func main() {
 							Matchobject: requestMO,
 							Mmfspec:     mmfspec,
 						}
-						if !resultsOnly {
-							log.Printf(" Attempting %26v %15v %v",
+						if !resultsOnly && !summary {
+							log.Printf(" Attempting %22v teams: %v * 8",
 								req.Matchobject.Id,
-								req.Matchobject.Pools[0].Filters[1].Name,
 								len(req.Matchobject.Rosters))
 						}
 
@@ -258,13 +270,12 @@ func main() {
 						match, err := client.CreateMatch(ctx, &req)
 						if err != nil {
 							wg.Done()
-							if !resultsOnly {
+							if !resultsOnly && !summary {
 								log.Printf("  Failed match: %42v | %v", req.Matchobject.Id, err)
 							}
 							failcount++
 							return
 						}
-						okcount++
 
 						// Got matchobject, send to the printer
 						matchChan <- match
@@ -280,7 +291,7 @@ func main() {
 		log.Printf("Total Runtime: %v", time.Since(start))
 		log.Printf("Number of Failures: %v", failcount)
 		log.Printf("Number of Successes: %v", okcount)
-		log.Printf("Success percent: %v", float64(okcount)/float64(failcount+okcount))
+		log.Printf("Success percent: %v%v", (float64(okcount)/float64(failcount+okcount))*100.0, "%")
 		log.Printf("Players matched: %v", okcount*16)
 		log.Printf("Throughput: %v pps", float64(okcount*16)/time.Since(start).Seconds())
 

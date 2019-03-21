@@ -138,9 +138,6 @@ func ProcedurallyGenerateMatchObjects(concurrency int, moChan chan *pb.MatchObje
 	debug = false
 	teamSize = 8
 	numTeams = 2
-	//minMMR := 0
-	//maxMMR := 4350
-	//filterSize := (maxMMR - minMMR) / concurrency
 	minPing := 0
 	maxPing := 250
 	pingSize := (maxPing - minPing) / concurrency
@@ -154,31 +151,8 @@ func ProcedurallyGenerateMatchObjects(concurrency int, moChan chan *pb.MatchObje
 		//		"europe-west4",
 	}
 
-	// Read filters from json file
-	jsonfile, err := os.Open("filters.json")
-	if err != nil {
-		log.Fatal(err)
-	}
-	byteValue, err := ioutil.ReadAll(jsonfile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	var pf pb.PlayerPool
-	json.Unmarshal(byteValue, &pf)
-
-	// print
-	if debug {
-		pretty.PrettyPrint(pf)
-	}
-
-	// Load filters into map for easy access by name
-	filters := make(map[string]*pb.Filter)
-	for _, filter := range pf.Filters {
-		filters[filter.Name] = filter
-	}
-
+	// Generate filters by division of normal dist
 	scores := divs.GenerateBuckets(int64(concurrency))
-	log.Println(scores)
 
 	//regions = make([]string, 0)
 
@@ -190,11 +164,15 @@ func ProcedurallyGenerateMatchObjects(concurrency int, moChan chan *pb.MatchObje
 
 				thisMinPing := minPing + (pingSize * j) + 1
 				thisMaxPing := minPing + (pingSize * (j + 1))
-				pingString := fmt.Sprintf("%v-%v", thisMinPing, thisMaxPing)
-				thisMinMMR := scores[i]
+				pingString := fmt.Sprintf("%03v-%03v", thisMinPing, thisMaxPing)
+				thisMinMMR := scores[i] + 1
+				if i == 0 {
+					thisMinMMR = scores[i]
+				}
+
 				thisMaxMMR := scores[i+1]
-				rangeString := fmt.Sprintf("%v-%v", thisMinMMR, thisMaxMMR)
-				name := region + "=" + pingString + "=" + rangeString
+				rangeString := fmt.Sprintf("%04v-%04v", thisMinMMR, thisMaxMMR)
+				name := region + "|" + pingString + "|" + rangeString
 
 				// Make pool on the fly from this region + tier
 				pools := append(poolArray{}, &pb.PlayerPool{Name: name,
