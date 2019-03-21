@@ -11,6 +11,8 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	api "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/spf13/viper"
+
+	"go.opencensus.io/stats"
 )
 
 var (
@@ -26,7 +28,7 @@ var (
 // This example uses the MM Logic API in OM to read/write to/from redis.
 
 // Run is used to kick off the served MMF.
-func Run(fnArgs *api.Arguments, cfg *viper.Viper, mmlogic api.MmLogicClient) error {
+func Run(ctx context.Context, fnArgs *api.Arguments, cfg *viper.Viper, mmlogic api.MmLogicClient) error {
 
 	// Configure open match logging defaults
 	logging.ConfigureLogging(cfg)
@@ -40,6 +42,7 @@ func Run(fnArgs *api.Arguments, cfg *viper.Viper, mmlogic api.MmLogicClient) err
 	profile, err := mmlogic.GetProfile(ctx, &api.MatchObject{Id: fnArgs.Request.ProfileId})
 	if err != nil {
 		mmfLog.Error(err)
+		stats.Record(ctx, FnFailures.M(1))
 		return err
 	}
 	mmfLog.Debug("Profile: ", profile)

@@ -54,7 +54,10 @@ func ConfigureOpenCensusPrometheusExporter(cfg *viper.Viper, views []*view.View)
 	metricsRP := cfg.GetInt("metrics.reportingPeriod")
 
 	// Set OpenCensus to export to Prometheus
-	pe, err := prometheus.NewExporter(prometheus.Options{Namespace: "open_match"})
+	// Official name of Open Match has a space, but as per the metric naming guidelines
+	// for Prometheus, we concatinate the two words for the namespace.
+	// https://prometheus.io/docs/practices/naming/
+	pe, err := prometheus.NewExporter(prometheus.Options{Namespace: "openmatch"})
 	if err != nil {
 		mhLog.WithFields(log.Fields{"error": err}).Fatal(
 			"Failed to initialize OpenCensus exporter to Prometheus")
@@ -115,7 +118,7 @@ func NewHook(m *stats.Int64Measure, ks tag.Key) log.Hook {
 	}
 }
 
-// NewHook returns a new log.Hook for counting log lines using OpenCensus.
+// NewMmfHook returns a new log.Hook for counting log lines in MMFs using OpenCensus.
 func NewMmfHook(m *stats.Int64Measure, ks tag.Key, kn tag.Key) log.Hook {
 	return Hook{
 		count:       m,

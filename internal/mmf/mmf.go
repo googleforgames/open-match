@@ -39,7 +39,6 @@ func makeMatches(profile string, rosters []*api.Roster, pools []*api.PlayerPool)
 	//
 	// This example is extraordinarily naive and has many edge cases.  It is
 	// only intended to be used as a starting point for writing your own MMF!
-	mmfLog.Info("In makeMatches")
 	for ti, team := range rosters {
 		mmfLog.Info(" Attempting to fill team:", team.Name)
 		for si, slot := range team.Players {
