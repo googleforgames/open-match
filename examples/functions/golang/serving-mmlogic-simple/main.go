@@ -33,8 +33,10 @@ import (
 
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/examples/functions/golang/serving-mmlogic-simple/apisrv"
+	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	api "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
 
 	log "github.com/sirupsen/logrus"
@@ -55,6 +57,8 @@ var (
 )
 
 func init() {
+	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
+	log.AddHook(metrics.NewMmfHook(apisrv.FnLogLines, apisrv.KeySeverity, apisrv.KeyFnName))
 
 	// Viper config management initialization
 	cfg, err = config.Read()
@@ -65,9 +69,20 @@ func init() {
 	}
 
 	if cfg.IsSet("debug") && cfg.GetBool("debug") {
-		log.SetLevel(log.DebugLevel) // debug only, verbose - turn off in production!
 		fnLog.Warn("Debug logging configured. Not recommended for production!")
 	}
+
+	// Configure OpenCensus exporter to Prometheus
+	// metrics.ConfigureOpenCensusPrometheusExporter expects that every OpenCensus view you
+	// want to register is in an array, so append any views you want from other
+	// packages to a single array here.
+	ocServerViews := apisrv.DefaultViews
+	ocServerViews = append(ocServerViews, ocgrpc.DefaultServerViews...)
+	ocServerViews = append(ocServerViews, config.CfgVarCountView) // config loader view.
+	// Waiting on https://github.com/opencensus-integrations/redigo/pull/1
+	// ocServerViews = append(ocServerViews, redis.ObservabilityMetricViews...) // redis OpenCensus views.
+	fnLog.WithFields(log.Fields{"viewscount": len(ocServerViews)}).Info("Loaded OpenCensus views")
+	metrics.ConfigureOpenCensusPrometheusExporter(cfg, ocServerViews)
 }
 
 func main() {

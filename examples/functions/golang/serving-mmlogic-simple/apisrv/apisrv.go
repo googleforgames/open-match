@@ -24,15 +24,16 @@ package apisrv
 import (
 	"context"
 	"net"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/mmf"
 	api "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/gomodule/redigo/redis"
 	"github.com/spf13/viper"
 
 	"go.opencensus.io/plugin/ocgrpc"
+	"go.opencensus.io/stats"
 	"google.golang.org/grpc"
 )
 
@@ -41,6 +42,7 @@ var (
 	fnLogFields = log.Fields{
 		"app":       "openmatch",
 		"component": "function_service",
+		"mmfname":   "openmatch-mmf-golang-serving-mmlogic-simple",
 	}
 	fnLog = log.WithFields(fnLogFields)
 )
@@ -52,37 +54,12 @@ type FunctionServer struct {
 	cfg     *viper.Viper
 	pool    *redis.Pool
 	mmlogic api.MmLogicClient
+	fnName  string
 }
 type functionServer FunctionServer
 
 // New returns an instantiated service
 func New(cfg *viper.Viper, pool *redis.Pool, client api.MmLogicClient) *FunctionServer {
-
-	/*
-		// Attempt to connect to MMLogic API. Assumes that this FunctionServer is
-		// running in the same k8s namespace as the MMLogic Service. Since MMLogic
-		// API is optional, all this code must execute successfully and log
-		// warnings if the MMLogic API is not running.
-		ip := os.Getenv("OM_MMLOGICAPI_SERVICE_HOST")
-		if len(ip) == 0 {
-			log.Warning("Couldn't get IP for MMLogic API from environment! Have you started the MMLogic API yet?")
-		} else {
-			port := os.Getenv("OM_MMLOGICAPI_SERVICE_PORT")
-			if len(port) == 0 {
-				log.Warning("Couldn't get port for MMLogic API from environment! Have you started the MMLogic API yet?")
-			} else {
-
-				//Connect
-				conn, err := grpc.Dial(fmt.Sprintf("%v:%v", ip, port), grpc.WithInsecure())
-				if err != nil {
-					log.Warning("failed to connect: %s", err.Error())
-				} else {
-					//func(t time.Time) *time.Time { return &t }(time.Now())
-					client = api.NewMmLogicClient(conn)
-				}
-			}
-		}
-	*/
 
 	// Initialize the server state
 	s := FunctionServer{
@@ -90,6 +67,7 @@ func New(cfg *viper.Viper, pool *redis.Pool, client api.MmLogicClient) *Function
 		grpc:    grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{})),
 		cfg:     cfg,
 		mmlogic: client,
+		fnName:  "openmatch-mmf-golang-serving-mmlogic-simple",
 	}
 
 	// Register gRPC server
@@ -118,19 +96,36 @@ func (s *FunctionServer) Open() error {
 		fnLog.Info("serving gRPC endpoints")
 	}()
 
+	// Initialize OpenCensus count metrics
+	stats.Record(context.Background(), FnGrpcErrors.M(0))
+	stats.Record(context.Background(), FnGrpcRequests.M(0))
+
 	return nil
 }
 
 // Run is this service's implementation of the gRPC call defined in
 // api/protobuf-spec/function.proto
-func (s *functionServer) Run(c context.Context, fnArgs *api.Arguments) (*api.Result, error) {
+func (s *functionServer) Run(ctx context.Context, fnArgs *api.Arguments) (*api.Result, error) {
+
+	// Set up tagging for OpenCensus
+	funcName := "Run"
+	_ = funcName
+	fnCtx := ctx
+	//fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
+	//fnCtx, _ = tag.New(fnCtx, tag.Insert(KeyFnName, s.fnName))
+
 	// Everything the mmf needs to know about its specific
 	// run (where to look in state storage for its profile, where to write
 	// its results to state storage) needs to be in the fnArgs message.
-	err := mmf.Run(fnArgs, s.cfg, s.mmlogic)
+	start := time.Now()
+	err := mmfRun(fnCtx, fnArgs, s.cfg, s.mmlogic)
+	stats.Record(fnCtx, FnGrpcLatencySecs.M(time.Since(start).Seconds()))
+
 	if err != nil {
 		fnLog.WithFields(log.Fields{"error": err.Error()}).Error("function.Run error")
+		stats.Record(fnCtx, FnGrpcErrors.M(1))
 		return &api.Result{Success: false, Error: err.Error()}, err
 	}
+	stats.Record(fnCtx, FnGrpcRequests.M(1))
 	return &api.Result{Success: true}, nil
 }
