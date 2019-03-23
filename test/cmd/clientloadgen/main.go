@@ -18,7 +18,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -31,14 +30,21 @@ import (
 
 var (
 	numPlayers int
+	numCycles  int
 	sleep      int
 )
 
 func main() {
 	// Parse command line flags
 	flag.IntVar(&numPlayers, "numplayers", 20, "Number of players to generate per cycle")
+	flag.IntVar(&numCycles, "cycles", 0, "Number of cycles, set to zero to loop until cancelled")
 	flag.IntVar(&sleep, "sleep", 1000, "Number of ms to sleep between cycles")
 	flag.Parse()
+
+	log.Println("Starting client load generator.  Parsing flags...")
+	log.Printf(" [Flags] Generating %v players per cycle.", numPlayers)
+	log.Printf(" [Flags] Cycling every %vms.", sleep)
+	log.Printf(" [Flags] Cycling %v times. (Set to 0 to loop until cancelled.)", numCycles)
 
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
@@ -57,10 +63,8 @@ func main() {
 	// Make a new player generator
 	player.New()
 
-	fmt.Println("Starting client api stub...")
-
 	// Loop forever, queuing players
-	for {
+	for i := numCycles; i > 0 || numCycles == 0; i-- {
 		start := time.Now()
 
 		for i := 1; i <= numPlayers; i++ {
@@ -72,8 +76,8 @@ func main() {
 		}
 
 		elapsed := time.Since(start)
-		fmt.Printf("Generated %v players in %s\n", numPlayers, elapsed)
-		fmt.Printf(" Sleeping for %vms\n", sleep)
+		log.Printf("Generated %v players in %s\n", numPlayers, elapsed)
+		log.Printf(" Sleeping for %vms\n", sleep)
 		time.Sleep(time.Duration(sleep) * time.Millisecond)
 	}
 }
