@@ -59,7 +59,7 @@ var (
 	// the logrus hook provided in metrics/helper.go after instantiating the
 	// logrus instance in your application code.
 	// https://godoc.org/github.com/sirupsen/logrus#LevelHooks
-	EvaluatorLogLines = stats.Int64("mmforc/logs_total", "Number of evaluator lines logged", "1")
+	EvaluatorLogLines = stats.Int64("evaluator/logs_total", "Number of evaluator lines logged", "1")
 
 	// Counting operations
 	evaluations                  = stats.Int64("evaluator/evaluations_total", "Number of times all existing proposals have been evaluated", "1")
@@ -91,7 +91,7 @@ var (
 // cardinality" error, chances are you forgot to set the tags specified in the
 // view for a given measure when you tried to do a stats.Record()
 var (
-	evalsCountView = &view.View{
+	evalCountView = &view.View{
 		Name:        "evaluator/evaluations_total",
 		Measure:     evaluations,
 		Description: "Number of times all existing proposals have been evaluated",
@@ -110,6 +110,6 @@ var (
 
 // DefaultEvaluatorViews are the default matchmaker orchestrator OpenCensus measure views.
 var DefaultEvaluatorViews = []*view.View{
-	evalsCountView,
+	evalCountView,
 	evalFailuresCountView,
 }

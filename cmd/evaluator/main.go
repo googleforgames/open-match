@@ -14,10 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Note: the example only works with the code within the same release/branch.
-// This is based on the example from the official k8s golang client repository:
-// k8s.io/client-go/examples/create-update-delete-deployment/
-
 package main
 
 import "github.com/GoogleCloudPlatform/open-match/internal/app/evaluator"

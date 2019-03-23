@@ -46,11 +46,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-
-	//"k8s.io/kubernetes/pkg/api"
-
-	// Uncomment the following line to load the gcp plugin (only required to authenticate against GKE clusters).
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 var (
@@ -95,10 +90,11 @@ func InitializeApplication() {
 	// metrics.ConfigureOpenCensusPrometheusExporter expects that every OpenCensus view you
 	// want to register is in an array, so append any views you want from other
 	// packages to a single array here.
-	ocEvaluatorViews := DefaultEvaluatorViews // ev OpenCensus views.
-	// Waiting on https://github.com/opencensus-integrations/redigo/pull/1
-	// ocEvaluatorViews = append(ocEvaluatorViews, redis.ObservabilityMetricViews...) // redis OpenCensus views.
-	evLog.WithFields(log.Fields{"viewscount": len(ocEvaluatorViews)}).Info("Loaded OpenCensus views")
+	ocEvaluatorViews := DefaultEvaluatorViews /
+
+		// Waiting on https://github.com/opencensus-integrations/redigo/pull/1
+		// ocEvaluatorViews = append(ocEvaluatorViews, redis.ObservabilityMetricViews...) // redis OpenCensus views.
+		evLog.WithFields(log.Fields{"viewscount": len(ocEvaluatorViews)}).Info("Loaded OpenCensus views")
 	metrics.ConfigureOpenCensusPrometheusExporter(cfg, ocEvaluatorViews)
 
 }
@@ -117,9 +113,6 @@ func RunApplication() {
 	checkProposals := true
 	pollSleep := cfg.GetInt("evaluator.pollIntervalMs")
 	interval := cfg.GetInt64("evaluator.intervalMs")
-
-	// TODO: remove
-	viper.Set("debug", false)
 
 	// Logging for the proposal queue
 	pqLog := evLog.WithFields(log.Fields{"proposalQueue": cfg.GetString("queues.proposals.name")})
@@ -213,7 +206,7 @@ func RunApplication() {
 			// Delete the counter.  This causes subsequent queries to return
 			// 'nil' until it is re-created again on first write.  We exploit
 			// this to short-circuit and not ever run evaluation logic if no MMF
-			// has written to the counter sine last evaluation.
+			// has written to the counter since last evaluation.
 			err = redisHelpers.Delete(context.Background(), pool, "concurrentMMFs")
 			if err != nil {
 				evLog.WithFields(log.Fields{
@@ -232,7 +225,8 @@ func RunApplication() {
 }
 
 //////////////////////////////////
-// TODO: Clean this up, it's just transplanted from a different codebase.
+// TODO: Clean this up, it's just transplanted from a different part of the
+// codebase until the evaluator gets a usability/customizability overhaul.
 // TODO: This needs all the stats in the evaluator_stats.go implemented.
 //////////////////////////////////
 
@@ -252,10 +246,6 @@ func evaluator(ctx context.Context) {
 	// Get connection to redis
 	redisConn := pool.Get()
 	defer redisConn.Close()
-
-	// TODO: remove
-	cfg.Set("debug", true)
-	defer cfg.Set("debug", false)
 
 	start := time.Now()
 
@@ -381,9 +371,10 @@ func evaluator(ctx context.Context) {
 			if err != nil {
 				evLog.Error("Failure to delete rejected proposal! ", err)
 			}
-			// Example of an actino you can take on rejection - notify the backend client
+			// Example of an action you can take on rejection - notify the backend client
 			// and tell them to query again.  You could also kick off another MMF run (but be sure
-			// to have some condition after which you quit retrying)
+			// to have some condition after which you quit retrying, and to correctly increment/decrement
+			// the concurrentMMF counter in state storage if you do this).
 			//rejectedMO.Id = backendID
 			//err = redispb.MarshalToRedis(ctx, pool, rejectedMO, cfg.GetInt("redis.expirations.matchobject"))
 			//if err != nil {
@@ -439,6 +430,7 @@ func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[i
 	evLog.Debug("SCARD ", proposalq, " returned ", numProposals)
 	cmd := "SPOP"
 	if dryrun {
+		// SRANDMEMBER leaves the proposal in the queue (SPOP does not)
 		cmd = "SRANDMEMBER"
 	}
 	evLog.Println(cmd, proposalq, numProposals)
@@ -480,7 +472,7 @@ func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[i
 			} else {
 				// First time seeing this player.  Track which match proposal had them in case we see
 				// them again
-				// Terrible indexing hack: default int value is 0, but so is the
+				// TODO: Fix this terrible indexing hack: default int value is 0, but so is the
 				// lowest propsal index.  Since we need to use interpret 0 as
 				// 'unset' in this context, add one to index, and remove it if/when we put this
 				// player  in the overloadedPlayers map.
