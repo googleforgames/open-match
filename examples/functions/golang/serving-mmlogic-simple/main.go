@@ -3,10 +3,10 @@ This application handles all the startup and connection scaffolding for
 running a gRPC server serving the APIService as defined in
 ${OM_ROOT}/internal/pb/function.pb.go
 
-NOTE: This will likely all get moved to [REPO_ROOT]/internal/app once the
-refactoring is done and the code for spinning up a gRPC API is DRYed out.
+NOTE: This code will likely all get moved refactoring is done and the code
+for spinning up a gRPC API is DRYed out.
 
-All the actual important bits are in the API Server source code: apisrv/apisrv.go
+All the actual important bits are in the API Server source code: apisrv/
 
 Copyright 2018 Google LLC
 
@@ -76,7 +76,7 @@ func init() {
 	// metrics.ConfigureOpenCensusPrometheusExporter expects that every OpenCensus view you
 	// want to register is in an array, so append any views you want from other
 	// packages to a single array here.
-	ocServerViews := apisrv.DefaultViews
+	ocServerViews := apisrv.DefaultFunctionViews
 	ocServerViews = append(ocServerViews, ocgrpc.DefaultServerViews...)
 	ocServerViews = append(ocServerViews, config.CfgVarCountView) // config loader view.
 	// Waiting on https://github.com/opencensus-integrations/redigo/pull/1
@@ -88,8 +88,8 @@ func init() {
 func main() {
 	// Attempt to connect to MMLogic API. Assumes that this FunctionServer is
 	// running in the same k8s namespace as the MMLogic Service. Since MMLogic
-	// API is optional, all this code must execute successfully and log
-	// warnings if the MMLogic API is not running.
+	// API is optional, all this code should be written to execute successfully
+	// and log  warnings if the MMLogic API is not running.
 	// TODO: probably put this in a helper function ala redisHelpers.ConnectionPool(cfg)
 	var client api.MmLogicClient
 	ip, err := net.LookupHost(cfg.GetString("api.mmlogic.hostname"))

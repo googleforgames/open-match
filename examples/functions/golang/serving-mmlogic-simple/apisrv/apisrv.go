@@ -34,6 +34,7 @@ import (
 
 	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/stats"
+	"go.opencensus.io/tag"
 	"google.golang.org/grpc"
 )
 
@@ -105,14 +106,16 @@ func (s *FunctionServer) Open() error {
 
 // Run is this service's implementation of the gRPC call defined in
 // api/protobuf-spec/function.proto
+// This doesn't include any of the MMLogic API boilerplate harness code, as
+// that is all optional - MMFs can always be written to directly read/write
+// to/from Redis.
 func (s *functionServer) Run(ctx context.Context, fnArgs *api.Arguments) (*api.Result, error) {
 
 	// Set up tagging for OpenCensus
 	funcName := "Run"
 	_ = funcName
-	fnCtx := ctx
-	//fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
-	//fnCtx, _ = tag.New(fnCtx, tag.Insert(KeyFnName, s.fnName))
+	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
+	fnCtx, _ = tag.New(fnCtx, tag.Insert(KeyFnName, s.fnName))
 
 	// Everything the mmf needs to know about its specific
 	// run (where to look in state storage for its profile, where to write

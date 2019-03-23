@@ -183,8 +183,8 @@ var (
 	}
 )
 
-// DefaultMmlogicAPIViews are the default mmf API OpenCensus measure views.
-var DefaultViews = []*view.View{
+// DefaultFunctionAPIViews are the default mmf API OpenCensus measure views.
+var DefaultFunctionViews = []*view.View{
 	FnGrpcLatencyView,
 	FnGrpcRequestCountView,
 	FnGrpcErrorCountView,

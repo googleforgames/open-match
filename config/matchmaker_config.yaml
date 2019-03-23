@@ -33,6 +33,7 @@ metrics:
 
 queues: 
   profiles: 
+    # Only used by MMForc. Deprecated by serving MMFs.
     name: profileq
     pullCount: 100
   proposals: 
@@ -52,6 +53,7 @@ ignoreLists:
     offset: 800
     duration: 0 
 
+# Only used by MMForc. Deprecated by serving MMFs.
 defaultImages: 
   evaluator: gcr.io/matchmaker-dev-201405/openmatch-evaluator:0.4
   mmf: gcr.io/matchmaker-dev-201405/openmatch-mmf-py3-mmlogic-simple:dev
@@ -72,8 +74,10 @@ redis:
     matchobject: 43200 
 
 jsonkeys:
-  mmfImage: imagename
   mmfService: hostname
+  # Only used by MMForc. Deprecated by serving MMFs.
+  mmfImage: imagename
+  # Deprecated rosters/pools in JSON. See backend API CreateMatch()
   rosters: properties.rosters
   pools: properties.pools
 
