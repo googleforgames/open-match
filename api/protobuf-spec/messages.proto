@@ -33,9 +33,6 @@ message MmfSpec {
         GRPC = 0;
         REST = 1;
         // Knative types will be KNATIVEREST, KNATIVEGRPC, etc.
-
-        // Deprecated types
-        K8SJOB = 7;
     }
     Type type = 4;    // Type of MMF
 }
