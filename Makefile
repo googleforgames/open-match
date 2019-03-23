@@ -333,7 +333,7 @@ examples/functions/golang/manual-simple: internal/pb/messages.pb.go
 test/cmd/clientloadgen/clientloadgen:
 	cd test/cmd/clientloadgen; $(GO_BUILD_COMMAND)
 
-test/cmd/frontendclient/frontendclient: internal/pb/frontend.pb.go
+test/cmd/frontendclient/frontendclient: internal/pb/frontend.pb.go internal/pb/messages.pb.go
 	cd test/cmd/frontendclient; $(GO_BUILD_COMMAND)
 
 all: cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmforc/mmforc cmd/mmlogicapi/mmlogicapi examples/backendclient/backendclient examples/evaluators/golang/simple examples/functions/golang/manual-simple test/cmd/clientloadgen/clientloadgen test/cmd/frontendclient/frontendclient
