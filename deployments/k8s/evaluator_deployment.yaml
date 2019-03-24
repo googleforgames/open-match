@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: om-evaluator
-        image: gcr.io/matchmaker-dev-201405/openmatch-evaluator-service:latest
+        image: gcr.io/open-match-public-images/openmatch-evaluator-service:latest
         imagePullPolicy: Always
         volumeMounts:
         - name: om-configmap
