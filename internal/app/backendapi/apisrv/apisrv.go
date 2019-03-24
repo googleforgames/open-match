@@ -22,7 +22,6 @@ package apisrv
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -30,8 +29,8 @@ import (
 
 	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	backend "github.com/GoogleCloudPlatform/open-match/internal/pb"
-	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	"github.com/GoogleCloudPlatform/open-match/internal/pb"
+	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	"github.com/cenkalti/backoff"
@@ -50,6 +49,8 @@ import (
 	"github.com/spf13/viper"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // Logrus structured logging setup
@@ -83,7 +84,7 @@ func New(cfg *viper.Viper, pool *redis.Pool) *BackendAPI {
 	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
 	log.AddHook(metrics.NewHook(BeLogLines, KeySeverity))
 
-	backend.RegisterBackendServer(s.grpc, (*backendAPI)(&s))
+	pb.RegisterBackendServer(s.grpc, (*backendAPI)(&s))
 	beLog.Info("Successfully registered gRPC server")
 	return &s
 }
@@ -146,7 +147,7 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 		ppLog := beLog.WithFields(log.Fields{"jsonkey": s.cfg.GetString("jsonkeys.pools")})
 		ppLog.Info("poolsJSON: ", poolsJSON)
 
-		ppools := &backend.MatchObject{}
+		ppools := &pb.MatchObject{}
 		err := jsonpb.UnmarshalString(poolsJSON, ppools)
 		if err != nil {
 			ppLog.Error("failed to parse JSON to protobuf pools")
@@ -165,7 +166,7 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 		rostersJSON := fmt.Sprintf("{\"rosters\": %v}", gjson.Get(beRequest.Matchobject.Properties, s.cfg.GetString("jsonkeys.rosters")).String())
 		rLog := beLog.WithFields(log.Fields{"jsonkey": s.cfg.GetString("jsonkeys.rosters")})
 
-		prosters := &backend.MatchObject{}
+		prosters := &pb.MatchObject{}
 		err := jsonpb.UnmarshalString(rostersJSON, prosters)
 		if err != nil {
 			rLog.Error("failed to parse JSON to protobuf rosters")
@@ -195,7 +196,7 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 
 		// Failure! Return empty match object and the error
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
-		return &backend.MatchObject{}, err
+		return &pb.MatchObject{}, status.Error(codes.Unknown, err.Error())
 	}
 	beLog.Info("Profile written to state storage")
 
@@ -298,7 +299,7 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 		} else {
 			newMO.Error = "channel closed: backoff deadline exceeded"
 		}
-		return &newMO, errors.New("Error retrieving matchmaking results from state storage: " + newMO.Error)
+		return &newMO, status.Errorf(codes.Unavailable, "Error retrieving matchmaking results from state storage: %s", newMO.Error)
 	}
 
 	// 'ok' was true, so properties should contain the results from redis.
@@ -320,7 +321,7 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 
 	beLog.Info("Matchmaking results received, returning to backend client")
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
-	return &newMO, err
+	return &newMO, nil
 }
 
 // ListMatches is this service's implementation of the ListMatches gRPC method
@@ -363,7 +364,7 @@ func (s *backendAPI) ListMatches(req *backend.ListMatchesRequest, matchStream ba
 			if err != nil {
 				lmLog.WithFields(log.Fields{"error": err.Error()}).Error("Failure calling CreateMatch")
 				stats.Record(fnCtx, BeGrpcErrors.M(1))
-				return err
+				return status.Error(codes.Unavailable, err.Error())
 			}
 			lmLog.WithFields(log.Fields{"matchProperties": fmt.Sprintf("%v", mo)}).Debug("Streaming back match object")
 			matchStream.Send(mo)
@@ -378,7 +379,7 @@ func (s *backendAPI) ListMatches(req *backend.ListMatchesRequest, matchStream ba
 
 // DeleteMatch is this service's implementation of the DeleteMatch gRPC method
 // defined in api/protobuf-spec/backend.proto
-func (s *backendAPI) DeleteMatch(ctx context.Context, mo *backend.MatchObject) (*backend.Result, error) {
+func (s *backendAPI) DeleteMatch(ctx context.Context, mo *pb.MatchObject) (*pb.Result, error) {
 
 	// Create context for tagging OpenCensus metrics.
 	funcName := "DeleteMatch"
@@ -389,7 +390,7 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, mo *backend.MatchObject) (
 		"matchObjectID": mo.Id,
 	}).Info("gRPC call executing")
 
-	err := redisHelpers.Delete(ctx, s.pool, mo.Id)
+	err := redishelpers.Delete(ctx, s.pool, mo.Id)
 	if err != nil {
 		beLog.WithFields(log.Fields{
 			"error":     err.Error(),
@@ -397,7 +398,7 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, mo *backend.MatchObject) (
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
-		return &backend.Result{Success: false, Error: err.Error()}, err
+		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
 	}
 
 	beLog.WithFields(log.Fields{
@@ -405,12 +406,12 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, mo *backend.MatchObject) (
 	}).Info("Match Object deleted.")
 
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
-	return &backend.Result{Success: true, Error: ""}, err
+	return &pb.Result{Success: true, Error: ""}, nil
 }
 
 // CreateAssignments is this service's implementation of the CreateAssignments gRPC method
 // defined in api/protobuf-spec/backend.proto
-func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignments) (*backend.Result, error) {
+func (s *backendAPI) CreateAssignments(ctx context.Context, a *pb.Assignments) (*pb.Result, error) {
 
 	// Make a map of players and what assignments we want to send them.
 	playerIDs := make([]string, 0)
@@ -442,7 +443,7 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 	// TODO: These two calls are done in two different transactions; could be
 	// combined as an optimization but probably not particularly necessary
 	// Send the players their assignments.
-	err := redisHelpers.UpdateMultiFields(ctx, s.pool, players, "assignment")
+	err := redishelpers.UpdateMultiFields(ctx, s.pool, players, "assignment")
 
 	// Move these players from the proposed list to the deindexed list.
 	ignorelist.Move(ctx, s.pool, playerIDs, "proposed", "deindexed")
@@ -456,7 +457,7 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
 		stats.Record(fnCtx, BeAssignmentFailures.M(int64(len(players))))
-		return &backend.Result{Success: false, Error: err.Error()}, err
+		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Success!
@@ -466,12 +467,12 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *backend.Assignmen
 
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
 	stats.Record(fnCtx, BeAssignments.M(int64(len(players))))
-	return &backend.Result{Success: true, Error: ""}, err
+	return &pb.Result{Success: true, Error: ""}, nil
 }
 
 // DeleteAssignments is this service's implementation of the DeleteAssignments gRPC method
 // defined in api/protobuf-spec/backend.proto
-func (s *backendAPI) DeleteAssignments(ctx context.Context, r *backend.Roster) (*backend.Result, error) {
+func (s *backendAPI) DeleteAssignments(ctx context.Context, r *pb.Roster) (*pb.Result, error) {
 	assignments := getPlayerIdsFromRoster(r)
 
 	// Create context for tagging OpenCensus metrics.
@@ -483,7 +484,7 @@ func (s *backendAPI) DeleteAssignments(ctx context.Context, r *backend.Roster) (
 		"numAssignments": len(assignments),
 	}).Info("gRPC call executing")
 
-	err := redisHelpers.DeleteMultiFields(ctx, s.pool, assignments, "assignment")
+	err := redishelpers.DeleteMultiFields(ctx, s.pool, assignments, "assignment")
 
 	// Issue encountered
 	if err != nil {
@@ -494,22 +495,21 @@ func (s *backendAPI) DeleteAssignments(ctx context.Context, r *backend.Roster) (
 
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
 		stats.Record(fnCtx, BeAssignmentDeletionFailures.M(int64(len(assignments))))
-		return &backend.Result{Success: false, Error: err.Error()}, err
+		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Success!
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
 	stats.Record(fnCtx, BeAssignmentDeletions.M(int64(len(assignments))))
-	return &backend.Result{Success: true, Error: ""}, err
+	return &pb.Result{Success: true, Error: ""}, nil
 }
 
 // getPlayerIdsFromRoster returns the slice of player ID strings contained in
 // the input roster.
-func getPlayerIdsFromRoster(r *backend.Roster) []string {
+func getPlayerIdsFromRoster(r *pb.Roster) []string {
 	playerIDs := make([]string, 0)
 	for _, p := range r.Players {
 		playerIDs = append(playerIDs, p.Id)
 	}
 	return playerIDs
-
 }

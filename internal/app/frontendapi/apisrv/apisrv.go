@@ -26,8 +26,8 @@ import (
 
 	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	frontend "github.com/GoogleCloudPlatform/open-match/internal/pb"
-	redisHelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	"github.com/GoogleCloudPlatform/open-match/internal/pb"
+	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/playerindices"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 
@@ -41,6 +41,8 @@ import (
 
 	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // Logrus structured logging setup
@@ -73,7 +75,7 @@ func New(cfg *viper.Viper, pool *redis.Pool) *FrontendAPI {
 	log.AddHook(metrics.NewHook(FeLogLines, KeySeverity))
 
 	// Register gRPC server
-	frontend.RegisterFrontendServer(s.grpc, (*frontendAPI)(&s))
+	pb.RegisterFrontendServer(s.grpc, (*frontendAPI)(&s))
 	feLog.Info("Successfully registered gRPC server")
 	return &s
 }
@@ -102,8 +104,7 @@ func (s *FrontendAPI) Open() error {
 }
 
 // CreatePlayer is this service's implementation of the CreatePlayer gRPC method defined in frontend.proto
-func (s *frontendAPI) CreatePlayer(ctx context.Context, group *frontend.Player) (*frontend.Result, error) {
-
+func (s *frontendAPI) CreatePlayer(ctx context.Context, group *pb.Player) (*pb.Result, error) {
 	// Create context for tagging OpenCensus metrics.
 	funcName := "CreatePlayer"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
@@ -117,7 +118,7 @@ func (s *frontendAPI) CreatePlayer(ctx context.Context, group *frontend.Player) 
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, FeGrpcErrors.M(1))
-		return &frontend.Result{Success: false, Error: err.Error()}, err
+		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Index group
@@ -129,18 +130,16 @@ func (s *frontendAPI) CreatePlayer(ctx context.Context, group *frontend.Player) 
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, FeGrpcErrors.M(1))
-		return &frontend.Result{Success: false, Error: err.Error()}, err
+		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Return success.
 	stats.Record(fnCtx, FeGrpcRequests.M(1))
-	return &frontend.Result{Success: true, Error: ""}, err
-
+	return &pb.Result{Success: true, Error: ""}, nil
 }
 
 // DeletePlayer is this service's implementation of the DeletePlayer gRPC method defined in frontend.proto
-func (s *frontendAPI) DeletePlayer(ctx context.Context, group *frontend.Player) (*frontend.Result, error) {
-
+func (s *frontendAPI) DeletePlayer(ctx context.Context, group *pb.Player) (*pb.Result, error) {
 	// Create context for tagging OpenCensus metrics.
 	funcName := "DeletePlayer"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
@@ -155,14 +154,13 @@ func (s *frontendAPI) DeletePlayer(ctx context.Context, group *frontend.Player) 
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, FeGrpcErrors.M(1))
-		return &frontend.Result{Success: false, Error: err.Error()}, err
+		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
 	}
 	// Kick off delete but don't wait for it to complete.
 	go s.deletePlayer(group.Id)
 
 	stats.Record(fnCtx, FeGrpcRequests.M(1))
-	return &frontend.Result{Success: true, Error: ""}, err
-
+	return &pb.Result{Success: true, Error: ""}, nil
 }
 
 // deletePlayer is a 'lazy' player delete
@@ -171,8 +169,7 @@ func (s *frontendAPI) DeletePlayer(ctx context.Context, group *frontend.Player) 
 // find the player to read them anyway)
 // As a final action, it also kicks off a lazy delete of the player's metadata
 func (s *frontendAPI) deletePlayer(id string) {
-
-	err := redisHelpers.Delete(context.Background(), s.pool, id)
+	err := redishelpers.Delete(context.Background(), s.pool, id)
 	if err != nil {
 		feLog.WithFields(log.Fields{
 			"error":     err.Error(),
@@ -183,7 +180,7 @@ func (s *frontendAPI) deletePlayer(id string) {
 }
 
 // GetUpdates is this service's implementation of the GetUpdates gRPC method defined in frontend.proto
-func (s *frontendAPI) GetUpdates(p *frontend.Player, assignmentStream frontend.Frontend_GetUpdatesServer) error {
+func (s *frontendAPI) GetUpdates(p *pb.Player, assignmentStream pb.Frontend_GetUpdatesServer) error {
 	// Get cancellable context
 	ctx, cancel := context.WithCancel(assignmentStream.Context())
 	defer cancel()
@@ -230,7 +227,7 @@ func (s *frontendAPI) GetUpdates(p *frontend.Player, assignmentStream frontend.F
 				//TODO: we could generate a frontend.player message with an error
 				//field and stream it to the client before throwing the error here
 				//if we wanted to send more useful client retry information
-				return err
+				return status.Error(codes.DeadlineExceeded, err.Error())
 			}
 
 			feLog.WithFields(log.Fields{
@@ -243,5 +240,4 @@ func (s *frontendAPI) GetUpdates(p *frontend.Player, assignmentStream frontend.F
 			stats.Record(fnCtx, FeGrpcStreamedResponses.M(1))
 		}
 	}
-
 }

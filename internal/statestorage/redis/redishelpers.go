@@ -1,4 +1,4 @@
-// Package redisHelpers is a package for wrapping redis functionality.
+// Package redishelpers is a package for wrapping redis functionality.
 /*
 Copyright 2018 Google LLC
 
@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package redisHelpers
+package redishelpers
 
 import (
 	"context"
@@ -41,20 +41,22 @@ var (
 
 // ConnectionPool reads the configuration and attempts to instantiate a redis connection
 // pool based on the configured hostname and port.
-func ConnectionPool(cfg *viper.Viper) *redis.Pool {
+func ConnectionPool(cfg *viper.Viper) (*redis.Pool, error) {
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
 
 	// Add redis user and password to connection url if they exist
 	redisURL := "redis://"
-	if cfg.IsSet("redis.user") && cfg.GetString("redis.user") != "" &&
-		cfg.IsSet("redis.password") && cfg.GetString("redis.password") != "" {
+	maskedURL := redisURL
+	if cfg.IsSet("redis.password") && cfg.GetString("redis.password") != "" {
 		redisURL += cfg.GetString("redis.user") + ":" + cfg.GetString("redis.password") + "@"
+		maskedURL += cfg.GetString("redis.user") + ":******@"
 	}
 	redisURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
+	maskedURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
 
-	rhLog.WithFields(log.Fields{"redisURL": redisURL}).Debug("Attempting to connect to Redis")
-	pool := redis.Pool{
+	rhLog.WithField("redisURL", maskedURL).Debug("Attempting to connect to Redis")
+	pool := &redis.Pool{
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
 		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout") * time.Second,
@@ -72,11 +74,11 @@ func ConnectionPool(cfg *viper.Viper) *redis.Pool {
 		rhLog.WithFields(log.Fields{
 			"error": err.Error(),
 			"query": "SELECT 0"}).Error("state storage connection error")
-		return nil
+		return nil, fmt.Errorf("cannot connect to Redis at %s, %s", maskedURL, err)
 	}
 
 	rhLog.Info("Connected to Redis")
-	return &pool
+	return pool, nil
 }
 
 // Watcher makes a channel and returns it immediately.  It also launches an

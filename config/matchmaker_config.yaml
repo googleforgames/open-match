@@ -59,8 +59,6 @@ defaultImages:
   mmf: gcr.io/matchmaker-dev-201405/openmatch-mmf-py3-mmlogic-simple:dev
 
 redis: 
-  user: ""
-  password: ""
   pool: 
     maxIdle: 3
     maxActive: 0

@@ -26,10 +26,6 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi"
 )
 
-func init() {
-	frontendapi.InitializeApplication()
-}
-
 func main() {
 	frontendapi.RunApplication()
 }
