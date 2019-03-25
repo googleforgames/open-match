@@ -1,5 +1,4 @@
-# Golang application builder steps
-FROM python:3.5.3 as builder
+FROM python:3.5.3
 WORKDIR /usr/src/open-match
 COPY examples/functions/python3/mmlogic-simple examples/functions/python3/mmlogic-simple
 COPY config config

@@ -113,7 +113,10 @@ help:
 local-cloud-build:
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) .
 
-push-images: push-frontendapi-image push-backendapi-image push-mmforc-image push-mmlogicapi-image push-backendclient-image push-clientloadgen-image push-frontendclient-image
+push-images: push-service-images push-client-images push-mmf-example-images
+push-service-images: push-frontendapi-image push-backendapi-image push-mmforc-image push-mmlogicapi-image
+push-client-images: push-backendclient-image push-clientloadgen-image push-frontendclient-image
+push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-images push-mmf-php-mmlogic-simple-image push-mmf-py3-mmlogic-simple-image
 
 push-frontendapi-image: build-frontendapi-image
 	docker push $(REGISTRY)/openmatch-frontendapi:$(TAG)
@@ -130,13 +133,28 @@ push-mmlogicapi-image: build-mmlogicapi-image
 push-backendclient-image: build-backendclient-image
 	docker push $(REGISTRY)/openmatch-backendclient:$(TAG)
 
+push-mmf-cs-mmlogic-simple-image: build-mmf-cs-mmlogic-simple-image
+	docker push $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG)
+
+push-mmf-go-mmlogic-simple-image: build-mmf-go-mmlogic-simple-image
+	docker push $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG)
+
+push-mmf-php-mmlogic-simple-image: build-mmf-php-mmlogic-simple-image
+	docker push $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG)
+
+push-mmf-py3-mmlogic-simple-image: build-mmf-py3-mmlogic-simple-image
+	docker push $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG)
+
 push-clientloadgen-image: build-clientloadgen-image
 	docker push $(REGISTRY)/openmatch-clientloadgen:$(TAG)
 
 push-frontendclient-image: build-frontendclient-image
 	docker push $(REGISTRY)/openmatch-frontendclient:$(TAG)
 
-build-images: build-frontendapi-image build-backendapi-image build-mmforc-image build-mmlogicapi-image build-backendclient-image build-clientloadgen-image build-frontendclient-image
+build-images: build-service-images build-client-images build-mmf-example-images
+build-service-images: build-frontendapi-image build-backendapi-image build-mmforc-image build-mmlogicapi-image
+build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
+build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-php-mmlogic-simple-image build-mmf-py3-mmlogic-simple-image
 
 build-frontendapi-image: cmd/frontendapi/frontendapi
 	docker build -f cmd/frontendapi/Dockerfile -t $(REGISTRY)/openmatch-frontendapi:$(TAG) .
@@ -153,6 +171,18 @@ build-mmlogicapi-image: cmd/mmlogicapi/mmlogicapi
 build-backendclient-image: examples/backendclient/backendclient
 	docker build -f examples/backendclient/Dockerfile -t $(REGISTRY)/openmatch-backendclient:$(TAG) .
 
+build-mmf-cs-mmlogic-simple-image:
+	docker build -f examples/functions/csharp/simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG) .
+
+build-mmf-go-mmlogic-simple-image:
+	docker build -f examples/functions/golang/manual-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG) .
+
+build-mmf-php-mmlogic-simple-image:
+	docker build -f examples/functions/php/mmlogic-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG) .
+
+build-mmf-py3-mmlogic-simple-image:
+	docker build -f examples/functions/python3/mmlogic-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG) .
+
 build-clientloadgen-image: test/cmd/clientloadgen/clientloadgen
 	docker build -f test/cmd/clientloadgen/Dockerfile -t $(REGISTRY)/openmatch-clientloadgen:$(TAG) .
 
@@ -165,6 +195,10 @@ clean-images:
 	-docker rmi -f $(REGISTRY)/openmatch-mmforc:$(TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-mmlogicapi:$(TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-backendclient:$(TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-clientloadgen:$(TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontendclient:$(TAG)
 
