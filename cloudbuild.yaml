@@ -75,14 +75,24 @@ steps:
 #  args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-evaluator-simple:${_OM_VERSION}-${SHORT_SHA}', 'examples/evaluators/golang/simple']
 #  waitFor: ['-']
 
-#- id: 'Docker Image: openmatch-cs-func-simple'
+#- id: 'Docker Image: openmatch-mmf-cs-mmlogic-simple'
 #  name: gcr.io/cloud-builders/docker
-#  args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-cs-func-simple:${_OM_VERSION}-${SHORT_SHA}', 'examples/functions/golang/manual-simple']
+#  args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-mmf-cs-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}', 'examples/functions/csharp/simple']
 #  waitFor: ['-']
 
-#- id: 'Docker Image: openmatch-go-func-simple'
+#- id: 'Docker Image: openmatch-mmf-go-mmlogic-simple'
 #  name: gcr.io/cloud-builders/docker
-#  args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-go-func-simple:${_OM_VERSION}-${SHORT_SHA}', 'examples/functions/golang/manual-simple']
+#  args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-mmf-go-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}', 'examples/functions/golang/manual-simple']
+#  waitFor: ['-']
+
+#- id: 'Docker Image: openmatch-mmf-php-mmlogic-simple'
+#  name: gcr.io/cloud-builders/docker
+#  args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-mmf-php-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}', 'examples/functions/php/mmlogic-simple']
+#  waitFor: ['-']
+
+#- id: 'Docker Image: openmatch-mmf-py3-mmlogic-simple'
+#  name: gcr.io/cloud-builders/docker
+#  args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-mmf-py3-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}', 'examples/functions/python3/mmlogic-simple']
 #  waitFor: ['-']
 
 #- id: 'Docker Image: backendclient'
@@ -283,8 +293,10 @@ images:
 #- 'gcr.io/$PROJECT_ID/openmatch-mmlogicapi:${_OM_VERSION}-${SHORT_SHA}'
 # Does not build
 #- 'gcr.io/$PROJECT_ID/openmatch-evaluator-simple:${_OM_VERSION}-${SHORT_SHA}'
-#- 'gcr.io/$PROJECT_ID/openmatch-cs-func-simple:${_OM_VERSION}-${SHORT_SHA}'
-#- 'gcr.io/$PROJECT_ID/openmatch-go-func-simple:${_OM_VERSION}-${SHORT_SHA}'
+#- 'gcr.io/$PROJECT_ID/openmatch-mmf-cs-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}'
+#- 'gcr.io/$PROJECT_ID/openmatch-mmf-go-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}'
+#- 'gcr.io/$PROJECT_ID/openmatch-mmf-php-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}'
+#- 'gcr.io/$PROJECT_ID/openmatch-mmf-py3-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}'
 #- 'gcr.io/$PROJECT_ID/openmatch-backendclient:${_OM_VERSION}-${SHORT_SHA}'
 #- 'gcr.io/$PROJECT_ID/openmatch-clientloadgen:${_OM_VERSION}-${SHORT_SHA}'
 #- 'gcr.io/$PROJECT_ID/openmatch-frontendclient:${_OM_VERSION}-${SHORT_SHA}'
@@ -306,3 +318,4 @@ timeout: 1200s
 #
 # Consolidate many of these build steps via Makefile.
 # Caching of dependencies is a serious problem. Cloud Build does not complete within 20 minutes!
+
