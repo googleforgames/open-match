@@ -71,6 +71,15 @@ msbuild.wrn
 # Goland
 .idea/
 
+# Nodejs files placed when building Hugo, ok to allow if we actually start using Nodejs.
+package.json
+package-lock.json
+
+site/resources/_gen/
+
+# Node Modules
+node_modules/
+
 # Compiled Binaries
 cmd/backendapi/backendapi
 cmd/frontendapi/frontendapi

@@ -34,24 +34,28 @@
 ## http://makefiletutorial.com/
 
 BASE_VERSION = 0.4.0
-SHORT_SHA = $(shell git rev-parse --short=7 HEAD)
-VERSION ?= $(BASE_VERSION)-$(SHORT_SHA)
+VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD)
+VERSION ?= $(BASE_VERSION)-$(VERSION_SUFFIX)
 
 PROTOC_VERSION = 3.7.0
 GOLANG_VERSION = 1.12
 HELM_VERSION = 2.13.0
+HUGO_VERSION = 0.54.0
 KUBECTL_VERSION = 1.13.0
 
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
 GO = go
 GO_BIN := $(GOPATH)/bin
 GO_BUILD_COMMAND = CGO_ENABLED=0 GOOS=linux $(GO) build -a -installsuffix cgo .
-TOOLCHAIN_DIR = build/toolchain
+BUILD_DIR = $(CURDIR)/build
+TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
 TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
 PROTOC := $(TOOLCHAIN_BIN)/protoc
 PROTOC_INCLUDES := $(TOOLCHAIN_DIR)/include/
 GCP_PROJECT_ID = "Set $$GCP_PROJECT_ID in your bashrc."
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
+OM_SITE_GCP_PROJECT_ID = open-match-site
+OM_SITE_GCP_PROJECT_FLAG = --project=$(OM_SITE_GCP_PROJECT_ID)
 REGISTRY := gcr.io/$(GCP_PROJECT_ID)
 TAG := $(VERSION)
 ALTERNATE_TAG := dev
@@ -66,14 +70,17 @@ GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
 GO111MODULE = on
 PROMETHEUS_PORT = 9090
 GRAFANA_PORT = 3000
+SITE_PORT = 8080
 HELM = $(TOOLCHAIN_BIN)/helm
 TILLER = $(TOOLCHAIN_BIN)/tiller
 MINIKUBE = $(TOOLCHAIN_BIN)/minikube
 KUBECTL = $(TOOLCHAIN_BIN)/kubectl
+SERVICE = default
+
 ## Make port forwards accessible outside of the proxy machine.
 PORT_FORWARD_ADDRESS_FLAG = --address 0.0.0.0
 DASHBOARD_PORT = 9092
-export PATH := $(TOOLCHAIN_BIN):$(PATH)
+export PATH := $(CURDIR)/node_modules/.bin/:$(TOOLCHAIN_BIN):$(TOOLCHAIN_DIR)/nodejs/bin:$(PATH)
 
 ifneq (,$(wildcard $(TOOLCHAIN_GOLANG_DIR)/bin/go))
 	export GO = $(CURDIR)/$(TOOLCHAIN_GOLANG_DIR)/bin/go
@@ -88,8 +95,11 @@ ifeq ($(OS),Windows_NT)
 	SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/latest/skaffold-windows-amd64.exe
 	EXE_EXTENSION = .exe
 	PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-win64.zip
-	GO_PACKAGE=https://storage.googleapis.com/golang/go${GOLANG_VERSION}.windows-amd64.zip
-	KUBECTL_PACKAGE=https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/windows/amd64/kubectl.exe
+	GO_PACKAGE = https://storage.googleapis.com/golang/go$(GOLANG_VERSION).windows-amd64.zip
+	KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/windows/amd64/kubectl.exe
+	HUGO_PACKAGE = https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_extended_$(HUGO_VERSION)_Windows-64bit.zip
+	NODEJS_PACKAGE = https://nodejs.org/dist/v10.15.3/node-v10.15.3-win-x64.zip
+	NODEJS_PACKAGE_NAME = nodejs.zip
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
@@ -97,16 +107,22 @@ else
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
 		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64
 		PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-linux-x86_64.zip
-		GO_PACKAGE=https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-amd64.tar.gz
-		KUBECTL_PACKAGE=https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl
+		GO_PACKAGE = https://storage.googleapis.com/golang/go$(GOLANG_VERSION).linux-amd64.tar.gz
+		KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/linux/amd64/kubectl
+		HUGO_PACKAGE = https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_extended_$(HUGO_VERSION)_Linux-64bit.tar.gz
+		NODEJS_PACKAGE = https://nodejs.org/dist/v10.15.3/node-v10.15.3-linux-x64.tar.xz
+		NODEJS_PACKAGE_NAME = nodejs.tar.xz
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/latest/minikube-darwin-amd64
 		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/latest/skaffold-darwin-amd64
 		PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-osx-x86_64.zip
-		GO_PACKAGE=https://storage.googleapis.com/golang/go${GOLANG_VERSION}.darwin-amd64.tar.gz
-		KUBECTL_PACKAGE=https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/darwin/amd64/kubectl
+		GO_PACKAGE = https://storage.googleapis.com/golang/go$(GOLANG_VERSION).darwin-amd64.tar.gz
+		KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/darwin/amd64/kubectl
+		HUGO_PACKAGE = https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_extended_$(HUGO_VERSION)_macOS-64bit.tar.gz
+		NODEJS_PACKAGE = https://nodejs.org/dist/v10.15.3/node-v10.15.3-darwin-x64.tar.gz
+		NODEJS_PACKAGE_NAME = nodejs.tar.gz
 	endif
 endif
 
@@ -114,7 +130,7 @@ help:
 	@cat Makefile | grep ^\# | grep -v ^\#\# | cut -c 3-
 
 local-cloud-build:
-	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) -substitutions SHORT_SHA=$(SHORT_SHA) .
+	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) -substitutions SHORT_SHA=$(VERSION_SUFFIX) .
 
 push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
 push-service-images: push-frontendapi-image push-backendapi-image push-mmforc-image push-mmlogicapi-image
@@ -255,7 +271,7 @@ delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubec
 update-helm-deps:
 	(cd install/helm/open-match; helm dependencies update)
 
-install-toolchain: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION) build/toolchain/python/
+install-toolchain: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)  build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/python/
 
 build/toolchain/bin/helm$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -264,6 +280,13 @@ build/toolchain/bin/helm$(EXE_EXTENSION):
 	mv $(TOOLCHAIN_DIR)/temp-helm/helm$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/helm$(EXE_EXTENSION)
 	mv $(TOOLCHAIN_DIR)/temp-helm/tiller$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/tiller$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-helm/
+
+build/toolchain/bin/hugo$(EXE_EXTENSION):
+	mkdir -p $(TOOLCHAIN_BIN)
+	mkdir -p $(TOOLCHAIN_DIR)/temp-hugo
+	cd $(TOOLCHAIN_DIR)/temp-hugo && curl -Lo hugo.tar.gz $(HUGO_PACKAGE) && tar xvzf hugo.tar.gz
+	mv $(TOOLCHAIN_DIR)/temp-hugo/hugo$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/hugo$(EXE_EXTENSION)
+	rm -rf $(TOOLCHAIN_DIR)/temp-hugo/
 
 build/toolchain/bin/minikube$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -398,8 +421,40 @@ test/cmd/clientloadgen/clientloadgen:
 test/cmd/frontendclient/frontendclient: internal/pb/frontend.pb.go internal/pb/messages.pb.go
 	cd test/cmd/frontendclient; $(GO_BUILD_COMMAND)
 
+build/archives/${NODEJS_PACKAGE_NAME}:
+	mkdir -p build/archives/
+	cd build/archives/ && curl -L -o ${NODEJS_PACKAGE_NAME} ${NODEJS_PACKAGE}
+
+build/toolchain/nodejs/: build/archives/${NODEJS_PACKAGE_NAME}
+	mkdir -p build/toolchain/nodejs/
+	cd build/toolchain/nodejs/ && tar xjf ../../archives/${NODEJS_PACKAGE_NAME} --strip-components 1
+
+install-npm: build/toolchain/nodejs/
+	echo "{}" > package.json
+	$(TOOLCHAIN_DIR)/nodejs/bin/npm install postcss-cli autoprefixer
+
+build/site/: build/archives/govanityurls.zip build/toolchain/bin/hugo$(EXE_EXTENSION)
+	rm -rf build/site/
+	mkdir -p build/site/
+	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) --enableGitInfo --config=config.toml --source . --destination $(BUILD_DIR)/site/public/
+	-cp -f site/* $(BUILD_DIR)/site
+	#cd $(BUILD_DIR)/site && "SERVICE=$(SERVICE) envsubst < app.yaml > .app.yaml"
+	cp $(BUILD_DIR)/site/app.yaml $(BUILD_DIR)/site/.app.yaml
+
+browse-site: build/site/
+	cd $(BUILD_DIR)/site && dev_appserver.py .app.yaml
+
+deploy-dev-site: build/site/
+	cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(VERSION_SUFFIX) --quiet
+
+run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
+	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) server --debug --watch --enableGitInfo . --bind 0.0.0.0 --port $(SITE_PORT) --disableFastRender
+
 all: cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmforc/mmforc cmd/mmlogicapi/mmlogicapi examples/backendclient/backendclient examples/evaluators/golang/simple examples/functions/golang/manual-simple test/cmd/clientloadgen/clientloadgen test/cmd/frontendclient/frontendclient
 presubmit: fmt vet build test
+
+clean-site:
+	rm -rf build/site/
 
 clean-protos:
 	rm -rf internal/pb/
@@ -419,7 +474,12 @@ clean-binaries:
 clean-toolchain:
 	rm -rf build/toolchain/
 
-clean: clean-images clean-binaries clean-toolchain clean-protos
+clean-nodejs:
+	rm -rf build/toolchain/nodejs/
+	rm -rf node_modules/
+	rm -rf package.json
+
+clean: clean-images clean-binaries clean-site clean-toolchain clean-protos clean-nodejs
 
 run-backendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=open-match $(KUBECTL_RUN_ENV)
@@ -442,3 +502,4 @@ proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
 .PHONY: proxy-dashboard proxy-prometheus proxy-grafana
+
