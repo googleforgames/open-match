@@ -35,7 +35,7 @@ openmatch:
     grpc:
       port: 50503
   config:
-    matchmaker: /go/src/github.com/GoogleCloudPlatform/open-match/config
+    matchmaker: /config
   image:
     registry: gcr.io/open-match-public-images
     tag: 0.4.0
