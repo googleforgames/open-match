@@ -47,25 +47,30 @@
 #    https://github.com/GoogleCloudPlatform/cloud-builders/tree/master/go
 
 steps:
+- id: 'Docker Image: open-match-base-build'
+  name: gcr.io/cloud-builders/docker
+  args: ['build', '-t', 'open-match-base-build', '-f', 'Dockerfile.base-build', '.']
+  waitFor: ['-']
+
 - id: 'Docker Image: backendapi'
   name: gcr.io/cloud-builders/docker
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-backendapi:${_OM_VERSION}-${SHORT_SHA}', 'cmd/backendapi']
-  waitFor: ['-']
+  waitFor: ['Docker Image: open-match-base-build']
 
 - id: 'Docker Image: frontendapi'
   name: gcr.io/cloud-builders/docker
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-frontendapi:${_OM_VERSION}-${SHORT_SHA}', 'cmd/frontendapi']
-  waitFor: ['-']
+  waitFor: ['Docker Image: open-match-base-build']
 
 - id: 'Docker Image: mmforc'
   name: gcr.io/cloud-builders/docker
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-mmforc:${_OM_VERSION}-${SHORT_SHA}', 'cmd/mmforc']
-  waitFor: ['-']
+  waitFor: ['Docker Image: open-match-base-build']
 
 - id: 'Docker Image: mmlogicapi'
   name: gcr.io/cloud-builders/docker
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-mmlogicapi:${_OM_VERSION}-${SHORT_SHA}', 'cmd/mmlogicapi']
-  waitFor: ['-']
+  waitFor: ['Docker Image: open-match-base-build']
 
 - id: 'Docker Image: Evaluator Simple'
   name: gcr.io/cloud-builders/docker
@@ -75,32 +80,37 @@ steps:
 - id: 'Docker Image: openmatch-mmf-cs-mmlogic-simple'
   name: gcr.io/cloud-builders/docker
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-mmf-cs-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}', 'examples/functions/csharp/simple']
-  waitFor: ['-']
+  waitFor: ['Docker Image: open-match-base-build']
 
 - id: 'Docker Image: openmatch-mmf-go-mmlogic-simple'
   name: gcr.io/cloud-builders/docker
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-mmf-go-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}', 'examples/functions/golang/manual-simple']
-  waitFor: ['-']
+  waitFor: ['Docker Image: open-match-base-build']
 
 - id: 'Docker Image: openmatch-mmf-php-mmlogic-simple'
   name: gcr.io/cloud-builders/docker
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-mmf-php-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}', 'examples/functions/php/mmlogic-simple']
-  waitFor: ['-']
+  waitFor: ['Docker Image: open-match-base-build']
 
 - id: 'Docker Image: openmatch-mmf-py3-mmlogic-simple'
   name: gcr.io/cloud-builders/docker
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-mmf-py3-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}', 'examples/functions/python3/mmlogic-simple']
-  waitFor: ['-']
+  waitFor: ['Docker Image: open-match-base-build']
 
 - id: 'Docker Image: backendclient'
   name: gcr.io/cloud-builders/docker
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-backendclient:${_OM_VERSION}-${SHORT_SHA}', 'examples/backendclient']
-  waitFor: ['-']
+  waitFor: ['Docker Image: open-match-base-build']
 
 - id: 'Docker Image: clientloadgen'
   name: gcr.io/cloud-builders/docker
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-clientloadgen:${_OM_VERSION}-${SHORT_SHA}', 'test/cmd/clientloadgen']
-  waitFor: ['-']
+  waitFor: ['Docker Image: open-match-base-build']
+
+- id: 'Docker Image: frontendclient'
+  name: gcr.io/cloud-builders/docker
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/openmatch-frontendclient:${_OM_VERSION}-${SHORT_SHA}', 'test/cmd/frontendclient']
+  waitFor: ['Docker Image: open-match-base-build']
 
 # Cannot enable, produces lots of errors but can be useful.
 #- id: 'Lint: YAML Files'

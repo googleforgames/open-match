@@ -80,7 +80,7 @@ endif
 
 ifeq ($(OS),Windows_NT)
 	# TODO: Windows packages are here but things are broken since many paths are Linux based and zip vs tar.gz.
-    HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-windows-amd64.zip
+	HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-windows-amd64.zip
 	MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/latest/minikube-windows-amd64.exe
 	SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/latest/skaffold-windows-amd64.exe
 	EXE_EXTENSION = .exe
@@ -88,23 +88,23 @@ ifeq ($(OS),Windows_NT)
 	GO_PACKAGE=https://storage.googleapis.com/golang/go${GOLANG_VERSION}.windows-amd64.zip
 	KUBECTL_PACKAGE=https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/windows/amd64/kubectl.exe
 else
-    UNAME_S := $(shell uname -s)
-    ifeq ($(UNAME_S),Linux)
-        HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-linux-amd64.tar.gz
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Linux)
+		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-linux-amd64.tar.gz
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
 		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64
 		PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-linux-x86_64.zip
 		GO_PACKAGE=https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-amd64.tar.gz
 		KUBECTL_PACKAGE=https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl
-    endif
-    ifeq ($(UNAME_S),Darwin)
-        HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
+	endif
+	ifeq ($(UNAME_S),Darwin)
+		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/latest/minikube-darwin-amd64
 		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/latest/skaffold-darwin-amd64
 		PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-osx-x86_64.zip
 		GO_PACKAGE=https://storage.googleapis.com/golang/go${GOLANG_VERSION}.darwin-amd64.tar.gz
 		KUBECTL_PACKAGE=https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/darwin/amd64/kubectl
-    endif
+	endif
 endif
 
 help:
