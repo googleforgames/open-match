@@ -70,6 +70,8 @@ EXE_EXTENSION =
 LOCAL_CLOUD_BUILD_PUSH = # --push
 KUBECTL_RUN_ENV = --env='REDIS_SERVICE_HOST=$$(OPEN_MATCH_REDIS_MASTER_SERVICE_HOST)' --env='REDIS_SERVICE_PORT=$$(OPEN_MATCH_REDIS_MASTER_SERVICE_PORT)'
 GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
+# Flags to simulate behavior of newer versions of Kubernetes
+KUBERNETES_COMPAT = --no-enable-basic-auth -no-issue-client-certificate --enable-ip-alias
 GO111MODULE = on
 PROMETHEUS_PORT = 9090
 GRAFANA_PORT = 3000
@@ -358,7 +360,7 @@ auth-gke-cluster:
 	gcloud $(GCP_PROJECT_FLAG) container clusters get-credentials $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG)
 
 create-gke-cluster:
-	gcloud $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --machine-type n1-standard-4 --tags open-match
+	gcloud $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --machine-type n1-standard-4 --tags open-match $(KUBERNETES_COMPAT)
 
 delete-gke-cluster:
 	gcloud $(GCP_PROJECT_FLAG) container clusters delete $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG)
@@ -487,6 +489,7 @@ clean-site:
 clean-protos:
 	rm -rf internal/pb/
 	rm -rf api/protobuf_spec/
+	rm -rf examples/functions/python3/mmlogic-simple/api/protobuf_spec/
 
 clean-binaries:
 	rm -rf cmd/backendapi/backendapi
@@ -530,4 +533,3 @@ proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
 .PHONY: proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test vet
-

@@ -29,6 +29,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/set"
@@ -40,7 +41,6 @@ import (
 	"go.opencensus.io/tag"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/spf13/viper"
 
 	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
@@ -61,13 +61,13 @@ var (
 // the protobuf, by fulfilling the mmlogic.APIClient interface.
 type MmlogicAPI struct {
 	grpc *grpc.Server
-	cfg  *viper.Viper
+	cfg  config.View
 	pool *redis.Pool
 }
 type mmlogicAPI MmlogicAPI
 
 // New returns an instantiated srvice
-func New(cfg *viper.Viper, pool *redis.Pool) *MmlogicAPI {
+func New(cfg config.View, pool *redis.Pool) *MmlogicAPI {
 	s := MmlogicAPI{
 		pool: pool,
 		grpc: grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{})),
@@ -561,7 +561,7 @@ func (s *mmlogicAPI) allIgnoreLists(c context.Context, in *pb.IlInput) (allIgnor
 
 	// Loop through all ignorelists configured in the config file.
 	for il := range s.cfg.GetStringMap("ignoreLists") {
-		ilCfg := s.cfg.Sub(fmt.Sprintf("ignoreLists.%v", il))
+		ilCfg := config.Sub(s.cfg, fmt.Sprintf("ignoreLists.%v", il))
 		thisIl, err := ignorelist.Retrieve(redisConn, ilCfg, il)
 		if err != nil {
 			return []string{}, err

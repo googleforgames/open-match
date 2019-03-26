@@ -26,6 +26,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
@@ -44,7 +45,6 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/rs/xid"
-	"github.com/spf13/viper"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -64,13 +64,13 @@ var (
 // the protobuf, by fulfilling the API Client interface.
 type BackendAPI struct {
 	grpc *grpc.Server
-	cfg  *viper.Viper
+	cfg  config.View
 	pool *redis.Pool
 }
 type backendAPI BackendAPI
 
 // New returns an instantiated srvice
-func New(cfg *viper.Viper, pool *redis.Pool) *BackendAPI {
+func New(cfg config.View, pool *redis.Pool) *BackendAPI {
 	s := BackendAPI{
 		pool: pool,
 		grpc: grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{})),
