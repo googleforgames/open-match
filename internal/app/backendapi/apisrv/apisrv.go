@@ -1,6 +1,6 @@
 /*
 package apisrv provides an implementation of the gRPC server defined in
-../../../api/protobuf-spec/backend.proto
+../../../api/protobuf-spec/pb.proto
 
 Copyright 2018 Google LLC
 
@@ -68,7 +68,7 @@ type BackendAPI struct {
 	grpc      *grpc.Server
 	cfg       *viper.Viper
 	pool      *redis.Pool
-	fnClients map[string]backend.FunctionClient
+	fnClients map[string]pb.FunctionClient
 }
 type backendAPI BackendAPI
 
@@ -78,7 +78,7 @@ func New(cfg *viper.Viper, pool *redis.Pool) *BackendAPI {
 		pool:      pool,
 		grpc:      grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{})),
 		cfg:       cfg,
-		fnClients: make(map[string]backend.FunctionClient),
+		fnClients: make(map[string]pb.FunctionClient),
 	}
 
 	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
@@ -91,16 +91,16 @@ func New(cfg *viper.Viper, pool *redis.Pool) *BackendAPI {
 
 // Open starts the api grpc service listening on the configured port.
 func (s *BackendAPI) Open() error {
-	ln, err := net.Listen("tcp", ":"+s.cfg.GetString("api.backend.port"))
+	ln, err := net.Listen("tcp", ":"+s.cfg.GetString("api.pb.port"))
 	if err != nil {
 		beLog.WithFields(log.Fields{
 			"error": err.Error(),
-			"port":  s.cfg.GetInt("api.backend.port"),
+			"port":  s.cfg.GetInt("api.pb.port"),
 		}).Error("net.Listen() error")
 		return err
 	}
 
-	beLog.WithFields(log.Fields{"port": s.cfg.GetInt("api.backend.port")}).Info("TCP net listener initialized")
+	beLog.WithFields(log.Fields{"port": s.cfg.GetInt("api.pb.port")}).Info("TCP net listener initialized")
 
 	go func() {
 		err := s.grpc.Serve(ln)
@@ -114,8 +114,8 @@ func (s *BackendAPI) Open() error {
 }
 
 // CreateMatch is this service's implementation of the CreateMatch gRPC method
-// defined in api/protobuf-spec/backend.proto
-func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMatchRequest) (*backend.MatchObject, error) {
+// defined in api/protobuf-spec/pb.proto
+func (s *backendAPI) CreateMatch(c context.Context, beRequest *pb.CreateMatchRequest) (*pb.MatchObject, error) {
 
 	// Get a cancel-able context
 	ctx, cancel := context.WithCancel(c)
@@ -128,14 +128,13 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 	// Generate a request to fill the profile. Make a unique request ID.
 	requestID := xid.New().String()
 	resultID := requestID + "." + beRequest.Matchobject.Id
-	req := &backend.Request{
+	mmfArgs := pb.Arguments{Matchobject: beRequest.Matchobject,
 		// State storage keys
 		ProfileId:  beRequest.Matchobject.Id, // Location of original match object
 		RequestId:  requestID,                // Prefix to make results key unique.
 		ResultId:   resultID,                 // Final location of match results.
 		ProposalId: "proposal." + resultID,   // Intermediate location for results that may have collisions.
 	}
-	mmfArgs := backend.Arguments{Matchobject: beRequest.Matchobject, Request: req}
 
 	// DEPRECATED: In a future version, you'll have to set the protobuf 'pools' field to use the MMLogic API.
 	// Case where no protobuf pools was passed; check if there's a JSON version in the properties.
@@ -202,13 +201,13 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 
 	// Figure out what kind of MMF we are running and kick it off
 	switch beRequest.Mmfspec.Type {
-	case backend.MmfSpec_K8SJOB:
+	case pb.MmfSpec_K8SJOB:
 		// Queue the request ID to be sent to an MMF running as a k8s job.
 		// DEPRECATED: MMForc will be removed in a future version.  All MMFs going
 		// forward should be written as 'serving' functions that can be deployed to
 		// the Kubernetes cluster, either manually or using a serverless function
 		// add-on (like Knative).
-		_, err = redisHelpers.Update(ctx, s.pool, s.cfg.GetString("queues.profiles.name"), resultID)
+		_, err = redishelpers.Update(ctx, s.pool, s.cfg.GetString("queues.profiles.name"), resultID)
 		if err != nil {
 			beLog.WithFields(log.Fields{
 				"error":     err.Error(),
@@ -217,11 +216,11 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 
 			// Failure! Return empty match object and the error
 			stats.Record(fnCtx, BeGrpcErrors.M(1))
-			return &backend.MatchObject{}, err
+			return &pb.MatchObject{}, err
 		}
 		beLog.Info("Profile added to processing queue")
 
-	case backend.MmfSpec_GRPC:
+	case pb.MmfSpec_GRPC:
 		// Call the MMF directly as a gRPC endpoint
 
 		mgLog := beLog.WithFields(log.Fields{
@@ -232,7 +231,7 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 		// See if we already have a connection to this MMF
 		portstr := ":" + strconv.FormatInt(int64(beRequest.Mmfspec.Port), 10)
 		clientKey := beRequest.Mmfspec.Host + portstr
-		var client backend.FunctionClient
+		var client pb.FunctionClient
 		var ok bool
 
 		// TODO: Validate what happens if the client was opened ages ago.
@@ -246,7 +245,7 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 					"error": err.Error(),
 				}).Error("Failed to lookup MMF service")
 				stats.Record(fnCtx, BeGrpcErrors.M(1))
-				return &backend.MatchObject{}, err
+				return &pb.MatchObject{}, err
 			}
 			connstring := ip[0] + portstr
 			conn, err := grpc.Dial(connstring, grpc.WithInsecure())
@@ -255,9 +254,9 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 					"error": err.Error(),
 				}).Error("Failed to connect to MMF service")
 				stats.Record(fnCtx, BeGrpcErrors.M(1))
-				return &backend.MatchObject{}, err
+				return &pb.MatchObject{}, err
 			}
-			client = backend.NewFunctionClient(conn)
+			client = pb.NewFunctionClient(conn)
 			s.fnClients[clientKey] = client
 			mgLog.Println("MMF service client connected")
 		} else if s.cfg.IsSet("debug") && s.cfg.GetBool("debug") {
@@ -274,21 +273,21 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 				"error": err.Error(),
 			}).Error("MMF service returned error")
 			stats.Record(fnCtx, BeGrpcErrors.M(1))
-			return &backend.MatchObject{}, err
+			return &pb.MatchObject{}, err
 		}
 		// Increment number of currently running MMFs.
-		redisHelpers.Increment(context.Background(), s.pool, "concurrentMMFs")
+		redishelpers.Increment(context.Background(), s.pool, "concurrentMMFs")
 	}
 
 	watcherBO := backoff.NewExponentialBackOff()
-	if err := expbo.UnmarshalExponentialBackOff(s.cfg.GetString("api.backend.backoff"), watcherBO); err != nil {
+	if err := expbo.UnmarshalExponentialBackOff(s.cfg.GetString("api.pb.backoff"), watcherBO); err != nil {
 		beLog.WithError(err).Warn("Could not parse backoff string, using default backoff parameters for MatchObject watcher")
 	}
 
 	watcherBOCtx := backoff.WithContext(watcherBO, ctx)
 
 	// get and return matchobject, it will be written to the resultID when the MMF has finished.
-	watchChan := redispb.Watcher(watcherBOCtx, s.pool, backend.MatchObject{Id: resultID}) // Watcher() runs the appropriate Redis commands.
+	watchChan := redispb.Watcher(watcherBOCtx, s.pool, pb.MatchObject{Id: resultID}) // Watcher() runs the appropriate Redis commands.
 	newMO, ok := <-watchChan
 	if !ok {
 		// ok is false if watchChan has been closed by redispb.Watcher()
@@ -325,10 +324,10 @@ func (s *backendAPI) CreateMatch(c context.Context, beRequest *backend.CreateMat
 }
 
 // ListMatches is this service's implementation of the ListMatches gRPC method
-// defined in api/protobuf-spec/backend.proto
+// defined in api/protobuf-spec/pb.proto
 // This is the streaming version of CreateMatch - continually submitting the
 // profile to be filled until the requesting service ends the connection.
-func (s *backendAPI) ListMatches(req *backend.ListMatchesRequest, matchStream backend.Backend_ListMatchesServer) error {
+func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Backend_ListMatchesServer) error {
 
 	// call creatematch in infinite loop as long as the stream is open
 	ctx := matchStream.Context() // https://talks.golang.org/2015/gotham-grpc.slide#30
@@ -353,9 +352,9 @@ func (s *backendAPI) ListMatches(req *backend.ListMatchesRequest, matchStream ba
 
 		default:
 			// Retreive results from Redis
-			cmReq := &backend.CreateMatchRequest{
-				Matchobject: proto.Clone(req.Matchobject).(*backend.MatchObject),
-				Mmfspec:     proto.Clone(req.Mmfspec).(*backend.MmfSpec),
+			cmReq := &pb.CreateMatchRequest{
+				Matchobject: proto.Clone(req.Matchobject).(*pb.MatchObject),
+				Mmfspec:     proto.Clone(req.Mmfspec).(*pb.MmfSpec),
 			}
 
 			// Call CreateMatch
@@ -378,7 +377,7 @@ func (s *backendAPI) ListMatches(req *backend.ListMatchesRequest, matchStream ba
 }
 
 // DeleteMatch is this service's implementation of the DeleteMatch gRPC method
-// defined in api/protobuf-spec/backend.proto
+// defined in api/protobuf-spec/pb.proto
 func (s *backendAPI) DeleteMatch(ctx context.Context, mo *pb.MatchObject) (*pb.Result, error) {
 
 	// Create context for tagging OpenCensus metrics.
@@ -410,7 +409,7 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, mo *pb.MatchObject) (*pb.R
 }
 
 // CreateAssignments is this service's implementation of the CreateAssignments gRPC method
-// defined in api/protobuf-spec/backend.proto
+// defined in api/protobuf-spec/pb.proto
 func (s *backendAPI) CreateAssignments(ctx context.Context, a *pb.Assignments) (*pb.Result, error) {
 
 	// Make a map of players and what assignments we want to send them.

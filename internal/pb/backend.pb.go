@@ -24,7 +24,6 @@ It has these top-level messages:
 	Result
 	IlInput
 	Assignments
-	Request
 	Arguments
 */
 package pb

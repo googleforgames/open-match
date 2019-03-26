@@ -57,13 +57,11 @@ var (
 	evLog = log.WithFields(evLogFields)
 
 	cfg    *viper.Viper
-	err    error
 	pool   *redis.Pool
 	dryrun bool
 )
 
-// InitializeApplication is a hook for the init() method in the main executable.
-func InitializeApplication() {
+func initializeApplication() {
 
 	// Parse commandline flags.
 	flag.BoolVar(&dryrun, "dryrun", false, "Print eval results, but do not take approval or rejection actions")
@@ -73,7 +71,7 @@ func InitializeApplication() {
 	log.AddHook(metrics.NewHook(EvaluatorLogLines, KeySeverity))
 
 	// Viper config management initialization
-	cfg, err = config.Read()
+	cfg, err := config.Read()
 	if err != nil {
 		evLog.WithFields(log.Fields{
 			"error": err.Error(),
@@ -84,23 +82,26 @@ func InitializeApplication() {
 	logging.ConfigureLogging(cfg)
 
 	// Get redis connection pool.
-	pool = redisHelpers.ConnectionPool(cfg)
+	pool, err = redisHelpers.ConnectionPool(cfg)
 
 	// Configure OpenCensus exporter to Prometheus
 	// metrics.ConfigureOpenCensusPrometheusExporter expects that every OpenCensus view you
 	// want to register is in an array, so append any views you want from other
 	// packages to a single array here.
-	ocEvaluatorViews := DefaultEvaluatorViews /
+	ocEvaluatorViews := DefaultEvaluatorViews
+	ocEvaluatorViews = append(ocEvaluatorViews, config.CfgVarCountView) // config loader view.
 
-		// Waiting on https://github.com/opencensus-integrations/redigo/pull/1
-		// ocEvaluatorViews = append(ocEvaluatorViews, redis.ObservabilityMetricViews...) // redis OpenCensus views.
-		evLog.WithFields(log.Fields{"viewscount": len(ocEvaluatorViews)}).Info("Loaded OpenCensus views")
+	// Waiting on https://github.com/opencensus-integrations/redigo/pull/1
+	// ocEvaluatorViews = append(ocEvaluatorViews, redis.ObservabilityMetricViews...) // redis OpenCensus views.
+	evLog.WithFields(log.Fields{"viewscount": len(ocEvaluatorViews)}).Info("Loaded OpenCensus views")
 	metrics.ConfigureOpenCensusPrometheusExporter(cfg, ocEvaluatorViews)
 
 }
 
 // RunApplication is a hook for the main() method in the main executable.
 func RunApplication() {
+	initializeApplication()
+
 	// TODO: implement robust cancellation logic.
 	ctx, cancel := context.WithCancel(context.Background())
 	_ = cancel

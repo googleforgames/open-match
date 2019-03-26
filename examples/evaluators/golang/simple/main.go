@@ -26,6 +26,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"strings"
 	"time"
@@ -45,7 +46,6 @@ import (
 var (
 	lgr    *log.Logger
 	cfg    *viper.Viper
-	err    error
 	pool   *redis.Pool
 	dryrun bool
 )
@@ -63,7 +63,7 @@ func main() {
 	// writing an evaluator in another language, most libraries/modules that
 	// can parse a YAML file will work.
 	lgr.Println("Initializing config...")
-	cfg, err = config.Read()
+	cfg, err := config.Read()
 	if err != nil {
 		panic(nil)
 	}
@@ -71,7 +71,7 @@ func main() {
 	// Connect to redis
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz // redis pool docs: https://godoc.org/github.com/gomodule/redigo/redis#Pool
-	pool := redishelpers.ConnectionPool(cfg)
+	pool, err := redishelpers.ConnectionPool(cfg)
 	redisConn := pool.Get()
 	defer redisConn.Close()
 
@@ -102,8 +102,8 @@ func main() {
 	// Choose matches to approve from among the overloaded ones.
 	approved, rejected, err := chooseMatches(overloadedMatchList)
 	approvedMatchList = append(approvedMatchList, approved...)
-	approvedPlayers := make([]string, 0)
-	potentiallyRejectedPlayers := make([]string, 0)
+	approvedPlayers := []string{}
+	potentiallyRejectedPlayers := []string{}
 
 	// run redis commands to approve matches
 	for _, proposalIndex := range approvedMatchList {
@@ -115,6 +115,11 @@ func main() {
 		// format:
 		// "proposal".unique_matchobject_id.profile_name
 		values := strings.Split(proposedID, ".")
+		if len(values) != 3 {
+			err = errors.New("proposal key didn't have three parts")
+			lgr.Error(err)
+			return
+		}
 		moID, proID := values[1], values[2]
 		backendID := moID + "." + proID
 
@@ -286,7 +291,7 @@ func getProposedPlayers(pool *redis.Pool, propKey string) ([]string, error) {
 	}
 
 	// Loop through all rosters, appending players IDs to a list.
-	playerList := make([]string, 0)
+	playerList := []string{}
 	for _, r := range mo.Rosters {
 		for _, p := range r.Players {
 			playerList = append(playerList, p.Id)

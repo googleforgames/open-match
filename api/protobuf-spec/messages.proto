@@ -29,10 +29,8 @@ message MmfSpec {
     string host = 2;  // Host or DNS name for service providing this MMF.  Must be resolve-able by the backend API.
     int32 port = 3;   // Port number for service providing this MMF.
     enum Type {
-        // Generic serving types.
         GRPC = 0;
-        REST = 1;
-        // Knative types will be KNATIVEREST, KNATIVEGRPC, etc.
+        K8SJOB= 99;
     }
     Type type = 4;    // Type of MMF
 }
@@ -119,23 +117,11 @@ message Assignments{
     string assignment = 10; 
 }
 
-// Messages for gRPC-served matchmaking functions.
-
-// The message for passing in the per-request identifiers
-// to a matchmaking function; used so it knows which records to
-// write/update in state storage.  Internal to Open Match; this is populated by
-// the Backend API and sent to your gRPC-served MMF.
-message Request {
+// Message for gRPC-served matchmaking functions.
+message Arguments{
     string profile_id = 1;  // Developer-chosen profile name, a copy of the MatchObject name.
     string request_id = 2;  // Per-request generated unique ID, by convention XID.
     string proposal_id = 3; // Intermediate result proposal ID. by convention, the string 'proposal.' prepended to the result_id. 
     string result_id = 4;   // Final result ID. By convention, request_id.profile_id
-    int64 timestamp = 5;    // Reserved for future use.
-}
-
-// The message for passing all the necessary arguments to a 
-// matchmaking function.
-message Arguments{
-    Request request = 1;
-    MatchObject matchobject = 2;
+    MatchObject matchobject = 5;
 }

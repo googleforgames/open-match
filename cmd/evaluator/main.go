@@ -18,10 +18,6 @@ package main
 
 import "github.com/GoogleCloudPlatform/open-match/internal/app/evaluator"
 
-func init() {
-	evaluator.InitializeApplication()
-}
-
 func main() {
 	evaluator.RunApplication()
 }

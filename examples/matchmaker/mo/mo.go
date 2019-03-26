@@ -26,27 +26,8 @@ type poolArray []*pb.PlayerPool
 type ftrArray []*pb.Filter
 type rosterArray []*pb.Roster
 
-/*
-//example of how to use this module
-func main() {
-	moChan := make(chan *pb.MatchObject)
-	doneChan := make(chan bool)
-	go GenerateMatchObjects(moChan, doneChan)
-	for {
-		select {
-		case mo := <-moChan:
-			pretty.PrettyPrint(mo)
-		case <-doneChan:
-			log.Println("all Done")
-			return
-		}
-	}
-}
-*/
-
 // GenerateMatchObjects
 func GenerateMatchObjects(moChan chan *pb.MatchObject) {
-	//func GenerateMatchObjects(moChan chan *pb.MatchObject, doneChan chan bool) {
 	defer close(moChan)
 
 	debug = false
