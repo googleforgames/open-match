@@ -11,9 +11,9 @@ RUN echo "extension=grpc.so" > /usr/local/etc/php/conf.d/30-grpc.ini
 RUN pecl install protobuf
 RUN echo "extension=protobuf.so" > /usr/local/etc/php/conf.d/30-protobuf.ini
 
-WORKDIR /usr/src/open-match
-COPY examples/functions/php/mmlogic-simple examples/functions/php/mmlogic-simple
-COPY config config
+RUN mkdir -p /usr/src/open-match/examples/functions/php/mmlogic-simple
+COPY examples/functions/php/mmlogic-simple /usr/src/open-match/examples/functions/php/mmlogic-simple
+COPY config /usr/src/open-match/examples/functions/php/mmlogic-simple/config
 WORKDIR /usr/src/open-match/examples/functions/php/mmlogic-simple
 
 RUN composer install
