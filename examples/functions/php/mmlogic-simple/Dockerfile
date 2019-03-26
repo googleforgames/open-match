@@ -13,6 +13,8 @@ RUN echo "extension=protobuf.so" > /usr/local/etc/php/conf.d/30-protobuf.ini
 
 RUN mkdir -p /usr/src/open-match/examples/functions/php/mmlogic-simple
 COPY examples/functions/php/mmlogic-simple /usr/src/open-match/examples/functions/php/mmlogic-simple
+
+# TODO: Remove embedding the config once loading configuration is normalized and this can respect the ConfigMap.
 COPY config /usr/src/open-match/examples/functions/php/mmlogic-simple/config
 WORKDIR /usr/src/open-match/examples/functions/php/mmlogic-simple
 
