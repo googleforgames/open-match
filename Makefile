@@ -42,7 +42,6 @@ GOLANG_VERSION = 1.12
 HELM_VERSION = 2.13.0
 HUGO_VERSION = 0.54.0
 KUBECTL_VERSION = 1.13.0
-
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
 GO = go
 GO_BIN := $(GOPATH)/bin
@@ -52,11 +51,11 @@ TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
 TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
 PROTOC := $(TOOLCHAIN_BIN)/protoc
 PROTOC_INCLUDES := $(TOOLCHAIN_DIR)/include/
-GCP_PROJECT_ID = "Set $$GCP_PROJECT_ID in your bashrc."
+GCP_PROJECT_ID =
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
 OM_SITE_GCP_PROJECT_ID = open-match-site
 OM_SITE_GCP_PROJECT_FLAG = --project=$(OM_SITE_GCP_PROJECT_ID)
-REGISTRY := gcr.io/$(GCP_PROJECT_ID)
+REGISTRY = gcr.io/$(GCP_PROJECT_ID)
 TAG := $(VERSION)
 ALTERNATE_TAG := dev
 GKE_CLUSTER_NAME = om-cluster
@@ -86,6 +85,11 @@ ifneq (,$(wildcard $(TOOLCHAIN_GOLANG_DIR)/bin/go))
 	export GO = $(CURDIR)/$(TOOLCHAIN_GOLANG_DIR)/bin/go
 	export GOROOT = $(CURDIR)/$(TOOLCHAIN_GOLANG_DIR)
 	export PATH := $(TOOLCHAIN_GOLANG_DIR):$(PATH)
+endif
+
+# Get the project from gcloud if it's not set.
+ifeq ($(GCP_PROJECT_ID),)
+	export GCP_PROJECT_ID = $(shell gcloud config list --format 'value(core.project)')
 endif
 
 ifeq ($(OS),Windows_NT)
@@ -244,6 +248,9 @@ clean-images:
 	-docker rmi -f $(REGISTRY)/openmatch-frontendclient:$(TAG) $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator-simple:$(TAG) $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG)
 
+install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
+	$(HELM) upgrade --install --wait --debug redis stable/redis --namespace redis
+
 chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd install/helm/open-match; $(HELM) dependency update)
 
@@ -255,6 +262,15 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	  --namespace=open-match \
 	  --set openmatch.image.registry=$(REGISTRY) \
 	  --set openmatch.image.tag=$(TAG)
+
+install-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+	$(HELM) upgrade --install --wait --debug open-match-example install/helm/open-match-example \
+	  --namespace=open-match \
+	  --set openmatch.image.registry=$(REGISTRY) \
+	  --set openmatch.image.tag=$(TAG)
+
+delete-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+	-$(HELM) delete --purge open-match-example
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug --dry-run open-match install/helm/open-match \
@@ -349,7 +365,7 @@ build/toolchain/python/:
 	virtualenv --python=python3 build/toolchain/python/
 	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
 	cd build/toolchain/python/bin && ln -s python3 pytho
-	cd build/toolchain/python/ && . bin/activate && pip install grpcio-tools && deactivate
+	cd build/toolchain/python/ && source bin/activate && pip install grpcio-tools && deactivate
 
 build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -377,10 +393,10 @@ internal/pb/function.pb.go: internal/pb/messages.pb.go
 mmlogic-simple-protos: examples/functions/python3/mmlogic-simple/api/protobuf_spec/messages_pb2.py examples/functions/python3/mmlogic-simple/api/protobuf_spec/mmlogic_pb2.py
 
 examples/functions/python3/mmlogic-simple/api/protobuf_spec/%_pb2.py: api/protobuf-spec/%.proto build/toolchain/python/
-	. build/toolchain/python/bin/activate && python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) --python_out=examples/functions/python3/mmlogic-simple/ --grpc_python_out=examples/functions/python3/mmlogic-simple/ $< && deactivate
+	source build/toolchain/python/bin/activate && python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) --python_out=examples/functions/python3/mmlogic-simple/ --grpc_python_out=examples/functions/python3/mmlogic-simple/ $< && deactivate
 
 internal/pb/%_pb2.py: api/protobuf-spec/%.proto build/toolchain/python/
-	. build/toolchain/python/bin/activate && python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) --python_out=$(CURDIR) --grpc_python_out=$(CURDIR) $< && deactivate
+	source build/toolchain/python/bin/activate && python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) --python_out=$(CURDIR) --grpc_python_out=$(CURDIR) $< && deactivate
 
 build:
 	$(GO) build ./...
@@ -409,10 +425,10 @@ cmd/mmlogicapi/mmlogicapi: internal/pb/mmlogic.pb.go
 examples/backendclient/backendclient: internal/pb/backend.pb.go
 	cd examples/backendclient; $(GO_BUILD_COMMAND)
 
-examples/evaluators/golang/simple: internal/pb/messages.pb.go
+examples/evaluators/golang/simple/simple: internal/pb/messages.pb.go
 	cd examples/evaluators/golang/simple; $(GO_BUILD_COMMAND)
 
-examples/functions/golang/manual-simple: internal/pb/messages.pb.go
+examples/functions/golang/manual-simple/manual-simple: internal/pb/messages.pb.go
 	cd examples/functions/golang/manual-simple; $(GO_BUILD_COMMAND)
 
 test/cmd/clientloadgen/clientloadgen:
@@ -450,7 +466,10 @@ deploy-dev-site: build/site/
 run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) server --debug --watch --enableGitInfo . --bind 0.0.0.0 --port $(SITE_PORT) --disableFastRender
 
-all: cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmforc/mmforc cmd/mmlogicapi/mmlogicapi examples/backendclient/backendclient examples/evaluators/golang/simple examples/functions/golang/manual-simple test/cmd/clientloadgen/clientloadgen test/cmd/frontendclient/frontendclient
+all: service-binaries client-binaries example-binaries
+service-binaries: cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmforc/mmforc cmd/mmlogicapi/mmlogicapi
+client-binaries: examples/backendclient/backendclient test/cmd/clientloadgen/clientloadgen test/cmd/frontendclient/frontendclient
+example-binaries: examples/evaluators/golang/simple/simple examples/functions/golang/manual-simple
 presubmit: fmt vet build test
 
 clean-site:
@@ -501,5 +520,5 @@ proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
-.PHONY: proxy-dashboard proxy-prometheus proxy-grafana
+.PHONY: proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test vet
 
