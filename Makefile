@@ -34,7 +34,8 @@
 ## http://makefiletutorial.com/
 
 BASE_VERSION = 0.4.0
-VERSION ?= $(BASE_VERSION)-$(shell git rev-parse --short=7 HEAD)
+SHORT_SHA = $(shell git rev-parse --short=7 HEAD)
+VERSION ?= $(BASE_VERSION)-$(SHORT_SHA)
 
 PROTOC_VERSION = 3.6.1
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
@@ -111,7 +112,7 @@ help:
 	@cat Makefile | grep ^\# | grep -v ^\#\# | cut -c 3-
 
 local-cloud-build:
-	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) .
+	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) -substitutions SHORT_SHA=$(SHORT_SHA) .
 
 push-images: push-service-images push-client-images push-mmf-example-images
 push-service-images: push-frontendapi-image push-backendapi-image push-mmforc-image push-mmlogicapi-image
