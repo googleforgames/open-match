@@ -3,14 +3,22 @@
 
 package pb
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Open Match's internal representation and wire protocol format for "MatchObjects".
 // In order to request a match using the Backend API, your backend code should generate
@@ -24,18 +32,41 @@ var _ = math.Inf
 // MatchObject as input only require a few of them to be filled in.  Check the
 // gRPC function in question for more details.
 type MatchObject struct {
-	Id         string        `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
-	Properties string        `protobuf:"bytes,2,opt,name=properties" json:"properties,omitempty"`
-	Error      string        `protobuf:"bytes,3,opt,name=error" json:"error,omitempty"`
-	Rosters    []*Roster     `protobuf:"bytes,4,rep,name=rosters" json:"rosters,omitempty"`
-	Pools      []*PlayerPool `protobuf:"bytes,5,rep,name=pools" json:"pools,omitempty"`
-	Status     string        `protobuf:"bytes,6,opt,name=status" json:"status,omitempty"`
+	Id                   string        `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Properties           string        `protobuf:"bytes,2,opt,name=properties,proto3" json:"properties,omitempty"`
+	Error                string        `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	Rosters              []*Roster     `protobuf:"bytes,4,rep,name=rosters,proto3" json:"rosters,omitempty"`
+	Pools                []*PlayerPool `protobuf:"bytes,5,rep,name=pools,proto3" json:"pools,omitempty"`
+	Status               string        `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
+	XXX_unrecognized     []byte        `json:"-"`
+	XXX_sizecache        int32         `json:"-"`
 }
 
-func (m *MatchObject) Reset()                    { *m = MatchObject{} }
-func (m *MatchObject) String() string            { return proto.CompactTextString(m) }
-func (*MatchObject) ProtoMessage()               {}
-func (*MatchObject) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{0} }
+func (m *MatchObject) Reset()         { *m = MatchObject{} }
+func (m *MatchObject) String() string { return proto.CompactTextString(m) }
+func (*MatchObject) ProtoMessage()    {}
+func (*MatchObject) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ec5e45ff8e70c33d, []int{0}
+}
+
+func (m *MatchObject) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MatchObject.Unmarshal(m, b)
+}
+func (m *MatchObject) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MatchObject.Marshal(b, m, deterministic)
+}
+func (m *MatchObject) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MatchObject.Merge(m, src)
+}
+func (m *MatchObject) XXX_Size() int {
+	return xxx_messageInfo_MatchObject.Size(m)
+}
+func (m *MatchObject) XXX_DiscardUnknown() {
+	xxx_messageInfo_MatchObject.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MatchObject proto.InternalMessageInfo
 
 func (m *MatchObject) GetId() string {
 	if m != nil {
@@ -81,14 +112,37 @@ func (m *MatchObject) GetStatus() string {
 
 // Data structure to hold a list of players in a match.
 type Roster struct {
-	Name    string    `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Players []*Player `protobuf:"bytes,2,rep,name=players" json:"players,omitempty"`
+	Name                 string    `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Players              []*Player `protobuf:"bytes,2,rep,name=players,proto3" json:"players,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
+	XXX_unrecognized     []byte    `json:"-"`
+	XXX_sizecache        int32     `json:"-"`
 }
 
-func (m *Roster) Reset()                    { *m = Roster{} }
-func (m *Roster) String() string            { return proto.CompactTextString(m) }
-func (*Roster) ProtoMessage()               {}
-func (*Roster) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{1} }
+func (m *Roster) Reset()         { *m = Roster{} }
+func (m *Roster) String() string { return proto.CompactTextString(m) }
+func (*Roster) ProtoMessage()    {}
+func (*Roster) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ec5e45ff8e70c33d, []int{1}
+}
+
+func (m *Roster) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Roster.Unmarshal(m, b)
+}
+func (m *Roster) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Roster.Marshal(b, m, deterministic)
+}
+func (m *Roster) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Roster.Merge(m, src)
+}
+func (m *Roster) XXX_Size() int {
+	return xxx_messageInfo_Roster.Size(m)
+}
+func (m *Roster) XXX_DiscardUnknown() {
+	xxx_messageInfo_Roster.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Roster proto.InternalMessageInfo
 
 func (m *Roster) GetName() string {
 	if m != nil {
@@ -106,17 +160,40 @@ func (m *Roster) GetPlayers() []*Player {
 
 // A 'hard' filter to apply to the player pool.
 type Filter struct {
-	Name      string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Attribute string `protobuf:"bytes,2,opt,name=attribute" json:"attribute,omitempty"`
-	Maxv      int64  `protobuf:"varint,3,opt,name=maxv" json:"maxv,omitempty"`
-	Minv      int64  `protobuf:"varint,4,opt,name=minv" json:"minv,omitempty"`
-	Stats     *Stats `protobuf:"bytes,5,opt,name=stats" json:"stats,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Attribute            string   `protobuf:"bytes,2,opt,name=attribute,proto3" json:"attribute,omitempty"`
+	Maxv                 int64    `protobuf:"varint,3,opt,name=maxv,proto3" json:"maxv,omitempty"`
+	Minv                 int64    `protobuf:"varint,4,opt,name=minv,proto3" json:"minv,omitempty"`
+	Stats                *Stats   `protobuf:"bytes,5,opt,name=stats,proto3" json:"stats,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Filter) Reset()                    { *m = Filter{} }
-func (m *Filter) String() string            { return proto.CompactTextString(m) }
-func (*Filter) ProtoMessage()               {}
-func (*Filter) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{2} }
+func (m *Filter) Reset()         { *m = Filter{} }
+func (m *Filter) String() string { return proto.CompactTextString(m) }
+func (*Filter) ProtoMessage()    {}
+func (*Filter) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ec5e45ff8e70c33d, []int{2}
+}
+
+func (m *Filter) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Filter.Unmarshal(m, b)
+}
+func (m *Filter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Filter.Marshal(b, m, deterministic)
+}
+func (m *Filter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Filter.Merge(m, src)
+}
+func (m *Filter) XXX_Size() int {
+	return xxx_messageInfo_Filter.Size(m)
+}
+func (m *Filter) XXX_DiscardUnknown() {
+	xxx_messageInfo_Filter.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Filter proto.InternalMessageInfo
 
 func (m *Filter) GetName() string {
 	if m != nil {
@@ -155,14 +232,37 @@ func (m *Filter) GetStats() *Stats {
 
 // Holds statistics
 type Stats struct {
-	Count   int64   `protobuf:"varint,1,opt,name=count" json:"count,omitempty"`
-	Elapsed float64 `protobuf:"fixed64,2,opt,name=elapsed" json:"elapsed,omitempty"`
+	Count                int64    `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
+	Elapsed              float64  `protobuf:"fixed64,2,opt,name=elapsed,proto3" json:"elapsed,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Stats) Reset()                    { *m = Stats{} }
-func (m *Stats) String() string            { return proto.CompactTextString(m) }
-func (*Stats) ProtoMessage()               {}
-func (*Stats) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{3} }
+func (m *Stats) Reset()         { *m = Stats{} }
+func (m *Stats) String() string { return proto.CompactTextString(m) }
+func (*Stats) ProtoMessage()    {}
+func (*Stats) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ec5e45ff8e70c33d, []int{3}
+}
+
+func (m *Stats) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Stats.Unmarshal(m, b)
+}
+func (m *Stats) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Stats.Marshal(b, m, deterministic)
+}
+func (m *Stats) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Stats.Merge(m, src)
+}
+func (m *Stats) XXX_Size() int {
+	return xxx_messageInfo_Stats.Size(m)
+}
+func (m *Stats) XXX_DiscardUnknown() {
+	xxx_messageInfo_Stats.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Stats proto.InternalMessageInfo
 
 func (m *Stats) GetCount() int64 {
 	if m != nil {
@@ -185,16 +285,39 @@ func (m *Stats) GetElapsed() float64 {
 // PlayerPool as input only require a few of them to be filled in.  Check the
 // gRPC function in question for more details.
 type PlayerPool struct {
-	Name    string    `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Filters []*Filter `protobuf:"bytes,2,rep,name=filters" json:"filters,omitempty"`
-	Roster  *Roster   `protobuf:"bytes,3,opt,name=roster" json:"roster,omitempty"`
-	Stats   *Stats    `protobuf:"bytes,4,opt,name=stats" json:"stats,omitempty"`
+	Name                 string    `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Filters              []*Filter `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
+	Roster               *Roster   `protobuf:"bytes,3,opt,name=roster,proto3" json:"roster,omitempty"`
+	Stats                *Stats    `protobuf:"bytes,4,opt,name=stats,proto3" json:"stats,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
+	XXX_unrecognized     []byte    `json:"-"`
+	XXX_sizecache        int32     `json:"-"`
 }
 
-func (m *PlayerPool) Reset()                    { *m = PlayerPool{} }
-func (m *PlayerPool) String() string            { return proto.CompactTextString(m) }
-func (*PlayerPool) ProtoMessage()               {}
-func (*PlayerPool) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{4} }
+func (m *PlayerPool) Reset()         { *m = PlayerPool{} }
+func (m *PlayerPool) String() string { return proto.CompactTextString(m) }
+func (*PlayerPool) ProtoMessage()    {}
+func (*PlayerPool) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ec5e45ff8e70c33d, []int{4}
+}
+
+func (m *PlayerPool) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PlayerPool.Unmarshal(m, b)
+}
+func (m *PlayerPool) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PlayerPool.Marshal(b, m, deterministic)
+}
+func (m *PlayerPool) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PlayerPool.Merge(m, src)
+}
+func (m *PlayerPool) XXX_Size() int {
+	return xxx_messageInfo_PlayerPool.Size(m)
+}
+func (m *PlayerPool) XXX_DiscardUnknown() {
+	xxx_messageInfo_PlayerPool.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PlayerPool proto.InternalMessageInfo
 
 func (m *PlayerPool) GetName() string {
 	if m != nil {
@@ -233,19 +356,42 @@ func (m *PlayerPool) GetStats() *Stats {
 // Player as input only require a few of them to be filled in.  Check the
 // gRPC function in question for more details.
 type Player struct {
-	Id         string              `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
-	Properties string              `protobuf:"bytes,2,opt,name=properties" json:"properties,omitempty"`
-	Pool       string              `protobuf:"bytes,3,opt,name=pool" json:"pool,omitempty"`
-	Attributes []*Player_Attribute `protobuf:"bytes,4,rep,name=attributes" json:"attributes,omitempty"`
-	Assignment string              `protobuf:"bytes,5,opt,name=assignment" json:"assignment,omitempty"`
-	Status     string              `protobuf:"bytes,6,opt,name=status" json:"status,omitempty"`
-	Error      string              `protobuf:"bytes,7,opt,name=error" json:"error,omitempty"`
+	Id                   string              `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Properties           string              `protobuf:"bytes,2,opt,name=properties,proto3" json:"properties,omitempty"`
+	Pool                 string              `protobuf:"bytes,3,opt,name=pool,proto3" json:"pool,omitempty"`
+	Attributes           []*Player_Attribute `protobuf:"bytes,4,rep,name=attributes,proto3" json:"attributes,omitempty"`
+	Assignment           string              `protobuf:"bytes,5,opt,name=assignment,proto3" json:"assignment,omitempty"`
+	Status               string              `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	Error                string              `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
+	XXX_unrecognized     []byte              `json:"-"`
+	XXX_sizecache        int32               `json:"-"`
 }
 
-func (m *Player) Reset()                    { *m = Player{} }
-func (m *Player) String() string            { return proto.CompactTextString(m) }
-func (*Player) ProtoMessage()               {}
-func (*Player) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{5} }
+func (m *Player) Reset()         { *m = Player{} }
+func (m *Player) String() string { return proto.CompactTextString(m) }
+func (*Player) ProtoMessage()    {}
+func (*Player) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ec5e45ff8e70c33d, []int{5}
+}
+
+func (m *Player) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Player.Unmarshal(m, b)
+}
+func (m *Player) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Player.Marshal(b, m, deterministic)
+}
+func (m *Player) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Player.Merge(m, src)
+}
+func (m *Player) XXX_Size() int {
+	return xxx_messageInfo_Player.Size(m)
+}
+func (m *Player) XXX_DiscardUnknown() {
+	xxx_messageInfo_Player.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Player proto.InternalMessageInfo
 
 func (m *Player) GetId() string {
 	if m != nil {
@@ -297,14 +443,37 @@ func (m *Player) GetError() string {
 }
 
 type Player_Attribute struct {
-	Name  string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Value int64  `protobuf:"varint,2,opt,name=value" json:"value,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Value                int64    `protobuf:"varint,2,opt,name=value,proto3" json:"value,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Player_Attribute) Reset()                    { *m = Player_Attribute{} }
-func (m *Player_Attribute) String() string            { return proto.CompactTextString(m) }
-func (*Player_Attribute) ProtoMessage()               {}
-func (*Player_Attribute) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{5, 0} }
+func (m *Player_Attribute) Reset()         { *m = Player_Attribute{} }
+func (m *Player_Attribute) String() string { return proto.CompactTextString(m) }
+func (*Player_Attribute) ProtoMessage()    {}
+func (*Player_Attribute) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ec5e45ff8e70c33d, []int{5, 0}
+}
+
+func (m *Player_Attribute) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Player_Attribute.Unmarshal(m, b)
+}
+func (m *Player_Attribute) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Player_Attribute.Marshal(b, m, deterministic)
+}
+func (m *Player_Attribute) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Player_Attribute.Merge(m, src)
+}
+func (m *Player_Attribute) XXX_Size() int {
+	return xxx_messageInfo_Player_Attribute.Size(m)
+}
+func (m *Player_Attribute) XXX_DiscardUnknown() {
+	xxx_messageInfo_Player_Attribute.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Player_Attribute proto.InternalMessageInfo
 
 func (m *Player_Attribute) GetName() string {
 	if m != nil {
@@ -322,14 +491,37 @@ func (m *Player_Attribute) GetValue() int64 {
 
 // Simple message to return success/failure and error status.
 type Result struct {
-	Success bool   `protobuf:"varint,1,opt,name=success" json:"success,omitempty"`
-	Error   string `protobuf:"bytes,2,opt,name=error" json:"error,omitempty"`
+	Success              bool     `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Error                string   `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Result) Reset()                    { *m = Result{} }
-func (m *Result) String() string            { return proto.CompactTextString(m) }
-func (*Result) ProtoMessage()               {}
-func (*Result) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{6} }
+func (m *Result) Reset()         { *m = Result{} }
+func (m *Result) String() string { return proto.CompactTextString(m) }
+func (*Result) ProtoMessage()    {}
+func (*Result) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ec5e45ff8e70c33d, []int{6}
+}
+
+func (m *Result) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Result.Unmarshal(m, b)
+}
+func (m *Result) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Result.Marshal(b, m, deterministic)
+}
+func (m *Result) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Result.Merge(m, src)
+}
+func (m *Result) XXX_Size() int {
+	return xxx_messageInfo_Result.Size(m)
+}
+func (m *Result) XXX_DiscardUnknown() {
+	xxx_messageInfo_Result.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Result proto.InternalMessageInfo
 
 func (m *Result) GetSuccess() bool {
 	if m != nil {
@@ -347,22 +539,68 @@ func (m *Result) GetError() string {
 
 // IlInput is an empty message reserved for future use.
 type IlInput struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *IlInput) Reset()                    { *m = IlInput{} }
-func (m *IlInput) String() string            { return proto.CompactTextString(m) }
-func (*IlInput) ProtoMessage()               {}
-func (*IlInput) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{7} }
+func (m *IlInput) Reset()         { *m = IlInput{} }
+func (m *IlInput) String() string { return proto.CompactTextString(m) }
+func (*IlInput) ProtoMessage()    {}
+func (*IlInput) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ec5e45ff8e70c33d, []int{7}
+}
+
+func (m *IlInput) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_IlInput.Unmarshal(m, b)
+}
+func (m *IlInput) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_IlInput.Marshal(b, m, deterministic)
+}
+func (m *IlInput) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IlInput.Merge(m, src)
+}
+func (m *IlInput) XXX_Size() int {
+	return xxx_messageInfo_IlInput.Size(m)
+}
+func (m *IlInput) XXX_DiscardUnknown() {
+	xxx_messageInfo_IlInput.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_IlInput proto.InternalMessageInfo
 
 type Assignments struct {
-	Rosters    []*Roster `protobuf:"bytes,1,rep,name=rosters" json:"rosters,omitempty"`
-	Assignment string    `protobuf:"bytes,10,opt,name=assignment" json:"assignment,omitempty"`
+	Rosters              []*Roster `protobuf:"bytes,1,rep,name=rosters,proto3" json:"rosters,omitempty"`
+	Assignment           string    `protobuf:"bytes,10,opt,name=assignment,proto3" json:"assignment,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
+	XXX_unrecognized     []byte    `json:"-"`
+	XXX_sizecache        int32     `json:"-"`
 }
 
-func (m *Assignments) Reset()                    { *m = Assignments{} }
-func (m *Assignments) String() string            { return proto.CompactTextString(m) }
-func (*Assignments) ProtoMessage()               {}
-func (*Assignments) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{8} }
+func (m *Assignments) Reset()         { *m = Assignments{} }
+func (m *Assignments) String() string { return proto.CompactTextString(m) }
+func (*Assignments) ProtoMessage()    {}
+func (*Assignments) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ec5e45ff8e70c33d, []int{8}
+}
+
+func (m *Assignments) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Assignments.Unmarshal(m, b)
+}
+func (m *Assignments) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Assignments.Marshal(b, m, deterministic)
+}
+func (m *Assignments) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Assignments.Merge(m, src)
+}
+func (m *Assignments) XXX_Size() int {
+	return xxx_messageInfo_Assignments.Size(m)
+}
+func (m *Assignments) XXX_DiscardUnknown() {
+	xxx_messageInfo_Assignments.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Assignments proto.InternalMessageInfo
 
 func (m *Assignments) GetRosters() []*Roster {
 	if m != nil {
@@ -382,17 +620,40 @@ func (m *Assignments) GetAssignment() string {
 // to a matchmaking function; used so it knows which records to
 // write/update in state storage.
 type Request struct {
-	ProfileId  string `protobuf:"bytes,1,opt,name=profile_id,json=profileId" json:"profile_id,omitempty"`
-	ProposalId string `protobuf:"bytes,2,opt,name=proposal_id,json=proposalId" json:"proposal_id,omitempty"`
-	RequestId  string `protobuf:"bytes,3,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
-	ErrorId    string `protobuf:"bytes,4,opt,name=error_id,json=errorId" json:"error_id,omitempty"`
-	Timestamp  string `protobuf:"bytes,5,opt,name=timestamp" json:"timestamp,omitempty"`
+	ProfileId            string   `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	ProposalId           string   `protobuf:"bytes,2,opt,name=proposal_id,json=proposalId,proto3" json:"proposal_id,omitempty"`
+	RequestId            string   `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	ErrorId              string   `protobuf:"bytes,4,opt,name=error_id,json=errorId,proto3" json:"error_id,omitempty"`
+	Timestamp            string   `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Request) Reset()                    { *m = Request{} }
-func (m *Request) String() string            { return proto.CompactTextString(m) }
-func (*Request) ProtoMessage()               {}
-func (*Request) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{9} }
+func (m *Request) Reset()         { *m = Request{} }
+func (m *Request) String() string { return proto.CompactTextString(m) }
+func (*Request) ProtoMessage()    {}
+func (*Request) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ec5e45ff8e70c33d, []int{9}
+}
+
+func (m *Request) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Request.Unmarshal(m, b)
+}
+func (m *Request) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Request.Marshal(b, m, deterministic)
+}
+func (m *Request) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Request.Merge(m, src)
+}
+func (m *Request) XXX_Size() int {
+	return xxx_messageInfo_Request.Size(m)
+}
+func (m *Request) XXX_DiscardUnknown() {
+	xxx_messageInfo_Request.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Request proto.InternalMessageInfo
 
 func (m *Request) GetProfileId() string {
 	if m != nil {
@@ -432,14 +693,37 @@ func (m *Request) GetTimestamp() string {
 // The message for passing all the necessary arguments to a
 // matchmaking function.
 type Arguments struct {
-	Request     *Request     `protobuf:"bytes,1,opt,name=request" json:"request,omitempty"`
-	Matchobject *MatchObject `protobuf:"bytes,2,opt,name=matchobject" json:"matchobject,omitempty"`
+	Request              *Request     `protobuf:"bytes,1,opt,name=request,proto3" json:"request,omitempty"`
+	Matchobject          *MatchObject `protobuf:"bytes,2,opt,name=matchobject,proto3" json:"matchobject,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
 }
 
-func (m *Arguments) Reset()                    { *m = Arguments{} }
-func (m *Arguments) String() string            { return proto.CompactTextString(m) }
-func (*Arguments) ProtoMessage()               {}
-func (*Arguments) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{10} }
+func (m *Arguments) Reset()         { *m = Arguments{} }
+func (m *Arguments) String() string { return proto.CompactTextString(m) }
+func (*Arguments) ProtoMessage()    {}
+func (*Arguments) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ec5e45ff8e70c33d, []int{10}
+}
+
+func (m *Arguments) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Arguments.Unmarshal(m, b)
+}
+func (m *Arguments) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Arguments.Marshal(b, m, deterministic)
+}
+func (m *Arguments) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Arguments.Merge(m, src)
+}
+func (m *Arguments) XXX_Size() int {
+	return xxx_messageInfo_Arguments.Size(m)
+}
+func (m *Arguments) XXX_DiscardUnknown() {
+	xxx_messageInfo_Arguments.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Arguments proto.InternalMessageInfo
 
 func (m *Arguments) GetRequest() *Request {
 	if m != nil {
@@ -470,9 +754,9 @@ func init() {
 	proto.RegisterType((*Arguments)(nil), "messages.Arguments")
 }
 
-func init() { proto.RegisterFile("api/protobuf-spec/messages.proto", fileDescriptor4) }
+func init() { proto.RegisterFile("api/protobuf-spec/messages.proto", fileDescriptor_ec5e45ff8e70c33d) }
 
-var fileDescriptor4 = []byte{
+var fileDescriptor_ec5e45ff8e70c33d = []byte{
 	// 655 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0xcd, 0x6e, 0xd4, 0x3c,
 	0x14, 0x55, 0xe6, 0x27, 0x69, 0x6e, 0xa4, 0xef, 0x03, 0xab, 0xa0, 0x50, 0xf1, 0x53, 0x45, 0x42,
