@@ -23,9 +23,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 // Logrus structured logging setup
@@ -41,7 +41,7 @@ var (
 
 // ConnectionPool reads the configuration and attempts to instantiate a redis connection
 // pool based on the configured hostname and port.
-func ConnectionPool(cfg *viper.Viper) (*redis.Pool, error) {
+func ConnectionPool(cfg config.View) (*redis.Pool, error) {
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
 

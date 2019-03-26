@@ -24,6 +24,7 @@ import (
 	"errors"
 	"net"
 
+	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
@@ -38,7 +39,6 @@ import (
 	"go.opencensus.io/tag"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/spf13/viper"
 
 	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
@@ -59,13 +59,13 @@ var (
 // the protobuf, by fulfilling the frontend.APIClient interface.
 type FrontendAPI struct {
 	grpc *grpc.Server
-	cfg  *viper.Viper
+	cfg  config.View
 	pool *redis.Pool
 }
 type frontendAPI FrontendAPI
 
 // New returns an instantiated srvice
-func New(cfg *viper.Viper, pool *redis.Pool) *FrontendAPI {
+func New(cfg config.View, pool *redis.Pool) *FrontendAPI {
 	s := FrontendAPI{
 		pool: pool,
 		grpc: grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{})),

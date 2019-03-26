@@ -1,16 +1,16 @@
 package logging
 
 import (
+	"github.com/GoogleCloudPlatform/open-match/config"
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 // ConfigureLogging sets up open match logrus instance using the logging section of the matchmaker_config.json
 //  - log line format (text[default] or json)
 //  - min log level to include (debug, info [default], warn, error, fatal, panic)
 //  - include source file and line number for every event (false [default], true)
-func ConfigureLogging(cfg *viper.Viper) {
+func ConfigureLogging(cfg config.View) {
 	switch cfg.GetString("logging.format") {
 	case "stackdriver":
 		logrus.SetFormatter(stackdriver.NewFormatter())

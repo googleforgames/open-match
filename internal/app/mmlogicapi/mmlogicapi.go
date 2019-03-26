@@ -22,8 +22,6 @@ limitations under the License.
 package mmlogicapi
 
 import (
-	"errors"
-
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
@@ -31,7 +29,6 @@ import (
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"go.opencensus.io/plugin/ocgrpc"
 )
 
@@ -42,23 +39,20 @@ var (
 		"component": "mmlogic",
 	}
 	mlLog = log.WithFields(mlLogFields)
-
-	// Viper config management setup
-	cfg = viper.New()
-	err = errors.New("")
 )
 
-func initializeApplication() {
+func initializeApplication() (config.View, error) {
 	// Logrus structured logging initialization
 	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
 	log.AddHook(metrics.NewHook(apisrv.MlLogLines, apisrv.KeySeverity))
 
-	// Viper config management initialization
-	cfg, err = config.Read()
+	// Load configuration
+	cfg, err := config.Read()
 	if err != nil {
 		mlLog.WithFields(log.Fields{
 			"error": err.Error(),
 		}).Error("Unable to load config file")
+		return nil, err
 	}
 
 	if cfg.GetBool("debug") == true {
@@ -77,11 +71,15 @@ func initializeApplication() {
 	// ocServerViews = append(ocServerViews, redis.ObservabilityMetricViews...) // redis OpenCensus views.
 	mlLog.WithFields(log.Fields{"viewscount": len(ocServerViews)}).Info("Loaded OpenCensus views")
 	metrics.ConfigureOpenCensusPrometheusExporter(cfg, ocServerViews)
+	return cfg, nil
 }
 
 // RunApplication is a hook for the main() method in the main executable.
 func RunApplication() {
-	initializeApplication()
+	cfg, err := initializeApplication()
+	if err != nil {
+		mlLog.Fatal(err)
+	}
 
 	// Connect to redis
 	pool, err := redishelpers.ConnectionPool(cfg)

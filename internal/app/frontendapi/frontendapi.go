@@ -22,8 +22,6 @@ limitations under the License.
 package frontendapi
 
 import (
-	"errors"
-
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
@@ -32,7 +30,6 @@ import (
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"go.opencensus.io/plugin/ocgrpc"
 )
 
@@ -43,25 +40,22 @@ var (
 		"component": "frontend",
 	}
 	feLog = log.WithFields(feLogFields)
-
-	// Viper config management setup
-	cfg = viper.New()
-	err = errors.New("")
 )
 
-func initializeApplication() {
+func initializeApplication() (config.View, error) {
 	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
 	log.AddHook(metrics.NewHook(apisrv.FeLogLines, apisrv.KeySeverity))
 
 	// Add a hook to the logger to log the filename & line number.
 	log.SetReportCaller(true)
 
-	// Viper config management initialization
-	cfg, err = config.Read()
+	// Load configuration
+	cfg, err := config.Read()
 	if err != nil {
 		feLog.WithFields(log.Fields{
 			"error": err.Error(),
 		}).Error("Unable to load config file")
+		return nil, err
 	}
 
 	// Configure open match logging defaults
@@ -78,11 +72,15 @@ func initializeApplication() {
 	// ocServerViews = append(ocServerViews, redis.ObservabilityMetricViews...) // redis OpenCensus views.
 	feLog.WithFields(log.Fields{"viewscount": len(ocServerViews)}).Info("Loaded OpenCensus views")
 	metrics.ConfigureOpenCensusPrometheusExporter(cfg, ocServerViews)
+	return cfg, nil
 }
 
 // RunApplication is a hook for the main() method in the main executable.
 func RunApplication() {
-	initializeApplication()
+	cfg, err := initializeApplication()
+	if err != nil {
+		feLog.Fatal(err)
+	}
 
 	// Connect to redis
 	pool, err := redishelpers.ConnectionPool(cfg)

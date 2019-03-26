@@ -25,9 +25,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 // Logrus structured logging setup
@@ -138,10 +138,9 @@ func SendRemove(redisConn redis.Conn, ignorelistID string, playerIDs []string) {
 }
 
 // Retrieve returns a list of playerIDs in the ignorelist
-// 'cfg' is a viper.Sub sub-tree of the config file with just the parameters for
+// 'cfg' is a sub-tree of the config file with just the parameters for
 // this ignorelist.
-func Retrieve(redisConn redis.Conn, cfg *viper.Viper, il string) ([]string, error) {
-
+func Retrieve(redisConn redis.Conn, cfg config.View, il string) ([]string, error) {
 	// String var init
 	cmd := "ZRANGEBYSCORE"
 
