@@ -1,0 +1,9 @@
+FROM golang:1.12
+ENV GO111MODULE=on
+
+WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match
+COPY . .
+RUN go mod init github.com/GoogleCloudPlatform/open-match
+RUN go mod tidy
+RUN go mod edit -require k8s.io/api@v0.0.0-20190111032252-67edc246be36
+RUN go mod vendor
