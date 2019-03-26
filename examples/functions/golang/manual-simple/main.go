@@ -29,7 +29,6 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gomodule/redigo/redis"
-	"github.com/spf13/viper"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
@@ -50,7 +49,6 @@ the default state storage.
 */
 func main() {
 	// Read config file.
-	cfg := viper.New()
 	cfg, err := config.Read()
 	if err != nil {
 		panic(err)
@@ -170,7 +168,7 @@ func main() {
 	combinedIgnoreList := make([]string, 0)
 	// Loop through all ignorelists configured in the config file.
 	for il := range cfg.GetStringMap("ignoreLists") {
-		ilCfg := cfg.Sub(fmt.Sprintf("ignoreLists.%v", il))
+		ilCfg := config.Sub(cfg, fmt.Sprintf("ignoreLists.%v", il))
 		thisIl, err := ignorelist.Retrieve(redisConn, ilCfg, il)
 		if err != nil {
 			panic(err)

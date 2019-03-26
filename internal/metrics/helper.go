@@ -24,8 +24,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/GoogleCloudPlatform/open-match/config"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 
 	"go.opencensus.io/exporter/prometheus"
 	"go.opencensus.io/stats"
@@ -41,12 +41,12 @@ var (
 	mhLog = log.WithFields(metricsLogFields)
 )
 
-// ConfigureOpenCensusPrometheusExporter reads from the provided viper
+// ConfigureOpenCensusPrometheusExporter reads from the provided
 // config's 'metrics' section to set up a metrics endpoint that can be scraped
 // by Promethus for  metrics gathering. The calling code can select any views
 // it wants to  register, from any number of libraries, and pass them in as an
 // array.
-func ConfigureOpenCensusPrometheusExporter(cfg *viper.Viper, views []*view.View) {
+func ConfigureOpenCensusPrometheusExporter(cfg config.View, views []*view.View) {
 
 	//var infoCtx, err = tag.New(context.Background(), tag.Insert(KeySeverity, "info"))
 	metricsPort := cfg.GetInt("metrics.port")

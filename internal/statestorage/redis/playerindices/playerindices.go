@@ -25,10 +25,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoogleCloudPlatform/open-match/config"
 	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/tidwall/gjson"
 )
 
@@ -94,8 +94,7 @@ var (
 //   ]
 //
 // For now, OM reads your 'config/matchmaker_config.(json|yaml)' file for a
-// list of indices, which it monitors using the golang module Viper
-// (https://github.com/spf13/viper).
+// list of indices.
 // In a full deployment, it is expected that you don't manage the config file
 // directly, but instead put the contents of that file into a Kubernetes
 // ConfigMap.  Kubernetes will write those contents to a file inside your
@@ -113,7 +112,7 @@ var (
 
 // Create indices for given player attributes in Redis.
 // TODO: make this quit and not index the player if the context is cancelled.
-func Create(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, player om_messages.Player) error {
+func Create(ctx context.Context, rPool *redis.Pool, cfg config.View, player om_messages.Player) error {
 
 	// Connect to redis
 	redisConn := rPool.Get()
@@ -121,7 +120,7 @@ func Create(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, player om_
 
 	iLog := piLog.WithFields(log.Fields{"playerId": player.Id})
 
-	// Get the indices from viper
+	// Get the indices from configuration
 	indices, err := Retrieve(cfg)
 	// Get metadata indicies
 	indices = append(indices, MetaIndices...)
@@ -174,7 +173,7 @@ func Create(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, player om_
 // Note: In Open Match, it is best practice to 'lazily' remove indices
 // by running this as a goroutine.
 // TODO: make this quit cleanly if the context is cancelled.
-func Delete(ctx context.Context, rPool *redis.Pool, cfg *viper.Viper, playerID string) error {
+func Delete(ctx context.Context, rPool *redis.Pool, cfg config.View, playerID string) error {
 
 	diLog := piLog.WithFields(log.Fields{"playerID": playerID})
 
@@ -238,9 +237,8 @@ func Touch(ctx context.Context, rPool *redis.Pool, playerID string) error {
 	return err
 }
 
-// Retrieve pulls the player indices from the Viper config
-func Retrieve(cfg *viper.Viper) (indices []string, err error) {
-
+// Retrieve pulls the player indices from configuration
+func Retrieve(cfg config.View) (indices []string, err error) {
 	// In addition to the user-defined indices from the config file, Open Match
 	// forces the following indicies to exist for all players.  'created' is
 	// used to calculate how long a player has been waiting for a match,
@@ -265,7 +263,7 @@ func Retrieve(cfg *viper.Viper) (indices []string, err error) {
 // deleting players with previous indexes doesn't result in a Redis memory
 // leak.  In a future version, Open Match should track previous indices
 // itself and handle this for the user.
-func RetrievePrevious(cfg *viper.Viper) []string {
+func RetrievePrevious(cfg config.View) []string {
 	if cfg.IsSet("previousPlayerIndices") {
 		return cfg.GetStringSlice("previousPlayerIndices")
 	}

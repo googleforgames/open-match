@@ -21,30 +21,20 @@ import (
 	"log"
 	"time"
 
+	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+
+	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/player"
 	"github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/redis/playerq"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/spf13/viper"
 )
 
 func main() {
-
-	conf, err := readConfig("", map[string]interface{}{
-		"REDIS_SERVICE_HOST": "127.0.0.1",
-		"REDIS_SERVICE_PORT": "6379",
-	})
+	cfg, err := config.Read()
 	check(err, "QUIT")
 
-	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
-	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
-	redisURL := "redis://" + conf.GetString("REDIS_SERVICE_HOST") + ":" + conf.GetString("REDIS_SERVICE_PORT")
-
-	pool := redis.Pool{
-		MaxIdle:     3,
-		IdleTimeout: 240 * time.Second,
-		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
-	}
+	pool, err := redishelpers.ConnectionPool(cfg)
 
 	redisConn := pool.Get()
 	defer redisConn.Close()
@@ -91,32 +81,4 @@ func check(err error, action string) {
 			log.Print(err)
 		}
 	}
-}
-
-func readConfig(filename string, defaults map[string]interface{}) (*viper.Viper, error) {
-	/*
-		REDIS_SENTINEL_PORT_6379_TCP=tcp://10.55.253.195:6379
-		REDIS_SENTINEL_PORT=tcp://10.55.253.195:6379
-		REDIS_SENTINEL_PORT_6379_TCP_ADDR=10.55.253.195
-		REDIS_SENTINEL_SERVICE_PORT=6379
-		REDIS_SENTINEL_PORT_6379_TCP_PORT=6379
-		REDIS_SENTINEL_PORT_6379_TCP_PROTO=tcp
-		REDIS_SENTINEL_SERVICE_HOST=10.55.253.195
-	*/
-	v := viper.New()
-	for key, value := range defaults {
-		v.SetDefault(key, value)
-	}
-	v.SetConfigName(filename)
-	v.AddConfigPath(".")
-	v.AutomaticEnv()
-
-	// Optional read from config if it exists
-	err := v.ReadInConfig()
-	if err != nil {
-		//fmt.Printf("error when reading config: %v\n", err)
-		//fmt.Println("continuing...")
-		err = nil
-	}
-	return v, err
 }

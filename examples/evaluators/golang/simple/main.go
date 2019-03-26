@@ -38,7 +38,6 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	"github.com/gobs/pretty"
 	"github.com/gomodule/redigo/redis"
-	"github.com/spf13/viper"
 )
 
 func main() {
@@ -141,7 +140,7 @@ func chooseMatches(overloaded []int) ([]int, []int, error) {
 	return []int{}, overloaded, nil
 }
 
-func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[int][]int, map[int]bool, error) {
+func stub(cfg config.View, pool *redis.Pool) ([]string, map[string][]int, map[int][]int, map[int]bool, error) {
 	//Init Logger
 	lgr := log.New(os.Stdout, "MMFEvalStub: ", log.LstdFlags)
 	lgr.Println("Initializing example MMF proposal evaluator")
