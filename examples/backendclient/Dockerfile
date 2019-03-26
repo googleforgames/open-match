@@ -1,8 +1,9 @@
-#FROM golang:1.10.3 as builder
-FROM gcr.io/open-match-public-images/openmatch-base:dev as builder
-WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/examples/backendclient
-COPY ./ ./
-RUN go get -d -v 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o backendclient . 
+FROM open-match-base-build as builder
 
-CMD ["./backendclient"]
+WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/examples/backendclient/
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
+
+FROM gcr.io/distroless/static  
+COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/examples/backendclient/backendclient .
+
+ENTRYPOINT ["/backendclient"]
