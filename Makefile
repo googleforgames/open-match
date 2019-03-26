@@ -11,54 +11,56 @@
 # make push-helm
 # make REGISTRY=gcr.io/$PROJECT_ID push-images -j$(nproc)
 # make install-chart
-# 
+#
 # Generate Files
 # make all-protos
-# 
+#
 # Building
 # make all -j$(nproc)
-# 
+#
 # Access monitoring
 # make proxy-prometheus
 # make proxy-grafana
-# 
+#
 # Run those tools
 # make run-backendclient
 # make run-frontendclient
 # make run-clientloadgen
-# 
+#
 # Teardown
 # make delete-mini-cluster
 # make delete-gke-cluster
-# 
+#
 ## http://makefiletutorial.com/
 
 BASE_VERSION = 0.4.0
 SHORT_SHA = $(shell git rev-parse --short=7 HEAD)
 VERSION ?= $(BASE_VERSION)-$(SHORT_SHA)
 
-PROTOC_VERSION = 3.6.1
+PROTOC_VERSION = 3.7.0
+GOLANG_VERSION = 1.12
+HELM_VERSION = 2.13.0
+KUBECTL_VERSION = 1.13.0
+
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
 GO = go
 GO_BIN := $(GOPATH)/bin
 GO_BUILD_COMMAND = CGO_ENABLED=0 GOOS=linux $(GO) build -a -installsuffix cgo .
 TOOLCHAIN_DIR = build/toolchain
 TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
-TOOLCHAIN_GOLANG_DIR = $(TOOLCHAIN_DIR)/golang
 PROTOC := $(TOOLCHAIN_BIN)/protoc
 PROTOC_INCLUDES := $(TOOLCHAIN_DIR)/include/
-GCP_PROJECT_ID = "Set $GCP_PROJECT_ID in your bashrc."
+GCP_PROJECT_ID = "Set $$GCP_PROJECT_ID in your bashrc."
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
 REGISTRY := gcr.io/$(GCP_PROJECT_ID)
 TAG := $(VERSION)
+ALTERNATE_TAG := dev
 GKE_CLUSTER_NAME = om-cluster
 GCP_REGION = us-west1
 GCP_ZONE = us-west1-a
 EXE_EXTENSION =
 LOCAL_CLOUD_BUILD_PUSH = # --push
 GOPATH_PRIMARY = $(HOME)
-GOLANG_VERSION = 1.12
-HELM_VERSION = 2.13.0
 KUBECTL_RUN_ENV = --env='REDIS_SERVICE_HOST=$$(OPEN_MATCH_REDIS_MASTER_SERVICE_HOST)' --env='REDIS_SERVICE_PORT=$$(OPEN_MATCH_REDIS_MASTER_SERVICE_PORT)'
 GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
 GO111MODULE = on
@@ -114,94 +116,117 @@ help:
 local-cloud-build:
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) -substitutions SHORT_SHA=$(SHORT_SHA) .
 
-push-images: push-service-images push-client-images push-mmf-example-images
+push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
 push-service-images: push-frontendapi-image push-backendapi-image push-mmforc-image push-mmlogicapi-image
+push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-image push-mmf-php-mmlogic-simple-image push-mmf-py3-mmlogic-simple-image
 push-client-images: push-backendclient-image push-clientloadgen-image push-frontendclient-image
-push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-images push-mmf-php-mmlogic-simple-image push-mmf-py3-mmlogic-simple-image
+push-evaluator-example-images: push-evaluator-simple-image
 
 push-frontendapi-image: build-frontendapi-image
 	docker push $(REGISTRY)/openmatch-frontendapi:$(TAG)
+	docker push $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
 
 push-backendapi-image: build-backendapi-image
 	docker push $(REGISTRY)/openmatch-backendapi:$(TAG)
+	docker push $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG)
 
 push-mmforc-image: build-mmforc-image
 	docker push $(REGISTRY)/openmatch-mmforc:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmforc:$(ALTERNATE_TAG)
 
 push-mmlogicapi-image: build-mmlogicapi-image
 	docker push $(REGISTRY)/openmatch-mmlogicapi:$(TAG)
-
-push-backendclient-image: build-backendclient-image
-	docker push $(REGISTRY)/openmatch-backendclient:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG)
 
 push-mmf-cs-mmlogic-simple-image: build-mmf-cs-mmlogic-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(ALTERNATE_TAG)
 
 push-mmf-go-mmlogic-simple-image: build-mmf-go-mmlogic-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(ALTERNATE_TAG)
 
 push-mmf-php-mmlogic-simple-image: build-mmf-php-mmlogic-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(ALTERNATE_TAG)
 
 push-mmf-py3-mmlogic-simple-image: build-mmf-py3-mmlogic-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(ALTERNATE_TAG)
+
+push-backendclient-image: build-backendclient-image
+	docker push $(REGISTRY)/openmatch-backendclient:$(TAG)
+	docker push $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG)
 
 push-clientloadgen-image: build-clientloadgen-image
 	docker push $(REGISTRY)/openmatch-clientloadgen:$(TAG)
+	docker push $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG)
 
 push-frontendclient-image: build-frontendclient-image
 	docker push $(REGISTRY)/openmatch-frontendclient:$(TAG)
+	docker push $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG)
 
-build-images: build-service-images build-client-images build-mmf-example-images
+push-evaluator-simple-image: build-evaluator-simple-image
+	docker push $(REGISTRY)/openmatch-evaluator-simple:$(TAG)
+	docker push $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG)
+
+build-images: build-service-images build-client-images build-mmf-example-images build-evaluator-example-images
 build-service-images: build-frontendapi-image build-backendapi-image build-mmforc-image build-mmlogicapi-image
 build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
 build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-php-mmlogic-simple-image build-mmf-py3-mmlogic-simple-image
+build-evaluator-example-images: build-evaluator-simple-image
 
 build-frontendapi-image: cmd/frontendapi/frontendapi
-	docker build -f cmd/frontendapi/Dockerfile -t $(REGISTRY)/openmatch-frontendapi:$(TAG) .
+	docker build -f cmd/frontendapi/Dockerfile -t $(REGISTRY)/openmatch-frontendapi:$(TAG) -t $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG) .
 
 build-backendapi-image: cmd/backendapi/backendapi
-	docker build -f cmd/backendapi/Dockerfile -t $(REGISTRY)/openmatch-backendapi:$(TAG) .
+	docker build -f cmd/backendapi/Dockerfile -t $(REGISTRY)/openmatch-backendapi:$(TAG) -t $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG) .
 
 build-mmforc-image: cmd/mmforc/mmforc
-	docker build -f cmd/mmforc/Dockerfile -t $(REGISTRY)/openmatch-mmforc:$(TAG) .
+	docker build -f cmd/mmforc/Dockerfile -t $(REGISTRY)/openmatch-mmforc:$(TAG) -t $(REGISTRY)/openmatch-mmforc:$(ALTERNATE_TAG) .
 
 build-mmlogicapi-image: cmd/mmlogicapi/mmlogicapi
-	docker build -f cmd/mmlogicapi/Dockerfile -t $(REGISTRY)/openmatch-mmlogicapi:$(TAG) .
-
-build-backendclient-image: examples/backendclient/backendclient
-	docker build -f examples/backendclient/Dockerfile -t $(REGISTRY)/openmatch-backendclient:$(TAG) .
+	docker build -f cmd/mmlogicapi/Dockerfile -t $(REGISTRY)/openmatch-mmlogicapi:$(TAG) -t $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG) .
 
 build-mmf-cs-mmlogic-simple-image:
-	docker build -f examples/functions/csharp/simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG) .
+	cd examples/functions/csharp/simple/ && docker build -f Dockerfile -t $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(ALTERNATE_TAG) .
 
 build-mmf-go-mmlogic-simple-image:
-	docker build -f examples/functions/golang/manual-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG) .
+	docker build -f examples/functions/golang/manual-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(ALTERNATE_TAG) .
 
 build-mmf-php-mmlogic-simple-image:
-	docker build -f examples/functions/php/mmlogic-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG) .
+	docker build -f examples/functions/php/mmlogic-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(ALTERNATE_TAG) .
 
 build-mmf-py3-mmlogic-simple-image:
-	docker build -f examples/functions/python3/mmlogic-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG) .
+	docker build -f examples/functions/python3/mmlogic-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(ALTERNATE_TAG) .
+
+build-backendclient-image: examples/backendclient/backendclient
+	docker build -f examples/backendclient/Dockerfile -t $(REGISTRY)/openmatch-backendclient:$(TAG) -t $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG) .
 
 build-clientloadgen-image: test/cmd/clientloadgen/clientloadgen
-	docker build -f test/cmd/clientloadgen/Dockerfile -t $(REGISTRY)/openmatch-clientloadgen:$(TAG) .
+	docker build -f test/cmd/clientloadgen/Dockerfile -t $(REGISTRY)/openmatch-clientloadgen:$(TAG) -t $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG) .
 
 build-frontendclient-image: test/cmd/frontendclient/frontendclient
-	docker build -f test/cmd/frontendclient/Dockerfile -t $(REGISTRY)/openmatch-frontendclient:$(TAG) .
+	docker build -f test/cmd/frontendclient/Dockerfile -t $(REGISTRY)/openmatch-frontendclient:$(TAG) -t $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG) .
+
+build-evaluator-simple-image: examples/evaluators/golang/simple/simple
+	docker build -f examples/evaluators/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-evaluator-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG) .
 
 clean-images:
-	-docker rmi -f $(REGISTRY)/openmatch-frontendapi:$(TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-backendapi:$(TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-mmforc:$(TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-mmlogicapi:$(TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-backendclient:$(TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-clientloadgen:$(TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-frontendclient:$(TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-frontendapi:$(TAG) $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-backendapi:$(TAG) $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmforc:$(TAG) $(REGISTRY)/openmatch-mmforc:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmlogicapi:$(TAG) $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG)
+
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG) $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG) $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG) $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG) $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(ALTERNATE_TAG)
+
+	-docker rmi -f $(REGISTRY)/openmatch-backendclient:$(TAG) $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-clientloadgen:$(TAG) $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-frontendclient:$(TAG) $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-evaluator-simple:$(TAG) $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG)
 
 chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd install/helm/open-match; $(HELM) dependency update)
@@ -245,7 +270,7 @@ build/toolchain/bin/minikube$(EXE_EXTENSION):
 	curl -Lo minikube$(EXE_EXTENSION) $(MINIKUBE_PACKAGE)
 	chmod +x minikube$(EXE_EXTENSION)
 	mv minikube$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/minikube$(EXE_EXTENSION)
-	
+
 build/toolchain/bin/kubectl$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -Lo kubectl$(EXE_EXTENSION) $(KUBECTL_PACKAGE)
@@ -299,6 +324,8 @@ delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 build/toolchain/python/:
 	mkdir -p build/toolchain/python/
 	virtualenv --python=python3 build/toolchain/python/
+	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
+	cd build/toolchain/python/bin && ln -s python3 pytho
 	cd build/toolchain/python/ && . bin/activate && pip install grpcio-tools && deactivate
 
 build/toolchain/bin/protoc$(EXE_EXTENSION):
