@@ -16,8 +16,9 @@ kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admi
 kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'  
 
 # Deploy Open Match
-helm upgrade --install --wait --debug open-match install/helm/open-match \
-	  --namespace=open-match \
-	  --set openmatch.image.registry=gcr.io/open-match-public-images \
-	  --set openmatch.image.tag=0.4.0
+helm upgrade --install --wait --debug open-match \
+    install/helm/open-match \
+    --namespace=open-match \
+    --set openmatch.image.registry=$(REGISTRY) \
+    --set openmatch.image.tag=$(TAG)
 ```

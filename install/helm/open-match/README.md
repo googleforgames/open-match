@@ -6,7 +6,7 @@ To deploy this chart run:
 
 ```bash
 helm upgrade --install --wait --debug open-match install/helm/open-match \
-	  --namespace=open-match \
-	  --set openmatch.image.registry=$(REGISTRY) \
-	  --set openmatch.image.tag=$(TAG)
+    --namespace=open-match \
+    --set openmatch.image.registry=$(REGISTRY) \
+    --set openmatch.image.tag=$(TAG)
 ```

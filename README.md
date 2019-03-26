@@ -219,6 +219,26 @@ cd open-match
 
 Lastly, this project uses go modules so you'll want to set `export GO111MODULE=on` before building.
 
+## Zero to Open Match
+To deploy Open Match quickly to a Kubernetes cluster run these commands.
+
+```bash
+# Downloads all the tools.
+make install-toolchain
+# Create a GKE Cluster
+make create-gke-cluster
+# OR Create a Minikube Cluster
+make create-mini-cluster
+# Install Helm
+make push-helm
+# Build and push images
+make push-images -j4
+# Deploy Open Match with example functions
+make install-chart install-example-chart
+```
+
+## Docker Image Builds
+
 All the core components for Open Match are written in Golang and use the [Dockerfile multistage builder pattern](https://docs.docker.com/develop/develop-images/multistage-build/). This pattern uses intermediate Docker containers as a Golang build environment while producing lightweight, minimized container images as final build artifacts. When the project is ready for production, we will modify the `Dockerfile`s to uncomment the last build stage. Although this pattern is great for production container images, it removes most of the utilities required to troubleshoot issues during development.
 
 ## Configuration
