@@ -54,7 +54,7 @@ func mmfRun(ctx context.Context, fnArgs *api.Arguments, cfg *viper.Viper, mmlogi
 	defer stats.Record(ctx, FnLatencySecs.M(time.Since(runtime).Seconds()))
 
 	// Step 3 - Read the profile written to the Backend API
-	profile, err := mmlogic.GetProfile(ctx, &api.MatchObject{Id: fnArgs.Request.ProfileId})
+	profile, err := mmlogic.GetProfile(ctx, &api.MatchObject{Id: fnArgs.ProfileId})
 	if err != nil {
 		mmfLog.Error(err)
 		stats.Record(ctx, FnFailures.M(1))
@@ -138,7 +138,7 @@ func mmfRun(ctx context.Context, fnArgs *api.Arguments, cfg *viper.Viper, mmlogi
 	// ResultID, which skips the evaluator when outputting errors) until proven
 	// otherwise.
 	mo := &api.MatchObject{
-		Id:         fnArgs.Request.ResultId,
+		Id:         fnArgs.ResultId,
 		Properties: profile.Properties,
 		Pools:      profile.Pools,
 	}
@@ -162,14 +162,14 @@ func mmfRun(ctx context.Context, fnArgs *api.Arguments, cfg *viper.Viper, mmlogi
 		if err != nil {
 			mmfLog.WithFields(log.Fields{
 				"error": err.Error(),
-				"id":    fnArgs.Request.ResultId,
+				"id":    fnArgs.ResultId,
 			}).Error("MMF returned an unrecoverable error")
 			stats.Record(ctx, FnFailures.M(1))
 			mo.Error = err.Error()
 		} else {
 			// No error!
 			// Prepare the proposal match object.
-			mo.Id = fnArgs.Request.ProposalId
+			mo.Id = fnArgs.ProposalId
 			mo.Properties = results
 			mo.Rosters = rosters
 		}
@@ -189,7 +189,7 @@ func mmfRun(ctx context.Context, fnArgs *api.Arguments, cfg *viper.Viper, mmlogi
 		mmfLog.Error(err)
 		stats.Record(ctx, FnFailures.M(1))
 	} else {
-		mmfLog.WithFields(log.Fields{"id": fnArgs.Request.ProposalId, "success": success.Success}).Info("MMF write to state storage")
+		mmfLog.WithFields(log.Fields{"id": fnArgs.ProposalId, "success": success.Success}).Info("MMF write to state storage")
 	}
 
 	// Step 8 - Export stats about this run.

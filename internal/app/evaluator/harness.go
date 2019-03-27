@@ -367,7 +367,7 @@ func evaluator(ctx context.Context) {
 			}
 
 			// TODO: dry this with the approved flow
-			evLog.Debug(" RENAME %v", proposedID)
+			evLog.Debug("RENAME ", proposedID)
 			_, err = redisConn.Do("RENAME", proposedID, backendID)
 			if err != nil {
 				evLog.Error("Failure to delete rejected proposal! ", err)
@@ -439,7 +439,7 @@ func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[i
 	if err != nil {
 		evLog.Println(err)
 	}
-	evLog.Debug("proposals = %+v\n", proposals)
+	evLog.Debug("proposals = ", proposals)
 
 	// This is a far cry from effecient but we expect a pretty small set of players under consideration
 	// at any given time
@@ -491,11 +491,11 @@ func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[i
 // TODO: this needs a complete overhaul in a 'real' graph search
 func chooseMatches(overloaded []int) ([]int, []int, error) {
 	// Super naive - take one overloaded match and approved it, reject all others.
-	evLog.Debug("overloaded = %+v\n", overloaded)
-	evLog.Debug("len(overloaded) = %+v\n", len(overloaded))
+	evLog.Debug("overloaded = ", overloaded)
+	evLog.Debug("len(overloaded) = ", len(overloaded))
 	if len(overloaded) > 0 {
-		evLog.Debug("overloaded[0:0] = %+v\n", overloaded[0:0])
-		evLog.Debug("overloaded[1:] = %+v\n", overloaded[1:])
+		evLog.Debug("overloaded[0:0] = ", overloaded[0:0])
+		evLog.Debug("overloaded[1:] = ", overloaded[1:])
 		return overloaded[0:1], overloaded[1:], nil
 	}
 	return []int{}, overloaded, nil
