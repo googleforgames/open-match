@@ -24,6 +24,7 @@ import (
 	"errors"
 	"net"
 
+	"github.com/GoogleCloudPlatform/merge-master/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
@@ -176,6 +177,25 @@ func (s *frontendAPI) deletePlayer(id string) {
 			"component": "statestorage",
 		}).Warn("Error deleting player from state storage, this could leak state storage memory but is usually not a fatal error")
 	}
+
+	// Delete player from all ignorelists
+	go func() {
+		redisConn := s.pool.Get()
+		defer redisConn.Close()
+
+		redisConn.Send("MULTI")
+		for il := range s.cfg.GetStringMap("ignoreLists") {
+			ignorelist.SendRemove(redisConn, il, []string{id})
+		}
+		_, err := redisConn.Do("EXEC")
+		if err != nil {
+			feLog.WithFields(log.Fields{
+				"error":     err.Error(),
+				"component": "statestorage",
+			}).Error("Error de-indexing player from ignorelists")
+		}
+	}()
+
 	go playerindices.DeleteMeta(context.Background(), s.pool, id)
 }
 
