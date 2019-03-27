@@ -104,7 +104,7 @@ func main() {
 			//Connect
 			conn, err := grpc.Dial(fmt.Sprintf("%v:%v", ip, port), grpc.WithInsecure())
 			if err != nil {
-				fnLog.Warning("failed to connect: %s", err.Error())
+				fnLog.Warning("failed to connect: ", err.Error())
 			} else {
 				//func(t time.Time) *time.Time { return &t }(time.Now())
 				client = api.NewMmLogicClient(conn)
@@ -114,7 +114,7 @@ func main() {
 	}
 
 	// Connect to redis
-	pool := redisHelpers.ConnectionPool(cfg)
+	pool, err := redisHelpers.ConnectionPool(cfg)
 	defer pool.Close()
 
 	// Instantiate the gRPC server with the connections we've made
