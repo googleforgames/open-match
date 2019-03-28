@@ -31,35 +31,30 @@ import (
 	"os"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/test/cmd/frontendclient/player"
-	frontend "github.com/GoogleCloudPlatform/open-match/test/cmd/frontendclient/proto"
 	"github.com/gobs/pretty"
 	"google.golang.org/grpc"
 )
 
 var (
-	numPlayers int
-	connect    bool
-	noDelete   bool
-	server     string
-	err        error
+	numPlayers = flag.Int("numplayers", 1, "number of players to generate and group together")
+	connect    = flag.Bool("connect", false, "Set to true to try to connect to the assigned server over UDP")
+	noDelete   = flag.Bool("no-delete", false, "Set to true to prevent deletion of request and player info when done")
+	server     = flag.String("frontend", "om-frontendapi", "Hostname or IP of the Open Match frontend")
 )
 
 func main() {
 	// Get command line flags
-	flag.IntVar(&numPlayers, "numplayers", 1, "number of players to generate and group together")
-	flag.BoolVar(&connect, "connect", false, "Set to true to try to connect to the assigned server over UDP")
-	flag.BoolVar(&noDelete, "no-delete", false, "Set to true to prevent deletion of request and player info when done")
-	flag.StringVar(&server, "frontend", "om-frontendapi", "Hostname or IP of the Open Match frontend")
 	flag.Parse()
 	log.Print("Parsing flags:")
-	log.Printf(" [flags] Connecting to frontend API at %v", server)
-	log.Printf(" [flags] Generating %d players", numPlayers)
-	log.Printf(" [flags] Attempt connect to DGS? %v", connect)
-	log.Printf(" [flags] Leave player and request in state storage? %v", noDelete)
+	log.Printf(" [flags] Connecting to frontend API at %v", *server)
+	log.Printf(" [flags] Generating %d players", *numPlayers)
+	log.Printf(" [flags] Attempt connect to DGS? %v", *connect)
+	log.Printf(" [flags] Leave player and request in state storage? %v", *noDelete)
 
 	// Connect gRPC client
-	ip, err := net.LookupHost(server)
+	ip, err := net.LookupHost(*server)
 	if err != nil {
 		panic(err)
 	}
@@ -68,7 +63,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err.Error())
 	}
-	client := frontend.NewFrontendClient(conn)
+	client := pb.NewFrontendClient(conn)
 	log.Println("API client connected!")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -89,19 +84,19 @@ func main() {
 	// ID to receive updates.
 
 	// Empty group to fill and then send the CreateRequest gRPC endpoint
-	g := &frontend.Player{
+	g := &pb.Player{
 		Id:         "",
 		Properties: "",
 	}
 
 	// Generate players for the group
 	player.New() // Player generator init
-	players := make([]*frontend.Player, numPlayers)
-	resultsChan := make(chan frontend.Player)
-	for i := 0; i < numPlayers; i++ {
+	players := make([]*pb.Player, *numPlayers)
+	resultsChan := make(chan pb.Player)
+	for i := 0; i < *numPlayers; i++ {
 
 		// Var init
-		players[i] = &frontend.Player{}
+		players[i] = &pb.Player{}
 		playerData := make(map[string]interface{})
 
 		// Generate a new player
@@ -113,14 +108,14 @@ func main() {
 		go waitForResults(resultsChan, responseStream)
 		log.Printf("Generated player \"%v\": %v", players[i].Id, players[i].Properties)
 
-		if numPlayers > 1 {
+		if *numPlayers > 1 {
 			// Add the new player to the mock 'aggregate' player to represent the group
 			groupPlayer(g, players[i].Id, playerData)
 		}
 
 	}
 
-	if numPlayers > 1 {
+	if *numPlayers > 1 {
 		g.Id = g.Id[:len(g.Id)-1] // Remove trailing whitespace
 		log.Printf("Finished grouping players into mock 'aggregate' player: \"%v\"", g.Id)
 	} else {
@@ -130,8 +125,8 @@ func main() {
 	// Test CreateRequest
 	log.Println("Testing CreatePlayer")
 	results, err := client.CreatePlayer(ctx, g)
-	if !noDelete {
-		if numPlayers > 1 {
+	if !*noDelete {
+		if *numPlayers > 1 {
 			defer cleanup(client, g, "group")
 		}
 		for _, p := range players {
@@ -164,7 +159,7 @@ func main() {
 	// Assignment received, run a single dumb UDP client that just prints to the
 	// screen the contents of the packets it recieves
 	player := players[0]
-	if connect && player.Assignment != "" {
+	if *connect && player.Assignment != "" {
 		err = udpClient(context.Background(), player.Assignment)
 		if err != nil {
 			panic(err)
@@ -182,7 +177,7 @@ func waitForQuit(quitChan chan<- bool) {
 }
 
 // waitForResults loops until the context is cancelled, looking for assignment/status/error updates for a player.
-func waitForResults(resultsChan chan frontend.Player, stream frontend.Frontend_GetUpdatesClient) {
+func waitForResults(resultsChan chan pb.Player, stream pb.Frontend_GetUpdatesClient) {
 	for {
 		a, err := stream.Recv()
 		if err == io.EOF {
@@ -194,7 +189,7 @@ func waitForResults(resultsChan chan frontend.Player, stream frontend.Frontend_G
 				break
 			}
 			log.Println("Error encountered")
-			log.Println("Error reading stream for GetAssignments(_) = _, %v", err)
+			log.Printf("Error reading stream for GetAssignments(_) = _, %v", err)
 			break
 		}
 		log.Println("Result recieved from Open Match!")
@@ -253,7 +248,7 @@ func udpClient(ctx context.Context, address string) (err error) {
 	return
 }
 
-func cleanup(client frontend.FrontendClient, g *frontend.Player, kind string) {
+func cleanup(client pb.FrontendClient, g *pb.Player, kind string) {
 	// Test DeleteRequest
 	results, err := client.DeletePlayer(context.Background(), g)
 	if err != nil {
@@ -262,7 +257,7 @@ func cleanup(client frontend.FrontendClient, g *frontend.Player, kind string) {
 	log.Printf("Deleting Request for %v %v: %v", kind, g.Id, results)
 }
 
-func groupPlayer(g *frontend.Player, playerID string, playerData map[string]interface{}) error {
+func groupPlayer(g *pb.Player, playerID string, playerData map[string]interface{}) error {
 	// Concatinate this player to the existing group
 	g.Id = g.Id + playerID + " "
 

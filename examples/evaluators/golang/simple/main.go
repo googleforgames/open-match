@@ -32,7 +32,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoogleCloudPlatform/open-match/config"
 	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	"github.com/gobs/pretty"
 	"github.com/gomodule/redigo/redis"
@@ -47,30 +49,18 @@ func main() {
 
 	// Read config
 	lgr.Println("Initializing config...")
-	cfg, err := readConfig("matchmaker_config", map[string]interface{}{
-		"REDIS_SERVICE_HOST": "redis",
-		"REDIS_SERVICE_PORT": "6379",
-		"auth": map[string]string{
-			// Read from k8s secret eventually
-			// Probably doesn't need a map, just here for reference
-			"password": "12fa",
-		},
-	})
+	cfg, err := config.Read()
 	if err != nil {
 		panic(nil)
 	}
 
 	// Connect to redis
-	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
-	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz // redis pool docs: https://godoc.org/github.com/gomodule/redigo/redis#Pool
-	redisURL := "redis://" + cfg.GetString("REDIS_SERVICE_HOST") + ":" + cfg.GetString("REDIS_SERVICE_PORT")
-	lgr.Println("Connecting to redis at", redisURL)
-	pool := redis.Pool{
-		MaxIdle:     3,
-		MaxActive:   0,
-		IdleTimeout: 60 * time.Second,
-		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
+	pool, err := redishelpers.ConnectionPool(cfg)
+	if err != nil {
+		lgr.Fatal(err)
 	}
+	defer pool.Close()
+
 	redisConn := pool.Get()
 	defer redisConn.Close()
 
@@ -82,7 +72,7 @@ func main() {
 
 	start := time.Now()
 
-	proposedMatchIds, overloadedPlayers, overloadedMatches, approvedMatches, err := stub(cfg, &pool)
+	proposedMatchIds, overloadedPlayers, overloadedMatches, approvedMatches, err := stub(cfg, pool)
 	overloadedPlayerList, overloadedMatchList, approvedMatchList := generateLists(overloadedPlayers, overloadedMatches, approvedMatches)
 
 	fmt.Println("overloadedPlayers")
@@ -149,36 +139,6 @@ func chooseMatches(overloaded []int) ([]int, []int, error) {
 		return overloaded[0:1], overloaded[1:], nil
 	}
 	return []int{}, overloaded, nil
-}
-
-func readConfig(filename string, defaults map[string]interface{}) (*viper.Viper, error) {
-	/*
-	   Examples of redis-related env vars as written by k8s
-	   REDIS_SENTINEL_PORT_6379_TCP=tcp://10.55.253.195:6379
-	   REDIS_SENTINEL_PORT=tcp://10.55.253.195:6379
-	   REDIS_SENTINEL_PORT_6379_TCP_ADDR=10.55.253.195
-	   REDIS_SERVICE_PORT=6379
-	   REDIS_SENTINEL_PORT_6379_TCP_PORT=6379
-	   REDIS_SENTINEL_PORT_6379_TCP_PROTO=tcp
-	   REDIS_SERVICE_HOST=10.55.253.195
-	*/
-	v := viper.New()
-	for key, value := range defaults {
-		v.SetDefault(key, value)
-	}
-	v.SetConfigName(filename)
-	v.SetConfigType("json")
-	v.AddConfigPath(".")
-	v.AutomaticEnv()
-
-	// Optional read from config if it exists
-	err := v.ReadInConfig()
-	if err != nil {
-		//lgr.Printf("error when reading config: %v\n", err)
-		//lgr.Println("continuing...")
-		err = nil
-	}
-	return v, err
 }
 
 func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[int][]int, map[int]bool, error) {

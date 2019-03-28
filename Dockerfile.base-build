@@ -1,0 +1,7 @@
+FROM golang:1.12
+ENV GO111MODULE=on
+
+WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match
+COPY . .
+RUN go mod download
+

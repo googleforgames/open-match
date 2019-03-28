@@ -1,4 +1,3 @@
----
 kind: Service
 apiVersion: v1
 metadata:
@@ -26,6 +25,10 @@ spec:
       app: openmatch
       component: backend
   template:
+    annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: 9555
+        prometheus.io/path: "/metrics"
     metadata:
       labels:
         app: openmatch
@@ -33,8 +36,25 @@ spec:
     spec:
       containers:
       - name: om-backend
-        image: gcr.io/open-match-public-images/openmatch-backendapi:dev
+        image: gcr.io/matchmaker-dev-201405/openmatch-backendapi:0.4
         imagePullPolicy: Always
+        env:
+        - name: REDIS_USER
+          valueFrom:
+            secretKeyRef:
+              name: om-secret
+              key: redis.user
+              optional: true
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: om-secret
+              key: redis.password
+              optional: true
+        volumeMounts:
+        - name: om-configmap
+          subPath: matchmaker_config.yaml
+          mountPath: matchmaker_config.yaml
         ports:
         - name: grpc
           containerPort: 50505
@@ -44,6 +64,10 @@ spec:
           requests:
             memory: 100Mi
             cpu: 100m
+      volumes:
+      - name: om-configmap
+        configMap:
+          name: om-configmap
 ---
 kind: Service
 apiVersion: v1
@@ -72,6 +96,10 @@ spec:
       app: openmatch
       component: frontend
   template:
+    annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: 9555
+        prometheus.io/path: "/metrics"
     metadata:
       labels:
         app: openmatch
@@ -79,8 +107,25 @@ spec:
     spec:
       containers:
       - name: om-frontendapi
-        image: gcr.io/open-match-public-images/openmatch-frontendapi:dev
+        image: gcr.io/matchmaker-dev-201405/openmatch-frontendapi:0.4
         imagePullPolicy: Always
+        env:
+        - name: REDIS_USER
+          valueFrom:
+            secretKeyRef:
+              name: om-secret
+              key: redis.user
+              optional: true
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: om-secret
+              key: redis.password
+              optional: true
+        volumeMounts:
+        - name: om-configmap
+          subPath: matchmaker_config.yaml
+          mountPath: matchmaker_config.yaml
         ports:
         - name: grpc
           containerPort: 50504
@@ -90,6 +135,10 @@ spec:
           requests:
             memory: 100Mi
             cpu: 100m
+      volumes:
+      - name: om-configmap
+        configMap:
+          name: om-configmap
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -118,6 +167,10 @@ spec:
       app: openmatch
       component: mmforc
   template:
+    annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: 9555
+        prometheus.io/path: "/metrics"
     metadata:
       labels:
         app: openmatch
@@ -125,8 +178,35 @@ spec:
     spec:
       containers:
       - name: om-mmforc
-        image: gcr.io/open-match-public-images/openmatch-mmforc:dev
+        image: gcr.io/matchmaker-dev-201405/openmatch-mmforc:0.4
         imagePullPolicy: Always
+        env:
+        - name: METADATA_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: REDIS_CREDENTIALS_SECRET_NAME
+          value: om-secret
+        - name: REDIS_CREDENTIALS_SECRET_USER_KEY
+          value: redis.user
+        - name: REDIS_CREDENTIALS_SECRET_PASSWORD_KEY
+          value: redis.password
+        - name: REDIS_USER
+          valueFrom:
+            secretKeyRef:
+              name: om-secret
+              key: redis.user
+              optional: true
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: om-secret
+              key: redis.password
+              optional: true
+        volumeMounts:
+        - name: om-configmap
+          subPath: matchmaker_config.yaml
+          mountPath: matchmaker_config.yaml
         ports:
         - name: metrics
           containerPort: 9555
@@ -134,11 +214,10 @@ spec:
           requests:
             memory: 100Mi
             cpu: 100m
-        env:
-        - name: METADATA_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
+      volumes:
+      - name: om-configmap
+        configMap:
+          name: om-configmap
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -154,6 +233,10 @@ spec:
       app: openmatch
       component: mmlogic
   template:
+    annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: 9555
+        prometheus.io/path: "/metrics"
     metadata:
       labels:
         app: openmatch
@@ -161,8 +244,25 @@ spec:
     spec:
       containers:
       - name: om-mmlogic
-        image: gcr.io/open-match-public-images/openmatch-mmlogicapi:dev
+        image: gcr.io/matchmaker-dev-201405/openmatch-mmlogicapi:0.4
         imagePullPolicy: Always
+        env:
+        - name: REDIS_USER
+          valueFrom:
+            secretKeyRef:
+              name: om-secret
+              key: redis.user
+              optional: true
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: om-secret
+              key: redis.password
+              optional: true
+        volumeMounts:
+        - name: om-configmap
+          subPath: matchmaker_config.yaml
+          mountPath: matchmaker_config.yaml
         ports:
         - name: grpc
           containerPort: 50503
@@ -172,6 +272,10 @@ spec:
           requests:
             memory: 100Mi
             cpu: 100m
+      volumes:
+      - name: om-configmap
+        configMap:
+          name: om-configmap
 ---
 kind: Service
 apiVersion: v1
