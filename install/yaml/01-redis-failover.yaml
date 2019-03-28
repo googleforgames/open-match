@@ -1,3 +1,17 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: om-secret
+type: Opaque
+data:
+  # WARNING 
+  # Redis-operator doesn't support the authentication yet: 
+  # https://github.com/spotahome/redis-operator/issues/66
+  # 
+  # So for Open Match components to work these keys must always be empty.
+  redis.user: |
+  redis.password: |
+---
 apiVersion: storage.spotahome.com/v1alpha2
 kind: RedisFailover
 metadata:
