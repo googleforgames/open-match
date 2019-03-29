@@ -25,7 +25,7 @@
 populations
 
 # local config files
-*.json
+#*.json
 
 # Discarded code snippets
 build.sh
@@ -67,3 +67,26 @@ msbuild.wrn
 
 # Visual Studio 2015
 .vs/
+
+# Goland
+.idea/
+
+# Nodejs files placed when building Hugo, ok to allow if we actually start using Nodejs.
+package.json
+package-lock.json
+
+site/resources/_gen/
+
+# Node Modules
+node_modules/
+
+# Compiled Binaries
+cmd/backendapi/backendapi
+cmd/frontendapi/frontendapi
+cmd/mmforc/mmforc
+cmd/mmlogicapi/mmlogicapi
+examples/backendclient/backendclient
+examples/evaluators/golang/simple/simple
+examples/functions/golang/manual-simple/manual-simple
+test/cmd/clientloadgen/clientloadgen
+test/cmd/frontendclient/frontendclient

@@ -1,9 +1,0 @@
-steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: [
-            'build', 
-            '--tag=gcr.io/$PROJECT_ID/openmatch-mmf-py3-mmlogic-simple:dev', 
-            '-f', 'Dockerfile.mmf_py3', 
-            '.'
-        ]
-images: ['gcr.io/$PROJECT_ID/openmatch-mmf-py3-mmlogic-simple:dev']

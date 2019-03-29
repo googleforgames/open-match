@@ -6,12 +6,14 @@ import (
 	"github.com/rafaeljusto/redigomock"
 )
 
-func TestCreate(*testing.T) {
-	pids := "test1 test2 test3"
+func TestCreate(t *testing.T) {
+	pids := []string{"test1", "test2", " test3"}
 	ilid := "testil"
 	redisConn := redigomock.NewConn()
+
+	redisConn.GenericCommand("ZADD").Expect("ok")
 	err := Create(redisConn, ilid, pids)
 	if err != nil {
-		panic(err.Error())
+		t.Fatal(err)
 	}
 }

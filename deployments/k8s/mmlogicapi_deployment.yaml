@@ -1,0 +1,32 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-mmlogicapi
+  labels:
+    app: openmatch
+    component: mmlogic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openmatch
+      component: mmlogic
+  template:
+    metadata:
+      labels:
+        app: openmatch
+        component: mmlogic
+    spec:
+      containers:
+      - name: om-mmlogic
+        image: gcr.io/open-match-public-images/openmatch-mmlogicapi:dev
+        imagePullPolicy: Always
+        ports:
+        - name: grpc
+          containerPort: 50503
+        - name: metrics
+          containerPort: 9555
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
