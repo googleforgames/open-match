@@ -1,10 +1,8 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'pull', 'gcr.io/$PROJECT_ID/openmatch-base:dev' ]
-- name: 'gcr.io/cloud-builders/docker'
   args: [
             'build', 
-            '--tag=gcr.io/$PROJECT_ID/openmatch-frontendapi:dev', 
+            '--tag=gcr.io/$PROJECT_ID/openmatch-frontendapi:0.4', 
             '.'
         ]
-images: ['gcr.io/$PROJECT_ID/openmatch-frontendapi:dev']
+images: ['gcr.io/$PROJECT_ID/openmatch-frontendapi:0.4']

@@ -1,5 +1,12 @@
 # Release history
 
+## v0.4.0 (alpha)
+
+### Release notes
+- Thanks to completion of Issues [#42](issues/42) and [#45](issues/45), there is no longer a need to use the `openmatch-base` image when building components of Open Match.  Each stand alone appliation now is self-contained in its `Dockerfile` and `cloudbuild.yaml` files, and builds have been substantially simplified.  **Note**: The default `Dockerfile` and `cloudbuild.yaml` now tag their images with the version number, not `dev`, and the YAML files in the `install` directory now reflect this.
+ - This paves the way for CI/CD in an upcoming version.  
+ - This paves the way for public images in an upcoming version!
+
 ## v0.3.0 (alpha)
   This update is focused on the Frontend API and Player Records, including more robust code for indexing, deindexing, reading, writing, and expiring player requests from Open Match state storage.  All Frontend API function argument have changed, although many only slightly. Please join the [Slack channel](https://open-match.slack.com/) if you need help ([Signup link](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLWQzMzE1MGY5YmYyYWY3ZjE2MjNjZTdmYmQ1ZTQzMmNiNGViYmQyN2M4ZmVkMDY2YzZlOTUwMTYwMzI1Y2I2MjU))!
 

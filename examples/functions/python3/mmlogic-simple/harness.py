@@ -26,14 +26,9 @@ import pprint as pp
 
 from timeit import default_timer as timer
 
-# Load config file
-cfg = ''
-with open("matchmaker_config.json") as f:
-    cfg = json.loads(f.read())
-
 # Step 2 - Talk to Redis.  This example uses the MM Logic API in OM to read/write to/from redis.
 # Establish grpc channel and make the API client stub
-api_conn_info = "%s:%d" % (cfg['api']['mmlogic']['hostname'], cfg['api']['mmlogic']['port'])
+api_conn_info = "%s:%d" % (os.environ["OM_MMLOGICAPI_SERVICE_HOST"],os.environ["OM_MMLOGICAPI_SERVICE_PORT"])
 with  grpc.insecure_channel(api_conn_info) as channel:
     mmlogic_api = mmlogic_pb2_grpc.MmLogicStub(channel)
 
@@ -54,7 +49,7 @@ with  grpc.insecure_channel(api_conn_info) as channel:
         print("Retrieving pool '%s'" % empty_pool.name, end='')
 
         # DEBUG: Print how long the filtering takes
-        if cfg['debug']:
+        if os.environ["DEBUG"]:
             start = timer()
 
         # Pool filter results are streamed in chunks as they can be too large to send
@@ -71,8 +66,12 @@ with  grpc.insecure_channel(api_conn_info) as channel:
                         player_pools[empty_pool.name][player.id][attr.name] = attr.value
             except Exception as err:
                 print("Error encountered: %s" % err) 
-        if cfg['debug']:
+        if os.environ["DEBUG"]:
             print("\n'%s': count %06d | elapsed %0.3f" % (empty_pool.name, len(player_pools[empty_pool.name]),timer() - start))
+
+    num_players_total = 0
+    for _, pool in player_pools.items():
+        num_players_total += len(pool)
 
     #################################################################
     # Step 5 - Run custom matchmaking logic to try to find a match
@@ -81,7 +80,7 @@ with  grpc.insecure_channel(api_conn_info) as channel:
     #################################################################
 
     # DEBUG
-    if cfg['debug']:
+    if os.environ["DEBUG"]:
         print("======== match_properties")
         pp.pprint(results) 
 
@@ -95,7 +94,7 @@ with  grpc.insecure_channel(api_conn_info) as channel:
     # Access the rosters in dict form within the properties json.
     # It is stored at the key specified in the config file.
     rosters_dict = results
-    for partial_key in cfg['jsonkeys']['rosters'].split('.'):
+    for partial_key in os.environ["JSONKEYS_ROSTERS"].split('.'):
         rosters_dict = rosters_dict.get(partial_key, {})
 
     # Unmarshal the rosters into the MatchObject 
@@ -103,13 +102,20 @@ with  grpc.insecure_channel(api_conn_info) as channel:
         mo.rosters.extend([Parse(json.dumps(roster), mmlogic.Roster(), ignore_unknown_fields=True)])
 
     #DEBUG: writing to error key prevents evalutor run 
-    if cfg['debug']:
+    if os.environ["DEBUG"]:
         #mo.id = os.environ["MMF_ERROR_ID"] 
         #mo.error = "skip evaluator"
         print("======== MMF results:") 
         pp.pprint(mo)
 
-    # Step 6 - Write the outcome of the matchmaking logic back to state storage.
+    # Return error when there are no players in the pools
+    if num_players_total == 0:
+        if cfg['debug']:
+            print("All player pools are empty, writing to error to skip the evaluator")
+        mo.id = os.environ["MMF_ERROR_ID"]
+        mo.error = "insufficient players"
+
+    # Step 6 - Write the outcome of the matchmaking logic back to state storage.    
     # Step 7 - Remove the selected players from consideration by other MMFs.
     # CreateProposal does both of these for you, and some other items as well.
     success = mmlogic_api.CreateProposal(mo)

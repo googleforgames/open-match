@@ -2,6 +2,8 @@
 FROM golang:1.10.3 as builder
 WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match
 COPY config config
+RUN rm -f config/matchmaker_config.json
+RUN rm -f config/matchmaker_config.yaml
 COPY internal internal
 WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/internal
 RUN go get -d -v ...
