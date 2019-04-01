@@ -1,5 +1,9 @@
 # Open Match
 
+[![GoDoc](https://godoc.org/github.com/GoogleCloudPlatform/open-match?status.svg)](https://godoc.org/github.com/GoogleCloudPlatform/open-match)
+[![Go Report Card](https://goreportcard.com/badge/github.com/GoogleCloudPlatform/open-match)](https://goreportcard.com/report/github.com/GoogleCloudPlatform/open-match)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/GoogleCloudPlatform/open-match/blob/master/LICENSE)
+
 Open Match is an open source game matchmaking framework designed to allow game creators to build matchmakers of any size easily and with as much possibility for sharing and code re-use as possible. It’s designed to be flexible (run it anywhere Kubernetes runs), extensible (match logic can be customized to work for any game), and scalable.
 
 Matchmaking is a complicated process, and when large player populations are involved, many popular matchmaking approaches touch on significant areas of computer science including graph theory and massively concurrent processing. Open Match is an effort to provide a foundation upon which these difficult problems can be addressed by the wider game development community. As Josh Menke &mdash; famous for working on matchmaking for many popular triple-A franchises &mdash; put it:
@@ -183,10 +187,18 @@ The easiest way to build Open Match is to use the Makefile. Before you can use t
 
 ```bash
 # Install Open Match Toolchain Dependencies (Debian other OSes including Mac OS X have similar dependencies)
-sudo apt-get update; sudo apt-get install -y python3 python3-virtualenv virtualenv make gcloud
+sudo apt-get update; sudo apt-get install -y -q python3 python3-virtualenv virtualenv make google-cloud-sdk git unzip tar
+# Setup your repository like Go workspace, https://golang.org/doc/code.html#Workspaces
+# This requirement will go away soon.
+mkdir -p workspace/src/github.com/GoogleCloudPlatform/
+cd workspace/src/github.com/GoogleCloudPlatform/
+export GOPATH=$HOME/workspace
+export GO111MODULE=on
+git clone https://github.com/GoogleCloudPlatform/open-match.git
+cd open-match
 ```
 
-Go 1.11+ is also required. If your distro is new enough you can probably run `sudo apt-get install -y golang` or download the newest version from https://golang.org/.
+[Docker](https://docs.docker.com/install/) and [Go 1.11+](https://golang.org/dl/) is also required. If your distro is new enough you can probably run `sudo apt-get install -y golang` or download the newest version from https://golang.org/.
 
 To build all the artifacts of Open Match you can simply run the following commands.
 
