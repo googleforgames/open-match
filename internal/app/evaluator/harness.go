@@ -71,7 +71,8 @@ func initializeApplication() {
 	log.AddHook(metrics.NewHook(EvaluatorLogLines, KeySeverity))
 
 	// Viper config management initialization
-	cfg, err := config.Read()
+	var err error
+	cfg, err = config.Read()
 	if err != nil {
 		evLog.WithFields(log.Fields{
 			"error": err.Error(),
