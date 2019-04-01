@@ -1,4 +1,4 @@
-FROM golang:1.12
+FROM golang:latest
 ENV GO111MODULE=on
 
 WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match
