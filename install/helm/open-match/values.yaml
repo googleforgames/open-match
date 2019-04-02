@@ -43,7 +43,7 @@ openmatch:
         # You can refer to other chart values using the Helm templates syntax here.
   image:
     registry: gcr.io/open-match-public-images
-    tag: 0.4.0
+    tag: 0.5.0
     backendapi:
       name: openmatch-backendapi
       pullPolicy: Always

@@ -13,24 +13,15 @@
 # limitations under the License.
 
 apiVersion: v1
-appVersion: "0.5.0"
-version: 0.5.0
-name: open-match
-description: Flexible, extensible, and scalable video game matchmaking.
-keywords:
-  - kubernetes
-  - game-development
-  - multiplayer
-  - matchmaking
-  - go
-  - golang
-home: https://github.com/GoogleCloudPlatform/open-match
-sources:
-  - https://github.com/GoogleCloudPlatform/open-match
-maintainers:
- - name: open-match
-   email: open-match-discuss@googlegroups.com
-   url: https://groups.google.com/forum/#!forum/open-match-discuss
-engine: gotpl
-#icon: https://github.com/GoogleCloudPlatform/open-match/raw/master/docs/open-match.png
-tillerVersion: ">2.10.0"
+kind: ConfigMap
+namespace: {{ .Release.Namespace }}
+metadata:
+  name: om-testprofile-config
+  labels:
+    app: {{ template "openmatch.name" . }}
+    component: mmf
+    chart: {{ template "openmatch.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  {{- (.Files.Glob "config/backendclient/testprofile.json").AsConfig | nindent 2 }}
