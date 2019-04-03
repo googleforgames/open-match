@@ -1,0 +1,91 @@
+# Copyright 2019 Google LLC
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+FROM debian
+
+RUN apt-get update
+RUN apt-get install -y -q git make g++ php python3 virtualenv autoconf \
+  build-essential libtool pkg-config libgflags-dev libgtest-dev \
+  clang libc++-dev curl sudo unzip apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg2 \
+    software-properties-common
+
+# Docker
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
+RUN sudo apt-key fingerprint 0EBFCD88
+RUN  sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/debian \
+   stretch \
+   stable"
+RUN sudo apt-get update
+RUN sudo apt-get install -y -q docker-ce docker-ce-cli containerd.io
+
+
+# Cloud SDK
+RUN export CLOUD_SDK_REPO="cloud-sdk-stretch" && \
+    echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+    apt-get update -y && apt-get install google-cloud-sdk -y
+
+
+RUN useradd --home-dir /home/openmatch --create-home --shell /bin/bash --groups sudo --user-group openmatch \
+    && echo "%sudo ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/openmatch \
+    && chmod 0440 /etc/sudoers.d/openmatch
+RUN mkdir -p /toolchain && chown -R openmatch:openmatch /toolchain
+RUN mkdir -p /workspace && chown -R openmatch:openmatch /workspace
+
+USER openmatch
+
+WORKDIR /toolchain
+RUN git clone -b $(curl -L https://grpc.io/release) https://github.com/grpc/grpc
+#RUN git clone -b v1.19.0 https://github.com/grpc/grpc
+WORKDIR /toolchain/grpc
+RUN git submodule update --init
+RUN make grpc_php_plugin
+RUN make all -j$(nproc)
+RUN sudo make install
+
+# Install Golang
+# https://github.com/docker-library/golang/blob/fd272b2b72db82a0bd516ce3d09bba624651516c/1.12/stretch/Dockerfile
+
+RUN mkdir -p /toolchain/golang
+WORKDIR /toolchain/golang
+RUN sudo rm -rf /usr/local/go/
+RUN curl -L https://storage.googleapis.com/golang/go1.12.1.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
+
+ENV GOPATH /go
+ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
+
+RUN sudo mkdir -p "$GOPATH/src" "$GOPATH/bin" \
+  && sudo chmod -R 777 "$GOPATH" \
+  && sudo chown -R openmatch:openmatch $GOPATH
+
+USER root
+#RUN sudo mkdir -p /builder
+#RUN sudo chown -R openmatch:openmatch /builder
+WORKDIR /workspace
+#COPY --chown=openmatch:openmatch . .
+#RUN ls -la
+#RUN make clean
+#RUN make install-toolchain -j$(nproc)
+#RUN make all-protos
+#RUN make fmt
+#RUN make vet
+#RUN make test
+#RUN make all -j$(nproc)
+#RUN make install-npm
+#RUN make build/site/
+#RUN make build-images -j$(nproc)

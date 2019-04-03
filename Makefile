@@ -47,13 +47,14 @@ SKAFFOLD_VERSION = latest
 MINIKUBE_VERSION = latest
 
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
-GO = go
+GO = GO111MODULE=on GOPROXY=off go
+GO_WITH_DEPS = GO111MODULE=on GOPROXY= go
 GO_BIN := $(GOPATH)/bin
 GO_SRC := $(GOPATH)/src
 # Defines the absolute local directory of the open-match project
 REPOSITORY_ROOT := $(dir $(abspath $(MAKEFILE_LIST)))
-GO_BUILD_COMMAND = CGO_ENABLED=0 GOOS=linux $(GO) build -a -installsuffix cgo .
-BUILD_DIR = $(CURDIR)/build
+GO_BUILD_COMMAND = CGO_ENABLED=0 $(GO) build -a -installsuffix cgo .
+BUILD_DIR = $(REPOSITORY_ROOT)/build
 TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
 TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
 PROTOC := $(TOOLCHAIN_BIN)/protoc
@@ -90,11 +91,11 @@ REDIS_NAME = om-redis
 ## Make port forwards accessible outside of the proxy machine.
 PORT_FORWARD_ADDRESS_FLAG = --address 0.0.0.0
 DASHBOARD_PORT = 9092
-export PATH := $(CURDIR)/node_modules/.bin/:$(TOOLCHAIN_BIN):$(TOOLCHAIN_DIR)/nodejs/bin:$(PATH)
+export PATH := $(REPOSITORY_ROOT)/node_modules/.bin/:$(TOOLCHAIN_BIN):$(TOOLCHAIN_DIR)/nodejs/bin:$(PATH)
 
 ifneq (,$(wildcard $(TOOLCHAIN_GOLANG_DIR)/bin/go))
-	export GO = $(CURDIR)/$(TOOLCHAIN_GOLANG_DIR)/bin/go
-	export GOROOT = $(CURDIR)/$(TOOLCHAIN_GOLANG_DIR)
+	export GO = $(REPOSITORY_ROOT)/$(TOOLCHAIN_GOLANG_DIR)/bin/go
+	export GOROOT = $(REPOSITORY_ROOT)/$(TOOLCHAIN_GOLANG_DIR)
 	export PATH := $(TOOLCHAIN_GOLANG_DIR):$(PATH)
 endif
 
@@ -448,8 +449,7 @@ build/toolchain/bin/protoc$(EXE_EXTENSION):
 	rm $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
 
 build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
-	$(GO) get github.com/golang/protobuf/protoc-gen-go
-	$(GO) install github.com/golang/protobuf/protoc-gen-go
+	$(GO_WITH_DEPS) install github.com/golang/protobuf/protoc-gen-go
 	mv $(GO_BIN)/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
 
 build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
@@ -460,8 +460,7 @@ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
 		$(PROTOC_INCLUDES)/google/api
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
-	$(GO) get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-	$(GO) install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	$(GO_WITH_DEPS) install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 	mv $(GO_BIN)/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 
 all-protos: golang-protos mmlogic-simple-protos
@@ -469,27 +468,27 @@ all-protos: golang-protos mmlogic-simple-protos
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
-		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
 examples/functions/php/mmlogic-simple/proto/:
 	mkdir -p examples/functions/php/mmlogic-simple/proto/
 	$(PROTOC) api/protobuf-spec/messages.proto \
-		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--php_out=examples/functions/php/mmlogic-simple/proto/ \
 		--grpc_out=examples/functions/php/mmlogic-simple/proto/ \
 		--plugin=protoc-gen-grpc=build/toolchain/bin/grpc_php_plugin
 	$(PROTOC) api/protobuf-spec/backend.proto \
-		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--php_out=examples/functions/php/mmlogic-simple/proto/
 	$(PROTOC) api/protobuf-spec/frontend.proto \
-		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--php_out=examples/functions/php/mmlogic-simple/proto/
 	$(PROTOC) api/protobuf-spec/matchfunction.proto \
-		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--php_out=examples/functions/php/mmlogic-simple/proto/
 	$(PROTOC) api/protobuf-spec/mmlogic.proto \
-		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--php_out=examples/functions/php/mmlogic-simple/proto/
 
 ## Include structure of the protos needs to be called out do the dependency chain is run through properly.
@@ -502,15 +501,15 @@ mmlogic-simple-protos: examples/functions/python3/mmlogic-simple/api/protobuf_sp
 
 examples/functions/python3/mmlogic-simple/api/protobuf_spec/%_pb2.py: api/protobuf-spec/%.proto build/toolchain/python/
 	. build/toolchain/python/bin/activate \
-		&& python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		&& python3 -m grpc_tools.protoc -I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--python_out=examples/functions/python3/mmlogic-simple/ \
 		--grpc_python_out=examples/functions/python3/mmlogic-simple/ $< \
 		&& deactivate
 
 internal/pb/%_pb2.py: api/protobuf-spec/%.proto build/toolchain/python/
 	. build/toolchain/python/bin/activate \
-		&& python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) \
-		--python_out=$(CURDIR) --grpc_python_out=$(CURDIR) $< \
+		&& python3 -m grpc_tools.protoc -I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--python_out=$(REPOSITORY_ROOT) --grpc_python_out=$(REPOSITORY_ROOT) $< \
 		&& deactivate
 
 build:
@@ -518,6 +517,9 @@ build:
 
 test:
 	$(GO) test ./... -race
+
+test-10:
+	$(GO) test ./... -race -test.count 10 -cover
 
 fmt:
 	$(GO) fmt ./...
@@ -564,6 +566,7 @@ node_modules/: build/toolchain/nodejs/
 	-rm -r package.json package-lock.json
 	-rm -rf node_modules/
 	echo "{}" > package.json
+	-rm -f package-lock.json
 	$(TOOLCHAIN_DIR)/nodejs/bin/npm install postcss-cli autoprefixer
 
 build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
@@ -642,4 +645,10 @@ proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
-.PHONY: proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test vet
+sync-deps:
+	$(GO_WITH_DEPS) mod download
+
+sleep-10:
+	sleep 10
+
+.PHONY: sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-10 vet
