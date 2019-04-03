@@ -450,11 +450,33 @@ build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	$(GO) install github.com/golang/protobuf/protoc-gen-go
 	mv $(GOPATH)/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
 
-all-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/function.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go mmlogic-simple-protos
+all-protos: golang-protos mmlogic-simple-protos php-protos
+golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/function.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
 	$(PROTOC) $< \
-	-I $(CURDIR) -I $(PROTOC_INCLUDES) \
-	--go_out=plugins=grpc:$(GO_SRC)
+		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--go_out=plugins=grpc:$(GO_SRC)
+
+php-protos: examples/functions/php/mmlogic-simple/proto/
+examples/functions/php/mmlogic-simple/proto/:
+	mkdir -p examples/functions/php/mmlogic-simple/proto/
+	$(PROTOC) api/protobuf-spec/messages.proto \
+		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--php_out=examples/functions/php/mmlogic-simple/proto/ \
+		--grpc_out=examples/functions/php/mmlogic-simple/proto/ \
+		--plugin=protoc-gen-grpc=build/toolchain/bin/grpc_php_plugin
+	$(PROTOC) api/protobuf-spec/backend.proto \
+		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--php_out=examples/functions/php/mmlogic-simple/proto/
+	$(PROTOC) api/protobuf-spec/frontend.proto \
+		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--php_out=examples/functions/php/mmlogic-simple/proto/
+	$(PROTOC) api/protobuf-spec/function.proto \
+		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--php_out=examples/functions/php/mmlogic-simple/proto/
+	$(PROTOC) api/protobuf-spec/mmlogic.proto \
+		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--php_out=examples/functions/php/mmlogic-simple/proto/
 
 ## Include structure of the protos needs to be called out do the dependency chain is run through properly.
 internal/pb/backend.pb.go: internal/pb/messages.pb.go
@@ -550,6 +572,7 @@ clean-site:
 clean-protos:
 	rm -rf internal/pb/
 	rm -rf api/protobuf_spec/
+	rm -rf examples/functions/php/mmlogic-simple/proto/
 	rm -rf examples/functions/python3/mmlogic-simple/api/protobuf_spec/
 
 clean-binaries:

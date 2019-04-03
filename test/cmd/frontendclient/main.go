@@ -104,7 +104,9 @@ func main() {
 		players[i].Properties = playerDataToJSONString(playerData)
 
 		// Start watching for results for this player (assignment/status/error)
-		responseStream, _ := client.GetUpdates(ctx, players[i])
+		responseStream, _ := client.GetUpdates(ctx, &pb.GetUpdatesRequest{
+			Player: players[i],
+		})
 		go waitForResults(resultsChan, responseStream)
 		log.Printf("Generated player \"%v\": %v", players[i].Id, players[i].Properties)
 
@@ -112,7 +114,6 @@ func main() {
 			// Add the new player to the mock 'aggregate' player to represent the group
 			groupPlayer(g, players[i].Id, playerData)
 		}
-
 	}
 
 	if *numPlayers > 1 {
@@ -124,7 +125,9 @@ func main() {
 
 	// Test CreateRequest
 	log.Println("Testing CreatePlayer")
-	results, err := client.CreatePlayer(ctx, g)
+	results, err := client.CreatePlayer(ctx, &pb.CreatePlayerRequest{
+		Player: g,
+	})
 	if !*noDelete {
 		if *numPlayers > 1 {
 			defer cleanup(client, g, "group")
@@ -193,7 +196,7 @@ func waitForResults(resultsChan chan pb.Player, stream pb.Frontend_GetUpdatesCli
 			break
 		}
 		log.Println("Result recieved from Open Match!")
-		resultsChan <- *a
+		resultsChan <- *a.Player
 	}
 }
 
@@ -250,7 +253,9 @@ func udpClient(ctx context.Context, address string) (err error) {
 
 func cleanup(client pb.FrontendClient, g *pb.Player, kind string) {
 	// Test DeleteRequest
-	results, err := client.DeletePlayer(context.Background(), g)
+	results, err := client.DeletePlayer(context.Background(), &pb.DeletePlayerRequest{
+		Player: g,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
