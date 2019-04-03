@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
 	github.com/cenkalti/backoff v2.1.1+incompatible
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gobs/pretty v0.0.0-20180724170744-09732c25a95b
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.0
@@ -27,10 +28,12 @@ require (
 	github.com/tidwall/pretty v0.0.0-20180105212114-65a9db5fad51 // indirect
 	github.com/tidwall/sjson v1.0.4
 	go.opencensus.io v0.19.1
-	golang.org/x/net v0.0.0-20190313082753-5c2c250b6a70
+	golang.org/x/net v0.0.0-20190313082753-5c2c250b6a70 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
+	google.golang.org/appengine v1.3.0
 	google.golang.org/grpc v1.19.0
 	gopkg.in/inf.v0 v0.9.1 // indirect
+	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0-20190222213804-5cb15d344471
 	k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
 	k8s.io/client-go v10.0.0+incompatible
