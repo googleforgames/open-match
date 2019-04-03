@@ -32,7 +32,6 @@
 # make delete-gke-cluster
 #
 ## http://makefiletutorial.com/
-
 BASE_VERSION = 0.4.0
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD)
 VERSION ?= $(BASE_VERSION)-$(VERSION_SUFFIX)
