@@ -33,7 +33,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/config"
-	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	pb "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	"github.com/gobs/pretty"
@@ -209,7 +209,7 @@ func stub(cfg config.View, pool *redis.Pool) ([]string, map[string][]int, map[in
 func getProposedPlayers(pool *redis.Pool, propKey string) ([]string, error) {
 
 	// Get the proposal match object from redis
-	mo := &om_messages.MatchObject{Id: propKey}
+	mo := &pb.MatchObject{Id: propKey}
 	err := redispb.UnmarshalFromRedis(context.Background(), pool, mo)
 	if err != nil {
 		return nil, err

@@ -5,6 +5,13 @@ option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
 // The protobuf messages sent in the gRPC calls are defined 'messages.proto'.
 import 'api/protobuf-spec/messages.proto';
 
+message RunRequest {
+  messages.Arguments arguments = 1;
+}
+
+message RunResponse {
+}
+
 // The MMF proto defines the API for running MMFs as long-lived, 'serving' 
 // functions inside of the kubernetes cluster.
 service Function {
@@ -13,6 +20,6 @@ service Function {
   // being served.  Build your MMF in the appropriate serving harness, deploy it
   // to the K8s cluster with a unique service name, then connect to that service
   // and call 'Run()' to execute the fuction.
-  rpc Run(messages.Arguments) returns (messages.Result) {}
+  rpc Run(RunRequest) returns (RunResponse) {}
 
 }

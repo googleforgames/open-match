@@ -13,7 +13,7 @@ option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
 // MatchObjects contain a number of fields, but many gRPC calls that take a
 // MatchObject as input only require a few of them to be filled in.  Check the
 // gRPC function in question for more details.
-message MatchObject{
+message MatchObject {
   string id = 1;                        // By convention, an Xid
   string properties = 2;                // By convention, a JSON-encoded string
   string error = 3;                     // Last error encountered. 
@@ -23,13 +23,13 @@ message MatchObject{
 }
 
 // Data structure to hold a list of players in a match.  
-message Roster{
+message Roster {
     string name = 1;                 // Arbitrary developer-chosen, human-readable string. By convention, set to team name. 
     repeated Player players = 2;     // Player profiles on this roster.
 }
 
 // A 'hard' filter to apply to the player pool.
-message Filter{
+message Filter {
     string name = 1;                // Arbitrary developer-chosen, human-readable name of this filter. Appears in logs and metrics. 
     string attribute = 2;           // Name of the player attribute this filter operates on.
     int64 maxv = 3;                 // Maximum value.  Defaults to positive infinity (any value above minv).
@@ -38,7 +38,7 @@ message Filter{
 }
 
 // Holds statistics
-message Stats{
+message Stats {
     int64 count = 1;                // Number of results.
     double elapsed = 2;             // How long it took to get the results. 
 }
@@ -49,7 +49,7 @@ message Stats{
 // PlayerPools contain a number of fields, but many gRPC calls that take a
 // PlayerPool as input only require a few of them to be filled in.  Check the
 // gRPC function in question for more details.
-message PlayerPool{
+message PlayerPool {
     string name = 1;                // Arbitrary developer-chosen, human-readable string.
     repeated Filter filters = 2;    // Filters are logical AND-ed (a player must match every filter).
     Roster roster = 3;              // Roster of players that match all filters.
@@ -64,32 +64,25 @@ message PlayerPool{
 // Players contain a number of fields, but the gRPC calls that take a
 // Player as input only require a few of them to be filled in.  Check the
 // gRPC function in question for more details.
-message Player{
-  message Attribute{                
+message Player {
+  message Attribute {                
     string name = 1;                // Name should match a Filter.attribute field. 
     int64 value = 2;
   }
   string id = 1;                    // By convention, an Xid
   string properties = 2;            // By convention, a JSON-encoded string
   string pool = 3;                  // Optionally used to specify the PlayerPool in which to find a player. 
-  repeated Attribute attributes= 4; // Attributes of this player.
+  repeated Attribute attributes = 4; // Attributes of this player.
   string assignment = 5;            // By convention, ip:port of a DGS to connect to 
   string status = 6;                // Arbitrary developer-chosen string. 
   string error = 7;                 // Arbitrary developer-chosen string.
 }
 
-
-// Simple message to return success/failure and error status.
-message Result{
-    bool success = 1;
-    string error = 2;
-}
-
 // IlInput is an empty message reserved for future use.
-message IlInput{
+message IlInput {
 }
 
-message Assignments{
+message Assignments {
     repeated Roster rosters = 1;
     string assignment = 10; 
 }
@@ -109,7 +102,7 @@ message Request {
 
 // The message for passing all the necessary arguments to a 
 // matchmaking function.
-message Arguments{
+message Arguments {
     Request request = 1;
     MatchObject matchobject = 2;
 }

@@ -105,7 +105,8 @@ func (s *FrontendAPI) Open() error {
 }
 
 // CreatePlayer is this service's implementation of the CreatePlayer gRPC method defined in frontend.proto
-func (s *frontendAPI) CreatePlayer(ctx context.Context, group *pb.Player) (*pb.Result, error) {
+func (s *frontendAPI) CreatePlayer(ctx context.Context, req *pb.CreatePlayerRequest) (*pb.CreatePlayerResponse, error) {
+	group := req.Player
 	// Create context for tagging OpenCensus metrics.
 	funcName := "CreatePlayer"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
@@ -119,7 +120,7 @@ func (s *frontendAPI) CreatePlayer(ctx context.Context, group *pb.Player) (*pb.R
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, FeGrpcErrors.M(1))
-		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Index group
@@ -131,16 +132,17 @@ func (s *frontendAPI) CreatePlayer(ctx context.Context, group *pb.Player) (*pb.R
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, FeGrpcErrors.M(1))
-		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Return success.
 	stats.Record(fnCtx, FeGrpcRequests.M(1))
-	return &pb.Result{Success: true, Error: ""}, nil
+	return &pb.CreatePlayerResponse{}, nil
 }
 
 // DeletePlayer is this service's implementation of the DeletePlayer gRPC method defined in frontend.proto
-func (s *frontendAPI) DeletePlayer(ctx context.Context, group *pb.Player) (*pb.Result, error) {
+func (s *frontendAPI) DeletePlayer(ctx context.Context, req *pb.DeletePlayerRequest) (*pb.DeletePlayerResponse, error) {
+	group := req.Player
 	// Create context for tagging OpenCensus metrics.
 	funcName := "DeletePlayer"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
@@ -155,13 +157,13 @@ func (s *frontendAPI) DeletePlayer(ctx context.Context, group *pb.Player) (*pb.R
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, FeGrpcErrors.M(1))
-		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 	// Kick off delete but don't wait for it to complete.
 	go s.deletePlayer(group.Id)
 
 	stats.Record(fnCtx, FeGrpcRequests.M(1))
-	return &pb.Result{Success: true, Error: ""}, nil
+	return &pb.DeletePlayerResponse{}, nil
 }
 
 // deletePlayer is a 'lazy' player delete
@@ -200,7 +202,8 @@ func (s *frontendAPI) deletePlayer(id string) {
 }
 
 // GetUpdates is this service's implementation of the GetUpdates gRPC method defined in frontend.proto
-func (s *frontendAPI) GetUpdates(p *pb.Player, assignmentStream pb.Frontend_GetUpdatesServer) error {
+func (s *frontendAPI) GetUpdates(req *pb.GetUpdatesRequest, assignmentStream pb.Frontend_GetUpdatesServer) error {
+	p := req.Player
 	// Get cancellable context
 	ctx, cancel := context.WithCancel(assignmentStream.Context())
 	defer cancel()
@@ -256,9 +259,10 @@ func (s *frontendAPI) GetUpdates(p *pb.Player, assignmentStream pb.Frontend_GetU
 				"status":     a.Status,
 				"error":      a.Error,
 			}).Info("updating client")
-			assignmentStream.Send(&a)
+			assignmentStream.Send(&pb.GetUpdatesResponse{
+				Player: &a,
+			})
 			stats.Record(fnCtx, FeGrpcStreamedResponses.M(1))
 		}
 	}
 }
-

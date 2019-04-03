@@ -8,6 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -22,27 +24,434 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
+type GetProfileRequest struct {
+	Match                *MatchObject `protobuf:"bytes,1,opt,name=match,proto3" json:"match,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
+}
+
+func (m *GetProfileRequest) Reset()         { *m = GetProfileRequest{} }
+func (m *GetProfileRequest) String() string { return proto.CompactTextString(m) }
+func (*GetProfileRequest) ProtoMessage()    {}
+func (*GetProfileRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5b986081864e12b4, []int{0}
+}
+
+func (m *GetProfileRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetProfileRequest.Unmarshal(m, b)
+}
+func (m *GetProfileRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetProfileRequest.Marshal(b, m, deterministic)
+}
+func (m *GetProfileRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetProfileRequest.Merge(m, src)
+}
+func (m *GetProfileRequest) XXX_Size() int {
+	return xxx_messageInfo_GetProfileRequest.Size(m)
+}
+func (m *GetProfileRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetProfileRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetProfileRequest proto.InternalMessageInfo
+
+func (m *GetProfileRequest) GetMatch() *MatchObject {
+	if m != nil {
+		return m.Match
+	}
+	return nil
+}
+
+type GetProfileResponse struct {
+	Match                *MatchObject `protobuf:"bytes,1,opt,name=match,proto3" json:"match,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
+}
+
+func (m *GetProfileResponse) Reset()         { *m = GetProfileResponse{} }
+func (m *GetProfileResponse) String() string { return proto.CompactTextString(m) }
+func (*GetProfileResponse) ProtoMessage()    {}
+func (*GetProfileResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5b986081864e12b4, []int{1}
+}
+
+func (m *GetProfileResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetProfileResponse.Unmarshal(m, b)
+}
+func (m *GetProfileResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetProfileResponse.Marshal(b, m, deterministic)
+}
+func (m *GetProfileResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetProfileResponse.Merge(m, src)
+}
+func (m *GetProfileResponse) XXX_Size() int {
+	return xxx_messageInfo_GetProfileResponse.Size(m)
+}
+func (m *GetProfileResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetProfileResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetProfileResponse proto.InternalMessageInfo
+
+func (m *GetProfileResponse) GetMatch() *MatchObject {
+	if m != nil {
+		return m.Match
+	}
+	return nil
+}
+
+type CreateProposalRequest struct {
+	Match                *MatchObject `protobuf:"bytes,1,opt,name=match,proto3" json:"match,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
+}
+
+func (m *CreateProposalRequest) Reset()         { *m = CreateProposalRequest{} }
+func (m *CreateProposalRequest) String() string { return proto.CompactTextString(m) }
+func (*CreateProposalRequest) ProtoMessage()    {}
+func (*CreateProposalRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5b986081864e12b4, []int{2}
+}
+
+func (m *CreateProposalRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateProposalRequest.Unmarshal(m, b)
+}
+func (m *CreateProposalRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateProposalRequest.Marshal(b, m, deterministic)
+}
+func (m *CreateProposalRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateProposalRequest.Merge(m, src)
+}
+func (m *CreateProposalRequest) XXX_Size() int {
+	return xxx_messageInfo_CreateProposalRequest.Size(m)
+}
+func (m *CreateProposalRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateProposalRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateProposalRequest proto.InternalMessageInfo
+
+func (m *CreateProposalRequest) GetMatch() *MatchObject {
+	if m != nil {
+		return m.Match
+	}
+	return nil
+}
+
+type CreateProposalResponse struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CreateProposalResponse) Reset()         { *m = CreateProposalResponse{} }
+func (m *CreateProposalResponse) String() string { return proto.CompactTextString(m) }
+func (*CreateProposalResponse) ProtoMessage()    {}
+func (*CreateProposalResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5b986081864e12b4, []int{3}
+}
+
+func (m *CreateProposalResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateProposalResponse.Unmarshal(m, b)
+}
+func (m *CreateProposalResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateProposalResponse.Marshal(b, m, deterministic)
+}
+func (m *CreateProposalResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateProposalResponse.Merge(m, src)
+}
+func (m *CreateProposalResponse) XXX_Size() int {
+	return xxx_messageInfo_CreateProposalResponse.Size(m)
+}
+func (m *CreateProposalResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateProposalResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateProposalResponse proto.InternalMessageInfo
+
+type GetPlayerPoolRequest struct {
+	PlayerPool           *PlayerPool `protobuf:"bytes,1,opt,name=player_pool,json=playerPool,proto3" json:"player_pool,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
+}
+
+func (m *GetPlayerPoolRequest) Reset()         { *m = GetPlayerPoolRequest{} }
+func (m *GetPlayerPoolRequest) String() string { return proto.CompactTextString(m) }
+func (*GetPlayerPoolRequest) ProtoMessage()    {}
+func (*GetPlayerPoolRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5b986081864e12b4, []int{4}
+}
+
+func (m *GetPlayerPoolRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetPlayerPoolRequest.Unmarshal(m, b)
+}
+func (m *GetPlayerPoolRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetPlayerPoolRequest.Marshal(b, m, deterministic)
+}
+func (m *GetPlayerPoolRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetPlayerPoolRequest.Merge(m, src)
+}
+func (m *GetPlayerPoolRequest) XXX_Size() int {
+	return xxx_messageInfo_GetPlayerPoolRequest.Size(m)
+}
+func (m *GetPlayerPoolRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetPlayerPoolRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetPlayerPoolRequest proto.InternalMessageInfo
+
+func (m *GetPlayerPoolRequest) GetPlayerPool() *PlayerPool {
+	if m != nil {
+		return m.PlayerPool
+	}
+	return nil
+}
+
+type GetPlayerPoolResponse struct {
+	PlayerPool           *PlayerPool `protobuf:"bytes,1,opt,name=player_pool,json=playerPool,proto3" json:"player_pool,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
+}
+
+func (m *GetPlayerPoolResponse) Reset()         { *m = GetPlayerPoolResponse{} }
+func (m *GetPlayerPoolResponse) String() string { return proto.CompactTextString(m) }
+func (*GetPlayerPoolResponse) ProtoMessage()    {}
+func (*GetPlayerPoolResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5b986081864e12b4, []int{5}
+}
+
+func (m *GetPlayerPoolResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetPlayerPoolResponse.Unmarshal(m, b)
+}
+func (m *GetPlayerPoolResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetPlayerPoolResponse.Marshal(b, m, deterministic)
+}
+func (m *GetPlayerPoolResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetPlayerPoolResponse.Merge(m, src)
+}
+func (m *GetPlayerPoolResponse) XXX_Size() int {
+	return xxx_messageInfo_GetPlayerPoolResponse.Size(m)
+}
+func (m *GetPlayerPoolResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetPlayerPoolResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetPlayerPoolResponse proto.InternalMessageInfo
+
+func (m *GetPlayerPoolResponse) GetPlayerPool() *PlayerPool {
+	if m != nil {
+		return m.PlayerPool
+	}
+	return nil
+}
+
+type GetAllIgnoredPlayersRequest struct {
+	IgnorePlayer         *IlInput `protobuf:"bytes,1,opt,name=ignore_player,json=ignorePlayer,proto3" json:"ignore_player,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetAllIgnoredPlayersRequest) Reset()         { *m = GetAllIgnoredPlayersRequest{} }
+func (m *GetAllIgnoredPlayersRequest) String() string { return proto.CompactTextString(m) }
+func (*GetAllIgnoredPlayersRequest) ProtoMessage()    {}
+func (*GetAllIgnoredPlayersRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5b986081864e12b4, []int{6}
+}
+
+func (m *GetAllIgnoredPlayersRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetAllIgnoredPlayersRequest.Unmarshal(m, b)
+}
+func (m *GetAllIgnoredPlayersRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetAllIgnoredPlayersRequest.Marshal(b, m, deterministic)
+}
+func (m *GetAllIgnoredPlayersRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetAllIgnoredPlayersRequest.Merge(m, src)
+}
+func (m *GetAllIgnoredPlayersRequest) XXX_Size() int {
+	return xxx_messageInfo_GetAllIgnoredPlayersRequest.Size(m)
+}
+func (m *GetAllIgnoredPlayersRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetAllIgnoredPlayersRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetAllIgnoredPlayersRequest proto.InternalMessageInfo
+
+func (m *GetAllIgnoredPlayersRequest) GetIgnorePlayer() *IlInput {
+	if m != nil {
+		return m.IgnorePlayer
+	}
+	return nil
+}
+
+type GetAllIgnoredPlayersResponse struct {
+	Roster               *Roster  `protobuf:"bytes,1,opt,name=roster,proto3" json:"roster,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetAllIgnoredPlayersResponse) Reset()         { *m = GetAllIgnoredPlayersResponse{} }
+func (m *GetAllIgnoredPlayersResponse) String() string { return proto.CompactTextString(m) }
+func (*GetAllIgnoredPlayersResponse) ProtoMessage()    {}
+func (*GetAllIgnoredPlayersResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5b986081864e12b4, []int{7}
+}
+
+func (m *GetAllIgnoredPlayersResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetAllIgnoredPlayersResponse.Unmarshal(m, b)
+}
+func (m *GetAllIgnoredPlayersResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetAllIgnoredPlayersResponse.Marshal(b, m, deterministic)
+}
+func (m *GetAllIgnoredPlayersResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetAllIgnoredPlayersResponse.Merge(m, src)
+}
+func (m *GetAllIgnoredPlayersResponse) XXX_Size() int {
+	return xxx_messageInfo_GetAllIgnoredPlayersResponse.Size(m)
+}
+func (m *GetAllIgnoredPlayersResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetAllIgnoredPlayersResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetAllIgnoredPlayersResponse proto.InternalMessageInfo
+
+func (m *GetAllIgnoredPlayersResponse) GetRoster() *Roster {
+	if m != nil {
+		return m.Roster
+	}
+	return nil
+}
+
+type ListIgnoredPlayersRequest struct {
+	IgnorePlayer         *IlInput `protobuf:"bytes,1,opt,name=ignore_player,json=ignorePlayer,proto3" json:"ignore_player,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ListIgnoredPlayersRequest) Reset()         { *m = ListIgnoredPlayersRequest{} }
+func (m *ListIgnoredPlayersRequest) String() string { return proto.CompactTextString(m) }
+func (*ListIgnoredPlayersRequest) ProtoMessage()    {}
+func (*ListIgnoredPlayersRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5b986081864e12b4, []int{8}
+}
+
+func (m *ListIgnoredPlayersRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListIgnoredPlayersRequest.Unmarshal(m, b)
+}
+func (m *ListIgnoredPlayersRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListIgnoredPlayersRequest.Marshal(b, m, deterministic)
+}
+func (m *ListIgnoredPlayersRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListIgnoredPlayersRequest.Merge(m, src)
+}
+func (m *ListIgnoredPlayersRequest) XXX_Size() int {
+	return xxx_messageInfo_ListIgnoredPlayersRequest.Size(m)
+}
+func (m *ListIgnoredPlayersRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListIgnoredPlayersRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListIgnoredPlayersRequest proto.InternalMessageInfo
+
+func (m *ListIgnoredPlayersRequest) GetIgnorePlayer() *IlInput {
+	if m != nil {
+		return m.IgnorePlayer
+	}
+	return nil
+}
+
+type ListIgnoredPlayersResponse struct {
+	Roster               *Roster  `protobuf:"bytes,1,opt,name=roster,proto3" json:"roster,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ListIgnoredPlayersResponse) Reset()         { *m = ListIgnoredPlayersResponse{} }
+func (m *ListIgnoredPlayersResponse) String() string { return proto.CompactTextString(m) }
+func (*ListIgnoredPlayersResponse) ProtoMessage()    {}
+func (*ListIgnoredPlayersResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5b986081864e12b4, []int{9}
+}
+
+func (m *ListIgnoredPlayersResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListIgnoredPlayersResponse.Unmarshal(m, b)
+}
+func (m *ListIgnoredPlayersResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListIgnoredPlayersResponse.Marshal(b, m, deterministic)
+}
+func (m *ListIgnoredPlayersResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListIgnoredPlayersResponse.Merge(m, src)
+}
+func (m *ListIgnoredPlayersResponse) XXX_Size() int {
+	return xxx_messageInfo_ListIgnoredPlayersResponse.Size(m)
+}
+func (m *ListIgnoredPlayersResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListIgnoredPlayersResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListIgnoredPlayersResponse proto.InternalMessageInfo
+
+func (m *ListIgnoredPlayersResponse) GetRoster() *Roster {
+	if m != nil {
+		return m.Roster
+	}
+	return nil
+}
+
+func init() {
+	proto.RegisterType((*GetProfileRequest)(nil), "api.GetProfileRequest")
+	proto.RegisterType((*GetProfileResponse)(nil), "api.GetProfileResponse")
+	proto.RegisterType((*CreateProposalRequest)(nil), "api.CreateProposalRequest")
+	proto.RegisterType((*CreateProposalResponse)(nil), "api.CreateProposalResponse")
+	proto.RegisterType((*GetPlayerPoolRequest)(nil), "api.GetPlayerPoolRequest")
+	proto.RegisterType((*GetPlayerPoolResponse)(nil), "api.GetPlayerPoolResponse")
+	proto.RegisterType((*GetAllIgnoredPlayersRequest)(nil), "api.GetAllIgnoredPlayersRequest")
+	proto.RegisterType((*GetAllIgnoredPlayersResponse)(nil), "api.GetAllIgnoredPlayersResponse")
+	proto.RegisterType((*ListIgnoredPlayersRequest)(nil), "api.ListIgnoredPlayersRequest")
+	proto.RegisterType((*ListIgnoredPlayersResponse)(nil), "api.ListIgnoredPlayersResponse")
+}
+
 func init() { proto.RegisterFile("api/protobuf-spec/mmlogic.proto", fileDescriptor_5b986081864e12b4) }
 
 var fileDescriptor_5b986081864e12b4 = []byte{
-	// 263 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x91, 0x41, 0x4b, 0xf4, 0x30,
-	0x10, 0x40, 0xf7, 0xfb, 0x04, 0x85, 0x80, 0xa2, 0x61, 0xbd, 0xf4, 0xa2, 0xec, 0x7d, 0x1b, 0x51,
-	0xc4, 0x83, 0x8a, 0xe8, 0x1e, 0x4a, 0x61, 0x17, 0x8b, 0x47, 0x6f, 0x69, 0x9d, 0x76, 0x23, 0x93,
-	0x4e, 0x48, 0x26, 0x07, 0x7f, 0x9e, 0xff, 0x4c, 0xd2, 0x05, 0x8b, 0x50, 0x2f, 0x5e, 0x5f, 0xde,
-	0x9b, 0x09, 0x89, 0x38, 0xd3, 0xce, 0x28, 0xe7, 0x89, 0xa9, 0x8e, 0xed, 0x32, 0x38, 0x68, 0x94,
-	0xb5, 0x48, 0x9d, 0x69, 0xf2, 0x81, 0xca, 0x3d, 0xed, 0x4c, 0x76, 0x3e, 0x61, 0x41, 0x08, 0xba,
-	0x83, 0xb0, 0xd3, 0x2e, 0x3f, 0xff, 0x8b, 0x83, 0x8d, 0x5d, 0xa7, 0x50, 0xde, 0x09, 0x51, 0x00,
-	0x57, 0x9e, 0x5a, 0x83, 0x20, 0x4f, 0xf3, 0x6f, 0x75, 0xa3, 0xb9, 0xd9, 0x3e, 0xd7, 0xef, 0xd0,
-	0x70, 0x36, 0x8d, 0x17, 0x33, 0x79, 0x2b, 0x8e, 0x56, 0x1e, 0x34, 0x43, 0xe5, 0xc9, 0x51, 0xd0,
-	0xf8, 0xdb, 0x84, 0xe3, 0x11, 0xbf, 0x40, 0x88, 0x98, 0xe2, 0x07, 0x71, 0x98, 0x56, 0xa3, 0xfe,
-	0x00, 0x5f, 0x11, 0xa1, 0x9c, 0x8f, 0xd2, 0x48, 0xb3, 0x49, 0xba, 0x98, 0x5d, 0xfc, 0x93, 0xf7,
-	0x62, 0x5e, 0x00, 0x3f, 0x22, 0x96, 0x5d, 0x4f, 0x1e, 0xde, 0x76, 0xc7, 0x41, 0x9e, 0x8c, 0x45,
-	0x89, 0x65, 0xef, 0xe2, 0xcf, 0xfd, 0x14, 0x18, 0xfc, 0x70, 0x79, 0xb9, 0x36, 0x81, 0xff, 0x14,
-	0x3f, 0xdd, 0xbc, 0x5e, 0x77, 0x86, 0xb7, 0xb1, 0xce, 0x1b, 0xb2, 0xaa, 0x20, 0xea, 0x10, 0x56,
-	0x48, 0x31, 0xcd, 0xe1, 0x96, 0xbc, 0x55, 0xe4, 0xa0, 0x5f, 0xda, 0xf4, 0x06, 0xca, 0xf4, 0x0c,
-	0xbe, 0xd7, 0xa8, 0x5c, 0x5d, 0xef, 0x0f, 0x7f, 0x70, 0xf5, 0x15, 0x00, 0x00, 0xff, 0xff, 0xf5,
-	0xe5, 0x29, 0xa6, 0xcd, 0x01, 0x00, 0x00,
+	// 453 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x94, 0x51, 0x6b, 0xd4, 0x40,
+	0x14, 0x85, 0x5d, 0x8a, 0x15, 0x6e, 0xad, 0xd8, 0xa1, 0x5b, 0xdb, 0xa9, 0xd8, 0x35, 0x4f, 0x05,
+	0x69, 0x22, 0x95, 0xea, 0xa3, 0xd6, 0x8a, 0xeb, 0x6a, 0x57, 0x97, 0x88, 0x08, 0x82, 0x94, 0x49,
+	0xbc, 0x9b, 0x8e, 0x4c, 0x72, 0xc7, 0x99, 0xc9, 0x83, 0xbf, 0xc5, 0x3f, 0x2b, 0x3b, 0xc9, 0x66,
+	0xdb, 0xdd, 0xac, 0xd0, 0xc5, 0xb7, 0x70, 0xef, 0x39, 0xdf, 0x9c, 0x30, 0x27, 0x81, 0x03, 0xa1,
+	0x65, 0xa4, 0x0d, 0x39, 0x4a, 0xca, 0xf1, 0x91, 0xd5, 0x98, 0x46, 0x79, 0xae, 0x28, 0x93, 0x69,
+	0xe8, 0xa7, 0x6c, 0x4d, 0x68, 0xc9, 0x7b, 0x2d, 0x2a, 0xb4, 0x56, 0x64, 0x68, 0x2b, 0x59, 0xf0,
+	0x0a, 0xb6, 0xfa, 0xe8, 0x46, 0x86, 0xc6, 0x52, 0x61, 0x8c, 0xbf, 0x4a, 0xb4, 0x8e, 0x3d, 0x81,
+	0xdb, 0xb9, 0x70, 0xe9, 0xe5, 0x6e, 0xa7, 0xd7, 0x39, 0xdc, 0x38, 0xee, 0x86, 0x8d, 0x69, 0x38,
+	0x19, 0x7f, 0x4a, 0x7e, 0x62, 0xea, 0xe2, 0x4a, 0x13, 0x9c, 0x02, 0xbb, 0x4a, 0xb0, 0x9a, 0x0a,
+	0x8b, 0x37, 0x43, 0xbc, 0x81, 0xee, 0x99, 0x41, 0xe1, 0x70, 0x64, 0x48, 0x93, 0x15, 0x6a, 0xa5,
+	0x20, 0xbb, 0xb0, 0x33, 0x4f, 0xa9, 0xc2, 0x04, 0x43, 0xd8, 0x9e, 0x44, 0x54, 0xe2, 0x37, 0x9a,
+	0x11, 0x51, 0x83, 0x3f, 0x81, 0x0d, 0xed, 0x87, 0x17, 0x9a, 0x48, 0xd5, 0x87, 0x6c, 0xcf, 0x0e,
+	0xb9, 0xe2, 0x00, 0xdd, 0x3c, 0x07, 0x1f, 0xa1, 0x3b, 0x87, 0xab, 0x5f, 0x7a, 0x45, 0xde, 0x17,
+	0xd8, 0xef, 0xa3, 0x3b, 0x55, 0x6a, 0x90, 0x15, 0x64, 0xf0, 0x47, 0x25, 0xb3, 0xd3, 0x94, 0xcf,
+	0x61, 0x53, 0xfa, 0xc5, 0x45, 0xe5, 0xa9, 0xb9, 0x5b, 0x33, 0xee, 0x40, 0x0d, 0x0a, 0x5d, 0xba,
+	0xf8, 0x6e, 0xa5, 0xab, 0xfc, 0xc1, 0x3b, 0x78, 0xd8, 0x8e, 0xad, 0xd3, 0x1e, 0xc2, 0xba, 0x21,
+	0xeb, 0x1a, 0xe0, 0xfd, 0x19, 0x30, 0xf6, 0xf3, 0xb8, 0xde, 0x07, 0x9f, 0x61, 0xef, 0x5c, 0x5a,
+	0xf7, 0x7f, 0xe3, 0xbd, 0x05, 0xde, 0x06, 0xbd, 0x69, 0xb8, 0xe3, 0x3f, 0x6b, 0x70, 0x67, 0x98,
+	0x9f, 0x4f, 0xaa, 0xcf, 0x5e, 0x02, 0xcc, 0xba, 0xc8, 0x76, 0x42, 0xa1, 0x65, 0xb8, 0x50, 0x6f,
+	0xfe, 0x60, 0x61, 0x5e, 0xf7, 0xe4, 0x16, 0xfb, 0x00, 0xf7, 0xae, 0x77, 0x88, 0x71, 0x2f, 0x6e,
+	0xad, 0x27, 0xdf, 0x6f, 0xdd, 0x35, 0xb0, 0xf7, 0xb0, 0x79, 0xad, 0x27, 0x6c, 0xaf, 0x39, 0x78,
+	0xbe, 0x8a, 0x9c, 0xb7, 0xad, 0xa6, 0xa4, 0xa7, 0x1d, 0xf6, 0xdd, 0x57, 0x78, 0xe1, 0x32, 0x59,
+	0x6f, 0xea, 0x5b, 0x56, 0x1f, 0xfe, 0xf8, 0x1f, 0x8a, 0x26, 0xea, 0x57, 0x60, 0x8b, 0x97, 0xc1,
+	0x1e, 0x79, 0xeb, 0xd2, 0xab, 0xe7, 0x07, 0x4b, 0xf7, 0x53, 0xf0, 0xeb, 0x17, 0xdf, 0x4e, 0x32,
+	0xe9, 0x2e, 0xcb, 0x24, 0x4c, 0x29, 0x8f, 0xfa, 0x44, 0x99, 0xc2, 0x33, 0x45, 0xe5, 0x44, 0xea,
+	0xc6, 0x64, 0xf2, 0x88, 0x34, 0x16, 0x47, 0xfe, 0x0b, 0x8e, 0x64, 0xe1, 0xd0, 0x14, 0x42, 0x45,
+	0x3a, 0x49, 0xd6, 0xfd, 0xff, 0xe9, 0xd9, 0xdf, 0x00, 0x00, 0x00, 0xff, 0xff, 0xf4, 0x1a, 0x0a,
+	0x56, 0xe9, 0x04, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -61,7 +470,7 @@ type MmLogicClient interface {
 	//  'filled' one.
 	//  Note: filters are assumed to have been checked for validity by the
 	//  backendapi  when accepting a profile
-	GetProfile(ctx context.Context, in *MatchObject, opts ...grpc.CallOption) (*MatchObject, error)
+	GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*GetProfileResponse, error)
 	// CreateProposal is called by MMFs that wish to write their results to
 	// a proposed MatchObject, that can be sent out the Backend API once it has
 	// been approved (by default, by the evaluator process).
@@ -95,20 +504,20 @@ type MmLogicClient interface {
 	//        the backend api along with your match results.
 	// OUTPUT: a Result message with a boolean success value and an error string
 	// if an error was encountered
-	CreateProposal(ctx context.Context, in *MatchObject, opts ...grpc.CallOption) (*Result, error)
+	CreateProposal(ctx context.Context, in *CreateProposalRequest, opts ...grpc.CallOption) (*CreateProposalResponse, error)
 	// Player listing and filtering functions
 	//
 	// RetrievePlayerPool gets the list of players that match every Filter in the
 	// PlayerPool, .excluding players in any configured ignore lists.  It
 	// combines the results, and returns the resulting player pool.
-	GetPlayerPool(ctx context.Context, in *PlayerPool, opts ...grpc.CallOption) (MmLogic_GetPlayerPoolClient, error)
+	GetPlayerPool(ctx context.Context, in *GetPlayerPoolRequest, opts ...grpc.CallOption) (MmLogic_GetPlayerPoolClient, error)
 	// Ignore List functions
 	//
 	// IlInput is an empty message reserved for future use.
-	GetAllIgnoredPlayers(ctx context.Context, in *IlInput, opts ...grpc.CallOption) (*Roster, error)
+	GetAllIgnoredPlayers(ctx context.Context, in *GetAllIgnoredPlayersRequest, opts ...grpc.CallOption) (*GetAllIgnoredPlayersResponse, error)
 	// ListIgnoredPlayers retrieves players from the ignore list specified in the
 	// config file under 'ignoreLists.proposed.name'.
-	ListIgnoredPlayers(ctx context.Context, in *IlInput, opts ...grpc.CallOption) (*Roster, error)
+	ListIgnoredPlayers(ctx context.Context, in *ListIgnoredPlayersRequest, opts ...grpc.CallOption) (*ListIgnoredPlayersResponse, error)
 }
 
 type mmLogicClient struct {
@@ -119,8 +528,8 @@ func NewMmLogicClient(cc *grpc.ClientConn) MmLogicClient {
 	return &mmLogicClient{cc}
 }
 
-func (c *mmLogicClient) GetProfile(ctx context.Context, in *MatchObject, opts ...grpc.CallOption) (*MatchObject, error) {
-	out := new(MatchObject)
+func (c *mmLogicClient) GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*GetProfileResponse, error) {
+	out := new(GetProfileResponse)
 	err := c.cc.Invoke(ctx, "/api.MmLogic/GetProfile", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -128,8 +537,8 @@ func (c *mmLogicClient) GetProfile(ctx context.Context, in *MatchObject, opts ..
 	return out, nil
 }
 
-func (c *mmLogicClient) CreateProposal(ctx context.Context, in *MatchObject, opts ...grpc.CallOption) (*Result, error) {
-	out := new(Result)
+func (c *mmLogicClient) CreateProposal(ctx context.Context, in *CreateProposalRequest, opts ...grpc.CallOption) (*CreateProposalResponse, error) {
+	out := new(CreateProposalResponse)
 	err := c.cc.Invoke(ctx, "/api.MmLogic/CreateProposal", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -137,7 +546,7 @@ func (c *mmLogicClient) CreateProposal(ctx context.Context, in *MatchObject, opt
 	return out, nil
 }
 
-func (c *mmLogicClient) GetPlayerPool(ctx context.Context, in *PlayerPool, opts ...grpc.CallOption) (MmLogic_GetPlayerPoolClient, error) {
+func (c *mmLogicClient) GetPlayerPool(ctx context.Context, in *GetPlayerPoolRequest, opts ...grpc.CallOption) (MmLogic_GetPlayerPoolClient, error) {
 	stream, err := c.cc.NewStream(ctx, &_MmLogic_serviceDesc.Streams[0], "/api.MmLogic/GetPlayerPool", opts...)
 	if err != nil {
 		return nil, err
@@ -153,7 +562,7 @@ func (c *mmLogicClient) GetPlayerPool(ctx context.Context, in *PlayerPool, opts 
 }
 
 type MmLogic_GetPlayerPoolClient interface {
-	Recv() (*PlayerPool, error)
+	Recv() (*GetPlayerPoolResponse, error)
 	grpc.ClientStream
 }
 
@@ -161,16 +570,16 @@ type mmLogicGetPlayerPoolClient struct {
 	grpc.ClientStream
 }
 
-func (x *mmLogicGetPlayerPoolClient) Recv() (*PlayerPool, error) {
-	m := new(PlayerPool)
+func (x *mmLogicGetPlayerPoolClient) Recv() (*GetPlayerPoolResponse, error) {
+	m := new(GetPlayerPoolResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *mmLogicClient) GetAllIgnoredPlayers(ctx context.Context, in *IlInput, opts ...grpc.CallOption) (*Roster, error) {
-	out := new(Roster)
+func (c *mmLogicClient) GetAllIgnoredPlayers(ctx context.Context, in *GetAllIgnoredPlayersRequest, opts ...grpc.CallOption) (*GetAllIgnoredPlayersResponse, error) {
+	out := new(GetAllIgnoredPlayersResponse)
 	err := c.cc.Invoke(ctx, "/api.MmLogic/GetAllIgnoredPlayers", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -178,8 +587,8 @@ func (c *mmLogicClient) GetAllIgnoredPlayers(ctx context.Context, in *IlInput, o
 	return out, nil
 }
 
-func (c *mmLogicClient) ListIgnoredPlayers(ctx context.Context, in *IlInput, opts ...grpc.CallOption) (*Roster, error) {
-	out := new(Roster)
+func (c *mmLogicClient) ListIgnoredPlayers(ctx context.Context, in *ListIgnoredPlayersRequest, opts ...grpc.CallOption) (*ListIgnoredPlayersResponse, error) {
+	out := new(ListIgnoredPlayersResponse)
 	err := c.cc.Invoke(ctx, "/api.MmLogic/ListIgnoredPlayers", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -193,7 +602,7 @@ type MmLogicServer interface {
 	//  'filled' one.
 	//  Note: filters are assumed to have been checked for validity by the
 	//  backendapi  when accepting a profile
-	GetProfile(context.Context, *MatchObject) (*MatchObject, error)
+	GetProfile(context.Context, *GetProfileRequest) (*GetProfileResponse, error)
 	// CreateProposal is called by MMFs that wish to write their results to
 	// a proposed MatchObject, that can be sent out the Backend API once it has
 	// been approved (by default, by the evaluator process).
@@ -227,20 +636,40 @@ type MmLogicServer interface {
 	//        the backend api along with your match results.
 	// OUTPUT: a Result message with a boolean success value and an error string
 	// if an error was encountered
-	CreateProposal(context.Context, *MatchObject) (*Result, error)
+	CreateProposal(context.Context, *CreateProposalRequest) (*CreateProposalResponse, error)
 	// Player listing and filtering functions
 	//
 	// RetrievePlayerPool gets the list of players that match every Filter in the
 	// PlayerPool, .excluding players in any configured ignore lists.  It
 	// combines the results, and returns the resulting player pool.
-	GetPlayerPool(*PlayerPool, MmLogic_GetPlayerPoolServer) error
+	GetPlayerPool(*GetPlayerPoolRequest, MmLogic_GetPlayerPoolServer) error
 	// Ignore List functions
 	//
 	// IlInput is an empty message reserved for future use.
-	GetAllIgnoredPlayers(context.Context, *IlInput) (*Roster, error)
+	GetAllIgnoredPlayers(context.Context, *GetAllIgnoredPlayersRequest) (*GetAllIgnoredPlayersResponse, error)
 	// ListIgnoredPlayers retrieves players from the ignore list specified in the
 	// config file under 'ignoreLists.proposed.name'.
-	ListIgnoredPlayers(context.Context, *IlInput) (*Roster, error)
+	ListIgnoredPlayers(context.Context, *ListIgnoredPlayersRequest) (*ListIgnoredPlayersResponse, error)
+}
+
+// UnimplementedMmLogicServer can be embedded to have forward compatible implementations.
+type UnimplementedMmLogicServer struct {
+}
+
+func (*UnimplementedMmLogicServer) GetProfile(ctx context.Context, req *GetProfileRequest) (*GetProfileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetProfile not implemented")
+}
+func (*UnimplementedMmLogicServer) CreateProposal(ctx context.Context, req *CreateProposalRequest) (*CreateProposalResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateProposal not implemented")
+}
+func (*UnimplementedMmLogicServer) GetPlayerPool(req *GetPlayerPoolRequest, srv MmLogic_GetPlayerPoolServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetPlayerPool not implemented")
+}
+func (*UnimplementedMmLogicServer) GetAllIgnoredPlayers(ctx context.Context, req *GetAllIgnoredPlayersRequest) (*GetAllIgnoredPlayersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllIgnoredPlayers not implemented")
+}
+func (*UnimplementedMmLogicServer) ListIgnoredPlayers(ctx context.Context, req *ListIgnoredPlayersRequest) (*ListIgnoredPlayersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListIgnoredPlayers not implemented")
 }
 
 func RegisterMmLogicServer(s *grpc.Server, srv MmLogicServer) {
@@ -248,7 +677,7 @@ func RegisterMmLogicServer(s *grpc.Server, srv MmLogicServer) {
 }
 
 func _MmLogic_GetProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MatchObject)
+	in := new(GetProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -260,13 +689,13 @@ func _MmLogic_GetProfile_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: "/api.MmLogic/GetProfile",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MmLogicServer).GetProfile(ctx, req.(*MatchObject))
+		return srv.(MmLogicServer).GetProfile(ctx, req.(*GetProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _MmLogic_CreateProposal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MatchObject)
+	in := new(CreateProposalRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -278,13 +707,13 @@ func _MmLogic_CreateProposal_Handler(srv interface{}, ctx context.Context, dec f
 		FullMethod: "/api.MmLogic/CreateProposal",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MmLogicServer).CreateProposal(ctx, req.(*MatchObject))
+		return srv.(MmLogicServer).CreateProposal(ctx, req.(*CreateProposalRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _MmLogic_GetPlayerPool_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(PlayerPool)
+	m := new(GetPlayerPoolRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
@@ -292,7 +721,7 @@ func _MmLogic_GetPlayerPool_Handler(srv interface{}, stream grpc.ServerStream) e
 }
 
 type MmLogic_GetPlayerPoolServer interface {
-	Send(*PlayerPool) error
+	Send(*GetPlayerPoolResponse) error
 	grpc.ServerStream
 }
 
@@ -300,12 +729,12 @@ type mmLogicGetPlayerPoolServer struct {
 	grpc.ServerStream
 }
 
-func (x *mmLogicGetPlayerPoolServer) Send(m *PlayerPool) error {
+func (x *mmLogicGetPlayerPoolServer) Send(m *GetPlayerPoolResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
 func _MmLogic_GetAllIgnoredPlayers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IlInput)
+	in := new(GetAllIgnoredPlayersRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -317,13 +746,13 @@ func _MmLogic_GetAllIgnoredPlayers_Handler(srv interface{}, ctx context.Context,
 		FullMethod: "/api.MmLogic/GetAllIgnoredPlayers",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MmLogicServer).GetAllIgnoredPlayers(ctx, req.(*IlInput))
+		return srv.(MmLogicServer).GetAllIgnoredPlayers(ctx, req.(*GetAllIgnoredPlayersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _MmLogic_ListIgnoredPlayers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IlInput)
+	in := new(ListIgnoredPlayersRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -335,7 +764,7 @@ func _MmLogic_ListIgnoredPlayers_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: "/api.MmLogic/ListIgnoredPlayers",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MmLogicServer).ListIgnoredPlayers(ctx, req.(*IlInput))
+		return srv.(MmLogicServer).ListIgnoredPlayers(ctx, req.(*ListIgnoredPlayersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

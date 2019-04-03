@@ -5,6 +5,45 @@ option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
 // The protobuf messages sent in the gRPC calls are defined 'messages.proto'.
 import 'api/protobuf-spec/messages.proto';
 
+message GetProfileRequest {
+  messages.MatchObject match = 1;
+}
+
+message GetProfileResponse {
+  messages.MatchObject match = 1;
+}
+
+message CreateProposalRequest {
+  messages.MatchObject match = 1;
+}
+
+message CreateProposalResponse {
+}
+
+message GetPlayerPoolRequest {
+  messages.PlayerPool player_pool = 1;
+}
+
+message GetPlayerPoolResponse {
+  messages.PlayerPool player_pool = 1;
+}
+
+message GetAllIgnoredPlayersRequest {
+  messages.IlInput ignore_player = 1;
+}
+
+message GetAllIgnoredPlayersResponse {
+  messages.Roster roster = 1;
+}
+
+message ListIgnoredPlayersRequest {
+  messages.IlInput ignore_player = 1;
+}
+
+message ListIgnoredPlayersResponse {
+  messages.Roster roster = 1;
+}
+
 // The MMLogic API provides utility functions for common MMF functionality, such
 // as retreiving profiles and players from state storage, writing results to state storage,
 // and exposing metrics and statistics.
@@ -15,7 +54,7 @@ service MmLogic {
   //  'filled' one.
   //  Note: filters are assumed to have been checked for validity by the
   //  backendapi  when accepting a profile
-  rpc GetProfile(messages.MatchObject) returns (messages.MatchObject) {}
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse) {}
 
   // CreateProposal is called by MMFs that wish to write their results to
   // a proposed MatchObject, that can be sent out the Backend API once it has
@@ -50,22 +89,22 @@ service MmLogic {
   //        the backend api along with your match results.
   // OUTPUT: a Result message with a boolean success value and an error string
   // if an error was encountered
-  rpc CreateProposal(messages.MatchObject) returns (messages.Result) {}
+  rpc CreateProposal(CreateProposalRequest) returns (CreateProposalResponse) {}
 
   // Player listing and filtering functions
   //
   // RetrievePlayerPool gets the list of players that match every Filter in the
   // PlayerPool, .excluding players in any configured ignore lists.  It
   // combines the results, and returns the resulting player pool.
-  rpc GetPlayerPool(messages.PlayerPool) returns (stream messages.PlayerPool) {}
+  rpc GetPlayerPool(GetPlayerPoolRequest) returns (stream GetPlayerPoolResponse) {}
 
   // Ignore List functions
   //
   // IlInput is an empty message reserved for future use.
-  rpc GetAllIgnoredPlayers(messages.IlInput) returns (messages.Roster) {}
+  rpc GetAllIgnoredPlayers(GetAllIgnoredPlayersRequest) returns (GetAllIgnoredPlayersResponse) {}
   // ListIgnoredPlayers retrieves players from the ignore list specified in the
   // config file under 'ignoreLists.proposed.name'.
-  rpc ListIgnoredPlayers(messages.IlInput) returns (messages.Roster) {}
+  rpc ListIgnoredPlayers(ListIgnoredPlayersRequest) returns (ListIgnoredPlayersResponse) {}
 
   // NYI
   // UpdateMetrics sends stats about the MMF run to export to a metrics aggregation tool 
