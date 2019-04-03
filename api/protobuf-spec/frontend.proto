@@ -3,6 +3,28 @@ package api;
 option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb"; 
 import 'api/protobuf-spec/messages.proto';
 
+message CreatePlayerRequest {
+    messages.Player player = 1;
+}
+
+message CreatePlayerResponse {
+}
+
+message DeletePlayerRequest {
+    messages.Player player = 1;
+}
+
+message DeletePlayerResponse {
+}
+
+message GetUpdatesRequest {
+    messages.Player player = 1;
+}
+
+message GetUpdatesResponse {
+    messages.Player player = 1;
+}
+
 service Frontend {
     // Call to start matchmaking for a player
 
@@ -15,7 +37,7 @@ service Frontend {
     //  - properties
     // OUTPUT: Result message denoting success or failure (and an error if
     // necessary)
-    rpc CreatePlayer(messages.Player) returns (messages.Result) {}
+    rpc CreatePlayer(CreatePlayerRequest) returns (CreatePlayerResponse) {}
 
     // Call to stop matchmaking for a player
 
@@ -32,7 +54,7 @@ service Frontend {
     // INPUT: Player message with the 'id' field populated.
     // OUTPUT: Result message denoting success or failure (and an error if
     // necessary)
-    rpc DeletePlayer(messages.Player) returns (messages.Result) {}
+    rpc DeletePlayer(DeletePlayerRequest) returns (DeletePlayerResponse) {}
 
     // Calls to access matchmaking results for a player
 
@@ -61,5 +83,5 @@ service Frontend {
     //  generate load on OM until you do!
     // NOTE: Just bear in mind that every update will send egress traffic from
     //  Open Match to game clients! Frugality is recommended.
-    rpc GetUpdates(messages.Player) returns (stream messages.Player) {}
+    rpc GetUpdates(GetUpdatesRequest) returns (stream GetUpdatesResponse) {}
 }

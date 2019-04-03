@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='messages',
   syntax='proto3',
   serialized_options=_b('Z5github.com/GoogleCloudPlatform/open-match/internal/pb'),
-  serialized_pb=_b('\n api/protobuf-spec/messages.proto\x12\x08messages\"\x94\x01\n\x0bMatchObject\x12\n\n\x02id\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\x12!\n\x07rosters\x18\x04 \x03(\x0b\x32\x10.messages.Roster\x12#\n\x05pools\x18\x05 \x03(\x0b\x32\x14.messages.PlayerPool\x12\x0e\n\x06status\x18\x06 \x01(\t\"9\n\x06Roster\x12\x0c\n\x04name\x18\x01 \x01(\t\x12!\n\x07players\x18\x02 \x03(\x0b\x32\x10.messages.Player\"e\n\x06\x46ilter\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tattribute\x18\x02 \x01(\t\x12\x0c\n\x04maxv\x18\x03 \x01(\x03\x12\x0c\n\x04minv\x18\x04 \x01(\x03\x12\x1e\n\x05stats\x18\x05 \x01(\x0b\x32\x0f.messages.Stats\"\'\n\x05Stats\x12\r\n\x05\x63ount\x18\x01 \x01(\x03\x12\x0f\n\x07\x65lapsed\x18\x02 \x01(\x01\"\x7f\n\nPlayerPool\x12\x0c\n\x04name\x18\x01 \x01(\t\x12!\n\x07\x66ilters\x18\x02 \x03(\x0b\x32\x10.messages.Filter\x12 \n\x06roster\x18\x03 \x01(\x0b\x32\x10.messages.Roster\x12\x1e\n\x05stats\x18\x04 \x01(\x0b\x32\x0f.messages.Stats\"\xc3\x01\n\x06Player\x12\n\n\x02id\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x01(\t\x12\x0c\n\x04pool\x18\x03 \x01(\t\x12.\n\nattributes\x18\x04 \x03(\x0b\x32\x1a.messages.Player.Attribute\x12\x12\n\nassignment\x18\x05 \x01(\t\x12\x0e\n\x06status\x18\x06 \x01(\t\x12\r\n\x05\x65rror\x18\x07 \x01(\t\x1a(\n\tAttribute\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03\"(\n\x06Result\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"\t\n\x07IlInput\"D\n\x0b\x41ssignments\x12!\n\x07rosters\x18\x01 \x03(\x0b\x32\x10.messages.Roster\x12\x12\n\nassignment\x18\n \x01(\t\"k\n\x07Request\x12\x12\n\nprofile_id\x18\x01 \x01(\t\x12\x13\n\x0bproposal_id\x18\x02 \x01(\t\x12\x12\n\nrequest_id\x18\x03 \x01(\t\x12\x10\n\x08\x65rror_id\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\t\"[\n\tArguments\x12\"\n\x07request\x18\x01 \x01(\x0b\x32\x11.messages.Request\x12*\n\x0bmatchobject\x18\x02 \x01(\x0b\x32\x15.messages.MatchObjectB7Z5github.com/GoogleCloudPlatform/open-match/internal/pbb\x06proto3')
+  serialized_pb=_b('\n api/protobuf-spec/messages.proto\x12\x08messages\"\x94\x01\n\x0bMatchObject\x12\n\n\x02id\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\x12!\n\x07rosters\x18\x04 \x03(\x0b\x32\x10.messages.Roster\x12#\n\x05pools\x18\x05 \x03(\x0b\x32\x14.messages.PlayerPool\x12\x0e\n\x06status\x18\x06 \x01(\t\"9\n\x06Roster\x12\x0c\n\x04name\x18\x01 \x01(\t\x12!\n\x07players\x18\x02 \x03(\x0b\x32\x10.messages.Player\"e\n\x06\x46ilter\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tattribute\x18\x02 \x01(\t\x12\x0c\n\x04maxv\x18\x03 \x01(\x03\x12\x0c\n\x04minv\x18\x04 \x01(\x03\x12\x1e\n\x05stats\x18\x05 \x01(\x0b\x32\x0f.messages.Stats\"\'\n\x05Stats\x12\r\n\x05\x63ount\x18\x01 \x01(\x03\x12\x0f\n\x07\x65lapsed\x18\x02 \x01(\x01\"\x7f\n\nPlayerPool\x12\x0c\n\x04name\x18\x01 \x01(\t\x12!\n\x07\x66ilters\x18\x02 \x03(\x0b\x32\x10.messages.Filter\x12 \n\x06roster\x18\x03 \x01(\x0b\x32\x10.messages.Roster\x12\x1e\n\x05stats\x18\x04 \x01(\x0b\x32\x0f.messages.Stats\"\xc3\x01\n\x06Player\x12\n\n\x02id\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x01(\t\x12\x0c\n\x04pool\x18\x03 \x01(\t\x12.\n\nattributes\x18\x04 \x03(\x0b\x32\x1a.messages.Player.Attribute\x12\x12\n\nassignment\x18\x05 \x01(\t\x12\x0e\n\x06status\x18\x06 \x01(\t\x12\r\n\x05\x65rror\x18\x07 \x01(\t\x1a(\n\tAttribute\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03\"\t\n\x07IlInput\"D\n\x0b\x41ssignments\x12!\n\x07rosters\x18\x01 \x03(\x0b\x32\x10.messages.Roster\x12\x12\n\nassignment\x18\n \x01(\t\"k\n\x07Request\x12\x12\n\nprofile_id\x18\x01 \x01(\t\x12\x13\n\x0bproposal_id\x18\x02 \x01(\t\x12\x12\n\nrequest_id\x18\x03 \x01(\t\x12\x10\n\x08\x65rror_id\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\t\"[\n\tArguments\x12\"\n\x07request\x18\x01 \x01(\x0b\x32\x11.messages.Request\x12*\n\x0bmatchobject\x18\x02 \x01(\x0b\x32\x15.messages.MatchObjectB7Z5github.com/GoogleCloudPlatform/open-match/internal/pbb\x06proto3')
 )
 
 
@@ -388,44 +388,6 @@ _PLAYER = _descriptor.Descriptor(
 )
 
 
-_RESULT = _descriptor.Descriptor(
-  name='Result',
-  full_name='messages.Result',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='success', full_name='messages.Result.success', index=0,
-      number=1, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='error', full_name='messages.Result.error', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=727,
-  serialized_end=767,
-)
-
-
 _ILINPUT = _descriptor.Descriptor(
   name='IlInput',
   full_name='messages.IlInput',
@@ -445,8 +407,8 @@ _ILINPUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=769,
-  serialized_end=778,
+  serialized_start=727,
+  serialized_end=736,
 )
 
 
@@ -483,8 +445,8 @@ _ASSIGNMENTS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=780,
-  serialized_end=848,
+  serialized_start=738,
+  serialized_end=806,
 )
 
 
@@ -542,8 +504,8 @@ _REQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=850,
-  serialized_end=957,
+  serialized_start=808,
+  serialized_end=915,
 )
 
 
@@ -580,8 +542,8 @@ _ARGUMENTS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=959,
-  serialized_end=1050,
+  serialized_start=917,
+  serialized_end=1008,
 )
 
 _MATCHOBJECT.fields_by_name['rosters'].message_type = _ROSTER
@@ -602,7 +564,6 @@ DESCRIPTOR.message_types_by_name['Filter'] = _FILTER
 DESCRIPTOR.message_types_by_name['Stats'] = _STATS
 DESCRIPTOR.message_types_by_name['PlayerPool'] = _PLAYERPOOL
 DESCRIPTOR.message_types_by_name['Player'] = _PLAYER
-DESCRIPTOR.message_types_by_name['Result'] = _RESULT
 DESCRIPTOR.message_types_by_name['IlInput'] = _ILINPUT
 DESCRIPTOR.message_types_by_name['Assignments'] = _ASSIGNMENTS
 DESCRIPTOR.message_types_by_name['Request'] = _REQUEST
@@ -658,13 +619,6 @@ Player = _reflection.GeneratedProtocolMessageType('Player', (_message.Message,),
   ))
 _sym_db.RegisterMessage(Player)
 _sym_db.RegisterMessage(Player.Attribute)
-
-Result = _reflection.GeneratedProtocolMessageType('Result', (_message.Message,), dict(
-  DESCRIPTOR = _RESULT,
-  __module__ = 'api.protobuf_spec.messages_pb2'
-  # @@protoc_insertion_point(class_scope:messages.Result)
-  ))
-_sym_db.RegisterMessage(Result)
 
 IlInput = _reflection.GeneratedProtocolMessageType('IlInput', (_message.Message,), dict(
   DESCRIPTOR = _ILINPUT,

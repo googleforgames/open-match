@@ -8,7 +8,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gobs/pretty v0.0.0-20180724170744-09732c25a95b
 	github.com/gogo/protobuf v1.2.1
-	github.com/golang/protobuf v1.3.0
+	github.com/golang/protobuf v1.3.0 // indirect
 	github.com/gomodule/redigo v1.7.0
 	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
