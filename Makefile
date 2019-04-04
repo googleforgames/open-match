@@ -50,6 +50,8 @@ PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/downl
 GO = go
 GO_BIN := $(GOPATH)/bin
 GO_SRC := $(GOPATH)/src
+# Defines the absolute local directory of the open-match project
+REPOSITORY_ROOT := $(dir $(abspath $(MAKEFILE_LIST)))
 GO_BUILD_COMMAND = CGO_ENABLED=0 GOOS=linux $(GO) build -a -installsuffix cgo .
 BUILD_DIR = $(CURDIR)/build
 TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
@@ -455,7 +457,7 @@ golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
-		--go_out=plugins=grpc:$(GO_SRC)
+		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
 php-protos: examples/functions/php/mmlogic-simple/proto/
 examples/functions/php/mmlogic-simple/proto/:
