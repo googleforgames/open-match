@@ -22,8 +22,8 @@ limitations under the License.
 package mmlogicapi
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi/apisrv"
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/signal"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
@@ -48,11 +48,9 @@ func initializeApplication() (config.View, error) {
 	log.AddHook(metrics.NewHook(apisrv.MlLogLines, apisrv.KeySeverity))
 
 	// Load configuration
-	cfg, err := config.Read()
+	cfg, err := config.ReadComponentConfig()
 	if err != nil {
-		mlLog.WithFields(log.Fields{
-			"error": err.Error(),
-		}).Error("Unable to load config file")
+		mlLog.WithError(err).Error("Unable to load config")
 		return nil, err
 	}
 

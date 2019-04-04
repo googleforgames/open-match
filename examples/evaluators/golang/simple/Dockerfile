@@ -18,6 +18,7 @@ WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/examples/evaluators/go
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
 
 FROM gcr.io/distroless/static  
+COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/config/openmatch_constants.yaml /config/
 COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/examples/evaluators/golang/simple/simple .
 
 ENTRYPOINT ["/simple"]

@@ -32,7 +32,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	pb "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
@@ -48,7 +48,7 @@ func main() {
 
 	// Read config
 	lgr.Println("Initializing config...")
-	cfg, err := config.Read()
+	cfg, err := config.ReadSharedConfig()
 	if err != nil {
 		panic(nil)
 	}

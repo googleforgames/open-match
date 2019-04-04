@@ -22,86 +22,103 @@ metadata:
     app: open-match
     component: config
 data:
-  matchmaker_config.yaml: |-
-    # kubectl create configmap om-configmap --from-file=config/matchmaker_config.yaml
+  backendapi_config.yaml: |-
+    api:
+      backend:
+        backoff: '[2 32] *2 ~0.33 <30'
     debug: true
-    
     logging:
+      format: json
       level: debug
-      format: text
-      source: true
-    
-    api: 
-      backend: 
-        hostname: om-backendapi
-        port: 50505
-        backoff: "[2 32] *2 ~0.33 <30"
-      frontend: 
-        hostname: om-frontendapi
-        port: 50504
-        backoff: "[2 32] *2 ~0.33 <300"
-      mmlogic: 
-        hostname: om-mmlogicapi
-        port: 50503
-      functions:
-        port: 50502
-      
-    evalutor: 
-      interval: 10
-    
-    metrics: 
-      port: 9555
-      endpoint: /metrics
-      reportingPeriod: 5
-    
-    queues: 
-      profiles: 
-        name: profileq
-        pullCount: 100
-      proposals: 
-        name: proposalq
-      
-    ignoreLists: 
-      proposed: 
-        name: proposed
-        offset: 0
-        duration: 800
-      deindexed: 
-        name: deindexed
-        offset: 0
-        duration: 800
-      expired: 
-        name: OM_METADATA.accessed
-        offset: 800
-        duration: 0 
-    
-    defaultImages: 
-      evaluator: 
-        name: gcr.io/open-match-public-images/openmatch-evaluator-simple
-        tag: latest
-      mmf: 
-        name: gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple
-        tag: latest
-    
-    redis: 
-      pool: 
-        maxIdle: 3
-        maxActive: 0
+      source: false
+    redis:
+      pool:
         idleTimeout: 60
+        maxActive: 0
+        maxIdle: 3
       queryArgs:
         count: 10000
-      results: 
+      results:
         pageSize: 10000
-      expirations: 
-        player: 43200
-        matchobject: 43200 
     
+  frontendapi_config.yaml: |-
+    api:
+      frontend:
+        backoff: '[2 32] *2 ~0.33 <300'
+    debug: true
+    logging:
+      format: json
+      level: debug
+      source: false
+    redis:
+      pool:
+        idleTimeout: 60
+        maxActive: 0
+        maxIdle: 3
+      queryArgs:
+        count: 10000
+      results:
+        pageSize: 10000
+    
+  mmforc_config.yaml: |-
+    debug: true
+    defaultImages:
+      evaluator:
+        name: 'ihrankouski/openmatch-evaluator-simple'
+        tag: 'dev'
+      mmf:
+        name: 'ihrankouski/openmatch-mmf-py3-mmlogic-simple'
+        tag: 'dev'
+    evalutor:
+      interval: 10
+    logging:
+      format: json
+      level: debug
+      source: false
+    redis:
+      pool:
+        idleTimeout: 60
+        maxActive: 0
+        maxIdle: 3
+      queryArgs:
+        count: 10000
+      results:
+        pageSize: 10000
+    
+  mmlogicapi_config.yaml: |-
+    debug: true
+    logging:
+      format: json
+      level: debug
+      source: false
+    redis:
+      pool:
+        idleTimeout: 60
+        maxActive: 0
+        maxIdle: 3
+      queryArgs:
+        count: 10000
+      results:
+        pageSize: 10000
+    
+  openmatch_config.yaml: |-
+    ignoreLists:
+      deindexed:
+        duration: 800
+        offset: 0
+      expired:
+        duration: 0
+        offset: 800
+      proposed:
+        duration: 800
+        offset: 0
     jsonkeys:
       mmfImage: imagename
       mmfService: hostname
-      rosters: properties.rosters
       pools: properties.pools
-    
+      rosters: properties.rosters
+    metrics:
+      reportingPeriod: 5
     playerIndices:
     - char.cleric
     - char.knight
@@ -120,6 +137,10 @@ data:
     - role.dps
     - role.support
     - role.tank
+    redis:
+      expirations:
+        matchobject: 43200
+        player: 43200
     
 ---
 # Source: open-match/templates/mmforc-service-account.yaml
@@ -234,11 +255,15 @@ spec:
     spec:
       containers:
       - name: om-backend
-        image: "gcr.io/open-match-public-images/openmatch-backendapi:0.4.0"
+        image: "ihrankouski/openmatch-backendapi:dev"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
-          mountPath: /config
+          subPath: openmatch_config.yaml
+          mountPath: /config/openmatch_config.yaml
+        - name: om-config-volume
+          subPath: backendapi_config.yaml
+          mountPath: /config/component_config.yaml
         ports:
         - name: grpc
           containerPort: 50505
@@ -317,11 +342,15 @@ spec:
     spec:
       containers:
       - name: om-frontendapi
-        image: "gcr.io/open-match-public-images/openmatch-frontendapi:0.4.0"
+        image: "ihrankouski/openmatch-frontendapi:dev"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
-          mountPath: /config
+          subPath: openmatch_config.yaml
+          mountPath: /config/openmatch_config.yaml
+        - name: om-config-volume
+          subPath: frontendapi_config.yaml
+          mountPath: /config/component_config.yaml
         ports:
         - name: grpc
           containerPort: 50504
@@ -399,11 +428,15 @@ spec:
     spec:
       containers:
       - name: om-mmlogic
-        image: "gcr.io/open-match-public-images/openmatch-mmlogicapi:0.4.0"
+        image: "ihrankouski/openmatch-mmlogicapi:dev"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
-          mountPath: /config
+          subPath: openmatch_config.yaml
+          mountPath: /config/openmatch_config.yaml
+        - name: om-config-volume
+          subPath: mmlogicapi_config.yaml
+          mountPath: /config/component_config.yaml
         ports:
         - name: grpc
           containerPort: 50503
@@ -466,11 +499,15 @@ spec:
       serviceAccountName: mmforc-job-runner
       containers:
       - name: om-mmforc
-        image: "gcr.io/open-match-public-images/openmatch-mmforc:0.4.0"
+        image: "ihrankouski/openmatch-mmforc:dev"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
-          mountPath: /config
+          subPath: openmatch_config.yaml
+          mountPath: /config/openmatch_config.yaml
+        - name: om-config-volume
+          subPath: mmforc_config.yaml
+          mountPath: /config/component_config.yaml
         ports:
         - name: metrics
           containerPort: 9555

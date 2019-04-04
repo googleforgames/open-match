@@ -18,6 +18,9 @@ limitations under the License.
 package config
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/fsnotify/fsnotify"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -71,23 +74,12 @@ var (
 
 // Read reads a config file into a viper.Viper instance and associates environment vars defined in
 // config.envMappings
-func Read() (View, error) {
+func Read(file string) (View, error) {
 	cfg := viper.New()
-	// Viper config management initialization
-	// Support either json or yaml file types (json for backwards compatibility
-	// with previous versions)
-	cfg.SetConfigType("json")
-	cfg.SetConfigType("yaml")
-	cfg.SetConfigName("matchmaker_config")
-	cfg.AddConfigPath(".")
-	cfg.AddConfigPath("config")
-
-	// Read in config file using Viper
+	cfg.SetConfigFile(file)
 	err := cfg.ReadInConfig()
 	if err != nil {
-		cfgLog.WithFields(log.Fields{
-			"error": err.Error(),
-		}).Fatal("Fatal error reading config file")
+		return nil, fmt.Errorf("cannot read config from file %q: %v", file, err.Error())
 	}
 
 	// Bind this envvars to viper config vars.
@@ -120,13 +112,71 @@ func Read() (View, error) {
 	// what the Open Match components using Viper monitor for changes.
 	// More details about Open Match's use of Kubernetes ConfigMaps at:
 	// https://github.com/GoogleCloudPlatform/open-match/issues/42
+
 	cfg.WatchConfig() // Watch and re-read config file.
+
 	// Write a log when the configuration changes.
 	cfg.OnConfigChange(func(event fsnotify.Event) {
 		cfgLog.WithFields(log.Fields{
 			"filename":  event.Name,
 			"operation": event.Op,
-		}).Info("Server configuration changed.")
+		}).Info("Configuration changed.")
 	})
-	return cfg, err
+
+	return cfg, nil
+}
+
+// ReadAndMerge reads configurations from all specified files using Read(),
+// and then merges them into a single viper.Viper instance.
+//
+// WARNING It doesn't watch for changes currently
+func ReadAndMerge(files ...string) (View, error) {
+	if len(files) == 0 {
+		return nil, errors.New("no input files specified")
+	}
+
+	layers := make([]View, len(files))
+	for i, f := range files {
+		l, err := Read(f)
+		if err != nil {
+			return nil, err
+		}
+		layers[i] = l
+	}
+
+	cfg := viper.New()
+	for _, l := range layers {
+		m := l.AllSettings()
+		cfg.MergeConfigMap(m)
+	}
+
+	// TODO watch layers' changes and re-merge
+
+	return cfg, nil
+}
+
+// ReadComponentConfig reads typical configuration for core Open-match component
+func ReadComponentConfig() (View, error) {
+	return ReadAndMerge(
+		// Layer 1: 'per-component' configuration.
+		// File is expected to be mounted from ConfigMap.
+		"/config/component_config.yaml",
+
+		// Layer 2: configuration that is shared by all OM components.
+		// File is expected to be mounted from ConfigMap.
+		// This config may also override the settings from previous layer,
+		// however all OM components will see it in such case.
+		"/config/openmatch_config.yaml",
+
+		// Layer 3: 'expert' configuration that is unlikely to require customizations.
+		// Merging of this configuration should be a last step,
+		// and by default Open-match does not make any mounts to this path:
+		"/config/openmatch_constants.yaml")
+}
+
+// ReadSharedConfig reads configuration that is expected to go to all components by default
+func ReadSharedConfig() (View, error) {
+	return ReadAndMerge(
+		"/config/openmatch_config.yaml",
+		"/config/openmatch_constants.yaml")
 }

@@ -23,8 +23,8 @@ limitations under the License.
 package backendapi
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/app/backendapi/apisrv"
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/signal"
@@ -50,11 +50,9 @@ func initializeApplication() (config.View, error) {
 	log.AddHook(metrics.NewHook(apisrv.BeLogLines, apisrv.KeySeverity))
 
 	// Load configuration
-	cfg, err := config.Read()
+	cfg, err := config.ReadComponentConfig()
 	if err != nil {
-		beLog.WithFields(log.Fields{
-			"error": err.Error(),
-		}).Error("Unable to load config file")
+		beLog.WithError(err).Error("Unable to load config")
 		return nil, err
 	}
 

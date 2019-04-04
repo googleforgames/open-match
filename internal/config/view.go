@@ -18,16 +18,30 @@ limitations under the License.
 package config
 
 import (
-	"testing"
+	"time"
+
+	"github.com/spf13/viper"
 )
 
-func TestReadConfig(t *testing.T) {
-	cfg, err := Read()
-	if err != nil {
-		t.Fatalf("cannot load config, %s", err)
-	}
+// View is a read-only view of the Open Match configuration.
+// New accessors from Viper should be added here.
+type View interface {
+	IsSet(string) bool
+	GetString(string) string
+	GetInt(string) int
+	GetInt64(string) int64
+	GetStringSlice(string) []string
+	GetBool(string) bool
+	GetDuration(string) time.Duration
+	GetStringMap(string) map[string]interface{}
+	AllSettings() map[string]interface{}
+}
 
-	if cfg.GetString("metrics.endpoint") != "/metrics" {
-		t.Errorf("av.GetString('metrics.endpoint') = %s, expected '/metrics'", cfg.GetString("metrics.endpoint"))
+// Sub returns a subset of configuration filtered by the key.
+func Sub(v View, key string) View {
+	vcfg, ok := v.(*viper.Viper)
+	if ok {
+		return vcfg.Sub(key)
 	}
+	return nil
 }

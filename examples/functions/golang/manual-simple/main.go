@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/set"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
@@ -49,7 +49,7 @@ the default state storage.
 */
 func main() {
 	// Read config file.
-	cfg, err := config.Read()
+	cfg, err := config.ReadSharedConfig()
 	if err != nil {
 		panic(err)
 	}

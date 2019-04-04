@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
 )

@@ -1,0 +1,39 @@
+# A copy of this file is built into Open-match components' Docker images.
+# The contents of this file is read at last step of `config.Read()` execution,
+# so it overrides anything in previously read configuration sources.
+
+# These params are unlikely to require changes. Nevertheless if you would like to customize it,
+# then either rebuild the Docker image, or modify component deployment in Kubernetes 
+# to mount your custom version of this file at path `/config/matchmaker_constants.yaml`
+
+api: 
+  backend: 
+    hostname: om-backendapi
+    port: 50505
+  frontend: 
+    hostname: om-frontendapi
+    port: 50504
+  mmlogic: 
+    hostname: om-mmlogicapi
+    port: 50503
+  functions:
+    port: 50502
+
+metrics: 
+  port: 9555
+  endpoint: /metrics
+
+queues:
+  profiles: 
+    name: profileq
+    pullCount: 100
+  proposals: 
+    name: proposalq
+
+ignoreLists: 
+  proposed: 
+    name: proposed
+  deindexed: 
+    name: deindexed
+  expired: 
+    name: OM_METADATA.accessed

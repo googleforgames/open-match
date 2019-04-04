@@ -65,3 +65,18 @@ chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63
 release: {{ .Release.Name }}
 heritage: {{ .Release.Service }}
 {{- end -}}
+
+{{/*
+Render common volume mounts for core Open-match components.
+Takes a list of two items as an argument: a volume name and a component name.
+*/}}
+{{- define "openmatch.componentconfigmounts" -}}
+{{- $volume := index . 0 -}}
+{{- $component := index . 1 -}}
+- name: {{ $volume }}
+  subPath: openmatch_config.yaml
+  mountPath: /config/openmatch_config.yaml
+- name: {{ $volume }}
+  subPath: {{ $component }}_config.yaml
+  mountPath: /config/component_config.yaml
+{{- end -}}

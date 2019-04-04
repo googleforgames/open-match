@@ -24,7 +24,7 @@ import (
 	"errors"
 	"net"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"

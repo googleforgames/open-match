@@ -1,7 +1,7 @@
 package logging
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/sirupsen/logrus"
 )

@@ -35,16 +35,104 @@ openmatch:
     install: true
     grpc:
       port: 50503
+
   config:
     install: true
-    mountPath: /config
-    contents:
-      matchmaker_config.yaml:
-        # Write YAML here to replace default Open-match config with your custom one.
-        # You can refer to other chart values using the Helm templates syntax here.
+
+    prototypes:
+      component_config.yaml: &component_config
+        debug: true
+        logging:
+          level: debug
+          format: json
+          source: false
+        redis:
+          pool:
+            maxIdle: 3
+            maxActive: 0
+            idleTimeout: 60
+          queryArgs:
+            count: 10000
+          results:
+            pageSize: 10000
+
+    files:
+      backendapi_config.yaml:
+        <<: *component_config
+        api: 
+          backend:
+            backoff: "[2 32] *2 ~0.33 <30"
+
+      frontendapi_config.yaml:
+        <<: *component_config
+        api:
+          frontend: 
+            backoff: "[2 32] *2 ~0.33 <300"
+
+      mmforc_config.yaml:
+        <<: *component_config
+        evalutor: 
+          interval: 10
+
+        defaultImages: 
+          evaluator: 
+            name: "{{.Values.openmatch.image.registry}}/{{.Values.openmatch.image.defaultEvaluator.name}}"
+            tag: "{{.Values.openmatch.image.tag}}"
+          mmf: 
+            name: "{{.Values.openmatch.image.registry}}/{{.Values.openmatch.image.defaultMMF.name}}"
+            tag: "{{.Values.openmatch.image.tag}}"
+      
+      mmlogicapi_config.yaml:
+        <<: *component_config
+
+      openmatch_config.yaml:
+        metrics: 
+          reportingPeriod: 5
+
+        ignoreLists: 
+          proposed: 
+            offset: 0
+            duration: 800 
+          deindexed: 
+            offset: 0
+            duration: 800 
+          expired: 
+            offset: 800 
+            duration: 0 
+
+        redis:
+          expirations:
+            player: 43200
+            matchobject: 43200
+
+        jsonkeys:
+          mmfImage: imagename
+          mmfService: hostname
+          rosters: properties.rosters
+          pools: properties.pools
+
+        playerIndices:
+        - char.cleric
+        - char.knight
+        - char.paladin
+        - map.aleroth
+        - map.oasis
+        - mmr.rating
+        - mode.battleroyale
+        - mode.ctf
+        - mode.demo
+        - region.europe-east1
+        - region.europe-west1
+        - region.europe-west2
+        - region.europe-west3
+        - region.europe-west4
+        - role.dps
+        - role.support
+        - role.tank
+
   image:
     registry: gcr.io/open-match-public-images
-    tag: 0.4.0
+    tag: "0.4.0"
     backendapi:
       name: openmatch-backendapi
       pullPolicy: Always
@@ -57,6 +145,11 @@ openmatch:
     mmlogicapi:
       name: openmatch-mmlogicapi
       pullPolicy: Always
+    defaultEvaluator:
+      name: openmatch-evaluator-simple
+    defaultMMF:
+      name: openmatch-mmf-py3-mmlogic-simple
+
 
 # https://hub.helm.sh/charts/stable/redis
 # https://github.com/helm/charts/tree/master/stable/redis

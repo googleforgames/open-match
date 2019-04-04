@@ -66,8 +66,7 @@ spec:
         image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.mmlogicapi.name}}:{{ .Values.openmatch.image.tag }}"
         imagePullPolicy: {{ .Values.openmatch.image.mmlogicapi.pullPolicy }}
         volumeMounts:
-        - name: om-config-volume
-          mountPath: {{ .Values.openmatch.config.mountPath }}
+        {{- include "openmatch.componentconfigmounts" (list "om-config-volume" "mmlogicapi") | nindent 8 }}
         ports:
         - name: grpc
           containerPort: {{ .Values.openmatch.mmlogicapi.grpc.port }}

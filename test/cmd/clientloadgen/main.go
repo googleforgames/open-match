@@ -23,7 +23,7 @@ import (
 
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	"github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/player"
 	"github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/redis/playerq"
 
@@ -31,7 +31,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.Read()
+	cfg, err := config.Read("config.yaml")
 	check(err, "QUIT")
 
 	pool, err := redishelpers.ConnectionPool(cfg)

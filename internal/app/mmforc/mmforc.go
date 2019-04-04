@@ -29,7 +29,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
@@ -79,11 +79,9 @@ func initializeApplication() (config.View, error) {
 	log.AddHook(metrics.NewHook(MmforcLogLines, KeySeverity))
 
 	// Load configuration
-	cfg, err := config.Read()
+	cfg, err := config.ReadComponentConfig()
 	if err != nil {
-		mmforcLog.WithFields(log.Fields{
-			"error": err.Error(),
-		}).Error("Unable to load config file")
+		mmforcLog.WithError(err).Error("Unable to load config")
 		return nil, err
 	}
 
@@ -468,6 +466,8 @@ func submitJob(cfg config.View, clientset *kubernetes.Clientset, jobType string,
 	v := strings.Split(jobName, ".")
 	envvars = append(envvars,
 		apiv1.EnvVar{Name: "PROFILE", Value: strings.Join(v[:len(v)-1], ".")},
+		apiv1.EnvVar{Name: "REDIS_SERVICE_HOST", Value: cfg.GetString("redis.hostname")},
+		apiv1.EnvVar{Name: "REDIS_SERVICE_PORT", Value: cfg.GetString("redis.port")},
 		apiv1.EnvVar{Name: "REDIS_POOL_MAXIDLE", Value: cfg.GetString("redis.pool.maxIdle")},
 		apiv1.EnvVar{Name: "REDIS_POOL_MAXACTIVE", Value: cfg.GetString("redis.pool.maxActive")},
 		apiv1.EnvVar{Name: "REDIS_POOL_IDLETIMEOUT", Value: cfg.GetString("redis.pool.idleTimeout")},
@@ -533,9 +533,9 @@ func submitJob(cfg config.View, clientset *kubernetes.Clientset, jobType string,
 							Env:             envvars,
 							VolumeMounts: []apiv1.VolumeMount{
 								{
-									Name:      "om-configmap",
-									SubPath:   "matchmaker_config.yaml",
-									MountPath: "matchmaker_config.yaml",
+									Name:      "om-config-volume",
+									SubPath:   "openmatch_config.yaml",
+									MountPath: "/config/openmatch_config.yaml",
 									ReadOnly:  true,
 								},
 							},
@@ -543,7 +543,7 @@ func submitJob(cfg config.View, clientset *kubernetes.Clientset, jobType string,
 					},
 					Volumes: []apiv1.Volume{
 						{
-							Name: "om-configmap",
+							Name: "om-config-volume",
 							VolumeSource: apiv1.VolumeSource{
 								ConfigMap: &apiv1.ConfigMapVolumeSource{
 									LocalObjectReference: apiv1.LocalObjectReference{

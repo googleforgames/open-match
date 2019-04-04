@@ -24,8 +24,8 @@ package frontendapi
 import (
 	redigometrics "github.com/opencensus-integrations/redigo/redis"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi/apisrv"
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/signal"
@@ -52,11 +52,9 @@ func initializeApplication() (config.View, error) {
 	log.SetReportCaller(true)
 
 	// Load configuration
-	cfg, err := config.Read()
+	cfg, err := config.ReadComponentConfig()
 	if err != nil {
-		feLog.WithFields(log.Fields{
-			"error": err.Error(),
-		}).Error("Unable to load config file")
+		feLog.WithError(err).Error("Unable to load config")
 		return nil, err
 	}
 

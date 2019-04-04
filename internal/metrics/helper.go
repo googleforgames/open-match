@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	log "github.com/sirupsen/logrus"
 
 	"go.opencensus.io/exporter/prometheus"

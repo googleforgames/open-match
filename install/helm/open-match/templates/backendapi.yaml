@@ -66,8 +66,7 @@ spec:
         image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.backendapi.name}}:{{ .Values.openmatch.image.tag }}"
         imagePullPolicy: {{ .Values.openmatch.image.backendapi.pullPolicy }}
         volumeMounts:
-        - name: om-config-volume
-          mountPath: {{ .Values.openmatch.config.mountPath }}
+        {{- include "openmatch.componentconfigmounts" (list "om-config-volume" "backendapi") | nindent 8 }}
         ports:
         - name: grpc
           containerPort: {{ .Values.openmatch.backendapi.grpc.port }}
