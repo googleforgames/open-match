@@ -1,6 +1,6 @@
 syntax = 'proto3';
 package messages;
-option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
+option go_package = "internal/pb";
 
 // Open Match's internal representation and wire protocol format for "MatchObjects".
 // In order to request a match using the Backend API, your backend code should generate
