@@ -1,6 +1,6 @@
 syntax = 'proto3';
 package api;
-option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
+option go_package = "internal/pb";
 
 // The protobuf messages sent in the gRPC calls are defined 'messages.proto'.
 import 'api/protobuf-spec/messages.proto';

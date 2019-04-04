@@ -1,6 +1,6 @@
 syntax = 'proto3';
 package api;
-option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb"; 
+option go_package = "internal/pb"; 
 import 'api/protobuf-spec/messages.proto';
 
 message CreatePlayerRequest {
