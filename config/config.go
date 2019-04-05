@@ -18,6 +18,7 @@ limitations under the License.
 package config
 
 import (
+	"github.com/fsnotify/fsnotify"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.opencensus.io/stats"
@@ -57,9 +58,6 @@ var (
 		"api.mmlogic.port":       "OM_MMLOGICAPI_SERVICE_PORT",
 	}
 
-	// Viper config management setup
-	cfg = viper.New()
-
 	// OpenCensus
 	cfgVarCount = stats.Int64("config/vars_total", "Number of config vars read during initialization", "1")
 	// CfgVarCountView is the Open Census view for the cfgVarCount measure.
@@ -73,8 +71,8 @@ var (
 
 // Read reads a config file into a viper.Viper instance and associates environment vars defined in
 // config.envMappings
-func Read() (*viper.Viper, error) {
-
+func Read() (View, error) {
+	cfg := viper.New()
 	// Viper config management initialization
 	// Support either json or yaml file types (json for backwards compatibility
 	// with previous versions)
@@ -114,9 +112,7 @@ func Read() (*viper.Viper, error) {
 				"envvar":    envVar,
 				"module":    "config",
 			}).Info("Binding environment var as a config variable")
-
 		}
-
 	}
 
 	// Look for updates to the config; in Kubernetes, this is implemented using
@@ -125,5 +121,12 @@ func Read() (*viper.Viper, error) {
 	// More details about Open Match's use of Kubernetes ConfigMaps at:
 	// https://github.com/GoogleCloudPlatform/open-match/issues/42
 	cfg.WatchConfig() // Watch and re-read config file.
+	// Write a log when the configuration changes.
+	cfg.OnConfigChange(func(event fsnotify.Event) {
+		cfgLog.WithFields(log.Fields{
+			"filename":  event.Name,
+			"operation": event.Op,
+		}).Info("Server configuration changed.")
+	})
 	return cfg, err
 }

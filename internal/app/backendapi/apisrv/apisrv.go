@@ -26,6 +26,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
@@ -44,7 +45,6 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/rs/xid"
-	"github.com/spf13/viper"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -64,13 +64,13 @@ var (
 // the protobuf, by fulfilling the API Client interface.
 type BackendAPI struct {
 	grpc *grpc.Server
-	cfg  *viper.Viper
+	cfg  config.View
 	pool *redis.Pool
 }
 type backendAPI BackendAPI
 
 // New returns an instantiated srvice
-func New(cfg *viper.Viper, pool *redis.Pool) *BackendAPI {
+func New(cfg config.View, pool *redis.Pool) *BackendAPI {
 	s := BackendAPI{
 		pool: pool,
 		grpc: grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{})),
@@ -111,8 +111,8 @@ func (s *BackendAPI) Open() error {
 
 // CreateMatch is this service's implementation of the CreateMatch gRPC method
 // defined in api/protobuf-spec/backend.proto
-func (s *backendAPI) CreateMatch(c context.Context, profile *pb.MatchObject) (*pb.MatchObject, error) {
-
+func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) (*pb.CreateMatchResponse, error) {
+	profile := proto.Clone(req.Match).(*pb.MatchObject)
 	// Get a cancel-able context
 	ctx, cancel := context.WithCancel(c)
 	defer cancel()
@@ -194,7 +194,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *pb.MatchObject) (*p
 
 		// Failure! Return empty match object and the error
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
-		return &pb.MatchObject{}, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 	beLog.Info("Profile written to state storage")
 
@@ -208,7 +208,7 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *pb.MatchObject) (*p
 
 		// Failure! Return empty match object and the error
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
-		return &pb.MatchObject{}, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 	beLog.Info("Profile added to processing queue")
 
@@ -226,12 +226,13 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *pb.MatchObject) (*p
 		// ok is false if watchChan has been closed by redispb.Watcher()
 		// This happens when Watcher stops because of context cancellation or backing off reached time limit
 		stats.Record(fnCtx, BeGrpcRequests.M(1))
+
 		if watcherBOCtx.Context().Err() != nil {
 			newMO.Error = "channel closed: " + watcherBOCtx.Context().Err().Error()
 		} else {
 			newMO.Error = "channel closed: backoff deadline exceeded"
 		}
-		return &newMO, status.Errorf(codes.Unavailable, "Error retrieving matchmaking results from state storage: %s", newMO.Error)
+		return nil, status.Errorf(codes.Unavailable, "Error retrieving matchmaking results from state storage: %s", newMO.Error)
 	}
 
 	// 'ok' was true, so properties should contain the results from redis.
@@ -243,19 +244,22 @@ func (s *backendAPI) CreateMatch(c context.Context, profile *pb.MatchObject) (*p
 	// TODO test that this is the correct condition for an empty error.
 	if newMO.Error != "" {
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
-		return &newMO, status.Error(codes.Unknown, newMO.Error)
+		return nil, status.Error(codes.Unknown, newMO.Error)
 	}
 
 	beLog.Info("Matchmaking results received, returning to backend client")
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
-	return &newMO, nil
+	return &pb.CreateMatchResponse{
+		Match: &newMO,
+	}, nil
 }
 
 // ListMatches is this service's implementation of the ListMatches gRPC method
 // defined in api/protobuf-spec/backend.proto
 // This is the streaming version of CreateMatch - continually submitting the
 // profile to be filled until the requesting service ends the connection.
-func (s *backendAPI) ListMatches(p *pb.MatchObject, matchStream pb.Backend_ListMatchesServer) error {
+func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Backend_ListMatchesServer) error {
+	p := proto.Clone(req.Match).(*pb.MatchObject)
 
 	// call creatematch in infinite loop as long as the stream is open
 	ctx := matchStream.Context() // https://talks.golang.org/2015/gotham-grpc.slide#30
@@ -289,7 +293,9 @@ func (s *backendAPI) ListMatches(p *pb.MatchObject, matchStream pb.Backend_ListM
 				beLog.Debug(requestProfile)
 				beLog.Debug(&requestProfile)
 			*/
-			mo, err := s.CreateMatch(ctx, requestProfile)
+			mo, err := s.CreateMatch(ctx, &pb.CreateMatchRequest{
+				Match: requestProfile,
+			})
 
 			beLog = beLog.WithFields(log.Fields{"func": funcName})
 
@@ -299,7 +305,10 @@ func (s *backendAPI) ListMatches(p *pb.MatchObject, matchStream pb.Backend_ListM
 				return status.Error(codes.Unavailable, err.Error())
 			}
 			beLog.WithFields(log.Fields{"matchProperties": fmt.Sprintf("%v", mo)}).Debug("Streaming back match object")
-			matchStream.Send(mo)
+			res := proto.Clone(mo.Match).(*pb.MatchObject)
+			matchStream.Send(&pb.ListMatchesResponse{
+				Match: res,
+			})
 
 			// TODO: This should be tunable, but there should be SOME sleep here, to give a requestor a window
 			// to cleanly close the connection after receiving a match object when they know they don't want to
@@ -311,18 +320,17 @@ func (s *backendAPI) ListMatches(p *pb.MatchObject, matchStream pb.Backend_ListM
 
 // DeleteMatch is this service's implementation of the DeleteMatch gRPC method
 // defined in api/protobuf-spec/backend.proto
-func (s *backendAPI) DeleteMatch(ctx context.Context, mo *pb.MatchObject) (*pb.Result, error) {
-
+func (s *backendAPI) DeleteMatch(ctx context.Context, req *pb.DeleteMatchRequest) (*pb.DeleteMatchResponse, error) {
 	// Create context for tagging OpenCensus metrics.
 	funcName := "DeleteMatch"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
 	beLog = beLog.WithFields(log.Fields{"func": funcName})
 	beLog.WithFields(log.Fields{
-		"matchObjectID": mo.Id,
+		"matchObjectID": req.Match.Id,
 	}).Info("gRPC call executing")
 
-	err := redishelpers.Delete(ctx, s.pool, mo.Id)
+	err := redishelpers.Delete(ctx, s.pool, req.Match.Id)
 	if err != nil {
 		beLog.WithFields(log.Fields{
 			"error":     err.Error(),
@@ -330,20 +338,21 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, mo *pb.MatchObject) (*pb.R
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
-		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
 	beLog.WithFields(log.Fields{
-		"matchObjectID": mo.Id,
+		"matchObjectID": req.Match.Id,
 	}).Info("Match Object deleted.")
 
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
-	return &pb.Result{Success: true, Error: ""}, nil
+	return &pb.DeleteMatchResponse{}, nil
 }
 
 // CreateAssignments is this service's implementation of the CreateAssignments gRPC method
 // defined in api/protobuf-spec/backend.proto
-func (s *backendAPI) CreateAssignments(ctx context.Context, a *pb.Assignments) (*pb.Result, error) {
+func (s *backendAPI) CreateAssignments(ctx context.Context, req *pb.CreateAssignmentsRequest) (*pb.CreateAssignmentsResponse, error) {
+	a := proto.Clone(req.Assignment).(*pb.Assignments)
 
 	// Make a map of players and what assignments we want to send them.
 	playerIDs := make([]string, 0)
@@ -389,7 +398,7 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *pb.Assignments) (
 
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
 		stats.Record(fnCtx, BeAssignmentFailures.M(int64(len(players))))
-		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Success!
@@ -399,13 +408,13 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, a *pb.Assignments) (
 
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
 	stats.Record(fnCtx, BeAssignments.M(int64(len(players))))
-	return &pb.Result{Success: true, Error: ""}, nil
+	return &pb.CreateAssignmentsResponse{}, nil
 }
 
 // DeleteAssignments is this service's implementation of the DeleteAssignments gRPC method
 // defined in api/protobuf-spec/backend.proto
-func (s *backendAPI) DeleteAssignments(ctx context.Context, r *pb.Roster) (*pb.Result, error) {
-	assignments := getPlayerIdsFromRoster(r)
+func (s *backendAPI) DeleteAssignments(ctx context.Context, req *pb.DeleteAssignmentsRequest) (*pb.DeleteAssignmentsResponse, error) {
+	assignments := getPlayerIdsFromRoster(req.Roster)
 
 	// Create context for tagging OpenCensus metrics.
 	funcName := "DeleteAssignments"
@@ -427,13 +436,13 @@ func (s *backendAPI) DeleteAssignments(ctx context.Context, r *pb.Roster) (*pb.R
 
 		stats.Record(fnCtx, BeGrpcErrors.M(1))
 		stats.Record(fnCtx, BeAssignmentDeletionFailures.M(int64(len(assignments))))
-		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Success!
 	stats.Record(fnCtx, BeGrpcRequests.M(1))
 	stats.Record(fnCtx, BeAssignmentDeletions.M(int64(len(assignments))))
-	return &pb.Result{Success: true, Error: ""}, nil
+	return &pb.DeleteAssignmentsResponse{}, nil
 }
 
 // getPlayerIdsFromRoster returns the slice of player ID strings contained in

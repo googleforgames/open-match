@@ -29,18 +29,19 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/set"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
+	"github.com/gogo/protobuf/proto"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/spf13/viper"
 
 	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
@@ -61,13 +62,13 @@ var (
 // the protobuf, by fulfilling the mmlogic.APIClient interface.
 type MmlogicAPI struct {
 	grpc *grpc.Server
-	cfg  *viper.Viper
+	cfg  config.View
 	pool *redis.Pool
 }
 type mmlogicAPI MmlogicAPI
 
 // New returns an instantiated srvice
-func New(cfg *viper.Viper, pool *redis.Pool) *MmlogicAPI {
+func New(cfg config.View, pool *redis.Pool) *MmlogicAPI {
 	s := MmlogicAPI{
 		pool: pool,
 		grpc: grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{})),
@@ -108,8 +109,8 @@ func (s *MmlogicAPI) Open() error {
 
 // GetProfile is this service's implementation of the gRPC call defined in
 // mmlogicapi/proto/mmlogic.proto
-func (s *mmlogicAPI) GetProfile(c context.Context, profile *pb.MatchObject) (*pb.MatchObject, error) {
-
+func (s *mmlogicAPI) GetProfile(c context.Context, req *pb.GetProfileRequest) (*pb.GetProfileResponse, error) {
+	profile := req.Match
 	// Get redis connection from pool
 	redisConn := s.pool.Get()
 	defer redisConn.Close()
@@ -130,21 +131,23 @@ func (s *mmlogicAPI) GetProfile(c context.Context, profile *pb.MatchObject) (*pb
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, MlGrpcErrors.M(1))
-		return profile, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 	mlLog.WithFields(log.Fields{"profileid": profile.Id}).Debug("Retrieved profile from state storage")
 
 	mlLog.Debug(profile)
 
 	stats.Record(fnCtx, MlGrpcRequests.M(1))
-	return profile, nil
+	return &pb.GetProfileResponse{
+		Match: profile,
+	}, nil
 
 }
 
 // CreateProposal is this service's implementation of the gRPC call defined in
 // mmlogicapi/proto/mmlogic.proto
-func (s *mmlogicAPI) CreateProposal(c context.Context, prop *pb.MatchObject) (*pb.Result, error) {
-
+func (s *mmlogicAPI) CreateProposal(c context.Context, req *pb.CreateProposalRequest) (*pb.CreateProposalResponse, error) {
+	prop := req.Match
 	// Retreive configured redis keys.
 	list := "proposed"
 	proposalq := s.cfg.GetString("queues.proposals.name")
@@ -169,7 +172,7 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *pb.MatchObject) (*p
 	err := redispb.MarshalToRedis(c, s.pool, prop, s.cfg.GetInt("redis.expirations.matchobject"))
 	if err != nil {
 		stats.Record(fnCtx, MlGrpcErrors.M(1))
-		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Proposals need two more actions: players added to ignorelist, and adding
@@ -199,7 +202,7 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *pb.MatchObject) (*p
 
 				// record error.
 				stats.Record(fnCtx, MlGrpcErrors.M(1))
-				return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
+				return nil, status.Error(codes.Unknown, err.Error())
 			}
 		} else {
 			cpLog.Warn("found no players in rosters, not adding any players to the proposed ignorelist")
@@ -218,7 +221,7 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *pb.MatchObject) (*p
 
 			// record error.
 			stats.Record(fnCtx, MlGrpcErrors.M(1))
-			return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
+			return nil, status.Error(codes.Unknown, err.Error())
 		}
 	}
 
@@ -236,11 +239,11 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *pb.MatchObject) (*p
 
 		// record error.
 		stats.Record(fnCtx, MlGrpcErrors.M(1))
-		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
 	stats.Record(fnCtx, MlGrpcRequests.M(1))
-	return &pb.Result{Success: true}, nil
+	return &pb.CreateProposalResponse{}, nil
 }
 
 // GetPlayerPool is this service's implementation of the gRPC call defined in
@@ -248,7 +251,8 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, prop *pb.MatchObject) (*p
 // API_GetPlayerPoolServer returns mutiple PlayerPool messages - they should
 // all be reassembled into one set on the calling side, as they are just
 // paginated subsets of the player pool.
-func (s *mmlogicAPI) GetPlayerPool(pool *pb.PlayerPool, stream pb.MmLogic_GetPlayerPoolServer) error {
+func (s *mmlogicAPI) GetPlayerPool(req *pb.GetPlayerPoolRequest, stream pb.MmLogic_GetPlayerPoolServer) error {
+	pool := req.PlayerPool
 	// TODO: quit if context is cancelled
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -299,7 +303,10 @@ func (s *mmlogicAPI) GetPlayerPool(pool *pb.PlayerPool, stream pb.MmLogic_GetPla
 				pool.Stats = &pb.Stats{Count: int64(len(results)), Elapsed: time.Since(filterStart).Seconds()}
 
 				// Send the empty pool and exit.
-				if err = stream.Send(pool); err != nil {
+				p := proto.Clone(pool).(*pb.PlayerPool)
+				if err = stream.Send(&pb.GetPlayerPoolResponse{
+					PlayerPool: p,
+				}); err != nil {
 					stats.Record(fnCtx, MlGrpcErrors.M(1))
 					return status.Error(codes.Unavailable, err.Error())
 				}
@@ -373,7 +380,10 @@ func (s *mmlogicAPI) GetPlayerPool(pool *pb.PlayerPool, stream pb.MmLogic_GetPla
 				Stats:   pool.Stats,
 				Roster:  &partialRoster,
 			}
-			if err = stream.Send(poolChunk); err != nil {
+
+			if err = stream.Send(&pb.GetPlayerPoolResponse{
+				PlayerPool: poolChunk,
+			}); err != nil {
 				stats.Record(fnCtx, MlGrpcErrors.M(1))
 				return status.Error(codes.Unavailable, err.Error())
 			}
@@ -501,7 +511,8 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *pb.Filter) (map[stri
 // mmlogicapi/proto/mmlogic.proto
 // This is a wrapper around allIgnoreLists, and converts the []string return
 // value of that function to a gRPC Roster message to send out over the wire.
-func (s *mmlogicAPI) GetAllIgnoredPlayers(c context.Context, in *pb.IlInput) (*pb.Roster, error) {
+func (s *mmlogicAPI) GetAllIgnoredPlayers(c context.Context, req *pb.GetAllIgnoredPlayersRequest) (*pb.GetAllIgnoredPlayersResponse, error) {
+	in := req.IgnorePlayer
 	// Create context for tagging OpenCensus metrics.
 	funcName := "GetAllIgnoredPlayers"
 	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
@@ -513,12 +524,14 @@ func (s *mmlogicAPI) GetAllIgnoredPlayers(c context.Context, in *pb.IlInput) (*p
 	}
 
 	stats.Record(fnCtx, MlGrpcRequests.M(1))
-	return createRosterfromPlayerIds(il), nil
+	return &pb.GetAllIgnoredPlayersResponse{
+		Roster: createRosterfromPlayerIds(il),
+	}, nil
 }
 
 // ListIgnoredPlayers is this service's implementation of the gRPC call defined in
 // mmlogicapi/proto/mmlogic.proto
-func (s *mmlogicAPI) ListIgnoredPlayers(c context.Context, olderThan *pb.IlInput) (*pb.Roster, error) {
+func (s *mmlogicAPI) ListIgnoredPlayers(c context.Context, req *pb.ListIgnoredPlayersRequest) (*pb.ListIgnoredPlayersResponse, error) {
 	// TODO: is this supposed to able to take any list?
 	ilName := "proposed"
 
@@ -548,7 +561,9 @@ func (s *mmlogicAPI) ListIgnoredPlayers(c context.Context, olderThan *pb.IlInput
 	mlLog.Debug(fmt.Sprintf("Retrieval success %v", il))
 
 	stats.Record(fnCtx, MlGrpcRequests.M(1))
-	return createRosterfromPlayerIds(il), nil
+	return &pb.ListIgnoredPlayersResponse{
+		Roster: createRosterfromPlayerIds(il),
+	}, nil
 }
 
 // allIgnoreLists combines all the ignore lists and returns them.
@@ -561,7 +576,7 @@ func (s *mmlogicAPI) allIgnoreLists(c context.Context, in *pb.IlInput) (allIgnor
 
 	// Loop through all ignorelists configured in the config file.
 	for il := range s.cfg.GetStringMap("ignoreLists") {
-		ilCfg := s.cfg.Sub(fmt.Sprintf("ignoreLists.%v", il))
+		ilCfg := config.Sub(s.cfg, fmt.Sprintf("ignoreLists.%v", il))
 		thisIl, err := ignorelist.Retrieve(redisConn, ilCfg, il)
 		if err != nil {
 			return []string{}, err

@@ -24,10 +24,12 @@ import (
 	"errors"
 	"net"
 
+	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/playerindices"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 
@@ -37,7 +39,6 @@ import (
 	"go.opencensus.io/tag"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/spf13/viper"
 
 	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
@@ -58,13 +59,13 @@ var (
 // the protobuf, by fulfilling the frontend.APIClient interface.
 type FrontendAPI struct {
 	grpc *grpc.Server
-	cfg  *viper.Viper
+	cfg  config.View
 	pool *redis.Pool
 }
 type frontendAPI FrontendAPI
 
 // New returns an instantiated srvice
-func New(cfg *viper.Viper, pool *redis.Pool) *FrontendAPI {
+func New(cfg config.View, pool *redis.Pool) *FrontendAPI {
 	s := FrontendAPI{
 		pool: pool,
 		grpc: grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{})),
@@ -104,7 +105,8 @@ func (s *FrontendAPI) Open() error {
 }
 
 // CreatePlayer is this service's implementation of the CreatePlayer gRPC method defined in frontend.proto
-func (s *frontendAPI) CreatePlayer(ctx context.Context, group *pb.Player) (*pb.Result, error) {
+func (s *frontendAPI) CreatePlayer(ctx context.Context, req *pb.CreatePlayerRequest) (*pb.CreatePlayerResponse, error) {
+	group := req.Player
 	// Create context for tagging OpenCensus metrics.
 	funcName := "CreatePlayer"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
@@ -118,7 +120,7 @@ func (s *frontendAPI) CreatePlayer(ctx context.Context, group *pb.Player) (*pb.R
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, FeGrpcErrors.M(1))
-		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Index group
@@ -130,16 +132,17 @@ func (s *frontendAPI) CreatePlayer(ctx context.Context, group *pb.Player) (*pb.R
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, FeGrpcErrors.M(1))
-		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Return success.
 	stats.Record(fnCtx, FeGrpcRequests.M(1))
-	return &pb.Result{Success: true, Error: ""}, nil
+	return &pb.CreatePlayerResponse{}, nil
 }
 
 // DeletePlayer is this service's implementation of the DeletePlayer gRPC method defined in frontend.proto
-func (s *frontendAPI) DeletePlayer(ctx context.Context, group *pb.Player) (*pb.Result, error) {
+func (s *frontendAPI) DeletePlayer(ctx context.Context, req *pb.DeletePlayerRequest) (*pb.DeletePlayerResponse, error) {
+	group := req.Player
 	// Create context for tagging OpenCensus metrics.
 	funcName := "DeletePlayer"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
@@ -154,13 +157,13 @@ func (s *frontendAPI) DeletePlayer(ctx context.Context, group *pb.Player) (*pb.R
 		}).Error("State storage error")
 
 		stats.Record(fnCtx, FeGrpcErrors.M(1))
-		return &pb.Result{Success: false, Error: err.Error()}, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
 	// Kick off delete but don't wait for it to complete.
 	go s.deletePlayer(group.Id)
 
 	stats.Record(fnCtx, FeGrpcRequests.M(1))
-	return &pb.Result{Success: true, Error: ""}, nil
+	return &pb.DeletePlayerResponse{}, nil
 }
 
 // deletePlayer is a 'lazy' player delete
@@ -176,11 +179,31 @@ func (s *frontendAPI) deletePlayer(id string) {
 			"component": "statestorage",
 		}).Warn("Error deleting player from state storage, this could leak state storage memory but is usually not a fatal error")
 	}
+
+	// Delete player from all ignorelists
+	go func() {
+		redisConn := s.pool.Get()
+		defer redisConn.Close()
+
+		redisConn.Send("MULTI")
+		for il := range s.cfg.GetStringMap("ignoreLists") {
+			ignorelist.SendRemove(redisConn, il, []string{id})
+		}
+		_, err := redisConn.Do("EXEC")
+		if err != nil {
+			feLog.WithFields(log.Fields{
+				"error":     err.Error(),
+				"component": "statestorage",
+			}).Error("Error de-indexing player from ignorelists")
+		}
+	}()
+
 	go playerindices.DeleteMeta(context.Background(), s.pool, id)
 }
 
 // GetUpdates is this service's implementation of the GetUpdates gRPC method defined in frontend.proto
-func (s *frontendAPI) GetUpdates(p *pb.Player, assignmentStream pb.Frontend_GetUpdatesServer) error {
+func (s *frontendAPI) GetUpdates(req *pb.GetUpdatesRequest, assignmentStream pb.Frontend_GetUpdatesServer) error {
+	p := req.Player
 	// Get cancellable context
 	ctx, cancel := context.WithCancel(assignmentStream.Context())
 	defer cancel()
@@ -236,7 +259,9 @@ func (s *frontendAPI) GetUpdates(p *pb.Player, assignmentStream pb.Frontend_GetU
 				"status":     a.Status,
 				"error":      a.Error,
 			}).Info("updating client")
-			assignmentStream.Send(&a)
+			assignmentStream.Send(&pb.GetUpdatesResponse{
+				Player: &a,
+			})
 			stats.Record(fnCtx, FeGrpcStreamedResponses.M(1))
 		}
 	}

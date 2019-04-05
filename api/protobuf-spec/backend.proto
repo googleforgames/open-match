@@ -5,6 +5,43 @@ option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
 // The protobuf messages sent in the gRPC calls are defined 'messages.proto'.
 import 'api/protobuf-spec/messages.proto';
 
+message CreateMatchRequest {
+  messages.MatchObject match = 1;
+}
+
+message CreateMatchResponse {
+  messages.MatchObject match = 1;
+}
+
+message ListMatchesRequest {
+  messages.MatchObject match = 1;
+}
+
+message ListMatchesResponse {
+  messages.MatchObject match = 1;
+}
+
+message DeleteMatchRequest {
+  messages.MatchObject match = 1;
+}
+
+message DeleteMatchResponse {
+}
+
+message CreateAssignmentsRequest {
+  messages.Assignments assignment = 1;
+}
+
+message CreateAssignmentsResponse {
+}
+
+message DeleteAssignmentsRequest {
+  messages.Roster roster = 1;
+}
+
+message DeleteAssignmentsResponse {
+}
+
 service Backend {
   // Calls to ask the matchmaker to run a matchmaking function.
 
@@ -20,16 +57,16 @@ service Backend {
   //  - error. Empty if no error was encountered
   //  - rosters, if you choose to fill them in your MMF. (Recommended)
   //  - pools, if you used the MMLogicAPI in your MMF. (Recommended, and provides stats)
-  rpc CreateMatch(messages.MatchObject) returns (messages.MatchObject) {} 
+  rpc CreateMatch(CreateMatchRequest) returns (CreateMatchResponse) {} 
   // Continually run MMF and stream MatchObjects that fit this profile until
   // the backend client closes the connection.  Same inputs/outputs as CreateMatch.
-  rpc ListMatches(messages.MatchObject) returns (stream messages.MatchObject) {}
+  rpc ListMatches(ListMatchesRequest) returns (stream ListMatchesResponse) {}
 
   // Delete a MatchObject from state storage manually. (MatchObjects in state
   // storage will also automatically expire after a while, defined in the config)
   // INPUT: MatchObject message with the 'id' field populated. 
   // (All other fields are ignored.)
-  rpc DeleteMatch(messages.MatchObject) returns (messages.Result) {}
+  rpc DeleteMatch(DeleteMatchRequest) returns (DeleteMatchResponse) {}
 
   // Calls for communication of connection info to players. 
 
@@ -46,11 +83,11 @@ service Backend {
   //     player messages. All players from all rosters will be sent the assignment.
   //     The only field in the Roster's Player messages used by CreateAssignments is
   //     the id field.  All other fields in the Player messages are silently ignored.
-  rpc CreateAssignments(messages.Assignments) returns (messages.Result) {}
+  rpc CreateAssignments(CreateAssignmentsRequest) returns (CreateAssignmentsResponse) {}
   // Remove DGS connection info from state storage for players. 
   // INPUT: Roster message with the 'players' field populated. 
   //    The only field in the Roster's Player messages used by
   //    DeleteAssignments is the 'id' field.  All others are silently ignored.  If
   //    you need to delete multiple rosters, make multiple calls.
-  rpc DeleteAssignments(messages.Roster) returns (messages.Result) {}
+  rpc DeleteAssignments(DeleteAssignmentsRequest) returns (DeleteAssignmentsResponse) {}
 }

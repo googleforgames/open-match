@@ -37,25 +37,30 @@ BASE_VERSION = 0.4.0
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD)
 VERSION ?= $(BASE_VERSION)-$(VERSION_SUFFIX)
 
-PROTOC_VERSION = 3.7.0
-GOLANG_VERSION = 1.12
+PROTOC_VERSION = 3.7.1
+GOLANG_VERSION = 1.12.1
 HELM_VERSION = 2.13.0
 HUGO_VERSION = 0.54.0
 KUBECTL_VERSION = 1.13.0
+NODEJS_VERSION = 10.15.3
+SKAFFOLD_VERSION = latest
+MINIKUBE_VERSION = latest
+
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
 GO = go
 GO_BIN := $(GOPATH)/bin
+GO_SRC := $(GOPATH)/src
 GO_BUILD_COMMAND = CGO_ENABLED=0 GOOS=linux $(GO) build -a -installsuffix cgo .
 BUILD_DIR = $(CURDIR)/build
 TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
 TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
 PROTOC := $(TOOLCHAIN_BIN)/protoc
 PROTOC_INCLUDES := $(TOOLCHAIN_DIR)/include/
-GCP_PROJECT_ID =
+GCP_PROJECT_ID ?=
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
 OM_SITE_GCP_PROJECT_ID = open-match-site
 OM_SITE_GCP_PROJECT_FLAG = --project=$(OM_SITE_GCP_PROJECT_ID)
-REGISTRY = gcr.io/$(GCP_PROJECT_ID)
+REGISTRY ?= gcr.io/$(GCP_PROJECT_ID)
 TAG := $(VERSION)
 ALTERNATE_TAG := dev
 GKE_CLUSTER_NAME = om-cluster
@@ -63,9 +68,10 @@ GCP_REGION = us-west1
 GCP_ZONE = us-west1-a
 EXE_EXTENSION =
 LOCAL_CLOUD_BUILD_PUSH = # --push
-GOPATH_PRIMARY = $(HOME)
-KUBECTL_RUN_ENV = --env='REDIS_SERVICE_HOST=$$(OPEN_MATCH_REDIS_MASTER_SERVICE_HOST)' --env='REDIS_SERVICE_PORT=$$(OPEN_MATCH_REDIS_MASTER_SERVICE_PORT)'
+KUBECTL_RUN_ENV = --env='REDIS_SERVICE_HOST=$$(OM_REDIS_MASTER_SERVICE_HOST)' --env='REDIS_SERVICE_PORT=$$(OM_REDIS_MASTER_SERVICE_PORT)'
 GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
+# Flags to simulate behavior of newer versions of Kubernetes
+KUBERNETES_COMPAT = --no-enable-basic-auth -no-issue-client-certificate --enable-ip-alias
 GO111MODULE = on
 PROMETHEUS_PORT = 9090
 GRAFANA_PORT = 3000
@@ -75,6 +81,9 @@ TILLER = $(TOOLCHAIN_BIN)/tiller
 MINIKUBE = $(TOOLCHAIN_BIN)/minikube
 KUBECTL = $(TOOLCHAIN_BIN)/kubectl
 SERVICE = default
+NAMESPACE ?= open-match
+OPEN_MATCH_NAME ?= open-match
+REDIS_NAME = om-redis
 
 ## Make port forwards accessible outside of the proxy machine.
 PORT_FORWARD_ADDRESS_FLAG = --address 0.0.0.0
@@ -95,37 +104,37 @@ endif
 ifeq ($(OS),Windows_NT)
 	# TODO: Windows packages are here but things are broken since many paths are Linux based and zip vs tar.gz.
 	HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-windows-amd64.zip
-	MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/latest/minikube-windows-amd64.exe
-	SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/latest/skaffold-windows-amd64.exe
+	MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-windows-amd64.exe
+	SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-windows-amd64.exe
 	EXE_EXTENSION = .exe
 	PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-win64.zip
 	GO_PACKAGE = https://storage.googleapis.com/golang/go$(GOLANG_VERSION).windows-amd64.zip
 	KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/windows/amd64/kubectl.exe
 	HUGO_PACKAGE = https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_extended_$(HUGO_VERSION)_Windows-64bit.zip
-	NODEJS_PACKAGE = https://nodejs.org/dist/v10.15.3/node-v10.15.3-win-x64.zip
+	NODEJS_PACKAGE = https://nodejs.org/dist/v$(NODEJS_VERSION)/node-v$(NODEJS_VERSION)-win-x64.zip
 	NODEJS_PACKAGE_NAME = nodejs.zip
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
 		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-linux-amd64.tar.gz
-		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64
+		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
+		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-linux-amd64
 		PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-linux-x86_64.zip
 		GO_PACKAGE = https://storage.googleapis.com/golang/go$(GOLANG_VERSION).linux-amd64.tar.gz
 		KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/linux/amd64/kubectl
 		HUGO_PACKAGE = https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_extended_$(HUGO_VERSION)_Linux-64bit.tar.gz
-		NODEJS_PACKAGE = https://nodejs.org/dist/v10.15.3/node-v10.15.3-linux-x64.tar.xz
-		NODEJS_PACKAGE_NAME = nodejs.tar.xz
+		NODEJS_PACKAGE = https://nodejs.org/dist/v$(NODEJS_VERSION)/node-v$(NODEJS_VERSION)-linux-x64.tar.gz
+		NODEJS_PACKAGE_NAME = nodejs.tar.gz
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
-		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/latest/minikube-darwin-amd64
-		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/latest/skaffold-darwin-amd64
+		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-darwin-amd64
+		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-darwin-amd64
 		PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-osx-x86_64.zip
 		GO_PACKAGE = https://storage.googleapis.com/golang/go$(GOLANG_VERSION).darwin-amd64.tar.gz
 		KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/darwin/amd64/kubectl
 		HUGO_PACKAGE = https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_extended_$(HUGO_VERSION)_macOS-64bit.tar.gz
-		NODEJS_PACKAGE = https://nodejs.org/dist/v10.15.3/node-v10.15.3-darwin-x64.tar.gz
+		NODEJS_PACKAGE = https://nodejs.org/dist/v$(NODEJS_VERSION)/node-v$(NODEJS_VERSION)-darwin-x64.tar.gz
 		NODEJS_PACKAGE_NAME = nodejs.tar.gz
 	endif
 endif
@@ -196,22 +205,25 @@ build-client-images: build-backendclient-image build-clientloadgen-image build-f
 build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-php-mmlogic-simple-image build-mmf-py3-mmlogic-simple-image
 build-evaluator-example-images: build-evaluator-simple-image
 
-build-frontendapi-image: cmd/frontendapi/frontendapi
+build-base-build-image:
+	docker build -f Dockerfile.base-build -t open-match-base-build .
+
+build-frontendapi-image: build-base-build-image
 	docker build -f cmd/frontendapi/Dockerfile -t $(REGISTRY)/openmatch-frontendapi:$(TAG) -t $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG) .
 
-build-backendapi-image: cmd/backendapi/backendapi
+build-backendapi-image: build-base-build-image
 	docker build -f cmd/backendapi/Dockerfile -t $(REGISTRY)/openmatch-backendapi:$(TAG) -t $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG) .
 
-build-mmforc-image: cmd/mmforc/mmforc
+build-mmforc-image: build-base-build-image
 	docker build -f cmd/mmforc/Dockerfile -t $(REGISTRY)/openmatch-mmforc:$(TAG) -t $(REGISTRY)/openmatch-mmforc:$(ALTERNATE_TAG) .
 
-build-mmlogicapi-image: cmd/mmlogicapi/mmlogicapi
+build-mmlogicapi-image: build-base-build-image
 	docker build -f cmd/mmlogicapi/Dockerfile -t $(REGISTRY)/openmatch-mmlogicapi:$(TAG) -t $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG) .
 
 build-mmf-cs-mmlogic-simple-image:
 	cd examples/functions/csharp/simple/ && docker build -f Dockerfile -t $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(ALTERNATE_TAG) .
 
-build-mmf-go-mmlogic-simple-image:
+build-mmf-go-mmlogic-simple-image: build-base-build-image
 	docker build -f examples/functions/golang/manual-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(ALTERNATE_TAG) .
 
 build-mmf-php-mmlogic-simple-image:
@@ -220,19 +232,21 @@ build-mmf-php-mmlogic-simple-image:
 build-mmf-py3-mmlogic-simple-image:
 	docker build -f examples/functions/python3/mmlogic-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(ALTERNATE_TAG) .
 
-build-backendclient-image: examples/backendclient/backendclient
+build-backendclient-image: build-base-build-image
 	docker build -f examples/backendclient/Dockerfile -t $(REGISTRY)/openmatch-backendclient:$(TAG) -t $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG) .
 
-build-clientloadgen-image: test/cmd/clientloadgen/clientloadgen
+build-clientloadgen-image: build-base-build-image
 	docker build -f test/cmd/clientloadgen/Dockerfile -t $(REGISTRY)/openmatch-clientloadgen:$(TAG) -t $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG) .
 
-build-frontendclient-image: test/cmd/frontendclient/frontendclient
+build-frontendclient-image: build-base-build-image
 	docker build -f test/cmd/frontendclient/Dockerfile -t $(REGISTRY)/openmatch-frontendclient:$(TAG) -t $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG) .
 
-build-evaluator-simple-image: examples/evaluators/golang/simple/simple
+build-evaluator-simple-image: build-base-build-image
 	docker build -f examples/evaluators/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-evaluator-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG) .
 
 clean-images:
+	-docker rmi -f open-match-base-build
+
 	-docker rmi -f $(REGISTRY)/openmatch-frontendapi:$(TAG) $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-backendapi:$(TAG) $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-mmforc:$(TAG) $(REGISTRY)/openmatch-mmforc:$(ALTERNATE_TAG)
@@ -249,7 +263,7 @@ clean-images:
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator-simple:$(TAG) $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG)
 
 install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug redis stable/redis --namespace redis
+	$(HELM) upgrade --install --wait --debug $(REDIS_NAME) stable/redis --namespace $(NAMESPACE)
 
 chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd install/helm/open-match; $(HELM) dependency update)
@@ -258,34 +272,92 @@ print-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd install/helm; $(HELM) lint open-match; $(HELM) install --dry-run --debug open-match)
 
 install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug open-match install/helm/open-match \
-	  --namespace=open-match \
-	  --set openmatch.image.registry=$(REGISTRY) \
-	  --set openmatch.image.tag=$(TAG)
+	$(HELM) upgrade --install --wait --debug $(OPEN_MATCH_NAME) install/helm/open-match \
+		--namespace=$(NAMESPACE) \
+		--set openmatch.image.registry=$(REGISTRY) \
+		--set openmatch.image.tag=$(TAG)
 
 install-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug open-match-example install/helm/open-match-example \
-	  --namespace=open-match \
+	$(HELM) upgrade --install --wait --debug $(OPEN_MATCH_NAME)-example install/helm/open-match-example \
+	  --namespace=$(NAMESPACE) \
 	  --set openmatch.image.registry=$(REGISTRY) \
 	  --set openmatch.image.tag=$(TAG)
 
 delete-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	-$(HELM) delete --purge open-match-example
+	-$(HELM) delete --purge $(OPEN_MATCH_NAME)-example
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug --dry-run open-match install/helm/open-match \
-	  --namespace=open-match \
-	  --set openmatch.image.registry=$(REGISTRY) \
-	  --set openmatch.image.tag=$(TAG)
+	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_NAME) install/helm/open-match \
+		--namespace=$(NAMESPACE) \
+		--set openmatch.image.registry=$(REGISTRY) \
+		--set openmatch.image.tag=$(TAG)
 
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	-$(HELM) delete --purge open-match
+	-$(HELM) delete --purge $(OPEN_MATCH_NAME)
 	-$(KUBECTL) delete crd prometheuses.monitoring.coreos.com
 	-$(KUBECTL) delete crd servicemonitors.monitoring.coreos.com
 	-$(KUBECTL) delete crd prometheusrules.monitoring.coreos.com
 
 update-helm-deps:
 	(cd install/helm/open-match; helm dependencies update)
+
+gen-install: gen-redis-install gen-openmatch-install gen-prometheus-install gen-grafana-install
+
+gen-redis-install: build/toolchain/bin/helm$(EXE_EXTENSION)
+	$(HELM) template --name $(OPEN_MATCH_NAME) --namespace $(NAMESPACE) \
+		--set redis.fullnameOverride='$(REDIS_NAME)' \
+		--set openmatch.config.install=false \
+		--set openmatch.backendapi.install=false \
+		--set openmatch.frontendapi.install=false \
+		--set openmatch.mmlogicapi.install=false \
+		--set openmatch.mmforc.install=false \
+		--set prometheus.enabled=false \
+		--set grafana.enabled=false \
+		install/helm/open-match > install/yaml/01-redis-chart.yaml
+
+gen-openmatch-install: build/toolchain/bin/helm$(EXE_EXTENSION)
+	$(HELM) template --name $(OPEN_MATCH_NAME) --namespace $(NAMESPACE) \
+		--set redis.fullnameOverride='$(REDIS_NAME)' \
+		--set redis.enabled=false \
+		--set prometheus.enabled=false \
+		--set grafana.enabled=false \
+		--set openmatch.image.registry=$(REGISTRY) \
+		--set openmatch.image.tag=$(TAG) \
+		--set openmatch.noChartMeta=true \
+		install/helm/open-match > install/yaml/02-open-match.yaml
+
+gen-prometheus-install:
+	$(HELM) template --name $(OPEN_MATCH_NAME) --namespace $(NAMESPACE) \
+		--set redis.enabled=false \
+		--set openmatch.config.install=false \
+		--set openmatch.backendapi.install=false \
+		--set openmatch.frontendapi.install=false \
+		--set openmatch.mmlogicapi.install=false \
+		--set openmatch.mmforc.install=false \
+		--set grafana.enabled=false \
+		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
+
+gen-grafana-install:
+	$(HELM) template --name $(OPEN_MATCH_NAME) --namespace $(NAMESPACE) \
+		--set redis.enabled=false \
+		--set openmatch.config.install=false \
+		--set openmatch.backendapi.install=false \
+		--set openmatch.frontendapi.install=false \
+		--set openmatch.mmlogicapi.install=false \
+		--set openmatch.mmforc.install=false \
+		--set prometheus.enabled=false \
+		--set grafana.enabled=true \
+		install/helm/open-match > install/yaml/04-grafana-chart.yaml
+
+set-redis-password:
+	@stty -echo; \
+		printf "Redis password: "; \
+		read REDIS_PASSWORD; \
+		stty echo; \
+		printf "\n"; \
+		REDIS_PASSWORD=$$(printf "$$REDIS_PASSWORD" | base64); \
+		printf "apiVersion: v1\nkind: Secret\nmetadata:\n  name: $(REDIS_NAME)\n  namespace: $(NAMESPACE)\ndata:\n  redis-password: $$REDIS_PASSWORD\n" | \
+		$(KUBECTL) replace -f - --force
 
 install-toolchain: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)  build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/python/
 
@@ -349,7 +421,7 @@ auth-gke-cluster:
 	gcloud $(GCP_PROJECT_FLAG) container clusters get-credentials $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG)
 
 create-gke-cluster:
-	gcloud $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --machine-type n1-standard-4 --tags open-match
+	gcloud $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --machine-type n1-standard-4 --tags open-match $(KUBERNETES_COMPAT)
 
 delete-gke-cluster:
 	gcloud $(GCP_PROJECT_FLAG) container clusters delete $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG)
@@ -365,7 +437,7 @@ build/toolchain/python/:
 	virtualenv --python=python3 build/toolchain/python/
 	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
 	cd build/toolchain/python/bin && ln -s python3 pytho
-	cd build/toolchain/python/ && source bin/activate && pip install grpcio-tools && deactivate
+	cd build/toolchain/python/ && . bin/activate && pip install grpcio-tools && deactivate
 
 build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -378,11 +450,33 @@ build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	$(GO) install github.com/golang/protobuf/protoc-gen-go
 	mv $(GOPATH)/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
 
-all-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/function.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go mmlogic-simple-protos
+all-protos: golang-protos mmlogic-simple-protos php-protos
+golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/function.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
 	$(PROTOC) $< \
-	-I $(CURDIR) -I $(PROTOC_INCLUDES) \
-	--go_out=plugins=grpc:$(GOPATH)/src
+		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--go_out=plugins=grpc:$(GO_SRC)
+
+php-protos: examples/functions/php/mmlogic-simple/proto/
+examples/functions/php/mmlogic-simple/proto/:
+	mkdir -p examples/functions/php/mmlogic-simple/proto/
+	$(PROTOC) api/protobuf-spec/messages.proto \
+		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--php_out=examples/functions/php/mmlogic-simple/proto/ \
+		--grpc_out=examples/functions/php/mmlogic-simple/proto/ \
+		--plugin=protoc-gen-grpc=build/toolchain/bin/grpc_php_plugin
+	$(PROTOC) api/protobuf-spec/backend.proto \
+		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--php_out=examples/functions/php/mmlogic-simple/proto/
+	$(PROTOC) api/protobuf-spec/frontend.proto \
+		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--php_out=examples/functions/php/mmlogic-simple/proto/
+	$(PROTOC) api/protobuf-spec/function.proto \
+		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--php_out=examples/functions/php/mmlogic-simple/proto/
+	$(PROTOC) api/protobuf-spec/mmlogic.proto \
+		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--php_out=examples/functions/php/mmlogic-simple/proto/
 
 ## Include structure of the protos needs to be called out do the dependency chain is run through properly.
 internal/pb/backend.pb.go: internal/pb/messages.pb.go
@@ -393,10 +487,10 @@ internal/pb/function.pb.go: internal/pb/messages.pb.go
 mmlogic-simple-protos: examples/functions/python3/mmlogic-simple/api/protobuf_spec/messages_pb2.py examples/functions/python3/mmlogic-simple/api/protobuf_spec/mmlogic_pb2.py
 
 examples/functions/python3/mmlogic-simple/api/protobuf_spec/%_pb2.py: api/protobuf-spec/%.proto build/toolchain/python/
-	source build/toolchain/python/bin/activate && python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) --python_out=examples/functions/python3/mmlogic-simple/ --grpc_python_out=examples/functions/python3/mmlogic-simple/ $< && deactivate
+	. build/toolchain/python/bin/activate && python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) --python_out=examples/functions/python3/mmlogic-simple/ --grpc_python_out=examples/functions/python3/mmlogic-simple/ $< && deactivate
 
 internal/pb/%_pb2.py: api/protobuf-spec/%.proto build/toolchain/python/
-	source build/toolchain/python/bin/activate && python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) --python_out=$(CURDIR) --grpc_python_out=$(CURDIR) $< && deactivate
+	. build/toolchain/python/bin/activate && python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) --python_out=$(CURDIR) --grpc_python_out=$(CURDIR) $< && deactivate
 
 build:
 	$(GO) build ./...
@@ -443,13 +537,13 @@ build/archives/${NODEJS_PACKAGE_NAME}:
 
 build/toolchain/nodejs/: build/archives/${NODEJS_PACKAGE_NAME}
 	mkdir -p build/toolchain/nodejs/
-	cd build/toolchain/nodejs/ && tar xjf ../../archives/${NODEJS_PACKAGE_NAME} --strip-components 1
+	cd build/toolchain/nodejs/ && tar xvzf ../../archives/${NODEJS_PACKAGE_NAME} --strip-components 1
 
 install-npm: build/toolchain/nodejs/
 	echo "{}" > package.json
 	$(TOOLCHAIN_DIR)/nodejs/bin/npm install postcss-cli autoprefixer
 
-build/site/: build/archives/govanityurls.zip build/toolchain/bin/hugo$(EXE_EXTENSION)
+build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION)
 	rm -rf build/site/
 	mkdir -p build/site/
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) --enableGitInfo --config=config.toml --source . --destination $(BUILD_DIR)/site/public/
@@ -478,6 +572,8 @@ clean-site:
 clean-protos:
 	rm -rf internal/pb/
 	rm -rf api/protobuf_spec/
+	rm -rf examples/functions/php/mmlogic-simple/proto/
+	rm -rf examples/functions/python3/mmlogic-simple/api/protobuf_spec/
 
 clean-binaries:
 	rm -rf cmd/backendapi/backendapi
@@ -501,24 +597,23 @@ clean-nodejs:
 clean: clean-images clean-binaries clean-site clean-toolchain clean-protos clean-nodejs
 
 run-backendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=open-match $(KUBECTL_RUN_ENV)
+	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=$(NAMESPACE) $(KUBECTL_RUN_ENV)
 
 run-frontendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) run om-frontendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-frontendclient:$(TAG) --namespace=open-match $(KUBECTL_RUN_ENV)
+	$(KUBECTL) run om-frontendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-frontendclient:$(TAG) --namespace=$(NAMESPACE) $(KUBECTL_RUN_ENV)
 
 run-clientloadgen: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) run om-clientloadgen --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-clientloadgen:$(TAG) --namespace=open-match $(KUBECTL_RUN_ENV)
+	$(KUBECTL) run om-clientloadgen --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-clientloadgen:$(TAG) --namespace=$(NAMESPACE) $(KUBECTL_RUN_ENV)
 
 proxy-grafana: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	echo "User: admin"
 	echo "Password: openmatch"
-	$(KUBECTL) port-forward --namespace open-match $(shell $(KUBECTL) get pod --namespace open-match --selector="app=grafana,release=open-match" --output jsonpath='{.items[0].metadata.name}') $(GRAFANA_PORT):3000 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(NAMESPACE) --selector="app=grafana,release=$(OPEN_MATCH_NAME)" --output jsonpath='{.items[0].metadata.name}') $(GRAFANA_PORT):3000 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) port-forward --namespace open-match $(shell $(KUBECTL) get pod --namespace open-match --selector="app=prometheus,component=server,release=open-match" --output jsonpath='{.items[0].metadata.name}') $(PROMETHEUS_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(NAMESPACE) --selector="app=prometheus,component=server,release=$(OPEN_MATCH_NAME)" --output jsonpath='{.items[0].metadata.name}') $(PROMETHEUS_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
 .PHONY: proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test vet
-

@@ -31,7 +31,7 @@ import (
 	"net"
 	"os"
 
-	backend "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	pb "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/tidwall/gjson"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
@@ -72,7 +72,7 @@ func main() {
 	}
 
 	jsonProfile := buffer.String()
-	pbProfile := &backend.MatchObject{}
+	pbProfile := &pb.MatchObject{}
 	/*
 		err = jsonpb.UnmarshalString(jsonProfile, pbProfile)
 		if err != nil {
@@ -95,7 +95,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err.Error())
 	}
-	client := backend.NewBackendClient(conn)
+	client := pb.NewBackendClient(conn)
 	log.Println("API client connected to", ip[0]+":50505")
 
 	profileName := "test-dm-usc1f"
@@ -110,18 +110,21 @@ func main() {
 	log.Printf("Establishing HTTPv2 stream...")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	//match, err := client.CreateMatch(ctx, pbProfile)
+	//match, err := client.CreateMatch(ctx, &pb.CreateMatchRequest{ Match: pbProfile })
 
 	for {
 		log.Println("Attempting to send ListMatches call")
-		stream, err := client.ListMatches(ctx, pbProfile)
+		stream, err := client.ListMatches(ctx, &pb.ListMatchesRequest{
+			Match: pbProfile,
+		})
 		if err != nil {
 			log.Fatalf("Attempting to open stream for ListMatches(_) = _, %v", err)
 		}
 		//for i := 0; i < 2; i++ {
 		for {
 			log.Printf("Waiting for matches...")
-			match, err := stream.Recv()
+			listResponse, err := stream.Recv()
+			match := listResponse.Match
 			if err == io.EOF {
 				break
 			}
@@ -156,9 +159,11 @@ func main() {
 			}
 			log.Println("Assigning players to DGS at", connstring)
 
-			assign := &backend.Assignments{Rosters: match.Rosters, Assignment: connstring}
+			assign := &pb.Assignments{Rosters: match.Rosters, Assignment: connstring}
 			log.Printf("Waiting for matches...")
-			_, err = client.CreateAssignments(context.Background(), assign)
+			_, err = client.CreateAssignments(context.Background(), &pb.CreateAssignmentsRequest{
+				Assignment: assign,
+			})
 			if err != nil {
 				stat, ok := status.FromError(err)
 				if ok {

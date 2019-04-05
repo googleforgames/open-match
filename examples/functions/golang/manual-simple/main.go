@@ -23,13 +23,12 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/config"
-	messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/set"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gomodule/redigo/redis"
-	"github.com/spf13/viper"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
@@ -50,7 +49,6 @@ the default state storage.
 */
 func main() {
 	// Read config file.
-	cfg := viper.New()
 	cfg, err := config.Read()
 	if err != nil {
 		panic(err)
@@ -170,7 +168,7 @@ func main() {
 	combinedIgnoreList := make([]string, 0)
 	// Loop through all ignorelists configured in the config file.
 	for il := range cfg.GetStringMap("ignoreLists") {
-		ilCfg := cfg.Sub(fmt.Sprintf("ignoreLists.%v", il))
+		ilCfg := config.Sub(cfg, fmt.Sprintf("ignoreLists.%v", il))
 		thisIl, err := ignorelist.Retrieve(redisConn, ilCfg, il)
 		if err != nil {
 			panic(err)
@@ -219,8 +217,8 @@ func main() {
 	// message data schema.
 	profileRosters := make(map[string][]string)
 	//proposedRosters := make([]string, 0)
-	mo := &messages.MatchObject{}
-	mo.Rosters = make([]*messages.Roster, 0)
+	mo := &pb.MatchObject{}
+	mo.Rosters = make([]*pb.Roster, 0)
 
 	// List of all player IDs on all proposed rosters, used to add players to
 	// the ignore list.
@@ -234,7 +232,7 @@ func main() {
 		fmt.Println(rName)
 		rPlayers := gjson.Get(roster.String(), "players")
 		profileRosters[rName] = make([]string, 0)
-		pbRoster := messages.Roster{Name: rName, Players: []*messages.Player{}}
+		pbRoster := pb.Roster{Name: rName, Players: []*pb.Player{}}
 
 		rPlayers.ForEach(func(_, player gjson.Result) bool {
 			// TODO: This is  where you would put your own custom matchmaking
@@ -268,7 +266,7 @@ func main() {
 					profileRosters[rName] = append(profileRosters[rName], proposedPlayer)
 					fmt.Printf("  proposing: %v\n", proposedPlayer)
 
-					pbRoster.Players = append(pbRoster.Players, &messages.Player{Id: playerID, Pool: desiredPool})
+					pbRoster.Players = append(pbRoster.Players, &pb.Player{Id: playerID, Pool: desiredPool})
 					playerList = append(playerList, playerID)
 
 				} else {

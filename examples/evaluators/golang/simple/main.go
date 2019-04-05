@@ -33,12 +33,11 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/config"
-	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	pb "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	"github.com/gobs/pretty"
 	"github.com/gomodule/redigo/redis"
-	"github.com/spf13/viper"
 )
 
 func main() {
@@ -141,7 +140,7 @@ func chooseMatches(overloaded []int) ([]int, []int, error) {
 	return []int{}, overloaded, nil
 }
 
-func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[int][]int, map[int]bool, error) {
+func stub(cfg config.View, pool *redis.Pool) ([]string, map[string][]int, map[int][]int, map[int]bool, error) {
 	//Init Logger
 	lgr := log.New(os.Stdout, "MMFEvalStub: ", log.LstdFlags)
 	lgr.Println("Initializing example MMF proposal evaluator")
@@ -210,7 +209,7 @@ func stub(cfg *viper.Viper, pool *redis.Pool) ([]string, map[string][]int, map[i
 func getProposedPlayers(pool *redis.Pool, propKey string) ([]string, error) {
 
 	// Get the proposal match object from redis
-	mo := &om_messages.MatchObject{Id: propKey}
+	mo := &pb.MatchObject{Id: propKey}
 	err := redispb.UnmarshalFromRedis(context.Background(), pool, mo)
 	if err != nil {
 		return nil, err
