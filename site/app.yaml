@@ -15,6 +15,13 @@
 runtime: go111
 service: development
 
+skip_files:
+- .*assets
+- .*content
+- .*layouts
+- .*resources
+- .*themes
+
 handlers:
   - url: /site/$
     static_files: public/index.html
