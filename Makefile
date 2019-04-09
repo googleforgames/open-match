@@ -71,7 +71,7 @@ LOCAL_CLOUD_BUILD_PUSH = # --push
 KUBECTL_RUN_ENV = --env='REDIS_SERVICE_HOST=$$(OM_REDIS_MASTER_SERVICE_HOST)' --env='REDIS_SERVICE_PORT=$$(OM_REDIS_MASTER_SERVICE_PORT)'
 GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
 # Flags to simulate behavior of newer versions of Kubernetes
-KUBERNETES_COMPAT = --no-enable-basic-auth -no-issue-client-certificate --enable-ip-alias
+KUBERNETES_COMPAT = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias
 GO111MODULE = on
 PROMETHEUS_PORT = 9090
 GRAFANA_PORT = 3000
