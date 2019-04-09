@@ -25,6 +25,7 @@ openmatch:
     install: true
   config:
     matchmaker: /config
+    testprofile: /profiles
   image:
     registry: gcr.io/open-match-public-images
     tag: 0.4.0

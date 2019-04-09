@@ -51,6 +51,8 @@ spec:
         volumeMounts:
         - name: om-config-volume
           mountPath: {{ .Values.openmatch.config.matchmaker }}
+        - name: om-testprofile-volume
+          mountPath: {{ .Values.openmatch.config.testprofile }}
         resources:
           requests:
             memory: 100Mi
@@ -64,4 +66,7 @@ spec:
       - name: om-config-volume
         configMap:
           name: om-configmap
+      - name: om-testprofile-volume
+        configMap:
+          name: om-testprofile-config
 {{- end }}
