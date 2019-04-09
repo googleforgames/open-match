@@ -31,7 +31,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.Read("config.yaml")
+	cfg, err := config.Read()
 	check(err, "QUIT")
 
 	pool, err := redishelpers.ConnectionPool(cfg)

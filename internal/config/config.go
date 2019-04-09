@@ -72,9 +72,7 @@ var (
 	}
 )
 
-// Read reads a config file into a viper.Viper instance and associates environment vars defined in
-// config.envMappings
-func Read(file string) (View, error) {
+func read(file string) (View, error) {
 	cfg := viper.New()
 	cfg.SetConfigFile(file)
 	err := cfg.ReadInConfig()
@@ -126,6 +124,12 @@ func Read(file string) (View, error) {
 	return cfg, nil
 }
 
+// Read reads a config file 'config.yaml' into a viper.Viper instance
+// and associates environment vars defined in 'envMappings'.
+func Read() (View, error) {
+	return read("config.yaml")
+}
+
 // ReadAndMerge reads configurations from all specified files using Read(),
 // and then merges them into a single viper.Viper instance.
 //
@@ -137,7 +141,7 @@ func ReadAndMerge(files ...string) (View, error) {
 
 	layers := make([]View, len(files))
 	for i, f := range files {
-		l, err := Read(f)
+		l, err := read(f)
 		if err != nil {
 			return nil, err
 		}
