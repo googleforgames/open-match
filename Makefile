@@ -453,7 +453,7 @@ build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	mv $(GOPATH)/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
 
 all-protos: golang-protos mmlogic-simple-protos php-protos
-golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/function.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
+golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
@@ -473,7 +473,7 @@ examples/functions/php/mmlogic-simple/proto/:
 	$(PROTOC) api/protobuf-spec/frontend.proto \
 		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
 		--php_out=examples/functions/php/mmlogic-simple/proto/
-	$(PROTOC) api/protobuf-spec/function.proto \
+	$(PROTOC) api/protobuf-spec/matchfunction.proto \
 		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
 		--php_out=examples/functions/php/mmlogic-simple/proto/
 	$(PROTOC) api/protobuf-spec/mmlogic.proto \
@@ -484,7 +484,7 @@ examples/functions/php/mmlogic-simple/proto/:
 internal/pb/backend.pb.go: internal/pb/messages.pb.go
 internal/pb/frontend.pb.go: internal/pb/messages.pb.go
 internal/pb/mmlogic.pb.go: internal/pb/messages.pb.go
-internal/pb/function.pb.go: internal/pb/messages.pb.go
+internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
 
 mmlogic-simple-protos: examples/functions/python3/mmlogic-simple/api/protobuf_spec/messages_pb2.py examples/functions/python3/mmlogic-simple/api/protobuf_spec/mmlogic_pb2.py
 
