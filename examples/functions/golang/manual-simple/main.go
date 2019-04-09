@@ -298,11 +298,13 @@ func main() {
 	//  long as you send it properly formatted data (i.e. data that fits the schema of
 	//  the protobuf messages)
 	// Add proposed players to the ignorelist so other MMFs won't consider them.
-	fmt.Printf("Adding %v players to ignorelist\n", len(playerList))
-	err = ignorelist.Add(redisConn, "proposed", playerList)
-	if err != nil {
-		fmt.Println("Unable to add proposed players to the ignorelist")
-		panic(err)
+	if len(playerList) > 0 {
+		fmt.Printf("Adding %d players to ignorelist\n", len(playerList))
+		err = ignorelist.Add(redisConn, "proposed", playerList)
+		if err != nil {
+			fmt.Println("Unable to add proposed players to the ignorelist")
+			panic(err)
+		}
 	}
 
 	// Write the match object that will be sent back to the DGS

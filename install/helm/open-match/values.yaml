@@ -61,7 +61,8 @@ openmatch:
 # https://github.com/helm/charts/tree/master/stable/redis
 redis:
   fullnameOverride: om-redis
-  usePassword: true
+  # TODO: Temporarily disable password protected Redis until all the examples are no longer talking directly to the database.
+  usePassword: false
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
   metrics:

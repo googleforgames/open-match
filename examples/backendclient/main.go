@@ -124,7 +124,6 @@ func main() {
 		for {
 			log.Printf("Waiting for matches...")
 			listResponse, err := stream.Recv()
-			match := listResponse.Match
 			if err == io.EOF {
 				break
 			}
@@ -137,6 +136,7 @@ func main() {
 				}
 				break
 			}
+			match := listResponse.Match
 
 			if match.Properties == "{error: insufficient_players}" {
 				log.Println("Waiting for a larger player pool...")
