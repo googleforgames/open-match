@@ -347,7 +347,7 @@ install/yaml/02-open-match.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set prometheus.enabled=false \
 		--set grafana.enabled=false \
 		--set openmatch.image.registry=$(REGISTRY) \
-		--set openmatch.image.tag=$(ALTERNATE_TAG) \
+		--set openmatch.image.tag=$(TAG) \
 		--set openmatch.noChartMeta=true \
 		install/helm/open-match > install/yaml/02-open-match.yaml
 
