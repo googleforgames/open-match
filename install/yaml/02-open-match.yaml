@@ -64,11 +64,11 @@ data:
     debug: true
     defaultImages:
       evaluator:
-        name: 'ihrankouski/openmatch-evaluator-simple'
-        tag: 'dev'
+        name: 'gcr.io/open-match-public-images/openmatch-evaluator-simple'
+        tag: 'latest'
       mmf:
-        name: 'ihrankouski/openmatch-mmf-py3-mmlogic-simple'
-        tag: 'dev'
+        name: 'gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple'
+        tag: 'latest'
     evalutor:
       interval: 10
     logging:
@@ -255,7 +255,7 @@ spec:
     spec:
       containers:
       - name: om-backend
-        image: "ihrankouski/openmatch-backendapi:dev"
+        image: "gcr.io/open-match-public-images/openmatch-backendapi:0.4.0"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
@@ -342,7 +342,7 @@ spec:
     spec:
       containers:
       - name: om-frontendapi
-        image: "ihrankouski/openmatch-frontendapi:dev"
+        image: "gcr.io/open-match-public-images/openmatch-frontendapi:0.4.0"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
@@ -428,7 +428,7 @@ spec:
     spec:
       containers:
       - name: om-mmlogic
-        image: "ihrankouski/openmatch-mmlogicapi:dev"
+        image: "gcr.io/open-match-public-images/openmatch-mmlogicapi:0.4.0"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
@@ -499,7 +499,7 @@ spec:
       serviceAccountName: mmforc-job-runner
       containers:
       - name: om-mmforc
-        image: "ihrankouski/openmatch-mmforc:dev"
+        image: "gcr.io/open-match-public-images/openmatch-mmforc:0.4.0"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
