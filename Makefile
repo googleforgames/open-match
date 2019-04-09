@@ -539,14 +539,17 @@ build/toolchain/nodejs/: build/archives/${NODEJS_PACKAGE_NAME}
 	mkdir -p build/toolchain/nodejs/
 	cd build/toolchain/nodejs/ && tar xvzf ../../archives/${NODEJS_PACKAGE_NAME} --strip-components 1
 
-install-npm: build/toolchain/nodejs/
+node_modules/: build/toolchain/nodejs/
+	-rm -r package.json package-lock.json
+	-rm -rf node_modules/
 	echo "{}" > package.json
 	$(TOOLCHAIN_DIR)/nodejs/bin/npm install postcss-cli autoprefixer
 
-build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION)
+build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
 	rm -rf build/site/
 	mkdir -p build/site/
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) --enableGitInfo --config=config.toml --source . --destination $(BUILD_DIR)/site/public/
+	# Only copy the root directory since that has the AppEngine serving code.
 	-cp -f site/* $(BUILD_DIR)/site
 	#cd $(BUILD_DIR)/site && "SERVICE=$(SERVICE) envsubst < app.yaml > .app.yaml"
 	cp $(BUILD_DIR)/site/app.yaml $(BUILD_DIR)/site/.app.yaml
@@ -593,6 +596,7 @@ clean-nodejs:
 	rm -rf build/toolchain/nodejs/
 	rm -rf node_modules/
 	rm -rf package.json
+	rm -rf package-lock.json
 
 clean: clean-images clean-binaries clean-site clean-toolchain clean-protos clean-nodejs
 
