@@ -1,18 +1,4 @@
 ---
-# Source: open-match/charts/redis/templates/secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: om-redis
-  labels:
-    app: redis
-    chart: redis-6.1.0
-    release: "open-match"
-    heritage: "Tiller"
-type: Opaque
-data:
-  redis-password: "THRvTDJFSTFueg=="
----
 # Source: open-match/charts/redis/templates/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -48,7 +34,6 @@ data:
     response=$(
       timeout -s 9 $1 \
       redis-cli \
-        -a $REDIS_PASSWORD \
         -h localhost \
         -p $REDIS_PORT \
         ping
@@ -61,7 +46,6 @@ data:
     response=$(
       timeout -s 9 $1 \
       redis-cli \
-        -a $REDIS_MASTER_PASSWORD \
         -h $REDIS_MASTER_HOST \
         -p $REDIS_MASTER_PORT_NUMBER \
         ping
@@ -175,7 +159,7 @@ spec:
         role: metrics
         app: redis
       annotations:
-        checksum/secret: 6c82071c5941f518ba1085aa5b3151301b295f45f7c95af14240555c88b996d9
+        checksum/secret: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
     spec:
       serviceAccountName: "default"
       containers:
@@ -188,11 +172,6 @@ spec:
           value: "om-redis-master:6379,om-redis-slave:6379"
         - name: REDIS_ALIAS
           value: om-redis
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: om-redis
-              key: redis-password
         volumeMounts:
         ports:
         - name: metrics
@@ -229,9 +208,9 @@ spec:
         role: slave
         app: redis
       annotations:
-        checksum/health: 864411661cdaa9c0274400b146a3e63de48ad757b5d55b2f5474821a9eb79b23
+        checksum/health: c9250244922857117f5208619fb9e88290d0698f80f012f61d3291f6061cfaee
         checksum/configmap: 76d42d5ea6d55f50ab5ed77bbeeed5ec90a2d11ca33b359933b5a677cf489b78
-        checksum/secret: 8b94a3d6b7d10599cba1ec384a354ca411db00278a3f43e3d4f30c0b5ebf9efb
+        checksum/secret: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
     spec:      
       securityContext:
         fsGroup: 1001
@@ -254,9 +233,7 @@ spec:
             export REDIS_MASTER_PASSWORD=$password_aux
           fi
           ARGS=("--port" "${REDIS_PORT}")
-          ARGS+=("--requirepass" "${REDIS_PASSWORD}")
-          ARGS+=("--slaveof" "${REDIS_MASTER_HOST}" "${REDIS_MASTER_PORT_NUMBER}")
-          ARGS+=("--masterauth" "${REDIS_MASTER_PASSWORD}")
+          ARGS+=("--protected-mode" "no")
           ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
           ARGS+=("--include" "/opt/bitnami/redis/etc/replica.conf")
           /run.sh "${ARGS[@]}"
@@ -269,16 +246,8 @@ spec:
           value: "6379"
         - name: REDIS_MASTER_PORT_NUMBER
           value: "6379"
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: om-redis
-              key: redis-password
-        - name: REDIS_MASTER_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: om-redis
-              key: redis-password
+        - name: ALLOW_EMPTY_PASSWORD
+          value: "yes"
         ports:
         - name: redis
           containerPort: 6379        
@@ -351,9 +320,9 @@ spec:
         role: master
         app: redis
       annotations:
-        checksum/health: 864411661cdaa9c0274400b146a3e63de48ad757b5d55b2f5474821a9eb79b23
+        checksum/health: c9250244922857117f5208619fb9e88290d0698f80f012f61d3291f6061cfaee
         checksum/configmap: 76d42d5ea6d55f50ab5ed77bbeeed5ec90a2d11ca33b359933b5a677cf489b78
-        checksum/secret: f974cc3953943ee0c54d6004ba35ebccdc15e3c96b93ea9aaf8a7d2162b2d03a
+        checksum/secret: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
     spec:
       securityContext:
         fsGroup: 1001
@@ -372,18 +341,15 @@ spec:
             export REDIS_PASSWORD=$password_aux
           fi
           ARGS=("--port" "${REDIS_PORT}")
-          ARGS+=("--requirepass" "${REDIS_PASSWORD}")
+          ARGS+=("--protected-mode" "no")
           ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
           ARGS+=("--include" "/opt/bitnami/redis/etc/master.conf")
           /run.sh ${ARGS[@]}
         env:
         - name: REDIS_REPLICATION_MODE
           value: master
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: om-redis
-              key: redis-password
+        - name: ALLOW_EMPTY_PASSWORD
+          value: "yes"
         - name: REDIS_PORT
           value: "6379"
         ports:
@@ -462,6 +428,9 @@ spec:
 
 ---
 # Source: open-match/charts/redis/templates/redis-serviceaccount.yaml
+
+---
+# Source: open-match/charts/redis/templates/secret.yaml
 
 ---
 # Source: open-match/templates/backendapi.yaml
