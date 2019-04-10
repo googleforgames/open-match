@@ -1,37 +1,50 @@
 ################################################################################
-##                             Open Match Makefile                            ##
+#                              Open Match Makefile                             #
 ################################################################################
 
-# Notice: There's 2 variables you need to make sure are set.
-# GCP_PROJECT_ID if you're working against GCP.
-# Or $REGISTRY if you want to use your own custom docker registry.
+# Copyright 2019 Google LLC
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-# Basic Deployment
-# make create-gke-cluster OR make create-mini-cluster
-# make push-helm
-# make REGISTRY=gcr.io/$PROJECT_ID push-images -j$(nproc)
-# make install-chart
-#
-# Generate Files
-# make all-protos
-#
-# Building
-# make all -j$(nproc)
-#
-# Access monitoring
-# make proxy-prometheus
-# make proxy-grafana
-#
-# Run those tools
-# make run-backendclient
-# make run-frontendclient
-# make run-clientloadgen
-#
-# Teardown
-# make delete-mini-cluster
-# make delete-gke-cluster
-#
-## http://makefiletutorial.com/
+## NOTICE: There's 2 variables you need to make sure are set.
+## GCP_PROJECT_ID if you're working against GCP.
+## Or $REGISTRY if you want to use your own custom docker registry.
+##
+## Basic Deployment
+## make create-gke-cluster OR make create-mini-cluster
+## make push-helm
+## make REGISTRY=gcr.io/$PROJECT_ID push-images -j$(nproc)
+## make install-chart
+## Generate Files
+## make all-protos
+##
+## Building
+## make all -j$(nproc)
+##
+## Access monitoring
+## make proxy-prometheus
+## make proxy-grafana
+##
+## Run those tools
+## make run-backendclient
+## make run-frontendclient
+## make run-clientloadgen
+##
+## Teardown
+## make delete-mini-cluster
+## make delete-gke-cluster
+##
+# http://makefiletutorial.com/
 
 BASE_VERSION = 0.4.0
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD)
@@ -87,7 +100,7 @@ NAMESPACE ?= open-match
 OPEN_MATCH_NAME ?= open-match
 REDIS_NAME = om-redis
 
-## Make port forwards accessible outside of the proxy machine.
+# Make port forwards accessible outside of the proxy machine.
 PORT_FORWARD_ADDRESS_FLAG = --address 0.0.0.0
 DASHBOARD_PORT = 9092
 export PATH := $(CURDIR)/node_modules/.bin/:$(TOOLCHAIN_BIN):$(TOOLCHAIN_DIR)/nodejs/bin:$(PATH)
@@ -142,7 +155,7 @@ else
 endif
 
 help:
-	@cat Makefile | grep ^\# | grep -v ^\#\# | cut -c 3-
+	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
 
 local-cloud-build:
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) -substitutions SHORT_SHA=$(VERSION_SUFFIX) .
@@ -481,7 +494,7 @@ examples/functions/php/mmlogic-simple/proto/:
 		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
 		--php_out=examples/functions/php/mmlogic-simple/proto/
 
-## Include structure of the protos needs to be called out do the dependency chain is run through properly.
+# Include structure of the protos needs to be called out do the dependency chain is run through properly.
 internal/pb/backend.pb.go: internal/pb/messages.pb.go
 internal/pb/frontend.pb.go: internal/pb/messages.pb.go
 internal/pb/mmlogic.pb.go: internal/pb/messages.pb.go
