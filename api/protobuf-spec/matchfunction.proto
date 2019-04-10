@@ -4,6 +4,7 @@ option go_package = "internal/pb";
 
 // The protobuf messages sent in the gRPC calls are defined 'messages.proto'.
 import 'api/protobuf-spec/messages.proto';
+import 'google/api/annotations.proto';
 
 // Request message sent to the MMF.
 message RunRequest {
@@ -24,5 +25,10 @@ service MatchFunction {
   // being served.  Build your MMF in the appropriate serving harness, deploy it
   // to the K8s cluster with a unique service name, then connect to that service
   // and call 'Run()' to execute the fuction.
-  rpc Run(RunRequest) returns (RunResponse) {}
+  rpc Run(RunRequest) returns (RunResponse) {
+    option (google.api.http) = {
+      put: "/v1/function"
+      body: "*"
+    };
+  }
 }

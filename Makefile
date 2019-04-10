@@ -361,7 +361,7 @@ set-redis-password:
 		printf "apiVersion: v1\nkind: Secret\nmetadata:\n  name: $(REDIS_NAME)\n  namespace: $(NAMESPACE)\ndata:\n  redis-password: $$REDIS_PASSWORD\n" | \
 		$(KUBECTL) replace -f - --force
 
-install-toolchain: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)  build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/python/
+install-toolchain: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)  build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/python/ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 
 build/toolchain/bin/helm$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -450,17 +450,28 @@ build/toolchain/bin/protoc$(EXE_EXTENSION):
 build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	$(GO) get github.com/golang/protobuf/protoc-gen-go
 	$(GO) install github.com/golang/protobuf/protoc-gen-go
-	mv $(GOPATH)/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
+	mv $(GO_BIN)/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
+
+build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
+	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
+	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L \
+		https://github.com/googleapis/googleapis/archive/master.zip
+	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -o googleapis.zip)
+	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
+		$(PROTOC_INCLUDES)/google/api
+	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
+	$(GO) get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	$(GO) install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	mv $(GO_BIN)/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 
 all-protos: golang-protos mmlogic-simple-protos
 # TODO: Add php-protos to all-protos once it builds the gRPC client code.
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
-internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
+internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
-php-protos: examples/functions/php/mmlogic-simple/proto/
 examples/functions/php/mmlogic-simple/proto/:
 	mkdir -p examples/functions/php/mmlogic-simple/proto/
 	$(PROTOC) api/protobuf-spec/messages.proto \
@@ -490,10 +501,17 @@ internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
 mmlogic-simple-protos: examples/functions/python3/mmlogic-simple/api/protobuf_spec/messages_pb2.py examples/functions/python3/mmlogic-simple/api/protobuf_spec/mmlogic_pb2.py
 
 examples/functions/python3/mmlogic-simple/api/protobuf_spec/%_pb2.py: api/protobuf-spec/%.proto build/toolchain/python/
-	. build/toolchain/python/bin/activate && python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) --python_out=examples/functions/python3/mmlogic-simple/ --grpc_python_out=examples/functions/python3/mmlogic-simple/ $< && deactivate
+	. build/toolchain/python/bin/activate \
+		&& python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--python_out=examples/functions/python3/mmlogic-simple/ \
+		--grpc_python_out=examples/functions/python3/mmlogic-simple/ $< \
+		&& deactivate
 
 internal/pb/%_pb2.py: api/protobuf-spec/%.proto build/toolchain/python/
-	. build/toolchain/python/bin/activate && python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) --python_out=$(CURDIR) --grpc_python_out=$(CURDIR) $< && deactivate
+	. build/toolchain/python/bin/activate \
+		&& python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		--python_out=$(CURDIR) --grpc_python_out=$(CURDIR) $< \
+		&& deactivate
 
 build:
 	$(GO) build ./...

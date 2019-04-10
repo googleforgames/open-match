@@ -1,7 +1,9 @@
 syntax = 'proto3';
 package api;
 option go_package = "internal/pb"; 
+
 import 'api/protobuf-spec/messages.proto';
+import 'google/api/annotations.proto';
 
 message CreatePlayerRequest {
     messages.Player player = 1;
@@ -37,7 +39,12 @@ service Frontend {
     //  - properties
     // OUTPUT: Result message denoting success or failure (and an error if
     // necessary)
-    rpc CreatePlayer(CreatePlayerRequest) returns (CreatePlayerResponse) {}
+  rpc CreatePlayer(CreatePlayerRequest) returns (CreatePlayerResponse) {
+    option (google.api.http) = {
+      put: "/v1/frontend/players"
+      body: "*"
+    };
+  }
 
     // Call to stop matchmaking for a player
 
@@ -54,7 +61,9 @@ service Frontend {
     // INPUT: Player message with the 'id' field populated.
     // OUTPUT: Result message denoting success or failure (and an error if
     // necessary)
-    rpc DeletePlayer(DeletePlayerRequest) returns (DeletePlayerResponse) {}
+  rpc DeletePlayer(DeletePlayerRequest) returns (DeletePlayerResponse) {
+    option (google.api.http).delete = "/v1/frontend/players/{player.id}";
+  }
 
     // Calls to access matchmaking results for a player
 
@@ -83,5 +92,7 @@ service Frontend {
     //  generate load on OM until you do!
     // NOTE: Just bear in mind that every update will send egress traffic from
     //  Open Match to game clients! Frugality is recommended.
-    rpc GetUpdates(GetUpdatesRequest) returns (stream GetUpdatesResponse) {}
+  rpc GetUpdates(GetUpdatesRequest) returns (stream GetUpdatesResponse) {
+    option (google.api.http).get = "/v1/frontend/players/{player.id}";
+  }
 }

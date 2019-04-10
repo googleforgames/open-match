@@ -13,16 +13,17 @@ _sym_db = _symbol_database.Default()
 
 
 from api.protobuf_spec import messages_pb2 as api_dot_protobuf__spec_dot_messages__pb2
+from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='api/protobuf-spec/mmlogic.proto',
   package='api',
   syntax='proto3',
-  serialized_options=_b('Z5github.com/GoogleCloudPlatform/open-match/internal/pb'),
-  serialized_pb=_b('\n\x1f\x61pi/protobuf-spec/mmlogic.proto\x12\x03\x61pi\x1a api/protobuf-spec/messages.proto\"9\n\x11GetProfileRequest\x12$\n\x05match\x18\x01 \x01(\x0b\x32\x15.messages.MatchObject\":\n\x12GetProfileResponse\x12$\n\x05match\x18\x01 \x01(\x0b\x32\x15.messages.MatchObject\"=\n\x15\x43reateProposalRequest\x12$\n\x05match\x18\x01 \x01(\x0b\x32\x15.messages.MatchObject\"\x18\n\x16\x43reateProposalResponse\"A\n\x14GetPlayerPoolRequest\x12)\n\x0bplayer_pool\x18\x01 \x01(\x0b\x32\x14.messages.PlayerPool\"B\n\x15GetPlayerPoolResponse\x12)\n\x0bplayer_pool\x18\x01 \x01(\x0b\x32\x14.messages.PlayerPool\"G\n\x1bGetAllIgnoredPlayersRequest\x12(\n\rignore_player\x18\x01 \x01(\x0b\x32\x11.messages.IlInput\"@\n\x1cGetAllIgnoredPlayersResponse\x12 \n\x06roster\x18\x01 \x01(\x0b\x32\x10.messages.Roster\"E\n\x19ListIgnoredPlayersRequest\x12(\n\rignore_player\x18\x01 \x01(\x0b\x32\x11.messages.IlInput\">\n\x1aListIgnoredPlayersResponse\x12 \n\x06roster\x18\x01 \x01(\x0b\x32\x10.messages.Roster2\x9b\x03\n\x07MmLogic\x12?\n\nGetProfile\x12\x16.api.GetProfileRequest\x1a\x17.api.GetProfileResponse\"\x00\x12K\n\x0e\x43reateProposal\x12\x1a.api.CreateProposalRequest\x1a\x1b.api.CreateProposalResponse\"\x00\x12J\n\rGetPlayerPool\x12\x19.api.GetPlayerPoolRequest\x1a\x1a.api.GetPlayerPoolResponse\"\x00\x30\x01\x12]\n\x14GetAllIgnoredPlayers\x12 .api.GetAllIgnoredPlayersRequest\x1a!.api.GetAllIgnoredPlayersResponse\"\x00\x12W\n\x12ListIgnoredPlayers\x12\x1e.api.ListIgnoredPlayersRequest\x1a\x1f.api.ListIgnoredPlayersResponse\"\x00\x42\x37Z5github.com/GoogleCloudPlatform/open-match/internal/pbb\x06proto3')
+  serialized_options=_b('Z\013internal/pb'),
+  serialized_pb=_b('\n\x1f\x61pi/protobuf-spec/mmlogic.proto\x12\x03\x61pi\x1a api/protobuf-spec/messages.proto\x1a\x1cgoogle/api/annotations.proto\"9\n\x11GetProfileRequest\x12$\n\x05match\x18\x01 \x01(\x0b\x32\x15.messages.MatchObject\":\n\x12GetProfileResponse\x12$\n\x05match\x18\x01 \x01(\x0b\x32\x15.messages.MatchObject\"=\n\x15\x43reateProposalRequest\x12$\n\x05match\x18\x01 \x01(\x0b\x32\x15.messages.MatchObject\"\x18\n\x16\x43reateProposalResponse\"A\n\x14GetPlayerPoolRequest\x12)\n\x0bplayer_pool\x18\x01 \x01(\x0b\x32\x14.messages.PlayerPool\"B\n\x15GetPlayerPoolResponse\x12)\n\x0bplayer_pool\x18\x01 \x01(\x0b\x32\x14.messages.PlayerPool\"G\n\x1bGetAllIgnoredPlayersRequest\x12(\n\rignore_player\x18\x01 \x01(\x0b\x32\x11.messages.IlInput\"@\n\x1cGetAllIgnoredPlayersResponse\x12 \n\x06roster\x18\x01 \x01(\x0b\x32\x10.messages.Roster\"E\n\x19ListIgnoredPlayersRequest\x12(\n\rignore_player\x18\x01 \x01(\x0b\x32\x11.messages.IlInput\">\n\x1aListIgnoredPlayersResponse\x12 \n\x06roster\x18\x01 \x01(\x0b\x32\x10.messages.Roster2\x9b\x04\n\x07MmLogic\x12j\n\nGetProfile\x12\x16.api.GetProfileRequest\x1a\x17.api.GetProfileResponse\"+\x82\xd3\xe4\x93\x02%\x12#/v1/logic/match-profiles/{match.id}\x12o\n\x0e\x43reateProposal\x12\x1a.api.CreateProposalRequest\x1a\x1b.api.CreateProposalResponse\"$\x82\xd3\xe4\x93\x02\x1e\x1a\x19/v1/logic/match-proposals:\x01*\x12{\n\rGetPlayerPool\x12\x19.api.GetPlayerPoolRequest\x1a\x1a.api.GetPlayerPoolResponse\"1\x82\xd3\xe4\x93\x02+\x12)/v1/logic/player-pools/{player_pool.name}0\x01\x12]\n\x14GetAllIgnoredPlayers\x12 .api.GetAllIgnoredPlayersRequest\x1a!.api.GetAllIgnoredPlayersResponse\"\x00\x12W\n\x12ListIgnoredPlayers\x12\x1e.api.ListIgnoredPlayersRequest\x1a\x1f.api.ListIgnoredPlayersResponse\"\x00\x42\rZ\x0binternal/pbb\x06proto3')
   ,
-  dependencies=[api_dot_protobuf__spec_dot_messages__pb2.DESCRIPTOR,])
+  dependencies=[api_dot_protobuf__spec_dot_messages__pb2.DESCRIPTOR,google_dot_api_dot_annotations__pb2.DESCRIPTOR,])
 
 
 
@@ -53,8 +54,8 @@ _GETPROFILEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=74,
-  serialized_end=131,
+  serialized_start=104,
+  serialized_end=161,
 )
 
 
@@ -84,8 +85,8 @@ _GETPROFILERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=133,
-  serialized_end=191,
+  serialized_start=163,
+  serialized_end=221,
 )
 
 
@@ -115,8 +116,8 @@ _CREATEPROPOSALREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=193,
-  serialized_end=254,
+  serialized_start=223,
+  serialized_end=284,
 )
 
 
@@ -139,8 +140,8 @@ _CREATEPROPOSALRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=256,
-  serialized_end=280,
+  serialized_start=286,
+  serialized_end=310,
 )
 
 
@@ -170,8 +171,8 @@ _GETPLAYERPOOLREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=282,
-  serialized_end=347,
+  serialized_start=312,
+  serialized_end=377,
 )
 
 
@@ -201,8 +202,8 @@ _GETPLAYERPOOLRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=349,
-  serialized_end=415,
+  serialized_start=379,
+  serialized_end=445,
 )
 
 
@@ -232,8 +233,8 @@ _GETALLIGNOREDPLAYERSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=417,
-  serialized_end=488,
+  serialized_start=447,
+  serialized_end=518,
 )
 
 
@@ -263,8 +264,8 @@ _GETALLIGNOREDPLAYERSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=490,
-  serialized_end=554,
+  serialized_start=520,
+  serialized_end=584,
 )
 
 
@@ -294,8 +295,8 @@ _LISTIGNOREDPLAYERSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=556,
-  serialized_end=625,
+  serialized_start=586,
+  serialized_end=655,
 )
 
 
@@ -325,8 +326,8 @@ _LISTIGNOREDPLAYERSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=627,
-  serialized_end=689,
+  serialized_start=657,
+  serialized_end=719,
 )
 
 _GETPROFILEREQUEST.fields_by_name['match'].message_type = api_dot_protobuf__spec_dot_messages__pb2._MATCHOBJECT
@@ -429,8 +430,8 @@ _MMLOGIC = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=692,
-  serialized_end=1103,
+  serialized_start=722,
+  serialized_end=1261,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetProfile',
@@ -439,7 +440,7 @@ _MMLOGIC = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_GETPROFILEREQUEST,
     output_type=_GETPROFILERESPONSE,
-    serialized_options=None,
+    serialized_options=_b('\202\323\344\223\002%\022#/v1/logic/match-profiles/{match.id}'),
   ),
   _descriptor.MethodDescriptor(
     name='CreateProposal',
@@ -448,7 +449,7 @@ _MMLOGIC = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_CREATEPROPOSALREQUEST,
     output_type=_CREATEPROPOSALRESPONSE,
-    serialized_options=None,
+    serialized_options=_b('\202\323\344\223\002\036\032\031/v1/logic/match-proposals:\001*'),
   ),
   _descriptor.MethodDescriptor(
     name='GetPlayerPool',
@@ -457,7 +458,7 @@ _MMLOGIC = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_GETPLAYERPOOLREQUEST,
     output_type=_GETPLAYERPOOLRESPONSE,
-    serialized_options=None,
+    serialized_options=_b('\202\323\344\223\002+\022)/v1/logic/player-pools/{player_pool.name}'),
   ),
   _descriptor.MethodDescriptor(
     name='GetAllIgnoredPlayers',
