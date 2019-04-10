@@ -4,6 +4,7 @@ option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
 
 // The protobuf messages sent in the gRPC calls are defined 'messages.proto'.
 import 'api/protobuf-spec/messages.proto';
+import 'google/api/annotations.proto';
 
 message GetProfileRequest {
   messages.MatchObject match = 1;
@@ -54,7 +55,9 @@ service MmLogic {
   //  'filled' one.
   //  Note: filters are assumed to have been checked for validity by the
   //  backendapi  when accepting a profile
-  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse) {}
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse) {
+    option (google.api.http).get = "/v1/logic/match-profiles/{match.id}";
+  }
 
   // CreateProposal is called by MMFs that wish to write their results to
   // a proposed MatchObject, that can be sent out the Backend API once it has
@@ -89,14 +92,21 @@ service MmLogic {
   //        the backend api along with your match results.
   // OUTPUT: a Result message with a boolean success value and an error string
   // if an error was encountered
-  rpc CreateProposal(CreateProposalRequest) returns (CreateProposalResponse) {}
+  rpc CreateProposal(CreateProposalRequest) returns (CreateProposalResponse) {
+    option (google.api.http) = {
+      put: "/v1/logic/match-proposals/{match.id}/{match.error}"
+      body: "match.properties"
+    };
+  }
 
   // Player listing and filtering functions
   //
   // RetrievePlayerPool gets the list of players that match every Filter in the
   // PlayerPool, .excluding players in any configured ignore lists.  It
   // combines the results, and returns the resulting player pool.
-  rpc GetPlayerPool(GetPlayerPoolRequest) returns (stream GetPlayerPoolResponse) {}
+  rpc GetPlayerPool(GetPlayerPoolRequest) returns (stream GetPlayerPoolResponse) {
+    option (google.api.http).get = "/v1/logic/player-pools/{player_pool.name}";
+  }
 
   // Ignore List functions
   //

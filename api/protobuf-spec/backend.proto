@@ -4,6 +4,7 @@ option go_package = "github.com/GoogleCloudPlatform/open-match/internal/pb";
 
 // The protobuf messages sent in the gRPC calls are defined 'messages.proto'.
 import 'api/protobuf-spec/messages.proto';
+import 'google/api/annotations.proto';
 
 message CreateMatchRequest {
   messages.MatchObject match = 1;
@@ -57,16 +58,22 @@ service Backend {
   //  - error. Empty if no error was encountered
   //  - rosters, if you choose to fill them in your MMF. (Recommended)
   //  - pools, if you used the MMLogicAPI in your MMF. (Recommended, and provides stats)
-  rpc CreateMatch(CreateMatchRequest) returns (CreateMatchResponse) {} 
+  rpc CreateMatch(CreateMatchRequest) returns (CreateMatchResponse) {
+    option (google.api.http).put = "/v1/backend/matches/{match.id}/{match.properties}";
+  } 
   // Continually run MMF and stream MatchObjects that fit this profile until
   // the backend client closes the connection.  Same inputs/outputs as CreateMatch.
-  rpc ListMatches(ListMatchesRequest) returns (stream ListMatchesResponse) {}
+  rpc ListMatches(ListMatchesRequest) returns (stream ListMatchesResponse) {
+    option (google.api.http).get = "/v1/backend/matches/{match.id}/{match.properties}";
+  }
 
   // Delete a MatchObject from state storage manually. (MatchObjects in state
   // storage will also automatically expire after a while, defined in the config)
   // INPUT: MatchObject message with the 'id' field populated. 
   // (All other fields are ignored.)
-  rpc DeleteMatch(DeleteMatchRequest) returns (DeleteMatchResponse) {}
+  rpc DeleteMatch(DeleteMatchRequest) returns (DeleteMatchResponse) {
+    option (google.api.http).delete = "/v1/backend/matches/{match.id}";
+  }
 
   // Calls for communication of connection info to players. 
 
@@ -83,11 +90,15 @@ service Backend {
   //     player messages. All players from all rosters will be sent the assignment.
   //     The only field in the Roster's Player messages used by CreateAssignments is
   //     the id field.  All other fields in the Player messages are silently ignored.
-  rpc CreateAssignments(CreateAssignmentsRequest) returns (CreateAssignmentsResponse) {}
+  rpc CreateAssignments(CreateAssignmentsRequest) returns (CreateAssignmentsResponse) {
+    option (google.api.http).put = "/v1/backend/assignments/{assignment.assignment}";
+  }
   // Remove DGS connection info from state storage for players. 
   // INPUT: Roster message with the 'players' field populated. 
   //    The only field in the Roster's Player messages used by
   //    DeleteAssignments is the 'id' field.  All others are silently ignored.  If
   //    you need to delete multiple rosters, make multiple calls.
-  rpc DeleteAssignments(DeleteAssignmentsRequest) returns (DeleteAssignmentsResponse) {}
+  rpc DeleteAssignments(DeleteAssignmentsRequest) returns (DeleteAssignmentsResponse) {
+    option (google.api.http).delete = "/v1/backend/assignments";
+  }
 }

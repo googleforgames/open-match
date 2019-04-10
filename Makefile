@@ -450,18 +450,24 @@ build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	$(GO) install github.com/golang/protobuf/protoc-gen-go
 	mv $(GOPATH)/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
 
+build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
+	$(GO) get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	$(GO) install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	mv $(GOPATH)/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+
 all-protos: golang-protos mmlogic-simple-protos php-protos
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/function.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
-		--go_out=plugins=grpc:$(GO_SRC)
+		-I $(GOPATH)/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I $(GOPATH)/src \
+		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
-php-protos: examples/functions/php/mmlogic-simple/proto/
 examples/functions/php/mmlogic-simple/proto/:
 	mkdir -p examples/functions/php/mmlogic-simple/proto/
 	$(PROTOC) api/protobuf-spec/messages.proto \
 		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		-I $(GOPATH)/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I $(GOPATH)/src \
 		--php_out=examples/functions/php/mmlogic-simple/proto/ \
 		--grpc_out=examples/functions/php/mmlogic-simple/proto/ \
 		--plugin=protoc-gen-grpc=build/toolchain/bin/grpc_php_plugin
@@ -470,12 +476,15 @@ examples/functions/php/mmlogic-simple/proto/:
 		--php_out=examples/functions/php/mmlogic-simple/proto/
 	$(PROTOC) api/protobuf-spec/frontend.proto \
 		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		-I $(GOPATH)/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I $(GOPATH)/src \
 		--php_out=examples/functions/php/mmlogic-simple/proto/
 	$(PROTOC) api/protobuf-spec/function.proto \
 		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		-I $(GOPATH)/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I $(GOPATH)/src \
 		--php_out=examples/functions/php/mmlogic-simple/proto/
 	$(PROTOC) api/protobuf-spec/mmlogic.proto \
 		-I $(CURDIR) -I $(PROTOC_INCLUDES) \
+		-I $(GOPATH)/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I $(GOPATH)/src \
 		--php_out=examples/functions/php/mmlogic-simple/proto/
 
 ## Include structure of the protos needs to be called out do the dependency chain is run through properly.
@@ -487,10 +496,17 @@ internal/pb/function.pb.go: internal/pb/messages.pb.go
 mmlogic-simple-protos: examples/functions/python3/mmlogic-simple/api/protobuf_spec/messages_pb2.py examples/functions/python3/mmlogic-simple/api/protobuf_spec/mmlogic_pb2.py
 
 examples/functions/python3/mmlogic-simple/api/protobuf_spec/%_pb2.py: api/protobuf-spec/%.proto build/toolchain/python/
-	. build/toolchain/python/bin/activate && python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) --python_out=examples/functions/python3/mmlogic-simple/ --grpc_python_out=examples/functions/python3/mmlogic-simple/ $< && deactivate
+	. build/toolchain/python/bin/activate && \
+	python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) \
+	-I $(GOPATH)/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I $(GOPATH)/src \
+	--python_out=examples/functions/python3/mmlogic-simple/ --grpc_python_out=examples/functions/python3/mmlogic-simple/ \
+	$< && deactivate
 
 internal/pb/%_pb2.py: api/protobuf-spec/%.proto build/toolchain/python/
-	. build/toolchain/python/bin/activate && python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) --python_out=$(CURDIR) --grpc_python_out=$(CURDIR) $< && deactivate
+	. build/toolchain/python/bin/activate && \
+	python3 -m grpc_tools.protoc -I $(CURDIR) -I $(PROTOC_INCLUDES) \
+	-I $(GOPATH)/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I $(GOPATH)/src \
+	--python_out=$(CURDIR) --grpc_python_out=$(CURDIR) $< && deactivate
 
 build:
 	$(GO) build ./...
