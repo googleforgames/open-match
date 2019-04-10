@@ -18,7 +18,6 @@ WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/examples/functions/gol
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o mmf .
 
 FROM gcr.io/distroless/static  
-COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/config/openmatch_constants.yaml /config/
 COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/examples/functions/golang/manual-simple/mmf .
 
 ENTRYPOINT ["/mmf"]

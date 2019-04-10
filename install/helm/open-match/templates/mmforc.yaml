@@ -49,7 +49,8 @@ spec:
         image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.mmforc.name}}:{{ .Values.openmatch.image.tag }}"
         imagePullPolicy: {{ .Values.openmatch.image.mmforc.pullPolicy }}
         volumeMounts:
-        {{- include "openmatch.componentconfigmounts" (list "om-config-volume" "mmforc") | nindent 8 }}
+        - name: om-config-volume
+          mountPath: {{ .Values.openmatch.config.mountPath }}
         ports:
         - name: metrics
           containerPort: {{ .Values.openmatch.metrics.port }}
@@ -74,7 +75,5 @@ spec:
               key: redis-password
         {{- end}}
       volumes:
-      - name: om-config-volume
-        configMap:
-          name: om-configmap
+      {{- include "openmatch.componentconfigvolume" (list "om-config-volume" "mmforc") | nindent 6 }}
 {{- end }}

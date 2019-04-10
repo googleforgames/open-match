@@ -18,7 +18,6 @@ limitations under the License.
 package config
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/fsnotify/fsnotify"
@@ -72,7 +71,7 @@ var (
 	}
 )
 
-func read(file string) (View, error) {
+func read(file string, onChange func(fsnotify.Event)) (*viper.Viper, error) {
 	cfg := viper.New()
 	cfg.SetConfigFile(file)
 	err := cfg.ReadInConfig()
@@ -114,12 +113,15 @@ func read(file string) (View, error) {
 	cfg.WatchConfig() // Watch and re-read config file.
 
 	// Write a log when the configuration changes.
-	cfg.OnConfigChange(func(event fsnotify.Event) {
-		cfgLog.WithFields(log.Fields{
-			"filename":  event.Name,
-			"operation": event.Op,
-		}).Info("Configuration changed.")
-	})
+	if onChange == nil {
+		onChange = func(event fsnotify.Event) {
+			cfgLog.WithFields(log.Fields{
+				"filename":  event.Name,
+				"operation": event.Op,
+			}).Info("Configuration changed.")
+		}
+	}
+	cfg.OnConfigChange(onChange)
 
 	return cfg, nil
 }
@@ -127,41 +129,13 @@ func read(file string) (View, error) {
 // Read reads a config file 'config.yaml' into a viper.Viper instance
 // and associates environment vars defined in 'envMappings'.
 func Read() (View, error) {
-	return read("config.yaml")
+	return read("config.yaml", nil)
 }
 
-// ReadAndMerge reads configurations from all specified files using Read(),
-// and then merges them into a single viper.Viper instance.
-//
-// WARNING It doesn't watch for changes currently
-func ReadAndMerge(files ...string) (View, error) {
-	if len(files) == 0 {
-		return nil, errors.New("no input files specified")
-	}
-
-	layers := make([]View, len(files))
-	for i, f := range files {
-		l, err := read(f)
-		if err != nil {
-			return nil, err
-		}
-		layers[i] = l
-	}
-
-	cfg := viper.New()
-	for _, l := range layers {
-		m := l.AllSettings()
-		cfg.MergeConfigMap(m)
-	}
-
-	// TODO watch layers' changes and re-merge
-
-	return cfg, nil
-}
-
-// ReadComponentConfig reads typical configuration for core Open-match component
+// ReadComponentConfig reads typical configuration for core Open-match components
+// (backednapi, frontendapi, mmlogicapi, mmforc).
 func ReadComponentConfig() (View, error) {
-	return ReadAndMerge(
+	return readMerged(
 		// Layer 1: 'per-component' configuration.
 		// File is expected to be mounted from ConfigMap.
 		"/config/component_config.yaml",
@@ -173,14 +147,14 @@ func ReadComponentConfig() (View, error) {
 		"/config/openmatch_config.yaml",
 
 		// Layer 3: 'expert' configuration that is unlikely to require customizations.
-		// Merging of this configuration should be a last step,
-		// and by default Open-match does not make any mounts to this path:
+		// Merging of this configuration should be a last step.
 		"/config/openmatch_constants.yaml")
 }
 
 // ReadSharedConfig reads configuration that is expected to go to all components by default
+// (including MMF & Evaluator Kubernetes Jobs spawned by MMFOrc).
 func ReadSharedConfig() (View, error) {
-	return ReadAndMerge(
+	return readMerged(
 		"/config/openmatch_config.yaml",
 		"/config/openmatch_constants.yaml")
 }

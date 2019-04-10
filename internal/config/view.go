@@ -34,7 +34,6 @@ type View interface {
 	GetBool(string) bool
 	GetDuration(string) time.Duration
 	GetStringMap(string) map[string]interface{}
-	AllSettings() map[string]interface{}
 }
 
 // Sub returns a subset of configuration filtered by the key.

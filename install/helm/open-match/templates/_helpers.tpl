@@ -67,16 +67,20 @@ heritage: {{ .Release.Service }}
 {{- end -}}
 
 {{/*
-Render common volume mounts for core Open-match components.
+Render a volume containing the configuration files from the ConfigMap for core Open-match components.
 Takes a list of two items as an argument: a volume name and a component name.
 */}}
-{{- define "openmatch.componentconfigmounts" -}}
+{{- define "openmatch.componentconfigvolume" -}}
 {{- $volume := index . 0 -}}
 {{- $component := index . 1 -}}
 - name: {{ $volume }}
-  subPath: openmatch_config.yaml
-  mountPath: /config/openmatch_config.yaml
-- name: {{ $volume }}
-  subPath: {{ $component }}_config.yaml
-  mountPath: /config/component_config.yaml
+  configMap:
+    name: om-configmap
+    items:
+    - key: {{ $component }}_config.yaml
+      path: component_config.yaml
+    - key: openmatch_config.yaml
+      path: openmatch_config.yaml
+    - key: openmatch_constants.yaml
+      path: openmatch_constants.yaml
 {{- end -}}

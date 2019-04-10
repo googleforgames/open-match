@@ -35,9 +35,13 @@ openmatch:
     install: true
     grpc:
       port: 50503
+  functions:
+    grpc:
+      port: 50502
 
   config:
     install: true
+    mountPath: /config
 
     prototypes:
       component_config.yaml: &component_config
@@ -129,6 +133,42 @@ openmatch:
         - role.dps
         - role.support
         - role.tank
+
+      openmatch_constants.yaml:
+        # These params are unlikely to require changes.
+        # They are read as last step of `config.Read***Config()` execution,
+        # overriding anything in previously read configuration sources.
+        api: 
+          backend: 
+            hostname: om-backendapi
+            port: "{{.Values.openmatch.backendapi.grpc.port}}"
+          frontend: 
+            hostname: om-frontendapi
+            port: "{{.Values.openmatch.frontendapi.grpc.port}}"
+          mmlogic: 
+            hostname: om-mmlogicapi
+            port: "{{.Values.openmatch.mmlogicapi.grpc.port}}"
+          functions:
+            port: "{{.Values.openmatch.functions.grpc.port}}"
+
+        metrics: 
+          port: "{{.Values.openmatch.metrics.port}}"
+          endpoint: "{{.Values.openmatch.metrics.path}}"
+
+        queues:
+          profiles: 
+            name: profileq
+            pullCount: 100
+          proposals: 
+            name: proposalq
+
+        ignoreLists: 
+          proposed: 
+            name: proposed
+          deindexed: 
+            name: deindexed
+          expired: 
+            name: OM_METADATA.accessed
 
   image:
     registry: gcr.io/open-match-public-images

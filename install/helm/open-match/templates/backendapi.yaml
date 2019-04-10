@@ -66,7 +66,8 @@ spec:
         image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.backendapi.name}}:{{ .Values.openmatch.image.tag }}"
         imagePullPolicy: {{ .Values.openmatch.image.backendapi.pullPolicy }}
         volumeMounts:
-        {{- include "openmatch.componentconfigmounts" (list "om-config-volume" "backendapi") | nindent 8 }}
+        - name: om-config-volume
+          mountPath: {{ .Values.openmatch.config.mountPath }}
         ports:
         - name: grpc
           containerPort: {{ .Values.openmatch.backendapi.grpc.port }}
@@ -89,7 +90,5 @@ spec:
               key: redis-password
         {{- end}}
       volumes:
-      - name: om-config-volume
-        configMap:
-          name: om-configmap
+      {{- include "openmatch.componentconfigvolume" (list "om-config-volume" "backendapi") | nindent 6 }}
 {{- end }}

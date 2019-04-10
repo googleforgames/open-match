@@ -142,6 +142,36 @@ data:
         matchobject: 43200
         player: 43200
     
+  openmatch_constants.yaml: |-
+    api:
+      backend:
+        hostname: om-backendapi
+        port: '50505'
+      frontend:
+        hostname: om-frontendapi
+        port: '50504'
+      functions:
+        port: '50502'
+      mmlogic:
+        hostname: om-mmlogicapi
+        port: '50503'
+    ignoreLists:
+      deindexed:
+        name: deindexed
+      expired:
+        name: OM_METADATA.accessed
+      proposed:
+        name: proposed
+    metrics:
+      endpoint: '/metrics'
+      port: '9555'
+    queues:
+      profiles:
+        name: profileq
+        pullCount: 100
+      proposals:
+        name: proposalq
+    
 ---
 # Source: open-match/templates/mmforc-service-account.yaml
 # Copyright 2019 Google Inc. All Rights Reserved.
@@ -259,11 +289,7 @@ spec:
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
-          subPath: openmatch_config.yaml
-          mountPath: /config/openmatch_config.yaml
-        - name: om-config-volume
-          subPath: backendapi_config.yaml
-          mountPath: /config/component_config.yaml
+          mountPath: /config
         ports:
         - name: grpc
           containerPort: 50505
@@ -282,6 +308,13 @@ spec:
       - name: om-config-volume
         configMap:
           name: om-configmap
+          items:
+          - key: backendapi_config.yaml
+            path: component_config.yaml
+          - key: openmatch_config.yaml
+            path: openmatch_config.yaml
+          - key: openmatch_constants.yaml
+            path: openmatch_constants.yaml
 
 ---
 # Source: open-match/templates/frontendapi.yaml
@@ -346,11 +379,7 @@ spec:
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
-          subPath: openmatch_config.yaml
-          mountPath: /config/openmatch_config.yaml
-        - name: om-config-volume
-          subPath: frontendapi_config.yaml
-          mountPath: /config/component_config.yaml
+          mountPath: /config
         ports:
         - name: grpc
           containerPort: 50504
@@ -369,6 +398,13 @@ spec:
       - name: om-config-volume
         configMap:
           name: om-configmap
+          items:
+          - key: frontendapi_config.yaml
+            path: component_config.yaml
+          - key: openmatch_config.yaml
+            path: openmatch_config.yaml
+          - key: openmatch_constants.yaml
+            path: openmatch_constants.yaml
 
 ---
 # Source: open-match/templates/mmlogicapi.yaml
@@ -432,11 +468,7 @@ spec:
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
-          subPath: openmatch_config.yaml
-          mountPath: /config/openmatch_config.yaml
-        - name: om-config-volume
-          subPath: mmlogicapi_config.yaml
-          mountPath: /config/component_config.yaml
+          mountPath: /config
         ports:
         - name: grpc
           containerPort: 50503
@@ -455,6 +487,13 @@ spec:
       - name: om-config-volume
         configMap:
           name: om-configmap
+          items:
+          - key: mmlogicapi_config.yaml
+            path: component_config.yaml
+          - key: openmatch_config.yaml
+            path: openmatch_config.yaml
+          - key: openmatch_constants.yaml
+            path: openmatch_constants.yaml
 
 ---
 # Source: open-match/templates/mmforc.yaml
@@ -503,11 +542,7 @@ spec:
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
-          subPath: openmatch_config.yaml
-          mountPath: /config/openmatch_config.yaml
-        - name: om-config-volume
-          subPath: mmforc_config.yaml
-          mountPath: /config/component_config.yaml
+          mountPath: /config
         ports:
         - name: metrics
           containerPort: 9555
@@ -528,6 +563,13 @@ spec:
       - name: om-config-volume
         configMap:
           name: om-configmap
+          items:
+          - key: mmforc_config.yaml
+            path: component_config.yaml
+          - key: openmatch_config.yaml
+            path: openmatch_config.yaml
+          - key: openmatch_constants.yaml
+            path: openmatch_constants.yaml
 
 ---
 # Source: open-match/templates/grafana-dashboards.yaml
