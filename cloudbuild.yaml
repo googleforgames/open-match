@@ -149,6 +149,7 @@ artifacts:
     objects:
         location: gs://open-match-build-artifacts/output/
         paths:
+            - cmd/minimatch/minimatch
             - cmd/backendapi/backendapi
             - cmd/frontendapi/frontendapi
             - cmd/mmforc/mmforc
@@ -159,6 +160,7 @@ artifacts:
             - test/cmd/frontendclient/frontendclient
             - install/yaml/install.yaml
 images:
+- 'gcr.io/$PROJECT_ID/openmatch-minimatch:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-backendapi:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-frontendapi:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmforc:${_OM_VERSION}-${SHORT_SHA}'
@@ -182,6 +184,7 @@ options:
 # we have new hermetic and reproducible Dockerfiles.
 timeout: 1200s
 # TODO Build Steps
+# Use the Makefile instead of manually building artifacts.
 # api/protobuf-spec/*: Build Protocol Buffers (golang, python, php)
 # config/matchmaker_config.yaml: Lint this file so it's verified as a valid YAML file.
 # deployments/k8s: Verify with kubelint.

@@ -42,5 +42,4 @@ func ConfigureLogging(cfg config.View) {
 	case true:
 		logrus.SetReportCaller(true)
 	}
-
 }
