@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='messages',
   syntax='proto3',
   serialized_options=_b('Z5github.com/GoogleCloudPlatform/open-match/internal/pb'),
-  serialized_pb=_b('\n api/protobuf-spec/messages.proto\x12\x08messages\"\x94\x01\n\x0bMatchObject\x12\n\n\x02id\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\x12!\n\x07rosters\x18\x04 \x03(\x0b\x32\x10.messages.Roster\x12#\n\x05pools\x18\x05 \x03(\x0b\x32\x14.messages.PlayerPool\x12\x0e\n\x06status\x18\x06 \x01(\t\"9\n\x06Roster\x12\x0c\n\x04name\x18\x01 \x01(\t\x12!\n\x07players\x18\x02 \x03(\x0b\x32\x10.messages.Player\"e\n\x06\x46ilter\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tattribute\x18\x02 \x01(\t\x12\x0c\n\x04maxv\x18\x03 \x01(\x03\x12\x0c\n\x04minv\x18\x04 \x01(\x03\x12\x1e\n\x05stats\x18\x05 \x01(\x0b\x32\x0f.messages.Stats\"\'\n\x05Stats\x12\r\n\x05\x63ount\x18\x01 \x01(\x03\x12\x0f\n\x07\x65lapsed\x18\x02 \x01(\x01\"\x7f\n\nPlayerPool\x12\x0c\n\x04name\x18\x01 \x01(\t\x12!\n\x07\x66ilters\x18\x02 \x03(\x0b\x32\x10.messages.Filter\x12 \n\x06roster\x18\x03 \x01(\x0b\x32\x10.messages.Roster\x12\x1e\n\x05stats\x18\x04 \x01(\x0b\x32\x0f.messages.Stats\"\xc3\x01\n\x06Player\x12\n\n\x02id\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x01(\t\x12\x0c\n\x04pool\x18\x03 \x01(\t\x12.\n\nattributes\x18\x04 \x03(\x0b\x32\x1a.messages.Player.Attribute\x12\x12\n\nassignment\x18\x05 \x01(\t\x12\x0e\n\x06status\x18\x06 \x01(\t\x12\r\n\x05\x65rror\x18\x07 \x01(\t\x1a(\n\tAttribute\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03\"\t\n\x07IlInput\"D\n\x0b\x41ssignments\x12!\n\x07rosters\x18\x01 \x03(\x0b\x32\x10.messages.Roster\x12\x12\n\nassignment\x18\n \x01(\t\"k\n\x07Request\x12\x12\n\nprofile_id\x18\x01 \x01(\t\x12\x13\n\x0bproposal_id\x18\x02 \x01(\t\x12\x12\n\nrequest_id\x18\x03 \x01(\t\x12\x10\n\x08\x65rror_id\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\t\"[\n\tArguments\x12\"\n\x07request\x18\x01 \x01(\x0b\x32\x11.messages.Request\x12*\n\x0bmatchobject\x18\x02 \x01(\x0b\x32\x15.messages.MatchObjectB7Z5github.com/GoogleCloudPlatform/open-match/internal/pbb\x06proto3')
+  serialized_pb=_b('\n api/protobuf-spec/messages.proto\x12\x08messages\"\x94\x01\n\x0bMatchObject\x12\n\n\x02id\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\x12!\n\x07rosters\x18\x04 \x03(\x0b\x32\x10.messages.Roster\x12#\n\x05pools\x18\x05 \x03(\x0b\x32\x14.messages.PlayerPool\x12\x0e\n\x06status\x18\x06 \x01(\t\"9\n\x06Roster\x12\x0c\n\x04name\x18\x01 \x01(\t\x12!\n\x07players\x18\x02 \x03(\x0b\x32\x10.messages.Player\"e\n\x06\x46ilter\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tattribute\x18\x02 \x01(\t\x12\x0c\n\x04maxv\x18\x03 \x01(\x03\x12\x0c\n\x04minv\x18\x04 \x01(\x03\x12\x1e\n\x05stats\x18\x05 \x01(\x0b\x32\x0f.messages.Stats\"\'\n\x05Stats\x12\r\n\x05\x63ount\x18\x01 \x01(\x03\x12\x0f\n\x07\x65lapsed\x18\x02 \x01(\x01\"\x7f\n\nPlayerPool\x12\x0c\n\x04name\x18\x01 \x01(\t\x12!\n\x07\x66ilters\x18\x02 \x03(\x0b\x32\x10.messages.Filter\x12 \n\x06roster\x18\x03 \x01(\x0b\x32\x10.messages.Roster\x12\x1e\n\x05stats\x18\x04 \x01(\x0b\x32\x0f.messages.Stats\"\xc3\x01\n\x06Player\x12\n\n\x02id\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x01(\t\x12\x0c\n\x04pool\x18\x03 \x01(\t\x12.\n\nattributes\x18\x04 \x03(\x0b\x32\x1a.messages.Player.Attribute\x12\x12\n\nassignment\x18\x05 \x01(\t\x12\x0e\n\x06status\x18\x06 \x01(\t\x12\r\n\x05\x65rror\x18\x07 \x01(\t\x1a(\n\tAttribute\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03\"\t\n\x07IlInput\"D\n\x0b\x41ssignments\x12!\n\x07rosters\x18\x01 \x03(\x0b\x32\x10.messages.Roster\x12\x12\n\nassignment\x18\n \x01(\tB7Z5github.com/GoogleCloudPlatform/open-match/internal/pbb\x06proto3')
 )
 
 
@@ -449,103 +449,6 @@ _ASSIGNMENTS = _descriptor.Descriptor(
   serialized_end=806,
 )
 
-
-_REQUEST = _descriptor.Descriptor(
-  name='Request',
-  full_name='messages.Request',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='profile_id', full_name='messages.Request.profile_id', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='proposal_id', full_name='messages.Request.proposal_id', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='request_id', full_name='messages.Request.request_id', index=2,
-      number=3, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='error_id', full_name='messages.Request.error_id', index=3,
-      number=4, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='timestamp', full_name='messages.Request.timestamp', index=4,
-      number=5, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=808,
-  serialized_end=915,
-)
-
-
-_ARGUMENTS = _descriptor.Descriptor(
-  name='Arguments',
-  full_name='messages.Arguments',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='request', full_name='messages.Arguments.request', index=0,
-      number=1, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='matchobject', full_name='messages.Arguments.matchobject', index=1,
-      number=2, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=917,
-  serialized_end=1008,
-)
-
 _MATCHOBJECT.fields_by_name['rosters'].message_type = _ROSTER
 _MATCHOBJECT.fields_by_name['pools'].message_type = _PLAYERPOOL
 _ROSTER.fields_by_name['players'].message_type = _PLAYER
@@ -556,8 +459,6 @@ _PLAYERPOOL.fields_by_name['stats'].message_type = _STATS
 _PLAYER_ATTRIBUTE.containing_type = _PLAYER
 _PLAYER.fields_by_name['attributes'].message_type = _PLAYER_ATTRIBUTE
 _ASSIGNMENTS.fields_by_name['rosters'].message_type = _ROSTER
-_ARGUMENTS.fields_by_name['request'].message_type = _REQUEST
-_ARGUMENTS.fields_by_name['matchobject'].message_type = _MATCHOBJECT
 DESCRIPTOR.message_types_by_name['MatchObject'] = _MATCHOBJECT
 DESCRIPTOR.message_types_by_name['Roster'] = _ROSTER
 DESCRIPTOR.message_types_by_name['Filter'] = _FILTER
@@ -566,8 +467,6 @@ DESCRIPTOR.message_types_by_name['PlayerPool'] = _PLAYERPOOL
 DESCRIPTOR.message_types_by_name['Player'] = _PLAYER
 DESCRIPTOR.message_types_by_name['IlInput'] = _ILINPUT
 DESCRIPTOR.message_types_by_name['Assignments'] = _ASSIGNMENTS
-DESCRIPTOR.message_types_by_name['Request'] = _REQUEST
-DESCRIPTOR.message_types_by_name['Arguments'] = _ARGUMENTS
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 MatchObject = _reflection.GeneratedProtocolMessageType('MatchObject', (_message.Message,), dict(
@@ -633,20 +532,6 @@ Assignments = _reflection.GeneratedProtocolMessageType('Assignments', (_message.
   # @@protoc_insertion_point(class_scope:messages.Assignments)
   ))
 _sym_db.RegisterMessage(Assignments)
-
-Request = _reflection.GeneratedProtocolMessageType('Request', (_message.Message,), dict(
-  DESCRIPTOR = _REQUEST,
-  __module__ = 'api.protobuf_spec.messages_pb2'
-  # @@protoc_insertion_point(class_scope:messages.Request)
-  ))
-_sym_db.RegisterMessage(Request)
-
-Arguments = _reflection.GeneratedProtocolMessageType('Arguments', (_message.Message,), dict(
-  DESCRIPTOR = _ARGUMENTS,
-  __module__ = 'api.protobuf_spec.messages_pb2'
-  # @@protoc_insertion_point(class_scope:messages.Arguments)
-  ))
-_sym_db.RegisterMessage(Arguments)
 
 
 DESCRIPTOR._options = None
