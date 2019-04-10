@@ -33,6 +33,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	redigometrics "github.com/opencensus-integrations/redigo/redis"
 	"github.com/tidwall/gjson"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
@@ -102,9 +103,8 @@ func initializeApplication() (config.View, error) {
 	// metrics.ConfigureOpenCensusPrometheusExporter expects that every OpenCensus view you
 	// want to register is in an array, so append any views you want from other
 	// packages to a single array here.
-	ocMmforcViews := DefaultMmforcViews // mmforc OpenCensus views.
-	// Waiting on https://github.com/opencensus-integrations/redigo/pull/1
-	// ocMmforcViews = append(ocMmforcViews, redis.ObservabilityMetricViews...) // redis OpenCensus views.
+	ocMmforcViews := DefaultMmforcViews                                              // mmforc OpenCensus views.
+	ocMmforcViews = append(ocMmforcViews, redigometrics.ObservabilityMetricViews...) // redis OpenCensus views.
 	mmforcLog.WithFields(log.Fields{"viewscount": len(ocMmforcViews)}).Info("Loaded OpenCensus views")
 	metrics.ConfigureOpenCensusPrometheusExporter(cfg, ocMmforcViews)
 	return cfg, nil

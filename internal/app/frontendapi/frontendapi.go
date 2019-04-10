@@ -22,6 +22,8 @@ limitations under the License.
 package frontendapi
 
 import (
+	redigometrics "github.com/opencensus-integrations/redigo/redis"
+
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
@@ -65,11 +67,10 @@ func initializeApplication() (config.View, error) {
 	// metrics.ConfigureOpenCensusPrometheusExporter expects that every OpenCensus view you
 	// want to register is in an array, so append any views you want from other
 	// packages to a single array here.
-	ocServerViews := apisrv.DefaultFrontendAPIViews                     // FrontendAPI OpenCensus views.
-	ocServerViews = append(ocServerViews, ocgrpc.DefaultServerViews...) // gRPC OpenCensus views.
-	ocServerViews = append(ocServerViews, config.CfgVarCountView)       // config loader view.
-	// Waiting on https://github.com/opencensus-integrations/redigo/pull/1
-	// ocServerViews = append(ocServerViews, redis.ObservabilityMetricViews...) // redis OpenCensus views.
+	ocServerViews := apisrv.DefaultFrontendAPIViews                                  // FrontendAPI OpenCensus views.
+	ocServerViews = append(ocServerViews, ocgrpc.DefaultServerViews...)              // gRPC OpenCensus views.
+	ocServerViews = append(ocServerViews, config.CfgVarCountView)                    // config loader view.
+	ocServerViews = append(ocServerViews, redigometrics.ObservabilityMetricViews...) // redis OpenCensus views.
 	feLog.WithFields(log.Fields{"viewscount": len(ocServerViews)}).Info("Loaded OpenCensus views")
 	metrics.ConfigureOpenCensusPrometheusExporter(cfg, ocServerViews)
 	return cfg, nil

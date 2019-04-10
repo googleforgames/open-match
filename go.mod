@@ -8,7 +8,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gobs/pretty v0.0.0-20180724170744-09732c25a95b
 	github.com/gogo/protobuf v1.2.1
-	github.com/golang/protobuf v1.3.0 // indirect
+	github.com/golang/protobuf v1.3.0
 	github.com/gomodule/redigo v1.7.0
 	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
@@ -18,6 +18,7 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/opencensus-integrations/redigo v2.0.1+incompatible
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/rafaeljusto/redigomock v0.0.0-20190202135759-257e089e14a1
 	github.com/rs/xid v1.2.1
