@@ -35,8 +35,6 @@ import (
 
 	"github.com/cenkalti/backoff"
 	log "github.com/sirupsen/logrus"
-	"go.opencensus.io/stats"
-	"go.opencensus.io/tag"
 
 	"github.com/gomodule/redigo/redis"
 
@@ -107,10 +105,6 @@ func (s *FrontendAPI) Open() error {
 // CreatePlayer is this service's implementation of the CreatePlayer gRPC method defined in frontend.proto
 func (s *frontendAPI) CreatePlayer(ctx context.Context, req *pb.CreatePlayerRequest) (*pb.CreatePlayerResponse, error) {
 	group := req.Player
-	// Create context for tagging OpenCensus metrics.
-	funcName := "CreatePlayer"
-	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
-
 	// Write group
 	err := redispb.MarshalToRedis(ctx, s.pool, group, s.cfg.GetInt("redis.expirations.player"))
 	if err != nil {
@@ -119,7 +113,6 @@ func (s *frontendAPI) CreatePlayer(ctx context.Context, req *pb.CreatePlayerRequ
 			"component": "statestorage",
 		}).Error("State storage error")
 
-		stats.Record(fnCtx, FeGrpcErrors.M(1))
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
@@ -131,22 +124,16 @@ func (s *frontendAPI) CreatePlayer(ctx context.Context, req *pb.CreatePlayerRequ
 			"component": "statestorage",
 		}).Error("State storage error")
 
-		stats.Record(fnCtx, FeGrpcErrors.M(1))
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Return success.
-	stats.Record(fnCtx, FeGrpcRequests.M(1))
 	return &pb.CreatePlayerResponse{}, nil
 }
 
 // DeletePlayer is this service's implementation of the DeletePlayer gRPC method defined in frontend.proto
 func (s *frontendAPI) DeletePlayer(ctx context.Context, req *pb.DeletePlayerRequest) (*pb.DeletePlayerResponse, error) {
 	group := req.Player
-	// Create context for tagging OpenCensus metrics.
-	funcName := "DeletePlayer"
-	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
-
 	// Deindex this player; at that point they don't show up in MMFs anymore.  We can then delete
 	// their actual player object from Redis later.
 	err := playerindices.Delete(ctx, s.pool, s.cfg, group.Id)
@@ -156,13 +143,11 @@ func (s *frontendAPI) DeletePlayer(ctx context.Context, req *pb.DeletePlayerRequ
 			"component": "statestorage",
 		}).Error("State storage error")
 
-		stats.Record(fnCtx, FeGrpcErrors.M(1))
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 	// Kick off delete but don't wait for it to complete.
 	go s.deletePlayer(group.Id)
 
-	stats.Record(fnCtx, FeGrpcRequests.M(1))
 	return &pb.DeletePlayerResponse{}, nil
 }
 
@@ -208,10 +193,6 @@ func (s *frontendAPI) GetUpdates(req *pb.GetUpdatesRequest, assignmentStream pb.
 	ctx, cancel := context.WithCancel(assignmentStream.Context())
 	defer cancel()
 
-	// Create context for tagging OpenCensus metrics.
-	funcName := "GetAssignment"
-	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
-
 	watcherBO := backoff.NewExponentialBackOff()
 	if err := expbo.UnmarshalExponentialBackOff(s.cfg.GetString("api.frontend.backoff"), watcherBO); err != nil {
 		feLog.WithError(err).Warn("Could not parse backoff string, using default backoff parameters for Player watcher")
@@ -230,7 +211,6 @@ func (s *frontendAPI) GetUpdates(req *pb.GetUpdatesRequest, assignmentStream pb.
 		case <-ctx.Done():
 			// Context cancelled
 			feLog.WithField("playerid", p.Id).Info("client closed connection successfully")
-			stats.Record(fnCtx, FeGrpcRequests.M(1))
 			return nil
 
 		case a, ok := <-watchChan:
@@ -243,10 +223,6 @@ func (s *frontendAPI) GetUpdates(req *pb.GetUpdatesRequest, assignmentStream pb.
 					"playerid":  p.Id,
 				}).Error("State storage error")
 
-				// Count errors for metrics
-				errTag, _ := tag.NewKey("errtype")
-				fnCtx, _ := tag.New(ctx, tag.Insert(errTag, "watch_timeout"))
-				stats.Record(fnCtx, FeGrpcErrors.M(1))
 				//TODO: we could generate a frontend.player message with an error
 				//field and stream it to the client before throwing the error here
 				//if we wanted to send more useful client retry information
@@ -262,7 +238,6 @@ func (s *frontendAPI) GetUpdates(req *pb.GetUpdatesRequest, assignmentStream pb.
 			assignmentStream.Send(&pb.GetUpdatesResponse{
 				Player: &a,
 			})
-			stats.Record(fnCtx, FeGrpcStreamedResponses.M(1))
 		}
 	}
 }
