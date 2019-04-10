@@ -452,7 +452,8 @@ build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	$(GO) install github.com/golang/protobuf/protoc-gen-go
 	mv $(GOPATH)/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
 
-all-protos: golang-protos mmlogic-simple-protos php-protos
+all-protos: golang-protos mmlogic-simple-protos
+# TODO: Add php-protos to all-protos once it builds the gRPC client code.
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION)
 	$(PROTOC) $< \
@@ -577,7 +578,8 @@ clean-site:
 clean-protos:
 	rm -rf internal/pb/
 	rm -rf api/protobuf_spec/
-	rm -rf examples/functions/php/mmlogic-simple/proto/
+	# TODO: Add php-protos to all-protos once it builds the gRPC client code.
+	#rm -rf examples/functions/php/mmlogic-simple/proto/
 	rm -rf examples/functions/python3/mmlogic-simple/api/protobuf_spec/
 
 clean-binaries:
