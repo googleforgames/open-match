@@ -15,7 +15,7 @@ import (
 
 // GrpcWrapper is a decoration around the standard GRPC server that sets up a bunch of things common to Open Match servers.
 type GrpcWrapper struct {
-	serviceLh, proxyLh         *netlistener.ListenerHolder
+	serviceLh, proxyLh        *netlistener.ListenerHolder
 	serviceHandlerFuncs       []func(*grpc.Server)
 	proxyHandlerFunc          func(proxyEndpoint string) (*runtime.ServeMux, error)
 	server                    *grpc.Server
@@ -57,12 +57,12 @@ func (gw *GrpcWrapper) Start() error {
 	if gw.serviceLn != nil {
 		return nil
 	}
-	
+
 	serviceLn, err := gw.serviceLh.Obtain()
 	if err != nil {
 		gw.logger.WithFields(log.Fields{
-			"error": err.Error(),
-			"servicePort":  gw.serviceLh.Number(),
+			"error":       err.Error(),
+			"servicePort": gw.serviceLh.Number(),
 		}).Error("net.Listen() error")
 		return err
 	}
@@ -95,8 +95,8 @@ func (gw *GrpcWrapper) Start() error {
 
 	if err != nil {
 		gw.logger.WithFields(log.Fields{
-			"error": err.Error(),
-			"proxyPort":  gw.proxyLh.Number(),
+			"error":     err.Error(),
+			"proxyPort": gw.proxyLh.Number(),
 		}).Error("net.Listen() error")
 		return err
 	}
@@ -156,15 +156,15 @@ func (gw *GrpcWrapper) Stop() error {
 	gw.proxy.Shutdown(context.Background())
 
 	portErr := gw.serviceLn.Close()
-	_	= gw.proxyLn.Close()
+	_ = gw.proxyLn.Close()
 
 	grpcErr, proxyErr := gw.WaitForTermination()
-	
+
 	gw.server = nil
 	gw.serviceLn = nil
 	gw.proxy = nil
 	gw.proxyLn = nil
-	
+
 	if grpcErr != nil {
 		return grpcErr
 	}

@@ -37,7 +37,7 @@ func TestOpenClose(t *testing.T) {
 	proxyLh := netlistenerTesting.MustListen()
 	fakeService := &servingTesting.FakeFrontend{}
 	server := serving.NewGrpcServer(serviceLh, proxyLh, createLogger())
-	
+
 	server.AddService(func(server *grpc.Server) {
 		pb.RegisterFrontendServer(server, fakeService)
 	})
