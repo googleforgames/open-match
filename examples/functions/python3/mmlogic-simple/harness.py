@@ -18,7 +18,8 @@
 import os
 import grpc
 import mmf 
-import api.protobuf_spec.messages_pb2 as mmlogic
+import api.protobuf_spec.messages_pb2 as pb
+import api.protobuf_spec.mmlogic_pb2 as mmlogic
 import api.protobuf_spec.mmlogic_pb2_grpc as mmlogic_pb2_grpc
 from google.protobuf.json_format import Parse
 import ujson  as json
@@ -28,13 +29,13 @@ from timeit import default_timer as timer
 
 # Step 2 - Talk to Redis.  This example uses the MM Logic API in OM to read/write to/from redis.
 # Establish grpc channel and make the API client stub
-api_conn_info = "%s:%d" % (os.environ["OM_MMLOGICAPI_SERVICE_HOST"],os.environ["OM_MMLOGICAPI_SERVICE_PORT"])
+api_conn_info = "%s:%s" % (os.environ["OM_MMLOGICAPI_SERVICE_HOST"],os.environ["OM_MMLOGICAPI_SERVICE_PORT"])
 with  grpc.insecure_channel(api_conn_info) as channel:
     mmlogic_api = mmlogic_pb2_grpc.MmLogicStub(channel)
 
     # Step 3 - Read the profile written to the Backend API.
     # Get profile from redis
-    profile_pb = mmlogic_api.GetProfile(mmlogic.MatchObject(id=os.environ["MMF_PROFILE_ID"]))
+    profile_pb = mmlogic_api.GetProfile(mmlogic.GetProfileRequest(match = pb.MatchObject(id=os.environ["MMF_PROFILE_ID"]))).match
     pp.pprint(profile_pb) #DEBUG
     profile_dict = json.loads(profile_pb.properties)
 
@@ -54,12 +55,13 @@ with  grpc.insecure_channel(api_conn_info) as channel:
 
         # Pool filter results are streamed in chunks as they can be too large to send
         # in one grpc message.  Loop to get them all.
-        for partial_results in mmlogic_api.GetPlayerPool(empty_pool):
-            empty_pool.stats.count = partial_results.stats.count
-            empty_pool.stats.elapsed = partial_results.stats.elapsed
+        for partial_results in mmlogic_api.GetPlayerPool(mmlogic.GetPlayerPoolRequest(player_pool = empty_pool)):
+            partial_pool = partial_results.player_pool
+            empty_pool.stats.count = partial_pool.stats.count
+            empty_pool.stats.elapsed = partial_pool.stats.elapsed
             print(".", end='')
             try:
-                for player in partial_results.roster.players:
+                for player in partial_pool.roster.players:
                     if not player.id in player_pools[empty_pool.name]:
                         player_pools[empty_pool.name][player.id] = dict()
                     for attr in player.attributes:
@@ -88,7 +90,7 @@ with  grpc.insecure_channel(api_conn_info) as channel:
     # This looks odd but it's how you assign to repeated protobuf fields.
     # https://developers.google.com/protocol-buffers/docs/reference/python-generated#repeated-fields
     match_properties = json.dumps(results)
-    mo = mmlogic.MatchObject(id = os.environ["MMF_PROPOSAL_ID"], properties = match_properties)
+    mo = pb.MatchObject(id = os.environ["MMF_PROPOSAL_ID"], properties = match_properties)
     mo.pools.extend(profile_pb.pools[:])
 
     # Access the rosters in dict form within the properties json.
@@ -99,7 +101,7 @@ with  grpc.insecure_channel(api_conn_info) as channel:
 
     # Unmarshal the rosters into the MatchObject 
     for roster in rosters_dict:
-        mo.rosters.extend([Parse(json.dumps(roster), mmlogic.Roster(), ignore_unknown_fields=True)])
+        mo.rosters.extend([Parse(json.dumps(roster), pb.Roster(), ignore_unknown_fields=True)])
 
     #DEBUG: writing to error key prevents evalutor run 
     if os.environ["DEBUG"]:
@@ -118,7 +120,7 @@ with  grpc.insecure_channel(api_conn_info) as channel:
     # Step 6 - Write the outcome of the matchmaking logic back to state storage.    
     # Step 7 - Remove the selected players from consideration by other MMFs.
     # CreateProposal does both of these for you, and some other items as well.
-    success = mmlogic_api.CreateProposal(mo)
+    success = mmlogic_api.CreateProposal(mmlogic.CreateProposalRequest(match = mo))
     print("======== MMF write to state storage:  %s" % success) 
 
     # [OPTIONAL] Step 8 - Export stats about this run.
