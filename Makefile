@@ -448,7 +448,8 @@ build/toolchain/bin/protoc$(EXE_EXTENSION):
 	rm $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
 
 build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
-	cd build/toolchain/bin && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
+	mkdir -p $(TOOLCHAIN_BIN)
+	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
 build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
