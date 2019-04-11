@@ -522,13 +522,23 @@ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
-all-protos: golang-protos mmlogic-simple-protos
+all-protos: golang-protos mmlogic-simple-protos reverse-golang-protos
 # TODO: Add php-protos to all-protos once it builds the gRPC client code.
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
+
+reverse-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go
+
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
+
+internal/pb/%.pb.gw.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)\
+ 	#-I$GOPATH/src \
+  	#-I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
 
 examples/functions/php/mmlogic-simple/proto/:
 	mkdir -p examples/functions/php/mmlogic-simple/proto/
