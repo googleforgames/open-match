@@ -119,7 +119,6 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 
 	// Create context for tagging OpenCensus metrics.
 	funcName := "CreateMatch"
-	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
 	// Generate a request to fill the profile. Make a unique request ID.
 	moID := xid.New().String()
@@ -193,7 +192,6 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 		}).Error("State storage failure to create match profile")
 
 		// Failure! Return empty match object and the error
-		stats.Record(fnCtx, BeGrpcErrors.M(1))
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 	beLog.Info("Profile written to state storage")
@@ -207,7 +205,6 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 		}).Error("State storage failure to queue profile")
 
 		// Failure! Return empty match object and the error
-		stats.Record(fnCtx, BeGrpcErrors.M(1))
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 	beLog.Info("Profile added to processing queue")
@@ -225,8 +222,6 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 	if !ok {
 		// ok is false if watchChan has been closed by redispb.Watcher()
 		// This happens when Watcher stops because of context cancellation or backing off reached time limit
-		stats.Record(fnCtx, BeGrpcRequests.M(1))
-
 		if watcherBOCtx.Context().Err() != nil {
 			newMO.Error = "channel closed: " + watcherBOCtx.Context().Err().Error()
 		} else {
@@ -243,12 +238,10 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 
 	// TODO test that this is the correct condition for an empty error.
 	if newMO.Error != "" {
-		stats.Record(fnCtx, BeGrpcErrors.M(1))
 		return nil, status.Error(codes.Unknown, newMO.Error)
 	}
 
 	beLog.Info("Matchmaking results received, returning to backend client")
-	stats.Record(fnCtx, BeGrpcRequests.M(1))
 	return &pb.CreateMatchResponse{
 		Match: &newMO,
 	}, nil
@@ -266,7 +259,6 @@ func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Back
 
 	// Create context for tagging OpenCensus metrics.
 	funcName := "ListMatches"
-	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
 	beLog = beLog.WithFields(log.Fields{"func": funcName})
 	beLog.WithFields(log.Fields{
@@ -282,7 +274,6 @@ func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Back
 			}).Info("gRPC Context cancelled; client is probably finished receiving matches")
 
 			// TODO: need to make sure that in-flight matches don't get leaked here.
-			stats.Record(fnCtx, BeGrpcRequests.M(1))
 			return nil
 
 		default:
@@ -301,7 +292,6 @@ func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Back
 
 			if err != nil {
 				beLog.WithFields(log.Fields{"error": err.Error()}).Error("Failure calling CreateMatch")
-				stats.Record(fnCtx, BeGrpcErrors.M(1))
 				return status.Error(codes.Unavailable, err.Error())
 			}
 			beLog.WithFields(log.Fields{"matchProperties": fmt.Sprintf("%v", mo)}).Debug("Streaming back match object")
@@ -323,7 +313,6 @@ func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Back
 func (s *backendAPI) DeleteMatch(ctx context.Context, req *pb.DeleteMatchRequest) (*pb.DeleteMatchResponse, error) {
 	// Create context for tagging OpenCensus metrics.
 	funcName := "DeleteMatch"
-	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
 	beLog = beLog.WithFields(log.Fields{"func": funcName})
 	beLog.WithFields(log.Fields{
@@ -337,15 +326,12 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, req *pb.DeleteMatchRequest
 			"component": "statestorage",
 		}).Error("State storage error")
 
-		stats.Record(fnCtx, BeGrpcErrors.M(1))
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
 	beLog.WithFields(log.Fields{
 		"matchObjectID": req.Match.Id,
 	}).Info("Match Object deleted.")
-
-	stats.Record(fnCtx, BeGrpcRequests.M(1))
 	return &pb.DeleteMatchResponse{}, nil
 }
 
@@ -396,7 +382,6 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, req *pb.CreateAssign
 			"component": "statestorage",
 		}).Error("State storage error")
 
-		stats.Record(fnCtx, BeGrpcErrors.M(1))
 		stats.Record(fnCtx, BeAssignmentFailures.M(int64(len(players))))
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
@@ -406,7 +391,6 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, req *pb.CreateAssign
 		"numPlayers": len(players),
 	}).Info("Assignments complete")
 
-	stats.Record(fnCtx, BeGrpcRequests.M(1))
 	stats.Record(fnCtx, BeAssignments.M(int64(len(players))))
 	return &pb.CreateAssignmentsResponse{}, nil
 }
@@ -434,13 +418,11 @@ func (s *backendAPI) DeleteAssignments(ctx context.Context, req *pb.DeleteAssign
 			"component": "statestorage",
 		}).Error("State storage error")
 
-		stats.Record(fnCtx, BeGrpcErrors.M(1))
 		stats.Record(fnCtx, BeAssignmentDeletionFailures.M(int64(len(assignments))))
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
 	// Success!
-	stats.Record(fnCtx, BeGrpcRequests.M(1))
 	stats.Record(fnCtx, BeAssignmentDeletions.M(int64(len(assignments))))
 	return &pb.DeleteAssignmentsResponse{}, nil
 }

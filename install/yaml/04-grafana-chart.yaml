@@ -127,7 +127,7 @@ data:
       isDefault: true
       name: Prometheus
       type: prometheus
-      url: http://open-match-prometheus-server.default.svc.cluster.local:80/
+      url: http://open-match-prometheus-server.open-match.svc.cluster.local:80/
     
 
 ---
@@ -508,7 +508,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: open-match-grafana
-    namespace: default
+    namespace: open-match
 roleRef:
   kind: ClusterRole
   name: open-match-grafana-clusterrole
@@ -548,7 +548,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: open-match-grafana
-  namespace: default
+  namespace: open-match
 ---
 # Source: open-match/charts/grafana/templates/service.yaml
 apiVersion: v1
