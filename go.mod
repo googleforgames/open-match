@@ -5,6 +5,8 @@ go 1.12
 require (
 	cloud.google.com/go v0.37.4 // indirect
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
+	github.com/alicebob/gopher-json v0.0.0-20180125190556-5a6b3ba71ee6 // indirect
+	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/cenkalti/backoff v2.1.1+incompatible
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gobs/pretty v0.0.0-20180724170744-09732c25a95b
@@ -34,6 +36,7 @@ require (
 	github.com/tidwall/match v1.0.1 // indirect
 	github.com/tidwall/pretty v0.0.0-20180105212114-65a9db5fad51 // indirect
 	github.com/tidwall/sjson v1.0.4
+	github.com/yuin/gopher-lua v0.0.0-20190206043414-8bfc7677f583 // indirect
 	go.opencensus.io v0.20.2
 	golang.org/x/crypto v0.0.0-20190404164418-38d8ce5564a5 // indirect
 	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3 // indirect
