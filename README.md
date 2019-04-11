@@ -17,7 +17,33 @@ This project attempts to solve the networking and plumbing problems, so game dev
 ## Running Open Match
 Open Match framework is a collection of servers that run within Kubernetes (the [puppet master](https://en.wikipedia.org/wiki/Puppet_Master_(gaming)) for your server cluster.)
 
-### Deploy to Minikube (Local, Development)
+
+## Deploy to Kubernetes
+
+If you have an [existing Kubernetes cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/creating-a-cluster) you can run these commands to install Open Match.
+
+```bash
+# Grant yourself cluster-admin permissions so that you can deploy service accounts.
+kubectl create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(YOUR_KUBERNETES_USER_NAME)
+# Place all Open Match components in their own namespace.
+kubectl create namespace open-match
+# Install Open Match and monitoring services.
+kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/open-match/master/install/yaml/install.yaml --namespace open-match
+# Install the example MMF and Evaluator.
+kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/open-match/master/install/yaml/install-example.yaml --namespace open-match
+```
+
+To delete Open Match
+
+```bash
+# Delete the open-match namespace that holds all the Open Match configuration.
+kubectl delete namespace open-match
+```
+
+## Development
+Open Match can be deployed locally or in the cloud for development. Below are the steps to build, push, and deploy the binaries to Kubernetes.
+
+### Deploy to Minikube (Locally)
 [Minikube](https://kubernetes.io/docs/setup/minikube/) is Kubernetes in a VM. It's mainly used for development.
 
 ```bash
