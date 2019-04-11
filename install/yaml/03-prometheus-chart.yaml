@@ -217,7 +217,7 @@ data:
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
         relabel_configs:
         - source_labels: [__meta_kubernetes_namespace]
-          regex: default
+          regex: open-match
           action: keep
         - source_labels: [__meta_kubernetes_pod_label_app]
           regex: prometheus
@@ -460,7 +460,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: open-match-prometheus-kube-state-metrics
-    namespace: default
+    namespace: open-match
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -481,7 +481,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: open-match-prometheus-server
-    namespace: default
+    namespace: open-match
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
