@@ -170,7 +170,8 @@ local-cloud-build:
 
 push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
 push-service-images: push-frontendapi-image push-backendapi-image push-mmforc-image push-mmlogicapi-image
-push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-image push-mmf-php-mmlogic-simple-image push-mmf-py3-mmlogic-simple-image
+# TODO: push-mmf-php-mmlogic-simple-image
+push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-image push-mmf-py3-mmlogic-simple-image
 push-client-images: push-backendclient-image push-clientloadgen-image push-frontendclient-image
 push-evaluator-example-images: push-evaluator-simple-image
 
@@ -225,7 +226,8 @@ push-evaluator-simple-image: build-evaluator-simple-image
 build-images: build-service-images build-client-images build-mmf-example-images build-evaluator-example-images
 build-service-images: build-frontendapi-image build-backendapi-image build-mmforc-image build-mmlogicapi-image
 build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
-build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-php-mmlogic-simple-image build-mmf-py3-mmlogic-simple-image
+# TODO build-mmf-php-mmlogic-simple-image
+build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-py3-mmlogic-simple-image
 build-evaluator-example-images: build-evaluator-simple-image
 
 build-base-build-image:
