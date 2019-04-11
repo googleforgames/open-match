@@ -135,6 +135,17 @@ data:
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mmforc-job-runner
+  namespace: open-match
+  labels:
+    app: open-match
+    chart: open-match-0.4.0
+    release: open-match
+    heritage: Tiller
+---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
@@ -219,7 +230,7 @@ spec:
     spec:
       containers:
       - name: om-backend
-        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-backendapi:0.4.0-9fcd7b9"
+        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-backendapi:0.4.0"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
@@ -299,7 +310,7 @@ spec:
     spec:
       containers:
       - name: om-frontendapi
-        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-frontendapi:0.4.0-9fcd7b9"
+        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-frontendapi:0.4.0"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
@@ -378,7 +389,7 @@ spec:
     spec:
       containers:
       - name: om-mmlogic
-        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-mmlogicapi:0.4.0-9fcd7b9"
+        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-mmlogicapi:0.4.0"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
@@ -443,7 +454,7 @@ spec:
       serviceAccountName: mmforc-job-runner
       containers:
       - name: om-mmforc
-        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-mmforc:0.4.0-9fcd7b9"
+        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-mmforc:0.4.0"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
