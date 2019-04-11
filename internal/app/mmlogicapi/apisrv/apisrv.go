@@ -38,7 +38,6 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	"github.com/gogo/protobuf/proto"
 	log "github.com/sirupsen/logrus"
-	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
 
 	"github.com/gomodule/redigo/redis"
@@ -115,10 +114,6 @@ func (s *mmlogicAPI) GetProfile(c context.Context, req *pb.GetProfileRequest) (*
 	redisConn := s.pool.Get()
 	defer redisConn.Close()
 
-	// Create context for tagging OpenCensus metrics.
-	funcName := "GetProfile"
-	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
-
 	// Get profile.
 	mlLog.WithFields(log.Fields{"profileid": profile.Id}).Info("Attempting retreival of profile")
 	err := redispb.UnmarshalFromRedis(c, s.pool, profile)
@@ -130,14 +125,12 @@ func (s *mmlogicAPI) GetProfile(c context.Context, req *pb.GetProfileRequest) (*
 			"profileid": profile.Id,
 		}).Error("State storage error")
 
-		stats.Record(fnCtx, MlGrpcErrors.M(1))
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 	mlLog.WithFields(log.Fields{"profileid": profile.Id}).Debug("Retrieved profile from state storage")
 
 	mlLog.Debug(profile)
 
-	stats.Record(fnCtx, MlGrpcRequests.M(1))
 	return &pb.GetProfileResponse{
 		Match: profile,
 	}, nil
@@ -171,7 +164,6 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, req *pb.CreateProposalReq
 	// Write all non-id fields from the protobuf message to state storage.
 	err := redispb.MarshalToRedis(c, s.pool, prop, s.cfg.GetInt("redis.expirations.matchobject"))
 	if err != nil {
-		stats.Record(fnCtx, MlGrpcErrors.M(1))
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
@@ -200,8 +192,6 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, req *pb.CreateProposalReq
 					"ignorelist": list,
 				}).Error("State storage error")
 
-				// record error.
-				stats.Record(fnCtx, MlGrpcErrors.M(1))
 				return nil, status.Error(codes.Unknown, err.Error())
 			}
 		} else {
@@ -219,8 +209,6 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, req *pb.CreateProposalReq
 		if err != nil {
 			pqLog.WithFields(log.Fields{"error": err.Error()}).Error("State storage error")
 
-			// record error.
-			stats.Record(fnCtx, MlGrpcErrors.M(1))
 			return nil, status.Error(codes.Unknown, err.Error())
 		}
 	}
@@ -237,12 +225,9 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, req *pb.CreateProposalReq
 	if err != nil {
 		cmLog.WithFields(log.Fields{"error": err.Error()}).Error("State storage error")
 
-		// record error.
-		stats.Record(fnCtx, MlGrpcErrors.M(1))
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
-	stats.Record(fnCtx, MlGrpcRequests.M(1))
 	return &pb.CreateProposalResponse{}, nil
 }
 
@@ -259,7 +244,6 @@ func (s *mmlogicAPI) GetPlayerPool(req *pb.GetPlayerPoolRequest, stream pb.MmLog
 
 	// Create context for tagging OpenCensus metrics.
 	funcName := "GetPlayerPool"
-	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
 	mlLog.WithFields(log.Fields{
 		"filterCount": len(pool.Filters),
@@ -307,10 +291,8 @@ func (s *mmlogicAPI) GetPlayerPool(req *pb.GetPlayerPoolRequest, stream pb.MmLog
 				if err = stream.Send(&pb.GetPlayerPoolResponse{
 					PlayerPool: p,
 				}); err != nil {
-					stats.Record(fnCtx, MlGrpcErrors.M(1))
 					return status.Error(codes.Unavailable, err.Error())
 				}
-				stats.Record(fnCtx, MlGrpcRequests.M(1))
 				return nil
 			}
 
@@ -384,7 +366,6 @@ func (s *mmlogicAPI) GetPlayerPool(req *pb.GetPlayerPoolRequest, stream pb.MmLog
 			if err = stream.Send(&pb.GetPlayerPoolResponse{
 				PlayerPool: poolChunk,
 			}); err != nil {
-				stats.Record(fnCtx, MlGrpcErrors.M(1))
 				return status.Error(codes.Unavailable, err.Error())
 			}
 			partialRoster.Players = []*pb.Player{}
@@ -393,7 +374,6 @@ func (s *mmlogicAPI) GetPlayerPool(req *pb.GetPlayerPoolRequest, stream pb.MmLog
 
 	mlLog.WithFields(log.Fields{"count": len(playerList), "pool": pool.Name}).Debug("player pool streaming complete")
 
-	stats.Record(fnCtx, MlGrpcRequests.M(1))
 	return nil
 }
 
@@ -513,17 +493,11 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *pb.Filter) (map[stri
 // value of that function to a gRPC Roster message to send out over the wire.
 func (s *mmlogicAPI) GetAllIgnoredPlayers(c context.Context, req *pb.GetAllIgnoredPlayersRequest) (*pb.GetAllIgnoredPlayersResponse, error) {
 	in := req.IgnorePlayer
-	// Create context for tagging OpenCensus metrics.
-	funcName := "GetAllIgnoredPlayers"
-	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
-
 	il, err := s.allIgnoreLists(c, in)
 	if err != nil {
-		stats.Record(fnCtx, MlGrpcErrors.M(1))
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
-	stats.Record(fnCtx, MlGrpcRequests.M(1))
 	return &pb.GetAllIgnoredPlayersResponse{
 		Roster: createRosterfromPlayerIds(il),
 	}, nil
@@ -539,10 +513,6 @@ func (s *mmlogicAPI) ListIgnoredPlayers(c context.Context, req *pb.ListIgnoredPl
 	redisConn := s.pool.Get()
 	defer redisConn.Close()
 
-	// Create context for tagging OpenCensus metrics.
-	funcName := "ListIgnoredPlayers"
-	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
-
 	mlLog.WithFields(log.Fields{"ignorelist": ilName}).Info("Attempting to get ignorelist")
 
 	// retreive ignore list
@@ -554,13 +524,11 @@ func (s *mmlogicAPI) ListIgnoredPlayers(c context.Context, req *pb.ListIgnoredPl
 			"key":       ilName,
 		}).Error("State storage error")
 
-		stats.Record(fnCtx, MlGrpcErrors.M(1))
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 	// TODO: fix this
 	mlLog.Debug(fmt.Sprintf("Retrieval success %v", il))
 
-	stats.Record(fnCtx, MlGrpcRequests.M(1))
 	return &pb.ListIgnoredPlayersResponse{
 		Roster: createRosterfromPlayerIds(il),
 	}, nil

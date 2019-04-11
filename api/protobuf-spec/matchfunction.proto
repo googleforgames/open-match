@@ -1,9 +1,24 @@
+// Copyright 2018 Google LLC
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 syntax = 'proto3';
 package api;
 option go_package = "internal/pb";
 
 // The protobuf messages sent in the gRPC calls are defined 'messages.proto'.
 import 'api/protobuf-spec/messages.proto';
+import 'google/api/annotations.proto';
 
 // Request message sent to the MMF.
 message RunRequest {
@@ -24,5 +39,10 @@ service MatchFunction {
   // being served.  Build your MMF in the appropriate serving harness, deploy it
   // to the K8s cluster with a unique service name, then connect to that service
   // and call 'Run()' to execute the fuction.
-  rpc Run(RunRequest) returns (RunResponse) {}
+  rpc Run(RunRequest) returns (RunResponse) {
+    option (google.api.http) = {
+      put: "/v1/function"
+      body: "*"
+    };
+  }
 }
