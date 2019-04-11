@@ -482,7 +482,7 @@ build/toolchain/bin/protoc$(EXE_EXTENSION):
 
 build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
-	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
+	cd $(TOOLCHAIN_BIN) && $(GO_WITH_DEPS) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
 build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
@@ -493,7 +493,7 @@ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
 		$(PROTOC_INCLUDES)/google/api
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
-	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	cd $(TOOLCHAIN_BIN) && $(GO_WITH_DEPS) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
 all-protos: golang-protos mmlogic-simple-protos
 # TODO: Add php-protos to all-protos once it builds the gRPC client code.
