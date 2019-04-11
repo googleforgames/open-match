@@ -1,4 +1,87 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# vim swap files
+*swp
+*swo
+*~
+
+# Ping data files
+*.ping
+*.pings
+*.population*
+*.percent
+*.cities
+populations
+
+# local config files
+#*.json
+
+# Discarded code snippets
+build.sh
+*-fast.yaml
+detritus/
+
+# Dotnet Core ignores
+*.swp
+*.*~
+project.lock.json
+.DS_Store
+*.pyc
+nupkg/
+
+# Visual Studio Code
+.vscode
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# Visual Studio 2015
+.vs/
+
+# Goland
+.idea/
+
+# Nodejs files placed when building Hugo, ok to allow if we actually start using Nodejs.
+package.json
+package-lock.json
+
+site/resources/_gen/
+
+# Node Modules
+node_modules/
+
 # Compiled Binaries
+cmd/minimatch/minimatch
 cmd/backendapi/backendapi
 cmd/frontendapi/frontendapi
 cmd/mmforc/mmforc
