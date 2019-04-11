@@ -15,13 +15,9 @@
 FROM debian
 
 RUN apt-get update
-RUN apt-get install -y -q git make g++ php python3 virtualenv autoconf \
-  build-essential libtool pkg-config libgflags-dev libgtest-dev \
-  clang libc++-dev curl sudo unzip apt-transport-https \
-    ca-certificates \
-    curl \
-    gnupg2 \
-    software-properties-common
+RUN apt-get install -y -q git make python3 virtualenv curl sudo unzip apt-transport-https ca-certificates curl software-properties-common
+# Required for building gRPC if we need it in the future.
+#RUN apt-get install -y -q g++ php autoconf build-essential libtool pkg-config libgflags-dev libgtest-dev clang libc++-dev gnupg2
 
 # Docker
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
@@ -50,13 +46,13 @@ RUN mkdir -p /workspace && chown -R openmatch:openmatch /workspace
 USER openmatch
 
 WORKDIR /toolchain
-RUN git clone -b $(curl -L https://grpc.io/release) https://github.com/grpc/grpc
-#RUN git clone -b v1.19.0 https://github.com/grpc/grpc
-WORKDIR /toolchain/grpc
-RUN git submodule update --init
-RUN make grpc_php_plugin
-RUN make all -j$(nproc)
-RUN sudo make install
+# TODO: Add gRPC compile later for PHP support.
+#RUN git clone -b $(curl -L https://grpc.io/release) https://github.com/grpc/grpc
+#WORKDIR /toolchain/grpc
+#RUN git submodule update --init
+#RUN make grpc_php_plugin
+#RUN make all -j$(nproc)
+#RUN sudo make install
 
 # Install Golang
 # https://github.com/docker-library/golang/blob/fd272b2b72db82a0bd516ce3d09bba624651516c/1.12/stretch/Dockerfile
