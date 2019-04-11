@@ -81,6 +81,7 @@ site/resources/_gen/
 node_modules/
 
 # Compiled Binaries
+cmd/minimatch/minimatch
 cmd/backendapi/backendapi
 cmd/frontendapi/frontendapi
 cmd/mmforc/mmforc
