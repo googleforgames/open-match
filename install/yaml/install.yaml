@@ -1,0 +1,2656 @@
+---
+# Source: open-match/charts/grafana/templates/podsecuritypolicy.yaml
+
+apiVersion: extensions/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: open-match-grafana
+  labels:
+    app: grafana
+    chart: grafana-2.2.0
+    heritage: Tiller
+    release: open-match
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName:  'docker/default'
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    # Default set from Docker, without DAC_OVERRIDE or CHOWN
+    - FOWNER
+    - FSETID
+    - KILL
+    - SETGID
+    - SETUID
+    - SETPCAP
+    - NET_BIND_SERVICE
+    - NET_RAW
+    - SYS_CHROOT
+    - MKNOD
+    - AUDIT_WRITE
+    - SETFCAP
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: false
+
+---
+# Source: open-match/charts/grafana/templates/secret.yaml
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: open-match-grafana
+  labels:
+    app: grafana
+    chart: grafana-2.2.0
+    release: open-match
+    heritage: Tiller
+type: Opaque
+data:
+  admin-user: "YWRtaW4="
+  admin-password: "b3Blbm1hdGNo"
+  ldap-toml: ""
+
+---
+# Source: open-match/charts/grafana/templates/configmap-dashboard-provider.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: grafana
+    chart: grafana-2.2.0
+    release: open-match
+    heritage: Tiller
+  name: open-match-grafana-config-dashboards
+data:
+  provider.yaml: |-
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      options:
+        path: /tmp/dashboards
+
+---
+# Source: open-match/charts/grafana/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-match-grafana
+  labels:
+    app: grafana
+    chart: grafana-2.2.0
+    release: open-match
+    heritage: Tiller
+data:
+  plugins: grafana-piechart-panel
+  grafana.ini: |
+    [analytics]
+    check_for_updates = true
+    [grafana_net]
+    url = https://grafana.net
+    [log]
+    mode = console
+    [paths]
+    data = /var/lib/grafana/data
+    logs = /var/log/grafana
+    plugins = /var/lib/grafana/plugins
+    provisioning = /etc/grafana/provisioning
+
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+    - access: proxy
+      isDefault: true
+      name: Prometheus
+      type: prometheus
+      url: http://open-match-prometheus-server.open-match.svc.cluster.local:80/
+    
+
+---
+# Source: open-match/charts/prometheus/templates/alertmanager-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    component: "alertmanager"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-alertmanager
+data:
+  alertmanager.yml: |
+    global: {}
+    receivers:
+    - name: default-receiver
+    route:
+      group_interval: 5m
+      group_wait: 10s
+      receiver: default-receiver
+      repeat_interval: 3h
+    
+---
+# Source: open-match/charts/prometheus/templates/server-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    component: "server"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-server
+data:
+  alerts: |
+    {}
+    
+  prometheus.yml: |
+    global:
+      evaluation_interval: 1m
+      scrape_interval: 1m
+      scrape_timeout: 10s
+    rule_files:
+    - /etc/config/rules
+    - /etc/config/alerts
+    scrape_configs:
+    - job_name: prometheus
+      static_configs:
+      - targets:
+        - localhost:9090
+    - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      job_name: kubernetes-apiservers
+      kubernetes_sd_configs:
+      - role: endpoints
+      relabel_configs:
+      - action: keep
+        regex: default;kubernetes;https
+        source_labels:
+        - __meta_kubernetes_namespace
+        - __meta_kubernetes_service_name
+        - __meta_kubernetes_endpoint_port_name
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecure_skip_verify: true
+    - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      job_name: kubernetes-nodes
+      kubernetes_sd_configs:
+      - role: node
+      relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - replacement: kubernetes.default.svc:443
+        target_label: __address__
+      - regex: (.+)
+        replacement: /api/v1/nodes/$1/proxy/metrics
+        source_labels:
+        - __meta_kubernetes_node_name
+        target_label: __metrics_path__
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecure_skip_verify: true
+    - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      job_name: kubernetes-nodes-cadvisor
+      kubernetes_sd_configs:
+      - role: node
+      relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - replacement: kubernetes.default.svc:443
+        target_label: __address__
+      - regex: (.+)
+        replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+        source_labels:
+        - __meta_kubernetes_node_name
+        target_label: __metrics_path__
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecure_skip_verify: true
+    - job_name: kubernetes-service-endpoints
+      kubernetes_sd_configs:
+      - role: endpoints
+      relabel_configs:
+      - action: keep
+        regex: true
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_scrape
+      - action: replace
+        regex: (https?)
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_scheme
+        target_label: __scheme__
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_service_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: kubernetes_namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_service_name
+        target_label: kubernetes_name
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_node_name
+        target_label: kubernetes_node
+    - honor_labels: true
+      job_name: prometheus-pushgateway
+      kubernetes_sd_configs:
+      - role: service
+      relabel_configs:
+      - action: keep
+        regex: pushgateway
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_probe
+    - job_name: kubernetes-services
+      kubernetes_sd_configs:
+      - role: service
+      metrics_path: /probe
+      params:
+        module:
+        - http_2xx
+      relabel_configs:
+      - action: keep
+        regex: true
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_probe
+      - source_labels:
+        - __address__
+        target_label: __param_target
+      - replacement: blackbox
+        target_label: __address__
+      - source_labels:
+        - __param_target
+        target_label: instance
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - source_labels:
+        - __meta_kubernetes_namespace
+        target_label: kubernetes_namespace
+      - source_labels:
+        - __meta_kubernetes_service_name
+        target_label: kubernetes_name
+    - job_name: kubernetes-pods
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - action: keep
+        regex: true
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: kubernetes_namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: kubernetes_pod_name
+    
+    alerting:
+      alertmanagers:
+      - kubernetes_sd_configs:
+          - role: pod
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace]
+          regex: open-match
+          action: keep
+        - source_labels: [__meta_kubernetes_pod_label_app]
+          regex: prometheus
+          action: keep
+        - source_labels: [__meta_kubernetes_pod_label_component]
+          regex: alertmanager
+          action: keep
+        - source_labels: [__meta_kubernetes_pod_container_port_number]
+          regex:
+          action: drop
+  rules: |
+    {}
+    
+---
+# Source: open-match/charts/redis/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    heritage: Tiller
+    release: open-match
+  name: om-redis
+data:
+  redis.conf: |-
+    # User-supplied configuration:
+    # maxmemory-policy volatile-lru
+  master.conf: |-
+    dir /data
+  replica.conf: |-
+    dir /data
+
+---
+# Source: open-match/charts/redis/templates/health-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    heritage: Tiller
+    release: open-match
+  name: om-redis-health
+data:
+  ping_local.sh: |-
+    response=$(
+      timeout -s 9 $1 \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_master.sh: |-
+    response=$(
+      timeout -s 9 $1 \
+      redis-cli \
+        -h $REDIS_MASTER_HOST \
+        -p $REDIS_MASTER_PORT_NUMBER \
+        ping
+    )
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_local_and_master.sh: |-
+    script_dir="$(dirname "$0")"
+    exit_status=0
+    "$script_dir/ping_local.sh" $1 || exit_status=$?
+    "$script_dir/ping_master.sh" $1 || exit_status=$?
+    exit $exit_status
+
+---
+# Source: open-match/templates/grafana-dashboards.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-match-rpc-dashboard
+  labels:
+     grafana_dashboard: "1"
+data:
+  grpc.json: |+
+    {
+        "annotations": {
+          "list": [
+            {
+              "builtIn": 1,
+              "datasource": "-- Grafana --",
+              "enable": true,
+              "hide": true,
+              "iconColor": "rgba(0, 211, 255, 1)",
+              "name": "Annotations & Alerts",
+              "type": "dashboard"
+            }
+          ]
+        },
+        "editable": true,
+        "gnetId": null,
+        "graphTooltip": 0,
+        "id": 2,
+        "iteration": 1552341236942,
+        "links": [],
+        "panels": [
+          {
+            "aliasColors": {},
+            "bars": false,
+            "dashLength": 10,
+            "dashes": false,
+            "description": "",
+            "fill": 1,
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 0
+            },
+            "id": 4,
+            "legend": {
+              "avg": false,
+              "current": false,
+              "max": false,
+              "min": false,
+              "show": true,
+              "total": false,
+              "values": false
+            },
+            "lines": true,
+            "linewidth": 1,
+            "links": [],
+            "nullPointMode": "null",
+            "paceLength": 10,
+            "percentage": false,
+            "pointradius": 2,
+            "points": false,
+            "renderer": "flot",
+            "seriesOverrides": [],
+            "stack": false,
+            "steppedLine": false,
+            "targets": [
+              {
+                "expr": "rate(open_match_frontend_grpc_requests[$timewindow])",
+                "format": "time_series",
+                "interval": "",
+                "intervalFactor": 1,
+                "legendFormat": "/{{component}}.{{method}}",
+                "refId": "A"
+              },
+              {
+                "expr": "rate(open_match_backend_grpc_requests[$timewindow])",
+                "format": "time_series",
+                "intervalFactor": 1,
+                "legendFormat": "/{{component}}.{{method}}",
+                "refId": "B"
+              }
+            ],
+            "thresholds": [],
+            "timeFrom": null,
+            "timeRegions": [],
+            "timeShift": null,
+            "title": "Request Rate",
+            "tooltip": {
+              "shared": true,
+              "sort": 0,
+              "value_type": "individual"
+            },
+            "type": "graph",
+            "xaxis": {
+              "buckets": null,
+              "mode": "time",
+              "name": null,
+              "show": true,
+              "values": []
+            },
+            "yaxes": [
+              {
+                "decimals": null,
+                "format": "reqps",
+                "label": "",
+                "logBase": 10,
+                "max": null,
+                "min": null,
+                "show": true
+              },
+              {
+                "format": "short",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": null,
+                "show": true
+              }
+            ],
+            "yaxis": {
+              "align": false,
+              "alignLevel": null
+            }
+          },
+          {
+            "aliasColors": {},
+            "bars": false,
+            "dashLength": 10,
+            "dashes": false,
+            "fill": 1,
+            "gridPos": {
+              "h": 9,
+              "w": 12,
+              "x": 12,
+              "y": 0
+            },
+            "id": 2,
+            "legend": {
+              "avg": false,
+              "current": false,
+              "max": false,
+              "min": false,
+              "show": true,
+              "total": false,
+              "values": false
+            },
+            "lines": true,
+            "linewidth": 1,
+            "links": [],
+            "nullPointMode": "null",
+            "paceLength": 10,
+            "percentage": false,
+            "pointradius": 2,
+            "points": false,
+            "renderer": "flot",
+            "seriesOverrides": [],
+            "stack": false,
+            "steppedLine": false,
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.9, rate(open_match_grpc_io_server_server_latency_bucket[$timewindow]))",
+                "format": "time_series",
+                "intervalFactor": 1,
+                "legendFormat": "{{grpc_server_method}}",
+                "refId": "A"
+              }
+            ],
+            "thresholds": [],
+            "timeFrom": null,
+            "timeRegions": [],
+            "timeShift": null,
+            "title": "RPC Latency",
+            "tooltip": {
+              "shared": true,
+              "sort": 0,
+              "value_type": "individual"
+            },
+            "type": "graph",
+            "xaxis": {
+              "buckets": null,
+              "mode": "time",
+              "name": null,
+              "show": true,
+              "values": []
+            },
+            "yaxes": [
+              {
+                "format": "µs",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": null,
+                "show": true
+              },
+              {
+                "format": "short",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": null,
+                "show": true
+              }
+            ],
+            "yaxis": {
+              "align": false,
+              "alignLevel": null
+            }
+          }
+        ],
+        "schemaVersion": 18,
+        "style": "dark",
+        "tags": [],
+        "templating": {
+          "list": [
+            {
+              "allValue": null,
+              "current": {
+                "text": "5m",
+                "value": "5m"
+              },
+              "hide": 0,
+              "includeAll": false,
+              "label": "Time Window",
+              "multi": false,
+              "name": "timewindow",
+              "options": [
+                {
+                  "selected": true,
+                  "text": "5m",
+                  "value": "5m"
+                },
+                {
+                  "selected": false,
+                  "text": "10m",
+                  "value": "10m"
+                },
+                {
+                  "selected": false,
+                  "text": "15m",
+                  "value": "15m"
+                },
+                {
+                  "selected": false,
+                  "text": "30m",
+                  "value": "30m"
+                },
+                {
+                  "selected": false,
+                  "text": "1h",
+                  "value": "1h"
+                },
+                {
+                  "selected": false,
+                  "text": "4h",
+                  "value": "4h"
+                }
+              ],
+              "query": "5m,10m,15m,30m,1h,4h",
+              "skipUrlSync": false,
+              "type": "custom"
+            }
+          ]
+        },
+        "time": {
+          "from": "now-30m",
+          "to": "now"
+        },
+        "timepicker": {
+          "refresh_intervals": [
+            "5s",
+            "10s",
+            "30s",
+            "1m",
+            "5m",
+            "15m",
+            "30m",
+            "1h",
+            "2h",
+            "1d"
+          ],
+          "time_options": [
+            "5m",
+            "15m",
+            "1h",
+            "6h",
+            "12h",
+            "24h",
+            "2d",
+            "7d",
+            "30d"
+          ]
+        },
+        "timezone": "",
+        "title": "gRPC",
+        "uid": "nlrmG_Cmk",
+        "version": 4
+      }
+  
+  
+
+---
+# Source: open-match/templates/om-configmap.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: om-configmap
+  labels:
+    app: open-match
+    component: config
+    chart: open-match-0.4.0
+    release: open-match
+    heritage: Tiller
+data:
+  matchmaker_config.yaml: |-
+    # kubectl create configmap om-configmap --from-file=config/matchmaker_config.yaml
+    debug: true
+    
+    logging:
+      level: debug
+      format: text
+      source: true
+    
+    api: 
+      backend: 
+        hostname: om-backendapi
+        port: 50505
+        backoff: "[2 32] *2 ~0.33 <30"
+      frontend: 
+        hostname: om-frontendapi
+        port: 50504
+        backoff: "[2 32] *2 ~0.33 <300"
+      mmlogic: 
+        hostname: om-mmlogicapi
+        port: 50503
+      functions:
+        port: 50502
+      
+    evalutor: 
+      interval: 10
+    
+    metrics: 
+      port: 9555
+      endpoint: /metrics
+      reportingPeriod: 5
+    
+    queues: 
+      profiles: 
+        name: profileq
+        pullCount: 100
+      proposals: 
+        name: proposalq
+      
+    ignoreLists: 
+      proposed: 
+        name: proposed
+        offset: 0
+        duration: 800
+      deindexed: 
+        name: deindexed
+        offset: 0
+        duration: 800
+      expired: 
+        name: OM_METADATA.accessed
+        offset: 800
+        duration: 0 
+    
+    defaultImages: 
+      evaluator: 
+        name: gcr.io/open-match-public-images/openmatch-evaluator-simple
+        tag: latest
+      mmf: 
+        name: gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple
+        tag: latest
+    
+    redis: 
+      pool: 
+        maxIdle: 3
+        maxActive: 0
+        idleTimeout: 60
+      queryArgs:
+        count: 10000
+      results: 
+        pageSize: 10000
+      expirations: 
+        player: 43200
+        matchobject: 43200 
+    
+    jsonkeys:
+      mmfImage: imagename
+      mmfService: hostname
+      rosters: properties.rosters
+      pools: properties.pools
+    
+    playerIndices:
+    - char.cleric
+    - char.knight
+    - char.paladin
+    - map.aleroth
+    - map.oasis
+    - mmr.rating
+    - mode.battleroyale
+    - mode.ctf
+    - mode.demo
+    - region.europe-east1
+    - region.europe-west1
+    - region.europe-west2
+    - region.europe-west3
+    - region.europe-west4
+    - role.dps
+    - role.support
+    - role.tank
+    
+---
+# Source: open-match/charts/grafana/templates/pvc.yaml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: open-match-grafana
+  labels:
+    app: grafana
+    chart: grafana-2.2.0
+    release: open-match
+    heritage: Tiller
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "10Gi"
+  storageClassName: 
+---
+# Source: open-match/charts/prometheus/templates/alertmanager-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    component: "alertmanager"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-alertmanager
+spec:
+  accessModes:
+    - ReadWriteOnce
+    
+  resources:
+    requests:
+      storage: "2Gi"
+---
+# Source: open-match/charts/prometheus/templates/server-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    component: "server"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-server
+spec:
+  accessModes:
+    - ReadWriteOnce
+    
+  resources:
+    requests:
+      storage: "8Gi"
+---
+# Source: open-match/charts/grafana/templates/serviceaccount.yaml
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: grafana
+    chart: grafana-2.2.0
+    heritage: Tiller
+    release: open-match
+  name: open-match-grafana
+
+---
+# Source: open-match/charts/prometheus/templates/alertmanager-serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    component: "alertmanager"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-alertmanager
+---
+# Source: open-match/charts/prometheus/templates/kube-state-metrics-serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    component: "kube-state-metrics"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-kube-state-metrics
+---
+# Source: open-match/charts/prometheus/templates/node-exporter-serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    component: "node-exporter"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-node-exporter
+---
+# Source: open-match/charts/prometheus/templates/pushgateway-serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    component: "pushgateway"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-pushgateway
+---
+# Source: open-match/charts/prometheus/templates/server-serviceaccount.yaml
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    component: "server"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-server
+
+---
+# Source: open-match/charts/grafana/templates/clusterrole.yaml
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    app: grafana
+    chart: grafana-2.2.0
+    release: open-match
+    heritage: Tiller
+  name: open-match-grafana-clusterrole
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["configmaps"]
+  verbs: ["get", "watch", "list"]
+
+---
+# Source: open-match/charts/prometheus/templates/kube-state-metrics-clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  labels:
+    component: "kube-state-metrics"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-kube-state-metrics
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - nodes
+      - persistentvolumeclaims
+      - pods
+      - services
+      - resourcequotas
+      - replicationcontrollers
+      - limitranges
+      - persistentvolumeclaims
+      - persistentvolumes
+      - endpoints
+      - secrets
+      - configmaps
+    verbs:
+      - list
+      - watch
+  - apiGroups:
+      - extensions
+    resources:
+      - daemonsets
+      - deployments
+      - replicasets
+    verbs:
+      - list
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - statefulsets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - batch
+    resources:
+      - cronjobs
+      - jobs
+    verbs:
+      - list
+      - watch
+  - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - list
+      - watch
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - list
+      - watch
+
+---
+# Source: open-match/charts/prometheus/templates/server-clusterrole.yaml
+
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  labels:
+    component: "server"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-server
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+      - nodes/proxy
+      - services
+      - endpoints
+      - pods
+      - ingresses
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - "extensions"
+    resources:
+      - ingresses/status
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
+  - nonResourceURLs:
+      - "/metrics"
+    verbs:
+      - get
+
+---
+# Source: open-match/charts/grafana/templates/clusterrolebinding.yaml
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: open-match-grafana-clusterrolebinding
+  labels:
+    app: grafana
+    chart: grafana-2.2.0
+    release: open-match
+    heritage: Tiller
+subjects:
+  - kind: ServiceAccount
+    name: open-match-grafana
+    namespace: open-match
+roleRef:
+  kind: ClusterRole
+  name: open-match-grafana-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: open-match/charts/prometheus/templates/kube-state-metrics-clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    component: "kube-state-metrics"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-kube-state-metrics
+subjects:
+  - kind: ServiceAccount
+    name: open-match-prometheus-kube-state-metrics
+    namespace: open-match
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: open-match-prometheus-kube-state-metrics
+---
+# Source: open-match/charts/prometheus/templates/server-clusterrolebinding.yaml
+
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    component: "server"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-server
+subjects:
+  - kind: ServiceAccount
+    name: open-match-prometheus-server
+    namespace: open-match
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: open-match-prometheus-server
+
+---
+# Source: open-match/templates/service-account.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: mmf-sa
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: open-match
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Source: open-match/charts/grafana/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  name: open-match-grafana
+  labels:
+    app: grafana
+    chart: grafana-2.2.0
+    heritage: Tiller
+    release: open-match
+rules:
+- apiGroups:      ['extensions']
+  resources:      ['podsecuritypolicies']
+  verbs:          ['use']
+  resourceNames:  [open-match-grafana]
+
+---
+# Source: open-match/charts/grafana/templates/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: open-match-grafana
+  labels:
+    app: grafana
+    chart: grafana-2.2.0
+    heritage: Tiller
+    release: open-match
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: open-match-grafana
+subjects:
+- kind: ServiceAccount
+  name: open-match-grafana
+  namespace: open-match
+---
+# Source: open-match/charts/grafana/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-match-grafana
+  labels:
+    app: grafana
+    chart: grafana-2.2.0
+    release: open-match
+    heritage: Tiller
+spec:
+  type: ClusterIP
+  ports:
+    - name: service
+      port: 3000
+      protocol: TCP
+      targetPort: 3000
+
+  selector:
+    app: grafana
+    release: open-match
+
+---
+# Source: open-match/charts/prometheus/templates/alertmanager-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: "alertmanager"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-alertmanager
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 9093
+  selector:
+    component: "alertmanager"
+    app: prometheus
+    release: open-match
+  type: "ClusterIP"
+
+---
+# Source: open-match/charts/prometheus/templates/kube-state-metrics-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+    
+  labels:
+    component: "kube-state-metrics"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-kube-state-metrics
+spec:
+  clusterIP: None
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    component: "kube-state-metrics"
+    app: prometheus
+    release: open-match
+  type: "ClusterIP"
+
+---
+# Source: open-match/charts/prometheus/templates/node-exporter-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+    
+  labels:
+    component: "node-exporter"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-node-exporter
+spec:
+  clusterIP: None
+  ports:
+    - name: metrics
+      port: 9100
+      protocol: TCP
+      targetPort: 9100
+  selector:
+    component: "node-exporter"
+    app: prometheus
+    release: open-match
+  type: "ClusterIP"
+---
+# Source: open-match/charts/prometheus/templates/pushgateway-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/probe: pushgateway
+    
+  labels:
+    component: "pushgateway"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-pushgateway
+spec:
+  ports:
+    - name: http
+      port: 9091
+      protocol: TCP
+      targetPort: 9091
+  selector:
+    component: "pushgateway"
+    app: prometheus
+    release: open-match
+  type: "ClusterIP"
+
+---
+# Source: open-match/charts/prometheus/templates/server-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: "server"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-server
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 9090
+  selector:
+    component: "server"
+    app: prometheus
+    release: open-match
+  type: "ClusterIP"
+
+---
+# Source: open-match/charts/redis/templates/metrics-svc.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: om-redis-metrics
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    release: "open-match"
+    heritage: "Tiller"
+  annotations:
+    prometheus.io/port: "9121"
+    prometheus.io/scrape: "true"
+    
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9121
+    targetPort: metrics
+  selector:
+    app: redis
+    release: open-match
+    role: metrics
+
+---
+# Source: open-match/charts/redis/templates/redis-master-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: om-redis-master
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    release: "open-match"
+    heritage: "Tiller"
+spec:
+  type: ClusterIP
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: redis
+  selector:
+    app: redis
+    release: "open-match"
+    role: master
+
+---
+# Source: open-match/charts/redis/templates/redis-slave-svc.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: om-redis-slave
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    release: "open-match"
+    heritage: "Tiller"
+spec:
+  type: ClusterIP
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: redis
+  selector:
+    app: redis
+    release: "open-match"
+    role: slave
+
+---
+# Source: open-match/templates/backendapi.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-backendapi
+  labels:
+    app: open-match
+    chart: open-match-0.4.0
+    release: open-match
+    heritage: Tiller
+spec:
+  selector:
+    app: open-match
+    component: backend
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: 50505
+    targetPort: grpc
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-backendapi
+  labels:
+    app: open-match
+    component: backend
+    chart: open-match-0.4.0
+    release: open-match
+    heritage: Tiller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: open-match
+      component: backend
+      chart: open-match-0.4.0
+      release: open-match
+      heritage: Tiller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9555"
+        prometheus.io/path: /metrics
+      labels:
+        app: open-match
+        component: backend
+        chart: open-match-0.4.0
+        release: open-match
+        heritage: Tiller
+    spec:
+      containers:
+      - name: om-backend
+        image: "gcr.io/open-match-public-images/openmatch-backendapi:0.4.0"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: om-config-volume
+          mountPath: /config
+        ports:
+        - name: grpc
+          containerPort: 50505
+        - name: metrics
+          containerPort: 9555
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+        env:
+        - name: REDIS_SERVICE_HOST
+          value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
+        - name: REDIS_SERVICE_PORT
+          value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
+      volumes:
+      - name: om-config-volume
+        configMap:
+          name: om-configmap
+
+---
+# Source: open-match/templates/frontendapi.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-frontendapi
+  labels:
+    app: open-match
+    chart: open-match-0.4.0
+    release: open-match
+    heritage: Tiller
+spec:
+  selector:
+    app: open-match
+    component: frontend
+    chart: open-match-0.4.0
+    release: open-match
+    heritage: Tiller
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: 50504
+    targetPort: grpc
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-frontendapi
+  labels:
+    app: open-match
+    component: frontend
+    chart: open-match-0.4.0
+    release: open-match
+    heritage: Tiller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: open-match
+      component: frontend
+      chart: open-match-0.4.0
+      release: open-match
+      heritage: Tiller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9555"
+        prometheus.io/path: /metrics
+      labels:
+        app: open-match
+        component: frontend
+        chart: open-match-0.4.0
+        release: open-match
+        heritage: Tiller
+    spec:
+      containers:
+      - name: om-frontendapi
+        image: "gcr.io/open-match-public-images/openmatch-frontendapi:0.4.0"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: om-config-volume
+          mountPath: /config
+        ports:
+        - name: grpc
+          containerPort: 50504
+        - name: metrics
+          containerPort: 9555
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+        env:
+        - name: REDIS_SERVICE_HOST
+          value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
+        - name: REDIS_SERVICE_PORT
+          value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
+      volumes:
+      - name: om-config-volume
+        configMap:
+          name: om-configmap
+
+---
+# Source: open-match/templates/mmlogicapi.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-mmlogicapi
+  labels:
+    app: open-match
+    chart: open-match-0.4.0
+    release: open-match
+    heritage: Tiller
+spec:
+  selector:
+    app: open-match
+    component: mmlogic
+    chart: open-match-0.4.0
+    release: open-match
+    heritage: Tiller
+  ports:
+  - protocol: TCP
+    port: 50503
+    targetPort: grpc
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-mmlogicapi
+  labels:
+    app: open-match
+    component: mmlogic
+    chart: open-match-0.4.0
+    release: open-match
+    heritage: Tiller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: open-match
+      component: mmlogic
+      chart: open-match-0.4.0
+      release: open-match
+      heritage: Tiller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9555"
+        prometheus.io/path: /metrics
+      labels:
+        app: open-match
+        component: mmlogic
+        chart: open-match-0.4.0
+        release: open-match
+        heritage: Tiller
+    spec:
+      containers:
+      - name: om-mmlogic
+        image: "gcr.io/open-match-public-images/openmatch-mmlogicapi:0.4.0"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: om-config-volume
+          mountPath: /config
+        ports:
+        - name: grpc
+          containerPort: 50503
+        - name: metrics
+          containerPort: 9555
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+        env:
+        - name: REDIS_SERVICE_HOST
+          value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
+        - name: REDIS_SERVICE_PORT
+          value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
+      volumes:
+      - name: om-config-volume
+        configMap:
+          name: om-configmap
+
+---
+# Source: open-match/charts/prometheus/templates/node-exporter-daemonset.yaml
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    component: "node-exporter"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-node-exporter
+spec:
+  selector:
+    matchLabels:
+      component: "node-exporter"
+      app: prometheus
+      release: open-match
+  updateStrategy:
+    type: RollingUpdate
+    
+  template:
+    metadata:
+      labels:
+        component: "node-exporter"
+        app: prometheus
+        release: open-match
+        chart: prometheus-8.7.1
+        heritage: Tiller
+    spec:
+      serviceAccountName: open-match-prometheus-node-exporter
+      containers:
+        - name: prometheus-node-exporter
+          image: "prom/node-exporter:v0.17.0"
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - --path.procfs=/host/proc
+            - --path.sysfs=/host/sys
+          ports:
+            - name: metrics
+              containerPort: 9100
+              hostPort: 9100
+          resources:
+            {}
+            
+          volumeMounts:
+            - name: proc
+              mountPath: /host/proc
+              readOnly:  true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
+      hostNetwork: true
+      hostPID: true
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+---
+# Source: open-match/charts/grafana/templates/deployment.yaml
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: open-match-grafana
+  labels:
+    app: grafana
+    chart: grafana-2.2.0
+    release: open-match
+    heritage: Tiller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+      release: open-match
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: grafana
+        release: open-match
+    spec:
+      serviceAccountName: open-match-grafana
+      securityContext:
+        fsGroup: 472
+        runAsUser: 472
+        
+      initContainers:
+        - name: init-chown-data
+          image: "busybox:1.30.0"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+          command: ["chown", "-R", "472:472", "/var/lib/grafana"]
+          volumeMounts:
+            - name: storage
+              mountPath: "/var/lib/grafana"
+      containers:
+        - name: grafana-sc-dashboard
+          image: "kiwigrid/k8s-sidecar:0.0.11"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: LABEL
+              value: "grafana_dashboard"
+            - name: FOLDER
+              value: "/tmp/dashboards"
+          resources:
+            {}
+            
+          volumeMounts:
+            - name: sc-dashboard-volume
+              mountPath: "/tmp/dashboards"
+        - name: grafana
+          image: "grafana/grafana:6.0.0"
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config
+              mountPath: "/etc/grafana/grafana.ini"
+              subPath: grafana.ini
+            - name: ldap
+              mountPath: "/etc/grafana/ldap.toml"
+              subPath: ldap.toml
+            - name: storage
+              mountPath: "/var/lib/grafana"
+            - name: config
+              mountPath: "/etc/grafana/provisioning/datasources/datasources.yaml"
+              subPath: datasources.yaml
+            - name: sc-dashboard-volume
+              mountPath: "/tmp/dashboards"
+            - name: sc-dashboard-provider
+              mountPath: "/etc/grafana/provisioning/dashboards/sc-dashboardproviders.yaml"
+              subPath: provider.yaml
+          ports:
+            - name: service
+              containerPort: 3000
+              protocol: TCP
+            - name: grafana
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: open-match-grafana
+                  key: admin-user
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: open-match-grafana
+                  key: admin-password
+            - name: GF_INSTALL_PLUGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: open-match-grafana
+                  key: plugins
+          livenessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 60
+            timeoutSeconds: 30
+            
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            
+          resources:
+            {}
+            
+      volumes:
+        - name: config
+          configMap:
+            name: open-match-grafana
+        - name: ldap
+          secret:
+            secretName: open-match-grafana
+            items:
+              - key: ldap-toml
+                path: ldap.toml
+        - name: storage
+          persistentVolumeClaim:
+            claimName: open-match-grafana
+        - name: sc-dashboard-volume
+          emptyDir: {}
+        - name: sc-dashboard-provider
+          configMap:
+            name: open-match-grafana-config-dashboards
+
+---
+# Source: open-match/charts/prometheus/templates/alertmanager-deployment.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    component: "alertmanager"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-alertmanager
+spec:
+  selector:
+    matchLabels:
+      component: "alertmanager"
+      app: prometheus
+      release: open-match
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        component: "alertmanager"
+        app: prometheus
+        release: open-match
+        chart: prometheus-8.7.1
+        heritage: Tiller
+    spec:
+      serviceAccountName: open-match-prometheus-alertmanager
+      containers:
+        - name: prometheus-alertmanager
+          image: "prom/alertmanager:v0.15.3"
+          imagePullPolicy: "IfNotPresent"
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          args:
+            - --config.file=/etc/config/alertmanager.yml
+            - --storage.path=/data
+            - --cluster.advertise-address=$(POD_IP):6783
+            - --web.external-url=/
+
+          ports:
+            - containerPort: 9093
+          readinessProbe:
+            httpGet:
+              path: /#/status
+              port: 9093
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+          resources:
+            {}
+            
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+            - name: storage-volume
+              mountPath: "/data"
+              subPath: ""
+
+        - name: prometheus-alertmanager-configmap-reload
+          image: "jimmidyson/configmap-reload:v0.2.2"
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - --volume-dir=/etc/config
+            - --webhook-url=http://127.0.0.1:9093/-/reload
+          resources:
+            {}
+            
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: open-match-prometheus-alertmanager
+        - name: storage-volume
+          persistentVolumeClaim:
+            claimName: open-match-prometheus-alertmanager
+
+---
+# Source: open-match/charts/prometheus/templates/kube-state-metrics-deployment.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    component: "kube-state-metrics"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-kube-state-metrics
+spec:
+  selector:
+    matchLabels:
+      component: "kube-state-metrics"
+      app: prometheus
+      release: open-match
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        component: "kube-state-metrics"
+        app: prometheus
+        release: open-match
+        chart: prometheus-8.7.1
+        heritage: Tiller
+    spec:
+      serviceAccountName: open-match-prometheus-kube-state-metrics
+      containers:
+        - name: prometheus-kube-state-metrics
+          image: "quay.io/coreos/kube-state-metrics:v1.5.0"
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - name: metrics
+              containerPort: 8080
+          resources:
+            {}
+            
+
+---
+# Source: open-match/charts/prometheus/templates/pushgateway-deployment.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    component: "pushgateway"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-pushgateway
+spec:
+  selector:
+    matchLabels:
+      component: "pushgateway"
+      app: prometheus
+      release: open-match
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        component: "pushgateway"
+        app: prometheus
+        release: open-match
+        chart: prometheus-8.7.1
+        heritage: Tiller
+    spec:
+      serviceAccountName: open-match-prometheus-pushgateway
+      containers:
+        - name: prometheus-pushgateway
+          image: "prom/pushgateway:v0.6.0"
+          imagePullPolicy: "IfNotPresent"
+          args:
+          ports:
+            - containerPort: 9091
+          readinessProbe:
+            httpGet:
+              path: /#/status
+              port: 9091
+            initialDelaySeconds: 10
+            timeoutSeconds: 10
+          resources:
+            {}
+            
+
+---
+# Source: open-match/charts/prometheus/templates/server-deployment.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    component: "server"
+    app: prometheus
+    release: open-match
+    chart: prometheus-8.7.1
+    heritage: Tiller
+  name: open-match-prometheus-server
+spec:
+  selector:
+    matchLabels:
+      component: "server"
+      app: prometheus
+      release: open-match
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        component: "server"
+        app: prometheus
+        release: open-match
+        chart: prometheus-8.7.1
+        heritage: Tiller
+    spec:
+      serviceAccountName: open-match-prometheus-server
+      initContainers:
+      - name: "init-chown-data"
+        image: "busybox:latest"
+        imagePullPolicy: "IfNotPresent"
+        resources:
+            {}
+            
+        # 65534 is the nobody user that prometheus uses.
+        command: ["chown", "-R", "65534:65534", "/data"]
+        volumeMounts:
+        - name: storage-volume
+          mountPath: /data
+          subPath: ""
+      containers:
+        - name: prometheus-server-configmap-reload
+          image: "jimmidyson/configmap-reload:v0.2.2"
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - --volume-dir=/etc/config
+            - --webhook-url=http://127.0.0.1:9090/-/reload
+          resources:
+            {}
+            
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+
+        - name: prometheus-server
+          image: "prom/prometheus:v2.7.1"
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - --config.file=/etc/config/prometheus.yml
+            - --storage.tsdb.path=/data
+            - --web.console.libraries=/etc/prometheus/console_libraries
+            - --web.console.templates=/etc/prometheus/consoles
+            - --web.enable-lifecycle
+          ports:
+            - containerPort: 9090
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+          resources:
+            requests:
+              cpu: 2
+              memory: 4Gi
+            
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+            - name: storage-volume
+              mountPath: /data
+              subPath: ""
+      terminationGracePeriodSeconds: 300
+      volumes:
+        - name: config-volume
+          configMap:
+            name: open-match-prometheus-server
+        - name: storage-volume
+          persistentVolumeClaim:
+            claimName: open-match-prometheus-server
+---
+# Source: open-match/charts/redis/templates/metrics-deployment.yaml
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-redis-metrics
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    release: "open-match"
+    heritage: "Tiller"
+spec:
+  selector:
+    matchLabels:
+        release: "open-match"
+        role: metrics
+        app: redis
+  template:
+    metadata:
+      labels:
+        release: "open-match"
+        chart: redis-6.1.0
+        role: metrics
+        app: redis
+      annotations:
+        checksum/secret: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    spec:
+      serviceAccountName: "default"
+      containers:
+      - name: metrics
+        image: docker.io/oliver006/redis_exporter:v0.28.0
+        imagePullPolicy: "IfNotPresent"
+        args:
+        env:
+        - name: REDIS_ADDR
+          value: "om-redis-master:6379,om-redis-slave:6379"
+        - name: REDIS_ALIAS
+          value: om-redis
+        volumeMounts:
+        ports:
+        - name: metrics
+          containerPort: 9121
+        resources:
+          null
+          
+      volumes:
+
+---
+# Source: open-match/charts/redis/templates/redis-slave-deployment.yaml
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-redis-slave
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    release: "open-match"
+    heritage: "Tiller"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+        release: "open-match"
+        role: slave
+        app: redis
+  template:
+    metadata:
+      labels:
+        release: "open-match"
+        chart: redis-6.1.0
+        role: slave
+        app: redis
+      annotations:
+        checksum/health: c9250244922857117f5208619fb9e88290d0698f80f012f61d3291f6061cfaee
+        checksum/configmap: 76d42d5ea6d55f50ab5ed77bbeeed5ec90a2d11ca33b359933b5a677cf489b78
+        checksum/secret: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    spec:      
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+      serviceAccountName: "default"
+      containers:
+      - name: om-redis
+        image: docker.io/bitnami/redis:4.0.12
+        imagePullPolicy: "Always"
+        command:
+        - /bin/bash
+        - -c
+        - |
+          if [[ -n $REDIS_PASSWORD_FILE ]]; then
+            password_aux=`cat ${REDIS_PASSWORD_FILE}`
+            export REDIS_PASSWORD=$password_aux
+          fi
+          if [[ -n $REDIS_MASTER_PASSWORD_FILE ]]; then
+            password_aux=`cat ${REDIS_MASTER_PASSWORD_FILE}`
+            export REDIS_MASTER_PASSWORD=$password_aux
+          fi
+          ARGS=("--port" "${REDIS_PORT}")
+          ARGS+=("--protected-mode" "no")
+          ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
+          ARGS+=("--include" "/opt/bitnami/redis/etc/replica.conf")
+          /run.sh "${ARGS[@]}"
+        env:
+        - name: REDIS_REPLICATION_MODE
+          value: slave
+        - name: REDIS_MASTER_HOST
+          value: om-redis-master
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_MASTER_PORT_NUMBER
+          value: "6379"
+        - name: ALLOW_EMPTY_PASSWORD
+          value: "yes"
+        ports:
+        - name: redis
+          containerPort: 6379        
+        livenessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 5
+          exec:
+            command:
+            - sh
+            - -c
+            - /health/ping_local_and_master.sh 5        
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 5
+          exec:
+            command:
+            - sh
+            - -c
+            - /health/ping_local_and_master.sh 1
+        resources:
+          null
+          
+        volumeMounts:
+        - name: health
+          mountPath: /health
+        - name: redis-data
+          mountPath: /data
+        - name: config
+          mountPath: /opt/bitnami/redis/etc
+      volumes:
+      - name: health
+        configMap:
+          name: om-redis-health
+          defaultMode: 0755
+      - name: config
+        configMap:
+          name: om-redis
+      - name: redis-data
+        emptyDir: {}
+
+---
+# Source: open-match/templates/mmforc.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-mmforc
+  labels:
+    app: open-match
+    component: mmforc
+    chart: open-match-0.4.0
+    release: open-match
+    heritage: Tiller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: open-match
+      component: mmforc
+      chart: open-match-0.4.0
+      release: open-match
+      heritage: Tiller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9555"
+        prometheus.io/path: /metrics
+      labels:
+        app: open-match
+        component: mmforc
+        chart: open-match-0.4.0
+        release: open-match
+        heritage: Tiller
+    spec:
+      containers:
+      - name: om-mmforc
+        image: "gcr.io/open-match-public-images/openmatch-mmforc:0.4.0"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: om-config-volume
+          mountPath: /config
+        ports:
+        - name: metrics
+          containerPort: 9555
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+        env:
+        - name: METADATA_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: REDIS_SERVICE_HOST
+          value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
+        - name: REDIS_SERVICE_PORT
+          value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
+      volumes:
+      - name: om-config-volume
+        configMap:
+          name: om-configmap
+
+---
+# Source: open-match/charts/redis/templates/redis-master-statefulset.yaml
+apiVersion: apps/v1beta2
+kind: StatefulSet
+metadata:
+  name: om-redis-master
+  labels:
+    app: redis
+    chart: redis-6.1.0
+    release: "open-match"
+    heritage: "Tiller"
+spec:
+  selector:
+    matchLabels:
+      release: "open-match"
+      role: master
+      app: redis
+  serviceName: om-redis-master
+  template:
+    metadata:
+      labels:
+        release: "open-match"
+        chart: redis-6.1.0
+        role: master
+        app: redis
+      annotations:
+        checksum/health: c9250244922857117f5208619fb9e88290d0698f80f012f61d3291f6061cfaee
+        checksum/configmap: 76d42d5ea6d55f50ab5ed77bbeeed5ec90a2d11ca33b359933b5a677cf489b78
+        checksum/secret: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    spec:
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+      serviceAccountName: "default"
+      containers:
+      - name: om-redis
+        image: "docker.io/bitnami/redis:4.0.12"
+        imagePullPolicy: "Always"
+        command:
+        - /bin/bash
+        - -c
+        - |
+          if [[ -n $REDIS_PASSWORD_FILE ]]; then
+            password_aux=`cat ${REDIS_PASSWORD_FILE}`
+            export REDIS_PASSWORD=$password_aux
+          fi
+          ARGS=("--port" "${REDIS_PORT}")
+          ARGS+=("--protected-mode" "no")
+          ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
+          ARGS+=("--include" "/opt/bitnami/redis/etc/master.conf")
+          /run.sh ${ARGS[@]}
+        env:
+        - name: REDIS_REPLICATION_MODE
+          value: master
+        - name: ALLOW_EMPTY_PASSWORD
+          value: "yes"
+        - name: REDIS_PORT
+          value: "6379"
+        ports:
+        - name: redis
+          containerPort: 6379
+        livenessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 5
+          exec:
+            command:
+            - sh
+            - -c
+            - /health/ping_local.sh 5
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 5
+          exec:
+            command:
+            - sh
+            - -c
+            - /health/ping_local.sh 5
+        resources:
+          null
+          
+        volumeMounts:
+        - name: health
+          mountPath: /health
+        - name: redis-data
+          mountPath: /data
+          subPath: 
+        - name: config
+          mountPath: /opt/bitnami/redis/etc
+      volumes:
+      - name: health
+        configMap:
+          name: om-redis-health
+          defaultMode: 0755
+      - name: config
+        configMap:
+          name: om-redis
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+        labels:
+          app: "redis"
+          component: "master"
+          release: "open-match"
+          heritage: "Tiller"
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "8Gi"
+  updateStrategy:
+    type: RollingUpdate
+
+---
+# Source: open-match/charts/grafana/templates/dashboards-json-configmap.yaml
+
+
+---
+# Source: open-match/charts/grafana/templates/ingress.yaml
+
+
+---
+# Source: open-match/charts/prometheus/templates/alertmanager-ingress.yaml
+
+---
+# Source: open-match/charts/prometheus/templates/alertmanager-networkpolicy.yaml
+
+---
+# Source: open-match/charts/prometheus/templates/alertmanager-service-headless.yaml
+
+
+---
+# Source: open-match/charts/prometheus/templates/alertmanager-statefulset.yaml
+
+
+---
+# Source: open-match/charts/prometheus/templates/kube-state-metrics-networkpolicy.yaml
+
+---
+# Source: open-match/charts/prometheus/templates/node-exporter-podsecuritypolicy.yaml
+
+
+---
+# Source: open-match/charts/prometheus/templates/node-exporter-role.yaml
+
+
+---
+# Source: open-match/charts/prometheus/templates/node-exporter-rolebinding.yaml
+
+
+---
+# Source: open-match/charts/prometheus/templates/pushgateway-ingress.yaml
+
+---
+# Source: open-match/charts/prometheus/templates/pushgateway-pvc.yaml
+
+---
+# Source: open-match/charts/prometheus/templates/server-ingress.yaml
+
+---
+# Source: open-match/charts/prometheus/templates/server-networkpolicy.yaml
+
+
+---
+# Source: open-match/charts/prometheus/templates/server-service-headless.yaml
+
+---
+# Source: open-match/charts/prometheus/templates/server-statefulset.yaml
+
+
+---
+# Source: open-match/charts/redis/templates/metrics-prometheus.yaml
+
+---
+# Source: open-match/charts/redis/templates/networkpolicy.yaml
+
+
+---
+# Source: open-match/charts/redis/templates/redis-role.yaml
+
+---
+# Source: open-match/charts/redis/templates/redis-rolebinding.yaml
+
+---
+# Source: open-match/charts/redis/templates/redis-serviceaccount.yaml
+
+---
+# Source: open-match/charts/redis/templates/secret.yaml
+
