@@ -39,9 +39,10 @@ func CreateServerParams() *serving.ServerParams {
 			"app":       "openmatch",
 			"component": "frontend",
 		},
-		PortConfigName:     "api.frontend.port",
-		CustomMeasureViews: apisrv.DefaultFrontendAPIViews,
-		Bindings:           []serving.BindingFunc{apisrv.Bind},
+		ServicePortConfigName: "api.frontend.port",
+		ProxyPortConfigName:   "api.frontend.proxyport",
+		CustomMeasureViews:    apisrv.DefaultFrontendAPIViews,
+		Bindings:              []serving.BindingFunc{apisrv.Bind},
 	}
 }
 

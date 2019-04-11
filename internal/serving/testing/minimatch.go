@@ -148,14 +148,17 @@ func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer
 		return nil, err
 	}
 
-	grpcLh := netlistenerTesting.MustListen()
+	serviceLh := netlistenerTesting.MustListen()
+	proxyLh := netlistenerTesting.MustListen()
+
 	for _, params := range paramsList {
-		cfg.Set(params.PortConfigName, grpcLh.Number())
+		cfg.Set(params.ServicePortConfigName, serviceLh.Number())
+		cfg.Set(params.ProxyPortConfigName, proxyLh.Number())
 	}
 
 	// Instantiate the gRPC server with the connections we've made
 	logger.Info("Attempting to start gRPC server")
-	grpcServer := serving.NewGrpcServer(grpcLh, logger)
+	grpcServer := serving.NewGrpcServer(sericeLh, proxyLh, logger)
 
 	mmServer := &MiniMatchServer{
 		OpenMatchServer: &serving.OpenMatchServer{

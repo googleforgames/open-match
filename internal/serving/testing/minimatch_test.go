@@ -18,12 +18,14 @@ func TestNewMiniMatch(t *goTesting.T) {
 				"app":       "openmatch",
 				"component": "frontend",
 			},
-			PortConfigName: "api.frontend.port",
+			ServicePortConfigName: "api.frontend.port",
+			ProxyPortConfigName:   "api.frontend.proxyport",
 			Bindings: []serving.BindingFunc{
 				func(omServer *serving.OpenMatchServer) {
 					omServer.GrpcServer.AddService(func(server *grpc.Server) {
 						pb.RegisterFrontendServer(server, ff)
 					})
+					omServer.GrpcServer.AddProxy(pb.RegisterFrontendHandlerFromEndpoint)
 				},
 			},
 		},
