@@ -121,6 +121,7 @@ The directory structure is a typical Go structure so if you do the following you
 
 Lastly, this project uses go modules so you'll want to set `export GO111MODULE=on` in your `~/.bashrc`.
 
+The [Build Queue](https://console.cloud.google.com/cloud-build/builds?project=open-match-build) runs against all PRs, requires membership to [open-match-discuss@googlegroups.com](https://groups.google.com/forum/#!forum/open-match-discuss).
 
 ## Support
 
