@@ -15,9 +15,9 @@
 FROM debian
 
 RUN apt-get update
-RUN apt-get install -y -q git make python3 virtualenv curl sudo unzip apt-transport-https ca-certificates curl software-properties-common
+RUN apt-get install -y -q git make python3 virtualenv curl sudo unzip apt-transport-https ca-certificates curl software-properties-common gnupg2
 # Required for building gRPC if we need it in the future.
-#RUN apt-get install -y -q g++ php autoconf build-essential libtool pkg-config libgflags-dev libgtest-dev clang libc++-dev gnupg2
+#RUN apt-get install -y -q g++ php autoconf build-essential libtool pkg-config libgflags-dev libgtest-dev clang libc++-dev
 
 # Docker
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
