@@ -50,11 +50,6 @@ define newline
 
 endef
 
-ifeq ($(shell whoami),root)
-	$(error ERROR: Running Makefile in sudo mode$(newline)Please follow the instructions at https://docs.docker.com/install/linux/linux-postinstall/ if you are trying to sudo run the Makefile because of the 'Cannot connect to the Docker daemon' error.$(newline)NOTE: sudo/root do not have the authentication token to talk to any GCP service via gcloud)
-	exit 1
-endif
-
 BASE_VERSION = 0.4.0
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD)
 VERSION ?= $(BASE_VERSION)-$(VERSION_SUFFIX)
