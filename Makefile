@@ -592,7 +592,7 @@ build/archives/${NODEJS_PACKAGE_NAME}:
 
 build/toolchain/nodejs/: build/archives/${NODEJS_PACKAGE_NAME}
 	mkdir -p build/toolchain/nodejs/
-	cd build/toolchain/nodejs/ && tar xvzf ../../archives/${NODEJS_PACKAGE_NAME} --strip-components 1
+	cd build/toolchain/nodejs/ && tar xzf ../../archives/${NODEJS_PACKAGE_NAME} --strip-components 1
 
 node_modules/: build/toolchain/nodejs/
 	-rm -r package.json package-lock.json
