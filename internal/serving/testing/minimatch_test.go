@@ -37,15 +37,7 @@ func TestNewMiniMatch(t *goTesting.T) {
 	if err != nil {
 		t.Errorf("could not start Mini Match %s", err)
 	}
-	defer func() {
-		mm.Stop()
-		/*
-			err := mm.Stop()
-			if err != nil {
-				t.Errorf("cannot cleanup stop Mini Match: %s", err)
-			}
-		*/
-	}()
+	defer mm.Stop()
 	feClient, err := mm.GetFrontendClient()
 	result, err := feClient.CreatePlayer(context.Background(), &pb.CreatePlayerRequest{})
 	if err != nil {

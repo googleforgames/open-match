@@ -45,6 +45,12 @@ func (mm *MiniMatchServer) GetBackendClient() (pb.BackendClient, error) {
 	return pb.NewBackendClient(conn), nil
 }
 
+// Stop shuts down Mini Match
+func (mm *MiniMatchServer) Stop() {
+	mm.OpenMatchServer.Stop()
+	mm.mRedis.Close()
+}
+
 // MustMiniMatch requires Mini Match to be created successfully.
 func MustMiniMatch(params []*serving.ServerParams) (*MiniMatchServer, func()) {
 	mm, closer, err := NewMiniMatch(params)
@@ -118,6 +124,11 @@ func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer
 		return nil, err
 	}
 
+	// TODO: Clean this up so that we can deterministically close Redis if initialization fails. Or defer redis start.
+	closeOnFailure := func() {
+		mredis.Close()
+	}
+
 	cfg.Set("redis.hostname", mredis.Host())
 	cfg.Set("redis.port", mredis.Port())
 	cfg.Set("redis.pool.maxIdle", 1000)
@@ -137,11 +148,13 @@ func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer
 
 	pool, err := redishelpers.ConnectionPool(cfg)
 	if err != nil {
+		closeOnFailure()
 		return nil, err
 	}
 
 	grpcPort, err := NextPort()
 	if err != nil {
+		closeOnFailure()
 		return nil, fmt.Errorf("cannot provision a port for gRPC, %s", err)
 	}
 	for _, params := range paramsList {
@@ -165,6 +178,7 @@ func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer
 		for _, binding := range params.Bindings {
 			err := binding(mmServer.OpenMatchServer)
 			if err != nil {
+				closeOnFailure()
 				return nil, err
 			}
 		}

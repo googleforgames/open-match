@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
-	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 type FakeFrontend struct {
@@ -22,20 +20,7 @@ func (s *FakeFrontend) DeletePlayer(ctx context.Context, group *pb.DeletePlayerR
 	return nil, fmt.Errorf("not supported")
 }
 
+// GetUpdates is this service's implementation of the GetUpdates gRPC method defined in frontend.proto
 func (s *FakeFrontend) GetUpdates(p *pb.GetUpdatesRequest, assignmentStream pb.Frontend_GetUpdatesServer) error {
 	return fmt.Errorf("not supported")
-}
-
-func createLogger() *log.Entry {
-	return log.WithFields(log.Fields{
-		"test": "test",
-	})
-}
-
-func createClient(port int) (pb.FrontendClient, error) {
-	conn, err := grpc.Dial(fmt.Sprintf(":%d", port), grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-	return pb.NewFrontendClient(conn), nil
 }
