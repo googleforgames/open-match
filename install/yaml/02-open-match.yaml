@@ -230,7 +230,7 @@ spec:
     spec:
       containers:
       - name: om-backend
-        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-backendapi:0.4.0"
+        image: "gcr.io/open-match-public-images/openmatch-backendapi:0.4.0"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
@@ -310,7 +310,7 @@ spec:
     spec:
       containers:
       - name: om-frontendapi
-        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-frontendapi:0.4.0"
+        image: "gcr.io/open-match-public-images/openmatch-frontendapi:0.4.0"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
@@ -389,7 +389,7 @@ spec:
     spec:
       containers:
       - name: om-mmlogic
-        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-mmlogicapi:0.4.0"
+        image: "gcr.io/open-match-public-images/openmatch-mmlogicapi:0.4.0"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
@@ -454,7 +454,7 @@ spec:
       serviceAccountName: mmforc-job-runner
       containers:
       - name: om-mmforc
-        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-mmforc:0.4.0"
+        image: "gcr.io/open-match-public-images/openmatch-mmforc:0.4.0"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
