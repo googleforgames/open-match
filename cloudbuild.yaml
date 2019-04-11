@@ -49,9 +49,9 @@
 steps:
 - id: 'Docker Image: open-match-build'
   name: gcr.io/cloud-builders/docker
-  args: ['build', '-t', 'open-match-build', '-f', 'Dockerfile', '.']
+  args: ['build', '-t', 'open-match-build', '-f', 'Dockerfile.ci', '.']
   waitFor: ['-']
-# '--build-arg', 'GCP_PROJECT_ID=$PROJECT_ID', 
+
 - id: 'Build: Clean'
   name: open-match-build
   args: ['make', 'clean']
