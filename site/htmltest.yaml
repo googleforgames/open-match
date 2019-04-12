@@ -14,7 +14,7 @@
 
 TestFilesConcurrently: false
 IgnoreInternalEmptyHash: true
-#OutputDir: /go/src/agones.dev/agones/site
+OutputDir: /tmp/open-match-site/
 OutputLogFile: .htmltest.log
 IgnoreURLs:
   - http://localhost

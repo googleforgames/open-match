@@ -181,6 +181,7 @@ images:
 - 'gcr.io/$PROJECT_ID/openmatch-frontendclient:${_OM_VERSION}-${SHORT_SHA}'
 substitutions:
     _OM_VERSION: 0.4.0
+    _POST_SUBMIT: 0
 logsBucket: 'gs://open-match-build-logs/'
 options:
   sourceProvenanceHash: ['SHA256']
