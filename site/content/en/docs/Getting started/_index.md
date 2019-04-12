@@ -55,8 +55,6 @@ See the examples with comments in `config.toml` in this project for how to add y
 
 The theme comes with templates for the top level sections `docs`, `blog`, and `community`, and a default landing page type of template used for any other section (in our example site it's used for the site landing page and the About page). See the pages in this site for examples of how to use the templates. For example, this page is in the `docs` folder so Hugo automatically applies the `docs` layout, which includes a left nav, page contents, and GitHub links (populated from your site config) for readers to edit the page or create issues.
 
-Both the example site landing page and About page use Docsy's provided Hugo shortcode [page blocks](#shortcode-blocks) to quickly build the page. You can find out more about configuring your landing pages in [customizing landing pages](#customizing_landing_pages).
-
 The `community` landing page template has boilerplate content that's automatically filled in with the project name and community links specified in `config.toml`.
 
 You can find out much more about how Hugo page layouts work in [Hugo Templates](https://gohugo.io/templates/).
@@ -311,16 +309,6 @@ This is a warning.
 
 The **imgproc** shortcode finds an image in the current [Page Bundle](https://gohugo.io/content-management/page-bundles/) and scales it given a set of processing instructions.
 
-
-```go-html-template
-{{</* imgproc spruce Fill "400x450" */>}}
-Norway Spruce Picea abies shoot with foliage buds.
-{{</* /imgproc */>}}
-```
-
-{{< imgproc spruce Fill "400x450" >}}
-Norway Spruce Picea abies shoot with foliage buds.
-{{< /imgproc >}}
 
 The example above has also a byline with photo attribution added. When using illustrations with a free license from [WikiMedia](https://commons.wikimedia.org/) and simlilar, you will in most situations need a way to attribute the author or licensor. You can add metadata to your page resources in the page front matter. The `byline` param is used by convention in this theme:
 

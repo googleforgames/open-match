@@ -28,7 +28,7 @@ While **core** components are fully open source and _can_ be modified, they are 
 
 The Frontend API accepts the player data and puts it in state storage so your Matchmaking Function (MMF) can access it.
 
-The Frontend API is a server application that implements the [gRPC](https://grpc.io/) service defined in `api/protobuf-spec/frontend.proto`. At the most basic level, it expects clients to connect and send:
+The Frontend API is a server application that implements the [gRPC](https://grpc.io/) service defined in api/protobuf-spec/frontend.proto. At the most basic level, it expects clients to connect and send:
 * A **unique ID** for the group of players (the group can contain any number of players, including only one).
 * A **json blob** containing all player-related data you want to use in your matchmaking function.
 
@@ -38,7 +38,7 @@ The client is expected to maintain a connection, waiting for an update from the 
 
 The Backend API writes match objects to state storage which the Matchmaking Functions (MMFs) access to decide which players should be matched. It returns the results from those MMFs.
 
-The Backend API is a server application that implements the [gRPC](https://grpc.io/) service defined in `api/protobuf-spec/backend.proto`. At the most basic level, it expects to be connected to your online infrastructure (probably to your server scaling manager or **director**, or even directly to a dedicated game server), and to receive:
+The Backend API is a server application that implements the [gRPC](https://grpc.io/) service defined in api/protobuf-spec/backend.proto. At the most basic level, it expects to be connected to your online infrastructure (probably to your server scaling manager or **director**, or even directly to a dedicated game server), and to receive:
 * A **unique ID** for a matchmaking profile.
 * A **json blob** containing all the matching-related data and filters you want to use in your matchmaking function.
 * An optional list of **roster**s to hold the resulting teams chosen by your matchmaking function.
@@ -61,9 +61,9 @@ The MMLogic API provides a series of gRPC functions that act as a Matchmaking Fu
 1. Running filters on players in state strorage. It automatically removes players on ignore lists as well!
 1. Removing chosen players from consideration by other MMFs (by adding them to an ignore list). It does it automatically for you when writing your results!
 1. Writing the matchmaking results to state storage.
-1. (Optional, NYI) Exporting MMF stats for metrics collection.
+1. Optional, NYI Exporting MMF stats for metrics collection.
 
-More details about the available gRPC calls can be found in the [API Specification](api/protobuf-spec/messages.proto).
+More details about the available gRPC calls can be found in the API Specification.
 
 **Note**: using the MMLogic API is **optional**.  It tries to simplify the development of MMFs, but if you want to take care of these tasks on your own, you can make few or no calls to the MMLogic API as long as your MMF still completes all the required tasks.  Read the [Matchmaking Functions section](#matchmaking-functions-mmfs) for more details of what work an MMF must do.
 
@@ -72,8 +72,6 @@ More details about the available gRPC calls can be found in the [API Specificati
 The Evaluator resolves conflicts when multiple MMFs select the same player(s).
 
 The Evaluator is a component run by the Matchmaker Function Orchestrator (MMFOrc) after the matchmaker functions have been run, and some proposed results are available.  The Evaluator looks at all the proposals, and if multiple proposals contain the same player(s), it breaks the tie. In many simple matchmaking setups with only a few game modes and well-tuned matchmaking functions, the Evaluator may functionally be a no-op or first-in-first-out algorithm. In complex matchmaking setups where, for example, a player can queue for multiple types of matches, the Evaluator provides the critical customizability to evaluate all available proposals and approve those that will passed to your game servers.
-
-Large-scale concurrent matchmaking functions is a complex topic, and users who wish to do this are encouraged to engage with the [Open Match community](https://github.com/GoogleCloudPlatform/open-match#get-involved) about patterns and best practices.
 
 ### Matchmaking Functions (MMFs)
 
@@ -87,12 +85,12 @@ Matchmaking Functions (MMFs) are run by the Matchmaker Function Orchestrator (MM
 - [x] Write the match object it creates to state storage at a specified key.
 - [x] Remove the players it selected from consideration by other MMFs by adding them to the appropriate ignore list.
 - [x] Notify the MMFOrc of completion.
-- [x] (Optional, but recommended) Export stats for metrics collection.
+- [x] Optional, but recommended. Export stats for metrics collection.
 
-**Open Match offers [matchmaking logic API](#matchmaking-logic-mmlogic-api) calls for handling the checked items, as long as you are able to format your input and output in the data schema Open Match expects (defined in the [protobuf messages](api/protobuf-spec/messages.proto)).**  You can to do this work yourself if you don't want to or can't use the data schema Open Match is looking for.  However, the data formats expected by Open Match are pretty generalized and will work with most common matchmaking scenarios and game types.  If you have questions about how to fit your data into the formats specified, feel free to ask us in the [Slack or mailing group](#get-involved).
+**Open Match offers matchmaking logic API calls for handling the checked items, as long as you are able to format your input and output in the data schema Open Match expects (defined in the protobuf messages).**  You can to do this work yourself if you don't want to or can't use the data schema Open Match is looking for.  However, the data formats expected by Open Match are pretty generalized and will work with most common matchmaking scenarios and game types.  If you have questions about how to fit your data into the formats specified, feel free to ask us in the Slack or mailing group.
 
 Example MMFs are provided in these languages:
-- [C#](examples/functions/csharp/simple) (doesn't use the MMLogic API)
-- [Python3](examples/functions/python3/mmlogic-simple) (MMLogic API enabled)
-- [PHP](examples/functions/php/mmlogic-simple)  (MMLogic API enabled)
-- [golang](examples/functions/golang/manual-simple)  (doesn't use the MMLogic API)
+- C#: examples/functions/csharp/simple, doesn't use the MMLogic API
+- Python3: examples/functions/python3/mmlogic-simple, MMLogic API enabled
+- PHP: examples/functions/php/mmlogic-simple, MMLogic API enabled
+- golang: examples/functions/golang/manual-simple, doesn't use the MMLogic API

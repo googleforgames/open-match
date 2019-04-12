@@ -15,15 +15,15 @@ description: >
 
 ## Code of Conduct
 
-Participation in this project comes under the [Contributor Covenant Code of Conduct](code-of-conduct.md)
+Participation in this project comes under the Contributor Covenant Code of Conduct
 
 ## Development and Contribution
 
-Please read the [contributing](CONTRIBUTING.md) guide for directions on submitting Pull Requests to Open Match.
+Please read the CONTRIBUTING.md guide for directions on submitting Pull Requests to Open Match.
 
-See the [Development guide](docs/development.md) for documentation for development and building Open Match from source.
+See the Development guide for documentation for development and building Open Match from source.
 
-The [Release Process](docs/governance/release_process.md) documentation displays the project's upcoming release calendar and release process. (NYI)
+The Release Process documentation displays the project's upcoming release calendar and release process. (NYI)
 
 Open Match is in active development - we would love your help in shaping its future!
 
