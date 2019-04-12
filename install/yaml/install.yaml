@@ -767,86 +767,103 @@ metadata:
     release: open-match
     heritage: Tiller
 data:
-  matchmaker_config.yaml: |-
-    # kubectl create configmap om-configmap --from-file=config/matchmaker_config.yaml
+  backendapi_config.yaml: |-
+    api:
+      backend:
+        backoff: '[2 32] *2 ~0.33 <30'
     debug: true
-    
     logging:
+      format: json
       level: debug
-      format: text
-      source: true
-    
-    api: 
-      backend: 
-        hostname: om-backendapi
-        port: 50505
-        backoff: "[2 32] *2 ~0.33 <30"
-      frontend: 
-        hostname: om-frontendapi
-        port: 50504
-        backoff: "[2 32] *2 ~0.33 <300"
-      mmlogic: 
-        hostname: om-mmlogicapi
-        port: 50503
-      functions:
-        port: 50502
-      
-    evalutor: 
-      interval: 10
-    
-    metrics: 
-      port: 9555
-      endpoint: /metrics
-      reportingPeriod: 5
-    
-    queues: 
-      profiles: 
-        name: profileq
-        pullCount: 100
-      proposals: 
-        name: proposalq
-      
-    ignoreLists: 
-      proposed: 
-        name: proposed
-        offset: 0
-        duration: 800
-      deindexed: 
-        name: deindexed
-        offset: 0
-        duration: 800
-      expired: 
-        name: OM_METADATA.accessed
-        offset: 800
-        duration: 0 
-    
-    defaultImages: 
-      evaluator: 
-        name: gcr.io/open-match-public-images/openmatch-evaluator-simple
-        tag: latest
-      mmf: 
-        name: gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple
-        tag: latest
-    
-    redis: 
-      pool: 
-        maxIdle: 3
-        maxActive: 0
+      source: false
+    redis:
+      pool:
         idleTimeout: 60
+        maxActive: 0
+        maxIdle: 3
       queryArgs:
         count: 10000
-      results: 
+      results:
         pageSize: 10000
-      expirations: 
-        player: 43200
-        matchobject: 43200 
     
+  frontendapi_config.yaml: |-
+    api:
+      frontend:
+        backoff: '[2 32] *2 ~0.33 <300'
+    debug: true
+    logging:
+      format: json
+      level: debug
+      source: false
+    redis:
+      pool:
+        idleTimeout: 60
+        maxActive: 0
+        maxIdle: 3
+      queryArgs:
+        count: 10000
+      results:
+        pageSize: 10000
+    
+  mmforc_config.yaml: |-
+    debug: true
+    defaultImages:
+      evaluator:
+        name: 'gcr.io/open-match-public-images/openmatch-evaluator-simple'
+        tag: '0.4.0'
+      mmf:
+        name: 'gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple'
+        tag: '0.4.0'
+    evalutor:
+      interval: 10
+    logging:
+      format: json
+      level: debug
+      source: false
+    redis:
+      pool:
+        idleTimeout: 60
+        maxActive: 0
+        maxIdle: 3
+      queryArgs:
+        count: 10000
+      results:
+        pageSize: 10000
+    
+  mmlogicapi_config.yaml: |-
+    debug: true
+    logging:
+      format: json
+      level: debug
+      source: false
+    redis:
+      pool:
+        idleTimeout: 60
+        maxActive: 0
+        maxIdle: 3
+      queryArgs:
+        count: 10000
+      results:
+        pageSize: 10000
+    
+  openmatch_config.yaml: |-
+    ignoreLists:
+      deindexed:
+        duration: 800
+        offset: 0
+      expired:
+        duration: 0
+        offset: 800
+      proposed:
+        duration: 800
+        offset: 0
     jsonkeys:
       mmfImage: imagename
       mmfService: hostname
-      rosters: properties.rosters
       pools: properties.pools
-    
+      rosters: properties.rosters
+    metrics:
+      reportingPeriod: 5
     playerIndices:
     - char.cleric
     - char.knight
@@ -865,6 +882,40 @@ data:
     - role.dps
     - role.support
     - role.tank
+    redis:
+      expirations:
+        matchobject: 43200
+        player: 43200
+    
+  openmatch_constants.yaml: |-
+    api:
+      backend:
+        hostname: om-backendapi
+        port: '50505'
+      frontend:
+        hostname: om-frontendapi
+        port: '50504'
+      functions:
+        port: '50502'
+      mmlogic:
+        hostname: om-mmlogicapi
+        port: '50503'
+    ignoreLists:
+      deindexed:
+        name: deindexed
+      expired:
+        name: OM_METADATA.accessed
+      proposed:
+        name: proposed
+    metrics:
+      endpoint: '/metrics'
+      port: '9555'
+    queues:
+      profiles:
+        name: profileq
+        pullCount: 100
+      proposals:
+        name: proposalq
     
 ---
 # Source: open-match/charts/grafana/templates/pvc.yaml
@@ -1600,6 +1651,13 @@ spec:
       - name: om-config-volume
         configMap:
           name: om-configmap
+          items:
+          - key: backendapi_config.yaml
+            path: component_config.yaml
+          - key: openmatch_config.yaml
+            path: openmatch_config.yaml
+          - key: openmatch_constants.yaml
+            path: openmatch_constants.yaml
 
 ---
 # Source: open-match/templates/frontendapi.yaml
@@ -1698,6 +1756,13 @@ spec:
       - name: om-config-volume
         configMap:
           name: om-configmap
+          items:
+          - key: frontendapi_config.yaml
+            path: component_config.yaml
+          - key: openmatch_config.yaml
+            path: openmatch_config.yaml
+          - key: openmatch_constants.yaml
+            path: openmatch_constants.yaml
 
 ---
 # Source: open-match/templates/mmlogicapi.yaml
@@ -1795,6 +1860,13 @@ spec:
       - name: om-config-volume
         configMap:
           name: om-configmap
+          items:
+          - key: mmlogicapi_config.yaml
+            path: component_config.yaml
+          - key: openmatch_config.yaml
+            path: openmatch_config.yaml
+          - key: openmatch_constants.yaml
+            path: openmatch_constants.yaml
 
 ---
 # Source: open-match/charts/prometheus/templates/node-exporter-daemonset.yaml
@@ -2497,6 +2569,13 @@ spec:
       - name: om-config-volume
         configMap:
           name: om-configmap
+          items:
+          - key: mmforc_config.yaml
+            path: component_config.yaml
+          - key: openmatch_config.yaml
+            path: openmatch_config.yaml
+          - key: openmatch_constants.yaml
+            path: openmatch_constants.yaml
 
 ---
 # Source: open-match/charts/redis/templates/redis-master-statefulset.yaml
