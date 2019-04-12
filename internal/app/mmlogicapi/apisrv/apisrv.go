@@ -55,7 +55,7 @@ type mmlogicAPI struct {
 }
 
 // Bind binds the gRPC endpoint to OpenMatchServer
-func Bind(omSrv *serving.OpenMatchServer) error {
+func Bind(omSrv *serving.OpenMatchServer) {
 	handler := &mmlogicAPI{
 		cfg:    omSrv.Config,
 		pool:   omSrv.RedisPool,
@@ -64,7 +64,6 @@ func Bind(omSrv *serving.OpenMatchServer) error {
 	omSrv.GrpcServer.AddService(func(server *grpc.Server) {
 		pb.RegisterMmLogicServer(server, handler)
 	})
-	return nil
 }
 
 // GetProfile is this service's implementation of the gRPC call defined in

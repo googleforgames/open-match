@@ -41,11 +41,7 @@ func CreateServerParams() *serving.ServerParams {
 		},
 		PortConfigName:     "api.mmlogic.port",
 		CustomMeasureViews: apisrv.DefaultMmlogicAPIViews,
-		Bindings: []serving.BindingFunc{
-			func(omServer *serving.OpenMatchServer) error {
-				return apisrv.Bind(omServer)
-			},
-		},
+		Bindings:           []serving.BindingFunc{apisrv.Bind},
 	}
 }
 

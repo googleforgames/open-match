@@ -58,7 +58,7 @@ type backendAPI struct {
 }
 
 // Bind binds the gRPC endpoint to OpenMatchServer
-func Bind(omSrv *serving.OpenMatchServer) error {
+func Bind(omSrv *serving.OpenMatchServer) {
 	handler := &backendAPI{
 		cfg:    omSrv.Config,
 		pool:   omSrv.RedisPool,
@@ -67,7 +67,6 @@ func Bind(omSrv *serving.OpenMatchServer) error {
 	omSrv.GrpcServer.AddService(func(server *grpc.Server) {
 		pb.RegisterBackendServer(server, handler)
 	})
-	return nil
 }
 
 // CreateMatch is this service's implementation of the CreateMatch gRPC method

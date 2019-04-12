@@ -51,7 +51,7 @@ type frontendAPI struct {
 }
 
 // Bind binds the gRPC endpoint to OpenMatchServer
-func Bind(omSrv *serving.OpenMatchServer) error {
+func Bind(omSrv *serving.OpenMatchServer) {
 	handler := &frontendAPI{
 		cfg:    omSrv.Config,
 		pool:   omSrv.RedisPool,
@@ -60,7 +60,6 @@ func Bind(omSrv *serving.OpenMatchServer) error {
 	omSrv.GrpcServer.AddService(func(server *grpc.Server) {
 		pb.RegisterFrontendServer(server, handler)
 	})
-	return nil
 }
 
 // CreatePlayer is this service's implementation of the CreatePlayer gRPC method defined in frontend.proto

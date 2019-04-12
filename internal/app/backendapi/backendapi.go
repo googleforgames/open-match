@@ -43,11 +43,7 @@ func CreateServerParams() *serving.ServerParams {
 		},
 		PortConfigName:     "api.backend.port",
 		CustomMeasureViews: apisrv.DefaultBackendAPIViews,
-		Bindings: []serving.BindingFunc{
-			func(omServer *serving.OpenMatchServer) error {
-				return apisrv.Bind(omServer)
-			},
-		},
+		Bindings:           []serving.BindingFunc{apisrv.Bind},
 	}
 }
 

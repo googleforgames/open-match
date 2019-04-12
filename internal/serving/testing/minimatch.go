@@ -176,11 +176,7 @@ func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer
 	}
 	for _, params := range paramsList {
 		for _, binding := range params.Bindings {
-			err := binding(mmServer.OpenMatchServer)
-			if err != nil {
-				closeOnFailure()
-				return nil, err
-			}
+			binding(mmServer.OpenMatchServer)
 		}
 	}
 	return mmServer, nil
