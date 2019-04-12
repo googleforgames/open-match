@@ -6,7 +6,7 @@ description: >
   A short lead descripton about this content page. It can be **bold** or _italic_ and can be split over multiple paragraphs.
 ---
 
-During alpha, please do not use Open Match as-is in production.  To develop against it, please see the [development guide](development.md).
+During alpha, please do not use Open Match as-is in production.  To develop against it, please see the development guide.
 
 # "Productionizing" a deployment
 Here are some steps that should be taken to productionize your Open Match deployment before exposing it to live public traffic.  Some of these overlap with best practices for [productionizing Kubernetes](https://cloud.google.com/blog/products/gcp/exploring-container-security-running-a-tight-ship-with-kubernetes-engine-1-10) or cloud infrastructure more generally. We will work to make as many of these into the default deployment strategy for Open Match as possible, going forward.
@@ -22,9 +22,9 @@ The 0.3.0 MMFOrc component runs your MMFs as Kubernetes Jobs. You should periodi
 ### CPU and Memory limits
 For any production Kubernetes deployment, it is good practice to profile your processes and select [resource limits and requests](https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/) according to your results.  For example, you'll likely want to set adequate resource requests based on your expected player base and some load testing for the Redis state storage pods. This will help Kubernetes avoid scheduling other intensive processes on the same underlying node and keep you from running into resource contention issues.  Another example might be an MMF with a particularly large memory or CPU footprint - maybe you have one that searches a lot of players for a potential match.  This would be a good candidate for resource limits and requests in Kubernetes to both ensure it gets the CPU and RAM it needs to complete quickly, and to make sure it's not scheduled alongside another intensive Kubernetes pod.
 ### State storage
-The default state storage for Open Match is a _single instance_ of Redis.  Although it _is_ possible to go to production with this as the solution if you're willing to accept the potential downsides, for most deployments, a HA Redis configuration would better fit your needs.  An example YAML file for creating a [self-healing HA Redis deployment on Kubernetes](../install/yaml/01-redis-failover.yaml) is available.  Regardless of which configuation you use, it is probably a good idea to put some [resource requests](https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/) in your Kubernetes resource definition as mentioned above.
+The default state storage for Open Match is a _single instance_ of Redis.  Although it _is_ possible to go to production with this as the solution if you're willing to accept the potential downsides, for most deployments, a HA Redis configuration would better fit your needs.  An example YAML file for creating a self-healing HA Redis deployment on Kubernetes is available.  Regardless of which configuation you use, it is probably a good idea to put some [resource requests](https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/) in your Kubernetes resource definition as mentioned above.
 
-You can find more discussion in the [state storage readme doc](../internal/statestorage/redis/README.md).
+You can find more discussion in the state storage readme doc.
 ## Open Match config
 Debug logging and the extra debug code paths should be disabled in the `config/matchmaker_config.json` file (as of the time of this writing, 0.3.0).
 

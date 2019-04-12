@@ -15,12 +15,13 @@
 runtime: go111
 service: development
 
-skip_files:
-- .*assets
-- .*content
-- .*layouts
-- .*resources
-- .*themes
+# TODO: ERROR: gcloud crashed (SkipFilesError): skip_files cannot be used with the [go111] runtime. Ignore patterns are instead expressed in a .gcloudignore file. For information on the format and syntax of .gcloudignore files, see https://cloud.google.com/sdk/gcloud/reference/topic/gcloudignore.
+#skip_files:
+#- .*assets
+#- .*content
+#- .*layouts
+#- .*resources
+#- .*themes
 
 handlers:
   - url: /site/$

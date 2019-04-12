@@ -25,8 +25,6 @@ Our current thinking is to wait to take Open Match out of alpha/beta (and label 
 * The 0.5.0 version and beyond will be focused on operationalizing the out-of-the-box experience. Metrics and analytics and a default dashboard, additional tooling, and a load testing suite are all planned.  We want it to be easy for operators to see KPI and know what's going on with Open Match. 
 
 # Planned improvements
-See the [provisional roadmap](docs/roadmap.md) for more information on upcoming releases.
-
 ## Documentation 
 - [ ] “Writing your first matchmaker” getting started guide will be included in an upcoming version.
 - [ ] Documentation for using the example customizable components and the `backendstub` and `frontendstub` applications to do an end-to-end (e2e) test will be written. This all works now, but needs to be written up.
@@ -44,16 +42,12 @@ See the [provisional roadmap](docs/roadmap.md) for more information on upcoming 
 - [ ] [OpenCensus tracing](https://opencensus.io/core-concepts/tracing/) will be implemented in an upcoming version.  This is likely going to require knative.
 - [X] Read logrus logging configuration from matchmaker_config.json.
 
-## Security
-- [ ] The Kubernetes service account used by the MMFOrc should be updated to have min required permissions. [Issue 52](issues/52)
-
 ## Kubernetes
 - [ ] Autoscaling isn't turned on for the Frontend or Backend API Kubernetes deployments by default.
-- [ ] A [Helm](https://helm.sh/) chart to stand up Open Match may be provided in an upcoming version. For now just use the [installation YAMLs](./install/yaml).
 - [ ] A knative-based implementation of MMFs is in the planning stages.
 
 ## CI / CD / Build
-- [ ] We plan to host 'official' docker images for all release versions of the core components in publicly available docker registries soon.  This is tracked in [Issue #45](issues/45) and is blocked by [Issue 42](issues/42).
+- [ ] We plan to host 'official' docker images for all release versions of the core components in publicly available docker registries soon.
 - [ ] CI/CD for this repo and the associated status tags are planned.
 - [ ] Golang unit tests will be shipped in an upcoming version.
 - [ ] A full load-testing and e2e testing suite will be included in an upcoming version.

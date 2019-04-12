@@ -23,8 +23,8 @@ All the core components for Open Match are written in Golang and use the [Docker
 ## Configuration
 Currently, each component reads a local config file `matchmaker_config.json`, and all components assume they have the same configuration. To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally. When `docker build`ing the component container images, the Dockerfile copies the centralized config file into the component directory.
 
-We plan to replace this with a Kubernetes-managed config with dynamic reloading, please join the discussion in [Issue #42](issues/42). 
+We plan to replace this with a Kubernetes-managed config with dynamic reloading. 
 
 ### Guides
-* [Production guide](./docs/production.md) Lots of best practices to be written here before 1.0 release, right now it's a scattered collection of notes. **WIP**
-* [Development guide](./docs/development.md)
+* Production guide - Lots of best practices to be written here before 1.0 release, right now it's a scattered collection of notes. **WIP**
+* Development guide

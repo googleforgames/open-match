@@ -10,7 +10,7 @@ description: >
 
 # Development Guide
 
-This doc explains how to setup a development environment so you can get started contributing to Open Match.  If you instead want to write a matchmaker that _uses_ Open Match, you probably want to read the [User Guide](user_guide.md). 
+This doc explains how to setup a development environment so you can get started contributing to Open Match.  If you instead want to write a matchmaker that _uses_ Open Match, you probably want to read the User Guide. 
 
 # Compiling from source
 
@@ -82,7 +82,7 @@ gcloud compute zones list
 
 ## Configuration
 
-Currently, each component reads a local config file `matchmaker_config.json`, and all components assume they have the same configuration (if you would like to help us design the replacement config solution, please join the [discussion](https://github.com/GoogleCloudPlatform/open-match/issues/42).  To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally.  Note: [there is an issue with symlinks on Windows](../issues/57).
+Currently, each component reads a local config file `matchmaker_config.json`, and all components assume they have the same configuration (if you would like to help us design the replacement config solution, please join the [discussion](https://github.com/GoogleCloudPlatform/open-match/issues/42).  To this end, there is a single centralized config file located in the `<REPO_ROOT>/config/` which is symlinked to each component's subdirectory for convenience when building locally.  Note: [there is an issue with symlinks on Windows](https://github.com/GoogleCloudPlatform/open-match/issues/57).
 
 ## Running Open Match in a development environment
 
