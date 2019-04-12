@@ -125,6 +125,11 @@ steps:
   args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'push-images', '-j4']
   waitFor: ['Build: Docker Images']
 
+- id: 'Build: Generate Kubernetes Deployment Configs'
+  name: open-match-build
+  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'clean-install-yaml', 'install/yaml/']
+  waitFor: ['Build: Install Toolchain']
+
 #- id: 'Deploy: Create Cluster'
 #  name: open-match-build
 #  args: ['make', 'create-gke-cluster', 'push-helm']
@@ -152,6 +157,7 @@ artifacts:
             - examples/backendclient/backendclient
             - test/cmd/clientloadgen/clientloadgen
             - test/cmd/frontendclient/frontendclient
+            - install/yaml/install.yaml
 images:
 - 'gcr.io/$PROJECT_ID/openmatch-backendapi:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-frontendapi:${_OM_VERSION}-${SHORT_SHA}'

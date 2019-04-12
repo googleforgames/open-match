@@ -17,6 +17,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: om-mmlogicapi
+  namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
     {{- include "openmatch.chartmeta" (set . "indent" 4) }}
@@ -34,6 +35,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-mmlogicapi
+  namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
     component: mmlogic
@@ -47,6 +49,7 @@ spec:
       {{- include "openmatch.chartmeta" (set . "indent" 6) }}
   template:
     metadata:
+      namespace: {{ .Release.Namespace }}
       annotations:
       {{- if and (.Values.openmatch.metrics.prometheusServiceDiscovery) (.Values.openmatch.metrics.prometheusEnabled) }}
         prometheus.io/scrape: "true"

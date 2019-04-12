@@ -30,6 +30,7 @@ openmatch:
       port: 50504
   mmforc:
     install: true
+    serviceAccount: mmforc-job-runner
   mmlogicapi:
     install: true
     grpc:
