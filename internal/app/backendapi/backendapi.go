@@ -23,83 +23,32 @@ limitations under the License.
 package backendapi
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/app/backendapi/apisrv"
-	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	"github.com/GoogleCloudPlatform/open-match/internal/signal"
-	redigometrics "github.com/opencensus-integrations/redigo/redis"
 
-	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	"github.com/GoogleCloudPlatform/open-match/internal/serving"
 
 	log "github.com/sirupsen/logrus"
-	"go.opencensus.io/plugin/ocgrpc"
 )
 
-var (
-	// Logrus structured logging setup
-	beLogFields = log.Fields{
-		"app":       "openmatch",
-		"component": "backend",
-	}
-	beLog = log.WithFields(beLogFields)
-)
-
-func initializeApplication() (config.View, error) {
+// CreateServerParams creates the configuration and prepares the binding for serving handler.
+func CreateServerParams() *serving.ServerParams {
 	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
 	log.AddHook(metrics.NewHook(apisrv.BeLogLines, apisrv.KeySeverity))
 
-	// Load configuration
-	cfg, err := config.Read()
-	if err != nil {
-		beLog.WithFields(log.Fields{
-			"error": err.Error(),
-		}).Error("Unable to load config file")
-		return nil, err
+	return &serving.ServerParams{
+		BaseLogFields: log.Fields{
+			"app":       "openmatch",
+			"component": "backend",
+		},
+		PortConfigName:     "api.backend.port",
+		CustomMeasureViews: apisrv.DefaultBackendAPIViews,
+		Bindings:           []serving.BindingFunc{apisrv.Bind},
 	}
-
-	// Configure open match logging defaults
-	logging.ConfigureLogging(cfg)
-
-	// Configure OpenCensus exporter to Prometheus
-	// metrics.ConfigureOpenCensusPrometheusExporter expects that every OpenCensus view you
-	// want to register is in an array, so append any views you want from other
-	// packages to a single array here.
-	ocServerViews := apisrv.DefaultBackendAPIViews                                   // BackendAPI OpenCensus views.
-	ocServerViews = append(ocServerViews, ocgrpc.DefaultServerViews...)              // gRPC OpenCensus views.
-	ocServerViews = append(ocServerViews, config.CfgVarCountView)                    // config loader view.
-	ocServerViews = append(ocServerViews, redigometrics.ObservabilityMetricViews...) // redis OpenCensus views.
-	beLog.WithFields(log.Fields{"viewscount": len(ocServerViews)}).Info("Loaded OpenCensus views")
-	metrics.ConfigureOpenCensusPrometheusExporter(cfg, ocServerViews)
-	return cfg, nil
 }
 
 // RunApplication is a hook for the main() method in the main executable.
 func RunApplication() {
-	cfg, err := initializeApplication()
-	if err != nil {
-		beLog.Fatal(err)
-	}
-
-	// Connect to redis
-	pool, err := redishelpers.ConnectionPool(cfg)
-	if err != nil {
-		beLog.Fatal(err)
-	}
-	defer pool.Close()
-
-	// Instantiate the gRPC server with the connections we've made
-	beLog.Info("Attempting to start gRPC server")
-	srv := apisrv.New(cfg, pool)
-
-	// Run the gRPC server
-	err = srv.Open()
-	if err != nil {
-		beLog.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to start gRPC server")
-	}
-
-	// Exit when we see a signal
-	wait, _ := signal.New()
-	wait()
-	beLog.Info("Shutting down gRPC server")
+	params := CreateServerParams()
+	serving.MustServeForever(params)
 }
