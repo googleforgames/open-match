@@ -277,7 +277,7 @@ build-evaluator-simple-image: build-base-build-image
 	docker build -f examples/evaluators/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-evaluator-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG) .
 
 clean-images:
-	-docker rmi -f $(BASE_BUILD_IMAGE)
+	-docker rmi -f open-match-base-build
 
 	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontendapi:$(TAG) $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
@@ -495,7 +495,6 @@ build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	cd $(TOOLCHAIN_BIN) && $(GO_WITH_DEPS) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
 build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
-	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L \
