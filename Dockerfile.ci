@@ -15,9 +15,9 @@
 FROM debian
 
 RUN apt-get update
-RUN apt-get install -y -q git make python3 virtualenv curl sudo unzip apt-transport-https ca-certificates curl software-properties-common gnupg2
+RUN apt-get install -y -qq git make python3 virtualenv curl sudo unzip apt-transport-https ca-certificates curl software-properties-common gnupg2
 # Required for building gRPC if we need it in the future.
-#RUN apt-get install -y -q g++ php autoconf build-essential libtool pkg-config libgflags-dev libgtest-dev clang libc++-dev
+#RUN apt-get install -y -qq g++ php autoconf build-essential libtool pkg-config libgflags-dev libgtest-dev clang libc++-dev
 
 # Docker
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
@@ -27,14 +27,14 @@ RUN  sudo add-apt-repository \
    stretch \
    stable"
 RUN sudo apt-get update
-RUN sudo apt-get install -y -q docker-ce docker-ce-cli containerd.io
+RUN sudo apt-get install -y -qq docker-ce docker-ce-cli containerd.io
 
 
 # Cloud SDK
 RUN export CLOUD_SDK_REPO="cloud-sdk-stretch" && \
     echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
-    apt-get update -y && apt-get install google-cloud-sdk -y
+    apt-get update -y && apt-get install google-cloud-sdk -y -qq
 
 
 RUN useradd --home-dir /home/openmatch --create-home --shell /bin/bash --groups sudo --user-group openmatch \
