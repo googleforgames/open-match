@@ -189,11 +189,7 @@ Inline code inside table cells should still be distinguishable.
 
 Small images should be shown at their actual size.
 
-![](https://www.google.com/logos/2008/1stdayofschool08.gif)
-
 Large images should always scale down and fit in the content container.
-
-![](https://www.google.com/logos/doodles/2015/googles-new-logo-5078286822539264.3-hp2x.gif)
 
 ## Components
 

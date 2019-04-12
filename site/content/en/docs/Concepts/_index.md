@@ -30,7 +30,7 @@ Open Match is designed to support massively concurrent matchmaking, and to be sc
 ### Data Model 
 * **Player** &mdash; An ID and list of attributes with values for a player who wants to participate in matchmaking.
 * **Roster** &mdash; A list of player objects.  Used to hold all the players on a single team.
-* **Filter** &mdash; A _filter_ is used to narrow down the players to only those who have an attribute value within a certain integer range.  All attributes are integer values in Open Match because [that is how indices are implemented](internal/statestorage/redis/playerindices/playerindices.go). A _filter_ is defined in a _player pool_.
+* **Filter** &mdash; A _filter_ is used to narrow down the players to only those who have an attribute value within a certain integer range.  All attributes are integer values in Open Match because that is how indices are implemented. A _filter_ is defined in a _player pool_.
 * **Player Pool** &mdash; A list of all the players who fit all the _filters_ defined in the pool.
 * **Match Object** &mdash; A protobuffer message format that contains the _profile_ and the results of the matchmaking function. Sent to the backend API from your game backend with the _roster_(s) empty and then returned from your MMF with the matchmaking results filled in.
 * **Profile** &mdash; The json blob containing all the parameters used by your MMF to select which players go into a roster together.
@@ -50,9 +50,6 @@ The following examples of how to call the APIs are provided in the repository. B
 
 * `test/cmd/frontendclient/main.go` acts as a client to the the Frontend API, putting a player into the queue with simulated latencies from major metropolitan cities and a couple of other matchmaking attributes. It then waits for you to manually put a value in Redis to simulate a server connection string being written using the backend API 'CreateAssignments' call, and displays that value on stdout for you to verify.
 * `examples/backendclient/main.go` calls the Backend API and passes in the profile found in `backendstub/profiles/testprofile.json` to the `ListMatches` API endpoint, then continually prints the results until you exit, or there are insufficient players to make a match based on the profile..
-
-### Reference
-* [FAQ](./docs/faq.md)
 
 ## Licence
 
