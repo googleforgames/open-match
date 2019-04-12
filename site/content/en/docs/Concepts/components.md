@@ -85,7 +85,7 @@ Matchmaking Functions (MMFs) are run by the Matchmaker Function Orchestrator (MM
 - [x] Write the match object it creates to state storage at a specified key.
 - [x] Remove the players it selected from consideration by other MMFs by adding them to the appropriate ignore list.
 - [x] Notify the MMFOrc of completion.
-- [x] Optional, but recommended Export stats for metrics collection.
+- [x] Optional, but recommended. Export stats for metrics collection.
 
 **Open Match offers matchmaking logic API calls for handling the checked items, as long as you are able to format your input and output in the data schema Open Match expects (defined in the protobuf messages).**  You can to do this work yourself if you don't want to or can't use the data schema Open Match is looking for.  However, the data formats expected by Open Match are pretty generalized and will work with most common matchmaking scenarios and game types.  If you have questions about how to fit your data into the formats specified, feel free to ask us in the Slack or mailing group.
 

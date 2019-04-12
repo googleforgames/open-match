@@ -109,7 +109,7 @@ OPEN_MATCH_EXAMPLE_CHART_NAME = open-match-example
 OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE = open-match
 REDIS_NAME = om-redis
 GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | cut -c 10-)
-POST_SUBMIT=0
+_GCB_POST_SUBMIT ?= 0
 
 # Make port forwards accessible outside of the proxy machine.
 PORT_FORWARD_ADDRESS_FLAG = --address 0.0.0.0
@@ -172,7 +172,7 @@ help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
 
 local-cloud-build:
-	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) -substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(POST_SUBMIT) .
+	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT) .
 
 push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
 push-service-images: push-frontendapi-image push-backendapi-image push-mmforc-image push-mmlogicapi-image
@@ -637,6 +637,13 @@ browse-site: build/site/
 
 deploy-dev-site: build/site/
 	cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(VERSION_SUFFIX) --quiet
+
+ci-deploy-dev-site: build/site/
+ifeq ($(_GCB_POST_SUBMIT),0)
+	cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(VERSION_SUFFIX) --quiet
+else
+	echo "Not deploying development.open-match.dev because this is not a post commit change."
+endif
 
 deploy-redirect-site:
 	cd $(REPOSITORY_ROOT)/site/redirect/ && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy app.yaml --promote --quiet
