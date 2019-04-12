@@ -50,11 +50,6 @@ define newline
 
 endef
 
-ifeq ($(shell whoami),root)
-	$(error ERROR: Running Makefile in sudo mode$(newline)Please follow the instructions at https://docs.docker.com/install/linux/linux-postinstall/ if you are trying to sudo run the Makefile because of the 'Cannot connect to the Docker daemon' error.$(newline)NOTE: sudo/root do not have the authentication token to talk to any GCP service via gcloud)
-	exit 1
-endif
-
 BASE_VERSION = 0.4.0
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD)
 VERSION ?= $(BASE_VERSION)-$(VERSION_SUFFIX)
@@ -69,12 +64,13 @@ SKAFFOLD_VERSION = latest
 MINIKUBE_VERSION = latest
 
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
-GO = go
+GO = GO111MODULE=on GOPROXY=off go
+GO_WITH_DEPS = GO111MODULE=on GOPROXY= go
 GO_BIN := $(GOPATH)/bin
 GO_SRC := $(GOPATH)/src
 # Defines the absolute local directory of the open-match project
 REPOSITORY_ROOT := $(realpath $(dir $(abspath $(MAKEFILE_LIST))))
-GO_BUILD_COMMAND = CGO_ENABLED=0 GOOS=linux $(GO) build -a -installsuffix cgo .
+GO_BUILD_COMMAND = CGO_ENABLED=0 $(GO) build -a -installsuffix cgo .
 BUILD_DIR = $(REPOSITORY_ROOT)/build
 TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
 TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
@@ -174,7 +170,8 @@ local-cloud-build:
 
 push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
 push-service-images: push-frontendapi-image push-backendapi-image push-mmforc-image push-mmlogicapi-image
-push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-image push-mmf-php-mmlogic-simple-image push-mmf-py3-mmlogic-simple-image
+# TODO: push-mmf-php-mmlogic-simple-image
+push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-image push-mmf-py3-mmlogic-simple-image
 push-client-images: push-backendclient-image push-clientloadgen-image push-frontendclient-image
 push-evaluator-example-images: push-evaluator-simple-image
 
@@ -229,7 +226,8 @@ push-evaluator-simple-image: build-evaluator-simple-image
 build-images: build-service-images build-client-images build-mmf-example-images build-evaluator-example-images
 build-service-images: build-frontendapi-image build-backendapi-image build-mmforc-image build-mmlogicapi-image
 build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
-build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-php-mmlogic-simple-image build-mmf-py3-mmlogic-simple-image
+# TODO build-mmf-php-mmlogic-simple-image
+build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-py3-mmlogic-simple-image
 build-evaluator-example-images: build-evaluator-simple-image
 
 build-base-build-image:
@@ -402,7 +400,7 @@ install-toolchain: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bi
 build/toolchain/bin/helm$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-helm
-	cd $(TOOLCHAIN_DIR)/temp-helm && curl -Lo helm.tar.gz $(HELM_PACKAGE) && tar xvzf helm.tar.gz --strip-components 1
+	cd $(TOOLCHAIN_DIR)/temp-helm && curl -Lo helm.tar.gz $(HELM_PACKAGE) && tar xzf helm.tar.gz --strip-components 1
 	mv $(TOOLCHAIN_DIR)/temp-helm/helm$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/helm$(EXE_EXTENSION)
 	mv $(TOOLCHAIN_DIR)/temp-helm/tiller$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/tiller$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-helm/
@@ -410,7 +408,7 @@ build/toolchain/bin/helm$(EXE_EXTENSION):
 build/toolchain/bin/hugo$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-hugo
-	cd $(TOOLCHAIN_DIR)/temp-hugo && curl -Lo hugo.tar.gz $(HUGO_PACKAGE) && tar xvzf hugo.tar.gz
+	cd $(TOOLCHAIN_DIR)/temp-hugo && curl -Lo hugo.tar.gz $(HUGO_PACKAGE) && tar xzf hugo.tar.gz
 	mv $(TOOLCHAIN_DIR)/temp-hugo/hugo$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/hugo$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-hugo/
 
@@ -481,22 +479,23 @@ build/toolchain/python/:
 build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -o $(TOOLCHAIN_DIR)/protoc-temp.zip -L $(PROTOC_PACKAGE)
-	(cd $(TOOLCHAIN_DIR); unzip -o protoc-temp.zip)
+	(cd $(TOOLCHAIN_DIR); unzip -q -o protoc-temp.zip)
 	rm $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
 
 build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
-	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
+	cd $(TOOLCHAIN_BIN) && $(GO_WITH_DEPS) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
 build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
+	mkdir -p $(TOOLCHAIN_BIN)
 	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L \
 		https://github.com/googleapis/googleapis/archive/master.zip
-	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -o googleapis.zip)
+	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
 	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
 		$(PROTOC_INCLUDES)/google/api
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
-	cd build/toolchain/bin && $(GO) build -pkgdir .  github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	cd $(TOOLCHAIN_BIN) && $(GO_WITH_DEPS) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
 all-protos: golang-protos mmlogic-simple-protos
 # TODO: Add php-protos to all-protos once it builds the gRPC client code.
@@ -553,6 +552,9 @@ build:
 test:
 	$(GO) test ./... -race
 
+test-10:
+	$(GO) test ./... -race -test.count 10 -cover
+
 fmt:
 	$(GO) fmt ./...
 
@@ -592,18 +594,19 @@ build/archives/${NODEJS_PACKAGE_NAME}:
 
 build/toolchain/nodejs/: build/archives/${NODEJS_PACKAGE_NAME}
 	mkdir -p build/toolchain/nodejs/
-	cd build/toolchain/nodejs/ && tar xvzf ../../archives/${NODEJS_PACKAGE_NAME} --strip-components 1
+	cd build/toolchain/nodejs/ && tar xzf ../../archives/${NODEJS_PACKAGE_NAME} --strip-components 1
 
 node_modules/: build/toolchain/nodejs/
 	-rm -r package.json package-lock.json
 	-rm -rf node_modules/
 	echo "{}" > package.json
+	-rm -f package-lock.json
 	$(TOOLCHAIN_DIR)/nodejs/bin/npm install postcss-cli autoprefixer
 
 build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
 	rm -rf build/site/
 	mkdir -p build/site/
-	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) --enableGitInfo --config=config.toml --source . --destination $(BUILD_DIR)/site/public/
+	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) --config=config.toml --source . --destination $(BUILD_DIR)/site/public/
 	# Only copy the root directory since that has the AppEngine serving code.
 	-cp -f site/* $(BUILD_DIR)/site
 	#cd $(BUILD_DIR)/site && "SERVICE=$(SERVICE) envsubst < app.yaml > .app.yaml"
@@ -621,7 +624,9 @@ run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
 all: service-binaries client-binaries example-binaries
 service-binaries: cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmforc/mmforc cmd/mmlogicapi/mmlogicapi
 client-binaries: examples/backendclient/backendclient test/cmd/clientloadgen/clientloadgen test/cmd/frontendclient/frontendclient
-example-binaries: examples/evaluators/golang/simple/simple examples/functions/golang/manual-simple
+example-binaries: example-mmf-binaries example-evaluator-binaries
+example-mmf-binaries: examples/functions/golang/manual-simple/manual-simple
+example-evaluator-binaries: examples/evaluators/golang/simple/simple
 presubmit: fmt vet build test
 
 clean-site:
@@ -684,4 +689,10 @@ proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
-.PHONY: proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test vet
+sync-deps:
+	$(GO_WITH_DEPS) mod download
+
+sleep-10:
+	sleep 10
+
+.PHONY: sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-10 vet
