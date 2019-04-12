@@ -147,7 +147,7 @@ metadata:
     heritage: Tiller
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
   name: mmforc-job-runner
 subjects:
@@ -160,7 +160,7 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
   name: mmforc-job-runner
   namespace: open-match
