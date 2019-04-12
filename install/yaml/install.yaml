@@ -759,6 +759,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: om-configmap
+  namespace: open-match
   labels:
     app: open-match
     component: config
@@ -998,6 +999,60 @@ metadata:
   name: open-match-prometheus-server
 
 ---
+# Source: open-match/templates/mmforc-service-account.yaml
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mmforc-job-runner
+  namespace: open-match
+  labels:
+    app: open-match
+    chart: open-match-0.4.0
+    release: open-match
+    heritage: Tiller
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: mmforc-job-runner
+subjects:
+- kind: ServiceAccount
+  name: mmforc-job-runner
+  namespace: open-match
+roleRef:
+  kind: Role
+  name: mmforc-job-runner
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mmforc-job-runner
+  namespace: open-match
+  labels:
+    app: open-match
+    chart: open-match-0.4.0
+    release: open-match
+    heritage: Tiller
+rules:
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["create"]
+
+---
 # Source: open-match/charts/grafana/templates/clusterrole.yaml
 
 kind: ClusterRole
@@ -1189,34 +1244,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: open-match-prometheus-server
-
----
-# Source: open-match/templates/service-account.yaml
-# Copyright 2019 Google Inc. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  name: mmf-sa
-subjects:
-- kind: ServiceAccount
-  name: default
-  namespace: open-match
-roleRef:
-  kind: ClusterRole
-  name: cluster-admin
-  apiGroup: rbac.authorization.k8s.io
 
 ---
 # Source: open-match/charts/grafana/templates/role.yaml
@@ -1498,6 +1525,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: om-backendapi
+  namespace: open-match
   labels:
     app: open-match
     chart: open-match-0.4.0
@@ -1517,6 +1545,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-backendapi
+  namespace: open-match
   labels:
     app: open-match
     component: backend
@@ -1534,6 +1563,7 @@ spec:
       heritage: Tiller
   template:
     metadata:
+      namespace: open-match
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9555"
@@ -1590,6 +1620,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: om-frontendapi
+  namespace: open-match
   labels:
     app: open-match
     chart: open-match-0.4.0
@@ -1612,6 +1643,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-frontendapi
+  namespace: open-match
   labels:
     app: open-match
     component: frontend
@@ -1629,6 +1661,7 @@ spec:
       heritage: Tiller
   template:
     metadata:
+      namespace: open-match
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9555"
@@ -1685,6 +1718,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: om-mmlogicapi
+  namespace: open-match
   labels:
     app: open-match
     chart: open-match-0.4.0
@@ -1706,6 +1740,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-mmlogicapi
+  namespace: open-match
   labels:
     app: open-match
     component: mmlogic
@@ -1723,6 +1758,7 @@ spec:
       heritage: Tiller
   template:
     metadata:
+      namespace: open-match
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9555"
@@ -2403,6 +2439,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-mmforc
+  namespace: open-match
   labels:
     app: open-match
     component: mmforc
@@ -2420,6 +2457,7 @@ spec:
       heritage: Tiller
   template:
     metadata:
+      namespace: open-match
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9555"
@@ -2431,6 +2469,7 @@ spec:
         release: open-match
         heritage: Tiller
     spec:
+      serviceAccountName: mmforc-job-runner
       containers:
       - name: om-mmforc
         image: "gcr.io/open-match-public-images/openmatch-mmforc:0.4.0"
