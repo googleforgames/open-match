@@ -17,6 +17,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: om-configmap
+  namespace: open-match
   labels:
     app: open-match
     component: config
@@ -193,6 +194,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: om-backendapi
+  namespace: open-match
   labels:
     app: open-match
 spec:
@@ -209,6 +211,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-backendapi
+  namespace: open-match
   labels:
     app: open-match
     component: backend
@@ -220,6 +223,7 @@ spec:
       component: backend
   template:
     metadata:
+      namespace: open-match
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9555"
@@ -230,7 +234,7 @@ spec:
     spec:
       containers:
       - name: om-backend
-        image: "gcr.io/open-match-public-images/openmatch-backendapi:0.4.0"
+        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-backendapi:0.4.0-90acc77"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
@@ -273,6 +277,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: om-frontendapi
+  namespace: open-match
   labels:
     app: open-match
 spec:
@@ -289,6 +294,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-frontendapi
+  namespace: open-match
   labels:
     app: open-match
     component: frontend
@@ -300,6 +306,7 @@ spec:
       component: frontend
   template:
     metadata:
+      namespace: open-match
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9555"
@@ -310,7 +317,7 @@ spec:
     spec:
       containers:
       - name: om-frontendapi
-        image: "gcr.io/open-match-public-images/openmatch-frontendapi:0.4.0"
+        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-frontendapi:0.4.0-90acc77"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
@@ -353,6 +360,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: om-mmlogicapi
+  namespace: open-match
   labels:
     app: open-match
 spec:
@@ -368,6 +376,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-mmlogicapi
+  namespace: open-match
   labels:
     app: open-match
     component: mmlogic
@@ -379,6 +388,7 @@ spec:
       component: mmlogic
   template:
     metadata:
+      namespace: open-match
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9555"
@@ -389,7 +399,7 @@ spec:
     spec:
       containers:
       - name: om-mmlogic
-        image: "gcr.io/open-match-public-images/openmatch-mmlogicapi:0.4.0"
+        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-mmlogicapi:0.4.0-90acc77"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume
@@ -432,6 +442,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-mmforc
+  namespace: open-match
   labels:
     app: open-match
     component: mmforc
@@ -443,6 +454,7 @@ spec:
       component: mmforc
   template:
     metadata:
+      namespace: open-match
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9555"
@@ -454,7 +466,7 @@ spec:
       serviceAccountName: mmforc-job-runner
       containers:
       - name: om-mmforc
-        image: "gcr.io/open-match-public-images/openmatch-mmforc:0.4.0"
+        image: "gcr.io/jeremyedwards-gaming-dev/openmatch-mmforc:0.4.0-90acc77"
         imagePullPolicy: Always
         volumeMounts:
         - name: om-config-volume

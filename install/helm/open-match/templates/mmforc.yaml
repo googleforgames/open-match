@@ -17,6 +17,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-mmforc
+  namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
     component: mmforc
@@ -30,6 +31,7 @@ spec:
       {{- include "openmatch.chartmeta" (set . "indent" 6) }}
   template:
     metadata:
+      namespace: {{ .Release.Namespace }}
       annotations:
       {{- if and (.Values.openmatch.metrics.prometheusServiceDiscovery) (.Values.openmatch.metrics.prometheusEnabled) }}
         prometheus.io/scrape: "true"

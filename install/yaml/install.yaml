@@ -759,6 +759,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: om-configmap
+  namespace: open-match
   labels:
     app: open-match
     component: config
@@ -1524,6 +1525,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: om-backendapi
+  namespace: open-match
   labels:
     app: open-match
     chart: open-match-0.4.0
@@ -1543,6 +1545,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-backendapi
+  namespace: open-match
   labels:
     app: open-match
     component: backend
@@ -1560,6 +1563,7 @@ spec:
       heritage: Tiller
   template:
     metadata:
+      namespace: open-match
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9555"
@@ -1616,6 +1620,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: om-frontendapi
+  namespace: open-match
   labels:
     app: open-match
     chart: open-match-0.4.0
@@ -1638,6 +1643,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-frontendapi
+  namespace: open-match
   labels:
     app: open-match
     component: frontend
@@ -1655,6 +1661,7 @@ spec:
       heritage: Tiller
   template:
     metadata:
+      namespace: open-match
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9555"
@@ -1711,6 +1718,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: om-mmlogicapi
+  namespace: open-match
   labels:
     app: open-match
     chart: open-match-0.4.0
@@ -1732,6 +1740,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-mmlogicapi
+  namespace: open-match
   labels:
     app: open-match
     component: mmlogic
@@ -1749,6 +1758,7 @@ spec:
       heritage: Tiller
   template:
     metadata:
+      namespace: open-match
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9555"
@@ -2429,6 +2439,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: om-mmforc
+  namespace: open-match
   labels:
     app: open-match
     component: mmforc
@@ -2446,6 +2457,7 @@ spec:
       heritage: Tiller
   template:
     metadata:
+      namespace: open-match
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9555"
