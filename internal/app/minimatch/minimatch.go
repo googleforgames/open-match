@@ -21,26 +21,13 @@ package minimatch
 
 import (
 	"github.com/GoogleCloudPlatform/open-match/internal/app/backendapi"
-	backend "github.com/GoogleCloudPlatform/open-match/internal/app/backendapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi"
-	frontend "github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi"
-	mmlogic "github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi/apisrv"
-	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/serving"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // CreateServerParams creates the configuration and prepares the binding for serving handler.
 func CreateServerParams() []*serving.ServerParams {
-	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
-	log.AddHook(metrics.NewHook(frontend.FeLogLines, frontend.KeySeverity))
-	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
-	log.AddHook(metrics.NewHook(backend.BeLogLines, backend.KeySeverity))
-	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
-	log.AddHook(metrics.NewHook(mmlogic.MlLogLines, mmlogic.KeySeverity))
-
 	return []*serving.ServerParams{
 		frontendapi.CreateServerParams(),
 		backendapi.CreateServerParams(),

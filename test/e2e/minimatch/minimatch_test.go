@@ -1,4 +1,4 @@
-package frontend
+package minimatch
 
 import (
 	"context"
@@ -24,7 +24,7 @@ func TestMinimatchStartup(t *testing.T) {
 		t.Fatalf("cannot obtain frontend client, %s", err)
 	}
 	if feClient == nil {
-		t.Fatalf("cannot get frontend client, %v", feClient)
+		t.Fatal("cannot get frontend client")
 	}
 	beClient, err := mm.GetBackendClient()
 	if err != nil {
@@ -46,6 +46,7 @@ func TestMinimatchStartup(t *testing.T) {
 			t.Errorf("request error, %s", err)
 		}
 	}
+	// TODO: The following code would be next but there's an infinite loop that hasn't been diagnosed yet. Missing bounds checking?
 	/*
 		match, err := beClient.CreateMatch(ctx, &pb.MatchObject{
 			Id: lastPlayer.Id,
