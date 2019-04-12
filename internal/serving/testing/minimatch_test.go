@@ -20,11 +20,10 @@ func TestNewMiniMatch(t *goTesting.T) {
 			},
 			PortConfigName: "api.frontend.port",
 			Bindings: []serving.BindingFunc{
-				func(omServer *serving.OpenMatchServer) error {
+				func(omServer *serving.OpenMatchServer) {
 					omServer.GrpcServer.AddService(func(server *grpc.Server) {
 						pb.RegisterFrontendServer(server, ff)
 					})
-					return nil
 				},
 			},
 		},

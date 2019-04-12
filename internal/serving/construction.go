@@ -12,7 +12,7 @@ import (
 )
 
 // BindingFunc is used as a callback to configure OpenMatchServer most notably the GRPC server instance.
-type BindingFunc func(*OpenMatchServer) error
+type BindingFunc func(*OpenMatchServer)
 
 // ServerParams is a collection of parameters used to create an Open Match server.
 type ServerParams struct {
