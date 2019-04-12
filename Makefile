@@ -227,7 +227,7 @@ push-evaluator-simple-image: build-evaluator-simple-image
 	docker push $(REGISTRY)/openmatch-evaluator-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG)
 
-build-images: build-base-build-image build-service-images build-client-images build-mmf-example-images build-evaluator-example-images
+build-images: build-service-images build-client-images build-mmf-example-images build-evaluator-example-images
 build-service-images: build-minimatch-image build-frontendapi-image build-backendapi-image build-mmforc-image build-mmlogicapi-image
 build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
 # TODO build-mmf-php-mmlogic-simple-image

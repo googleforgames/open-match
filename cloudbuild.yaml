@@ -184,8 +184,6 @@ options:
 # we have new hermetic and reproducible Dockerfiles.
 timeout: 1200s
 # TODO Build Steps
-# Use the Makefile instead of manually building artifacts.
-# api/protobuf-spec/*: Build Protocol Buffers (golang, python, php)
 # config/matchmaker_config.yaml: Lint this file so it's verified as a valid YAML file.
 # deployments/k8s: Verify with kubelint.
 # examples/profiles/*.json: Verify valid JSON files.
