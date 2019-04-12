@@ -639,8 +639,10 @@ deploy-dev-site: build/site/
 	cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(VERSION_SUFFIX) --quiet
 
 ci-deploy-dev-site: build/site/
-ifeq ($(_GCB_POST_SUBMIT),0)
-	cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(VERSION_SUFFIX) --quiet
+ifeq ($(_GCB_POST_SUBMIT),1)
+	echo "Deploying website to development.open-match.dev..."
+	# TODO: Install GAE SDK and use the Service Account to deploy to GAE.
+	#cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(VERSION_SUFFIX) --quiet
 else
 	echo "Not deploying development.open-match.dev because this is not a post commit change."
 endif
