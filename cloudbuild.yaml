@@ -109,13 +109,6 @@ steps:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Protocol Buffers']
-- id: 'Build: Website'
-  name: open-match-build
-  args: ['make', 'build/site/']
-  volumes:
-  - name: 'go-vol'
-    path: '/go'
-  waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Docker Images'
   name: open-match-build
   args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'build-images', '-j4']
@@ -129,6 +122,21 @@ steps:
   name: open-match-build
   args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'clean-install-yaml', 'install/yaml/']
   waitFor: ['Build: Install Toolchain']
+
+- id: 'Build: Website'
+  name: open-match-build
+  args: ['make', 'build/site/']
+  waitFor: ['Build: Install Toolchain']
+
+- id: 'Test: Website'
+  name: open-match-build
+  args: ['make', 'site-test']
+  waitFor: ['Build: Website']
+
+- id: 'Deploy: Website'
+  name: open-match-build
+  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'clean-install-yaml', 'install/yaml/']
+  waitFor: ['Build: Website']
 
 #- id: 'Deploy: Create Cluster'
 #  name: open-match-build
