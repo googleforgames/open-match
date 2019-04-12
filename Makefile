@@ -175,11 +175,15 @@ local-cloud-build:
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT) .
 
 push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
-push-service-images: push-frontendapi-image push-backendapi-image push-mmforc-image push-mmlogicapi-image
+push-service-images: push-minimatch-image push-frontendapi-image push-backendapi-image push-mmforc-image push-mmlogicapi-image
 # TODO: push-mmf-php-mmlogic-simple-image
 push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-image push-mmf-py3-mmlogic-simple-image
 push-client-images: push-backendclient-image push-clientloadgen-image push-frontendclient-image
 push-evaluator-example-images: push-evaluator-simple-image
+
+push-minimatch-image: build-minimatch-image
+	docker push $(REGISTRY)/openmatch-minimatch:$(TAG)
+	docker push $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 
 push-frontendapi-image: build-frontendapi-image
 	docker push $(REGISTRY)/openmatch-frontendapi:$(TAG)
@@ -230,7 +234,7 @@ push-evaluator-simple-image: build-evaluator-simple-image
 	docker push $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG)
 
 build-images: build-service-images build-client-images build-mmf-example-images build-evaluator-example-images
-build-service-images: build-frontendapi-image build-backendapi-image build-mmforc-image build-mmlogicapi-image
+build-service-images: build-minimatch-image build-frontendapi-image build-backendapi-image build-mmforc-image build-mmlogicapi-image
 build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
 # TODO build-mmf-php-mmlogic-simple-image
 build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-py3-mmlogic-simple-image
@@ -238,6 +242,9 @@ build-evaluator-example-images: build-evaluator-simple-image
 
 build-base-build-image:
 	docker build -f Dockerfile.base-build -t open-match-base-build .
+
+build-minimatch-image: build-base-build-image
+	docker build -f cmd/minimatch/Dockerfile -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
 
 build-frontendapi-image: build-base-build-image
 	docker build -f cmd/frontendapi/Dockerfile -t $(REGISTRY)/openmatch-frontendapi:$(TAG) -t $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG) .
@@ -278,6 +285,7 @@ build-evaluator-simple-image: build-base-build-image
 clean-images:
 	-docker rmi -f open-match-base-build
 
+	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontendapi:$(TAG) $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-backendapi:$(TAG) $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-mmforc:$(TAG) $(REGISTRY)/openmatch-mmforc:$(ALTERNATE_TAG)
@@ -574,6 +582,9 @@ fmt:
 vet:
 	$(GO) vet ./...
 
+cmd/minimatch/minimatch: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/mmlogic.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go
+	cd cmd/minimatch; $(GO_BUILD_COMMAND)
+
 cmd/backendapi/backendapi: internal/pb/backend.pb.go
 	cd cmd/backendapi; $(GO_BUILD_COMMAND)
 
@@ -654,7 +665,7 @@ run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) server --debug --watch --enableGitInfo . --baseURL=http://localhost:$(SITE_PORT)/ --bind 0.0.0.0 --port $(SITE_PORT) --disableFastRender
 
 all: service-binaries client-binaries example-binaries
-service-binaries: cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmforc/mmforc cmd/mmlogicapi/mmlogicapi
+service-binaries: cmd/minimatch/minimatch cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmforc/mmforc cmd/mmlogicapi/mmlogicapi
 client-binaries: examples/backendclient/backendclient test/cmd/clientloadgen/clientloadgen test/cmd/frontendclient/frontendclient
 example-binaries: example-mmf-binaries example-evaluator-binaries
 example-mmf-binaries: examples/functions/golang/manual-simple/manual-simple
@@ -672,6 +683,7 @@ clean-protos:
 	rm -rf examples/functions/python3/mmlogic-simple/api/protobuf_spec/
 
 clean-binaries:
+	rm -rf cmd/minimatch/minimatch
 	rm -rf cmd/backendapi/backendapi
 	rm -rf cmd/frontendapi/frontendapi
 	rm -rf cmd/mmforc/mmforc
