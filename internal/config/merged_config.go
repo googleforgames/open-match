@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -10,47 +11,53 @@ import (
 
 // Reads configurations from all specified files using read(),
 // and then merges them into a single viper.Viper instance.
-func readMerged(files ...string) (View, error) {
+func readMerged(files ...string) (*wrapperView, error) {
 	if len(files) == 0 {
 		return nil, errors.New("no input files specified")
 	}
 
-	w := new(wrapperView)
-	layers := make([]*viper.Viper, len(files))
+	sources := make([]*viper.Viper, len(files))
+	layers := make([]map[string]interface{}, len(sources))
 
-	queue := make(chan fsnotify.Event, 1)
-	onFileChange := func(e fsnotify.Event) {
-		select {
-		case queue <- e:
-		default:
-		}
+	type change struct {
+		idx   int
+		layer map[string]interface{}
 	}
+	changes := make(chan change, len(layers))
 
 	// read files into layers and watch for changes
 	for i, f := range files {
-		l, err := read(f, onFileChange)
+		idx := i
+		s, err := read(f, func(e fsnotify.Event) {
+			cfgLog.Infof("changes in layer #%d: %s", idx, e.String())
+
+			settings := sources[idx].AllSettings()
+			changes <- change{idx, settings}
+		})
 		if err != nil {
 			return nil, err
 		}
-		layers[i] = l
+		sources[idx] = s
+		layers[idx] = s.AllSettings()
 	}
 
+	w := new(wrapperView)
 	w.cfg = merge(layers...)
 
 	// re-merge layers upon changes in files
-	go func() {
-		for range queue {
-			w.cfg = merge(layers...)
+	go func(layers []map[string]interface{}) {
+		for c := range changes {
+			layers[c.idx] = c.layer
+			w.delegate(merge(layers...))
 		}
-	}()
+	}(layers)
 
 	return w, nil
 }
 
-func merge(layers ...*viper.Viper) *viper.Viper {
+func merge(layers ...map[string]interface{}) *viper.Viper {
 	cfg := viper.New()
-	for _, l := range layers {
-		m := l.AllSettings()
+	for _, m := range layers {
 		cfg.MergeConfigMap(m)
 	}
 	return cfg
@@ -60,36 +67,67 @@ func merge(layers ...*viper.Viper) *viper.Viper {
 // and delegates to other viper.Viper instance
 type wrapperView struct {
 	cfg *viper.Viper
+	sync.Mutex
+}
+
+func (w *wrapperView) delegate(cfg *viper.Viper) {
+	w.Lock()
+	w.cfg = cfg
+	w.Unlock()
 }
 
 func (w *wrapperView) IsSet(key string) bool {
-	return w.cfg.IsSet(key)
+	w.Lock()
+	v := w.cfg.IsSet(key)
+	w.Unlock()
+	return v
 }
 
 func (w *wrapperView) GetString(key string) string {
-	return w.cfg.GetString(key)
+	w.Lock()
+	v := w.cfg.GetString(key)
+	w.Unlock()
+	return v
 }
 
 func (w *wrapperView) GetInt(key string) int {
-	return w.cfg.GetInt(key)
+	w.Lock()
+	v := w.cfg.GetInt(key)
+	w.Unlock()
+	return v
 }
 
 func (w *wrapperView) GetInt64(key string) int64 {
-	return w.cfg.GetInt64(key)
+	w.Lock()
+	v := w.cfg.GetInt64(key)
+	w.Unlock()
+	return v
 }
 
 func (w *wrapperView) GetStringSlice(key string) []string {
-	return w.cfg.GetStringSlice(key)
+	w.Lock()
+	v := w.cfg.GetStringSlice(key)
+	w.Unlock()
+	return v
 }
 
 func (w *wrapperView) GetBool(key string) bool {
-	return w.cfg.GetBool(key)
+	w.Lock()
+	v := w.cfg.GetBool(key)
+	w.Unlock()
+	return v
 }
 
 func (w *wrapperView) GetDuration(key string) time.Duration {
-	return w.cfg.GetDuration(key)
+	w.Lock()
+	v := w.cfg.GetDuration(key)
+	w.Unlock()
+	return v
 }
 
 func (w *wrapperView) GetStringMap(key string) map[string]interface{} {
-	return w.cfg.GetStringMap(key)
+	w.Lock()
+	v := w.cfg.GetStringMap(key)
+	w.Unlock()
+	return v
 }
