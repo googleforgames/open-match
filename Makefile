@@ -624,7 +624,9 @@ run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
 all: service-binaries client-binaries example-binaries
 service-binaries: cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmforc/mmforc cmd/mmlogicapi/mmlogicapi
 client-binaries: examples/backendclient/backendclient test/cmd/clientloadgen/clientloadgen test/cmd/frontendclient/frontendclient
-example-binaries: examples/evaluators/golang/simple/simple examples/functions/golang/manual-simple
+example-binaries: example-mmf-binaries example-evaluator-binaries
+example-mmf-binaries: examples/functions/golang/manual-simple/manual-simple
+example-evaluator-binaries: examples/evaluators/golang/simple/simple
 presubmit: fmt vet build test
 
 clean-site:
