@@ -67,7 +67,7 @@ gcloud config set project $YOUR_GCP_PROJECT_ID
 gcloud services enable containerregistry.googleapis.com
 gcloud services enable container.googleapis.com
 # Test that everything is good, this command should work.
-gcloud compute zone list
+gcloud compute zones list
 ```
 
 Once everything is setup you can deploy Open Match by creating a cluster in Google Kubernetes Engine (GKE).
