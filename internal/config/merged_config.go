@@ -16,8 +16,7 @@ func readMerged(files ...string) (*wrapperView, error) {
 		return nil, errors.New("no input files specified")
 	}
 
-	sources := make([]*viper.Viper, len(files))
-	layers := make([]map[string]interface{}, len(sources))
+	layers := make([]map[string]interface{}, len(files))
 
 	type change struct {
 		idx   int
@@ -28,17 +27,16 @@ func readMerged(files ...string) (*wrapperView, error) {
 	// read files into layers and watch for changes
 	for i, f := range files {
 		idx := i
-		s, err := read(f, func(e fsnotify.Event) {
-			cfgLog.Infof("changes in layer #%d: %s", idx, e.String())
-
-			settings := sources[idx].AllSettings()
-			changes <- change{idx, settings}
-		})
+		s, err := read(f, nil)
 		if err != nil {
 			return nil, err
 		}
-		sources[idx] = s
 		layers[idx] = s.AllSettings()
+		s.OnConfigChange(func(e fsnotify.Event) {
+			cfgLog.Infof("changes in layer #%d: %s", idx, e.String())
+			settings := s.AllSettings()
+			changes <- change{idx, settings}
+		})
 	}
 
 	w := new(wrapperView)
