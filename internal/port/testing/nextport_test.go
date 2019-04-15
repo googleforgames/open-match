@@ -15,11 +15,12 @@ func TestNextPort(t *testing.T) {
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
 
-			port, err := NextPort()
+			port, err := nextPort()
+			defer port.Close()
 			if err != nil {
 				t.Errorf("%s had error, %s", testName, err)
 			}
-			if !(firstPort <= port && port <= lastPort) {
+			if !(firstPort <= port.Number() && port.Number() <= lastPort) {
 				t.Errorf("Expected %d <= %d <= %d, port is out of range.", firstPort, port, lastPort)
 			}
 		})

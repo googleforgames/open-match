@@ -21,10 +21,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/port"
 	log "github.com/sirupsen/logrus"
 
 	"go.opencensus.io/exporter/prometheus"
@@ -46,10 +46,10 @@ var (
 // by Promethus for  metrics gathering. The calling code can select any views
 // it wants to  register, from any number of libraries, and pass them in as an
 // array.
-func ConfigureOpenCensusPrometheusExporter(cfg config.View, views []*view.View) {
+func ConfigureOpenCensusPrometheusExporter(p *port.Port, cfg config.View, views []*view.View) {
 
 	//var infoCtx, err = tag.New(context.Background(), tag.Insert(KeySeverity, "info"))
-	metricsPort := cfg.GetInt("metrics.port")
+	metricsPort := p.Number()
 	metricsEP := cfg.GetString("metrics.endpoint")
 	metricsRP := cfg.GetInt("metrics.reportingPeriod")
 
@@ -72,7 +72,7 @@ func ConfigureOpenCensusPrometheusExporter(cfg config.View, views []*view.View) 
 	// Change the frequency of updates to the metrics endpoint
 	view.SetReportingPeriod(time.Duration(metricsRP) * time.Second)
 	mhLog.WithFields(log.Fields{
-		"port":            metricsPort,
+		"port":            p.Number(),
 		"endpoint":        metricsEP,
 		"retentionPeriod": metricsRP,
 	}).Info("Opencensus measurement serving to Prometheus configured")
@@ -85,7 +85,15 @@ func ConfigureOpenCensusPrometheusExporter(cfg config.View, views []*view.View) 
 			"port":     metricsPort,
 			"endpoint": metricsEP,
 		}).Info("Attempting to start http server for OpenCensus metrics on localhost")
-		err := http.ListenAndServe(":"+strconv.Itoa(metricsPort), mux)
+		listener, err := p.Obtain()
+		if err != nil {
+			mhLog.WithFields(log.Fields{
+				"error":    err,
+				"port":     metricsPort,
+				"endpoint": metricsEP,
+			}).Fatal("Failed to run Prometheus endpoint")
+		}
+		err = http.Serve(listener, mux)
 		if err != nil {
 			mhLog.WithFields(log.Fields{
 				"error":    err,

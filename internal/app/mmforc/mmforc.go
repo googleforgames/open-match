@@ -29,6 +29,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoogleCloudPlatform/open-match/internal/port"
+
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
@@ -106,7 +108,15 @@ func initializeApplication() (config.View, error) {
 	ocMmforcViews := DefaultMmforcViews                                              // mmforc OpenCensus views.
 	ocMmforcViews = append(ocMmforcViews, redigometrics.ObservabilityMetricViews...) // redis OpenCensus views.
 	mmforcLog.WithFields(log.Fields{"viewscount": len(ocMmforcViews)}).Info("Loaded OpenCensus views")
-	metrics.ConfigureOpenCensusPrometheusExporter(cfg, ocMmforcViews)
+
+	port, err := port.PortFromNumber(cfg.GetInt("metrics.port"))
+	if err != nil {
+		mmforcLog.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("Unable to create metrics TCP listener")
+		return nil, err
+	}
+	metrics.ConfigureOpenCensusPrometheusExporter(port, cfg, ocMmforcViews)
 	return cfg, nil
 }
 

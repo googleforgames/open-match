@@ -1,9 +1,9 @@
 package serving
 
 import (
-	"fmt"
 	"net"
 
+	"github.com/GoogleCloudPlatform/open-match/internal/port"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"
 
@@ -12,7 +12,7 @@ import (
 
 // GrpcWrapper is a decoration around the standard GRPC server that sets up a bunch of things common to Open Match servers.
 type GrpcWrapper struct {
-	port         int
+	port         *port.Port
 	handlerFuncs []func(*grpc.Server)
 	server       *grpc.Server
 	ln           net.Listener
@@ -21,7 +21,7 @@ type GrpcWrapper struct {
 }
 
 // NewGrpcServer creates a new GrpcWrapper.
-func NewGrpcServer(port int, logger *log.Entry) *GrpcWrapper {
+func NewGrpcServer(port *port.Port, logger *log.Entry) *GrpcWrapper {
 	return &GrpcWrapper{
 		port:         port,
 		logger:       logger,
@@ -39,17 +39,17 @@ func (gw *GrpcWrapper) Start() error {
 	if gw.ln != nil {
 		return nil
 	}
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", gw.port))
+	ln, err := gw.port.Obtain()
 	if err != nil {
 		gw.logger.WithFields(log.Fields{
 			"error": err.Error(),
-			"port":  gw.port,
+			"port":  gw.port.Number(),
 		}).Error("net.Listen() error")
 		return err
 	}
 	gw.ln = ln
 
-	gw.logger.WithFields(log.Fields{"port": gw.port}).Info("TCP net listener initialized")
+	gw.logger.WithFields(log.Fields{"port": gw.port.Number()}).Info("TCP net listener initialized")
 
 	server := grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{}))
 	for _, handlerFunc := range gw.handlerFuncs {
@@ -59,7 +59,7 @@ func (gw *GrpcWrapper) Start() error {
 	gw.grpcAwaiter = make(chan error)
 
 	go func() {
-		gw.logger.Infof("Serving gRPC on :%d", gw.port)
+		gw.logger.Infof("Serving gRPC on :%d", gw.port.Number())
 		err := gw.server.Serve(ln)
 		gw.grpcAwaiter <- err
 		if err != nil {
