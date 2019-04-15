@@ -97,14 +97,14 @@ steps:
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Binaries'
   name: open-match-build
-  args: ['make', 'all']
+  args: ['GOPROXY=off', 'make', 'all']
   volumes:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Test'
   name: open-match-build
-  args: ['make', 'test-10']
+  args: ['GOPROXY=off', 'make', 'test-10']
   volumes:
   - name: 'go-vol'
     path: '/go'

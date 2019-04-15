@@ -65,8 +65,7 @@ MINIKUBE_VERSION = latest
 HTMLTEST_VERSION = 0.10.1
 
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
-GO = GO111MODULE=on GOPROXY=off go
-GO_WITH_DEPS = GO111MODULE=on GOPROXY= go
+GO = GO111MODULE=on go
 GO_BIN := $(GOPATH)/bin
 GO_SRC := $(GOPATH)/src
 # Defines the absolute local directory of the open-match project
@@ -505,7 +504,7 @@ build/toolchain/bin/protoc$(EXE_EXTENSION):
 
 build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
-	cd $(TOOLCHAIN_BIN) && $(GO_WITH_DEPS) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
+	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
 build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
@@ -516,7 +515,7 @@ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
 		$(PROTOC_INCLUDES)/google/api
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
-	cd $(TOOLCHAIN_BIN) && $(GO_WITH_DEPS) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
 all-protos: golang-protos mmlogic-simple-protos
 # TODO: Add php-protos to all-protos once it builds the gRPC client code.
@@ -734,7 +733,7 @@ proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
 sync-deps:
-	$(GO_WITH_DEPS) mod download
+	$(GO) mod download
 
 sleep-10:
 	sleep 10
