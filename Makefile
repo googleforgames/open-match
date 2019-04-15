@@ -520,13 +520,15 @@ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
 		$(PROTOC_INCLUDES)/google/api
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
-	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	cd $(TOOLCHAIN_BIN) && $(GO_WITH_DEPS) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway && $(GO_WITH_DEPS) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
-all-protos: golang-protos mmlogic-simple-protos reverse-golang-protos
+all-protos: golang-protos mmlogic-simple-protos reverse-golang-protos swagger-def-protos
 # TODO: Add php-protos to all-protos once it builds the gRPC client code.
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
 
 reverse-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go
+
+swagger-def-protos: internal/swagger/frontend.proto internal/swagger/backend.proto internal/swagger/mmlogic.proto internal/swagger/matchfunction.proto
 
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
@@ -537,8 +539,11 @@ internal/pb/%.pb.gw.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EX
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
    		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)\
- 	#-I$GOPATH/src \
-  	#-I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
+
+internal/swagger/%.proto: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--swagger_out=logtostderr=true,allow_delete_body=true:.
 
 examples/functions/php/mmlogic-simple/proto/:
 	mkdir -p examples/functions/php/mmlogic-simple/proto/
