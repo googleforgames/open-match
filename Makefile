@@ -67,8 +67,6 @@ HTMLTEST_VERSION = 0.10.1
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
 GO = GO111MODULE=on GOPROXY=off go
 GO_WITH_DEPS = GO111MODULE=on GOPROXY= go
-GO_BIN := $(GOPATH)/bin
-GO_SRC := $(GOPATH)/src
 # Defines the absolute local directory of the open-match project
 REPOSITORY_ROOT := $(realpath $(dir $(abspath $(MAKEFILE_LIST))))
 GO_BUILD_COMMAND = CGO_ENABLED=0 $(GO) build -a -installsuffix cgo .
