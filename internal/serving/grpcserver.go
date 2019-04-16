@@ -18,8 +18,8 @@ import (
 type GrpcWrapper struct {
 	serviceLh           *netlistener.ListenerHolder
 	proxyLh             *netlistener.ListenerHolder
-	servicehandlerFuncs []func(*grpc.Server)
-	proxyhandlerFunc    func(proxyEndpoint string) (*runtime.ServeMux, error)
+	serviceHandlerFuncs []func(*grpc.Server)
+	proxyHandlerFunc    func(proxyEndpoint string) (*runtime.ServeMux, error)
 	server              *grpc.Server
 	proxy               *http.Server
 	ln                  net.Listener
@@ -34,23 +34,23 @@ func NewGrpcServer(serviceLh, proxyLh *netlistener.ListenerHolder, logger *log.E
 		serviceLh:           serviceLh,
 		proxyLh:             proxyLh,
 		logger:              logger,
-		servicehandlerFuncs: []func(*grpc.Server){},
+		serviceHandlerFuncs: []func(*grpc.Server){},
 	}
 }
 
 // AddService adds a service registration function to be run when the server is created.
 func (gw *GrpcWrapper) AddService(handlerFunc func(*grpc.Server)) {
-	gw.servicehandlerFuncs = append(gw.servicehandlerFuncs, handlerFunc)
+	gw.serviceHandlerFuncs = append(gw.serviceHandlerFuncs, handlerFunc)
 }
 
-func (gw *GrpcWrapper) AddProxy(proxyhandlerFunc func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error) {
-	gw.proxyhandlerFunc = func(endpoint string) (*runtime.ServeMux, error) {
+func (gw *GrpcWrapper) AddProxy(proxyHandlerFunc func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error) {
+	gw.proxyHandlerFunc = func(endpoint string) (*runtime.ServeMux, error) {
 		ctx := context.Background()
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
 		mux := runtime.NewServeMux()
-		return mux, proxyhandlerFunc(ctx, mux, endpoint, []grpc.DialOption{grpc.WithInsecure()})
+		return mux, proxyHandlerFunc(ctx, mux, endpoint, []grpc.DialOption{grpc.WithInsecure()})
 	}
 }
 
@@ -74,7 +74,7 @@ func (gw *GrpcWrapper) Start() error {
 	gw.logger.WithFields(log.Fields{"servicePort": gw.serviceLh.Number()}).Info("TCP net listener initialized")
 
 	server := grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{}))
-	for _, handlerFunc := range gw.servicehandlerFuncs {
+	for _, handlerFunc := range gw.serviceHandlerFuncs {
 		handlerFunc(server)
 	}
 	gw.server = server
@@ -91,7 +91,7 @@ func (gw *GrpcWrapper) Start() error {
 
 	// Starting proxy server
 	proxyEndpoint := ":" + strconv.Itoa(gw.proxyPort)
-	mux, err := gw.proxyhandlerFunc(proxyEndpoint)
+	mux, err := gw.proxyHandlerFunc(proxyEndpoint)
 	gw.proxy = &http.Server{Addr: proxyEndpoint, Handler: mux}
 	gw.proxyAwaiter = make(chan error)
 
@@ -139,7 +139,7 @@ func (gw *GrpcWrapper) Stop() error {
 		return nil
 	}
 	gw.server.GracefulStop()
-	gw.proxy.Shutdown(context.TODO())
+	gw.proxy.Shutdown(context.Background())
 	portErr := gw.ln.Close()
 	grpcErr, proxyErr := gw.WaitForTermination()
 	gw.server = nil
