@@ -25,6 +25,7 @@ type GrpcWrapper struct {
 	ln                  net.Listener
 	logger              *log.Entry
 	grpcAwaiter         chan error
+	proxyAwaiter        chan error
 }
 
 // NewGrpcServer creates a new GrpcWrapper.
@@ -92,6 +93,7 @@ func (gw *GrpcWrapper) Start() error {
 	proxyEndpoint := ":" + strconv.Itoa(gw.proxyPort)
 	mux, err := gw.proxyhandlerFunc(proxyEndpoint)
 	gw.proxy = &http.Server{Addr: proxyEndpoint, Handler: mux}
+	gw.proxyAwaiter = make(chan error)
 
 	if err != nil {
 		gw.logger.WithFields(log.Fields{
@@ -104,7 +106,7 @@ func (gw *GrpcWrapper) Start() error {
 	go func() {
 		gw.logger.Infof("Serving proxy on :%d", gw.proxyPort)
 		err := gw.proxy.ListenAndServe()
-		gw.grpcAwaiter <- err
+		gw.proxyAwaiter <- err
 		if err != nil {
 			gw.logger.WithFields(log.Fields{"error": err.Error()}).Error("proxy ListenAndServe() error")
 		}
@@ -114,14 +116,21 @@ func (gw *GrpcWrapper) Start() error {
 }
 
 // WaitForTermination blocks until the gRPC server is shutdown.
-func (gw *GrpcWrapper) WaitForTermination() error {
-	var err error
+func (gw *GrpcWrapper) WaitForTermination() (error, error) {
+	var grpcErr, proxyErr error
+
 	if gw.grpcAwaiter != nil {
-		err = <-gw.grpcAwaiter
+		grpcErr = <-gw.grpcAwaiter
 		close(gw.grpcAwaiter)
 		gw.grpcAwaiter = nil
 	}
-	return err
+
+	if gw.proxyAwaiter != nil {
+		proxyErr = <-gw.proxyAwaiter
+		close(gw.proxyAwaiter)
+		gw.proxyAwaiter = nil
+	}
+	return grpcErr, proxyErr
 }
 
 // Stop gracefully shutsdown the gRPC server.
@@ -132,11 +141,14 @@ func (gw *GrpcWrapper) Stop() error {
 	gw.server.GracefulStop()
 	gw.proxy.Shutdown(context.TODO())
 	portErr := gw.ln.Close()
-	grpcErr := gw.WaitForTermination()
+	grpcErr, proxyErr := gw.WaitForTermination()
 	gw.server = nil
 	gw.ln = nil
 	if grpcErr != nil {
 		return grpcErr
+	}
+	if proxyErr != nil {
+		return proxyErr
 	}
 	return portErr
 }
