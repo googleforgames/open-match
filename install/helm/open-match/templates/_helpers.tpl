@@ -65,3 +65,12 @@ chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63
 release: {{ .Release.Name }}
 heritage: {{ .Release.Service }}
 {{- end -}}
+
+
+{{- define "prometheus.annotations" -}}
+{{- if and (.Values.openmatch.metrics.prometheusServiceDiscovery) (.Values.openmatch.metrics.prometheusEnabled) -}}
+prometheus.io/scrape: "true"
+prometheus.io/port: {{ .Values.openmatch.metrics.port | quote }}
+prometheus.io/path: {{ .Values.openmatch.metrics.path }}
+{{- end -}}
+{{- end -}}
