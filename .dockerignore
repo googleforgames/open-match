@@ -89,6 +89,7 @@ cmd/mmlogicapi/mmlogicapi
 examples/backendclient/backendclient
 examples/evaluators/golang/simple/simple
 examples/functions/golang/manual-simple/manual-simple
+examples/functions/golang/grpc-serving/grpc-serving
 test/cmd/clientloadgen/clientloadgen
 test/cmd/frontendclient/frontendclient
 build/
