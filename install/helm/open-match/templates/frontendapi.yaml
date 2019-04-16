@@ -30,7 +30,9 @@ spec:
   - name: grpc
     protocol: TCP
     port: {{ .Values.openmatch.frontendapi.grpc.port }}
-    targetPort: grpc
+  - name: grpc
+    protocol: TCP
+    port: {{ .Values.openmatch.frontendapi.proxy.port }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -72,6 +74,8 @@ spec:
         ports:
         - name: grpc
           containerPort: {{ .Values.openmatch.frontendapi.grpc.port }}
+        - name: proxy
+          containerPort: {{ .Values.openmatch.frontendapi.proxy.port }}
         - name: metrics
           containerPort: {{ .Values.openmatch.metrics.port }}
         resources:
