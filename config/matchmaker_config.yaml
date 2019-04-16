@@ -11,7 +11,7 @@ api:
     hostname: om-backendapi
     port: 50505
     backoff: "[2 32] *2 ~0.33 <30"
-    proxyprot: 51505
+    proxyport: 51505
   frontend: 
     hostname: om-frontendapi
     port: 50504
