@@ -30,7 +30,7 @@ spec:
   - name: grpc
     protocol: TCP
     port: {{ .Values.openmatch.frontendapi.grpc.port }}
-  - name: grpc
+  - name: proxy
     protocol: TCP
     port: {{ .Values.openmatch.frontendapi.proxy.port }}
 ---
@@ -54,11 +54,7 @@ spec:
     metadata:
       namespace: {{ .Release.Namespace }}
       annotations:
-      {{- if and (.Values.openmatch.metrics.prometheusServiceDiscovery) (.Values.openmatch.metrics.prometheusEnabled) }}
-        prometheus.io/scrape: "true"
-        prometheus.io/port: {{ .Values.openmatch.metrics.port | quote }}
-        prometheus.io/path: {{ .Values.openmatch.metrics.path }}
-      {{- end }}
+        {{- include "prometheus.annotations" . | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
         component: frontend
