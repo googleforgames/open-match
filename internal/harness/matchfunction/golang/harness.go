@@ -86,7 +86,7 @@ func newMatchFunctionServer(params *HarnessParams) (*apisrv.MatchFunctionServer,
 	logger := log.WithFields(log.Fields{
 		"app":       "openmatch",
 		"component": "matchfunction_service",
-		"function":  params.Func})
+		"function":  params.FunctionName})
 
 	// Add a hook to the logger to log the filename & line number.
 	log.SetReportCaller(true)
