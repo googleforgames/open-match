@@ -669,6 +669,7 @@ example-binaries: example-mmf-binaries example-evaluator-binaries
 example-mmf-binaries: examples/functions/golang/manual-simple/manual-simple
 example-evaluator-binaries: examples/evaluators/golang/simple/simple
 
+# For presubmit we want the canonical files to point to published artifacts instead of local ones.
 presubmit: REGISTRY = gcr.io/open-match-public-images
 presubmit: TAG = $(BASE_VERSION)
 presubmit: sync-deps fmt vet build test clean-protos all-protos clean-install-yaml install/yaml/
