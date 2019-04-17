@@ -158,7 +158,7 @@ func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer
 
 	// Instantiate the gRPC server with the connections we've made
 	logger.Info("Attempting to start gRPC server")
-	grpcServer := serving.NewGrpcServer(sericeLh, proxyLh, logger)
+	grpcServer := serving.NewGrpcServer(serviceLh, proxyLh, logger)
 
 	mmServer := &MiniMatchServer{
 		OpenMatchServer: &serving.OpenMatchServer{

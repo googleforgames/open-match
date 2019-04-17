@@ -33,7 +33,7 @@ func createClient(lh *netlistener.ListenerHolder) (pb.FrontendClient, error) {
 
 // TestOpenClose verifies the gRPC server can be created in process, communicated with, and shut down.
 func TestOpenClose(t *testing.T) {
-	sericeLh := netlistenerTesting.MustListen()
+	serviceLh := netlistenerTesting.MustListen()
 	proxyLh := netlistenerTesting.MustListen()
 	fakeService := &servingTesting.FakeFrontend{}
 	server := serving.NewGrpcServer(serviceLh, proxyLh, createLogger())

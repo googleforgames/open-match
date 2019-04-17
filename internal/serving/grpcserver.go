@@ -3,7 +3,6 @@ package serving
 import (
 	"net"
 	"net/http"
-	"strconv"
 
 	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	log "github.com/sirupsen/logrus"
@@ -16,16 +15,14 @@ import (
 
 // GrpcWrapper is a decoration around the standard GRPC server that sets up a bunch of things common to Open Match servers.
 type GrpcWrapper struct {
-	serviceLh           *netlistener.ListenerHolder
-	proxyLh             *netlistener.ListenerHolder
-	serviceHandlerFuncs []func(*grpc.Server)
-	proxyHandlerFunc    func(proxyEndpoint string) (*runtime.ServeMux, error)
-	server              *grpc.Server
-	proxy               *http.Server
-	ln                  net.Listener
-	logger              *log.Entry
-	grpcAwaiter         chan error
-	proxyAwaiter        chan error
+	serviceLh, proxyLh         *netlistener.ListenerHolder
+	serviceHandlerFuncs       []func(*grpc.Server)
+	proxyHandlerFunc          func(proxyEndpoint string) (*runtime.ServeMux, error)
+	server                    *grpc.Server
+	proxy                     *http.Server
+	serviceLn, proxyLn        net.Listener
+	logger                    *log.Entry
+	grpcAwaiter, proxyAwaiter chan error
 }
 
 // NewGrpcServer creates a new GrpcWrapper.
@@ -57,11 +54,11 @@ func (gw *GrpcWrapper) AddProxy(proxyHandlerFunc func(context.Context, *runtime.
 // Start begins the gRPC server.
 func (gw *GrpcWrapper) Start() error {
 	// Starting gRPC server
-	if gw.ln != nil {
+	if gw.serviceLn != nil {
 		return nil
 	}
 	
-	ln, err := gw.serviceLh.Obtain()
+	serviceLn, err := gw.serviceLh.Obtain()
 	if err != nil {
 		gw.logger.WithFields(log.Fields{
 			"error": err.Error(),
@@ -69,7 +66,7 @@ func (gw *GrpcWrapper) Start() error {
 		}).Error("net.Listen() error")
 		return err
 	}
-	gw.ln = ln
+	gw.serviceLn = serviceLn
 
 	gw.logger.WithFields(log.Fields{"servicePort": gw.serviceLh.Number()}).Info("TCP net listener initialized")
 
@@ -82,7 +79,7 @@ func (gw *GrpcWrapper) Start() error {
 
 	go func() {
 		gw.logger.Infof("Serving gRPC on :%d", gw.serviceLh.Number())
-		err := gw.server.Serve(ln)
+		err := gw.server.Serve(serviceLn)
 		gw.grpcAwaiter <- err
 		if err != nil {
 			gw.logger.WithFields(log.Fields{"error": err.Error()}).Error("gRPC serve() error")
@@ -90,7 +87,24 @@ func (gw *GrpcWrapper) Start() error {
 	}()
 
 	// Starting proxy server
-	proxyEndpoint := ":" + strconv.Itoa(gw.proxyPort)
+	if gw.proxyLn != nil {
+		return nil
+	}
+
+	proxyLn, err := gw.proxyLh.Obtain()
+
+	if err != nil {
+		gw.logger.WithFields(log.Fields{
+			"error": err.Error(),
+			"proxyPort":  gw.proxyLh.Number(),
+		}).Error("net.Listen() error")
+		return err
+	}
+	gw.proxyLn = proxyLn
+
+	gw.logger.WithFields(log.Fields{"proxyPort": gw.proxyLh.Number()}).Info("TCP net listener initialized")
+
+	proxyEndpoint := gw.proxyLn.Addr().String()
 	mux, err := gw.proxyHandlerFunc(proxyEndpoint)
 	gw.proxy = &http.Server{Addr: proxyEndpoint, Handler: mux}
 	gw.proxyAwaiter = make(chan error)
@@ -98,13 +112,13 @@ func (gw *GrpcWrapper) Start() error {
 	if err != nil {
 		gw.logger.WithFields(log.Fields{
 			"error":     err.Error(),
-			"proxyPort": gw.proxyPort,
+			"proxyPort": gw.proxyLh.Number(),
 		}).Error("RegisterHandlerFromEndpoint() error")
 		return err
 	}
 
 	go func() {
-		gw.logger.Infof("Serving proxy on :%d", gw.proxyPort)
+		gw.logger.Infof("Serving proxy on :%d", gw.proxyLh.Number())
 		err := gw.proxy.ListenAndServe()
 		gw.proxyAwaiter <- err
 		if err != nil {
@@ -140,10 +154,17 @@ func (gw *GrpcWrapper) Stop() error {
 	}
 	gw.server.GracefulStop()
 	gw.proxy.Shutdown(context.Background())
-	portErr := gw.ln.Close()
+
+	portErr := gw.serviceLn.Close()
+	_	= gw.proxyLn.Close()
+
 	grpcErr, proxyErr := gw.WaitForTermination()
+	
 	gw.server = nil
-	gw.ln = nil
+	gw.serviceLn = nil
+	gw.proxy = nil
+	gw.proxyLn = nil
+	
 	if grpcErr != nil {
 		return grpcErr
 	}
