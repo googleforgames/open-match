@@ -97,25 +97,25 @@ steps:
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Binaries'
   name: open-match-build
-  args: ['make', 'all']
+  args: ['make', 'GOPROXY=off', 'all', '-j8']
   volumes:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Test'
   name: open-match-build
-  args: ['make', 'test-10']
+  args: ['make', 'GOPROXY=off', 'test-in-ci']
   volumes:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Docker Images'
   name: open-match-build
-  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'build-images', '-j4']
+  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'build-images', '-j8']
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Push Images'
   name: open-match-build
-  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'push-images', '-j4']
+  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'push-images', '-j8']
   waitFor: ['Build: Docker Images']
 
 - id: 'Build: Generate Kubernetes Deployment Configs'
@@ -166,6 +166,7 @@ artifacts:
             - cmd/mmforc/mmforc
             - cmd/mmlogicapi/mmlogicapi
             - examples/functions/golang/manual-simple/manual-simple
+            - examples/functions/golang/grpc-serving/grpc-serving
             - examples/backendclient/backendclient
             - test/cmd/clientloadgen/clientloadgen
             - test/cmd/frontendclient/frontendclient
@@ -179,6 +180,7 @@ images:
 - 'gcr.io/$PROJECT_ID/openmatch-evaluator-simple:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-cs-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-go-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}'
+- 'gcr.io/$PROJECT_ID/openmatch-mmf-go-grpc-serving-simple:${_OM_VERSION}-${SHORT_SHA}'
 #- 'gcr.io/$PROJECT_ID/openmatch-mmf-php-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-py3-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-backendclient:${_OM_VERSION}-${SHORT_SHA}'

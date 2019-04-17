@@ -3,13 +3,13 @@
 ################################################################################
 
 # Copyright 2019 Google LLC
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -65,8 +65,7 @@ MINIKUBE_VERSION = latest
 HTMLTEST_VERSION = 0.10.1
 
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
-GO = GO111MODULE=on GOPROXY=off go
-GO_WITH_DEPS = GO111MODULE=on GOPROXY= go
+GO = GO111MODULE=on go
 # Defines the absolute local directory of the open-match project
 REPOSITORY_ROOT := $(realpath $(dir $(abspath $(MAKEFILE_LIST))))
 GO_BUILD_COMMAND = CGO_ENABLED=0 $(GO) build -a -installsuffix cgo .
@@ -175,7 +174,7 @@ local-cloud-build:
 push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
 push-service-images: push-minimatch-image push-frontendapi-image push-backendapi-image push-mmforc-image push-mmlogicapi-image
 # TODO: push-mmf-php-mmlogic-simple-image
-push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-image push-mmf-py3-mmlogic-simple-image
+push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-image push-mmf-go-grpc-serving-simple-image push-mmf-py3-mmlogic-simple-image
 push-client-images: push-backendclient-image push-clientloadgen-image push-frontendclient-image
 push-evaluator-example-images: push-evaluator-simple-image
 
@@ -207,6 +206,10 @@ push-mmf-go-mmlogic-simple-image: build-mmf-go-mmlogic-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(ALTERNATE_TAG)
 
+push-mmf-go-grpc-serving-simple-image: build-mmf-go-grpc-serving-simple-image
+	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
+
 push-mmf-php-mmlogic-simple-image: build-mmf-php-mmlogic-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(ALTERNATE_TAG)
@@ -235,7 +238,7 @@ build-images: build-service-images build-client-images build-mmf-example-images 
 build-service-images: build-minimatch-image build-frontendapi-image build-backendapi-image build-mmforc-image build-mmlogicapi-image
 build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
 # TODO build-mmf-php-mmlogic-simple-image
-build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-py3-mmlogic-simple-image
+build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-go-grpc-serving-simple-image build-mmf-py3-mmlogic-simple-image
 build-evaluator-example-images: build-evaluator-simple-image
 
 build-base-build-image:
@@ -261,6 +264,9 @@ build-mmf-cs-mmlogic-simple-image:
 
 build-mmf-go-mmlogic-simple-image: build-base-build-image
 	docker build -f examples/functions/golang/manual-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(ALTERNATE_TAG) .
+
+build-mmf-go-grpc-serving-simple-image: build-base-build-image
+	docker build -f examples/functions/golang/grpc-serving/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG) .
 
 build-mmf-php-mmlogic-simple-image:
 	docker build -f examples/functions/php/mmlogic-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(ALTERNATE_TAG) .
@@ -503,7 +509,7 @@ build/toolchain/bin/protoc$(EXE_EXTENSION):
 
 build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
-	cd $(TOOLCHAIN_BIN) && $(GO_WITH_DEPS) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
+	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
 build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
@@ -514,7 +520,7 @@ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
 		$(PROTOC_INCLUDES)/google/api
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
-	cd $(TOOLCHAIN_BIN) && $(GO_WITH_DEPS) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
 all-protos: golang-protos mmlogic-simple-protos
 # TODO: Add php-protos to all-protos once it builds the gRPC client code.
@@ -571,8 +577,8 @@ build:
 test:
 	$(GO) test ./... -race
 
-test-10:
-	$(GO) test ./... -race -test.count 10 -cover
+test-in-ci:
+	$(GO) test ./... -race -test.count 25 -cover
 
 fmt:
 	$(GO) fmt ./...
@@ -603,6 +609,9 @@ examples/evaluators/golang/simple/simple: internal/pb/messages.pb.go
 
 examples/functions/golang/manual-simple/manual-simple: internal/pb/messages.pb.go
 	cd examples/functions/golang/manual-simple; $(GO_BUILD_COMMAND)
+
+examples/functions/golang/grpc-serving/grpc-serving: internal/pb/messages.pb.go
+	cd examples/functions/golang/grpc-serving; $(GO_BUILD_COMMAND)
 
 test/cmd/clientloadgen/clientloadgen:
 	cd test/cmd/clientloadgen; $(GO_BUILD_COMMAND)
@@ -666,7 +675,7 @@ all: service-binaries client-binaries example-binaries
 service-binaries: cmd/minimatch/minimatch cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmforc/mmforc cmd/mmlogicapi/mmlogicapi
 client-binaries: examples/backendclient/backendclient test/cmd/clientloadgen/clientloadgen test/cmd/frontendclient/frontendclient
 example-binaries: example-mmf-binaries example-evaluator-binaries
-example-mmf-binaries: examples/functions/golang/manual-simple/manual-simple
+example-mmf-binaries: examples/functions/golang/manual-simple/manual-simple examples/functions/golang/grpc-serving/grpc-serving
 example-evaluator-binaries: examples/evaluators/golang/simple/simple
 presubmit: fmt vet build test
 
@@ -689,6 +698,7 @@ clean-binaries:
 	rm -rf examples/backendclient/backendclient
 	rm -rf examples/evaluators/golang/simple/simple
 	rm -rf examples/functions/golang/manual-simple/manual-simple
+	rm -rf examples/functions/golang/grpc-serving/grpc-serving
 	rm -rf test/cmd/clientloadgen/clientloadgen
 	rm -rf test/cmd/frontendclient/frontendclient
 
@@ -732,9 +742,9 @@ proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
 sync-deps:
-	$(GO_WITH_DEPS) mod download
+	$(GO) mod download
 
 sleep-10:
 	sleep 10
 
-.PHONY: deploy-redirect-site sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-10 vet
+.PHONY: deploy-redirect-site sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-in-ci vet
