@@ -347,6 +347,7 @@ update-helm-deps:
 install/yaml/: install/yaml/install.yaml install/yaml/install-example.yaml install/yaml/01-redis-chart.yaml install/yaml/02-open-match.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml
 
 install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.fullnameOverride='$(REDIS_NAME)' \
 		--set openmatch.config.install=false \
@@ -359,6 +360,7 @@ install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		install/helm/open-match > install/yaml/01-redis-chart.yaml
 
 install/yaml/02-open-match.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.fullnameOverride='$(REDIS_NAME)' \
 		--set redis.enabled=false \
@@ -369,7 +371,8 @@ install/yaml/02-open-match.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.noChartMeta=true \
 		install/helm/open-match > install/yaml/02-open-match.yaml
 
-install/yaml/03-prometheus-chart.yaml:
+install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
@@ -380,7 +383,8 @@ install/yaml/03-prometheus-chart.yaml:
 		--set grafana.enabled=false \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
-install/yaml/04-grafana-chart.yaml:
+install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
@@ -392,14 +396,16 @@ install/yaml/04-grafana-chart.yaml:
 		--set grafana.enabled=true \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
 
-install/yaml/install.yaml:
+install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=true \
 		--set prometheus.enabled=true \
 		--set grafana.enabled=true \
 		install/helm/open-match > install/yaml/install.yaml
 
-install/yaml/install-example.yaml:
+install/yaml/install-example.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_EXAMPLE_CHART_NAME) --namespace $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) \
 		install/helm/open-match-example > install/yaml/install-example.yaml
 
