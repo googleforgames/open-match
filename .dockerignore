@@ -24,9 +24,6 @@
 *.cities
 populations
 
-# local config files
-#*.json
-
 # Discarded code snippets
 build.sh
 *-fast.yaml
@@ -80,6 +77,9 @@ site/resources/_gen/
 # Node Modules
 node_modules/
 
+# Temp Directories
+tmp/
+
 # Compiled Binaries
 cmd/minimatch/minimatch
 cmd/backendapi/backendapi
@@ -89,6 +89,7 @@ cmd/mmlogicapi/mmlogicapi
 examples/backendclient/backendclient
 examples/evaluators/golang/simple/simple
 examples/functions/golang/manual-simple/manual-simple
+examples/functions/golang/grpc-serving/grpc-serving
 test/cmd/clientloadgen/clientloadgen
 test/cmd/frontendclient/frontendclient
 build/
