@@ -98,9 +98,7 @@ var (
 // In a full deployment, it is expected that you don't manage the config file
 // directly, but instead put the contents of that file into a Kubernetes
 // ConfigMap.  Kubernetes will write those contents to a file inside your
-// running container for you. You can see where and how this is happening by
-// looking at the kubernetes deployment resource definitions in the
-// 'deployments/k8s/' directory.
+// running container for you.
 //
 // https://github.com/GoogleCloudPlatform/open-match/issues/42 discusses more
 // about how configs are managed in Open Match.
