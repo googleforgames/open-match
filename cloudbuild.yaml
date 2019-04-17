@@ -97,25 +97,25 @@ steps:
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Binaries'
   name: open-match-build
-  args: ['make', 'all']
+  args: ['make', 'GOPROXY=off', 'all', '-j8']
   volumes:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Test'
   name: open-match-build
-  args: ['make', 'test-10']
+  args: ['make', 'GOPROXY=off', 'test-in-ci']
   volumes:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Docker Images'
   name: open-match-build
-  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'build-images', '-j4']
+  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'build-images', '-j8']
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Push Images'
   name: open-match-build
-  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'push-images', '-j4']
+  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'push-images', '-j8']
   waitFor: ['Build: Docker Images']
 
 - id: 'Build: Generate Kubernetes Deployment Configs'
