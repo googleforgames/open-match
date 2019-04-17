@@ -63,13 +63,3 @@ func NewFromPortNumber(portNumber int) (*ListenerHolder, error) {
 	}
 	return nil, err
 }
-
-/*
-// CreatePort creates a Port object from TCP listener.
-func Create(portNumber int, listener net.Listener) *ListenerHolder {
-	return &ListenerHolder{
-		number:   portNumber,
-		listener: listener,
-	}
-}
-*/
