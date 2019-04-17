@@ -678,8 +678,8 @@ example-binaries: example-mmf-binaries example-evaluator-binaries
 example-mmf-binaries: examples/functions/golang/manual-simple/manual-simple examples/functions/golang/grpc-serving/grpc-serving
 example-evaluator-binaries: examples/evaluators/golang/simple/simple
 
-# For presubmit we want the canonical files to point to published artifacts instead of local ones.
-presubmit: sync-deps fmt vet build test clean-protos all-protos
+# For presubmit we want to update the protobuf generated files and verify that tests are good.
+presubmit: sync-deps clean-protos all-protos fmt vet build test
 
 clean-site:
 	rm -rf build/site/
