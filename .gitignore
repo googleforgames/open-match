@@ -24,9 +24,6 @@
 *.cities
 populations
 
-# local config files
-#*.json
-
 # Discarded code snippets
 build.sh
 *-fast.yaml
@@ -79,6 +76,9 @@ site/resources/_gen/
 
 # Node Modules
 node_modules/
+
+# Temp Directories
+tmp/
 
 # Compiled Binaries
 cmd/minimatch/minimatch

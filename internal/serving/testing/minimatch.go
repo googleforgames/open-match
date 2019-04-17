@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/serving"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	netlistenerTesting "github.com/GoogleCloudPlatform/open-match/internal/util/netlistener/testing"
 	"github.com/alicebob/miniredis"
 	"github.com/opencensus-integrations/redigo/redis"
 	log "github.com/sirupsen/logrus"
@@ -82,20 +83,15 @@ func NewMiniMatch(params []*serving.ServerParams) (*MiniMatchServer, func(), err
 func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer, error) {
 	logger := log.WithFields(paramsList[0].BaseLogFields)
 
-	// Add a hook to the logger to log the filename & line number.
-	log.SetReportCaller(true)
-
 	cfg := viper.New()
 	cfg.Set("logging.level", "debug")
 	cfg.Set("logging.format", "text")
-	cfg.Set("logging.source", true)
+	// TODO: Re-enable once, https://github.com/sirupsen/logrus/issues/954 is fixed.
+	cfg.Set("logging.source", false)
 
-	promPort, err := NextPort()
-	if err != nil {
-		return nil, fmt.Errorf("cannot create port for prometheus, %s", err)
-	}
+	promListener := netlistenerTesting.MustListen()
 
-	cfg.Set("metrics.port", promPort)
+	cfg.Set("metrics.port", promListener.Number())
 	cfg.Set("metrics.endpoint", "/metrics")
 	cfg.Set("metrics.reportingPeriod", "5s")
 
@@ -116,7 +112,7 @@ func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer
 	ocServerViews = append(ocServerViews, config.CfgVarCountView)            // config loader view.
 	ocServerViews = append(ocServerViews, redis.ObservabilityMetricViews...) // redis OpenCensus views.
 	logger.WithFields(log.Fields{"viewscount": len(ocServerViews)}).Info("Loaded OpenCensus views")
-	metrics.ConfigureOpenCensusPrometheusExporter(cfg, ocServerViews)
+	metrics.ConfigureOpenCensusPrometheusExporter(promListener, cfg, ocServerViews)
 
 	// Connect to redis
 	mredis, err := miniredis.Run()
@@ -152,18 +148,14 @@ func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer
 		return nil, err
 	}
 
-	grpcPort, err := NextPort()
-	if err != nil {
-		closeOnFailure()
-		return nil, fmt.Errorf("cannot provision a port for gRPC, %s", err)
-	}
+	grpcLh := netlistenerTesting.MustListen()
 	for _, params := range paramsList {
-		cfg.Set(params.PortConfigName, grpcPort)
+		cfg.Set(params.PortConfigName, grpcLh.Number())
 	}
 
 	// Instantiate the gRPC server with the connections we've made
 	logger.Info("Attempting to start gRPC server")
-	grpcServer := serving.NewGrpcServer(grpcPort, logger)
+	grpcServer := serving.NewGrpcServer(grpcLh, logger)
 
 	mmServer := &MiniMatchServer{
 		OpenMatchServer: &serving.OpenMatchServer{

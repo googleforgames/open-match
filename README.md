@@ -98,7 +98,7 @@ git clone https://github.com/GoogleCloudPlatform/open-match.git
 cd open-match
 ```
 
-[Docker](https://docs.docker.com/install/) and [Go 1.11+](https://golang.org/dl/) is also required.
+[Docker](https://docs.docker.com/install/) and [Go 1.12+](https://golang.org/dl/) is also required.
 
 To build all the artifacts of Open Match you can simply run the following commands.
 

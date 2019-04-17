@@ -25,6 +25,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/opencensus-integrations/redigo v2.0.1+incompatible
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
+	github.com/pkg/errors v0.8.0
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 // indirect
 	github.com/prometheus/procfs v0.0.0-20190403104016-ea9eea638872 // indirect
 	github.com/rafaeljusto/redigomock v0.0.0-20190202135759-257e089e14a1
