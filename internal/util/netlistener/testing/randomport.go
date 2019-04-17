@@ -8,9 +8,9 @@ import (
 func MustListen() *netlistener.ListenerHolder {
 	// Port 0 in Go is a special port number to randomly choose an available port.
 	// Reference, https://golang.org/pkg/net/#ListenTCP.
-	port, err := netlistener.NewFromPortNumber(0)
+	lh, err := netlistener.NewFromPortNumber(0)
 	if err != nil {
 		panic(err)
 	}
-	return port
+	return lh
 }

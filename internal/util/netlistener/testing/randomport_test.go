@@ -9,7 +9,7 @@ const (
 	numIterations = 1000
 )
 
-func TestMustPort(t *testing.T) {
+func TestMustListen(t *testing.T) {
 	for i := 0; i < numIterations; i++ {
 		testName := fmt.Sprintf("[%d] MustListen", i)
 		t.Run(testName, func(t *testing.T) {

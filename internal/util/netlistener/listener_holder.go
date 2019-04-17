@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Port is a preallocated port that is guaranteed to only hand off go routine.
+// ListenerHolder holds an opened port that can only be handed off to 1 go routine.
 type ListenerHolder struct {
 	number   int
 	listener net.Listener
@@ -45,7 +45,7 @@ func (lh *ListenerHolder) Close() error {
 	return nil
 }
 
-// NewFromPortNumber opens a TCP based on the port number provided.
+// NewFromPortNumber opens a TCP listener based on the port number provided.
 func NewFromPortNumber(portNumber int) (*ListenerHolder, error) {
 	addr := fmt.Sprintf(":%d", portNumber)
 	conn, err := net.Listen("tcp", addr)
