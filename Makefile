@@ -45,10 +45,6 @@
 ## make delete-gke-cluster
 ##
 # http://makefiletutorial.com/
-define newline
-
-
-endef
 
 BASE_VERSION = 0.4.0
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD)
@@ -168,7 +164,7 @@ endif
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
 
-local-cloud-build:
+local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT) .
 
 push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
@@ -178,55 +174,55 @@ push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-si
 push-client-images: push-backendclient-image push-clientloadgen-image push-frontendclient-image
 push-evaluator-example-images: push-evaluator-simple-image
 
-push-minimatch-image: build-minimatch-image
+push-minimatch-image: docker build-minimatch-image
 	docker push $(REGISTRY)/openmatch-minimatch:$(TAG)
 	docker push $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 
-push-frontendapi-image: build-frontendapi-image
+push-frontendapi-image: docker build-frontendapi-image
 	docker push $(REGISTRY)/openmatch-frontendapi:$(TAG)
 	docker push $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
 
-push-backendapi-image: build-backendapi-image
+push-backendapi-image: docker build-backendapi-image
 	docker push $(REGISTRY)/openmatch-backendapi:$(TAG)
 	docker push $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG)
 
-push-mmforc-image: build-mmforc-image
+push-mmforc-image: docker build-mmforc-image
 	docker push $(REGISTRY)/openmatch-mmforc:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmforc:$(ALTERNATE_TAG)
 
-push-mmlogicapi-image: build-mmlogicapi-image
+push-mmlogicapi-image: docker build-mmlogicapi-image
 	docker push $(REGISTRY)/openmatch-mmlogicapi:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG)
 
-push-mmf-cs-mmlogic-simple-image: build-mmf-cs-mmlogic-simple-image
+push-mmf-cs-mmlogic-simple-image: docker build-mmf-cs-mmlogic-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(ALTERNATE_TAG)
 
-push-mmf-go-mmlogic-simple-image: build-mmf-go-mmlogic-simple-image
+push-mmf-go-mmlogic-simple-image: docker build-mmf-go-mmlogic-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(ALTERNATE_TAG)
 
-push-mmf-php-mmlogic-simple-image: build-mmf-php-mmlogic-simple-image
+push-mmf-php-mmlogic-simple-image: docker build-mmf-php-mmlogic-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(ALTERNATE_TAG)
 
-push-mmf-py3-mmlogic-simple-image: build-mmf-py3-mmlogic-simple-image
+push-mmf-py3-mmlogic-simple-image: docker build-mmf-py3-mmlogic-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(ALTERNATE_TAG)
 
-push-backendclient-image: build-backendclient-image
+push-backendclient-image: docker build-backendclient-image
 	docker push $(REGISTRY)/openmatch-backendclient:$(TAG)
 	docker push $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG)
 
-push-clientloadgen-image: build-clientloadgen-image
+push-clientloadgen-image: docker build-clientloadgen-image
 	docker push $(REGISTRY)/openmatch-clientloadgen:$(TAG)
 	docker push $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG)
 
-push-frontendclient-image: build-frontendclient-image
+push-frontendclient-image: docker build-frontendclient-image
 	docker push $(REGISTRY)/openmatch-frontendclient:$(TAG)
 	docker push $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG)
 
-push-evaluator-simple-image: build-evaluator-simple-image
+push-evaluator-simple-image: docker build-evaluator-simple-image
 	docker push $(REGISTRY)/openmatch-evaluator-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG)
 
@@ -237,49 +233,49 @@ build-client-images: build-backendclient-image build-clientloadgen-image build-f
 build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-py3-mmlogic-simple-image
 build-evaluator-example-images: build-evaluator-simple-image
 
-build-base-build-image:
+build-base-build-image: docker
 	docker build -f Dockerfile.base-build -t open-match-base-build .
 
-build-minimatch-image: build-base-build-image
+build-minimatch-image: docker build-base-build-image
 	docker build -f cmd/minimatch/Dockerfile -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
 
-build-frontendapi-image: build-base-build-image
+build-frontendapi-image: docker build-base-build-image
 	docker build -f cmd/frontendapi/Dockerfile -t $(REGISTRY)/openmatch-frontendapi:$(TAG) -t $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG) .
 
-build-backendapi-image: build-base-build-image
+build-backendapi-image: docker build-base-build-image
 	docker build -f cmd/backendapi/Dockerfile -t $(REGISTRY)/openmatch-backendapi:$(TAG) -t $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG) .
 
-build-mmforc-image: build-base-build-image
+build-mmforc-image: docker build-base-build-image
 	docker build -f cmd/mmforc/Dockerfile -t $(REGISTRY)/openmatch-mmforc:$(TAG) -t $(REGISTRY)/openmatch-mmforc:$(ALTERNATE_TAG) .
 
-build-mmlogicapi-image: build-base-build-image
+build-mmlogicapi-image: docker build-base-build-image
 	docker build -f cmd/mmlogicapi/Dockerfile -t $(REGISTRY)/openmatch-mmlogicapi:$(TAG) -t $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG) .
 
-build-mmf-cs-mmlogic-simple-image:
+build-mmf-cs-mmlogic-simple-image: docker
 	cd examples/functions/csharp/simple/ && docker build -f Dockerfile -t $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(ALTERNATE_TAG) .
 
-build-mmf-go-mmlogic-simple-image: build-base-build-image
+build-mmf-go-mmlogic-simple-image: docker build-base-build-image
 	docker build -f examples/functions/golang/manual-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(ALTERNATE_TAG) .
 
-build-mmf-php-mmlogic-simple-image:
+build-mmf-php-mmlogic-simple-image: docker
 	docker build -f examples/functions/php/mmlogic-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(ALTERNATE_TAG) .
 
-build-mmf-py3-mmlogic-simple-image:
+build-mmf-py3-mmlogic-simple-image: docker
 	docker build -f examples/functions/python3/mmlogic-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(ALTERNATE_TAG) .
 
-build-backendclient-image: build-base-build-image
+build-backendclient-image: docker build-base-build-image
 	docker build -f examples/backendclient/Dockerfile -t $(REGISTRY)/openmatch-backendclient:$(TAG) -t $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG) .
 
-build-clientloadgen-image: build-base-build-image
+build-clientloadgen-image: docker build-base-build-image
 	docker build -f test/cmd/clientloadgen/Dockerfile -t $(REGISTRY)/openmatch-clientloadgen:$(TAG) -t $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG) .
 
-build-frontendclient-image: build-base-build-image
+build-frontendclient-image: docker build-base-build-image
 	docker build -f test/cmd/frontendclient/Dockerfile -t $(REGISTRY)/openmatch-frontendclient:$(TAG) -t $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG) .
 
-build-evaluator-simple-image: build-base-build-image
+build-evaluator-simple-image: docker build-base-build-image
 	docker build -f examples/evaluators/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-evaluator-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG) .
 
-clean-images:
+clean-images: docker
 	-docker rmi -f open-match-base-build
 
 	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
@@ -334,8 +330,8 @@ delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubec
 	-$(KUBECTL) delete crd servicemonitors.monitoring.coreos.com
 	-$(KUBECTL) delete crd prometheusrules.monitoring.coreos.com
 
-update-helm-deps:
-	(cd install/helm/open-match; helm dependencies update)
+update-helm-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
+	(cd install/helm/open-match; $(HELM) dependencies update)
 
 install/yaml/: install/yaml/install.yaml install/yaml/install-example.yaml install/yaml/01-redis-chart.yaml install/yaml/02-open-match.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml
 
@@ -362,7 +358,7 @@ install/yaml/02-open-match.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.noChartMeta=true \
 		install/helm/open-match > install/yaml/02-open-match.yaml
 
-install/yaml/03-prometheus-chart.yaml:
+install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
@@ -373,7 +369,7 @@ install/yaml/03-prometheus-chart.yaml:
 		--set grafana.enabled=false \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
-install/yaml/04-grafana-chart.yaml:
+install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
@@ -385,14 +381,14 @@ install/yaml/04-grafana-chart.yaml:
 		--set grafana.enabled=true \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
 
-install/yaml/install.yaml:
+install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=true \
 		--set prometheus.enabled=true \
 		--set grafana.enabled=true \
 		install/helm/open-match > install/yaml/install.yaml
 
-install/yaml/install-example.yaml:
+install/yaml/install-example.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template --name $(OPEN_MATCH_EXAMPLE_CHART_NAME) --namespace $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) \
 		install/helm/open-match-example > install/yaml/install-example.yaml
 
@@ -408,7 +404,7 @@ set-redis-password:
 
 install-toolchain: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)  build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/python/ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/htmltest$(EXE_EXTENSION)
 
-build/toolchain/bin/helm$(EXE_EXTENSION):
+build/toolchain/bin/helm$(EXE_EXTENSION): no-sudo
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-helm
 	cd $(TOOLCHAIN_DIR)/temp-helm && curl -Lo helm.tar.gz $(HELM_PACKAGE) && tar xzf helm.tar.gz --strip-components 1
@@ -416,37 +412,73 @@ build/toolchain/bin/helm$(EXE_EXTENSION):
 	mv $(TOOLCHAIN_DIR)/temp-helm/tiller$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/tiller$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-helm/
 
-build/toolchain/bin/hugo$(EXE_EXTENSION):
+build/toolchain/bin/hugo$(EXE_EXTENSION): no-sudo
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-hugo
 	cd $(TOOLCHAIN_DIR)/temp-hugo && curl -Lo hugo.tar.gz $(HUGO_PACKAGE) && tar xzf hugo.tar.gz
 	mv $(TOOLCHAIN_DIR)/temp-hugo/hugo$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/hugo$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-hugo/
 
-build/toolchain/bin/minikube$(EXE_EXTENSION):
+build/toolchain/bin/minikube$(EXE_EXTENSION): no-sudo
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -Lo minikube$(EXE_EXTENSION) $(MINIKUBE_PACKAGE)
 	chmod +x minikube$(EXE_EXTENSION)
 	mv minikube$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/minikube$(EXE_EXTENSION)
 
-build/toolchain/bin/kubectl$(EXE_EXTENSION):
+build/toolchain/bin/kubectl$(EXE_EXTENSION): no-sudo
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -Lo kubectl$(EXE_EXTENSION) $(KUBECTL_PACKAGE)
 	chmod +x kubectl$(EXE_EXTENSION)
 	mv kubectl$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/kubectl$(EXE_EXTENSION)
 
-build/toolchain/bin/skaffold$(EXE_EXTENSION):
+build/toolchain/bin/skaffold$(EXE_EXTENSION): no-sudo
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -Lo skaffold$(EXE_EXTENSION) $(SKAFFOLD_PACKAGE)
 	chmod +x skaffold$(EXE_EXTENSION)
 	mv skaffold$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/skaffold$(EXE_EXTENSION)
 
-build/toolchain/bin/htmltest$(EXE_EXTENSION):
+build/toolchain/bin/htmltest$(EXE_EXTENSION): no-sudo
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-htmltest
 	cd $(TOOLCHAIN_DIR)/temp-htmltest && curl -Lo htmltest.tar.gz $(HTMLTEST_PACKAGE) && tar xzf htmltest.tar.gz
 	mv $(TOOLCHAIN_DIR)/temp-htmltest/htmltest$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/htmltest$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-htmltest/
+
+build/toolchain/python/: no-sudo
+	mkdir -p build/toolchain/python/
+	virtualenv --python=python3 build/toolchain/python/
+	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
+	cd build/toolchain/python/bin && ln -s python3 pytho
+	cd build/toolchain/python/ && . bin/activate && pip install grpcio-tools && deactivate
+
+build/toolchain/bin/protoc$(EXE_EXTENSION): no-sudo
+	mkdir -p $(TOOLCHAIN_BIN)
+	curl -o $(TOOLCHAIN_DIR)/protoc-temp.zip -L $(PROTOC_PACKAGE)
+	(cd $(TOOLCHAIN_DIR); unzip -q -o protoc-temp.zip)
+	rm $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
+
+build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION): no-sudo
+	mkdir -p $(TOOLCHAIN_BIN)
+	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
+
+build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION): no-sudo
+	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
+	mkdir -p $(TOOLCHAIN_BIN)
+	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L \
+		https://github.com/googleapis/googleapis/archive/master.zip
+	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
+	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
+		$(PROTOC_INCLUDES)/google/api
+	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
+	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+
+build/archives/$(NODEJS_PACKAGE_NAME): no-sudo
+	mkdir -p build/archives/
+	cd build/archives/ && curl -L -o $(NODEJS_PACKAGE_NAME) $(NODEJS_PACKAGE)
+
+build/toolchain/nodejs/: no-sudo build/archives/$(NODEJS_PACKAGE_NAME)
+	mkdir -p build/toolchain/nodejs/
+	cd build/toolchain/nodejs/ && tar xzf ../../archives/$(NODEJS_PACKAGE_NAME) --strip-components 1
 
 push-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) create serviceaccount --namespace kube-system tiller
@@ -468,17 +500,26 @@ endif
 	echo "Waiting for Tiller to go away..."
 	-$(KUBECTL) wait deployment --timeout=60s --for delete -l app=helm,name=tiller --namespace kube-system
 
-auth-docker:
+# Fake target for Go
+golang: no-sudo
+
+# Fake target for docker
+docker: no-sudo
+
+# Fake target for gcloud
+gcloud: no-sudo
+
+auth-docker: gcloud docker
 	gcloud $(GCP_PROJECT_FLAG) auth configure-docker
 
-auth-gke-cluster:
+auth-gke-cluster: gcloud
 	gcloud $(GCP_PROJECT_FLAG) container clusters get-credentials $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG)
 
-create-gke-cluster:
+create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
 	gcloud $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --machine-type n1-standard-4 --tags open-match $(KUBERNETES_COMPAT)
-	kubectl create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
+	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
-delete-gke-cluster:
+delete-gke-cluster: gcloud
 	gcloud $(GCP_PROJECT_FLAG) container clusters delete $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --quiet
 
 create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
@@ -486,34 +527,6 @@ create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	$(MINIKUBE) delete
-
-build/toolchain/python/:
-	mkdir -p build/toolchain/python/
-	virtualenv --python=python3 build/toolchain/python/
-	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
-	cd build/toolchain/python/bin && ln -s python3 pytho
-	cd build/toolchain/python/ && . bin/activate && pip install grpcio-tools && deactivate
-
-build/toolchain/bin/protoc$(EXE_EXTENSION):
-	mkdir -p $(TOOLCHAIN_BIN)
-	curl -o $(TOOLCHAIN_DIR)/protoc-temp.zip -L $(PROTOC_PACKAGE)
-	(cd $(TOOLCHAIN_DIR); unzip -q -o protoc-temp.zip)
-	rm $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
-
-build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
-	mkdir -p $(TOOLCHAIN_BIN)
-	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
-
-build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
-	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
-	mkdir -p $(TOOLCHAIN_BIN)
-	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L \
-		https://github.com/googleapis/googleapis/archive/master.zip
-	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
-	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
-		$(PROTOC_INCLUDES)/google/api
-	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
-	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
 all-protos: golang-protos mmlogic-simple-protos
 # TODO: Add php-protos to all-protos once it builds the gRPC client code.
@@ -523,7 +536,7 @@ internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_E
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
-examples/functions/php/mmlogic-simple/proto/:
+examples/functions/php/mmlogic-simple/proto/: build/toolchain/bin/protoc$(EXE_EXTENSION)
 	mkdir -p examples/functions/php/mmlogic-simple/proto/
 	$(PROTOC) api/protobuf-spec/messages.proto \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
@@ -579,43 +592,35 @@ fmt:
 vet:
 	$(GO) vet ./...
 
-cmd/minimatch/minimatch: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/mmlogic.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go
+cmd/minimatch/minimatch: golang internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/mmlogic.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go
 	cd cmd/minimatch; $(GO_BUILD_COMMAND)
 
-cmd/backendapi/backendapi: internal/pb/backend.pb.go
+cmd/backendapi/backendapi: golang internal/pb/backend.pb.go
 	cd cmd/backendapi; $(GO_BUILD_COMMAND)
 
-cmd/frontendapi/frontendapi: internal/pb/frontend.pb.go
+cmd/frontendapi/frontendapi: golang internal/pb/frontend.pb.go
 	cd cmd/frontendapi; $(GO_BUILD_COMMAND)
 
-cmd/mmforc/mmforc:
+cmd/mmforc/mmforc: golang
 	cd cmd/mmforc; $(GO_BUILD_COMMAND)
 
-cmd/mmlogicapi/mmlogicapi: internal/pb/mmlogic.pb.go
+cmd/mmlogicapi/mmlogicapi: golang internal/pb/mmlogic.pb.go
 	cd cmd/mmlogicapi; $(GO_BUILD_COMMAND)
 
-examples/backendclient/backendclient: internal/pb/backend.pb.go
+examples/backendclient/backendclient: golang internal/pb/backend.pb.go
 	cd examples/backendclient; $(GO_BUILD_COMMAND)
 
-examples/evaluators/golang/simple/simple: internal/pb/messages.pb.go
+examples/evaluators/golang/simple/simple: golang internal/pb/messages.pb.go
 	cd examples/evaluators/golang/simple; $(GO_BUILD_COMMAND)
 
-examples/functions/golang/manual-simple/manual-simple: internal/pb/messages.pb.go
+examples/functions/golang/manual-simple/manual-simple: golang internal/pb/messages.pb.go
 	cd examples/functions/golang/manual-simple; $(GO_BUILD_COMMAND)
 
-test/cmd/clientloadgen/clientloadgen:
+test/cmd/clientloadgen/clientloadgen: golang
 	cd test/cmd/clientloadgen; $(GO_BUILD_COMMAND)
 
-test/cmd/frontendclient/frontendclient: internal/pb/frontend.pb.go internal/pb/messages.pb.go
+test/cmd/frontendclient/frontendclient: golang internal/pb/frontend.pb.go internal/pb/messages.pb.go
 	cd test/cmd/frontendclient; $(GO_BUILD_COMMAND)
-
-build/archives/${NODEJS_PACKAGE_NAME}:
-	mkdir -p build/archives/
-	cd build/archives/ && curl -L -o ${NODEJS_PACKAGE_NAME} ${NODEJS_PACKAGE}
-
-build/toolchain/nodejs/: build/archives/${NODEJS_PACKAGE_NAME}
-	mkdir -p build/toolchain/nodejs/
-	cd build/toolchain/nodejs/ && tar xzf ../../archives/${NODEJS_PACKAGE_NAME} --strip-components 1
 
 node_modules/: build/toolchain/nodejs/
 	-rm -r package.json package-lock.json
@@ -643,10 +648,10 @@ site-test: build/site/ build/toolchain/bin/htmltest$(EXE_EXTENSION)
 browse-site: build/site/
 	cd $(BUILD_DIR)/site && dev_appserver.py .app.yaml
 
-deploy-dev-site: build/site/
+deploy-dev-site: build/site/ gcloud
 	cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(VERSION_SUFFIX) --quiet
 
-ci-deploy-dev-site: build/site/
+ci-deploy-dev-site: build/site/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
 	echo "Deploying website to development.open-match.dev..."
 	# TODO: Install GAE SDK and use the Service Account to deploy to GAE.
@@ -655,7 +660,7 @@ else
 	echo "Not deploying development.open-match.dev because this is not a post commit change."
 endif
 
-deploy-redirect-site:
+deploy-redirect-site: gcloud
 	cd $(REPOSITORY_ROOT)/site/redirect/ && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy app.yaml --promote --quiet
 
 run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
@@ -730,10 +735,19 @@ proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
-sync-deps:
+sync-deps: golang
 	$(GO) mod download
 
 sleep-10:
 	sleep 10
 
-.PHONY: deploy-redirect-site sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-in-ci vet
+no-sudo:
+ifeq ($(shell whoami),root)
+	echo "ERROR: Running Makefile as root (or sudo)"
+	echo "Please follow the instructions at https://docs.docker.com/install/linux/linux-postinstall/ if you are trying to sudo run the Makefile because of the 'Cannot connect to the Docker daemon' error."
+	echo "NOTE: sudo/root do not have the authentication token to talk to any GCP service via gcloud."
+	exit 1
+endif
+
+.PHONY: golang docker gcloud deploy-redirect-site sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-in-ci vet
+
