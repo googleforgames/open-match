@@ -83,13 +83,11 @@ func NewMiniMatch(params []*serving.ServerParams) (*MiniMatchServer, func(), err
 func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer, error) {
 	logger := log.WithFields(paramsList[0].BaseLogFields)
 
-	// Add a hook to the logger to log the filename & line number.
-	log.SetReportCaller(true)
-
 	cfg := viper.New()
 	cfg.Set("logging.level", "debug")
 	cfg.Set("logging.format", "text")
-	cfg.Set("logging.source", true)
+	// TODO: Re-enable once, https://github.com/sirupsen/logrus/issues/954 is fixed.
+	cfg.Set("logging.source", false)
 
 	promListener := netlistenerTesting.MustListen()
 

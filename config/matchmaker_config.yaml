@@ -4,7 +4,7 @@ debug: true
 logging:
   level: debug
   format: text
-  source: true
+  source: false
 
 api: 
   backend: 

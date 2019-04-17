@@ -3,13 +3,13 @@
 ################################################################################
 
 # Copyright 2019 Google LLC
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -164,7 +164,7 @@ local-cloud-build: gcloud
 push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
 push-service-images: push-minimatch-image push-frontendapi-image push-backendapi-image push-mmforc-image push-mmlogicapi-image
 # TODO: push-mmf-php-mmlogic-simple-image
-push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-image push-mmf-py3-mmlogic-simple-image
+push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-image push-mmf-go-grpc-serving-simple-image push-mmf-py3-mmlogic-simple-image
 push-client-images: push-backendclient-image push-clientloadgen-image push-frontendclient-image
 push-evaluator-example-images: push-evaluator-simple-image
 
@@ -196,6 +196,10 @@ push-mmf-go-mmlogic-simple-image: docker build-mmf-go-mmlogic-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(ALTERNATE_TAG)
 
+push-mmf-go-grpc-serving-simple-image: docker build-mmf-go-grpc-serving-simple-image
+	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
+
 push-mmf-php-mmlogic-simple-image: docker build-mmf-php-mmlogic-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(ALTERNATE_TAG)
@@ -224,7 +228,7 @@ build-images: build-service-images build-client-images build-mmf-example-images 
 build-service-images: build-minimatch-image build-frontendapi-image build-backendapi-image build-mmforc-image build-mmlogicapi-image
 build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
 # TODO build-mmf-php-mmlogic-simple-image
-build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-py3-mmlogic-simple-image
+build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-go-grpc-serving-simple-image build-mmf-py3-mmlogic-simple-image
 build-evaluator-example-images: build-evaluator-simple-image
 
 build-base-build-image: docker
@@ -250,6 +254,9 @@ build-mmf-cs-mmlogic-simple-image: docker
 
 build-mmf-go-mmlogic-simple-image: docker build-base-build-image
 	docker build -f examples/functions/golang/manual-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(ALTERNATE_TAG) .
+
+build-mmf-go-grpc-serving-simple-image: docker build-base-build-image
+	docker build -f examples/functions/golang/grpc-serving/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG) .
 
 build-mmf-php-mmlogic-simple-image: docker
 	docker build -f examples/functions/php/mmlogic-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(ALTERNATE_TAG) .
@@ -607,6 +614,9 @@ examples/evaluators/golang/simple/simple: internal/pb/messages.pb.go
 examples/functions/golang/manual-simple/manual-simple: internal/pb/messages.pb.go
 	cd examples/functions/golang/manual-simple; $(GO_BUILD_COMMAND)
 
+examples/functions/golang/grpc-serving/grpc-serving: internal/pb/messages.pb.go
+	cd examples/functions/golang/grpc-serving; $(GO_BUILD_COMMAND)
+
 test/cmd/clientloadgen/clientloadgen:
 	cd test/cmd/clientloadgen; $(GO_BUILD_COMMAND)
 
@@ -661,7 +671,7 @@ all: service-binaries client-binaries example-binaries
 service-binaries: cmd/minimatch/minimatch cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmforc/mmforc cmd/mmlogicapi/mmlogicapi
 client-binaries: examples/backendclient/backendclient test/cmd/clientloadgen/clientloadgen test/cmd/frontendclient/frontendclient
 example-binaries: example-mmf-binaries example-evaluator-binaries
-example-mmf-binaries: examples/functions/golang/manual-simple/manual-simple
+example-mmf-binaries: examples/functions/golang/manual-simple/manual-simple examples/functions/golang/grpc-serving/grpc-serving
 example-evaluator-binaries: examples/evaluators/golang/simple/simple
 presubmit: fmt vet build test
 
@@ -684,6 +694,7 @@ clean-binaries:
 	rm -rf examples/backendclient/backendclient
 	rm -rf examples/evaluators/golang/simple/simple
 	rm -rf examples/functions/golang/manual-simple/manual-simple
+	rm -rf examples/functions/golang/grpc-serving/grpc-serving
 	rm -rf test/cmd/clientloadgen/clientloadgen
 	rm -rf test/cmd/frontendclient/frontendclient
 
