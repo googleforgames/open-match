@@ -109,12 +109,6 @@ PORT_FORWARD_ADDRESS_FLAG = --address 0.0.0.0
 DASHBOARD_PORT = 9092
 export PATH := $(REPOSITORY_ROOT)/node_modules/.bin/:$(TOOLCHAIN_BIN):$(TOOLCHAIN_DIR)/nodejs/bin:$(PATH)
 
-ifneq (,$(wildcard $(TOOLCHAIN_GOLANG_DIR)/bin/go))
-	export GO = $(REPOSITORY_ROOT)/$(TOOLCHAIN_GOLANG_DIR)/bin/go
-	export GOROOT = $(REPOSITORY_ROOT)/$(TOOLCHAIN_GOLANG_DIR)
-	export PATH := $(TOOLCHAIN_GOLANG_DIR):$(PATH)
-endif
-
 # Get the project from gcloud if it's not set.
 ifeq ($(GCP_PROJECT_ID),)
 	export GCP_PROJECT_ID = $(shell gcloud config list --format 'value(core.project)')
@@ -404,7 +398,7 @@ set-redis-password:
 
 install-toolchain: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)  build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/python/ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/htmltest$(EXE_EXTENSION)
 
-build/toolchain/bin/helm$(EXE_EXTENSION): no-sudo
+build/toolchain/bin/helm$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-helm
 	cd $(TOOLCHAIN_DIR)/temp-helm && curl -Lo helm.tar.gz $(HELM_PACKAGE) && tar xzf helm.tar.gz --strip-components 1
@@ -412,56 +406,56 @@ build/toolchain/bin/helm$(EXE_EXTENSION): no-sudo
 	mv $(TOOLCHAIN_DIR)/temp-helm/tiller$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/tiller$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-helm/
 
-build/toolchain/bin/hugo$(EXE_EXTENSION): no-sudo
+build/toolchain/bin/hugo$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-hugo
 	cd $(TOOLCHAIN_DIR)/temp-hugo && curl -Lo hugo.tar.gz $(HUGO_PACKAGE) && tar xzf hugo.tar.gz
 	mv $(TOOLCHAIN_DIR)/temp-hugo/hugo$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/hugo$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-hugo/
 
-build/toolchain/bin/minikube$(EXE_EXTENSION): no-sudo
+build/toolchain/bin/minikube$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -Lo minikube$(EXE_EXTENSION) $(MINIKUBE_PACKAGE)
 	chmod +x minikube$(EXE_EXTENSION)
 	mv minikube$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/minikube$(EXE_EXTENSION)
 
-build/toolchain/bin/kubectl$(EXE_EXTENSION): no-sudo
+build/toolchain/bin/kubectl$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -Lo kubectl$(EXE_EXTENSION) $(KUBECTL_PACKAGE)
 	chmod +x kubectl$(EXE_EXTENSION)
 	mv kubectl$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/kubectl$(EXE_EXTENSION)
 
-build/toolchain/bin/skaffold$(EXE_EXTENSION): no-sudo
+build/toolchain/bin/skaffold$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -Lo skaffold$(EXE_EXTENSION) $(SKAFFOLD_PACKAGE)
 	chmod +x skaffold$(EXE_EXTENSION)
 	mv skaffold$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/skaffold$(EXE_EXTENSION)
 
-build/toolchain/bin/htmltest$(EXE_EXTENSION): no-sudo
+build/toolchain/bin/htmltest$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-htmltest
 	cd $(TOOLCHAIN_DIR)/temp-htmltest && curl -Lo htmltest.tar.gz $(HTMLTEST_PACKAGE) && tar xzf htmltest.tar.gz
 	mv $(TOOLCHAIN_DIR)/temp-htmltest/htmltest$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/htmltest$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-htmltest/
 
-build/toolchain/python/: no-sudo
+build/toolchain/python/:
 	mkdir -p build/toolchain/python/
 	virtualenv --python=python3 build/toolchain/python/
 	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
 	cd build/toolchain/python/bin && ln -s python3 pytho
 	cd build/toolchain/python/ && . bin/activate && pip install grpcio-tools && deactivate
 
-build/toolchain/bin/protoc$(EXE_EXTENSION): no-sudo
+build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -o $(TOOLCHAIN_DIR)/protoc-temp.zip -L $(PROTOC_PACKAGE)
 	(cd $(TOOLCHAIN_DIR); unzip -q -o protoc-temp.zip)
 	rm $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
 
-build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION): no-sudo
+build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
-build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION): no-sudo
+build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L \
@@ -472,11 +466,11 @@ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION): no-sudo
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
-build/archives/$(NODEJS_PACKAGE_NAME): no-sudo
+build/archives/$(NODEJS_PACKAGE_NAME):
 	mkdir -p build/archives/
 	cd build/archives/ && curl -L -o $(NODEJS_PACKAGE_NAME) $(NODEJS_PACKAGE)
 
-build/toolchain/nodejs/: no-sudo build/archives/$(NODEJS_PACKAGE_NAME)
+build/toolchain/nodejs/: build/archives/$(NODEJS_PACKAGE_NAME)
 	mkdir -p build/toolchain/nodejs/
 	cd build/toolchain/nodejs/ && tar xzf ../../archives/$(NODEJS_PACKAGE_NAME) --strip-components 1
 
@@ -499,9 +493,6 @@ ifneq ($(strip $($(KUBECTL) get clusterroles | grep -i rbac)),)
 endif
 	echo "Waiting for Tiller to go away..."
 	-$(KUBECTL) wait deployment --timeout=60s --for delete -l app=helm,name=tiller --namespace kube-system
-
-# Fake target for Go
-golang: no-sudo
 
 # Fake target for docker
 docker: no-sudo
@@ -592,34 +583,34 @@ fmt:
 vet:
 	$(GO) vet ./...
 
-cmd/minimatch/minimatch: golang internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/mmlogic.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go
+cmd/minimatch/minimatch: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/mmlogic.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go
 	cd cmd/minimatch; $(GO_BUILD_COMMAND)
 
-cmd/backendapi/backendapi: golang internal/pb/backend.pb.go
+cmd/backendapi/backendapi: internal/pb/backend.pb.go
 	cd cmd/backendapi; $(GO_BUILD_COMMAND)
 
-cmd/frontendapi/frontendapi: golang internal/pb/frontend.pb.go
+cmd/frontendapi/frontendapi: internal/pb/frontend.pb.go
 	cd cmd/frontendapi; $(GO_BUILD_COMMAND)
 
-cmd/mmforc/mmforc: golang
+cmd/mmforc/mmforc:
 	cd cmd/mmforc; $(GO_BUILD_COMMAND)
 
-cmd/mmlogicapi/mmlogicapi: golang internal/pb/mmlogic.pb.go
+cmd/mmlogicapi/mmlogicapi: internal/pb/mmlogic.pb.go
 	cd cmd/mmlogicapi; $(GO_BUILD_COMMAND)
 
-examples/backendclient/backendclient: golang internal/pb/backend.pb.go
+examples/backendclient/backendclient: internal/pb/backend.pb.go
 	cd examples/backendclient; $(GO_BUILD_COMMAND)
 
-examples/evaluators/golang/simple/simple: golang internal/pb/messages.pb.go
+examples/evaluators/golang/simple/simple: internal/pb/messages.pb.go
 	cd examples/evaluators/golang/simple; $(GO_BUILD_COMMAND)
 
-examples/functions/golang/manual-simple/manual-simple: golang internal/pb/messages.pb.go
+examples/functions/golang/manual-simple/manual-simple: internal/pb/messages.pb.go
 	cd examples/functions/golang/manual-simple; $(GO_BUILD_COMMAND)
 
-test/cmd/clientloadgen/clientloadgen: golang
+test/cmd/clientloadgen/clientloadgen:
 	cd test/cmd/clientloadgen; $(GO_BUILD_COMMAND)
 
-test/cmd/frontendclient/frontendclient: golang internal/pb/frontend.pb.go internal/pb/messages.pb.go
+test/cmd/frontendclient/frontendclient: internal/pb/frontend.pb.go internal/pb/messages.pb.go
 	cd test/cmd/frontendclient; $(GO_BUILD_COMMAND)
 
 node_modules/: build/toolchain/nodejs/
@@ -735,19 +726,24 @@ proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
-sync-deps: golang
+sync-deps:
 	$(GO) mod download
 
 sleep-10:
 	sleep 10
 
+# Prevents users from running with sudo.
+# There's an exception for Google Cloud Build because it runs as root.
+# Use use presence of BUILD_ID, https://cloud.google.com/cloud-build/docs/configuring-builds/substitute-variable-values#using_default_substitutions
 no-sudo:
+ifndef BUILD_ID
 ifeq ($(shell whoami),root)
 	echo "ERROR: Running Makefile as root (or sudo)"
 	echo "Please follow the instructions at https://docs.docker.com/install/linux/linux-postinstall/ if you are trying to sudo run the Makefile because of the 'Cannot connect to the Docker daemon' error."
 	echo "NOTE: sudo/root do not have the authentication token to talk to any GCP service via gcloud."
 	exit 1
 endif
+endif
 
-.PHONY: golang docker gcloud deploy-redirect-site sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-in-ci vet
+.PHONY: docker gcloud deploy-redirect-site sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-in-ci vet
 
