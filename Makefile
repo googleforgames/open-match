@@ -103,6 +103,7 @@ OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE = open-match
 REDIS_NAME = om-redis
 GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | cut -c 10-)
 _GCB_POST_SUBMIT ?= 0
+DEV_SITE_VERSION = head
 
 # Make port forwards accessible outside of the proxy machine.
 PORT_FORWARD_ADDRESS_FLAG = --address 0.0.0.0
@@ -160,6 +161,9 @@ help:
 
 local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT) .
+
+cb:
+	cloud-build-local --config=cb.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=1 .
 
 push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
 push-service-images: push-minimatch-image push-frontendapi-image push-backendapi-image push-mmlogicapi-image
@@ -603,8 +607,8 @@ deploy-dev-site: build/site/ gcloud
 ci-deploy-dev-site: build/site/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
 	echo "Deploying website to development.open-match.dev..."
-	# TODO: Install GAE SDK and use the Service Account to deploy to GAE.
-	#cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(VERSION_SUFFIX) --quiet
+	cd $(BUILD_DIR)/site && find .
+	-cd $(BUILD_DIR)/site && pwd && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --version=$(DEV_SITE_VERSION) --verbosity=info
 else
 	echo "Not deploying development.open-match.dev because this is not a post commit change."
 endif
@@ -623,7 +627,7 @@ example-mmf-binaries: examples/functions/golang/grpc-serving/grpc-serving
 example-evaluator-binaries: examples/evaluators/golang/serving/serving
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: sync-deps clean-protos all-protos fmt vet build test
+presubmit: update-deps clean-protos all-protos fmt vet build test
 
 clean-site:
 	rm -rf build/site/
@@ -643,6 +647,12 @@ clean-binaries:
 	rm -rf test/cmd/clientloadgen/clientloadgen
 	rm -rf test/cmd/frontendclient/frontendclient
 
+clean-build:
+	rm -rf build/
+
+clean-archives:
+	rm -rf build/archives/
+
 clean-toolchain:
 	rm -rf build/toolchain/
 
@@ -660,7 +670,7 @@ clean-install-yaml:
 	rm -f install/yaml/03-prometheus-chart.yaml
 	rm -f install/yaml/04-grafana-chart.yaml
 
-clean: clean-images clean-binaries clean-site clean-toolchain clean-protos clean-nodejs clean-install-yaml
+clean: clean-images clean-binaries clean-site clean-toolchain clean-archives clean-protos clean-nodejs clean-install-yaml clean-build
 
 run-backendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) $(KUBECTL_RUN_ENV)
@@ -682,8 +692,13 @@ proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
+update-deps:
+	$(GO) mod tidy
+	cd site && $(GO) mod tidy
+
 sync-deps:
 	$(GO) mod download
+	cd site && $(GO) mod download
 
 sleep-10:
 	sleep 10
@@ -700,5 +715,5 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
-.PHONY: docker gcloud deploy-redirect-site sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-in-ci vet
+.PHONY: docker gcloud deploy-redirect-site update-deps sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-in-ci vet
 
