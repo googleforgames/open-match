@@ -702,6 +702,12 @@ example-evaluator-binaries: examples/evaluators/golang/simple/simple
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: sync-deps clean-protos all-protos fmt vet build test
 
+build/release/: presubmit clean-install-yaml install/yaml/
+	mkdir -p $(BUILD_DIR)/release/
+	cp install/yaml/* $(BUILD_DIR)/release/
+
+release: build/release/
+
 clean-site:
 	rm -rf build/site/
 
