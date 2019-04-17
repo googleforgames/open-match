@@ -30,6 +30,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/serving"
 	"github.com/GoogleCloudPlatform/open-match/internal/signal"
+	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
@@ -56,7 +57,13 @@ func ServeMatchFunction(params *HarnessParams) {
 
 	// Instantiate the gRPC server with the bindings we've made.
 	logger := mfServer.Logger
-	grpcServer := serving.NewGrpcServer(mfServer.Config.GetInt(params.PortConfigName), logger)
+	grpcLh, err := netlistener.NewFromPortNumber(mfServer.Config.GetInt(params.PortConfigName))
+	if err != nil {
+		logger.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to create a TCP listener for the GRPC server")
+		return
+	}
+
+	grpcServer := serving.NewGrpcServer(grpcLh, logger)
 	grpcServer.AddService(func(server *grpc.Server) {
 		pb.RegisterMatchFunctionServer(server, mfServer)
 	})
@@ -111,7 +118,15 @@ func newMatchFunctionServer(params *HarnessParams) (*apisrv.MatchFunctionServer,
 	ocServerViews = append(ocServerViews, ocgrpc.DefaultServerViews...) // gRPC OpenCensus views.
 	ocServerViews = append(ocServerViews, config.CfgVarCountView)       // config loader view.
 	logger.WithFields(log.Fields{"viewscount": len(ocServerViews)}).Info("Loaded OpenCensus views")
-	metrics.ConfigureOpenCensusPrometheusExporter(cfg, ocServerViews)
+
+	promLh, err := netlistener.NewFromPortNumber(cfg.GetInt("metrics.port"))
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("Unable to create metrics TCP listener")
+		return nil, err
+	}
+	metrics.ConfigureOpenCensusPrometheusExporter(promLh, cfg, ocServerViews)
 
 	mfServer := &apisrv.MatchFunctionServer{
 		Logger: logger,
