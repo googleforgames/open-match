@@ -570,8 +570,8 @@ build:
 test:
 	$(GO) test ./... -race
 
-test-10:
-	$(GO) test ./... -race -test.count 10 -cover
+test-in-ci:
+	$(GO) test ./... -race -test.count 25 -cover
 
 fmt:
 	$(GO) fmt ./...
@@ -736,4 +736,4 @@ sync-deps:
 sleep-10:
 	sleep 10
 
-.PHONY: deploy-redirect-site sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-10 vet
+.PHONY: deploy-redirect-site sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-in-ci vet

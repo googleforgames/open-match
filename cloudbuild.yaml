@@ -104,7 +104,7 @@ steps:
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Test'
   name: open-match-build
-  args: ['make', 'GOPROXY=off', 'test-10']
+  args: ['make', 'GOPROXY=off', 'test-in-ci']
   volumes:
   - name: 'go-vol'
     path: '/go'
