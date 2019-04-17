@@ -745,9 +745,8 @@ sleep-10:
 
 # Prevents users from running with sudo.
 # There's an exception for Google Cloud Build because it runs as root.
-# Use use presence of BUILD_ID, https://cloud.google.com/cloud-build/docs/configuring-builds/substitute-variable-values#using_default_substitutions
 no-sudo:
-ifndef BUILD_ID
+ifndef ALLOW_BUILD_WITH_SUDO
 ifeq ($(shell whoami),root)
 	echo "ERROR: Running Makefile as root (or sudo)"
 	echo "Please follow the instructions at https://docs.docker.com/install/linux/linux-postinstall/ if you are trying to sudo run the Makefile because of the 'Cannot connect to the Docker daemon' error."

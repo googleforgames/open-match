@@ -16,8 +16,6 @@ FROM debian
 
 RUN apt-get update
 RUN apt-get install -y -qq git make python3 virtualenv curl sudo unzip apt-transport-https ca-certificates curl software-properties-common gnupg2
-# Required for building gRPC if we need it in the future.
-#RUN apt-get install -y -qq g++ php autoconf build-essential libtool pkg-config libgflags-dev libgtest-dev clang libc++-dev
 
 # Docker
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
@@ -38,15 +36,6 @@ RUN export CLOUD_SDK_REPO="cloud-sdk-stretch" && \
 RUN mkdir -p /toolchain
 RUN mkdir -p /workspace
 
-WORKDIR /toolchain
-# TODO: Add gRPC compile later for PHP support.
-#RUN git clone -b $(curl -L https://grpc.io/release) https://github.com/grpc/grpc
-#WORKDIR /toolchain/grpc
-#RUN git submodule update --init
-#RUN make grpc_php_plugin
-#RUN make all -j$(nproc)
-#RUN sudo make install
-
 # Install Golang
 # https://github.com/docker-library/golang/blob/fd272b2b72db82a0bd516ce3d09bba624651516c/1.12/stretch/Dockerfile
 
@@ -61,5 +50,6 @@ ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 RUN sudo mkdir -p "$GOPATH/src" "$GOPATH/bin" \
   && sudo chmod -R 777 "$GOPATH"
 
+ENV ALLOW_BUILD_WITH_SUDO=1
 WORKDIR /workspace
 
