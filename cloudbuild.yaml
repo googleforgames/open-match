@@ -199,9 +199,7 @@ options:
 timeout: 1200s
 # TODO Build Steps
 # config/matchmaker_config.yaml: Lint this file so it's verified as a valid YAML file.
-# deployments/k8s: Verify with kubelint.
 # examples/profiles/*.json: Verify valid JSON files.
 #
 # Consolidate many of these build steps via Makefile.
 # Caching of dependencies is a serious problem. Cloud Build does not complete within 20 minutes!
-
