@@ -42,9 +42,6 @@ func NewMulti(paramsList []*ServerParams) (*OpenMatchServer, error) {
 	// FIXME: We only take the first item in the list.
 	logger := log.WithFields(paramsList[0].BaseLogFields)
 
-	// Add a hook to the logger to log the filename & line number.
-	log.SetReportCaller(true)
-
 	cfg, err := config.Read()
 	if err != nil {
 		logger.WithFields(log.Fields{
