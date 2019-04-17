@@ -5,6 +5,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	"github.com/opencensus-integrations/redigo/redis"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"
@@ -67,7 +68,14 @@ func NewMulti(paramsList []*ServerParams) (*OpenMatchServer, error) {
 	ocServerViews = append(ocServerViews, config.CfgVarCountView)            // config loader view.
 	ocServerViews = append(ocServerViews, redis.ObservabilityMetricViews...) // redis OpenCensus views.
 	logger.WithFields(log.Fields{"viewscount": len(ocServerViews)}).Info("Loaded OpenCensus views")
-	metrics.ConfigureOpenCensusPrometheusExporter(cfg, ocServerViews)
+	promLh, err := netlistener.NewFromPortNumber(cfg.GetInt("metrics.port"))
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("Unable to create metrics TCP listener")
+		return nil, err
+	}
+	metrics.ConfigureOpenCensusPrometheusExporter(promLh, cfg, ocServerViews)
 
 	// Connect to redis
 	pool, err := redishelpers.ConnectionPool(cfg)
@@ -77,7 +85,13 @@ func NewMulti(paramsList []*ServerParams) (*OpenMatchServer, error) {
 	}
 
 	// Instantiate the gRPC server with the bindings we've made.
-	grpcServer := NewGrpcServer(cfg.GetInt(paramsList[0].PortConfigName), logger)
+	grpcLh, err := netlistener.NewFromPortNumber(cfg.GetInt(paramsList[0].PortConfigName))
+	if err != nil {
+		logger.Fatal(err)
+		return nil, err
+	}
+
+	grpcServer := NewGrpcServer(grpcLh, logger)
 
 	omServer := &OpenMatchServer{
 		GrpcServer: grpcServer,

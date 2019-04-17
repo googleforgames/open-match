@@ -7,6 +7,8 @@ import (
 	pb "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/serving"
 	servingTesting "github.com/GoogleCloudPlatform/open-match/internal/serving/testing"
+	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
+	netlistenerTesting "github.com/GoogleCloudPlatform/open-match/internal/util/netlistener/testing"
 	log "github.com/sirupsen/logrus"
 
 	"net"
@@ -21,8 +23,8 @@ func createLogger() *log.Entry {
 	})
 }
 
-func createClient(port int) (pb.FrontendClient, error) {
-	conn, err := grpc.Dial(fmt.Sprintf(":%d", port), grpc.WithInsecure())
+func createClient(lh *netlistener.ListenerHolder) (pb.FrontendClient, error) {
+	conn, err := grpc.Dial(fmt.Sprintf(":%d", lh.Number()), grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
@@ -31,9 +33,9 @@ func createClient(port int) (pb.FrontendClient, error) {
 
 // TestOpenClose verifies the gRPC server can be created in process, communicated with, and shut down.
 func TestOpenClose(t *testing.T) {
-	port := servingTesting.MustPort()
+	lh := netlistenerTesting.MustListen()
 	fakeService := &servingTesting.FakeFrontend{}
-	server := serving.NewGrpcServer(port, createLogger())
+	server := serving.NewGrpcServer(lh, createLogger())
 	server.AddService(func(server *grpc.Server) {
 		pb.RegisterFrontendServer(server, fakeService)
 	})
@@ -43,7 +45,7 @@ func TestOpenClose(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := createClient(port)
+	client, err := createClient(lh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +61,7 @@ func TestOpenClose(t *testing.T) {
 	server.Stop()
 
 	// Re-open the port to ensure it's free.
-	ln, err := net.Listen("tcp6", fmt.Sprintf(":%d", port))
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", lh.Number()))
 	if err != nil {
 		t.Errorf("grpc server is still running! Result= %v Error= %s", ln, err)
 	}
