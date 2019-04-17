@@ -23,6 +23,7 @@ api:
     proxyport: 51503
   functions:
     port: 50502
+    proxyport: 51502
   
 evalutor: 
   interval: 10

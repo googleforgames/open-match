@@ -41,7 +41,8 @@ import (
 // HarnessParams is a collection of parameters used to create a MatchFunction server.
 type HarnessParams struct {
 	FunctionName   string
-	PortConfigName string
+	ServicePortConfigName string
+	ProxyPortConfigName string
 	Func           apisrv.MatchFunction
 }
 
@@ -57,13 +58,14 @@ func ServeMatchFunction(params *HarnessParams) {
 
 	// Instantiate the gRPC server with the bindings we've made.
 	logger := mfServer.Logger
-	grpcLh, err := netlistener.NewFromPortNumber(mfServer.Config.GetInt(params.PortConfigName))
+	grpcLh, err := netlistener.NewFromPortNumber(mfServer.Config.GetInt(params.ServicePortConfigName))
+	proxyLh, err := netlistener.NewFromPortNumber(mfServer.Config.GetInt(params.ProxyPortConfigName))
 	if err != nil {
 		logger.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to create a TCP listener for the GRPC server")
 		return
 	}
 
-	grpcServer := serving.NewGrpcServer(grpcLh, logger)
+	grpcServer := serving.NewGrpcServer(grpcLh, proxyLh, logger)
 	grpcServer.AddService(func(server *grpc.Server) {
 		pb.RegisterMatchFunctionServer(server, mfServer)
 	})

@@ -30,7 +30,8 @@ func main() {
 	// proposals.
 	harness.ServeMatchFunction(&harness.HarnessParams{
 		FunctionName:   "simple-matchfunction",
-		PortConfigName: "api.functions.port",
+		ServicePortConfigName: "api.functions.port",
+		ProxyPortConfigName: "api.functions.proxyport",
 		Func:           makeMatches,
 	})
 }
