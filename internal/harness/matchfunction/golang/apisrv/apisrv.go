@@ -53,12 +53,22 @@ type MatchFunctionServer struct {
 // Run is this harness's implementation of the gRPC call defined in api/protobuf-spec/matchfunction.proto.
 func (s *MatchFunctionServer) Run(ctx context.Context, req *pb.RunRequest) (*pb.RunResponse, error) {
 	// Set up tagging for OpenCensus
-	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, "Run"))
-	fnCtx, _ = tag.New(fnCtx, tag.Insert(KeyFnName, s.FunctionName))
+
+	fnCtx, err := tag.New(ctx, tag.Insert(KeyMethod, "Run"))
+	if err != nil {
+		s.Logger.WithFields(log.Fields{"error": err.Error()}).Error("Failed setting up OpenCensus tagging")
+		return nil, err
+	}
+
+	fnCtx, err = tag.New(fnCtx, tag.Insert(KeyFnName, s.FunctionName))
+	if err != nil {
+		s.Logger.WithFields(log.Fields{"error": err.Error()}).Error("Failed setting up OpenCensus tagging")
+		return nil, err
+	}
 
 	stats.Record(fnCtx, HarnessRequests.M(1))
 	start := time.Now()
-	err := s.runMatchFunction(fnCtx, req)
+	err = s.runMatchFunction(fnCtx, req)
 	stats.Record(fnCtx, HarnessLatencySec.M(time.Since(start).Seconds()))
 	if err != nil {
 		s.Logger.WithFields(log.Fields{"error": err.Error()}).Error("harness.Run error")
