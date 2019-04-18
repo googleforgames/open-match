@@ -23,6 +23,8 @@ limitations under the License.
 package harness
 
 import (
+	"fmt"
+
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/harness/matchfunction/golang/apisrv"
 	"github.com/GoogleCloudPlatform/open-match/internal/logging"
@@ -91,7 +93,7 @@ func ServeMatchFunction(params *HarnessParams) {
 
 // newMatchFunctionServer creates a MatchFunctionServer based on the harness parameters.
 func newMatchFunctionServer(params *HarnessParams) (*apisrv.MatchFunctionServer, error) {
-	log.AddHook(metrics.NewHook(apisrv.FnLogLines, apisrv.KeySeverity))
+	log.AddHook(metrics.NewHook(apisrv.HarnessLogLines, apisrv.KeySeverity))
 	logger := log.WithFields(log.Fields{
 		"app":       "openmatch",
 		"component": "matchfunction_service",
@@ -130,11 +132,39 @@ func newMatchFunctionServer(params *HarnessParams) (*apisrv.MatchFunctionServer,
 	}
 	metrics.ConfigureOpenCensusPrometheusExporter(promLh, cfg, ocServerViews)
 
+	var mmlogic pb.MmLogicClient
+	mmlogic, err = getMMLogicClient(cfg)
+	if err != nil {
+		logger.Errorf("Failed to get MMLogic client, %v.", err)
+		return nil, err
+	}
+
 	mfServer := &apisrv.MatchFunctionServer{
-		Logger: logger,
-		Config: cfg,
-		Func:   params.Func,
+		FunctionName: params.FunctionName,
+		Logger:       logger,
+		Config:       cfg,
+		Func:         params.Func,
+		MMLogic:      mmlogic,
 	}
 
 	return mfServer, nil
+}
+
+func getMMLogicClient(cfg config.View) (pb.MmLogicClient, error) {
+	host := cfg.GetString("api.mmlogic.hostname")
+	if len(host) == 0 {
+		return nil, fmt.Errorf("Failed to get hostname for MMLogicAPI from the configuration")
+	}
+
+	port := cfg.GetString("api.mmlogic.port")
+	if len(port) == 0 {
+		return nil, fmt.Errorf("Failed to get port for MMLogicAPI from the configuration")
+	}
+
+	conn, err := grpc.Dial(fmt.Sprintf("%v:%v", host, port), grpc.WithInsecure())
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to %v, %v", fmt.Sprintf("%v:%v", host, port), err)
+	}
+
+	return pb.NewMmLogicClient(conn), nil
 }
