@@ -27,9 +27,12 @@ spec:
     component: mmlogic
     {{- include "openmatch.chartmeta" (set . "indent" 4) }}
   ports:
-  - protocol: TCP
+  - name: grpc
+    protocol: TCP
     port: {{ .Values.openmatch.mmlogicapi.grpc.port }}
-    targetPort: grpc
+  - name: proxy
+    protocol: TCP
+    port: {{ .Values.openmatch.mmlogicapi.proxy.port }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -51,11 +54,7 @@ spec:
     metadata:
       namespace: {{ .Release.Namespace }}
       annotations:
-      {{- if and (.Values.openmatch.metrics.prometheusServiceDiscovery) (.Values.openmatch.metrics.prometheusEnabled) }}
-        prometheus.io/scrape: "true"
-        prometheus.io/port: {{ .Values.openmatch.metrics.port | quote }}
-        prometheus.io/path: {{ .Values.openmatch.metrics.path }}
-      {{- end }}
+        {{- include "prometheus.annotations" . | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
         component: mmlogic
@@ -71,6 +70,8 @@ spec:
         ports:
         - name: grpc
           containerPort: {{ .Values.openmatch.mmlogicapi.grpc.port }}
+        - name: proxy
+          containerPort: {{ .Values.openmatch.mmlogicapi.proxy.port }}
         - name: metrics
           containerPort: {{ .Values.openmatch.metrics.port }}
         resources:

@@ -77,6 +77,9 @@ site/resources/_gen/
 # Node Modules
 node_modules/
 
+# Install YAML files
+install/yaml/
+
 # Temp Directories
 tmp/
 

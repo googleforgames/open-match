@@ -347,6 +347,7 @@ update-helm-deps:
 install/yaml/: install/yaml/install.yaml install/yaml/install-example.yaml install/yaml/01-redis-chart.yaml install/yaml/02-open-match.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml
 
 install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.fullnameOverride='$(REDIS_NAME)' \
 		--set openmatch.config.install=false \
@@ -359,6 +360,7 @@ install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		install/helm/open-match > install/yaml/01-redis-chart.yaml
 
 install/yaml/02-open-match.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.fullnameOverride='$(REDIS_NAME)' \
 		--set redis.enabled=false \
@@ -369,7 +371,8 @@ install/yaml/02-open-match.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.noChartMeta=true \
 		install/helm/open-match > install/yaml/02-open-match.yaml
 
-install/yaml/03-prometheus-chart.yaml:
+install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
@@ -380,7 +383,8 @@ install/yaml/03-prometheus-chart.yaml:
 		--set grafana.enabled=false \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
-install/yaml/04-grafana-chart.yaml:
+install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
@@ -392,14 +396,16 @@ install/yaml/04-grafana-chart.yaml:
 		--set grafana.enabled=true \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
 
-install/yaml/install.yaml:
+install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=true \
 		--set prometheus.enabled=true \
 		--set grafana.enabled=true \
 		install/helm/open-match > install/yaml/install.yaml
 
-install/yaml/install-example.yaml:
+install/yaml/install-example.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_EXAMPLE_CHART_NAME) --namespace $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) \
 		install/helm/open-match-example > install/yaml/install-example.yaml
 
@@ -520,17 +526,32 @@ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
 		$(PROTOC_INCLUDES)/google/api
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
-	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
-all-protos: golang-protos mmlogic-simple-protos
+all-protos: golang-protos mmlogic-simple-protos reverse-golang-protos swagger-def-protos
 # TODO: Add php-protos to all-protos once it builds the gRPC client code.
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
+
+reverse-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go
+
+swagger-def-protos: internal/swagger/frontend.proto internal/swagger/backend.proto internal/swagger/mmlogic.proto internal/swagger/matchfunction.proto
+
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
-examples/functions/php/mmlogic-simple/proto/:
+internal/pb/%.pb.gw.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)\
+
+internal/swagger/%.proto: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--swagger_out=logtostderr=true,allow_delete_body=true:.
+
+examples/functions/php/mmlogic-simple/proto/: build/toolchain/bin/protoc$(EXE_EXTENSION)
 	mkdir -p examples/functions/php/mmlogic-simple/proto/
 	$(PROTOC) api/protobuf-spec/messages.proto \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
@@ -677,7 +698,9 @@ client-binaries: examples/backendclient/backendclient test/cmd/clientloadgen/cli
 example-binaries: example-mmf-binaries example-evaluator-binaries
 example-mmf-binaries: examples/functions/golang/manual-simple/manual-simple examples/functions/golang/grpc-serving/grpc-serving
 example-evaluator-binaries: examples/evaluators/golang/simple/simple
-presubmit: fmt vet build test
+
+# For presubmit we want to update the protobuf generated files and verify that tests are good.
+presubmit: sync-deps clean-protos all-protos fmt vet build test
 
 clean-site:
 	rm -rf build/site/

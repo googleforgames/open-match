@@ -39,9 +39,10 @@ func CreateServerParams() *serving.ServerParams {
 			"app":       "openmatch",
 			"component": "mmlogic",
 		},
-		PortConfigName:     "api.mmlogic.port",
-		CustomMeasureViews: apisrv.DefaultMmlogicAPIViews,
-		Bindings:           []serving.BindingFunc{apisrv.Bind},
+		ServicePortConfigName: "api.mmlogic.port",
+		ProxyPortConfigName:   "api.mmlogic.proxyport",
+		CustomMeasureViews:    apisrv.DefaultMmlogicAPIViews,
+		Bindings:              []serving.BindingFunc{apisrv.Bind},
 	}
 }
 

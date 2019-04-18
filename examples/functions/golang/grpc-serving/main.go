@@ -29,9 +29,10 @@ func main() {
 	// the specified request and passes the pools to the match function to generate
 	// proposals.
 	harness.ServeMatchFunction(&harness.HarnessParams{
-		FunctionName:   "simple-matchfunction",
-		PortConfigName: "api.functions.port",
-		Func:           makeMatches,
+		FunctionName:          "simple-matchfunction",
+		ServicePortConfigName: "api.functions.port",
+		ProxyPortConfigName:   "api.functions.proxyport",
+		Func:                  makeMatches,
 	})
 }
 
