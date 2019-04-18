@@ -3,4 +3,65 @@
 Add styles or override variables from the theme here.
 
 */
+$enable-rounded: false;
+// $enable-shadows: false;
 
+$display1-weight: 500 !default;
+$display2-weight: 100 !default;
+
+$omblue: #2D70DE !default;
+$omdarkblue: #0A1A3F !default;
+
+$primary: rgb(255, 255,255)  !default;
+$primary-light: lighten($primary, 75%) !default;
+$secondary: $omblue;
+$light: rgb(255, 255,255) !default;
+$grey:  #888 !default;
+$orange: $secondary;
+$blueishblack: #121314 !default;
+$verydark: $omdarkblue;
+
+.nav-shadow {
+    box-shadow: 0 2px 2px -2px rgba(0,0,0,.2);
+}
+
+.navbar-brand {
+    color: black !important
+}
+
+.navbar-bg-onscroll {
+    box-shadow: 0 2px 2px -2px rgba(0,0,0,.2);
+    #site-top {
+        display: block !important;
+    }
+}
+
+.control-bar {
+    display: none;
+}
+
+.asciinema-theme-asciinema .asciinema-terminal {
+    color: #cccccc;
+    background-color: $verydark;
+    border-color: #121314;
+    border-radius: 8px;
+}
+
+.asciinema-theme-asciinema .bg-fg {
+    background-color:black !important;
+}
+
+#site-search {
+    background: rgba(190, 185, 185, 0.3);
+}
+input[type="search"]::placeholder {
+    color:  #9B9595 !important;
+}
+
+.td-box--secondary p > a:hover {
+    color: $verydark !important;
+}
+
+#community a {
+    color: $verydark !important;
+}

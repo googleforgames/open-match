@@ -1,4 +1,4 @@
-![Open Match](site/assets/omlogo.png)
+![Open Match](site/static/images/logo-with-name.png)
 
 [![GoDoc](https://godoc.org/github.com/GoogleCloudPlatform/open-match?status.svg)](https://godoc.org/github.com/GoogleCloudPlatform/open-match)
 [![Go Report Card](https://goreportcard.com/badge/github.com/GoogleCloudPlatform/open-match)](https://goreportcard.com/report/github.com/GoogleCloudPlatform/open-match)
