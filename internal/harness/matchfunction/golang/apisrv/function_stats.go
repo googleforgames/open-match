@@ -62,17 +62,23 @@ var (
 	// the logrus hook provided in metrics/helper.go after instantiating the
 	// logrus instance in your application code.
 	// https://godoc.org/github.com/sirupsen/logrus#LevelHooks
-	FnLogLines = stats.Int64("matchfunction/logs_total", "Number of matchfunction lines logged", "1")
+	HarnessLogLines = stats.Int64("harness/logs_total", "Number of harness lines logged", "1")
 
-	// Matchfunction run instrumentation (separate from gRPC api instrumentation for now)
-	FnRequests = stats.Int64("matchfunction/request_total", "Number of matchfunction requests", "1")
-	FnFailures = stats.Int64("matchfunction/failures_total", "Number of matchfunction failures", "1")
+	// Instrumentation for the harness 'Run' method.
+	HarnessRequests   = stats.Int64("harness/request_total", "Number of harness run requests", "1")
+	HarnessFailures   = stats.Int64("harness/failures_total", "Number of harness run failures", "1")
+	HarnessLatencySec = stats.Float64("harness/latency_seconds", "Latency in seconds for harness runs", "1")
+
+	// Instrumentation for matchfunction execution.
+	FnRequests   = stats.Int64("matchfunction/request_total", "Number of matchfunction requests", "1")
+	FnFailures   = stats.Int64("matchfunction/failures_total", "Number of matchfunction failures", "1")
+	FnLatencySec = stats.Float64("matchfunction/latency_seconds", "Latency in seconds of matchfunction runs", "1")
 )
 
 var (
 	// KeyMethod is used to tag a measure with the currently running API method.
 	KeyMethod, _   = tag.NewKey("method")
-	KeyFnName, _   = tag.NewKey("fnname")
+	KeyFnName, _   = tag.NewKey("matchfunction")
 	KeySeverity, _ = tag.NewKey("severity")
 )
 
@@ -92,16 +98,40 @@ var (
 var (
 	FnLogCountView = &view.View{
 		Name:        "log_lines/total",
-		Measure:     FnLogLines,
+		Measure:     HarnessLogLines,
 		Description: "The number of lines logged",
 		Aggregation: view.Count(),
-		TagKeys:     []tag.Key{KeySeverity, KeyFnName},
+		TagKeys:     []tag.Key{KeySeverity, KeyMethod},
 	}
 
-	FnRequestsCountView = &view.View{
+	HarnessRequestCountView = &view.View{
+		Name:        "harness/requests",
+		Measure:     HarnessRequests,
+		Description: "The number of successful harness run requests",
+		Aggregation: view.Count(),
+		TagKeys:     []tag.Key{KeyMethod, KeyFnName},
+	}
+
+	HarnessFailureCountView = &view.View{
+		Name:        "harness/failures",
+		Measure:     HarnessFailures,
+		Description: "The number of failed harness run requests",
+		Aggregation: view.Count(),
+		TagKeys:     []tag.Key{KeyMethod, KeyFnName},
+	}
+
+	HarnessLatencyView = &view.View{
+		Name:        "harness/latency",
+		Measure:     HarnessLatencySec,
+		Description: "The distribution of harness run latencies",
+		Aggregation: latencyDistribution,
+		TagKeys:     []tag.Key{KeyMethod, KeyFnName},
+	}
+
+	FnRequestCountView = &view.View{
 		Name:        "matchfunction/requests",
 		Measure:     FnRequests,
-		Description: "The number of requests",
+		Description: "The number of matchfunction requests",
 		Aggregation: view.Count(),
 		TagKeys:     []tag.Key{KeyFnName},
 	}
@@ -109,8 +139,16 @@ var (
 	FnFailureCountView = &view.View{
 		Name:        "matchfunction/failures",
 		Measure:     FnFailures,
-		Description: "The number of failures",
+		Description: "The number of matchfunction failures",
 		Aggregation: view.Count(),
+		TagKeys:     []tag.Key{KeyFnName},
+	}
+
+	FnLatencyView = &view.View{
+		Name:        "matchfunction/latency",
+		Measure:     FnLatencySec,
+		Description: "The distribution of matchfunction latencies",
+		Aggregation: latencyDistributionSecs,
 		TagKeys:     []tag.Key{KeyFnName},
 	}
 )
@@ -118,6 +156,10 @@ var (
 // DefaultFunctionAPIViews are the default mmf API OpenCensus measure views.
 var DefaultFunctionViews = []*view.View{
 	FnLogCountView,
-	FnRequestsCountView,
+	HarnessRequestCountView,
+	HarnessFailureCountView,
+	HarnessLatencyView,
+	FnRequestCountView,
 	FnFailureCountView,
+	FnLatencyView,
 }
