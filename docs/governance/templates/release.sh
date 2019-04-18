@@ -17,7 +17,6 @@ IMAGE_NAMES="openmatch-backendapi openmatch-frontendapi openmatch-mmforc openmat
 for name in $IMAGE_NAMES
 do
     source_image=gcr.io/$SOURCE_PROJECT_ID/$name:$SOURCE_VERSION
-    dest_image=gcr.io/$DEST_PROJECT_ID/$name:$DEST_PROJECT_ID
     dest_image=gcr.io/$DEST_PROJECT_ID/$name:$DEST_VERSION
     dest_image_latest=gcr.io/$DEST_PROJECT_ID/$name:latest
     docker pull $source_image
