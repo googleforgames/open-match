@@ -32,7 +32,7 @@ import (
 // This is the function signature for the function to be implemented by the user.
 // The harness will pass the Rosters and PlayerPool for the match profile to this
 // function and it will return the Rosters to be populated in the proposal.
-type MatchFunction func(context.Context, string, []*pb.Roster, []*pb.PlayerPool) (string, []*pb.Roster, error)
+type MatchFunction func(context.Context, *log.Entry, string, []*pb.Roster, []*pb.PlayerPool) (string, []*pb.Roster, error)
 
 // MatchFunctionServer implements pb.MatchFunctionServer, the server generated
 // by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
