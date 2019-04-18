@@ -9,10 +9,38 @@ Release Notes
 
 { insert enhancements from the changelog and/or security and breaking changes }
 
+**Breaking Changes**
+ * API Changed #PR
+
+**Enhancements**
+ * New Harness #PR
+
+**Security Fixes**
+ * Reduced privileges required for MMF. #PR
+
+See [CHANGELOG](https://github.com/GoogleCloudPlatform/open-match/blob/release-{version}/CHANGELOG.md) for more details on changes.
+
 Images
 ------
 
-See [CHANGELOG](https://github.com/GoogleCloudPlatform/open-match/blob/release-{version}/CHANGELOG.md) for more details on changes.
+```bash
+# Servers
+docker pull gcr.io/open-match-public-images/openmatch-backendapi:{version}
+docker pull gcr.io/open-match-public-images/openmatch-frontendapi:{version}
+docker pull gcr.io/open-match-public-images/openmatch-mmforc:{version}
+docker pull gcr.io/open-match-public-images/openmatch-mmlogicapi:{version}
+
+# Evaluators
+docker pull gcr.io/open-match-public-images/openmatch-evaluator-serving:{version}
+
+# Sample Match Making Functions
+docker pull gcr.io/open-match-public-images/openmatch-mmf-go-grpc-serving-simple:{version}
+
+# Test Clients
+docker pull gcr.io/open-match-public-images/openmatch-backendclient:{version}
+docker pull gcr.io/open-match-public-images/openmatch-clientloadgen:{version}
+docker pull gcr.io/open-match-public-images/openmatch-frontendclient:{version}
+```
 
 _This software is currently alpha, and subject to change. Not to be used in production systems._
 

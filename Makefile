@@ -717,6 +717,9 @@ build/release/: presubmit clean-install-yaml install/yaml/
 
 release: build/release/
 
+clean-release:
+	rm -rf build/release/
+
 clean-site:
 	rm -rf build/site/
 
@@ -758,7 +761,7 @@ clean-install-yaml:
 	rm -f install/yaml/03-prometheus-chart.yaml
 	rm -f install/yaml/04-grafana-chart.yaml
 
-clean: clean-images clean-binaries clean-site clean-toolchain clean-protos clean-nodejs clean-install-yaml
+clean: clean-images clean-binaries clean-site clean-release clean-toolchain clean-protos clean-nodejs clean-install-yaml
 
 run-backendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) $(KUBECTL_RUN_ENV)

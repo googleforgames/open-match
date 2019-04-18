@@ -3,22 +3,50 @@
 <!--
 This is the release issue template. Make a copy of the markdown in this page
 and copy it into a release issue. Fill in relevent values, found inside {}
+{version} should be replaced with the version ie: 0.5.0.
+
+There are 3 types of releases:
+ * Release Candidates - 1.0.0-rc1
+ * Full Releases - 1.2.0
+ * Hot Fixes - 1.0.1
+
+# Release Candidate and Full Release Process
+
+1. Create a Release Issue from the [release issue template](./templates/release_issue.md).
+1. Label the issue `kind/release`, and attach it to the milestone that it matches.
+1. Complete all items in the release issue checklist.
+1. Close the release issue.
+
+# Hot Fix Process
+ 
+1. Hotfixes will occur as needed, to be determined by those will commit access on the repository.
+1. Create a Release Issue from the [release issue template](./templates/release_issue.md).
+1. Label the issue `kind/release`, and attach it to the next upcoming milestone.
+1. Complete all items in the release issue checklist.
+1. Close the release issue.
+
 !-->
 Complete Milestone
 ------------------
-
-- [ ] Create the next version milestone, use [semantic versioning](https://semver.org/) when naming it to be consistent with the community.
+- [ ] Create the next version milestone, use [semantic versioning](https://semver.org/) when naming it to be consistent with the [Go community](https://blog.golang.org/versioning-proposal).
 - [ ] Visit the [milestone](https://github.com/GoogleCloudPlatform/open-match/milestone).
-  - [ ] Review closed issues have appropriate tags.
-  - [ ] Review closed issues have been applied to the current milestone.
-  - [ ] Review closed PRs have appropriate tags.
-  - [ ] Review closed PRs have been applied to the current milestone.
-  - [ ] Any issues in the current milestone that are not closed, move to next milestone.
+  - [ ] Open a document for a draft [release notes](release.md).
+  - [ ] Add the milestone tag to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/GoogleCloudPlatform/open-match/releases) and look for the "X commits to master since this release" for the diff. The link resolves to, https://github.com/GoogleCloudPlatform/open-match/compare/v{version}...master.
+  - [ ] Review all [milestone-less closed issues](https://github.com/GoogleCloudPlatform/open-match/issues?q=is%3Aissue+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
+  - [ ] Review all [issues in milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) for proper [labels](https://github.com/GoogleCloudPlatform/open-match/labels) (ex: area/build).
+  - [ ] Review all [milestone-less closed PRs](https://github.com/GoogleCloudPlatform/open-match/pulls?q=is%3Apr+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
+  - [ ] Review all [PRs in milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) for proper [labels](https://github.com/GoogleCloudPlatform/open-match/labels) (ex: area/build).
+  - [ ] View all open entries in milestone and move them to a future milestone if they aren't getting closed in time. https://github.com/GoogleCloudPlatform/open-match/milestones/v{version}
+  - [ ] Review all closed PRs against the milestone. Put the user visible changes into the release notes using the suggested format. https://github.com/GoogleCloudPlatform/open-match/pulls?q=is%3Apr+is%3Aclosed+milestone%3Av{version}
+  - [ ] Review all closed issues against the milestone. Put the user visible changes into the release notes using the suggested format. https://github.com/GoogleCloudPlatform/open-match/issues?utf8=%E2%9C%93&q=is%3Aissue+is%3Aclosed+milestone%3Av{version}
+  - [ ] Verify the [milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) is effectively 100% at this point with the exception of the release issue itself.
+
+TODO: Add details for appropriate tagging for issues.
 
 Build Artifacts
 ---------------
 - [ ] Create a PR to bump the version.
-  - [ ] Open the [`Makefile`](makefile-version) and change BASE_VERSION value.
+  - [ ] Open the [`Makefile`](makefile-version) and change BASE_VERSION value. Release candidates use the -rc# suffix.
   - [ ] Open the [`install/helm/open-match/Chart.yaml`](om-chart-yaml-version) and [`install/helm/open-match-example/Chart.yaml`](om-example-chart-yaml-version) and change the `appVersion` and `version` entries.
   - [ ] Open the [`install/helm/open-match/values.yaml`](om-values-yaml-version) and [`install/helm/open-match-example/values.yaml`](om-example-values-yaml-version) and change the `tag` entries.
   - [ ] Open the [`site/config.toml`]  and change the `release_branch` and `release_version` entries.
@@ -39,7 +67,7 @@ Build Artifacts
 
 Announce
 --------
-- [ ] Send an email to the [mailing list][mailing-list-post] with the release details (copy-paste the release blog post)
+- [ ] Send an email to the [mailing list](mailing-list-post) with the release details (copy-paste the release blog post)
 - [ ] Send a chat on the [Slack channel](om-slack). "Open Match {version} has been released! Check it out at {release url}."
 
 [om-slack]: https://open-match.slack.com/
