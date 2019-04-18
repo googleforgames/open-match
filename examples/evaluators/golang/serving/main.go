@@ -37,8 +37,13 @@ func main() {
 	harness.RunEvaluator(Evaluate)
 }
 
+// Evaluate is where your custom evaluation logic lives.
+// Input:
+//  - proposals : List of all the proposals to be consiered for evaluation. Each proposal will have 
+//                Rosters comprising of the players belonging to that proposal. 
+// Output:
+//  - (proposals) : List of approved proposal IDs that can be returned as match results.
 func Evaluate(ctx context.Context, proposals []*pb.MatchObject) ([]string, error) {
-
 	// Map of approved and overloaded proposals. Using maps for easier lookup.
 	approvedProposals := make(map[string]bool)
 	overloadedProposals := make(map[string]bool)

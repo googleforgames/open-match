@@ -37,9 +37,9 @@ import (
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
+
 	"github.com/gomodule/redigo/redis"
 	"go.opencensus.io/tag"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -135,7 +135,7 @@ func (s *Evaluator) EvaluateForever() {
 
 		// A sleep here is not critical but just a useful safety valve in case
 		// things are broken, to keep the main loop from going all-out and spamming the log.
-		logger.WithFields(log.Fields{"elapsed": time.Since(cycleStart)}).Info("Evaluation complete. Sleeping for 1 sec.")
+		logger.WithFields(log.Fields{"elapsed ": time.Since(cycleStart)}).Info("Evaluation complete. Sleeping for 1 sec.")
 		time.Sleep(time.Duration(1000) * time.Millisecond)
 	}
 }
@@ -185,11 +185,11 @@ func (s *Evaluator) evaluator(ctx context.Context) error {
 		proposalMap[p.Id] = p
 	}
 
-	// Arrays used to look for rejected players
+	// Lists of approved and rejected players
 	approvedPlayers := []string{}
 	potentiallyRejectedPlayers := []string{}
 
-	// Run redis commands to approve matches
+	// Approve proposals by renaming proposals (with results and rosters populated) to expected match ID.
 	for _, proposalID := range approvedProposals {
 		// The proposal is marked as a result by updating its name to the result name expected by the backend API.
 		// Sample proposal id: proposal.80e43fa085844eebbf53fc736150ef96.testprofile
@@ -202,7 +202,7 @@ func (s *Evaluator) evaluator(ctx context.Context) error {
 		a := getPlayersInProposal(proposalMap[proposalID])
 		approvedPlayers = append(approvedPlayers, a...)
 
-		// Approve the match
+		// Approve the proposal
 		logger.Infof("approving proposalID: %v -> %v", proposalID, resultID)
 		_, err = redisConn.Do("RENAME", proposalID, resultID)
 		if err != nil {
@@ -211,7 +211,9 @@ func (s *Evaluator) evaluator(ctx context.Context) error {
 		}
 	}
 
+	// To reject a proposal, remove any roster from the proposal, set error message and rename to expected match ID.
 	rejectedProposals := set.Difference(proposalIds, approvedProposals)
+	logger.Infof("List of rejected proposals: %v", rejectedProposals)
 	for _, proposalID := range rejectedProposals {
 		values := strings.Split(proposalID, ".")
 		moID, proID := values[1], values[2]
@@ -219,23 +221,23 @@ func (s *Evaluator) evaluator(ctx context.Context) error {
 
 		pr := getPlayersInProposal(proposalMap[proposalID])
 		potentiallyRejectedPlayers = append(potentiallyRejectedPlayers, pr...)
-		logger.Infof("approving proposalID: %v -> %v", proposalID, resultID)
+		logger.Infof("rejecting proposalID: %v -> %v", proposalID, resultID)
 
 		// Set error message
-		_, err = redisConn.Do("HSET", proposalID, "error", "Proposed match rejected due to player conflict")
+		_, err = redisConn.Do("HSET", proposalID, "error", "Proposed match rejected")
 		if err != nil {
-			logger.Errorf("Failure to set rejected error for proposal %v", err, proposalID)
+			logger.Errorf("Failure to set rejected error for proposal %v, %v", proposalID, err)
 		}
 
 		// Remove any rosters
 		_, err = redisConn.Do("HSET", proposalID, "rosters", "")
 		if err != nil {
-			logger.Errorf("Failure to delete rejected rosters for proposal %v", err, proposalID)
+			logger.Errorf("Failure to delete rejected rosters for proposal %v, %v", proposalID, err)
 		}
 
 		_, err = redisConn.Do("RENAME", proposalID, resultID)
 		if err != nil {
-			logger.Errorf("Failure to delete rejected proposal for proposal %v", err, proposalID)
+			logger.Errorf("Failure to delete rejected proposal for proposal %v, %v", proposalID, err)
 		}
 	}
 
@@ -248,7 +250,7 @@ func (s *Evaluator) evaluator(ctx context.Context) error {
 		logger.Info("Removing rejectedPlayers from 'proposed' ignorelist")
 		err = ignorelist.Remove(redisConn, "proposed", rejectedPlayers)
 		if err != nil {
-			logger.Error("Failed to remove rejected players from ignorelist", err)
+			logger.Errorf("Failed to remove rejected players from ignorelist, %v", err)
 		}
 	} else {
 		logger.Infof("No rejected players to re-queue!")
