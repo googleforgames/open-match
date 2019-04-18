@@ -33,19 +33,22 @@ func createClient(lh *netlistener.ListenerHolder) (pb.FrontendClient, error) {
 
 // TestOpenClose verifies the gRPC server can be created in process, communicated with, and shut down.
 func TestOpenClose(t *testing.T) {
-	lh := netlistenerTesting.MustListen()
+	serviceLh := netlistenerTesting.MustListen()
+	proxyLh := netlistenerTesting.MustListen()
 	fakeService := &servingTesting.FakeFrontend{}
-	server := serving.NewGrpcServer(lh, createLogger())
+	server := serving.NewGrpcServer(serviceLh, proxyLh, createLogger())
+
 	server.AddService(func(server *grpc.Server) {
 		pb.RegisterFrontendServer(server, fakeService)
 	})
+	server.AddProxy(pb.RegisterFrontendHandlerFromEndpoint)
 
 	err := server.Start()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := createClient(lh)
+	client, err := createClient(serviceLh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +64,7 @@ func TestOpenClose(t *testing.T) {
 	server.Stop()
 
 	// Re-open the port to ensure it's free.
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", lh.Number()))
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", serviceLh.Number()))
 	if err != nil {
 		t.Errorf("grpc server is still running! Result= %v Error= %s", ln, err)
 	}
@@ -69,4 +72,10 @@ func TestOpenClose(t *testing.T) {
 	if err == nil {
 		t.Errorf("grpc server is still running! Result= %v Error= %s", result, err)
 	}
+	// Re-open the proxyPort to ensure it's free.
+	ln, err = net.Listen("tcp6", fmt.Sprintf(":%d", proxyLh.Number()))
+	if err != nil {
+		t.Errorf("grpc proxy is still running! Result= %v Error= %s", ln, err)
+	}
+
 }

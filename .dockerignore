@@ -77,6 +77,9 @@ site/resources/_gen/
 # Node Modules
 node_modules/
 
+# Install YAML files, Helm is the source of truth for configuration.
+install/yaml/
+
 # Temp Directories
 tmp/
 
