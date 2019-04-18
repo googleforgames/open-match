@@ -33,9 +33,6 @@ RUN export CLOUD_SDK_REPO="cloud-sdk-stretch" && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
     apt-get update -y && apt-get install google-cloud-sdk -y -qq
 
-RUN mkdir -p /toolchain
-RUN mkdir -p /workspace
-
 # Install Golang
 # https://github.com/docker-library/golang/blob/fd272b2b72db82a0bd516ce3d09bba624651516c/1.12/stretch/Dockerfile
 
@@ -50,6 +47,9 @@ ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 RUN sudo mkdir -p "$GOPATH/src" "$GOPATH/bin" \
   && sudo chmod -R 777 "$GOPATH"
 
-ENV ALLOW_BUILD_WITH_SUDO=1
-WORKDIR /workspace
+# Prepare toolchain and workspace
+RUN mkdir -p /toolchain
+RUN mkdir -p /workspace
 
+WORKDIR /workspace
+ENV ALLOW_BUILD_WITH_SUDO=1
