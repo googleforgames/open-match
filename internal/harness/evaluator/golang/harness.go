@@ -26,7 +26,6 @@ package harness
 
 import (
 	"fmt"
-	"net"
 
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/harness/evaluator/golang/apisrv"
@@ -123,22 +122,17 @@ func newEvaluator(fn apisrv.EvaluateFunction) (*apisrv.Evaluator, error) {
 func getMMLogicClient(cfg config.View) (pb.MmLogicClient, error) {
 	host := cfg.GetString("api.mmlogic.hostname")
 	if len(host) == 0 {
-		return nil, fmt.Errorf("Failed to get hostname for MMLogicAPI from the environment")
+		return nil, fmt.Errorf("Failed to get hostname for MMLogicAPI from the configuration")
 	}
 
 	port := cfg.GetString("api.mmlogic.port")
 	if len(port) == 0 {
-		return nil, fmt.Errorf("Failed to get port for MMLogicAPI from the environment")
+		return nil, fmt.Errorf("Failed to get port for MMLogicAPI from the configuration")
 	}
 
-	ip, err := net.LookupHost(host)
-	if err != nil || len(ip) == 0 {
-		return nil, fmt.Errorf("Failed to get IP for MMLogicAPI, %v", err)
-	}
-
-	conn, err := grpc.Dial(fmt.Sprintf("%v:%v", ip, port), grpc.WithInsecure())
+	conn, err := grpc.Dial(fmt.Sprintf("%v:%v", host, port), grpc.WithInsecure())
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to %v, %v", fmt.Sprintf("%v:%v", ip, port), err)
+		return nil, fmt.Errorf("failed to connect to %v, %v", fmt.Sprintf("%v:%v", host, port), err)
 	}
 
 	return pb.NewMmLogicClient(conn), nil
