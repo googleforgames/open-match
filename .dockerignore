@@ -91,6 +91,7 @@ cmd/mmforc/mmforc
 cmd/mmlogicapi/mmlogicapi
 examples/backendclient/backendclient
 examples/evaluators/golang/simple/simple
+examples/evaluators/golang/serving/serving
 examples/functions/golang/manual-simple/manual-simple
 examples/functions/golang/grpc-serving/grpc-serving
 test/cmd/clientloadgen/clientloadgen

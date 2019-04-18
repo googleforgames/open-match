@@ -47,18 +47,19 @@
 #    https://github.com/GoogleCloudPlatform/cloud-builders/tree/master/go
 
 steps:
+# Blocked by https://github.com/GoogleContainerTools/kaniko/issues/477
 - id: 'Docker Image: open-match-build'
-  name: gcr.io/cloud-builders/docker
-  args: ['build', '-t', 'open-match-build', '-f', 'Dockerfile.ci', '.']
+  name: gcr.io/kaniko-project/executor
+  args: ['--destination=gcr.io/$PROJECT_ID/open-match-build', '--cache=true', '--cache-ttl=6h', '--dockerfile=Dockerfile.ci', '.']
   waitFor: ['-']
 
 - id: 'Build: Clean'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'clean']
   waitFor: ['Docker Image: open-match-build']
 
 - id: 'Setup: Download Dependencies'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'sync-deps']
   volumes:
   - name: 'go-vol'
@@ -66,7 +67,7 @@ steps:
   waitFor: ['Build: Clean']
 
 - id: 'Build: Install Toolchain'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'install-toolchain']
   volumes:
   - name: 'go-vol'
@@ -74,7 +75,7 @@ steps:
   waitFor: ['Setup: Download Dependencies']
 
 - id: 'Build: Protocol Buffers'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'all-protos']
   volumes:
   - name: 'go-vol'
@@ -82,59 +83,59 @@ steps:
   waitFor: ['Build: Install Toolchain']
 
 - id: 'Lint: Format'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'fmt']
   volumes:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Protocol Buffers']
 - id: 'Lint: Vet'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'vet']
   volumes:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Binaries'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'GOPROXY=off', 'all', '-j8']
   volumes:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Protocol Buffers']
-- id: 'Build: Test'
-  name: open-match-build
+- id: 'Test: Core'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'GOPROXY=off', 'test-in-ci']
   volumes:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Docker Images'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'build-images', '-j8']
   waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Push Images'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'push-images', '-j8']
   waitFor: ['Build: Docker Images']
 
 - id: 'Build: Generate Kubernetes Deployment Configs'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'clean-install-yaml', 'install/yaml/']
   waitFor: ['Build: Install Toolchain']
 
 - id: 'Build: Website'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'build/site/']
   waitFor: ['Build: Install Toolchain']
 
 - id: 'Test: Website'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'site-test']
   waitFor: ['Build: Website']
 
 - id: 'Deploy: Website'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', VERSION_SUFFIX=$SHORT_SHA', 'ci-deploy-dev-site']
   waitFor: ['Test: Website', 'Build: Binaries']
   volumes:
@@ -142,17 +143,17 @@ steps:
     path: '/go'
 
 #- id: 'Deploy: Create Cluster'
-#  name: open-match-build
+#  name: 'gcr.io/$PROJECT_ID/open-match-build'
 #  args: ['make', 'create-gke-cluster', 'push-helm']
 #  waitFor: ['Build: Docker Images']
 
 #- id: 'Deploy: Install Charts'
-#  name: open-match-build
+#  name: 'gcr.io/$PROJECT_ID/open-match-build'
 #  args: ['make', 'sleep-10', 'install-chart', 'install-example-chart']
 #  waitFor: ['Deploy: Create Cluster']
 
 #- id: 'Deploy: Teardown Cluster'
-#  name: open-match-build
+#  name: 'gcr.io/$PROJECT_ID/open-match-build'
 #  args: ['make', 'sleep-10', 'delete-gke-cluster']
 #  waitFor: ['Deploy: Install Charts']
 
@@ -167,6 +168,7 @@ artifacts:
             - cmd/mmlogicapi/mmlogicapi
             - examples/functions/golang/manual-simple/manual-simple
             - examples/functions/golang/grpc-serving/grpc-serving
+            - examples/evaluators/golang/serving/serving
             - examples/backendclient/backendclient
             - test/cmd/clientloadgen/clientloadgen
             - test/cmd/frontendclient/frontendclient
@@ -178,6 +180,7 @@ images:
 - 'gcr.io/$PROJECT_ID/openmatch-mmforc:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmlogicapi:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-evaluator-simple:${_OM_VERSION}-${SHORT_SHA}'
+- 'gcr.io/$PROJECT_ID/openmatch-evaluator-serving:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-cs-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-go-mmlogic-simple:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-go-grpc-serving-simple:${_OM_VERSION}-${SHORT_SHA}'
