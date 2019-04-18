@@ -24,10 +24,14 @@ openmatch:
     install: true
     grpc:
       port: 50505
+    proxy:
+      port: 51505
   frontendapi:
     install: true
     grpc:
       port: 50504
+    proxy:
+      port: 51504
   mmforc:
     install: true
     serviceAccount: mmforc-job-runner
@@ -35,6 +39,8 @@ openmatch:
     install: true
     grpc:
       port: 50503
+    proxy:
+      port: 51503
   config:
     install: true
     mountPath: /config
