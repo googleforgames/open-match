@@ -166,7 +166,7 @@ push-service-images: push-minimatch-image push-frontendapi-image push-backendapi
 # TODO: push-mmf-php-mmlogic-simple-image
 push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-image push-mmf-go-grpc-serving-simple-image push-mmf-py3-mmlogic-simple-image
 push-client-images: push-backendclient-image push-clientloadgen-image push-frontendclient-image
-push-evaluator-example-images: push-evaluator-simple-image
+push-evaluator-example-images: push-evaluator-simple-image push-evaluator-serving-image
 
 push-minimatch-image: docker build-minimatch-image
 	docker push $(REGISTRY)/openmatch-minimatch:$(TAG)
@@ -224,12 +224,16 @@ push-evaluator-simple-image: docker build-evaluator-simple-image
 	docker push $(REGISTRY)/openmatch-evaluator-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG)
 
+push-evaluator-serving-image: build-evaluator-serving-image
+	docker push $(REGISTRY)/openmatch-evaluator-serving:$(TAG)
+	docker push $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG)
+
 build-images: build-service-images build-client-images build-mmf-example-images build-evaluator-example-images
 build-service-images: build-minimatch-image build-frontendapi-image build-backendapi-image build-mmforc-image build-mmlogicapi-image
 build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
 # TODO build-mmf-php-mmlogic-simple-image
 build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-go-grpc-serving-simple-image build-mmf-py3-mmlogic-simple-image
-build-evaluator-example-images: build-evaluator-simple-image
+build-evaluator-example-images: build-evaluator-simple-image build-evaluator-serving-image
 
 build-base-build-image: docker
 	docker build -f Dockerfile.base-build -t open-match-base-build .
@@ -276,6 +280,9 @@ build-frontendclient-image: docker build-base-build-image
 build-evaluator-simple-image: docker build-base-build-image
 	docker build -f examples/evaluators/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-evaluator-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG) .
 
+build-evaluator-serving-image: build-base-build-image
+	docker build -f examples/evaluators/golang/serving/Dockerfile -t $(REGISTRY)/openmatch-evaluator-serving:$(TAG) -t $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG) .
+
 clean-images: docker
 	-docker rmi -f open-match-base-build
 
@@ -294,6 +301,7 @@ clean-images: docker
 	-docker rmi -f $(REGISTRY)/openmatch-clientloadgen:$(TAG) $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontendclient:$(TAG) $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator-simple:$(TAG) $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-evaluator-serving:$(TAG) $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG)
 
 install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug $(REDIS_NAME) stable/redis --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
@@ -634,6 +642,9 @@ examples/backendclient/backendclient: internal/pb/backend.pb.go
 examples/evaluators/golang/simple/simple: internal/pb/messages.pb.go
 	cd examples/evaluators/golang/simple; $(GO_BUILD_COMMAND)
 
+examples/evaluators/golang/serving/serving: internal/pb/messages.pb.go
+	cd examples/evaluators/golang/serving; $(GO_BUILD_COMMAND)
+
 examples/functions/golang/manual-simple/manual-simple: internal/pb/messages.pb.go
 	cd examples/functions/golang/manual-simple; $(GO_BUILD_COMMAND)
 
@@ -695,7 +706,7 @@ service-binaries: cmd/minimatch/minimatch cmd/backendapi/backendapi cmd/frontend
 client-binaries: examples/backendclient/backendclient test/cmd/clientloadgen/clientloadgen test/cmd/frontendclient/frontendclient
 example-binaries: example-mmf-binaries example-evaluator-binaries
 example-mmf-binaries: examples/functions/golang/manual-simple/manual-simple examples/functions/golang/grpc-serving/grpc-serving
-example-evaluator-binaries: examples/evaluators/golang/simple/simple
+example-evaluator-binaries: examples/evaluators/golang/simple/simple examples/evaluators/golang/serving/serving
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: sync-deps clean-protos all-protos fmt vet build test
@@ -724,6 +735,7 @@ clean-binaries:
 	rm -rf cmd/mmlogicapi/mmlogicapi
 	rm -rf examples/backendclient/backendclient
 	rm -rf examples/evaluators/golang/simple/simple
+	rm -rf examples/evaluators/golang/serving/serving
 	rm -rf examples/functions/golang/manual-simple/manual-simple
 	rm -rf examples/functions/golang/grpc-serving/grpc-serving
 	rm -rf test/cmd/clientloadgen/clientloadgen
