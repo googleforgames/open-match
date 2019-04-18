@@ -87,16 +87,14 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 	moID := xid.New().String()
 	requestKey := moID + "." + profile.Id
 
-	/*
-		// Debugging logs
-		beLog.Info("Pools nil? ", (profile.Pools == nil))
-		beLog.Info("Pools empty? ", (len(profile.Pools) == 0))
-		beLog.Info("Rosters nil? ", (profile.Rosters == nil))
-		beLog.Info("Rosters empty? ", (len(profile.Rosters) == 0))
-		beLog.Info("config set for json.pools?", s.cfg.IsSet("jsonkeys.pools"))
-		beLog.Info("contents key?", s.cfg.GetString("jsonkeys.pools"))
-		beLog.Info("contents exist?", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).Exists())
-	*/
+	// Debugging logs
+	beLog.Trace("Pools nil? ", (profile.Pools == nil))
+	beLog.Trace("Pools empty? ", (len(profile.Pools) == 0))
+	beLog.Trace("Rosters nil? ", (profile.Rosters == nil))
+	beLog.Trace("Rosters empty? ", (len(profile.Rosters) == 0))
+	beLog.Trace("config set for json.pools?", s.cfg.IsSet("jsonkeys.pools"))
+	beLog.Trace("contents key?", s.cfg.GetString("jsonkeys.pools"))
+	beLog.Trace("contents exist?", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).Exists())
 
 	// Case where no protobuf pools was passed; check if there's a JSON version in the properties.
 	// This is for backwards compatibility, it is recommended you populate the protobuf's
@@ -105,7 +103,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 		gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).Exists() {
 		poolsJSON := fmt.Sprintf("{\"pools\": %v}", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).String())
 		ppLog := beLog.WithFields(log.Fields{"jsonkey": s.cfg.GetString("jsonkeys.pools")})
-		ppLog.Info("poolsJSON: ", poolsJSON)
+		ppLog.Debug("poolsJSON: ", poolsJSON)
 
 		ppools := &pb.MatchObject{}
 		err := jsonpb.UnmarshalString(poolsJSON, ppools)
@@ -113,7 +111,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 			ppLog.Error("failed to parse JSON to protobuf pools")
 		} else {
 			profile.Pools = ppools.Pools
-			ppLog.Info("parsed JSON to protobuf pools")
+			ppLog.Debug("parsed JSON to protobuf pools")
 		}
 	}
 
@@ -142,9 +140,9 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 		"matchObjectID": moID,
 		"requestKey":    requestKey,
 	})
-	beLog.Info("gRPC call executing")
-	beLog.Info("profile is")
-	beLog.Info(profile)
+	beLog.WithFields(log.Fields{
+		"profile": profile,
+	}).Info("gRPC call executing")
 
 	// Write profile to state storage
 	err := redispb.MarshalToRedis(ctx, s.pool, profile, s.cfg.GetInt("redis.expirations.matchobject"))
@@ -157,7 +155,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 		// Failure! Return empty match object and the error
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
-	beLog.Info("Profile written to state storage")
+	beLog.Trace("Profile written to state storage")
 
 	// Queue the request ID to be sent to an MMF
 	_, err = redishelpers.Update(ctx, s.pool, s.cfg.GetString("queues.profiles.name"), requestKey)
@@ -170,7 +168,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 		// Failure! Return empty match object and the error
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
-	beLog.Info("Profile added to processing queue")
+	beLog.Trace("Profile added to processing queue")
 
 	watcherBO := backoff.NewExponentialBackOff()
 	if err := expbo.UnmarshalExponentialBackOff(s.cfg.GetString("api.backend.backoff"), watcherBO); err != nil {
