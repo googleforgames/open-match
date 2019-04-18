@@ -17,10 +17,11 @@ type BindingFunc func(*OpenMatchServer)
 
 // ServerParams is a collection of parameters used to create an Open Match server.
 type ServerParams struct {
-	BaseLogFields      log.Fields
-	PortConfigName     string
-	CustomMeasureViews []*view.View
-	Bindings           []BindingFunc
+	BaseLogFields         log.Fields
+	ServicePortConfigName string
+	ProxyPortConfigName   string
+	CustomMeasureViews    []*view.View
+	Bindings              []BindingFunc
 }
 
 // MustNew panics if an OpenMatchServer cannot be created.
@@ -82,13 +83,19 @@ func NewMulti(paramsList []*ServerParams) (*OpenMatchServer, error) {
 	}
 
 	// Instantiate the gRPC server with the bindings we've made.
-	grpcLh, err := netlistener.NewFromPortNumber(cfg.GetInt(paramsList[0].PortConfigName))
+	grpcLh, err := netlistener.NewFromPortNumber(cfg.GetInt(paramsList[0].ServicePortConfigName))
 	if err != nil {
 		logger.Fatal(err)
 		return nil, err
 	}
 
-	grpcServer := NewGrpcServer(grpcLh, logger)
+	proxyLh, err := netlistener.NewFromPortNumber(cfg.GetInt(paramsList[0].ProxyPortConfigName))
+	if err != nil {
+		logger.Fatal(err)
+		return nil, err
+	}
+
+	grpcServer := NewGrpcServer(grpcLh, proxyLh, logger)
 
 	omServer := &OpenMatchServer{
 		GrpcServer: grpcServer,

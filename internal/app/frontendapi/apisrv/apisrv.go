@@ -60,6 +60,7 @@ func Bind(omSrv *serving.OpenMatchServer) {
 	omSrv.GrpcServer.AddService(func(server *grpc.Server) {
 		pb.RegisterFrontendServer(server, handler)
 	})
+	omSrv.GrpcServer.AddProxy(pb.RegisterFrontendHandlerFromEndpoint)
 }
 
 // CreatePlayer is this service's implementation of the CreatePlayer gRPC method defined in frontend.proto

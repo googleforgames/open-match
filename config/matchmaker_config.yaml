@@ -11,15 +11,19 @@ api:
     hostname: om-backendapi
     port: 50505
     backoff: "[2 32] *2 ~0.33 <30"
+    proxyport: 51505
   frontend: 
     hostname: om-frontendapi
     port: 50504
     backoff: "[2 32] *2 ~0.33 <300"
+    proxyport: 51504
   mmlogic: 
     hostname: om-mmlogicapi
     port: 50503
+    proxyport: 51503
   functions:
     port: 50502
+    proxyport: 51502
   
 evalutor: 
   interval: 10
