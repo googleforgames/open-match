@@ -125,17 +125,17 @@ steps:
   waitFor: ['Build: Install Toolchain']
 
 - id: 'Build: Website'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'build/site/']
   waitFor: ['Build: Install Toolchain']
 
 - id: 'Test: Website'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'site-test']
   waitFor: ['Build: Website']
 
 - id: 'Deploy: Website'
-  name: open-match-build
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', VERSION_SUFFIX=$SHORT_SHA', 'ci-deploy-dev-site']
   waitFor: ['Test: Website', 'Build: Binaries']
   volumes:
