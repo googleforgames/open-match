@@ -40,10 +40,10 @@ import (
 
 // HarnessParams is a collection of parameters used to create a MatchFunction server.
 type HarnessParams struct {
-	FunctionName   string
+	FunctionName          string
 	ServicePortConfigName string
-	ProxyPortConfigName string
-	Func           apisrv.MatchFunction
+	ProxyPortConfigName   string
+	Func                  apisrv.MatchFunction
 }
 
 // ServeMatchFunction is a hook for the main() method in the main executable.

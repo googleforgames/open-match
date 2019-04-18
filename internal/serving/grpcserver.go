@@ -63,7 +63,6 @@ func (gw *GrpcWrapper) Start() error {
 		gw.logger.WithFields(log.Fields{
 			"error":       err.Error(),
 			"servicePort": gw.serviceLh.Number(),
->>>>>>> 4070912b07145d382a573034b0cbc93ecdcac42a
 		}).Error("net.Listen() error")
 		return err
 	}
