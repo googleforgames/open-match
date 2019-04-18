@@ -369,7 +369,7 @@ install/yaml/02-open-match.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.noChartMeta=true \
 		install/helm/open-match > install/yaml/02-open-match.yaml
 
-install/yaml/03-prometheus-chart.yaml:
+install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
@@ -380,7 +380,7 @@ install/yaml/03-prometheus-chart.yaml:
 		--set grafana.enabled=false \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
-install/yaml/04-grafana-chart.yaml:
+install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
@@ -392,14 +392,14 @@ install/yaml/04-grafana-chart.yaml:
 		--set grafana.enabled=true \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
 
-install/yaml/install.yaml:
+install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=true \
 		--set prometheus.enabled=true \
 		--set grafana.enabled=true \
 		install/helm/open-match > install/yaml/install.yaml
 
-install/yaml/install-example.yaml:
+install/yaml/install-example.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template --name $(OPEN_MATCH_EXAMPLE_CHART_NAME) --namespace $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) \
 		install/helm/open-match-example > install/yaml/install-example.yaml
 
@@ -530,7 +530,7 @@ internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_E
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
-examples/functions/php/mmlogic-simple/proto/:
+examples/functions/php/mmlogic-simple/proto/: build/toolchain/bin/protoc$(EXE_EXTENSION)
 	mkdir -p examples/functions/php/mmlogic-simple/proto/
 	$(PROTOC) api/protobuf-spec/messages.proto \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
@@ -677,7 +677,9 @@ client-binaries: examples/backendclient/backendclient test/cmd/clientloadgen/cli
 example-binaries: example-mmf-binaries example-evaluator-binaries
 example-mmf-binaries: examples/functions/golang/manual-simple/manual-simple examples/functions/golang/grpc-serving/grpc-serving
 example-evaluator-binaries: examples/evaluators/golang/simple/simple
-presubmit: fmt vet build test
+
+# For presubmit we want to update the protobuf generated files and verify that tests are good.
+presubmit: sync-deps clean-protos all-protos fmt vet build test
 
 clean-site:
 	rm -rf build/site/
