@@ -51,10 +51,9 @@ VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD)
 VERSION ?= $(BASE_VERSION)-$(VERSION_SUFFIX)
 
 PROTOC_VERSION = 3.7.1
-GOLANG_VERSION = 1.12.1
-HELM_VERSION = 2.13.0
-HUGO_VERSION = 0.54.0
-KUBECTL_VERSION = 1.13.0
+HELM_VERSION = 2.13.1
+HUGO_VERSION = 0.55.2
+KUBECTL_VERSION = 1.14.1
 NODEJS_VERSION = 10.15.3
 SKAFFOLD_VERSION = latest
 MINIKUBE_VERSION = latest
@@ -121,7 +120,6 @@ ifeq ($(OS),Windows_NT)
 	SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-windows-amd64.exe
 	EXE_EXTENSION = .exe
 	PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-win64.zip
-	GO_PACKAGE = https://storage.googleapis.com/golang/go$(GOLANG_VERSION).windows-amd64.zip
 	KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/windows/amd64/kubectl.exe
 	HUGO_PACKAGE = https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_extended_$(HUGO_VERSION)_Windows-64bit.zip
 	NODEJS_PACKAGE = https://nodejs.org/dist/v$(NODEJS_VERSION)/node-v$(NODEJS_VERSION)-win-x64.zip
@@ -134,7 +132,6 @@ else
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
 		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-linux-amd64
 		PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-linux-x86_64.zip
-		GO_PACKAGE = https://storage.googleapis.com/golang/go$(GOLANG_VERSION).linux-amd64.tar.gz
 		KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/linux/amd64/kubectl
 		HUGO_PACKAGE = https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_extended_$(HUGO_VERSION)_Linux-64bit.tar.gz
 		NODEJS_PACKAGE = https://nodejs.org/dist/v$(NODEJS_VERSION)/node-v$(NODEJS_VERSION)-linux-x64.tar.gz
@@ -146,7 +143,6 @@ else
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-darwin-amd64
 		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-darwin-amd64
 		PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-osx-x86_64.zip
-		GO_PACKAGE = https://storage.googleapis.com/golang/go$(GOLANG_VERSION).darwin-amd64.tar.gz
 		KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/darwin/amd64/kubectl
 		HUGO_PACKAGE = https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_extended_$(HUGO_VERSION)_macOS-64bit.tar.gz
 		NODEJS_PACKAGE = https://nodejs.org/dist/v$(NODEJS_VERSION)/node-v$(NODEJS_VERSION)-darwin-x64.tar.gz
