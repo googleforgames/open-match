@@ -478,6 +478,7 @@ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 		$(PROTOC_INCLUDES)/google/api
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
 build/archives/$(NODEJS_PACKAGE_NAME):
 	mkdir -p build/archives/
