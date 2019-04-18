@@ -6,76 +6,77 @@ logging:
   format: text
   source: false
 
-api: 
-  backend: 
+api:
+  backend:
     hostname: om-backendapi
     port: 50505
     backoff: "[2 32] *2 ~0.33 <30"
     proxyport: 51505
-  frontend: 
+  frontend:
     hostname: om-frontendapi
     port: 50504
     backoff: "[2 32] *2 ~0.33 <300"
     proxyport: 51504
-  mmlogic: 
+  mmlogic:
     hostname: om-mmlogicapi
     port: 50503
     proxyport: 51503
   functions:
     port: 50502
     proxyport: 51502
-  
-evalutor:
+
+evaluator:
   # Evaluator intervals are in milliseconds
+  interval: 10
   pollIntervalMs: 1000
   maxWaitMs: 10000
 
-metrics: 
+metrics:
   port: 9555
   endpoint: /metrics
   reportingPeriod: 5
 
-queues: 
-  profiles: 
+queues:
+  profiles:
     name: profileq
     pullCount: 100
-  proposals: 
+  proposals:
     name: proposalq
-  
-ignoreLists: 
-  proposed: 
+
+ignoreLists:
+  proposed:
     name: proposed
     offset: 0
     duration: 800
-  deindexed: 
+  deindexed:
     name: deindexed
     offset: 0
     duration: 800
-  expired: 
+  expired:
     name: OM_METADATA.accessed
     offset: 800
-    duration: 0 
+    duration: 0
 
-defaultImages: 
-  evaluator: 
+defaultImages:
+  evaluator:
     name: gcr.io/open-match-public-images/openmatch-evaluator-simple
     tag: latest
-  mmf: 
+  mmf:
     name: gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple
     tag: latest
 
-redis: 
-  pool: 
+redis:
+  pool:
     maxIdle: 3
     maxActive: 0
     idleTimeout: 60
   queryArgs:
     count: 10000
-  results: 
+  results:
     pageSize: 10000
-  expirations: 
+  expirations:
     player: 43200
-    matchobject: 43200 
+    matchobject: 43200
 
 jsonkeys:
   mmfImage: imagename

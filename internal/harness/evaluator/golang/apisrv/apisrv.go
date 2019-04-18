@@ -39,8 +39,8 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 
 	"github.com/gomodule/redigo/redis"
-	"go.opencensus.io/tag"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/tag"
 )
 
 type EvaluateFunction func(context.Context, []*pb.MatchObject) ([]string, error)
@@ -69,7 +69,8 @@ func (s *Evaluator) EvaluateForever() {
 	//  - all MMFs are complete OR the evaluation interval is reached
 	//  - AND at least one MMF has been started since the last we evaluated.
 	for {
-		ctx, _ := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		cycleStart := time.Now()
 
 		// Get number of running MMFs. 'nil' return from redigo indicates that no new MMFs have even
@@ -152,21 +153,21 @@ func (s *Evaluator) evaluator(ctx context.Context) error {
 
 	start := time.Now()
 	// Get the number of proposals currently queued for evaluation.
-	proposalq := s.Config.GetString("queues.proposals.name")
-	numProposals, err := redis.Int(redisConn.Do("SCARD", proposalq))
+	queueName := s.Config.GetString("queues.proposals.name")
+	numProposals, err := redis.Int(redisConn.Do("SCARD", queueName))
 	if err != nil {
-		logger.Errorf("Failed to get proposal count from %v queue, %v", proposalq, err)
+		logger.Errorf("Failed to get proposal count from %v queue, %v", queueName, err)
 		return err
 	}
 
 	// Get the proposal IDs for the currently queued proposals.
-	proposalIds, err := redis.Strings(redisConn.Do("SPOP", proposalq, numProposals))
+	proposalIds, err := redis.Strings(redisConn.Do("SPOP", queueName, numProposals))
 	if err != nil {
-		logger.Errorf("Failed to pop %v proposal ids from %v queue, %v", numProposals, proposalq, err)
+		logger.Errorf("Failed to pop %v proposal ids from %v queue, %v", numProposals, queueName, err)
 		return err
 	}
 
-	logger.Infof("Retrieved %v proposal ids from %v queue", numProposals, proposalq)
+	logger.Infof("Retrieved %v proposal ids from %v queue", numProposals, queueName)
 
 	// Fetch all the proposals from Open Match state storage.
 	proposals, err := s.getProposals(proposalIds)

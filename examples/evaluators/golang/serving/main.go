@@ -1,8 +1,8 @@
 /*
 This is a sample Evaluator built using the Evaluator Harness. It evaluates
-multiple proposals and approves a subset of them. This sample demonstrates 
-how to build a basic Evaluator using the Evaluator Harness . This example 
-over-simplifies the actual evaluation decisions and hence should not be 
+multiple proposals and approves a subset of them. This sample demonstrates
+how to build a basic Evaluator using the Evaluator Harness . This example
+over-simplifies the actual evaluation decisions and hence should not be
 used as is for a real scenario.
 
 Copyright 2018 Google LLC
@@ -39,18 +39,18 @@ func main() {
 
 // Evaluate is where your custom evaluation logic lives.
 // Input:
-//  - proposals : List of all the proposals to be consiered for evaluation. Each proposal will have 
-//                Rosters comprising of the players belonging to that proposal. 
+//  - proposals : List of all the proposals to be consiered for evaluation. Each proposal will have
+//                Rosters comprising of the players belonging to that proposal.
 // Output:
 //  - (proposals) : List of approved proposal IDs that can be returned as match results.
 func Evaluate(ctx context.Context, proposals []*pb.MatchObject) ([]string, error) {
 	// Map of approved and overloaded proposals. Using maps for easier lookup.
-	approvedProposals := make(map[string]bool)
-	overloadedProposals := make(map[string]bool)
+	approvedProposals := map[string]bool{}
+	overloadedProposals := map[string]bool{}
 
 	// Map of all the players encountered in the proposals. Each entry maps a player id to
 	// the first match in which the player was encountered.
-	allPlayers := make(map[string]string)
+	allPlayers := map[string]string{}
 
 	// Iterate over each proposal to either add to approved map or overloaded map.
 	for _, proposal := range proposals {
@@ -58,8 +58,8 @@ func Evaluate(ctx context.Context, proposals []*pb.MatchObject) ([]string, error
 		approved := true
 		players := getPlayersInProposal(proposal)
 		// Iterate over each player in the proposal to check if the player was encountered before.
-		for _, pID := range players {
-			if propID, found := allPlayers[pID]; found {
+		for _, playerID := range players {
+			if propID, found := allPlayers[playerID]; found {
 				// Player was encountered in an earlier proposal. Mark the current proposal as overloaded (not approved).
 				// Also, the first proposal where the player was encountered may have been marked approved. Remove that proposal
 				// approved proposals and add to overloaded proposals since we encountered its player in current proposal too.
@@ -68,7 +68,7 @@ func Evaluate(ctx context.Context, proposals []*pb.MatchObject) ([]string, error
 				overloadedProposals[propID] = true
 			} else {
 				// Player encountered for the first time, add to all players map with the current proposal.
-				allPlayers[pID] = proposalID
+				allPlayers[playerID] = proposalID
 			}
 
 			if approved {
