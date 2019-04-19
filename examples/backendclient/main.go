@@ -4,7 +4,6 @@ assumes that the backend api is up and can be accessed through a k8s service
 named om-backendapi
 
 Copyright 2018 Google LLC
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -25,13 +24,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"io"
 	"io/ioutil"
 	"log"
 	"net"
 	"os"
 
-	pb "github.com/GoogleCloudPlatform/open-match/internal/pb"
+	"github.com/GoogleCloudPlatform/open-match/internal/pb"
+	"github.com/gobs/pretty"
 	"github.com/tidwall/gjson"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
@@ -42,25 +43,50 @@ func bytesToString(data []byte) string {
 }
 
 func ppJSON(s string) {
-	buf := new(bytes.Buffer)
-	json.Indent(buf, []byte(s), "", "  ")
-	log.Println(buf)
+	if verbose {
+		buf := new(bytes.Buffer)
+		json.Indent(buf, []byte(s), "", "  ")
+		log.Println(buf)
+	}
 	return
 }
 
+var (
+	profileName    string
+	filename       string
+	beHost         string
+	bePort         string
+	beCall         string
+	assignment     string
+	delAssignments bool
+	verbose        bool
+)
+
 func main() {
+	flag.StringVar(&filename, "file", "profiles/testprofile.json", "JSON file from which to read match properties")
+	flag.StringVar(&beCall, "call", "ListMatches", "Open Match backend match request gRPC call to test")
+	flag.StringVar(&beHost, "host", "om-backendapi", "Open Match backend hostname")
+	flag.StringVar(&bePort, "port", "50505", "Open Match backend port")
+	flag.StringVar(&assignment, "assignment", "example.server.dgs:12345", "Assignment to send to matched players")
+	flag.BoolVar(&delAssignments, "rm", false, "Delete assignments. Leave off to be able to manually validate assignments in state storage")
+	flag.BoolVar(&verbose, "verbose", false, "Print out as much as possible")
+	flag.Parse()
+
+	log.Print("Parsing flags:")
+	log.Printf(" [flags] Reading properties from file at %v", filename)
+	log.Printf(" [flags] Connecting to OM Backend at %v:%v", beHost, bePort)
+	if !(beCall == "CreateMatch" || beCall == "ListMatches") {
+		log.Printf(" [flags] Unknown OM Backend call %v! Exiting...", beCall)
+		return
+	}
+	log.Printf(" [flags] Using OM Backend %v call", beCall)
+	log.Printf(" [flags] Assigning players to %v", assignment)
+	log.Printf(" [flags] Deleting assignments? %v", delAssignments)
 
 	// Read the profile
-	filename := "profiles/testprofile.json"
-	/*
-		if len(os.Args) > 1 {
-			filename = os.Args[1]
-		}
-		log.Println("Reading profile from ", filename)
-	*/
 	jsonFile, err := os.Open(filename)
 	if err != nil {
-		panic("Failed to open file specified at command line.  Did you forget to specify one?")
+		log.Fatal("Failed to open file ", filename)
 	}
 	defer jsonFile.Close()
 
@@ -73,57 +99,124 @@ func main() {
 
 	jsonProfile := buffer.String()
 	pbProfile := &pb.MatchObject{}
-	/*
-		err = jsonpb.UnmarshalString(jsonProfile, pbProfile)
-		if err != nil {
-			log.Println(err)
-		}
-	*/
 	pbProfile.Properties = jsonProfile
 
-	log.Println("Requesting matches that fit profile:")
-	ppJSON(jsonProfile)
-	//jsonProfile := bytesToString(jsonData)
-
 	// Connect gRPC client
-	ip, err := net.LookupHost("om-backendapi")
+	ip, err := net.LookupHost(beHost)
 	if err != nil {
 		panic(err)
 	}
 
-	conn, err := grpc.Dial(ip[0]+":50505", grpc.WithInsecure())
+	conn, err := grpc.Dial(ip[0]+":"+bePort, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err.Error())
 	}
-	client := pb.NewBackendClient(conn)
-	log.Println("API client connected to", ip[0]+":50505")
 
-	profileName := "test-dm-usc1f"
-	_ = profileName
+	client := pb.NewBackendClient(conn)
+	log.Println("Backend client connected to", beHost+":"+bePort)
+
 	if gjson.Get(jsonProfile, "name").Exists() {
 		profileName = gjson.Get(jsonProfile, "name").String()
+	} else {
+		profileName = "testprofilename"
+		log.Println("JSON Profile does not contain a name; using ", profileName)
 	}
 
 	pbProfile.Id = profileName
 	pbProfile.Properties = jsonProfile
 
+	mmfcfg := &pb.MmfConfig{Name: "profileName"}
+	mmfcfg.Type = pb.MmfConfig_GRPC
+	mmfcfg.Host = gjson.Get(jsonProfile, "hostname").String()
+	mmfcfg.Port = int32(gjson.Get(jsonProfile, "port").Int())
+
+	req := &pb.CreateMatchRequest{
+		Match:  pbProfile,
+		Mmfcfg: mmfcfg,
+	}
+
+	log.Println("Backend Request:")
+	ppJSON(jsonProfile)
+	pretty.PrettyPrint(mmfcfg)
+
 	log.Printf("Establishing HTTPv2 stream...")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	//match, err := client.CreateMatch(ctx, &pb.CreateMatchRequest{ Match: pbProfile })
 
-	for {
-		log.Println("Attempting to send ListMatches call")
+	matchChan := make(chan *pb.MatchObject)
+	doneChan := make(chan bool)
+	go func() {
+		// Watch for results and print as they come in.
+		log.Println("Watching for match results...")
+		for {
+			select {
+			case match := <-matchChan:
+				if match.Error == "insufficient players" {
+					log.Println("Waiting for a larger player pool...")
+				}
+
+				// Validate JSON before trying to  parse it
+				if !gjson.Valid(string(match.Properties)) {
+					log.Println(errors.New("invalid json"))
+				}
+				log.Println("Received match:")
+				pretty.PrettyPrint(match)
+
+				// Assign players in this match to our server
+				log.Println("Assigning players to DGS at", assignment)
+
+				assign := &pb.Assignments{Rosters: match.Rosters, Assignment: assignment}
+				log.Printf("Waiting for matches...")
+				_, err = client.CreateAssignments(context.Background(), &pb.CreateAssignmentsRequest{
+					Assignment: assign,
+				})
+
+				if err != nil {
+					log.Println(err)
+				}
+				log.Println("Success!")
+
+				if delAssignments {
+					log.Println("deleting assignments")
+					for _, a := range assign.Rosters {
+						_, err = client.DeleteAssignments(context.Background(), &pb.DeleteAssignmentsRequest{Roster: a})
+					}
+				} else {
+					log.Println("Not deleting assignments [demo mode].")
+				}
+			}
+			if beCall == "CreateMatch" {
+				// Got a result; done here.
+				log.Println("Got single result from CreateMatch, exiting...")
+				doneChan <- true
+				return
+			}
+		}
+	}()
+
+	// Make the requested backend call: CreateMatch calls once, ListMatches continually calls.
+	log.Printf("Attempting %v() call", beCall)
+	switch beCall {
+	case "CreateMatch":
+		resp, err := client.CreateMatch(ctx, req)
+		if err != nil {
+			panic(err)
+		}
+		log.Printf("CreateMatch returned; processing match")
+
+		matchChan <- resp.Match
+		<-doneChan
+	case "ListMatches":
 		stream, err := client.ListMatches(ctx, &pb.ListMatchesRequest{
-			Match: pbProfile,
+			Mmfcfg: req.Mmfcfg,
+			Match:  req.Match,
 		})
 		if err != nil {
 			log.Fatalf("Attempting to open stream for ListMatches(_) = _, %v", err)
 		}
-		//for i := 0; i < 2; i++ {
 		for {
 			log.Printf("Waiting for matches...")
-			listResponse, err := stream.Recv()
+			resp, err := stream.Recv()
 			if err == io.EOF {
 				break
 			}
@@ -136,50 +229,7 @@ func main() {
 				}
 				break
 			}
-			match := listResponse.Match
-
-			if match.Properties == "{error: insufficient_players}" {
-				log.Println("Waiting for a larger player pool...")
-				//break
-			}
-
-			// Validate JSON before trying to  parse it
-			if !gjson.Valid(string(match.Properties)) {
-				log.Println(errors.New("invalid json"))
-			}
-			log.Println("Received match:")
-			ppJSON(match.Properties)
-			//fmt.Println(match)  // Debug
-
-			// Assign players in this match to our server
-			connstring := "example.com:12345"
-			if len(os.Args) >= 2 {
-				connstring = os.Args[1]
-				log.Printf("Player assignment '%v' specified at commandline", connstring)
-			}
-			log.Println("Assigning players to DGS at", connstring)
-
-			assign := &pb.Assignments{Rosters: match.Rosters, Assignment: connstring}
-			log.Printf("Waiting for matches...")
-			_, err = client.CreateAssignments(context.Background(), &pb.CreateAssignmentsRequest{
-				Assignment: assign,
-			})
-			if err != nil {
-				stat, ok := status.FromError(err)
-				if ok {
-					log.Printf("Error reading stream for ListMatches() returned status: %s %s", stat.Code().String(), stat.Message())
-				} else {
-					log.Printf("Error reading stream for ListMatches() returned status: %s", err)
-				}
-				break
-			}
-			log.Println("Success!  Not deleting assignments [demo mode].")
-
+			matchChan <- resp.Match
 		}
-
-		//log.Println("deleting assignments")
-		//playerstr = strings.Join(players[0:len(players)/2], " ")
-		//roster.PlayerIds = playerstr
-		//_, err = client.DeleteAssignments(context.Background(), roster)
 	}
 }
