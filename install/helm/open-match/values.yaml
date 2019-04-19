@@ -32,9 +32,6 @@ openmatch:
       port: 50504
     proxy:
       port: 51504
-  mmforc:
-    install: false
-    serviceAccount: mmforc-job-runner
   mmlogicapi:
     install: true
     grpc:
@@ -56,9 +53,6 @@ openmatch:
       pullPolicy: Always
     frontendapi:
       name: openmatch-frontendapi
-      pullPolicy: Always
-    mmforc:
-      name: openmatch-mmforc
       pullPolicy: Always
     mmlogicapi:
       name: openmatch-mmlogicapi
