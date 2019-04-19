@@ -23,7 +23,7 @@ import 'google/api/annotations.proto';
 message MmfConfig {
   enum Type {
     GRPC = 0;
-    REST = 1;
+    REST = 1; // REST support will be added in future.
   }
 
   string name = 1;  // Developer-chosen, human-readable string. (Optional)
