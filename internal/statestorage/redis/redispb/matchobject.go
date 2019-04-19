@@ -119,13 +119,10 @@ func Watcher(bo backoff.BackOffContext, pool *redis.Pool, pb om_messages.MatchOb
 	go func() {
 		defer close(watchChan)
 
-		// var declaration
-		var err = errors.New("haven't queried Redis yet")
-
 		// Loop, querying redis until this key has a value
 		for {
 			results = om_messages.MatchObject{Id: pb.Id}
-			err = UnmarshalFromRedis(bo.Context(), pool, &results)
+			err := UnmarshalFromRedis(bo.Context(), pool, &results)
 			if err == nil {
 				// Return value retreived from Redis asynchonously and tell calling function we're done
 				moLog.Debug("state storage watched record update detected")
