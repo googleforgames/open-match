@@ -33,7 +33,7 @@ openmatch:
     proxy:
       port: 51504
   mmforc:
-    install: true
+    install: false
     serviceAccount: mmforc-job-runner
   mmlogicapi:
     install: true
