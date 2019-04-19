@@ -583,6 +583,7 @@ build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) --config=config.toml --source . --destination $(BUILD_DIR)/site/public/
 	# Only copy the root directory since that has the AppEngine serving code.
 	-cp -f site/* $(BUILD_DIR)/site
+	-cp -f site/.gcloudignore $(BUILD_DIR)/site/.gcloudignore
 	#cd $(BUILD_DIR)/site && "SERVICE=$(SERVICE) envsubst < app.yaml > .app.yaml"
 	cp $(BUILD_DIR)/site/app.yaml $(BUILD_DIR)/site/.app.yaml
 
