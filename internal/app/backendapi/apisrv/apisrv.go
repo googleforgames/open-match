@@ -87,10 +87,6 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 
 	// Create context for tagging OpenCensus metrics.
 	funcName := "CreateMatch"
-	fnCtx, err := tag.New(ctx, tag.Insert(KeyMethod, funcName))
-	if err != nil {
-		return nil, err
-	}
 
 	// Generate a request to fill the profile. Make a unique request ID.
 	requestID := xid.New().String()
@@ -144,7 +140,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 	beLog.Info("profile is: ", profile)
 
 	// Write profile to state storage
-	err = redispb.MarshalToRedis(ctx, s.pool, profile, s.cfg.GetInt("redis.expirations.matchobject"))
+	err := redispb.MarshalToRedis(ctx, s.pool, profile, s.cfg.GetInt("redis.expirations.matchobject"))
 	if err != nil {
 		beLog.WithFields(log.Fields{
 			"error":     err.Error(),

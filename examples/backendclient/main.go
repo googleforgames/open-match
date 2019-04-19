@@ -75,7 +75,7 @@ func main() {
 	// Read the profile
 	jsonFile, err := os.Open(*filename)
 	if err != nil {
-		log.Fatalf("Failed to open file ", *filename)
+		log.Fatalf("Failed to open file %v", *filename)
 	}
 	defer jsonFile.Close()
 
