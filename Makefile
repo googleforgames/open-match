@@ -58,6 +58,7 @@ NODEJS_VERSION = 10.15.3
 SKAFFOLD_VERSION = latest
 MINIKUBE_VERSION = latest
 HTMLTEST_VERSION = 0.10.1
+GOLANGCI_VERSION = 1.16.0
 
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
 GO = GO111MODULE=on go
@@ -125,6 +126,7 @@ ifeq ($(OS),Windows_NT)
 	NODEJS_PACKAGE = https://nodejs.org/dist/v$(NODEJS_VERSION)/node-v$(NODEJS_VERSION)-win-x64.zip
 	NODEJS_PACKAGE_NAME = nodejs.zip
 	HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_windows_amd64.zip
+	GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-windows-amd64.zip
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
@@ -137,6 +139,7 @@ else
 		NODEJS_PACKAGE = https://nodejs.org/dist/v$(NODEJS_VERSION)/node-v$(NODEJS_VERSION)-linux-x64.tar.gz
 		NODEJS_PACKAGE_NAME = nodejs.tar.gz
 		HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_linux_amd64.tar.gz
+		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64.tar.gz
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
@@ -148,6 +151,7 @@ else
 		NODEJS_PACKAGE = https://nodejs.org/dist/v$(NODEJS_VERSION)/node-v$(NODEJS_VERSION)-darwin-x64.tar.gz
 		NODEJS_PACKAGE_NAME = nodejs.tar.gz
 		HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_osx_amd64.tar.gz
+		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-darwin-amd64.tar.gz
 	endif
 endif
 
@@ -305,8 +309,11 @@ install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
 chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd install/helm/open-match; $(HELM) dependency update)
 
+lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+	(cd install/helm; $(HELM) lint open-match; $(HELM) lint open-match-example)
+
 print-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd install/helm; $(HELM) lint open-match; $(HELM) install --dry-run --debug open-match)
+	(cd install/helm; $(HELM) install --dry-run --debug open-match; $(HELM) install --dry-run --debug open-match-example)
 
 install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
@@ -348,7 +355,6 @@ install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backendapi.install=false \
 		--set openmatch.frontendapi.install=false \
 		--set openmatch.mmlogicapi.install=false \
-		--set openmatch.mmforc.install=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=false \
 		install/helm/open-match > install/yaml/01-redis-chart.yaml
@@ -373,7 +379,6 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backendapi.install=false \
 		--set openmatch.frontendapi.install=false \
 		--set openmatch.mmlogicapi.install=false \
-		--set openmatch.mmforc.install=false \
 		--set grafana.enabled=false \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
@@ -385,7 +390,6 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backendapi.install=false \
 		--set openmatch.frontendapi.install=false \
 		--set openmatch.mmlogicapi.install=false \
-		--set openmatch.mmforc.install=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=true \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
@@ -454,6 +458,13 @@ build/toolchain/bin/htmltest$(EXE_EXTENSION):
 	cd $(TOOLCHAIN_DIR)/temp-htmltest && curl -Lo htmltest.tar.gz $(HTMLTEST_PACKAGE) && tar xzf htmltest.tar.gz
 	mv $(TOOLCHAIN_DIR)/temp-htmltest/htmltest$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/htmltest$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-htmltest/
+
+build/toolchain/bin/golangci-lint$(EXE_EXTENSION):
+	mkdir -p $(TOOLCHAIN_BIN)
+	mkdir -p $(TOOLCHAIN_DIR)/temp-golangci
+	cd $(TOOLCHAIN_DIR)/temp-golangci && curl -Lo golangci.tar.gz $(GOLANGCI_PACKAGE) && tar xvzf golangci.tar.gz --strip-components 1
+	mv $(TOOLCHAIN_DIR)/temp-golangci/golangci-lint$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
+	rm -rf $(TOOLCHAIN_DIR)/temp-golangci/
 
 build/toolchain/python/:
 	mkdir -p build/toolchain/python/
@@ -616,6 +627,12 @@ fmt:
 
 vet:
 	$(GO) vet ./...
+
+# Blocked on https://github.com/golangci/golangci-lint/issues/500
+golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
+	build/toolchain/bin/golangci-lint$(EXE_EXTENSION) run -v --config=.golangci.yaml
+
+lint: fmt vet lint-chart
 
 cmd/minimatch/minimatch: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/mmlogic.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go
 	cd cmd/minimatch; $(GO_BUILD_COMMAND)

@@ -13,16 +13,27 @@
 # limitations under the License.
 
 openmatch:
+  metrics:
+    prometheusEnabled: true
+    prometheusServiceDiscovery: true
+    stackdriverEnabled: false
+    stackdriverProjectID: ""
+    port: 9555
+    path: "/metrics"
   backendclient:
-    install: true
+    install: false
   frontendclient:
-    install: true
+    install: false
   clientloadgen:
     install: true
   evaluator:
     install: true
   function:
     install: true
+    grpc:
+      port: 50502
+    proxy:
+      port: 51502
   config:
     matchmaker: /config
     testprofile: /profiles
@@ -39,7 +50,8 @@ openmatch:
       name: openmatch-clientloadgen
       pullPolicy: Always
     evaluator:
-      name: openmatch-evaluator-simple
+      name: openmatch-evaluator-serving
+      pullPolicy: Always
     function:
-      name: openmatch-mmf-go-mmlogic-simple
+      name: openmatch-mmf-go-grpc-serving-simple
       pullPolicy: Always

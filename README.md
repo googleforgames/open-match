@@ -1,4 +1,4 @@
-![Open Match](site/assets/omlogo.png)
+![Open Match](site/static/images/logo-with-name.png)
 
 [![GoDoc](https://godoc.org/github.com/GoogleCloudPlatform/open-match?status.svg)](https://godoc.org/github.com/GoogleCloudPlatform/open-match)
 [![Go Report Card](https://goreportcard.com/badge/github.com/GoogleCloudPlatform/open-match)](https://goreportcard.com/report/github.com/GoogleCloudPlatform/open-match)
@@ -67,7 +67,7 @@ gcloud config set project $YOUR_GCP_PROJECT_ID
 gcloud services enable containerregistry.googleapis.com
 gcloud services enable container.googleapis.com
 # Test that everything is good, this command should work.
-gcloud compute zone list
+gcloud compute zones list
 ```
 
 Once everything is setup you can deploy Open Match by creating a cluster in Google Kubernetes Engine (GKE).
