@@ -21,9 +21,9 @@ openmatch:
     port: 9555
     path: "/metrics"
   backendclient:
-    install: true
+    install: false
   frontendclient:
-    install: true
+    install: false
   clientloadgen:
     install: true
   evaluator:
