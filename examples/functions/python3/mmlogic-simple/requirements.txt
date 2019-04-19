@@ -1,6 +1,0 @@
-googleapis-common-protos==1.5.3
-grpcio==1.15.0
-grpcio-tools==1.15.0
-protobuf==3.6.1
-ujson==1.35
-six==1.11.0
