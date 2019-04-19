@@ -36,10 +36,8 @@ import (
 //   "map.sunsetvalley": "123456782", // TRUE flag key, epoch timestamp value
 //   "mode.ctf" // TRUE flag key, epoch timestamp value
 // }
-func Create(redisConn redis.Conn, playerID string, playerData string) (err error) {
-	//pdJSON, err := json.Marshal(playerData)
+func Create(redisConn redis.Conn, playerID string, playerData string) error {
 	pdMap := redisValuetoMap(playerData)
-	check(err, "")
 
 	redisConn.Send("MULTI")
 	redisConn.Send("HSET", playerID, "properties", playerData)
@@ -50,24 +48,23 @@ func Create(redisConn redis.Conn, playerID string, playerData string) (err error
 		// Add this index to the list of indices
 		redisConn.Send("SADD", "indices", key)
 	}
-	_, err = redisConn.Do("EXEC")
-	return
+	_, err := redisConn.Do("EXEC")
+	return err
 }
 
 // Update is an alias for Create() in this implementation
-func Update(redisConn redis.Conn, playerID string, playerData string) (err error) {
-	Create(redisConn, playerID, playerData)
-	return
+func Update(redisConn redis.Conn, playerID string, playerData string) error {
+	return Create(redisConn, playerID, playerData)
 }
 
 // Retrieve a player's JSON object representation from state storage.
-func Retrieve(redisConn redis.Conn, playerID string) (results map[string]interface{}, err error) {
+func Retrieve(redisConn redis.Conn, playerID string) (map[string]interface{}, error) {
 	r, err := redis.String(redisConn.Do("HGET", playerID, "properties"))
 	if err != nil {
 		log.Println("Failed to get properties from playerID using HGET", err)
+		return nil, err
 	}
-	results = redisValuetoMap(r)
-	return
+	return redisValuetoMap(r), nil
 }
 
 // Convert redis result (JSON blob in a string) to golang map
@@ -81,8 +78,11 @@ func redisValuetoMap(result string) map[string]interface{} {
 
 // Delete a player's JSON object representation from state storage,
 // and attempt to remove the player's presence in any indexes.
-func Delete(redisConn redis.Conn, playerID string) (err error) {
+func Delete(redisConn redis.Conn, playerID string) error {
 	results, err := Retrieve(redisConn, playerID)
+	if err != nil {
+		return err
+	}
 	redisConn.Send("MULTI")
 	redisConn.Send("DEL", playerID)
 
@@ -93,15 +93,16 @@ func Delete(redisConn redis.Conn, playerID string) (err error) {
 	}
 	_, err = redisConn.Do("EXEC")
 	check(err, "")
-	return
+	return err
 }
 
 // Unindex a player without deleting there JSON object representation from
 // state storage.
-func Unindex(redisConn redis.Conn, playerID string) (err error) {
+func Unindex(redisConn redis.Conn, playerID string) error {
 	results, err := Retrieve(redisConn, playerID)
 	if err != nil {
 		log.Printf("couldn't retreive player properties for %v, %s\n", playerID, err)
+		return err
 	}
 
 	redisConn.Send("MULTI")
@@ -114,8 +115,7 @@ func Unindex(redisConn redis.Conn, playerID string) (err error) {
 	fmt.Printf("\n")
 	_, err = redisConn.Do("EXEC")
 	check(err, "")
-	return
-
+	return err
 }
 
 func check(err error, action string) {

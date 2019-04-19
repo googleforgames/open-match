@@ -40,6 +40,9 @@ func TestNewMiniMatch(t *goTesting.T) {
 	}
 	defer mm.Stop()
 	feClient, err := mm.GetFrontendClient()
+	if err != nil {
+		t.Errorf("could not get frontend client %s", err)
+	}
 	result, err := feClient.CreatePlayer(context.Background(), &pb.CreatePlayerRequest{})
 	if err != nil {
 		t.Errorf("could not start Mini Match %s", err)
