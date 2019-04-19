@@ -40,6 +40,7 @@ import (
 var (
 	filename       = flag.String("file", "profiles/testprofile.json", "JSON file from which to read match properties")
 	beCall         = flag.String("call", "ListMatches", "Open Match backend match request gRPC call to test")
+	server         = flag.String("backend", "om-backendapi:50505", "Hostname and IP of the Open Match backend")
 	assignment     = flag.String("assignment", "example.server.dgs:12345", "Assignment to send to matched players")
 	delAssignments = flag.Bool("rm", false, "Delete assignments. Leave off to be able to manually validate assignments in state storage")
 	verbose        = flag.Bool("verbose", false, "Print out as much as possible")
@@ -62,6 +63,7 @@ func main() {
 	flag.Parse()
 	log.Print("Parsing flags:")
 	log.Printf(" [flags] Reading properties from file at %v", *filename)
+	log.Printf(" [flags] Using OM Backend address %v", *server)
 	log.Printf(" [flags] Using OM Backend %v call", *beCall)
 	log.Printf(" [flags] Assigning players to %v", *assignment)
 	log.Printf(" [flags] Deleting assignments? %v", *delAssignments)
@@ -73,7 +75,7 @@ func main() {
 	// Read the profile
 	jsonFile, err := os.Open(*filename)
 	if err != nil {
-		log.Fatal("Failed to open file ", *filename)
+		log.Fatalf("Failed to open file ", *filename)
 	}
 	defer jsonFile.Close()
 
@@ -88,14 +90,13 @@ func main() {
 	pbProfile := &pb.MatchObject{}
 	pbProfile.Properties = jsonProfile
 
-	addr := "om-backendapi:50505"
-	conn, err := grpc.Dial(addr, grpc.WithInsecure())
+	conn, err := grpc.Dial(*server, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err.Error())
 	}
 
 	client := pb.NewBackendClient(conn)
-	log.Println("Backend client connected to", addr)
+	log.Println("Backend client connected to", *server)
 
 	var profileName string
 	if gjson.Get(jsonProfile, "name").Exists() {
