@@ -13,6 +13,24 @@
 # limitations under the License.
 
 {{- if .Values.openmatch.function.install }}
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-function
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "openmatch.name" . }}
+spec:
+  selector:
+    app: {{ template "openmatch.name" . }}
+    component: function
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: {{ .Values.openmatch.function.grpc.port }}
+  - name: proxy
+    protocol: TCP
+    port: {{ .Values.openmatch.function.proxy.port }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -55,6 +73,13 @@ spec:
           requests:
             memory: 100Mi
             cpu: 100m
+        ports:
+        - name: grpc
+          containerPort: {{ .Values.openmatch.function.grpc.port }}
+        - name: proxy
+          containerPort: {{ .Values.openmatch.function.proxy.port }}
+        - name: metrics
+          containerPort: {{ .Values.openmatch.metrics.port }}
         env:
         - name: REDIS_SERVICE_HOST
           value: "$(OM_REDIS_MASTER_SERVICE_HOST)"

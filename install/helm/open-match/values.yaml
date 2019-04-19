@@ -33,7 +33,7 @@ openmatch:
     proxy:
       port: 51504
   mmforc:
-    install: true
+    install: false
     serviceAccount: mmforc-job-runner
   mmlogicapi:
     install: true
@@ -90,7 +90,6 @@ prometheus:
       requests:
         memory: 4Gi
         cpu: 2
-  serverFiles:
   prometheus.yml:
       rule_files:
         - /etc/config/rules
