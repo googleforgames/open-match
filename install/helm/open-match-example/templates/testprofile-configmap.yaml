@@ -14,9 +14,9 @@
 
 apiVersion: v1
 kind: ConfigMap
-namespace: {{ .Release.Namespace }}
 metadata:
   name: om-testprofile-config
+  namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
     component: config
