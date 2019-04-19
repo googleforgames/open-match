@@ -31,12 +31,11 @@ import (
 )
 
 var (
-	seed           = rand.NewSource(time.Now().UnixNano())
-	random         = rand.New(seed)
-	percents       = make([]float64, 0)
-	cities         = make([]string, 0)
-	pingStats      = map[string]map[string]map[string]float64{}
-	pingFiles, err = filepath.Glob("*.ping")
+	seed      = rand.NewSource(time.Now().UnixNano())
+	random    = rand.New(seed)
+	percents  = []float64{}
+	cities    = []string{}
+	pingStats = map[string]map[string]map[string]float64{}
 )
 
 func check(err error) {
@@ -82,6 +81,10 @@ func pingToFloat(s string) float64 {
 
 // New initializes a new player generator
 func New() {
+	pingFiles, err := filepath.Glob("*.ping")
+	if err != nil {
+		log.Fatal(err)
+	}
 	percentFile, err := os.Open("city.percent")
 	if err != nil {
 		log.Fatal(err)
@@ -109,14 +112,14 @@ func New() {
 		defer pingFile.Close()
 
 		// Init map for this region
-		pingStats[region] = make(map[string]map[string]float64)
+		pingStats[region] = map[string]map[string]float64{}
 
 		scanner = bufio.NewScanner(pingFile)
 		for scanner.Scan() {
 			words := strings.Split(scanner.Text(), "\t")
 			wl := len(words)
 			city := words[0]
-			pingStats[region][city] = make(map[string]float64)
+			pingStats[region][city] = map[string]float64{}
 			cur := pingStats[region][city]
 			cur["avg"] = pingToFloat(words[wl-6])
 			cur["min"] = pingToFloat(words[wl-4])
@@ -124,19 +127,7 @@ func New() {
 			cur["std"] = pingToFloat(words[wl-2])
 		}
 	}
-
-	return
 }
-
-/*
-f = map[string]interface{}{
-    "Name": "Wednesday",
-    "Age":  6,
-    "Parents": []interface{}{
-        "Gomez",
-        "Morticia",
-    },
-}*/
 
 // Generate a player
 // For PoC, we're flattening the JSON so it can be easily indexed in Redis.
@@ -146,10 +137,10 @@ func Generate() (string, map[string]interface{}) {
 
 	id := xid.New().String()
 	city := pick()
-	properties := make(map[string]interface{})
+	properties := map[string]interface{}{}
 
 	// Generate some fake latencies
-	regions := make(map[string]int)
+	regions := map[string]int{}
 	for region := range pingStats {
 		//fmt.Print(region, " ")
 		regions[region] = normalDist(

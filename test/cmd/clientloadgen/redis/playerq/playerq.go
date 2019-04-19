@@ -23,25 +23,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/gomodule/redigo/redis"
 )
-
-func indicesMap(results []string) interface{} {
-	indices := make(map[string][]string)
-	for _, iName := range results {
-		field := strings.Split(iName, ":")
-		indices[field[0]] = append(indices[field[0]], field[1])
-	}
-	return indices
-}
-
-// PlayerIndices retrieves available indices for player parameters.
-func playerIndices(redisConn redis.Conn) (results []string, err error) {
-	results, err = redis.Strings(redisConn.Do("SMEMBERS", "indices"))
-	return
-}
 
 // Create adds a player's JSON representation to the current matchmaker state storage,
 // and indexes all fields in that player's JSON object. All values in the JSON should be integers.
@@ -117,7 +101,7 @@ func Delete(redisConn redis.Conn, playerID string) (err error) {
 func Unindex(redisConn redis.Conn, playerID string) (err error) {
 	results, err := Retrieve(redisConn, playerID)
 	if err != nil {
-		log.Println("couldn't retreive player properties for ", playerID)
+		log.Printf("couldn't retreive player properties for %v, %s\n", playerID, err)
 	}
 
 	redisConn.Send("MULTI")

@@ -587,4 +587,3 @@ func submitJob(cfg config.View, clientset *kubernetes.Clientset, jobType string,
 
 // readability functions used by generateJobSpec
 func int32Ptr(i int32) *int32 { return &i }
-func strPtr(i string) *string { return &i }

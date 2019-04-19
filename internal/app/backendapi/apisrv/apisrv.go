@@ -25,6 +25,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
@@ -87,16 +89,14 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 	moID := xid.New().String()
 	requestKey := moID + "." + profile.Id
 
-	/*
-		// Debugging logs
-		beLog.Info("Pools nil? ", (profile.Pools == nil))
-		beLog.Info("Pools empty? ", (len(profile.Pools) == 0))
-		beLog.Info("Rosters nil? ", (profile.Rosters == nil))
-		beLog.Info("Rosters empty? ", (len(profile.Rosters) == 0))
-		beLog.Info("config set for json.pools?", s.cfg.IsSet("jsonkeys.pools"))
-		beLog.Info("contents key?", s.cfg.GetString("jsonkeys.pools"))
-		beLog.Info("contents exist?", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).Exists())
-	*/
+	// Debugging logs
+	beLog.Trace("Pools nil? ", (profile.Pools == nil))
+	beLog.Trace("Pools empty? ", (len(profile.Pools) == 0))
+	beLog.Trace("Rosters nil? ", (profile.Rosters == nil))
+	beLog.Trace("Rosters empty? ", (len(profile.Rosters) == 0))
+	beLog.Trace("config set for json.pools?", s.cfg.IsSet("jsonkeys.pools"))
+	beLog.Trace("contents key?", s.cfg.GetString("jsonkeys.pools"))
+	beLog.Trace("contents exist?", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).Exists())
 
 	// Case where no protobuf pools was passed; check if there's a JSON version in the properties.
 	// This is for backwards compatibility, it is recommended you populate the protobuf's
@@ -105,7 +105,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 		gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).Exists() {
 		poolsJSON := fmt.Sprintf("{\"pools\": %v}", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).String())
 		ppLog := beLog.WithFields(log.Fields{"jsonkey": s.cfg.GetString("jsonkeys.pools")})
-		ppLog.Info("poolsJSON: ", poolsJSON)
+		ppLog.Debug("poolsJSON: ", poolsJSON)
 
 		ppools := &pb.MatchObject{}
 		err := jsonpb.UnmarshalString(poolsJSON, ppools)
@@ -113,7 +113,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 			ppLog.Error("failed to parse JSON to protobuf pools")
 		} else {
 			profile.Pools = ppools.Pools
-			ppLog.Info("parsed JSON to protobuf pools")
+			ppLog.Debug("parsed JSON to protobuf pools")
 		}
 	}
 
@@ -142,9 +142,9 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 		"matchObjectID": moID,
 		"requestKey":    requestKey,
 	})
-	beLog.Info("gRPC call executing")
-	beLog.Info("profile is")
-	beLog.Info(profile)
+	beLog.WithFields(log.Fields{
+		"profile": profile,
+	}).Info("gRPC call executing")
 
 	// Write profile to state storage
 	err := redispb.MarshalToRedis(ctx, s.pool, profile, s.cfg.GetInt("redis.expirations.matchobject"))
@@ -157,7 +157,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 		// Failure! Return empty match object and the error
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
-	beLog.Info("Profile written to state storage")
+	beLog.Trace("Profile written to state storage")
 
 	// Queue the request ID to be sent to an MMF
 	_, err = redishelpers.Update(ctx, s.pool, s.cfg.GetString("queues.profiles.name"), requestKey)
@@ -170,7 +170,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 		// Failure! Return empty match object and the error
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
-	beLog.Info("Profile added to processing queue")
+	beLog.Trace("Profile added to processing queue")
 
 	watcherBO := backoff.NewExponentialBackOff()
 	if err := expbo.UnmarshalExponentialBackOff(s.cfg.GetString("api.backend.backoff"), watcherBO); err != nil {
@@ -243,11 +243,6 @@ func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Back
 		default:
 			// Retreive results from Redis
 			requestProfile := proto.Clone(p).(*pb.MatchObject)
-			/*
-				beLog.Debug("new profile requested!")
-				beLog.Debug(requestProfile)
-				beLog.Debug(&requestProfile)
-			*/
 			mo, err := s.CreateMatch(ctx, &pb.CreateMatchRequest{
 				Match: requestProfile,
 			})
@@ -260,9 +255,12 @@ func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Back
 			}
 			beLog.WithFields(log.Fields{"matchProperties": fmt.Sprintf("%v", mo)}).Debug("Streaming back match object")
 			res := proto.Clone(mo.Match).(*pb.MatchObject)
-			matchStream.Send(&pb.ListMatchesResponse{
+			err = matchStream.Send(&pb.ListMatchesResponse{
 				Match: res,
 			})
+			if err != nil {
+				return status.Error(codes.Internal, errors.WithStack(err).Error())
+			}
 
 			// TODO: This should be tunable, but there should be SOME sleep here, to give a requestor a window
 			// to cleanly close the connection after receiving a match object when they know they don't want to
@@ -308,8 +306,8 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, req *pb.CreateAssign
 	beLog := s.logger
 
 	// Make a map of players and what assignments we want to send them.
-	playerIDs := make([]string, 0)
-	players := make(map[string]string, 0)
+	playerIDs := []string{}
+	players := map[string]string{}
 	for _, roster := range a.Rosters { // Loop through all rosters
 		for _, player := range roster.Players { // Loop through all players in this roster
 			if player.Id != "" {
@@ -339,15 +337,25 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, req *pb.CreateAssign
 	// Send the players their assignments.
 	err := redishelpers.UpdateMultiFields(ctx, s.pool, players, "assignment")
 
-	// Move these players from the proposed list to the deindexed list.
-	ignorelist.Move(ctx, s.pool, playerIDs, "proposed", "deindexed")
-
 	// Issue encountered
 	if err != nil {
 		beLog.WithFields(log.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("State storage error")
+
+		stats.Record(fnCtx, BeAssignmentFailures.M(int64(len(players))))
+		return nil, status.Error(codes.Unknown, err.Error())
+	}
+	// Move these players from the proposed list to the deindexed list.
+	err = ignorelist.Move(ctx, s.pool, playerIDs, "proposed", "deindexed")
+
+	// Issue encountered
+	if err != nil {
+		beLog.WithFields(log.Fields{
+			"error":     err.Error(),
+			"component": "ignorelist",
+		}).Error("Error moving player to ignore list")
 
 		stats.Record(fnCtx, BeAssignmentFailures.M(int64(len(players))))
 		return nil, status.Error(codes.Unknown, err.Error())
@@ -398,7 +406,7 @@ func (s *backendAPI) DeleteAssignments(ctx context.Context, req *pb.DeleteAssign
 // getPlayerIdsFromRoster returns the slice of player ID strings contained in
 // the input roster.
 func getPlayerIdsFromRoster(r *pb.Roster) []string {
-	playerIDs := make([]string, 0)
+	playerIDs := []string{}
 	for _, p := range r.Players {
 		playerIDs = append(playerIDs, p.Id)
 	}
