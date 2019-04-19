@@ -90,7 +90,6 @@ prometheus:
       requests:
         memory: 4Gi
         cpu: 2
-  serverFiles:
   prometheus.yml:
       rule_files:
         - /etc/config/rules

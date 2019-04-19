@@ -82,16 +82,9 @@ steps:
     path: '/go'
   waitFor: ['Build: Install Toolchain']
 
-- id: 'Lint: Format'
+- id: 'Lint: Format, Vet, Charts'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'fmt']
-  volumes:
-  - name: 'go-vol'
-    path: '/go'
-  waitFor: ['Build: Protocol Buffers']
-- id: 'Lint: Vet'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'vet']
+  args: ['make', 'lint']
   volumes:
   - name: 'go-vol'
     path: '/go'
