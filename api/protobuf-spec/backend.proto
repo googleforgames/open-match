@@ -1,11 +1,11 @@
 // Copyright 2018 Google LLC
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,8 +20,21 @@ option go_package = "internal/pb";
 import 'api/protobuf-spec/messages.proto';
 import 'google/api/annotations.proto';
 
+message MmfConfig {
+  enum Type {
+    GRPC = 0;
+    REST = 1; // REST support will be added in future.
+  }
+
+  string name = 1;  // Developer-chosen, human-readable string. (Optional)
+  string host = 2;  // Host or DNS name for service providing this MMF. Must be resolve-able by the backend API.
+  int32 port = 3;   // Port number for service providing this MMF.
+  Type type = 4;    // Type of MMF call
+}
+
 message CreateMatchRequest {
   messages.MatchObject match = 1;
+  MmfConfig mmfcfg = 2;
 }
 
 message CreateMatchResponse {
@@ -30,6 +43,7 @@ message CreateMatchResponse {
 
 message ListMatchesRequest {
   messages.MatchObject match = 1;
+  MmfConfig mmfcfg = 2;
 }
 
 message ListMatchesResponse {
@@ -77,7 +91,7 @@ service Backend {
       put: "/v1/backend/matches"
       body: "*"
     };
-  } 
+  }
   // Continually run MMF and stream MatchObjects that fit this profile until
   // the backend client closes the connection.  Same inputs/outputs as CreateMatch.
   rpc ListMatches(ListMatchesRequest) returns (stream ListMatchesResponse) {
@@ -86,7 +100,7 @@ service Backend {
 
   // Delete a MatchObject from state storage manually. (MatchObjects in state
   // storage will also automatically expire after a while, defined in the config)
-  // INPUT: MatchObject message with the 'id' field populated. 
+  // INPUT: MatchObject message with the 'id' field populated.
   // (All other fields are ignored.)
   rpc DeleteMatch(DeleteMatchRequest) returns (DeleteMatchResponse) {
     option (google.api.http) = {
@@ -98,17 +112,17 @@ service Backend {
     };
   }
 
-  // Calls for communication of connection info to players. 
+  // Calls for communication of connection info to players.
 
   // Write the connection info for the list of players in the
   // Assignments.messages.Rosters to state storage.  The Frontend API is
   // responsible for sending anything sent here to the game clients.
   // Sending a player to this function kicks off a process that removes
-  // the player from future matchmaking functions by adding them to the 
+  // the player from future matchmaking functions by adding them to the
   // 'deindexed' player list and then deleting their player ID from state storage
   // indexes.
   // INPUT: Assignments message with these fields populated:
-  //  - assignment, anything you write to this string is sent to Frontend API 
+  //  - assignment, anything you write to this string is sent to Frontend API
   //  - rosters. You can send any number of rosters, containing any number of
   //     player messages. All players from all rosters will be sent the assignment.
   //     The only field in the Roster's Player messages used by CreateAssignments is
@@ -119,8 +133,8 @@ service Backend {
       body: "*"
     };
   }
-  // Remove DGS connection info from state storage for players. 
-  // INPUT: Roster message with the 'players' field populated. 
+  // Remove DGS connection info from state storage for players.
+  // INPUT: Roster message with the 'players' field populated.
   //    The only field in the Roster's Player messages used by
   //    DeleteAssignments is the 'id' field.  All others are silently ignored.  If
   //    you need to delete multiple rosters, make multiple calls.
