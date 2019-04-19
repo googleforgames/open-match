@@ -34,6 +34,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/test/cmd/frontendclient/player"
 	"github.com/gobs/pretty"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
 
@@ -41,7 +42,8 @@ var (
 	numPlayers = flag.Int("numplayers", 1, "number of players to generate and group together")
 	connect    = flag.Bool("connect", false, "Set to true to try to connect to the assigned server over UDP")
 	noDelete   = flag.Bool("no-delete", false, "Set to true to prevent deletion of request and player info when done")
-	server     = flag.String("frontend", "om-frontendapi", "Hostname or IP of the Open Match frontend")
+	server     = flag.String("frontend", "om-frontendapi:50504", "Hostname or IP of the Open Match frontend")
+	cycle      = flag.Bool("cycle", true, "Continuously add more players.")
 )
 
 func main() {
@@ -54,17 +56,22 @@ func main() {
 	log.Printf(" [flags] Leave player and request in state storage? %v", *noDelete)
 
 	// Connect gRPC client
-	ip, err := net.LookupHost(*server)
-	if err != nil {
-		panic(err)
-	}
-	_ = ip
-	conn, err := grpc.Dial(ip[0]+":50504", grpc.WithInsecure())
+	conn, err := grpc.Dial(*server, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err.Error())
 	}
 	client := pb.NewFrontendClient(conn)
 	log.Println("API client connected!")
+	if *cycle {
+		for {
+			addPlayer(client)
+		}
+	} else {
+		addPlayer(client)
+	}
+}
+
+func addPlayer(client pb.FrontendClient) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -94,7 +101,6 @@ func main() {
 	players := make([]*pb.Player, *numPlayers)
 	resultsChan := make(chan pb.Player)
 	for i := 0; i < *numPlayers; i++ {
-
 		// Var init
 		players[i] = &pb.Player{}
 
@@ -104,9 +110,12 @@ func main() {
 		players[i].Properties = playerDataToJSONString(playerData)
 
 		// Start watching for results for this player (assignment/status/error)
-		responseStream, _ := client.GetUpdates(ctx, &pb.GetUpdatesRequest{
+		responseStream, err := client.GetUpdates(ctx, &pb.GetUpdatesRequest{
 			Player: players[i],
 		})
+		if err != nil {
+			log.Printf("Error on GetUpdates(ID=%v), %s\n", players[i].Id, err)
+		}
 		go waitForResults(resultsChan, responseStream)
 		log.Printf("Generated player \"%v\": %v", players[i].Id, players[i].Properties)
 
@@ -128,6 +137,9 @@ func main() {
 	results, err := client.CreatePlayer(ctx, &pb.CreatePlayerRequest{
 		Player: g,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 	if !*noDelete {
 		if *numPlayers > 1 {
 			defer cleanup(client, g, "group")
@@ -136,26 +148,25 @@ func main() {
 			defer cleanup(client, p, "player")
 		}
 	}
-	if err != nil {
-		panic(err)
-	}
 	log.Printf("CreateRequest() returned %v", results)
 
-	// Get updates for each player and display them the 'q' key is pressed.
-	quitChan := make(chan bool)
-	go waitForQuit(quitChan)
-	quit := false
-	for !quit {
-		log.Println("Waiting for results from Open Match...")
-		log.Println("**Press Enter to disconnect from Open Match frontend**")
+	if !*cycle {
+		// Get updates for each player and display them the 'q' key is pressed.
+		quitChan := make(chan bool)
+		go waitForQuit(quitChan)
+		quit := false
+		for !quit {
+			log.Println("Waiting for results from Open Match...")
+			log.Println("**Press Enter to disconnect from Open Match frontend**")
 
-		select {
-		case a := <-resultsChan:
-			pretty.PrettyPrint(a)
-		case <-quitChan:
-			log.Println("Disconnect from Frontend requested")
-			cancel() // Quit listening for results.
-			quit = true
+			select {
+			case a := <-resultsChan:
+				pretty.PrettyPrint(a)
+			case <-quitChan:
+				log.Println("Disconnect from Frontend requested")
+				cancel() // Quit listening for results.
+				quit = true
+			}
 		}
 	}
 
@@ -165,7 +176,7 @@ func main() {
 	if *connect && player.Assignment != "" {
 		err = udpClient(context.Background(), player.Assignment)
 		if err != nil {
-			panic(err)
+			log.Printf("Error on udpClient, %s\n", errors.WithStack(err))
 		}
 	}
 }
@@ -198,17 +209,17 @@ func waitForResults(resultsChan chan pb.Player, stream pb.Frontend_GetUpdatesCli
 	}
 }
 
-func udpClient(ctx context.Context, address string) (err error) {
+func udpClient(ctx context.Context, address string) error {
 	// Resolve address
 	raddr, err := net.ResolveUDPAddr("udp", address)
 	if err != nil {
-		return
+		return errors.WithStack(err)
 	}
 
 	// Connect
 	conn, err := net.DialUDP("udp", nil, raddr)
 	if err != nil {
-		return
+		return errors.WithStack(err)
 	}
 	defer conn.Close()
 
@@ -220,6 +231,7 @@ func udpClient(ctx context.Context, address string) (err error) {
 		b := bytes.NewBufferString("subscribe")
 		_, err := io.Copy(conn, b)
 		if err != nil {
+			err = errors.WithStack(err)
 			doneChan <- err
 			return
 		}
@@ -229,12 +241,12 @@ func udpClient(ctx context.Context, address string) (err error) {
 		for {
 			n, _, err := conn.ReadFrom(buffer)
 			if err != nil {
+				err = errors.WithStack(err)
 				doneChan <- err
 				return
 			}
 
 			log.Printf("received %v\n", string(buffer[:n]))
-
 		}
 	}()
 
@@ -243,10 +255,10 @@ func udpClient(ctx context.Context, address string) (err error) {
 	case <-ctx.Done():
 		log.Println("context cancelled")
 		err = ctx.Err()
+		return err
 	case err = <-doneChan:
+		return err
 	}
-
-	return
 }
 
 func cleanup(client pb.FrontendClient, g *pb.Player, kind string) {

@@ -40,6 +40,7 @@ openmatch:
       pullPolicy: Always
     evaluator:
       name: openmatch-evaluator-simple
+      pullPolicy: Always
     function:
       name: openmatch-mmf-go-mmlogic-simple
       pullPolicy: Always
