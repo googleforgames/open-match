@@ -353,7 +353,6 @@ func (s *mmlogicAPI) GetPlayerPool(req *pb.GetPlayerPoolRequest, stream pb.MmLog
 func (s *mmlogicAPI) applyFilter(c context.Context, filter *pb.Filter) (map[string]int64, error) {
 	mlLog := s.logger
 
-	type pName string
 	pool := make(map[string]int64)
 
 	// Default maximum value is positive infinity (i.e. highest possible number in redis)

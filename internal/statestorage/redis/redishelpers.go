@@ -140,8 +140,6 @@ func Create(ctx context.Context, pool *redis.Pool, key string, values map[string
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
-	defer redisConn.Close()
-
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
 		cLog.WithFields(log.Fields{
@@ -149,6 +147,8 @@ func Create(ctx context.Context, pool *redis.Pool, key string, values map[string
 		}).Error("state storage connection error")
 		return "", err
 	}
+
+	defer redisConn.Close()
 
 	// Build command arguments.
 	cmdArgs := make([]interface{}, 0)
@@ -173,7 +173,6 @@ func Retrieve(ctx context.Context, pool *redis.Pool, key string) (string, error)
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
-	defer redisConn.Close()
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
@@ -182,6 +181,7 @@ func Retrieve(ctx context.Context, pool *redis.Pool, key string) (string, error)
 			"query": cmd}).Error("state storage connection error")
 		return "", err
 	}
+	defer redisConn.Close()
 
 	// Run redis query and return
 	return redis.String(redisConn.Do(cmd, key))
@@ -203,7 +203,6 @@ func RetrieveField(ctx context.Context, pool *redis.Pool, key string, field stri
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
-	defer redisConn.Close()
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
@@ -212,6 +211,7 @@ func RetrieveField(ctx context.Context, pool *redis.Pool, key string, field stri
 		}).Error("state storage connection error")
 		return "", err
 	}
+	defer redisConn.Close()
 
 	// Run redis query and return
 	cLog.Debug("state storage operation")

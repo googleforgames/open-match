@@ -85,7 +85,6 @@ func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message, ttl
 
 	// Get the Redis connection.
 	redisConn, err := pool.GetContext(context.Background())
-	defer redisConn.Close()
 	if err != nil {
 		sLog.WithFields(log.Fields{
 			"error":     err.Error(),
@@ -93,6 +92,7 @@ func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message, ttl
 		}).Error("failed to connect to redis")
 		return err
 	}
+	defer redisConn.Close()
 	redisConn.Send("MULTI")
 
 	// Write all non-id fields from the protobuf message to state storage.
@@ -104,14 +104,10 @@ func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message, ttl
 		//field := strings.ToLower(pbInfo.Type().Field(i).Tag.Get("json"))
 		field := strings.ToLower(pbInfo.Type().Field(i).Name)
 		value := ""
-		//value, err = strconv.Unquote(gjson.Get(jsonMsg, field).String())
 		value = gjson.Get(jsonMsg, field).String()
-		if err != nil {
-			resultLog.Error("Issue with Unquoting string", err)
-		}
 		if field != "id" {
 			// This isn't the ID field, so write it to the redis hash.
-			redisConn.Send(cmd, key, field, value)
+			err = redisConn.Send(cmd, key, field, value)
 			if err != nil {
 				resultLog.WithFields(log.Fields{
 					"error":     err.Error(),
@@ -125,7 +121,6 @@ func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message, ttl
 				"field":     field,
 				"value":     value,
 			}).Info("State storage operation")
-
 		}
 	}
 	if ttl > 0 {
