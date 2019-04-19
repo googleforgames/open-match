@@ -9,17 +9,13 @@ $enable-rounded: false;
 $display1-weight: 500 !default;
 $display2-weight: 100 !default;
 
-$omblue: #2D70DE !default;
-$omdarkblue: #0A1A3F !default;
 
 $primary: rgb(255, 255,255)  !default;
 $primary-light: lighten($primary, 75%) !default;
-$secondary: $omblue;
+$secondary: #2D70DE !default;
 $light: rgb(255, 255,255) !default;
 $grey:  #888 !default;
 $orange: $secondary;
-$blueishblack: #121314 !default;
-$verydark: $omdarkblue;
 
 .nav-shadow {
     box-shadow: 0 2px 2px -2px rgba(0,0,0,.2);
@@ -42,7 +38,7 @@ $verydark: $omdarkblue;
 
 .asciinema-theme-asciinema .asciinema-terminal {
     color: #cccccc;
-    background-color: $verydark;
+    background-color: #121314;
     border-color: #121314;
     border-radius: 8px;
 }
@@ -59,9 +55,9 @@ input[type="search"]::placeholder {
 }
 
 .td-box--secondary p > a:hover {
-    color: $verydark !important;
+    color: #121314 !important;
 }
 
 #community a {
-    color: $verydark !important;
+    color: #121314 !important;
 }

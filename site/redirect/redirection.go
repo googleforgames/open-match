@@ -23,8 +23,30 @@ import (
 	"sort"
 	"strings"
 
+	"io/ioutil"
+	"log"
+
 	"gopkg.in/yaml.v2"
+
+	"google.golang.org/appengine"
 )
+
+func main() {
+	vanity, err := ioutil.ReadFile("./vanity.yaml")
+	if err != nil {
+		log.Fatal(err)
+	}
+	h, err := newHandler(vanity)
+	if err != nil {
+		log.Fatal(err)
+	}
+	http.Handle("/", h)
+	appengine.Main()
+}
+
+func defaultHost(r *http.Request) string {
+	return appengine.DefaultVersionHostname(appengine.NewContext(r))
+}
 
 type handler struct {
 	host         string
@@ -96,10 +118,6 @@ func newHandler(config []byte) (*handler, error) {
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	current := r.URL.Path
 	pc, subpath := h.paths.find(current)
-	if pc == nil && current == "/" {
-		h.serveIndex(w, r)
-		return
-	}
 	if pc == nil && strings.Contains(current, "/chart/stable") {
 		path := strings.Replace(current, "/chart/stable", "", 1)
 		h.serveChart(w, r, path)
@@ -111,7 +129,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if pc == nil {
-		http.NotFound(w, r)
+		h.serveIndex(w, r)
 		return
 	}
 
@@ -133,13 +151,6 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *handler) serveIndex(w http.ResponseWriter, r *http.Request) {
-	// Just redirect to the first one
-	// just commenting out, in case we want to soft launch
-	//http.Redirect(w, r, h.paths[0].repo, http.StatusTemporaryRedirect)
-	http.Redirect(w, r, "/site/", http.StatusTemporaryRedirect)
-}
-
 func (h *handler) serveChart(w http.ResponseWriter, r *http.Request, path string) {
 	root := "https://storage.googleapis.com/open-match-chart/chart"
 	http.Redirect(w, r, root+path, http.StatusTemporaryRedirect)
@@ -148,6 +159,10 @@ func (h *handler) serveChart(w http.ResponseWriter, r *http.Request, path string
 func (h *handler) serveInstallYaml(w http.ResponseWriter, r *http.Request, path string) {
 	root := "https://storage.googleapis.com/open-match-chart/install"
 	http.Redirect(w, r, root+path, http.StatusTemporaryRedirect)
+}
+
+func (h *handler) serveIndex(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "https://github.com/GoogleCloudPlatform/open-match/", http.StatusTemporaryRedirect)
 }
 
 func (h *handler) Host(r *http.Request) string {
