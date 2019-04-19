@@ -27,7 +27,6 @@ api:
 
 evaluator:
   # Evaluator intervals are in milliseconds
-  interval: 10
   pollIntervalMs: 1000
   maxWaitMs: 10000
 
@@ -37,9 +36,6 @@ metrics:
   reportingPeriod: 5
 
 queues:
-  profiles:
-    name: profileq
-    pullCount: 100
   proposals:
     name: proposalq
 
@@ -57,14 +53,6 @@ ignoreLists:
     offset: 800
     duration: 0
 
-defaultImages:
-  evaluator:
-    name: gcr.io/open-match-public-images/openmatch-evaluator-simple
-    tag: latest
-  mmf:
-    name: gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple
-    tag: latest
-
 redis:
   pool:
     maxIdle: 3
@@ -79,8 +67,6 @@ redis:
     matchobject: 43200
 
 jsonkeys:
-  mmfImage: imagename
-  mmfService: hostname
   rosters: properties.rosters
   pools: properties.pools
 
