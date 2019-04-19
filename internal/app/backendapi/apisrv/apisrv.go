@@ -172,10 +172,6 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 		if !ok {
 			conn, err := grpc.Dial(addr, grpc.WithInsecure())
 			if err != nil {
-				mgLog.WithFields(log.Fields{
-					"error": err.Error(),
-				}).Error("Failed to connect to MMF GRPC service")
-				stats.Record(fnCtx, BeGrpcErrors.M(1))
 				return nil, err
 			}
 
@@ -198,10 +194,6 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 		beLog.Debug("mmfRequest: ", mmfRequest)
 		_, err = client.Run(ctx, &mmfRequest)
 		if err != nil {
-			mgLog.WithFields(log.Fields{
-				"error": err.Error(),
-			}).Error("MMF service returned error")
-			stats.Record(fnCtx, BeGrpcErrors.M(1))
 			return nil, err
 		}
 
