@@ -233,7 +233,6 @@ func RetrieveAll(ctx context.Context, pool *redis.Pool, key string) (map[string]
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
-	defer redisConn.Close()
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
@@ -242,6 +241,7 @@ func RetrieveAll(ctx context.Context, pool *redis.Pool, key string) (map[string]
 		}).Error("state storage connection error")
 		return nil, err
 	}
+	defer redisConn.Close()
 
 	// Run redis query and return
 	cLog.Debug("state storage operation")
@@ -261,7 +261,6 @@ func Update(ctx context.Context, pool *redis.Pool, key string, value string) (st
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
-	defer redisConn.Close()
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
@@ -271,6 +270,7 @@ func Update(ctx context.Context, pool *redis.Pool, key string, value string) (st
 			"value": value}).Error("state storage connection error")
 		return "", err
 	}
+	defer redisConn.Close()
 
 	// Run redis query and return
 	_, err = redisConn.Do("SADD", key, value)
@@ -290,7 +290,6 @@ func UpdateMultiFields(ctx context.Context, pool *redis.Pool, kv map[string]stri
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
-	defer redisConn.Close()
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
@@ -299,6 +298,7 @@ func UpdateMultiFields(ctx context.Context, pool *redis.Pool, kv map[string]stri
 		}).Error("state storage connection error")
 		return err
 	}
+	defer redisConn.Close()
 
 	// Run redis query and return
 	redisConn.Send("MULTI")
@@ -320,7 +320,6 @@ func Delete(ctx context.Context, pool *redis.Pool, key string) error {
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
-	defer redisConn.Close()
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
@@ -329,6 +328,7 @@ func Delete(ctx context.Context, pool *redis.Pool, key string) error {
 		}).Error("state storage connection error")
 		return err
 	}
+	defer redisConn.Close()
 
 	// Run redis query and return
 	_, err = redisConn.Do(cmd, key)
@@ -345,7 +345,6 @@ func DeleteMultiFields(ctx context.Context, pool *redis.Pool, keys []string, fie
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
-	defer redisConn.Close()
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
@@ -354,6 +353,7 @@ func DeleteMultiFields(ctx context.Context, pool *redis.Pool, keys []string, fie
 		}).Error("state storage connection error")
 		return err
 	}
+	defer redisConn.Close()
 
 	// Run redis query and return
 	redisConn.Send("MULTI")
@@ -375,7 +375,6 @@ func Count(ctx context.Context, pool *redis.Pool, key string) (int, error) {
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
-	defer redisConn.Close()
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
@@ -384,6 +383,7 @@ func Count(ctx context.Context, pool *redis.Pool, key string) (int, error) {
 			"query": cmd}).Error("state storage connection error")
 		return 0, err
 	}
+	defer redisConn.Close()
 
 	// Run redis query and return
 	return redis.Int(redisConn.Do("SCARD", key))
@@ -400,7 +400,6 @@ func Increment(ctx context.Context, pool *redis.Pool, key string) (interface{}, 
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
-	defer redisConn.Close()
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
@@ -409,6 +408,7 @@ func Increment(ctx context.Context, pool *redis.Pool, key string) (interface{}, 
 			"query": cmd}).Error("state storage connection error")
 		return "", err
 	}
+	defer redisConn.Close()
 
 	// Run redis query and return
 	return redisConn.Do("INCR", key)
@@ -425,7 +425,6 @@ func Decrement(ctx context.Context, pool *redis.Pool, key string) (interface{}, 
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
-	defer redisConn.Close()
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
@@ -434,6 +433,7 @@ func Decrement(ctx context.Context, pool *redis.Pool, key string) (interface{}, 
 			"query": cmd}).Error("state storage connection error")
 		return "", err
 	}
+	defer redisConn.Close()
 
 	// Run redis query and return
 	return redisConn.Do("DECR", key)
