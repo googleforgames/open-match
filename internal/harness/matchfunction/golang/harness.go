@@ -71,6 +71,7 @@ func ServeMatchFunction(params *HarnessParams) {
 	grpcServer.AddService(func(server *grpc.Server) {
 		pb.RegisterMatchFunctionServer(server, mfServer)
 	})
+	grpcServer.AddProxy(pb.RegisterMatchFunctionHandlerFromEndpoint)
 
 	defer func() {
 		err := grpcServer.Stop()
