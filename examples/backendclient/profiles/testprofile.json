@@ -1,7 +1,8 @@
 {
-  "imagename":"gcr.io/open-match-public-images/openmatch-mmf-py3-mmlogic-simple:latest",
   "name":"testprofilev1",
   "id":"testprofile",
+  "hostname": "om-function",
+  "port": 50502,
   "properties":{
      "pools": [
         {
