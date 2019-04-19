@@ -355,7 +355,6 @@ install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backendapi.install=false \
 		--set openmatch.frontendapi.install=false \
 		--set openmatch.mmlogicapi.install=false \
-		--set openmatch.mmforc.install=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=false \
 		install/helm/open-match > install/yaml/01-redis-chart.yaml
@@ -380,7 +379,6 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backendapi.install=false \
 		--set openmatch.frontendapi.install=false \
 		--set openmatch.mmlogicapi.install=false \
-		--set openmatch.mmforc.install=false \
 		--set grafana.enabled=false \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
@@ -392,7 +390,6 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backendapi.install=false \
 		--set openmatch.frontendapi.install=false \
 		--set openmatch.mmlogicapi.install=false \
-		--set openmatch.mmforc.install=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=true \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
