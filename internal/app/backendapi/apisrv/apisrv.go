@@ -23,6 +23,7 @@ package apisrv
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/config"
@@ -164,7 +165,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 			"type": "grpc",
 		})
 
-		addr := fmt.Sprintf("%s:%s", req.Mmfcfg.Host, req.Mmfcfg.Port)
+		addr := req.Mmfcfg.Host + ":" + strconv.FormatInt(int64(req.Mmfcfg.Port), 10)
 		client, ok := s.mmfClients[addr]
 		if !ok {
 			conn, err := grpc.Dial(addr, grpc.WithInsecure())
@@ -176,7 +177,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 				return nil, err
 			}
 
-			client := pb.NewMatchFunctionClient(conn)
+			client = pb.NewMatchFunctionClient(conn)
 			s.mmfClients[addr] = client
 			mgLog.Println("Successfully connected to MMF service")
 		} else if s.cfg.IsSet("debug") && s.cfg.GetBool("debug") {
@@ -203,11 +204,15 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 		}
 
 		// Increment number of currently running MMFs.
-		redishelpers.Increment(context.Background(), s.pool, "concurrentMMFs")
+		_, err = redishelpers.Increment(context.Background(), s.pool, "concurrentMMFs")
+		if err != nil {
+			beLog.Errorf("Failed to increment concurrent mmf count in state storage, %v", err)
+			return nil, err
+		}
 
 	case pb.MmfConfig_REST:
 		beLog.Error("Open Match currently does not support REST endpoints for MMF.")
-		return nil, err
+		return nil, fmt.Errorf("Open Match currently does not support REST endpoints for MMF.")
 	}
 
 	watcherBO := backoff.NewExponentialBackOff()
@@ -287,7 +292,8 @@ func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Back
 				beLog.Debug(&requestProfile)
 			*/
 			mo, err := s.CreateMatch(ctx, &pb.CreateMatchRequest{
-				Match: requestProfile,
+				Match:  requestProfile,
+				Mmfcfg: proto.Clone(req.Mmfcfg).(*pb.MmfConfig),
 			})
 
 			beLog = beLog.WithFields(log.Fields{"func": funcName})

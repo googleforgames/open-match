@@ -28,7 +28,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"os"
 
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
@@ -38,12 +37,20 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var (
+	filename       = flag.String("file", "profiles/testprofile.json", "JSON file from which to read match properties")
+	beCall         = flag.String("call", "ListMatches", "Open Match backend match request gRPC call to test")
+	assignment     = flag.String("assignment", "example.server.dgs:12345", "Assignment to send to matched players")
+	delAssignments = flag.Bool("rm", false, "Delete assignments. Leave off to be able to manually validate assignments in state storage")
+	verbose        = flag.Bool("verbose", false, "Print out as much as possible")
+)
+
 func bytesToString(data []byte) string {
 	return string(data[:])
 }
 
 func ppJSON(s string) {
-	if verbose {
+	if *verbose {
 		buf := new(bytes.Buffer)
 		json.Indent(buf, []byte(s), "", "  ")
 		log.Println(buf)
@@ -51,42 +58,22 @@ func ppJSON(s string) {
 	return
 }
 
-var (
-	profileName    string
-	filename       string
-	beHost         string
-	bePort         string
-	beCall         string
-	assignment     string
-	delAssignments bool
-	verbose        bool
-)
-
 func main() {
-	flag.StringVar(&filename, "file", "profiles/testprofile.json", "JSON file from which to read match properties")
-	flag.StringVar(&beCall, "call", "ListMatches", "Open Match backend match request gRPC call to test")
-	flag.StringVar(&beHost, "host", "om-backendapi", "Open Match backend hostname")
-	flag.StringVar(&bePort, "port", "50505", "Open Match backend port")
-	flag.StringVar(&assignment, "assignment", "example.server.dgs:12345", "Assignment to send to matched players")
-	flag.BoolVar(&delAssignments, "rm", false, "Delete assignments. Leave off to be able to manually validate assignments in state storage")
-	flag.BoolVar(&verbose, "verbose", false, "Print out as much as possible")
 	flag.Parse()
-
 	log.Print("Parsing flags:")
-	log.Printf(" [flags] Reading properties from file at %v", filename)
-	log.Printf(" [flags] Connecting to OM Backend at %v:%v", beHost, bePort)
-	if !(beCall == "CreateMatch" || beCall == "ListMatches") {
-		log.Printf(" [flags] Unknown OM Backend call %v! Exiting...", beCall)
+	log.Printf(" [flags] Reading properties from file at %v", *filename)
+	log.Printf(" [flags] Using OM Backend %v call", *beCall)
+	log.Printf(" [flags] Assigning players to %v", *assignment)
+	log.Printf(" [flags] Deleting assignments? %v", *delAssignments)
+	if !(*beCall == "CreateMatch" || *beCall == "ListMatches") {
+		log.Printf(" [flags] Unknown OM Backend call %v! Exiting...", *beCall)
 		return
 	}
-	log.Printf(" [flags] Using OM Backend %v call", beCall)
-	log.Printf(" [flags] Assigning players to %v", assignment)
-	log.Printf(" [flags] Deleting assignments? %v", delAssignments)
 
 	// Read the profile
-	jsonFile, err := os.Open(filename)
+	jsonFile, err := os.Open(*filename)
 	if err != nil {
-		log.Fatal("Failed to open file ", filename)
+		log.Fatal("Failed to open file ", *filename)
 	}
 	defer jsonFile.Close()
 
@@ -101,20 +88,16 @@ func main() {
 	pbProfile := &pb.MatchObject{}
 	pbProfile.Properties = jsonProfile
 
-	// Connect gRPC client
-	ip, err := net.LookupHost(beHost)
-	if err != nil {
-		panic(err)
-	}
-
-	conn, err := grpc.Dial(ip[0]+":"+bePort, grpc.WithInsecure())
+	addr := "om-backendapi:50505"
+	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err.Error())
 	}
 
 	client := pb.NewBackendClient(conn)
-	log.Println("Backend client connected to", beHost+":"+bePort)
+	log.Println("Backend client connected to", addr)
 
+	var profileName string
 	if gjson.Get(jsonProfile, "name").Exists() {
 		profileName = gjson.Get(jsonProfile, "name").String()
 	} else {
@@ -163,9 +146,9 @@ func main() {
 				pretty.PrettyPrint(match)
 
 				// Assign players in this match to our server
-				log.Println("Assigning players to DGS at", assignment)
+				log.Println("Assigning players to DGS at", *assignment)
 
-				assign := &pb.Assignments{Rosters: match.Rosters, Assignment: assignment}
+				assign := &pb.Assignments{Rosters: match.Rosters, Assignment: *assignment}
 				log.Printf("Waiting for matches...")
 				_, err = client.CreateAssignments(context.Background(), &pb.CreateAssignmentsRequest{
 					Assignment: assign,
@@ -176,16 +159,20 @@ func main() {
 				}
 				log.Println("Success!")
 
-				if delAssignments {
+				if *delAssignments {
 					log.Println("deleting assignments")
 					for _, a := range assign.Rosters {
 						_, err = client.DeleteAssignments(context.Background(), &pb.DeleteAssignmentsRequest{Roster: a})
+						if err != nil {
+							log.Println(err)
+						}
+						log.Println("Success Deleting Assignments!")
 					}
 				} else {
 					log.Println("Not deleting assignments [demo mode].")
 				}
 			}
-			if beCall == "CreateMatch" {
+			if *beCall == "CreateMatch" {
 				// Got a result; done here.
 				log.Println("Got single result from CreateMatch, exiting...")
 				doneChan <- true
@@ -195,8 +182,8 @@ func main() {
 	}()
 
 	// Make the requested backend call: CreateMatch calls once, ListMatches continually calls.
-	log.Printf("Attempting %v() call", beCall)
-	switch beCall {
+	log.Printf("Attempting %v() call", *beCall)
+	switch *beCall {
 	case "CreateMatch":
 		resp, err := client.CreateMatch(ctx, req)
 		if err != nil {
