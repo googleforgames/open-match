@@ -25,6 +25,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/expbo"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
@@ -241,11 +243,6 @@ func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Back
 		default:
 			// Retreive results from Redis
 			requestProfile := proto.Clone(p).(*pb.MatchObject)
-			/*
-				beLog.Debug("new profile requested!")
-				beLog.Debug(requestProfile)
-				beLog.Debug(&requestProfile)
-			*/
 			mo, err := s.CreateMatch(ctx, &pb.CreateMatchRequest{
 				Match: requestProfile,
 			})
@@ -258,9 +255,12 @@ func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Back
 			}
 			beLog.WithFields(log.Fields{"matchProperties": fmt.Sprintf("%v", mo)}).Debug("Streaming back match object")
 			res := proto.Clone(mo.Match).(*pb.MatchObject)
-			matchStream.Send(&pb.ListMatchesResponse{
+			err = matchStream.Send(&pb.ListMatchesResponse{
 				Match: res,
 			})
+			if err != nil {
+				return status.Error(codes.Internal, errors.WithStack(err).Error())
+			}
 
 			// TODO: This should be tunable, but there should be SOME sleep here, to give a requestor a window
 			// to cleanly close the connection after receiving a match object when they know they don't want to
@@ -306,8 +306,8 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, req *pb.CreateAssign
 	beLog := s.logger
 
 	// Make a map of players and what assignments we want to send them.
-	playerIDs := make([]string, 0)
-	players := make(map[string]string, 0)
+	playerIDs := []string{}
+	players := map[string]string{}
 	for _, roster := range a.Rosters { // Loop through all rosters
 		for _, player := range roster.Players { // Loop through all players in this roster
 			if player.Id != "" {
@@ -337,15 +337,25 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, req *pb.CreateAssign
 	// Send the players their assignments.
 	err := redishelpers.UpdateMultiFields(ctx, s.pool, players, "assignment")
 
-	// Move these players from the proposed list to the deindexed list.
-	ignorelist.Move(ctx, s.pool, playerIDs, "proposed", "deindexed")
-
 	// Issue encountered
 	if err != nil {
 		beLog.WithFields(log.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("State storage error")
+
+		stats.Record(fnCtx, BeAssignmentFailures.M(int64(len(players))))
+		return nil, status.Error(codes.Unknown, err.Error())
+	}
+	// Move these players from the proposed list to the deindexed list.
+	err = ignorelist.Move(ctx, s.pool, playerIDs, "proposed", "deindexed")
+
+	// Issue encountered
+	if err != nil {
+		beLog.WithFields(log.Fields{
+			"error":     err.Error(),
+			"component": "ignorelist",
+		}).Error("Error moving player to ignore list")
 
 		stats.Record(fnCtx, BeAssignmentFailures.M(int64(len(players))))
 		return nil, status.Error(codes.Unknown, err.Error())
@@ -396,7 +406,7 @@ func (s *backendAPI) DeleteAssignments(ctx context.Context, req *pb.DeleteAssign
 // getPlayerIdsFromRoster returns the slice of player ID strings contained in
 // the input roster.
 func getPlayerIdsFromRoster(r *pb.Roster) []string {
-	playerIDs := make([]string, 0)
+	playerIDs := []string{}
 	for _, p := range r.Players {
 		playerIDs = append(playerIDs, p.Id)
 	}

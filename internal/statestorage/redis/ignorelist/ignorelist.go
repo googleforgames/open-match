@@ -183,14 +183,6 @@ func Retrieve(redisConn redis.Conn, cfg config.View, il string) ([]string, error
 	return results, err
 }
 
-func retrieve(redisConn redis.Conn, ignorelistID string, from int64, until int64) ([]string, error) {
-	cmd := "ZRANGEBYSCORE"
-
-	// ignorelists are sorted sets with scores set to epoch timestamps (in seconds)
-	results, err := redis.Strings(redisConn.Do(cmd, ignorelistID, from, until))
-	return results, err
-}
-
 // buildElemmentValueLIst builds an array of strings to send to the redis commad.
 // ZADD expects values (in this case we will use epoch timestamps) followed by
 // an element (we will use player IDs).

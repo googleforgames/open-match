@@ -97,10 +97,10 @@ func main() {
 
 		// Var init
 		players[i] = &pb.Player{}
-		playerData := make(map[string]interface{})
 
 		// Generate a new player
-		players[i].Id, playerData = player.Generate()
+		newPlayerID, playerData := player.Generate()
+		players[i].Id = newPlayerID
 		players[i].Properties = playerDataToJSONString(playerData)
 
 		// Start watching for results for this player (assignment/status/error)
@@ -168,8 +168,6 @@ func main() {
 			panic(err)
 		}
 	}
-
-	return
 }
 
 func waitForQuit(quitChan chan<- bool) {
