@@ -1,23 +1,28 @@
 package serving
 
 import (
+	"fmt"
 	"net"
 	"net/http"
+	"path"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 )
 
 // GrpcWrapper is a decoration around the standard GRPC server that sets up a bunch of things common to Open Match servers.
 type GrpcWrapper struct {
 	serviceLh, proxyLh        *netlistener.ListenerHolder
 	serviceHandlerFuncs       []func(*grpc.Server)
-	proxyHandlerFunc          func(proxyEndpoint string) (*runtime.ServeMux, error)
+	proxyHandlerFuncs         []func(context.Context, *runtime.ServeMux, *grpc.ClientConn) error
 	server                    *grpc.Server
 	proxy                     *http.Server
 	serviceLn, proxyLn        net.Listener
@@ -32,6 +37,7 @@ func NewGrpcServer(serviceLh, proxyLh *netlistener.ListenerHolder, logger *log.E
 		proxyLh:             proxyLh,
 		logger:              logger,
 		serviceHandlerFuncs: []func(*grpc.Server){},
+		proxyHandlerFuncs:   []func(context.Context, *runtime.ServeMux, *grpc.ClientConn) error{},
 	}
 }
 
@@ -40,15 +46,9 @@ func (gw *GrpcWrapper) AddService(handlerFunc func(*grpc.Server)) {
 	gw.serviceHandlerFuncs = append(gw.serviceHandlerFuncs, handlerFunc)
 }
 
-func (gw *GrpcWrapper) AddProxy(proxyHandlerFunc func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error) {
-	gw.proxyHandlerFunc = func(endpoint string) (*runtime.ServeMux, error) {
-		ctx := context.Background()
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		mux := runtime.NewServeMux()
-		return mux, proxyHandlerFunc(ctx, mux, endpoint, []grpc.DialOption{grpc.WithInsecure()})
-	}
+// AddProxy registers a reverse proxy from REST to gRPC when server is created.
+func (gw *GrpcWrapper) AddProxy(handlerFunc func(context.Context, *runtime.ServeMux, *grpc.ClientConn) error) {
+	gw.proxyHandlerFuncs = append(gw.proxyHandlerFuncs, handlerFunc)
 }
 
 // Start begins the gRPC server.
@@ -104,25 +104,47 @@ func (gw *GrpcWrapper) Start() error {
 
 	gw.logger.WithFields(log.Fields{"proxyPort": gw.proxyLh.Number()}).Info("TCP net listener initialized")
 
-	proxyEndpoint := gw.proxyLn.Addr().String()
-	mux, err := gw.proxyHandlerFunc(proxyEndpoint)
-	gw.proxy = &http.Server{Addr: proxyEndpoint, Handler: mux}
-	gw.proxyAwaiter = make(chan error)
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
+	proxyMux := runtime.NewServeMux()
+
+	serviceEndpoint := fmt.Sprintf("localhost:%d", gw.serviceLh.Number())
+	grpcToProxyConn, err := grpc.DialContext(ctx, serviceEndpoint, grpc.WithInsecure())
 	if err != nil {
 		gw.logger.WithFields(log.Fields{
-			"error":     err.Error(),
-			"proxyPort": gw.proxyLh.Number(),
-		}).Error("RegisterHandlerFromEndpoint() error")
+			"error":           err.Error(),
+			"serviceEndpoint": serviceEndpoint,
+		}).Error("grpc Dialing error")
 		return err
 	}
 
+	httpMux := http.NewServeMux()
+
+	for _, handlerFunc := range gw.proxyHandlerFuncs {
+		if err := handlerFunc(ctx, proxyMux, grpcToProxyConn); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
+	httpMux.HandleFunc("/swagger/", swaggerServer("internal/pb"))
+	httpMux.HandleFunc("/healthz", healthzServer(grpcToProxyConn))
+	httpMux.Handle("/", proxyMux)
+
+	gw.proxy = &http.Server{Handler: httpMux}
+	gw.proxyAwaiter = make(chan error)
+
 	go func() {
 		gw.logger.Infof("Serving proxy on :%d", gw.proxyLh.Number())
-		err := gw.proxy.ListenAndServe()
+		err := gw.proxy.Serve(proxyLn)
 		gw.proxyAwaiter <- err
 		if err != nil {
-			gw.logger.WithFields(log.Fields{"error": err.Error()}).Error("proxy ListenAndServe() error")
+			gw.logger.WithFields(log.Fields{
+				"error":           err.Error(),
+				"serviceEndpoint": serviceEndpoint,
+				"proxyPort":       gw.proxyLh.Number(),
+			}).Error("proxy ListenAndServe() error")
 		}
 	}()
 
@@ -172,4 +194,29 @@ func (gw *GrpcWrapper) Stop() error {
 		return proxyErr
 	}
 	return portErr
+}
+
+// healthzServer returns a simple health handler which returns ok.
+func healthzServer(conn *grpc.ClientConn) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		if s := conn.GetState(); s != connectivity.Ready {
+			http.Error(w, fmt.Sprintf("grpc server is %s", s), http.StatusBadGateway)
+			return
+		}
+		fmt.Fprintln(w, "ok")
+	}
+}
+
+// swaggerServer returns swagger specification files located under "internal/pb"
+func swaggerServer(dir string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, ".swagger.json") {
+			http.NotFound(w, r)
+			return
+		}
+
+		p := path.Join(dir, r.URL.Path)
+		http.ServeFile(w, r, p)
+	}
 }

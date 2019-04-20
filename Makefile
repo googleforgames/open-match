@@ -747,6 +747,9 @@ update-deps:
 	$(GO) mod tidy
 	cd site && $(GO) mod tidy
 
+proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=frontend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') 51504:51504 $(PORT_FORWARD_ADDRESS_FLAG) 
+
 sync-deps:
 	$(GO) mod download
 	cd site && $(GO) mod download

@@ -64,7 +64,7 @@ func Bind(omSrv *serving.OpenMatchServer) {
 	omSrv.GrpcServer.AddService(func(server *grpc.Server) {
 		pb.RegisterMmLogicServer(server, handler)
 	})
-	omSrv.GrpcServer.AddProxy(pb.RegisterMmLogicHandlerFromEndpoint)
+	omSrv.GrpcServer.AddProxy(pb.RegisterMmLogicHandler)
 }
 
 // GetProfile is this service's implementation of the gRPC call defined in

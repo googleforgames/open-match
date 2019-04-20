@@ -7,6 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 )
 
+// FakeFrontend with empty method impl used for testing
 type FakeFrontend struct {
 }
 
