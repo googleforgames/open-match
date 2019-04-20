@@ -71,7 +71,11 @@ func (gw *GrpcWrapper) AddProxy(proxyHandlerFunc func(context.Context, *runtime.
 		}
 
 		mux.Handle(stub.method, pat, func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
-			io.WriteString(w, "pong")
+			_, err := io.WriteString(w, "pong")
+
+			if err != nil {
+				panic(err)
+			}
 		})
 
 		return mux, proxyHandlerFunc(ctx, mux, endpoint, []grpc.DialOption{grpc.WithInsecure()})
