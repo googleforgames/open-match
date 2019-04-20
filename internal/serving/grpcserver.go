@@ -1,6 +1,8 @@
 package serving
 
 import (
+	"fmt"
+	"io"
 	"net"
 	"net/http"
 
@@ -40,6 +42,7 @@ func (gw *GrpcWrapper) AddService(handlerFunc func(*grpc.Server)) {
 	gw.serviceHandlerFuncs = append(gw.serviceHandlerFuncs, handlerFunc)
 }
 
+// AddProxy registers a reverse proxy from REST to gRPC when server is created.
 func (gw *GrpcWrapper) AddProxy(proxyHandlerFunc func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error) {
 	gw.proxyHandlerFunc = func(endpoint string) (*runtime.ServeMux, error) {
 		ctx := context.Background()
@@ -47,6 +50,30 @@ func (gw *GrpcWrapper) AddProxy(proxyHandlerFunc func(context.Context, *runtime.
 		defer cancel()
 
 		mux := runtime.NewServeMux()
+
+		type stubPattern struct {
+			method string
+			ops    []int
+			pool   []string
+			verb   string
+		}
+
+		stub := stubPattern{method: "GET", ops: []int{2, 0}, pool: []string{"ping"}}
+		pat, err := runtime.NewPattern(1, stub.ops, stub.pool, stub.verb)
+
+		if err != nil {
+			gw.logger.WithFields(log.Fields{
+				"error": err.Error(),
+				"ops":   stub.ops,
+				"pool":  stub.pool,
+			}).Error("runtime.NewPattern failed to register /ping")
+			return nil, err
+		}
+
+		mux.Handle(stub.method, pat, func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
+			io.WriteString(w, "pong")
+		})
+
 		return mux, proxyHandlerFunc(ctx, mux, endpoint, []grpc.DialOption{grpc.WithInsecure()})
 	}
 }
@@ -104,9 +131,10 @@ func (gw *GrpcWrapper) Start() error {
 
 	gw.logger.WithFields(log.Fields{"proxyPort": gw.proxyLh.Number()}).Info("TCP net listener initialized")
 
-	proxyEndpoint := gw.proxyLn.Addr().String()
-	mux, err := gw.proxyHandlerFunc(proxyEndpoint)
-	gw.proxy = &http.Server{Addr: proxyEndpoint, Handler: mux}
+	serviceEndpoint := fmt.Sprintf(":%d", gw.serviceLh.Number())
+	mux, err := gw.proxyHandlerFunc(serviceEndpoint)
+
+	gw.proxy = &http.Server{Handler: mux}
 	gw.proxyAwaiter = make(chan error)
 
 	if err != nil {
@@ -119,10 +147,14 @@ func (gw *GrpcWrapper) Start() error {
 
 	go func() {
 		gw.logger.Infof("Serving proxy on :%d", gw.proxyLh.Number())
-		err := gw.proxy.ListenAndServe()
+		err := gw.proxy.Serve(proxyLn)
 		gw.proxyAwaiter <- err
 		if err != nil {
-			gw.logger.WithFields(log.Fields{"error": err.Error()}).Error("proxy ListenAndServe() error")
+			gw.logger.WithFields(log.Fields{
+				"error":           err.Error(),
+				"serviceEndpoint": serviceEndpoint,
+				"proxyPort":       gw.proxyLh.Number(),
+			}).Error("proxy ListenAndServe() error")
 		}
 	}()
 

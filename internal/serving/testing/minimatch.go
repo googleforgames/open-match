@@ -53,31 +53,28 @@ func (mm *MiniMatchServer) Stop() {
 }
 
 // MustMiniMatch requires Mini Match to be created successfully.
-func MustMiniMatch(params []*serving.ServerParams) (*MiniMatchServer, func()) {
-	mm, closer, err := NewMiniMatch(params)
+func MustMiniMatch(params []*serving.ServerParams) *MiniMatchServer {
+	mm, err := NewMiniMatch(params)
 	if err != nil {
 		panic(err)
 	}
-	return mm, closer
+	return mm
 }
 
 // NewMiniMatch creates and starts an OpenMatchServer context for testing.
-func NewMiniMatch(params []*serving.ServerParams) (*MiniMatchServer, func(), error) {
+func NewMiniMatch(params []*serving.ServerParams) (*MiniMatchServer, error) {
 	mm, err := createOpenMatchServer(params)
 	if err != nil {
-		return nil, func() {}, err
+		return nil, err
 	}
 	logger := mm.Logger
 	// Start serving traffic.
 	err = mm.Start()
 	if err != nil {
 		logger.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to start server")
-		return nil, func() {}, err
+		return nil, err
 	}
-	closer := func() {
-		mm.Stop()
-	}
-	return mm, closer, nil
+	return mm, nil
 }
 
 func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer, error) {
