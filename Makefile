@@ -48,7 +48,7 @@
 
 BASE_VERSION = 0.4.0
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD)
-VERSION ?= $(BASE_VERSION)-$(VERSION_SUFFIX)
+VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
 
 PROTOC_VERSION = 3.7.1
 HELM_VERSION = 2.13.1
@@ -72,6 +72,7 @@ PROTOC := $(TOOLCHAIN_BIN)/protoc
 PROTOC_INCLUDES := $(TOOLCHAIN_DIR)/include/
 GCP_PROJECT_ID ?=
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
+OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID = open-match-public-images
 OM_SITE_GCP_PROJECT_ID = open-match-site
 OM_SITE_GCP_PROJECT_FLAG = --project=$(OM_SITE_GCP_PROJECT_ID)
 REGISTRY ?= gcr.io/$(GCP_PROJECT_ID)
@@ -728,6 +729,8 @@ build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
 	cp install/yaml/* $(BUILD_DIR)/release/
 
+release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
+release: TAG = $(BASE_VERSION)
 release: build/release/
 
 clean-release:
