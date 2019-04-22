@@ -47,7 +47,8 @@
 # http://makefiletutorial.com/
 
 BASE_VERSION = 0.4.0
-VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD)
+VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
+BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
 
 PROTOC_VERSION = 3.7.1
@@ -160,14 +161,13 @@ help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
 
 local-cloud-build: gcloud
-	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT) .
+	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),BRANCH_NAME=$(BRANCH_NAME) .
 
 push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
-push-service-images: push-minimatch-image push-frontendapi-image push-backendapi-image push-mmforc-image push-mmlogicapi-image
-# TODO: push-mmf-php-mmlogic-simple-image
-push-mmf-example-images: push-mmf-cs-mmlogic-simple-image push-mmf-go-mmlogic-simple-image push-mmf-go-grpc-serving-simple-image push-mmf-py3-mmlogic-simple-image
+push-service-images: push-minimatch-image push-frontendapi-image push-backendapi-image push-mmlogicapi-image
+push-mmf-example-images: push-mmf-go-grpc-serving-simple-image
 push-client-images: push-backendclient-image push-clientloadgen-image push-frontendclient-image
-push-evaluator-example-images: push-evaluator-simple-image push-evaluator-serving-image
+push-evaluator-example-images: push-evaluator-serving-image
 
 push-minimatch-image: docker build-minimatch-image
 	docker push $(REGISTRY)/openmatch-minimatch:$(TAG)
@@ -181,33 +181,13 @@ push-backendapi-image: docker build-backendapi-image
 	docker push $(REGISTRY)/openmatch-backendapi:$(TAG)
 	docker push $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG)
 
-push-mmforc-image: docker build-mmforc-image
-	docker push $(REGISTRY)/openmatch-mmforc:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmforc:$(ALTERNATE_TAG)
-
 push-mmlogicapi-image: docker build-mmlogicapi-image
 	docker push $(REGISTRY)/openmatch-mmlogicapi:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG)
 
-push-mmf-cs-mmlogic-simple-image: docker build-mmf-cs-mmlogic-simple-image
-	docker push $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(ALTERNATE_TAG)
-
-push-mmf-go-mmlogic-simple-image: docker build-mmf-go-mmlogic-simple-image
-	docker push $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(ALTERNATE_TAG)
-
 push-mmf-go-grpc-serving-simple-image: docker build-mmf-go-grpc-serving-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
-
-push-mmf-php-mmlogic-simple-image: docker build-mmf-php-mmlogic-simple-image
-	docker push $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(ALTERNATE_TAG)
-
-push-mmf-py3-mmlogic-simple-image: docker build-mmf-py3-mmlogic-simple-image
-	docker push $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(ALTERNATE_TAG)
 
 push-backendclient-image: docker build-backendclient-image
 	docker push $(REGISTRY)/openmatch-backendclient:$(TAG)
@@ -221,20 +201,15 @@ push-frontendclient-image: docker build-frontendclient-image
 	docker push $(REGISTRY)/openmatch-frontendclient:$(TAG)
 	docker push $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG)
 
-push-evaluator-simple-image: docker build-evaluator-simple-image
-	docker push $(REGISTRY)/openmatch-evaluator-simple:$(TAG)
-	docker push $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG)
-
 push-evaluator-serving-image: build-evaluator-serving-image
 	docker push $(REGISTRY)/openmatch-evaluator-serving:$(TAG)
 	docker push $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG)
 
 build-images: build-service-images build-client-images build-mmf-example-images build-evaluator-example-images
-build-service-images: build-minimatch-image build-frontendapi-image build-backendapi-image build-mmforc-image build-mmlogicapi-image
+build-service-images: build-minimatch-image build-frontendapi-image build-backendapi-image build-mmlogicapi-image
 build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
-# TODO build-mmf-php-mmlogic-simple-image
-build-mmf-example-images: build-mmf-cs-mmlogic-simple-image build-mmf-go-mmlogic-simple-image build-mmf-go-grpc-serving-simple-image build-mmf-py3-mmlogic-simple-image
-build-evaluator-example-images: build-evaluator-simple-image build-evaluator-serving-image
+build-mmf-example-images: build-mmf-go-grpc-serving-simple-image
+build-evaluator-example-images: build-evaluator-serving-image
 
 build-base-build-image: docker
 	docker build -f Dockerfile.base-build -t open-match-base-build .
@@ -248,26 +223,11 @@ build-frontendapi-image: docker build-base-build-image
 build-backendapi-image: docker build-base-build-image
 	docker build -f cmd/backendapi/Dockerfile -t $(REGISTRY)/openmatch-backendapi:$(TAG) -t $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG) .
 
-build-mmforc-image: docker build-base-build-image
-	docker build -f cmd/mmforc/Dockerfile -t $(REGISTRY)/openmatch-mmforc:$(TAG) -t $(REGISTRY)/openmatch-mmforc:$(ALTERNATE_TAG) .
-
 build-mmlogicapi-image: docker build-base-build-image
 	docker build -f cmd/mmlogicapi/Dockerfile -t $(REGISTRY)/openmatch-mmlogicapi:$(TAG) -t $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG) .
 
-build-mmf-cs-mmlogic-simple-image: docker
-	cd examples/functions/csharp/simple/ && docker build -f Dockerfile -t $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(ALTERNATE_TAG) .
-
-build-mmf-go-mmlogic-simple-image: docker build-base-build-image
-	docker build -f examples/functions/golang/manual-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(ALTERNATE_TAG) .
-
 build-mmf-go-grpc-serving-simple-image: docker build-base-build-image
 	docker build -f examples/functions/golang/grpc-serving/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG) .
-
-build-mmf-php-mmlogic-simple-image: docker
-	docker build -f examples/functions/php/mmlogic-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(ALTERNATE_TAG) .
-
-build-mmf-py3-mmlogic-simple-image: docker
-	docker build -f examples/functions/python3/mmlogic-simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(ALTERNATE_TAG) .
 
 build-backendclient-image: docker build-base-build-image
 	docker build -f examples/backendclient/Dockerfile -t $(REGISTRY)/openmatch-backendclient:$(TAG) -t $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG) .
@@ -278,9 +238,6 @@ build-clientloadgen-image: docker build-base-build-image
 build-frontendclient-image: docker build-base-build-image
 	docker build -f test/cmd/frontendclient/Dockerfile -t $(REGISTRY)/openmatch-frontendclient:$(TAG) -t $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG) .
 
-build-evaluator-simple-image: docker build-base-build-image
-	docker build -f examples/evaluators/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-evaluator-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG) .
-
 build-evaluator-serving-image: build-base-build-image
 	docker build -f examples/evaluators/golang/serving/Dockerfile -t $(REGISTRY)/openmatch-evaluator-serving:$(TAG) -t $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG) .
 
@@ -290,18 +247,13 @@ clean-images: docker
 	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontendapi:$(TAG) $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-backendapi:$(TAG) $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-mmforc:$(TAG) $(REGISTRY)/openmatch-mmforc:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-mmlogicapi:$(TAG) $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG)
 
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(TAG) $(REGISTRY)/openmatch-mmf-cs-mmlogic-simple:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(TAG) $(REGISTRY)/openmatch-mmf-go-mmlogic-simple:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(TAG) $(REGISTRY)/openmatch-mmf-php-mmlogic-simple:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(TAG) $(REGISTRY)/openmatch-mmf-py3-mmlogic-simple:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
 
 	-docker rmi -f $(REGISTRY)/openmatch-backendclient:$(TAG) $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-clientloadgen:$(TAG) $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontendclient:$(TAG) $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-evaluator-simple:$(TAG) $(REGISTRY)/openmatch-evaluator-simple:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator-serving:$(TAG) $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG)
 
 install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -398,6 +350,8 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+		--set openmatch.image.registry=$(REGISTRY) \
+		--set openmatch.image.tag=$(TAG) \
 		--set redis.enabled=true \
 		--set prometheus.enabled=true \
 		--set grafana.enabled=true \
@@ -406,6 +360,8 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 install/yaml/install-example.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_EXAMPLE_CHART_NAME) --namespace $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) \
+		--set openmatch.image.registry=$(REGISTRY) \
+		--set openmatch.image.tag=$(TAG) \
 		install/helm/open-match-example > install/yaml/install-example.yaml
 
 set-redis-password:
@@ -418,7 +374,7 @@ set-redis-password:
 		printf "apiVersion: v1\nkind: Secret\nmetadata:\n  name: $(REDIS_NAME)\n  namespace: $(OPEN_MATCH_KUBERNETES_NAMESPACE)\ndata:\n  redis-password: $$REDIS_PASSWORD\n" | \
 		$(KUBECTL) replace -f - --force
 
-install-toolchain: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)  build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/python/ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/htmltest$(EXE_EXTENSION)
+install-toolchain: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)  build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/htmltest$(EXE_EXTENSION)
 
 build/toolchain/bin/helm$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -466,13 +422,6 @@ build/toolchain/bin/golangci-lint$(EXE_EXTENSION):
 	cd $(TOOLCHAIN_DIR)/temp-golangci && curl -Lo golangci.tar.gz $(GOLANGCI_PACKAGE) && tar xvzf golangci.tar.gz --strip-components 1
 	mv $(TOOLCHAIN_DIR)/temp-golangci/golangci-lint$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-golangci/
-
-build/toolchain/python/:
-	mkdir -p build/toolchain/python/
-	virtualenv --python=python3 build/toolchain/python/
-	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
-	cd build/toolchain/python/bin && ln -s python3 pytho
-	cd build/toolchain/python/ && . bin/activate && pip install grpcio-tools && deactivate
 
 build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -549,9 +498,8 @@ create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	$(MINIKUBE) delete
 
-all-protos: golang-protos mmlogic-simple-protos reverse-golang-protos swagger-def-protos
+all-protos: golang-protos reverse-golang-protos swagger-def-protos
 
-# TODO: Add php-protos to all-protos once it builds the gRPC client code.
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
 
 reverse-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go
@@ -573,46 +521,11 @@ internal/swagger/%.proto: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--swagger_out=logtostderr=true,allow_delete_body=true:.
 
-examples/functions/php/mmlogic-simple/proto/: build/toolchain/bin/protoc$(EXE_EXTENSION)
-	mkdir -p examples/functions/php/mmlogic-simple/proto/
-	$(PROTOC) api/protobuf-spec/messages.proto \
-		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-		--php_out=examples/functions/php/mmlogic-simple/proto/ \
-		--grpc_out=examples/functions/php/mmlogic-simple/proto/ \
-		--plugin=protoc-gen-grpc=build/toolchain/bin/grpc_php_plugin
-	$(PROTOC) api/protobuf-spec/backend.proto \
-		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-		--php_out=examples/functions/php/mmlogic-simple/proto/
-	$(PROTOC) api/protobuf-spec/frontend.proto \
-		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-		--php_out=examples/functions/php/mmlogic-simple/proto/
-	$(PROTOC) api/protobuf-spec/matchfunction.proto \
-		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-		--php_out=examples/functions/php/mmlogic-simple/proto/
-	$(PROTOC) api/protobuf-spec/mmlogic.proto \
-		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-		--php_out=examples/functions/php/mmlogic-simple/proto/
-
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
 internal/pb/backend.pb.go: internal/pb/messages.pb.go
 internal/pb/frontend.pb.go: internal/pb/messages.pb.go
 internal/pb/mmlogic.pb.go: internal/pb/messages.pb.go
 internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
-
-mmlogic-simple-protos: examples/functions/python3/mmlogic-simple/api/protobuf_spec/messages_pb2.py examples/functions/python3/mmlogic-simple/api/protobuf_spec/mmlogic_pb2.py
-
-examples/functions/python3/mmlogic-simple/api/protobuf_spec/%_pb2.py: api/protobuf-spec/%.proto build/toolchain/python/
-	. build/toolchain/python/bin/activate \
-		&& python3 -m grpc_tools.protoc -I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-		--python_out=examples/functions/python3/mmlogic-simple/ \
-		--grpc_python_out=examples/functions/python3/mmlogic-simple/ $< \
-		&& deactivate
-
-internal/pb/%_pb2.py: api/protobuf-spec/%.proto build/toolchain/python/
-	. build/toolchain/python/bin/activate \
-		&& python3 -m grpc_tools.protoc -I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-		--python_out=$(REPOSITORY_ROOT) --grpc_python_out=$(REPOSITORY_ROOT) $< \
-		&& deactivate
 
 build:
 	$(GO) build ./...
@@ -644,23 +557,14 @@ cmd/backendapi/backendapi: internal/pb/backend.pb.go
 cmd/frontendapi/frontendapi: internal/pb/frontend.pb.go
 	cd cmd/frontendapi; $(GO_BUILD_COMMAND)
 
-cmd/mmforc/mmforc:
-	cd cmd/mmforc; $(GO_BUILD_COMMAND)
-
 cmd/mmlogicapi/mmlogicapi: internal/pb/mmlogic.pb.go
 	cd cmd/mmlogicapi; $(GO_BUILD_COMMAND)
 
 examples/backendclient/backendclient: internal/pb/backend.pb.go
 	cd examples/backendclient; $(GO_BUILD_COMMAND)
 
-examples/evaluators/golang/simple/simple: internal/pb/messages.pb.go
-	cd examples/evaluators/golang/simple; $(GO_BUILD_COMMAND)
-
 examples/evaluators/golang/serving/serving: internal/pb/messages.pb.go
 	cd examples/evaluators/golang/serving; $(GO_BUILD_COMMAND)
-
-examples/functions/golang/manual-simple/manual-simple: internal/pb/messages.pb.go
-	cd examples/functions/golang/manual-simple; $(GO_BUILD_COMMAND)
 
 examples/functions/golang/grpc-serving/grpc-serving: internal/pb/messages.pb.go
 	cd examples/functions/golang/grpc-serving; $(GO_BUILD_COMMAND)
@@ -684,6 +588,7 @@ build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) --config=config.toml --source . --destination $(BUILD_DIR)/site/public/
 	# Only copy the root directory since that has the AppEngine serving code.
 	-cp -f site/* $(BUILD_DIR)/site
+	-cp -f site/.gcloudignore $(BUILD_DIR)/site/.gcloudignore
 	#cd $(BUILD_DIR)/site && "SERVICE=$(SERVICE) envsubst < app.yaml > .app.yaml"
 	cp $(BUILD_DIR)/site/app.yaml $(BUILD_DIR)/site/.app.yaml
 
@@ -715,12 +620,20 @@ deploy-redirect-site: gcloud
 run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) server --debug --watch --enableGitInfo . --baseURL=http://localhost:$(SITE_PORT)/ --bind 0.0.0.0 --port $(SITE_PORT) --disableFastRender
 
+ci-deploy-artifacts: install/yaml/ gcloud
+ifeq ($(_GCB_POST_SUBMIT),1)
+	#gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/$(VERSION_SUFFIX)/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/yaml/$(BRANCH_NAME)-latest/
+else
+	echo "Not deploying development.open-match.dev because this is not a post commit change."
+endif
+
 all: service-binaries client-binaries example-binaries
-service-binaries: cmd/minimatch/minimatch cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmforc/mmforc cmd/mmlogicapi/mmlogicapi
+service-binaries: cmd/minimatch/minimatch cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmlogicapi/mmlogicapi
 client-binaries: examples/backendclient/backendclient test/cmd/clientloadgen/clientloadgen test/cmd/frontendclient/frontendclient
 example-binaries: example-mmf-binaries example-evaluator-binaries
-example-mmf-binaries: examples/functions/golang/manual-simple/manual-simple examples/functions/golang/grpc-serving/grpc-serving
-example-evaluator-binaries: examples/evaluators/golang/simple/simple examples/evaluators/golang/serving/serving
+example-mmf-binaries: examples/functions/golang/grpc-serving/grpc-serving
+example-evaluator-binaries: examples/evaluators/golang/serving/serving
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: sync-deps clean-protos all-protos fmt vet build test
@@ -742,20 +655,14 @@ clean-site:
 clean-protos:
 	rm -rf internal/pb/
 	rm -rf api/protobuf_spec/
-	# TODO: Add php-protos to all-protos once it builds the gRPC client code.
-	#rm -rf examples/functions/php/mmlogic-simple/proto/
-	rm -rf examples/functions/python3/mmlogic-simple/api/protobuf_spec/
 
 clean-binaries:
 	rm -rf cmd/minimatch/minimatch
 	rm -rf cmd/backendapi/backendapi
 	rm -rf cmd/frontendapi/frontendapi
-	rm -rf cmd/mmforc/mmforc
 	rm -rf cmd/mmlogicapi/mmlogicapi
 	rm -rf examples/backendclient/backendclient
-	rm -rf examples/evaluators/golang/simple/simple
 	rm -rf examples/evaluators/golang/serving/serving
-	rm -rf examples/functions/golang/manual-simple/manual-simple
 	rm -rf examples/functions/golang/grpc-serving/grpc-serving
 	rm -rf test/cmd/clientloadgen/clientloadgen
 	rm -rf test/cmd/frontendclient/frontendclient
