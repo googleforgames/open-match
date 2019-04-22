@@ -14,10 +14,11 @@ import (
 )
 
 func TestMinimatchStartup(t *testing.T) {
-	mm, err := omTesting.NewMiniMatch(minimatch.CreateServerParams())
+	mm, closer, err := omTesting.NewMiniMatch(minimatch.CreateServerParams())
 	if err != nil {
 		t.Fatalf("cannot create mini match server, %s", err)
 	}
+	defer closer()
 	err = mm.Start()
 	if err != nil {
 		t.Fatalf("cannot start mini match server, %s", err)

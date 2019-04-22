@@ -2,6 +2,7 @@ package testing
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/config"
@@ -36,6 +37,16 @@ func (mm *MiniMatchServer) GetFrontendClient() (pb.FrontendClient, error) {
 	return pb.NewFrontendClient(conn), nil
 }
 
+func (mm *MiniMatchServer) GetFrontendProxyClient() (*http.Client, string) {
+	httpClient := &http.Client{
+		Timeout: time.Second * 3,
+	}
+
+	baseURL := fmt.Sprintf("http://:%d", mm.Config.GetInt("api.frontend.proxyport"))
+
+	return httpClient, baseURL
+}
+
 // GetBackendClient gets the backend client.
 func (mm *MiniMatchServer) GetBackendClient() (pb.BackendClient, error) {
 	port := mm.Config.GetInt("api.backend.port")
@@ -46,6 +57,16 @@ func (mm *MiniMatchServer) GetBackendClient() (pb.BackendClient, error) {
 	return pb.NewBackendClient(conn), nil
 }
 
+func (mm *MiniMatchServer) GetBackendProxyClient() (*http.Client, string) {
+	httpClient := &http.Client{
+		Timeout: time.Second * 3,
+	}
+
+	baseURL := fmt.Sprintf("http://:%d", mm.Config.GetInt("api.backend.proxyport"))
+
+	return httpClient, baseURL
+}
+
 // Stop shuts down Mini Match
 func (mm *MiniMatchServer) Stop() {
 	mm.OpenMatchServer.Stop()
@@ -53,28 +74,31 @@ func (mm *MiniMatchServer) Stop() {
 }
 
 // MustMiniMatch requires Mini Match to be created successfully.
-func MustMiniMatch(params []*serving.ServerParams) *MiniMatchServer {
-	mm, err := NewMiniMatch(params)
+func MustMiniMatch(params []*serving.ServerParams) (*MiniMatchServer, func()) {
+	mm, closer, err := NewMiniMatch(params)
 	if err != nil {
 		panic(err)
 	}
-	return mm
+	return mm, closer
 }
 
 // NewMiniMatch creates and starts an OpenMatchServer context for testing.
-func NewMiniMatch(params []*serving.ServerParams) (*MiniMatchServer, error) {
+func NewMiniMatch(params []*serving.ServerParams) (*MiniMatchServer, func(), error) {
 	mm, err := createOpenMatchServer(params)
 	if err != nil {
-		return nil, err
+		return nil, func() {}, err
 	}
 	logger := mm.Logger
 	// Start serving traffic.
 	err = mm.Start()
 	if err != nil {
 		logger.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to start server")
-		return nil, err
+		return nil, func() {}, err
 	}
-	return mm, nil
+	closer := func() {
+		mm.Stop()
+	}
+	return mm, closer, nil
 }
 
 func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer, error) {

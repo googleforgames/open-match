@@ -135,7 +135,7 @@ func (gw *GrpcWrapper) Start() error {
 
 	gw.logger.WithFields(log.Fields{"proxyPort": gw.proxyLh.Number()}).Info("TCP net listener initialized")
 
-	serviceEndpoint := fmt.Sprintf(":%d", gw.serviceLh.Number())
+	serviceEndpoint := fmt.Sprintf("localhost:%d", gw.serviceLh.Number())
 	mux, err := gw.proxyHandlerFunc(serviceEndpoint)
 
 	gw.proxy = &http.Server{Handler: mux}

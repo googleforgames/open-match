@@ -10,12 +10,13 @@ import (
 )
 
 func TestFrontendStartup(t *testing.T) {
-	mm, err := omTesting.NewMiniMatch([]*serving.ServerParams{
+	mm, closer, err := omTesting.NewMiniMatch([]*serving.ServerParams{
 		frontendapi.CreateServerParams(),
 	})
 	if err != nil {
 		t.Fatalf("cannot create mini match server, %s", err)
 	}
+	defer closer()
 	mm.Start()
 	if err != nil {
 		t.Fatalf("cannot start mini match server, %s", err)

@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	goTesting "testing"
-	"time"
 
 	pb "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/serving"
@@ -16,7 +14,7 @@ import (
 
 func TestNewMiniMatch(t *goTesting.T) {
 	ff := &FakeFrontend{}
-	mm, err := NewMiniMatch([]*serving.ServerParams{
+	mm, closer, err := NewMiniMatch([]*serving.ServerParams{
 		&serving.ServerParams{
 			BaseLogFields: log.Fields{
 				"app":       "openmatch",
@@ -34,6 +32,7 @@ func TestNewMiniMatch(t *goTesting.T) {
 			},
 		},
 	})
+	defer closer()
 	if err != nil {
 		t.Errorf("could not create Mini Match context %s", err)
 	}
@@ -62,13 +61,12 @@ func TestNewMiniMatch(t *goTesting.T) {
 		endpoint string
 		response string
 	}{
-		// TODO: Diagnose why the response is 
 		//	{code: 1, error: "grpc: the client connection is closing"}
-		// {
-		// 	method:   "GET",
-		//	endpoint: "v1/frontend/players/123",
-		//	response: "Not Found",
-		//},
+		{
+			method:   "GET",
+			endpoint: "v1/frontend/players/123",
+			response: "",
+		},
 		{
 			method:   "GET",
 			endpoint: "nowhere",
@@ -81,14 +79,12 @@ func TestNewMiniMatch(t *goTesting.T) {
 		},
 	}
 
+	feProxyClient, feBaseURL := mm.GetFrontendProxyClient()
 	for _, stub := range testStubs {
 		t.Run(fmt.Sprintf("ProxyTest-%s-%s", stub.method, stub.endpoint), func(t *goTesting.T) {
-			apiAddr := fmt.Sprintf("http://:%d/%s", mm.Config.GetInt("api.frontend.proxyport"), stub.endpoint)
+			apiAddr := fmt.Sprintf(feBaseURL+"/%s", stub.endpoint)
 
-			httpClient := &http.Client{
-				Timeout: time.Second * 3,
-			}
-			resp, err := httpClient.Get(apiAddr)
+			resp, err := feProxyClient.Get(apiAddr)
 			if err != nil {
 				t.Errorf("Failed to ping the proxy server %s", err)
 			}
