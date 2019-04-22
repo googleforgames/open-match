@@ -28,9 +28,9 @@ kubectl create clusterrolebinding myname-cluster-admin-binding --clusterrole=clu
 # Place all Open Match components in their own namespace.
 kubectl create namespace open-match
 # Install Open Match and monitoring services.
-kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/open-match/master/install/yaml/install.yaml --namespace open-match
+kubectl apply -f https://storage.googleapis.com/open-match-chart/install/yaml/master-latest/install.yaml --namespace open-match
 # Install the example MMF and Evaluator.
-kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/open-match/master/install/yaml/install-example.yaml --namespace open-match
+kubectl apply -f https://storage.googleapis.com/open-match-chart/install/yaml/master-latest/install-example.yaml --namespace open-match
 ```
 
 To delete Open Match
@@ -70,20 +70,26 @@ gcloud services enable container.googleapis.com
 gcloud compute zones list
 ```
 
-Once everything is setup you can deploy Open Match by creating a cluster in Google Kubernetes Engine (GKE).
+Please follow the instructions to [Setup Local Open Match Repository](#local-repository-setup). Once everything is setup you can deploy Open Match by creating a cluster in Google Kubernetes Engine (GKE).
 
 ```bash
 # Create a GKE Cluster and install Helm
 make create-gke-cluster push-helm
 # Deploy Open Match with example functions
-make REGISTRY=gcr.io/open-match-public-images TAG=latest install-chart install-example-chart
+make REGISTRY=gcr.io/open-match-build TAG=0.4.0-e98e1b6 install-chart install-example-chart
+```
+
+To generate matches using a test client, run the following command:
+
+```bash
+make REGISTRY=gcr.io/open-match-build TAG=0.4.0-e98e1b6 run-backendclient
 ```
 
 Once deployed you can view the jobs in [Cloud Console](https://console.cloud.google.com/kubernetes/workload).
 
-### Compiling From Source
+### Local Repository Setup
 
-The easiest way to build Open Match is to use the [Makefile](Makefile). Before you can use the Makefile make sure you have the following dependencies:
+Here are the instructions to set up a local repository for Open Match.
 
 ```bash
 # Install Open Match Toolchain Dependencies (for Debian, other OSes including Mac OS X have similar dependencies)
@@ -97,6 +103,10 @@ export GO111MODULE=on
 git clone https://github.com/GoogleCloudPlatform/open-match.git
 cd open-match
 ```
+
+### Compiling From Source
+
+The easiest way to build Open Match is to use the [Makefile](Makefile). Please follow the instructions to [Setup Local Open Match Repository](#local-repository-setup).
 
 [Docker](https://docs.docker.com/install/) and [Go 1.12+](https://golang.org/dl/) is also required.
 
@@ -142,7 +152,7 @@ Open Match is in active development - we would love your help in shaping its fut
 
 ## Documentation
 
-For more information on the technical underpinnings of Open Match you can refer to the [docs/](docs/) directory. 
+For more information on the technical underpinnings of Open Match you can refer to the [docs/](docs/) directory.
 
 ## Code of Conduct
 
