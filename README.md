@@ -28,9 +28,9 @@ kubectl create clusterrolebinding myname-cluster-admin-binding --clusterrole=clu
 # Place all Open Match components in their own namespace.
 kubectl create namespace open-match
 # Install Open Match and monitoring services.
-kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/open-match/master/install/yaml/install.yaml --namespace open-match
+kubectl apply -f https://storage.googleapis.com/open-match-chart/install/yaml/master-latest/install.yaml --namespace open-match
 # Install the example MMF and Evaluator.
-kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/open-match/master/install/yaml/install-example.yaml --namespace open-match
+kubectl apply -f https://storage.googleapis.com/open-match-chart/install/yaml/master-latest/install-example.yaml --namespace open-match
 ```
 
 To delete Open Match
