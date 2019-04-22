@@ -618,7 +618,7 @@ run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
 ci-deploy-artifacts: install/yaml/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
 	#gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/$(VERSION_SUFFIX)/
-	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/$(BRANCH_NAME)-latest/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/yaml/$(BRANCH_NAME)-latest/
 else
 	echo "Not deploying development.open-match.dev because this is not a post commit change."
 endif
