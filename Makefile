@@ -49,7 +49,7 @@
 BASE_VERSION = 0.4.0
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
-VERSION ?= $(BASE_VERSION)-$(VERSION_SUFFIX)
+VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
 
 PROTOC_VERSION = 3.7.1
 HELM_VERSION = 2.13.1
@@ -73,6 +73,7 @@ PROTOC := $(TOOLCHAIN_BIN)/protoc
 PROTOC_INCLUDES := $(TOOLCHAIN_DIR)/include/
 GCP_PROJECT_ID ?=
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
+OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID = open-match-public-images
 OM_SITE_GCP_PROJECT_ID = open-match-site
 OM_SITE_GCP_PROJECT_FLAG = --project=$(OM_SITE_GCP_PROJECT_ID)
 REGISTRY ?= gcr.io/$(GCP_PROJECT_ID)
@@ -637,6 +638,17 @@ example-evaluator-binaries: examples/evaluators/golang/serving/serving
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: sync-deps clean-protos all-protos fmt vet build test
 
+build/release/: presubmit clean-install-yaml install/yaml/
+	mkdir -p $(BUILD_DIR)/release/
+	cp install/yaml/* $(BUILD_DIR)/release/
+
+release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
+release: TAG = $(BASE_VERSION)
+release: build/release/
+
+clean-release:
+	rm -rf build/release/
+
 clean-site:
 	rm -rf build/site/
 
@@ -672,7 +684,7 @@ clean-install-yaml:
 	rm -f install/yaml/03-prometheus-chart.yaml
 	rm -f install/yaml/04-grafana-chart.yaml
 
-clean: clean-images clean-binaries clean-site clean-toolchain clean-protos clean-nodejs clean-install-yaml
+clean: clean-images clean-binaries clean-site clean-release clean-toolchain clean-protos clean-nodejs clean-install-yaml
 
 run-backendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) $(KUBECTL_RUN_ENV)
