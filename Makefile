@@ -47,7 +47,8 @@
 # http://makefiletutorial.com/
 
 BASE_VERSION = 0.4.0
-VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD)
+VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
+BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION ?= $(BASE_VERSION)-$(VERSION_SUFFIX)
 
 PROTOC_VERSION = 3.7.1
@@ -159,7 +160,7 @@ help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
 
 local-cloud-build: gcloud
-	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT) .
+	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),BRANCH_NAME=$(BRANCH_NAME) .
 
 push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
 push-service-images: push-minimatch-image push-frontendapi-image push-backendapi-image push-mmlogicapi-image
@@ -551,7 +552,6 @@ cmd/backendapi/backendapi: internal/pb/backend.pb.go
 cmd/frontendapi/frontendapi: internal/pb/frontend.pb.go
 	cd cmd/frontendapi; $(GO_BUILD_COMMAND)
 
-
 cmd/mmlogicapi/mmlogicapi: internal/pb/mmlogic.pb.go
 	cd cmd/mmlogicapi; $(GO_BUILD_COMMAND)
 
@@ -614,6 +614,14 @@ deploy-redirect-site: gcloud
 
 run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) server --debug --watch --enableGitInfo . --baseURL=http://localhost:$(SITE_PORT)/ --bind 0.0.0.0 --port $(SITE_PORT) --disableFastRender
+
+ci-deploy-artifacts: install/yaml/ gcloud
+ifeq ($(_GCB_POST_SUBMIT),1)
+	#gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/$(VERSION_SUFFIX)/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/yaml/$(BRANCH_NAME)-latest/
+else
+	echo "Not deploying development.open-match.dev because this is not a post commit change."
+endif
 
 all: service-binaries client-binaries example-binaries
 service-binaries: cmd/minimatch/minimatch cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmlogicapi/mmlogicapi
