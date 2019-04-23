@@ -64,7 +64,7 @@ GOLANGCI_VERSION = 1.16.0
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
 GO = GO111MODULE=on go
 # Defines the absolute local directory of the open-match project
-REPOSITORY_ROOT := $(realpath $(dir $(abspath $(MAKEFILE_LIST))))
+REPOSITORY_ROOT := $(dir $(abspath $(MAKEFILE_LIST)))
 GO_BUILD_COMMAND = CGO_ENABLED=0 $(GO) build -a -installsuffix cgo .
 BUILD_DIR = $(REPOSITORY_ROOT)/build
 TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
@@ -375,12 +375,19 @@ set-redis-password:
 		printf "apiVersion: v1\nkind: Secret\nmetadata:\n  name: $(REDIS_NAME)\n  namespace: $(OPEN_MATCH_KUBERNETES_NAMESPACE)\ndata:\n  redis-password: $$REDIS_PASSWORD\n" | \
 		$(KUBECTL) replace -f - --force
 
-install-toolchain: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)  build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/htmltest$(EXE_EXTENSION)
+install-toolchain: install-kubernetes-tools install-web-tools install-protoc-tools
+install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)
+install-web-tools: build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/bin/htmltest$(EXE_EXTENSION) build/toolchain/nodejs/
+install-protoc-tools: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 
 build/toolchain/bin/helm$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-helm
+ifeq ($(suffix $(HELM_PACKAGE)),.zip)
+	cd $(TOOLCHAIN_DIR)/temp-helm && curl -Lo helm.zip $(HELM_PACKAGE) && unzip -j -q -o helm.zip
+else
 	cd $(TOOLCHAIN_DIR)/temp-helm && curl -Lo helm.tar.gz $(HELM_PACKAGE) && tar xzf helm.tar.gz --strip-components 1
+endif
 	mv $(TOOLCHAIN_DIR)/temp-helm/helm$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/helm$(EXE_EXTENSION)
 	mv $(TOOLCHAIN_DIR)/temp-helm/tiller$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/tiller$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-helm/
@@ -388,7 +395,11 @@ build/toolchain/bin/helm$(EXE_EXTENSION):
 build/toolchain/bin/hugo$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-hugo
+ifeq ($(suffix $(HUGO_PACKAGE)),.zip)
+	cd $(TOOLCHAIN_DIR)/temp-hugo && curl -Lo hugo.zip $(HUGO_PACKAGE) && unzip -q -o hugo.zip
+else
 	cd $(TOOLCHAIN_DIR)/temp-hugo && curl -Lo hugo.tar.gz $(HUGO_PACKAGE) && tar xzf hugo.tar.gz
+endif
 	mv $(TOOLCHAIN_DIR)/temp-hugo/hugo$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/hugo$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-hugo/
 
@@ -413,7 +424,11 @@ build/toolchain/bin/skaffold$(EXE_EXTENSION):
 build/toolchain/bin/htmltest$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-htmltest
+ifeq ($(suffix $(HTMLTEST_PACKAGE)),.zip)
+	cd $(TOOLCHAIN_DIR)/temp-htmltest && curl -Lo htmltest.zip $(HTMLTEST_PACKAGE) && unzip -q -o htmltest.zip
+else
 	cd $(TOOLCHAIN_DIR)/temp-htmltest && curl -Lo htmltest.tar.gz $(HTMLTEST_PACKAGE) && tar xzf htmltest.tar.gz
+endif
 	mv $(TOOLCHAIN_DIR)/temp-htmltest/htmltest$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/htmltest$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-htmltest/
 
@@ -444,6 +459,9 @@ build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 		$(PROTOC_INCLUDES)/google/api
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+
+build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION):
+	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
 build/archives/$(NODEJS_PACKAGE_NAME):
@@ -452,7 +470,13 @@ build/archives/$(NODEJS_PACKAGE_NAME):
 
 build/toolchain/nodejs/: build/archives/$(NODEJS_PACKAGE_NAME)
 	mkdir -p build/toolchain/nodejs/
+ifeq ($(suffix $(NODEJS_PACKAGE_NAME)),.zip)
+	# TODO: This is broken, there's the node-v10.15.3-win-x64 directory also windows does not have the bin/ directory.
+	# https://superuser.com/questions/518347/equivalent-to-tars-strip-components-1-in-unzip
+	cd build/toolchain/nodejs/ && unzip -q -o ../../archives/$(NODEJS_PACKAGE_NAME)
+else
 	cd build/toolchain/nodejs/ && tar xzf ../../archives/$(NODEJS_PACKAGE_NAME) --strip-components 1
+endif
 
 push-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) create serviceaccount --namespace kube-system tiller
@@ -517,7 +541,7 @@ internal/pb/%.pb.gw.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EX
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
    		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)\
 
-internal/swagger/%.proto: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+internal/swagger/%.proto: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--swagger_out=logtostderr=true,allow_delete_body=true:.
@@ -534,7 +558,7 @@ build:
 test:
 	$(GO) test ./... -race
 
-test-in-ci:
+ci-test:
 	$(GO) test ./... -race -test.count 25 -cover
 
 fmt:
