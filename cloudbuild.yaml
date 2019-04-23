@@ -91,7 +91,7 @@ steps:
   waitFor: ['Build: Protocol Buffers']
 - id: 'Test: Core'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'test-in-ci']
+  args: ['make', 'GOPROXY=off', 'ci-test']
   volumes:
   - name: 'go-vol'
     path: '/go'
