@@ -27,6 +27,11 @@ There are 3 types of releases:
 
 !-->
 
+Open Match Release Process
+==========================
+
+These instructions are the steps needed to create a release of Open Match. All of these steps will be done in a `release-X.Y` branch. **No changes will be submitted to the master branch unless explicitly stated.**
+
 Create a Branch
 ---------------
 **These instructions are for the first release candidate of a minor (X.Y) release.**
@@ -34,7 +39,7 @@ Create a Branch
 
 Create New Version
 ------------------
-_Find the release branch relevant for your release. It will have the name release-X.Y. While doing a release in the branch no changes should be submitted outside of the process._
+_Find the release branch relevant for your release. It will have the name release-X.Y. While doing a release in the branch no changes should be submitted outside of the process. Also all changes done _
 
 - [ ] Announce a PR freeze on release-X.Y branch on [open-match-discuss@](mailing-list-post).
 - [ ] Create a PR to bump the version.
@@ -42,7 +47,6 @@ _Find the release branch relevant for your release. It will have the name releas
   - [ ] Open the [`install/helm/open-match/Chart.yaml`](om-chart-yaml-version) and [`install/helm/open-match-example/Chart.yaml`](om-example-chart-yaml-version) and change the `appVersion` and `version` entries.
   - [ ] Open the [`install/helm/open-match/values.yaml`](om-values-yaml-version) and [`install/helm/open-match-example/values.yaml`](om-example-values-yaml-version) and change the `tag` entries.
   - [ ] Open the [`site/config.toml`]  and change the `release_branch` and `release_version` entries.
-  - [ ] Open the [`README.md`](readme-deploy) update the version references.
   - [ ] Run `make clean release`
   - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
   - [ ] Submit the pull request.
@@ -51,8 +55,11 @@ Complete Milestone
 ------------------
 - [ ] Create the next version milestone, use [semantic versioning](https://semver.org/) when naming it to be consistent with the [Go community](https://blog.golang.org/versioning-proposal).
 - [ ] Visit the [milestone](https://github.com/GoogleCloudPlatform/open-match/milestone).
-  - [ ] Create a *draft* release with the [release template][release-template].
-    - [ ] The value of `tag` should be the release version with format: v{version}. Example: v0.5.0. Append -rc.# for release candidates. Example: v0.5.0-rc.1.
+  - [ ] Create a *draft* release with the [release template](release-template).
+    - [ ] `Tag` = v{version}. Example: v0.5.0. Append -rc.# for release candidates. Example: v0.5.0-rc.1.
+    - [ ] `Target` = release-X.Y. Example: release-0.5.
+    - [ ] `Release Title` = `Tag`
+    - [ ] `Write` section will contain the contents from the [release template](release-template).
   - [ ] Add the milestone to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/GoogleCloudPlatform/open-match/releases) and look for the "X commits to master since this release" for the diff.
   - [ ] Review all [milestone-less closed issues](https://github.com/GoogleCloudPlatform/open-match/issues?q=is%3Aissue+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
   - [ ] Review all [issues in milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) for proper [labels](https://github.com/GoogleCloudPlatform/open-match/labels) (ex: area/build).
@@ -75,6 +82,7 @@ Build Artifacts
 - [ ] Copy the files from `build/release/` generated from `make release` to the release draft you created.
 - [ ] Run `make REGISTRY=gcr.io/open-match-public-images TAG={version} delete-gke-cluster create-gke-cluster push-helm sleep-10 install-chart install-example-chart` and verify that the pods are all healthy.
 - [ ] Run `make delete-gke-cluster create-gke-cluster` and run through the instructions under the [README](readme-deploy), verify the pods are healthy. You'll need to adjust the path to the `build/release/install.yaml` and `build/release/install-example.yaml` in your local clone since you haven't published them yet.
+- [ ] Open the [`README.md`](readme-deploy) update the version references and submit. (Release candidates can ignore this step.)
 - [ ] Publish the [Release](om-release) in Github.
 
 Announce
