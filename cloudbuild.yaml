@@ -82,13 +82,6 @@ steps:
     path: '/go'
   waitFor: ['Build: Install Toolchain']
 
-- id: 'Lint: Format, Vet, Charts'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'lint']
-  volumes:
-  - name: 'go-vol'
-    path: '/go'
-  waitFor: ['Build: Protocol Buffers']
 - id: 'Build: Binaries'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'GOPROXY=off', 'all', '-j8']
@@ -112,10 +105,18 @@ steps:
   args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'push-images', '-j8']
   waitFor: ['Build: Docker Images']
 
-- id: 'Build: Generate Kubernetes Deployment Configs'
+- id: 'Build: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'clean-install-yaml', 'install/yaml/']
   waitFor: ['Build: Install Toolchain']
+
+- id: 'Lint: Format, Vet, Charts'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'lint']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
+  waitFor: ['Build: Protocol Buffers', 'Build: Deployment Configs']
 
 - id: 'Build: Website'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -129,8 +130,16 @@ steps:
 
 - id: 'Deploy: Website'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', VERSION_SUFFIX=$SHORT_SHA', 'ci-deploy-dev-site']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', VERSION_SUFFIX=$SHORT_SHA', 'BRANCH_NAME=$BRANCH_NAME', 'ci-deploy-dev-site']
   waitFor: ['Test: Website', 'Build: Binaries']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
+
+- id: 'Deploy: Deployment Configs'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', VERSION_SUFFIX=$SHORT_SHA', 'BRANCH_NAME=$BRANCH_NAME', 'ci-deploy-artifacts']
+  waitFor: ['Lint: Format, Vet, Charts', 'Build: Binaries']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -164,6 +173,11 @@ artifacts:
             - test/cmd/clientloadgen/clientloadgen
             - test/cmd/frontendclient/frontendclient
             - install/yaml/install.yaml
+            - install/yaml/install-example.yaml
+            - install/yaml/01-redis-chart.yaml
+            - install/yaml/02-open-match.yaml
+            - install/yaml/03-prometheus-chart.yaml
+            - install/yaml/04-grafana-chart.yaml
 images:
 - 'gcr.io/$PROJECT_ID/openmatch-minimatch:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-backendapi:${_OM_VERSION}-${SHORT_SHA}'
@@ -175,7 +189,7 @@ images:
 - 'gcr.io/$PROJECT_ID/openmatch-clientloadgen:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-frontendclient:${_OM_VERSION}-${SHORT_SHA}'
 substitutions:
-    _OM_VERSION: "0.4.0"
+    _OM_VERSION: "0.5.0-rc1"
     _GCB_POST_SUBMIT: "0"
 logsBucket: 'gs://open-match-build-logs/'
 options:
