@@ -691,8 +691,14 @@ clean-binaries:
 	rm -rf test/cmd/clientloadgen/clientloadgen
 	rm -rf test/cmd/frontendclient/frontendclient
 
+clean-build: clean-toolchain clean-archives
+	rm -rf build/
+
 clean-toolchain:
 	rm -rf build/toolchain/
+
+clean-archives:
+	rm -rf build/archives/
 
 clean-nodejs:
 	rm -rf build/toolchain/nodejs/
@@ -708,7 +714,7 @@ clean-install-yaml:
 	rm -f install/yaml/03-prometheus-chart.yaml
 	rm -f install/yaml/04-grafana-chart.yaml
 
-clean: clean-images clean-binaries clean-site clean-release clean-toolchain clean-protos clean-nodejs clean-install-yaml
+clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-nodejs clean-install-yaml
 
 run-backendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) $(KUBECTL_RUN_ENV)
@@ -748,5 +754,5 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
-.PHONY: docker gcloud deploy-redirect-site sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-in-ci vet
+.PHONY: docker gcloud deploy-redirect-site sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test test-in-ci vet
 
