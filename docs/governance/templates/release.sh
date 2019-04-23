@@ -18,12 +18,9 @@ for name in $IMAGE_NAMES
 do
     source_image=gcr.io/$SOURCE_PROJECT_ID/$name:$SOURCE_VERSION
     dest_image=gcr.io/$DEST_PROJECT_ID/$name:$DEST_VERSION
-    dest_image_latest=gcr.io/$DEST_PROJECT_ID/$name:latest
     docker pull $source_image
     docker tag $source_image $dest_image
-    docker tag $source_image $dest_image_latest
     docker push $dest_image
-    docker push $dest_image_latest
 done
 
 echo "=============================================================="

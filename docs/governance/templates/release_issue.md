@@ -26,6 +26,27 @@ There are 3 types of releases:
 1. Close the release issue.
 
 !-->
+
+Create a Branch
+---------------
+**These instructions are for the first release candidate of a minor (X.Y) release.**
+- [ ] Create a branch in the upstream repository. It should be named release-X.Y. Example: release-0.5. At this point there's effectively a code freeze for this version and all work on master will be included in a future version.
+
+Create New Version
+------------------
+_Find the release branch relevant for your release. It will have the name release-X.Y. While doing a release in the branch no changes should be submitted outside of the process._
+
+- [ ] Announce a PR freeze on release-X.Y branch on [open-match-discuss@](mailing-list-post).
+- [ ] Create a PR to bump the version.
+  - [ ] Open the [`Makefile`](makefile-version) and change BASE_VERSION value. Release candidates use the -rc.# suffix.
+  - [ ] Open the [`install/helm/open-match/Chart.yaml`](om-chart-yaml-version) and [`install/helm/open-match-example/Chart.yaml`](om-example-chart-yaml-version) and change the `appVersion` and `version` entries.
+  - [ ] Open the [`install/helm/open-match/values.yaml`](om-values-yaml-version) and [`install/helm/open-match-example/values.yaml`](om-example-values-yaml-version) and change the `tag` entries.
+  - [ ] Open the [`site/config.toml`]  and change the `release_branch` and `release_version` entries.
+  - [ ] Open the [`README.md`](readme-deploy) update the version references.
+  - [ ] Run `make clean release`
+  - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
+  - [ ] Submit the pull request.
+
 Complete Milestone
 ------------------
 - [ ] Create the next version milestone, use [semantic versioning](https://semver.org/) when naming it to be consistent with the [Go community](https://blog.golang.org/versioning-proposal).
@@ -46,21 +67,14 @@ TODO: Add guidelines for labeling issues.
 
 Build Artifacts
 ---------------
-- [ ] Create a PR to bump the version.
-  - [ ] Open the [`Makefile`](makefile-version) and change BASE_VERSION value. Release candidates use the -rc.# suffix.
-  - [ ] Open the [`install/helm/open-match/Chart.yaml`](om-chart-yaml-version) and [`install/helm/open-match-example/Chart.yaml`](om-example-chart-yaml-version) and change the `appVersion` and `version` entries.
-  - [ ] Open the [`install/helm/open-match/values.yaml`](om-values-yaml-version) and [`install/helm/open-match-example/values.yaml`](om-example-values-yaml-version) and change the `tag` entries.
-  - [ ] Open the [`site/config.toml`]  and change the `release_branch` and `release_version` entries.
-  - [ ] Open the [`README.md`](readme-deploy) update the version references.
-  - [ ] Run `make clean release`
-  - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
-  - [ ] Submit the pull request.
+
 - [ ] Go to [Cloud Build](https://pantheon.corp.google.com/cloud-build/triggers?project=open-match-build), under Post Submit click "Run Trigger".
 - [ ] Go to the History section and find the "Post Submit" build that's running. Wait for it to go Green. If it's red, fix error repeat this section. Take note of the docker image version tag for next step. Example: 0.5.0-a4706cb.
 - [ ] Run `./docs/governance/templates/release.sh {source version tag} {version}` to copy the images to open-match-public-images.
+- [ ] If this is a new minor version in the newest major version then run `./docs/governance/templates/release.sh {source version tag} latest`.
 - [ ] Copy the files from `build/release/` generated from `make release` to the release draft you created.
 - [ ] Run `make REGISTRY=gcr.io/open-match-public-images TAG={version} delete-gke-cluster create-gke-cluster push-helm sleep-10 install-chart install-example-chart` and verify that the pods are all healthy.
-- [ ] Run `make delete-gke-cluster create-gke-cluster` and run through the instructions under the [README](readme-deploy), verify the pods are healthy. You'll need to adjust the path to the `install/yaml/install.yaml` and `install/yaml/install-example.yaml` in your local clone since you haven't published them yet.
+- [ ] Run `make delete-gke-cluster create-gke-cluster` and run through the instructions under the [README](readme-deploy), verify the pods are healthy. You'll need to adjust the path to the `build/release/install.yaml` and `build/release/install-example.yaml` in your local clone since you haven't published them yet.
 - [ ] Publish the [Release](om-release) in Github.
 
 Announce
