@@ -31,8 +31,8 @@ Complete Milestone
 - [ ] Create the next version milestone, use [semantic versioning](https://semver.org/) when naming it to be consistent with the [Go community](https://blog.golang.org/versioning-proposal).
 - [ ] Visit the [milestone](https://github.com/GoogleCloudPlatform/open-match/milestone).
   - [ ] Create a *draft* release with the [release template][release-template].
-    - [ ] The value of tag should be the release version with format: v{version}. Example: v0.5.0. Append -rc.# for release candidates. Example: v0.5.0-rc.1.
-  - [ ] Add the milestone tag to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/GoogleCloudPlatform/open-match/releases) and look for the "X commits to master since this release" for the diff.
+    - [ ] The value of `tag` should be the release version with format: v{version}. Example: v0.5.0. Append -rc.# for release candidates. Example: v0.5.0-rc.1.
+  - [ ] Add the milestone to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/GoogleCloudPlatform/open-match/releases) and look for the "X commits to master since this release" for the diff.
   - [ ] Review all [milestone-less closed issues](https://github.com/GoogleCloudPlatform/open-match/issues?q=is%3Aissue+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
   - [ ] Review all [issues in milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) for proper [labels](https://github.com/GoogleCloudPlatform/open-match/labels) (ex: area/build).
   - [ ] Review all [milestone-less closed PRs](https://github.com/GoogleCloudPlatform/open-match/pulls?q=is%3Apr+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
@@ -42,7 +42,7 @@ Complete Milestone
   - [ ] Review all closed issues against the milestone. Put the user visible changes into the release notes using the suggested format. https://github.com/GoogleCloudPlatform/open-match/issues?utf8=%E2%9C%93&q=is%3Aissue+is%3Aclosed+milestone%3Av{version}
   - [ ] Verify the [milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) is effectively 100% at this point with the exception of the release issue itself.
 
-TODO: Add details for appropriate tagging for issues.
+TODO: Add guidelines for labeling issues.
 
 Build Artifacts
 ---------------
@@ -56,7 +56,7 @@ Build Artifacts
   - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
   - [ ] Submit the pull request.
 - [ ] Go to [Cloud Build](https://pantheon.corp.google.com/cloud-build/triggers?project=open-match-build), under Post Submit click "Run Trigger".
-- [ ] Go to the History section and find the "Post Submit" build that's running. Wait for it to go Green. If it's red fix error repeat this section. Take note of version tag for next step.
+- [ ] Go to the History section and find the "Post Submit" build that's running. Wait for it to go Green. If it's red, fix error repeat this section. Take note of the docker image version tag for next step. Example: 0.5.0-a4706cb.
 - [ ] Run `./docs/governance/templates/release.sh {source version tag} {version}` to copy the images to open-match-public-images.
 - [ ] Copy the files from `build/release/` generated from `make release` to the release draft you created.
 - [ ] Run `make REGISTRY=gcr.io/open-match-public-images TAG={version} delete-gke-cluster create-gke-cluster push-helm sleep-10 install-chart install-example-chart` and verify that the pods are all healthy.
