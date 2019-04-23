@@ -610,7 +610,7 @@ ci-deploy-dev-site: build/site/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
 	echo "Deploying website to development.open-match.dev..."
 	cd $(BUILD_DIR)/site && find .
-	-cd $(BUILD_DIR)/site && pwd && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --version=$(DEV_SITE_VERSION) --verbosity=info
+	cd $(BUILD_DIR)/site && pwd && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(DEV_SITE_VERSION) --verbosity=info
 else
 	echo "Not deploying development.open-match.dev because this is not a post commit change."
 endif
@@ -691,7 +691,7 @@ clean-install-yaml:
 	rm -f install/yaml/03-prometheus-chart.yaml
 	rm -f install/yaml/04-grafana-chart.yaml
 
-clean: clean-images clean-binaries clean-site clean-build clean-protos clean-nodejs clean-install-yaml
+clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-nodejs clean-install-yaml
 
 run-backendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) $(KUBECTL_RUN_ENV)
