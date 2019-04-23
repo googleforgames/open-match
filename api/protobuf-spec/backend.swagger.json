@@ -17,7 +17,7 @@
   "paths": {
     "/v1/backend/assignments": {
       "delete": {
-        "summary": "Remove DGS connection info from state storage for players. \nINPUT: Roster message with the 'players' field populated. \n   The only field in the Roster's Player messages used by\n   DeleteAssignments is the 'id' field.  All others are silently ignored.  If\n   you need to delete multiple rosters, make multiple calls.",
+        "summary": "Remove DGS connection info from state storage for players.\nINPUT: Roster message with the 'players' field populated.\n   The only field in the Roster's Player messages used by\n   DeleteAssignments is the 'id' field.  All others are silently ignored.  If\n   you need to delete multiple rosters, make multiple calls.",
         "operationId": "DeleteAssignments2",
         "responses": {
           "200": {
@@ -40,7 +40,7 @@
         ]
       },
       "put": {
-        "summary": "Write the connection info for the list of players in the\nAssignments.messages.Rosters to state storage.  The Frontend API is\nresponsible for sending anything sent here to the game clients.\nSending a player to this function kicks off a process that removes\nthe player from future matchmaking functions by adding them to the \n'deindexed' player list and then deleting their player ID from state storage\nindexes.\nINPUT: Assignments message with these fields populated:\n - assignment, anything you write to this string is sent to Frontend API \n - rosters. You can send any number of rosters, containing any number of\n    player messages. All players from all rosters will be sent the assignment.\n    The only field in the Roster's Player messages used by CreateAssignments is\n    the id field.  All other fields in the Player messages are silently ignored.",
+        "summary": "Write the connection info for the list of players in the\nAssignments.messages.Rosters to state storage.  The Frontend API is\nresponsible for sending anything sent here to the game clients.\nSending a player to this function kicks off a process that removes\nthe player from future matchmaking functions by adding them to the\n'deindexed' player list and then deleting their player ID from state storage\nindexes.\nINPUT: Assignments message with these fields populated:\n - assignment, anything you write to this string is sent to Frontend API\n - rosters. You can send any number of rosters, containing any number of\n    player messages. All players from all rosters will be sent the assignment.\n    The only field in the Roster's Player messages used by CreateAssignments is\n    the id field.  All other fields in the Player messages are silently ignored.",
         "operationId": "CreateAssignments",
         "responses": {
           "200": {
@@ -67,7 +67,7 @@
     },
     "/v1/backend/matches": {
       "delete": {
-        "summary": "Delete a MatchObject from state storage manually. (MatchObjects in state\nstorage will also automatically expire after a while, defined in the config)\nINPUT: MatchObject message with the 'id' field populated. \n(All other fields are ignored.)",
+        "summary": "Delete a MatchObject from state storage manually. (MatchObjects in state\nstorage will also automatically expire after a while, defined in the config)\nINPUT: MatchObject message with the 'id' field populated.\n(All other fields are ignored.)",
         "operationId": "DeleteMatch",
         "responses": {
           "200": {
@@ -119,7 +119,7 @@
     },
     "/v1/backend/matches/{match.id}": {
       "delete": {
-        "summary": "Delete a MatchObject from state storage manually. (MatchObjects in state\nstorage will also automatically expire after a while, defined in the config)\nINPUT: MatchObject message with the 'id' field populated. \n(All other fields are ignored.)",
+        "summary": "Delete a MatchObject from state storage manually. (MatchObjects in state\nstorage will also automatically expire after a while, defined in the config)\nINPUT: MatchObject message with the 'id' field populated.\n(All other fields are ignored.)",
         "operationId": "DeleteMatch2",
         "responses": {
           "200": {
@@ -196,6 +196,36 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "mmfcfg.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "mmfcfg.host",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "mmfcfg.port",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "mmfcfg.type",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "GRPC",
+              "REST"
+            ],
+            "default": "GRPC"
           }
         ],
         "tags": [
@@ -233,6 +263,9 @@
       "properties": {
         "match": {
           "$ref": "#/definitions/messagesMatchObject"
+        },
+        "mmfcfg": {
+          "$ref": "#/definitions/apiMmfConfig"
         }
       }
     },
@@ -273,6 +306,32 @@
           "$ref": "#/definitions/messagesMatchObject"
         }
       }
+    },
+    "apiMmfConfig": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "type": {
+          "$ref": "#/definitions/apiMmfConfigType"
+        }
+      }
+    },
+    "apiMmfConfigType": {
+      "type": "string",
+      "enum": [
+        "GRPC",
+        "REST"
+      ],
+      "default": "GRPC"
     },
     "messagesAssignments": {
       "type": "object",

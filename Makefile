@@ -46,9 +46,10 @@
 ##
 # http://makefiletutorial.com/
 
-BASE_VERSION = 0.4.0
-VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD)
-VERSION ?= $(BASE_VERSION)-$(VERSION_SUFFIX)
+BASE_VERSION = 0.5.0-rc1
+VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
+BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
+VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
 
 PROTOC_VERSION = 3.7.1
 HELM_VERSION = 2.13.1
@@ -72,6 +73,7 @@ PROTOC := $(TOOLCHAIN_BIN)/protoc
 PROTOC_INCLUDES := $(TOOLCHAIN_DIR)/include/
 GCP_PROJECT_ID ?=
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
+OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID = open-match-public-images
 OM_SITE_GCP_PROJECT_ID = open-match-site
 OM_SITE_GCP_PROJECT_FLAG = --project=$(OM_SITE_GCP_PROJECT_ID)
 REGISTRY ?= gcr.io/$(GCP_PROJECT_ID)
@@ -159,7 +161,7 @@ help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
 
 local-cloud-build: gcloud
-	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT) .
+	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),BRANCH_NAME=$(BRANCH_NAME) .
 
 push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
 push-service-images: push-minimatch-image push-frontendapi-image push-backendapi-image push-mmlogicapi-image
@@ -348,6 +350,8 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+		--set openmatch.image.registry=$(REGISTRY) \
+		--set openmatch.image.tag=$(TAG) \
 		--set redis.enabled=true \
 		--set prometheus.enabled=true \
 		--set grafana.enabled=true \
@@ -356,6 +360,8 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 install/yaml/install-example.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_EXAMPLE_CHART_NAME) --namespace $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) \
+		--set openmatch.image.registry=$(REGISTRY) \
+		--set openmatch.image.tag=$(TAG) \
 		install/helm/open-match-example > install/yaml/install-example.yaml
 
 set-redis-password:
@@ -551,7 +557,6 @@ cmd/backendapi/backendapi: internal/pb/backend.pb.go
 cmd/frontendapi/frontendapi: internal/pb/frontend.pb.go
 	cd cmd/frontendapi; $(GO_BUILD_COMMAND)
 
-
 cmd/mmlogicapi/mmlogicapi: internal/pb/mmlogic.pb.go
 	cd cmd/mmlogicapi; $(GO_BUILD_COMMAND)
 
@@ -615,6 +620,14 @@ deploy-redirect-site: gcloud
 run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) server --debug --watch --enableGitInfo . --baseURL=http://localhost:$(SITE_PORT)/ --bind 0.0.0.0 --port $(SITE_PORT) --disableFastRender
 
+ci-deploy-artifacts: install/yaml/ gcloud
+ifeq ($(_GCB_POST_SUBMIT),1)
+	#gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/$(VERSION_SUFFIX)/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/yaml/$(BRANCH_NAME)-latest/
+else
+	echo "Not deploying development.open-match.dev because this is not a post commit change."
+endif
+
 all: service-binaries client-binaries example-binaries
 service-binaries: cmd/minimatch/minimatch cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmlogicapi/mmlogicapi
 client-binaries: examples/backendclient/backendclient test/cmd/clientloadgen/clientloadgen test/cmd/frontendclient/frontendclient
@@ -624,6 +637,17 @@ example-evaluator-binaries: examples/evaluators/golang/serving/serving
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: sync-deps clean-protos all-protos fmt vet build test
+
+build/release/: presubmit clean-install-yaml install/yaml/
+	mkdir -p $(BUILD_DIR)/release/
+	cp install/yaml/* $(BUILD_DIR)/release/
+
+release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
+release: TAG = $(BASE_VERSION)
+release: build/release/
+
+clean-release:
+	rm -rf build/release/
 
 clean-site:
 	rm -rf build/site/
@@ -666,7 +690,7 @@ clean-install-yaml:
 	rm -f install/yaml/03-prometheus-chart.yaml
 	rm -f install/yaml/04-grafana-chart.yaml
 
-clean: clean-images clean-binaries clean-site clean-build clean-protos clean-nodejs clean-install-yaml
+clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-nodejs clean-install-yaml
 
 run-backendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) $(KUBECTL_RUN_ENV)
