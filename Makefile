@@ -532,9 +532,11 @@ build:
 
 test:
 	$(GO) test ./... -race
+	$(GO) test ./... -run IgnoreRace$$
 
 test-in-ci:
 	$(GO) test ./... -race -test.count 25 -cover
+	$(GO) test ./... -run IgnoreRace$$ -cover
 
 fmt:
 	$(GO) fmt ./...

@@ -1,3 +1,5 @@
+// +build !race
+
 /*
 Package config contains convenience functions for reading and managing configuration.
 
@@ -24,7 +26,7 @@ import (
 	"time"
 )
 
-func TestReadConfig(t *testing.T) {
+func TestReadConfigIgnoreRace(t *testing.T) {
 	yaml := []byte(`metrics.endpoint: /metrics`)
 	if err := ioutil.WriteFile("matchmaker_config.yaml", yaml, 0666); err != nil {
 		t.Fatalf("could not create config file: %s", err)
