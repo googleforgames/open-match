@@ -30,14 +30,15 @@ Complete Milestone
 ------------------
 - [ ] Create the next version milestone, use [semantic versioning](https://semver.org/) when naming it to be consistent with the [Go community](https://blog.golang.org/versioning-proposal).
 - [ ] Visit the [milestone](https://github.com/GoogleCloudPlatform/open-match/milestone).
-  - [ ] Open a document for a draft [release notes](release.md).
-  - [ ] Add the milestone tag to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/GoogleCloudPlatform/open-match/releases) and look for the "X commits to master since this release" for the diff. The link resolves to, https://github.com/GoogleCloudPlatform/open-match/compare/v{version}...master.
+  - [ ] Create a *draft* release with the [release template][release-template].
+    - [ ] Make a `tag` with the release version. The tag must be v{version}. Example: v0.5.0. Append -rc# for release candidates. Example: v0.5.0-rc1.
+  - [ ] Add the milestone tag to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/GoogleCloudPlatform/open-match/releases) and look for the "X commits to master since this release" for the diff.
   - [ ] Review all [milestone-less closed issues](https://github.com/GoogleCloudPlatform/open-match/issues?q=is%3Aissue+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
   - [ ] Review all [issues in milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) for proper [labels](https://github.com/GoogleCloudPlatform/open-match/labels) (ex: area/build).
   - [ ] Review all [milestone-less closed PRs](https://github.com/GoogleCloudPlatform/open-match/pulls?q=is%3Apr+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
   - [ ] Review all [PRs in milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) for proper [labels](https://github.com/GoogleCloudPlatform/open-match/labels) (ex: area/build).
   - [ ] View all open entries in milestone and move them to a future milestone if they aren't getting closed in time. https://github.com/GoogleCloudPlatform/open-match/milestones/v{version}
-  - [ ] Review all closed PRs against the milestone. Put the user visible changes into the release notes using the suggested format. https://github.com/GoogleCloudPlatform/open-match/pulls?q=is%3Apr+is%3Aclosed+milestone%3Av{version}
+  - [ ] Review all closed PRs against the milestone. Put the user visible changes into the release notes using the suggested format. https://github.com/GoogleCloudPlatform/open-match/pulls?utf8=%E2%9C%93&q=is%3Apr+is%3Aclosed+is%3Amerged+milestone%3Av{version}
   - [ ] Review all closed issues against the milestone. Put the user visible changes into the release notes using the suggested format. https://github.com/GoogleCloudPlatform/open-match/issues?utf8=%E2%9C%93&q=is%3Aissue+is%3Aclosed+milestone%3Av{version}
   - [ ] Verify the [milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) is effectively 100% at this point with the exception of the release issue itself.
 
@@ -54,13 +55,11 @@ Build Artifacts
   - [ ] Run `make clean release`
   - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
   - [ ] Submit the pull request.
-- [ ] Take note of the git hash in master, `git checkout master && git pull master && git rev-parse HEAD`
+- [ ] Take note of the git hash in master, `git fetch upstream && git rev-parse upstream/master`
 - [ ] Go to [Cloud Build](https://pantheon.corp.google.com/cloud-build/triggers?project=open-match-build), under Post Submit click "Run Trigger".
 - [ ] Go to the History section and find the "Post Submit" build that's running. Wait for it to go Green. If it's red fix error repeat this section. Take note of version tag for next step.
 - [ ] Run `./docs/governance/templates/release.sh {source version tag} {version}` to copy the images to open-match-public-images.
-- [ ] Create a *draft* release with the [release template][release-template]
-  - [ ] Make a `tag` with the release version. The tag must be v{version}. Example: v0.5.0. Append -rc# for release candidates. Example: v0.5.0-rc1.
-  - [ ] Copy the files from `build/release/` generated from `make release` from earlier as release artifacts.
+- [ ] Copy the files from `build/release/` generated from `make release` to the release draft you created.
 - [ ] Run `make delete-gke-cluster create-gke-cluster push-helm sleep-10 install-chart install-example-chart` and verify that the pods are all healthy.
 - [ ] Run `make delete-gke-cluster create-gke-cluster` and run through the instructions under the [README](readme-deploy), verify the pods are healthy. You'll need to adjust the path to the `install/yaml/install.yaml` and `install/yaml/install-example.yaml` in your local clone since you haven't published them yet.
 - [ ] Publish the [Release](om-release) in Github.
