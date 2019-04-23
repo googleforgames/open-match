@@ -6,7 +6,7 @@ and copy it into a release issue. Fill in relevent values, found inside {}
 {version} should be replaced with the version ie: 0.5.0.
 
 There are 3 types of releases:
- * Release Candidates - 1.0.0-rc1
+ * Release Candidates - 1.0.0-rc.1
  * Full Releases - 1.2.0
  * Hot Fixes - 1.0.1
 
@@ -31,7 +31,7 @@ Complete Milestone
 - [ ] Create the next version milestone, use [semantic versioning](https://semver.org/) when naming it to be consistent with the [Go community](https://blog.golang.org/versioning-proposal).
 - [ ] Visit the [milestone](https://github.com/GoogleCloudPlatform/open-match/milestone).
   - [ ] Create a *draft* release with the [release template][release-template].
-    - [ ] Make a `tag` with the release version. The tag must be v{version}. Example: v0.5.0. Append -rc# for release candidates. Example: v0.5.0-rc1.
+    - [ ] The value of tag should be the release version with format: v{version}. Example: v0.5.0. Append -rc.# for release candidates. Example: v0.5.0-rc.1.
   - [ ] Add the milestone tag to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/GoogleCloudPlatform/open-match/releases) and look for the "X commits to master since this release" for the diff.
   - [ ] Review all [milestone-less closed issues](https://github.com/GoogleCloudPlatform/open-match/issues?q=is%3Aissue+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
   - [ ] Review all [issues in milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) for proper [labels](https://github.com/GoogleCloudPlatform/open-match/labels) (ex: area/build).
@@ -47,7 +47,7 @@ TODO: Add details for appropriate tagging for issues.
 Build Artifacts
 ---------------
 - [ ] Create a PR to bump the version.
-  - [ ] Open the [`Makefile`](makefile-version) and change BASE_VERSION value. Release candidates use the -rc# suffix.
+  - [ ] Open the [`Makefile`](makefile-version) and change BASE_VERSION value. Release candidates use the -rc.# suffix.
   - [ ] Open the [`install/helm/open-match/Chart.yaml`](om-chart-yaml-version) and [`install/helm/open-match-example/Chart.yaml`](om-example-chart-yaml-version) and change the `appVersion` and `version` entries.
   - [ ] Open the [`install/helm/open-match/values.yaml`](om-values-yaml-version) and [`install/helm/open-match-example/values.yaml`](om-example-values-yaml-version) and change the `tag` entries.
   - [ ] Open the [`site/config.toml`]  and change the `release_branch` and `release_version` entries.
@@ -55,12 +55,11 @@ Build Artifacts
   - [ ] Run `make clean release`
   - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
   - [ ] Submit the pull request.
-- [ ] Take note of the git hash in master, `git fetch upstream && git rev-parse upstream/master`
 - [ ] Go to [Cloud Build](https://pantheon.corp.google.com/cloud-build/triggers?project=open-match-build), under Post Submit click "Run Trigger".
 - [ ] Go to the History section and find the "Post Submit" build that's running. Wait for it to go Green. If it's red fix error repeat this section. Take note of version tag for next step.
 - [ ] Run `./docs/governance/templates/release.sh {source version tag} {version}` to copy the images to open-match-public-images.
 - [ ] Copy the files from `build/release/` generated from `make release` to the release draft you created.
-- [ ] Run `make delete-gke-cluster create-gke-cluster push-helm sleep-10 install-chart install-example-chart` and verify that the pods are all healthy.
+- [ ] Run `make REGISTRY=gcr.io/open-match-public-images TAG={version} delete-gke-cluster create-gke-cluster push-helm sleep-10 install-chart install-example-chart` and verify that the pods are all healthy.
 - [ ] Run `make delete-gke-cluster create-gke-cluster` and run through the instructions under the [README](readme-deploy), verify the pods are healthy. You'll need to adjust the path to the `install/yaml/install.yaml` and `install/yaml/install-example.yaml` in your local clone since you haven't published them yet.
 - [ ] Publish the [Release](om-release) in Github.
 

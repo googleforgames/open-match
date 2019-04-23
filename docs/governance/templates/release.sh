@@ -12,7 +12,7 @@ SOURCE_VERSION=$1
 DEST_VERSION=$2
 SOURCE_PROJECT_ID=open-match-build
 DEST_PROJECT_ID=open-match-public-images
-IMAGE_NAMES="openmatch-backendapi openmatch-frontendapi openmatch-mmforc openmatch-mmlogicapi openmatch-evaluator-simple openmatch-mmf-cs-mmlogic-simple openmatch-mmf-go-mmlogic-simple openmatch-mmf-go-grpc-serving-simple openmatch-mmf-py3-mmlogic-simple openmatch-backendclient openmatch-clientloadgen openmatch-frontendclient"
+IMAGE_NAMES="openmatch-backendapi openmatch-frontendapi openmatch-mmforc openmatch-mmlogicapi openmatch-evaluator-serving openmatch-mmf-go-grpc-serving-simple openmatch-backendclient openmatch-clientloadgen openmatch-frontendclient"
 
 for name in $IMAGE_NAMES
 do
@@ -24,4 +24,15 @@ do
     docker tag $source_image $dest_image_latest
     docker push $dest_image
     docker push $dest_image_latest
+done
+
+echo "=============================================================="
+echo "=============================================================="
+echo "=============================================================="
+echo "=============================================================="
+
+echo "Add these lines to your release notes:"
+for name in $IMAGE_NAMES
+do
+    echo "docker pull gcr.io/$DEST_PROJECT_ID/$name:$DEST_VERSION"
 done
