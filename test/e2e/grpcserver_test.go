@@ -41,7 +41,7 @@ func TestOpenClose(t *testing.T) {
 	server.AddService(func(server *grpc.Server) {
 		pb.RegisterFrontendServer(server, fakeService)
 	})
-	server.AddProxy(pb.RegisterFrontendHandlerFromEndpoint)
+	server.AddProxy(pb.RegisterFrontendHandler)
 
 	err := server.Start()
 	if err != nil {
