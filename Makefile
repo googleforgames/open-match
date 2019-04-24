@@ -523,28 +523,27 @@ create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	$(MINIKUBE) delete
 
-all-protos: golang-protos reverse-golang-protos swagger-def-protos
+all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
 
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
 
-reverse-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go
+http-proxy-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go
 
-swagger-def-protos: internal/swagger/frontend.proto internal/swagger/backend.proto internal/swagger/mmlogic.proto internal/swagger/matchfunction.proto
+swagger-json-docs: api/protobuf-spec/frontend.swagger.json api/protobuf-spec/backend.swagger.json api/protobuf-spec/mmlogic.swagger.json api/protobuf-spec/matchfunction.swagger.json
 
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
-internal/pb/%.pb.gw.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+internal/pb/%.pb.gw.go: api/protobuf-spec/%.proto internal/pb/%.pb.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)\
+   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
-internal/swagger/%.proto: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
+api/protobuf-spec/%.swagger.json: api/protobuf-spec/%.proto internal/pb/%.pb.gw.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 	$(PROTOC) $< \
-		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-		--swagger_out=logtostderr=true,allow_delete_body=true:.
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) --swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
 internal/pb/backend.pb.go: internal/pb/messages.pb.go
@@ -573,31 +572,35 @@ golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 
 lint: fmt vet lint-chart
 
-cmd/minimatch/minimatch: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/mmlogic.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go
+# Note: This list of dependencies is long but only add file references here. If you add a .PHONY dependency make will always rebuild it.
+cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/protobuf-spec/backend.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/protobuf-spec/frontend.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/protobuf-spec/mmlogic.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd cmd/minimatch; $(GO_BUILD_COMMAND)
 
-cmd/backendapi/backendapi: internal/pb/backend.pb.go
+cmd/backendapi/backendapi$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/protobuf-spec/backend.swagger.json
 	cd cmd/backendapi; $(GO_BUILD_COMMAND)
 
-cmd/frontendapi/frontendapi: internal/pb/frontend.pb.go
+cmd/frontendapi/frontendapi$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/protobuf-spec/frontend.swagger.json
 	cd cmd/frontendapi; $(GO_BUILD_COMMAND)
 
-cmd/mmlogicapi/mmlogicapi: internal/pb/mmlogic.pb.go
+cmd/mmlogicapi/mmlogicapi$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/protobuf-spec/mmlogic.swagger.json
 	cd cmd/mmlogicapi; $(GO_BUILD_COMMAND)
 
-examples/backendclient/backendclient: internal/pb/backend.pb.go
+examples/backendclient/backendclient$(EXE_EXTENSION): internal/pb/backend.pb.go
 	cd examples/backendclient; $(GO_BUILD_COMMAND)
 
-examples/evaluators/golang/serving/serving: internal/pb/messages.pb.go
+examples/evaluators/golang/serving/serving$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd examples/evaluators/golang/serving; $(GO_BUILD_COMMAND)
 
-examples/functions/golang/grpc-serving/grpc-serving: internal/pb/messages.pb.go
+examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd examples/functions/golang/grpc-serving; $(GO_BUILD_COMMAND)
 
-test/cmd/clientloadgen/clientloadgen:
+test/cmd/clientloadgen/clientloadgen$(EXE_EXTENSION):
 	cd test/cmd/clientloadgen; $(GO_BUILD_COMMAND)
 
-test/cmd/frontendclient/frontendclient: internal/pb/frontend.pb.go internal/pb/messages.pb.go
+test/cmd/frontendclient/frontendclient$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/messages.pb.go
 	cd test/cmd/frontendclient; $(GO_BUILD_COMMAND)
 
 node_modules/: build/toolchain/nodejs/
@@ -654,11 +657,11 @@ else
 endif
 
 all: service-binaries client-binaries example-binaries
-service-binaries: cmd/minimatch/minimatch cmd/backendapi/backendapi cmd/frontendapi/frontendapi cmd/mmlogicapi/mmlogicapi
-client-binaries: examples/backendclient/backendclient test/cmd/clientloadgen/clientloadgen test/cmd/frontendclient/frontendclient
+service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/backendapi/backendapi$(EXE_EXTENSION) cmd/frontendapi/frontendapi$(EXE_EXTENSION) cmd/mmlogicapi/mmlogicapi$(EXE_EXTENSION)
+client-binaries: examples/backendclient/backendclient$(EXE_EXTENSION) test/cmd/clientloadgen/clientloadgen$(EXE_EXTENSION) test/cmd/frontendclient/frontendclient$(EXE_EXTENSION)
 example-binaries: example-mmf-binaries example-evaluator-binaries
-example-mmf-binaries: examples/functions/golang/grpc-serving/grpc-serving
-example-evaluator-binaries: examples/evaluators/golang/serving/serving
+example-mmf-binaries: examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION)
+example-evaluator-binaries: examples/evaluators/golang/serving/serving$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: update-deps clean-protos all-protos fmt vet build test
@@ -676,6 +679,9 @@ clean-release:
 
 clean-site:
 	rm -rf build/site/
+
+clean-swagger-docs:
+	rm -rf api/protobuf-spec/*.json
 
 clean-protos:
 	rm -rf internal/pb/
@@ -715,7 +721,7 @@ clean-install-yaml:
 	rm -f install/yaml/03-prometheus-chart.yaml
 	rm -f install/yaml/04-grafana-chart.yaml
 
-clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-nodejs clean-install-yaml
+clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml
 
 run-backendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) $(KUBECTL_RUN_ENV)
