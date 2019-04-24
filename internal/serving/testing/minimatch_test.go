@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	goTesting "testing"
 
@@ -33,7 +34,6 @@ func TestNewMiniMatch(t *goTesting.T) {
 			},
 		},
 	})
-	defer closer()
 	if err != nil {
 		t.Errorf("could not create Mini Match context %s", err)
 	}
@@ -41,10 +41,9 @@ func TestNewMiniMatch(t *goTesting.T) {
 	if err != nil {
 		t.Errorf("could not start Mini Match %s", err)
 	}
-	defer mm.Stop()
 
+	feClient, err := mm.GetFrontendClient()
 	t.Run("FrontendClient Test", func(t *goTesting.T) {
-		feClient, err := mm.GetFrontendClient()
 		if err != nil {
 			t.Errorf("could not get frontend client %s", err)
 		}
@@ -69,7 +68,7 @@ func TestNewMiniMatch(t *goTesting.T) {
 			response: "ok\n",
 		},
 		{
-			method: "GET",
+			method:   "GET",
 			endpoint: "nowhere",
 			response: "Not Found\n",
 		},
@@ -101,5 +100,20 @@ func TestNewMiniMatch(t *goTesting.T) {
 		})
 
 	}
+	closer()
 
+	// Re-open the port to ensure it's free.
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", mm.Config.GetInt("api.frontend.port")))
+	if err != nil {
+		t.Errorf("grpc server is still running! Result= %v Error= %s", ln, err)
+	}
+	result, err := feClient.CreatePlayer(context.Background(), &pb.CreatePlayerRequest{})
+	if err == nil {
+		t.Errorf("grpc server is still running! Result= %v Error= %s", result, err)
+	}
+	// Re-open the proxyPort to ensure it's free.
+	ln, err = net.Listen("tcp", fmt.Sprintf(":%d", mm.Config.GetInt("api.frontend.proxyport")))
+	if err != nil {
+		t.Errorf("grpc proxy is still running! Result= %v Error= %s", ln, err)
+	}
 }

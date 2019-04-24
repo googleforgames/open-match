@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	"github.com/pkg/errors"
@@ -28,6 +29,7 @@ type GrpcWrapper struct {
 	serviceLn, proxyLn        net.Listener
 	logger                    *log.Entry
 	grpcAwaiter, proxyAwaiter chan error
+	grpcClient                *grpc.ClientConn
 }
 
 // NewGrpcServer creates a new GrpcWrapper.
@@ -54,9 +56,12 @@ func (gw *GrpcWrapper) AddProxy(handlerFunc func(context.Context, *runtime.Serve
 // Start begins the gRPC server.
 func (gw *GrpcWrapper) Start() error {
 	// Starting gRPC server
-	if gw.serviceLn != nil {
+	if gw.serviceLn != nil || gw.proxyLn != nil {
 		return nil
 	}
+
+	var wg sync.WaitGroup
+	wg.Add(2)
 
 	serviceLn, err := gw.serviceLh.Obtain()
 	if err != nil {
@@ -79,6 +84,7 @@ func (gw *GrpcWrapper) Start() error {
 
 	go func() {
 		gw.logger.Infof("Serving gRPC on :%d", gw.serviceLh.Number())
+		wg.Done()
 		err := gw.server.Serve(serviceLn)
 		gw.grpcAwaiter <- err
 		if err != nil {
@@ -87,10 +93,6 @@ func (gw *GrpcWrapper) Start() error {
 	}()
 
 	// Starting proxy server
-	if gw.proxyLn != nil {
-		return nil
-	}
-
 	proxyLn, err := gw.proxyLh.Obtain()
 
 	if err != nil {
@@ -111,7 +113,7 @@ func (gw *GrpcWrapper) Start() error {
 	proxyMux := runtime.NewServeMux()
 
 	serviceEndpoint := fmt.Sprintf("localhost:%d", gw.serviceLh.Number())
-	grpcToProxyConn, err := grpc.DialContext(ctx, serviceEndpoint, grpc.WithInsecure())
+	gw.grpcClient, err = grpc.DialContext(ctx, serviceEndpoint, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		gw.logger.WithFields(log.Fields{
 			"error":           err.Error(),
@@ -123,13 +125,13 @@ func (gw *GrpcWrapper) Start() error {
 	httpMux := http.NewServeMux()
 
 	for _, handlerFunc := range gw.proxyHandlerFuncs {
-		if err := handlerFunc(ctx, proxyMux, grpcToProxyConn); err != nil {
+		if err := handlerFunc(ctx, proxyMux, gw.grpcClient); err != nil {
 			return errors.WithStack(err)
 		}
 	}
 
 	httpMux.HandleFunc("/swagger/", swaggerServer("internal/pb"))
-	httpMux.HandleFunc("/healthz", healthzServer(grpcToProxyConn))
+	httpMux.HandleFunc("/healthz", healthzServer(gw.grpcClient))
 	httpMux.Handle("/", proxyMux)
 
 	gw.proxy = &http.Server{Handler: httpMux}
@@ -137,6 +139,7 @@ func (gw *GrpcWrapper) Start() error {
 
 	go func() {
 		gw.logger.Infof("Serving proxy on :%d", gw.proxyLh.Number())
+		wg.Done()
 		err := gw.proxy.Serve(proxyLn)
 		gw.proxyAwaiter <- err
 		if err != nil {
@@ -148,6 +151,7 @@ func (gw *GrpcWrapper) Start() error {
 		}
 	}()
 
+	wg.Wait()
 	return nil
 }
 
@@ -175,11 +179,22 @@ func (gw *GrpcWrapper) Stop() error {
 		return nil
 	}
 	gw.server.GracefulStop()
+
+	if gw.proxy == nil {
+		return nil
+	}
 	gw.proxy.Shutdown(context.Background())
 
 	portErr := gw.serviceLn.Close()
-	_ = gw.proxyLn.Close()
+	if portErr != nil {
+		return portErr
+	}
+	portErr = gw.proxyLn.Close()
+	if portErr != nil {
+		return portErr
+	}
 
+	grpcClientErr := gw.grpcClient.Close()
 	grpcErr, proxyErr := gw.WaitForTermination()
 
 	gw.server = nil
@@ -187,13 +202,16 @@ func (gw *GrpcWrapper) Stop() error {
 	gw.proxy = nil
 	gw.proxyLn = nil
 
+	if grpcClientErr != nil {
+		return grpcClientErr
+	}
 	if grpcErr != nil {
 		return grpcErr
 	}
 	if proxyErr != nil {
 		return proxyErr
 	}
-	return portErr
+	return nil
 }
 
 // healthzServer returns a simple health handler which returns ok.
@@ -201,7 +219,7 @@ func healthzServer(conn *grpc.ClientConn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		if s := conn.GetState(); s != connectivity.Ready {
-			http.Error(w, fmt.Sprintf("grpc server is %s", s), http.StatusBadGateway)
+			http.Error(w, fmt.Sprintf("ClientConn is %s", s), http.StatusBadGateway)
 			return
 		}
 		fmt.Fprintln(w, "ok")
