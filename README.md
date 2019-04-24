@@ -14,131 +14,76 @@ Under the covers matchmaking approaches touch on significant areas of computer s
 
 This project attempts to solve the networking and plumbing problems, so game developers can focus on the logic to match players into great games.
 
-## Running Open Match
-Open Match framework is a collection of servers that run within Kubernetes (the [puppet master](https://en.wikipedia.org/wiki/Puppet_Master_(gaming)) for your server cluster.)
+## Open Match Demo
 
+This section lists the steps to set up a demo for the basic functionality of Open Match. If you just want to see an E2E Open Match setup in action, please continue with this section. If you want to build Open Match from source, or modify the match functions, please follow the [Development Guide](docs/development.md).
 
-## Deploy to Kubernetes
+### Create a Kubernetes Cluster
 
-If you have an [existing Kubernetes cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/creating-a-cluster) you can run these commands to install Open Match.
+Open Match framework is a collection of servers that run within a Kubernetes cluster. Having a Kubernetes cluster is a prerequisite to deploying Open Match. If you want to deploy Open Match to an existing Kubernetes cluster, skip this step and proceed to Deploying Open Match, otherwise create a kubernetes cluster with one of the options listed below:
+
+* [Set up a Google Cloud Kubernetes Cluster](docs/gcloud.md) (*this may involve extra charges unless you are on free tier*)
+* [Set up a Local Minikube cluster](https://kubernetes.io/docs/setup/minikube/)
+
+### Deplying Open Match
+
+Run the following steps to deploy core Open Match components and the monitoring services in the Kubernetes cluster.
 
 ```bash
-# Grant yourself cluster-admin permissions so that you can deploy service accounts.
-kubectl create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(YOUR_KUBERNETES_USER_NAME)
-# Place all Open Match components in their own namespace.
+# Create a cluster role binding (if using gcloud)
+kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user `gcloud config get-value account`
+
+# Create a cluster role binding (if using minikube)
+kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-admin --serviceaccount=kube-system:default
+
+# Create a namespace to place all the Open Match components in.
 kubectl create namespace open-match
-# Install Open Match and monitoring services.
-kubectl apply -f https://storage.googleapis.com/open-match-chart/install/yaml/master-latest/install.yaml --namespace open-match
-# Install the example MMF and Evaluator.
-kubectl apply -f https://storage.googleapis.com/open-match-chart/install/yaml/master-latest/install-example.yaml --namespace open-match
+
+# Install the core Open Match and monitoring services.
+kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.0-rc.1/install.yaml --namespace open-match
 ```
 
-To delete Open Match
+### Deploy demo components
+
+Open Match framework requires the user to author a custom match function and an evaluator that are invoked to create matches. For demo purposes, we will use an example MMF and Evaluator. The following command deploys these in the kubernetes cluster:
 
 ```bash
-# Delete the open-match namespace that holds all the Open Match configuration.
+# Install the example MMF and Evaluator.
+kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.0-rc.1/install-example.yaml --namespace open-match
+```
+
+This command also deploys a component that continuously generates players with different properties and adds them to Open Match state storage. This is because a populated player pool is required to generate matches.
+
+### Generate Matches! 
+
+The in a real setup, a game backend (Director / DGS etc.) will request Open Match for mathes. For demo purposes, this is simulated by a backend client that requests Open Match to continuously list matches till it runs out of players.
+
+```bash
+# Install the example MMF and Evaluator.
+kubectl run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=gcr.io/open-match-public-images/openmatch-backendclient:0.5.0-rc1 --namespace=open-match
+```
+
+If successful, the backend client should successfully generate matches, displaying players populated in Rosters.
+
+### Cleanup
+
+To delete Open Match from this cluster, simply run:
+
+```bash
 kubectl delete namespace open-match
 ```
 
-## Development
-Open Match can be deployed locally or in the cloud for development. Below are the steps to build, push, and deploy the binaries to Kubernetes.
+## Documentation
 
-### Deploy to Minikube (Locally)
-[Minikube](https://kubernetes.io/docs/setup/minikube/) is Kubernetes in a VM. It's mainly used for development.
+Here are some useful links to additional documentation:
 
-```bash
-# Create a Minikube Cluster and install Helm
-make create-mini-cluster push-helm
-# Deploy Open Match with example functions
-make REGISTRY=gcr.io/open-match-public-images TAG=latest install-chart install-example-chart
-```
+* [Future Roadmap](docs/roadmap.md)
+* [Open Match Concepts](docs/concepts.md)
+* [Development Guide](docs/development.md)
+* [Open Match Integrations](docs/integrations.md)
+* [References](docs/references.md)
 
-### Deploy to Google Cloud Platform (Cloud)
-
-Create a GCP project via [Google Cloud Console](https://console.cloud.google.com/). Billing must be enabled but if you're a new customer you can get some [free credits](https://cloud.google.com/free/). When you create a project you'll need to set a Project ID, if you forget it you can see it here, https://console.cloud.google.com/iam-admin/settings/project.
-
-Now install [Google Cloud SDK](https://cloud.google.com/sdk/) which is the command line tool to work against your project. The following commands log you into your GCP Project.
-
-```bash
-# Login to your Google Account for GCP.
-gcloud auth login
-gcloud config set project $YOUR_GCP_PROJECT_ID
-# Enable GCP services
-gcloud services enable containerregistry.googleapis.com
-gcloud services enable container.googleapis.com
-# Test that everything is good, this command should work.
-gcloud compute zones list
-```
-
-Please follow the instructions to [Setup Local Open Match Repository](#local-repository-setup). Once everything is setup you can deploy Open Match by creating a cluster in Google Kubernetes Engine (GKE).
-
-```bash
-# Create a GKE Cluster and install Helm
-make create-gke-cluster push-helm
-# Deploy Open Match with example functions
-make REGISTRY=gcr.io/open-match-build TAG=0.4.0-e98e1b6 install-chart install-example-chart
-```
-
-To generate matches using a test client, run the following command:
-
-```bash
-make REGISTRY=gcr.io/open-match-build TAG=0.4.0-e98e1b6 run-backendclient
-```
-
-Once deployed you can view the jobs in [Cloud Console](https://console.cloud.google.com/kubernetes/workload).
-
-### Local Repository Setup
-
-Here are the instructions to set up a local repository for Open Match.
-
-```bash
-# Install Open Match Toolchain Dependencies (for Debian, other OSes including Mac OS X have similar dependencies)
-sudo apt-get update; sudo apt-get install -y -q python3 python3-virtualenv virtualenv make google-cloud-sdk git unzip tar
-# Setup your repository like Go workspace, https://golang.org/doc/code.html#Workspaces
-# This requirement will go away soon.
-mkdir -p $HOME/workspace/src/github.com/GoogleCloudPlatform/
-cd $HOME/workspace/src/github.com/GoogleCloudPlatform/
-export GOPATH=$HOME/workspace
-export GO111MODULE=on
-git clone https://github.com/GoogleCloudPlatform/open-match.git
-cd open-match
-```
-
-### Compiling From Source
-
-The easiest way to build Open Match is to use the [Makefile](Makefile). Please follow the instructions to [Setup Local Open Match Repository](#local-repository-setup).
-
-[Docker](https://docs.docker.com/install/) and [Go 1.12+](https://golang.org/dl/) is also required.
-
-To build all the artifacts of Open Match you can simply run the following commands.
-
-```bash
-# Downloads all the tools needed to build Open Match
-make install-toolchain
-# Generates protocol buffer code files
-make all-protos
-# Builds all the binaries
-make all
-# Builds all the images.
-make build-images
-```
-
-Once build you can use a command like `docker images` to see all the images that were build.
-
-Before creating a pull request you can run `make local-cloud-build` to simulate a Cloud Build run to check for regressions.
-
-The directory structure is a typical Go structure so if you do the following you should be able to work on this project within your IDE.
-
-Lastly, this project uses go modules so you'll want to set `export GO111MODULE=on` in your `~/.bashrc`.
-
-The [Build Queue](https://console.cloud.google.com/cloud-build/builds?project=open-match-build) runs against all PRs, requires membership to [open-match-discuss@googlegroups.com](https://groups.google.com/forum/#!forum/open-match-discuss).
-
-## Support
-
-* [Slack Channel](https://open-match.slack.com/) ([Signup](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLWQzMzE1MGY5YmYyYWY3ZjE2MjNjZTdmYmQ1ZTQzMmNiNGViYmQyN2M4ZmVkMDY2YzZlOTUwMTYwMzI1Y2I2MjU))
-* [File an Issue](https://github.com/GoogleCloudPlatform/open-match/issues/new)
-* [Mailing list](https://groups.google.com/forum/#!forum/open-match-discuss)
-* [Managed Service Survey](https://goo.gl/forms/cbrFTNCmy9rItSv72)
+For more information on the technical underpinnings of Open Match you can refer to the [docs/](docs/) directory.
 
 ## Contributing
 
@@ -146,13 +91,14 @@ Please read the [contributing](CONTRIBUTING.md) guide for directions on submitti
 
 See the [Development guide](docs/development.md) for documentation for development and building Open Match from source.
 
-The [Release Process](docs/governance/release_process.md) documentation displays the project's upcoming release calendar and release process.
-
 Open Match is in active development - we would love your help in shaping its future!
 
-## Documentation
+## Support
 
-For more information on the technical underpinnings of Open Match you can refer to the [docs/](docs/) directory.
+* [Slack Channel](https://open-match.slack.com/) ([Signup](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLWQzMzE1MGY5YmYyYWY3ZjE2MjNjZTdmYmQ1ZTQzMmNiNGViYmQyN2M4ZmVkMDY2YzZlOTUwMTYwMzI1Y2I2MjU))
+* [File an Issue](https://github.com/GoogleCloudPlatform/open-match/issues/new)
+* [Mailing list](https://groups.google.com/forum/#!forum/open-match-discuss)
+* [Managed Service Survey](https://goo.gl/forms/cbrFTNCmy9rItSv72)
 
 ## Code of Conduct
 
