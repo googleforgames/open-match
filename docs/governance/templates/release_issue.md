@@ -42,11 +42,12 @@ Create New Version
 _Find the release branch relevant for your release. It will have the name release-X.Y. While doing a release in the branch no changes should be submitted outside of the process. Also all changes done _
 
 - [ ] Announce a PR freeze on release-X.Y branch on [open-match-discuss@](mailing-list-post).
-- [ ] Create a PR to bump the version.
-  - [ ] Open the [`Makefile`](makefile-version) and change BASE_VERSION value. Release candidates use the -rc.# suffix.
+- [ ] Create a PR to bump the version. Release candidates use the -rc.# suffix.
+  - [ ] Open the [`Makefile`](makefile-version) and change BASE_VERSION entry.
   - [ ] Open the [`install/helm/open-match/Chart.yaml`](om-chart-yaml-version) and [`install/helm/open-match-example/Chart.yaml`](om-example-chart-yaml-version) and change the `appVersion` and `version` entries.
   - [ ] Open the [`install/helm/open-match/values.yaml`](om-values-yaml-version) and [`install/helm/open-match-example/values.yaml`](om-example-values-yaml-version) and change the `tag` entries.
-  - [ ] Open the [`site/config.toml`]  and change the `release_branch` and `release_version` entries.
+  - [ ] Open the [`site/config.toml`] and change the `release_branch` and `release_version` entries.
+  - [ ] Open the [`cloudbuild.yaml`] and change the `_OM_VERSION` entry.
   - [ ] Run `make clean release`
   - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
   - [ ] Submit the pull request.
