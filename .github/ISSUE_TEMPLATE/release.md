@@ -1,8 +1,16 @@
+---
+name: release
+about: Instructions and checklist for creating a release.
+title: 'Release X.Y.Z-rc.N'
+labels: kind/release
+assignees: ''
+
+---
+
 # Release {version}
 
 <!--
-This is the release issue template. Make a copy of the markdown in this page
-and copy it into a release issue. Fill in relevent values, found inside {}
+This is the release issue template. Fill in relevent values, found inside {}
 {version} should be replaced with the version ie: 0.5.0.
 
 There are 3 types of releases:
@@ -12,16 +20,16 @@ There are 3 types of releases:
 
 # Release Candidate and Full Release Process
 
-1. Create a Release Issue from the [release issue template](./release_issue.md).
-1. Label the issue `kind/release`, and attach it to the milestone that it matches.
+1. Create a Release Issue from the release issue template.
+1. Attach the issue to the milestone that it matches.
 1. Complete all items in the release issue checklist.
 1. Close the release issue.
 
 # Hot Fix Process
 
 1. Hotfixes will occur as needed, to be determined by those will commit access on the repository.
-1. Create a Release Issue from the [release issue template](./release_issue.md).
-1. Label the issue `kind/release`, and attach it to the next upcoming milestone.
+1. Create a Release Issue from the release issue template.
+1. Attach the issue to the **next upcoming milestone**.
 1. Complete all items in the release issue checklist.
 1. Close the release issue.
 
