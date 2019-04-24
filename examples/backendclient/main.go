@@ -29,12 +29,12 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/gobs/pretty"
 	"github.com/tidwall/gjson"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/status"
 )
 
 var (
@@ -44,6 +44,8 @@ var (
 	assignment     = flag.String("assignment", "example.server.dgs:12345", "Assignment to send to matched players")
 	delAssignments = flag.Bool("rm", false, "Delete assignments. Leave off to be able to manually validate assignments in state storage")
 	verbose        = flag.Bool("verbose", false, "Print out as much as possible")
+	runForever     = flag.Bool("loop", true, "Make the desired call in a loop till process terminates")
+	runInterval    = flag.Int("interval", 5, "seconds to wait between consequitive calls")
 )
 
 func bytesToString(data []byte) string {
@@ -67,6 +69,8 @@ func main() {
 	log.Printf(" [flags] Using OM Backend %v call", *beCall)
 	log.Printf(" [flags] Assigning players to %v", *assignment)
 	log.Printf(" [flags] Deleting assignments? %v", *delAssignments)
+	log.Printf(" [flags] Run forever? %v", *runForever)
+	log.Printf(" [flags] Interval between consequitive runs - %v", *runInterval)
 	if !(*beCall == "CreateMatch" || *beCall == "ListMatches") {
 		log.Printf(" [flags] Unknown OM Backend call %v! Exiting...", *beCall)
 		return
@@ -184,40 +188,47 @@ func main() {
 
 	// Make the requested backend call: CreateMatch calls once, ListMatches continually calls.
 	log.Printf("Attempting %v() call", *beCall)
-	switch *beCall {
-	case "CreateMatch":
-		resp, err := client.CreateMatch(ctx, req)
-		if err != nil {
-			panic(err)
-		}
-		log.Printf("CreateMatch returned; processing match")
-
-		matchChan <- resp.Match
-		<-doneChan
-	case "ListMatches":
-		stream, err := client.ListMatches(ctx, &pb.ListMatchesRequest{
-			Mmfcfg: req.Mmfcfg,
-			Match:  req.Match,
-		})
-		if err != nil {
-			log.Fatalf("Attempting to open stream for ListMatches(_) = _, %v", err)
-		}
-		for {
-			log.Printf("Waiting for matches...")
-			resp, err := stream.Recv()
-			if err == io.EOF {
-				break
-			}
+	for {
+		switch *beCall {
+		case "CreateMatch":
+			resp, err := client.CreateMatch(ctx, req)
 			if err != nil {
-				stat, ok := status.FromError(err)
-				if ok {
-					log.Printf("Error reading stream for ListMatches() returned status: %s %s", stat.Code().String(), stat.Message())
-				} else {
-					log.Printf("Error reading stream for ListMatches() returned status: %s", err)
-				}
+				log.Printf("Failed CreateMatch, %v", err)
 				break
 			}
+			log.Printf("CreateMatch returned; processing match")
+
 			matchChan <- resp.Match
+			<-doneChan
+		case "ListMatches":
+			stream, err := client.ListMatches(ctx, &pb.ListMatchesRequest{
+				Mmfcfg: req.Mmfcfg,
+				Match:  req.Match,
+			})
+			if err != nil {
+				log.Printf("Failed ListMatches, %v", err)
+				break
+			}
+
+			for {
+				log.Printf("Waiting for matches...")
+				resp, err := stream.Recv()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					log.Printf("Error reading stream for ListMatches, %v", err)
+					break
+				}
+				matchChan <- resp.Match
+			}
 		}
+
+		if !*runForever {
+			break
+		}
+
+		// Wait for the retry interval before calling again.
+		time.Sleep(time.Duration(*runInterval) * time.Second)
 	}
 }
