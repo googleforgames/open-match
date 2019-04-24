@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	"github.com/pkg/errors"
@@ -55,15 +56,16 @@ func (gw *GrpcWrapper) AddProxy(handlerFunc func(context.Context, *runtime.Serve
 
 // Start begins the gRPC server.
 func (gw *GrpcWrapper) Start() error {
-
-	if err := gw.startGrpcServer(); err != nil {
+	var wg sync.WaitGroup
+	if err := gw.startGrpcServer(&wg); err != nil {
 		return err
 	}
 
-	if err := gw.startHTTPProxy(); err != nil {
+	if err := gw.startHTTPProxy(&wg); err != nil {
 		return err
 	}
 
+	wg.Wait()
 	return nil
 }
 
@@ -130,11 +132,14 @@ func (gw *GrpcWrapper) Stop() error {
 	return nil
 }
 
-func (gw *GrpcWrapper) startHTTPProxy() error {
+func (gw *GrpcWrapper) startHTTPProxy(wg *sync.WaitGroup) error {
 	// Starting proxy server
 	if gw.proxyLn != nil {
 		return nil
 	}
+
+	wg.Add(1)
+
 	proxyLn, err := gw.proxyLh.Obtain()
 
 	if err != nil {
@@ -180,6 +185,7 @@ func (gw *GrpcWrapper) startHTTPProxy() error {
 	gw.proxyAwaiter = make(chan error)
 
 	go func() {
+		wg.Done()
 		gw.logger.Infof("Serving proxy on :%d", gw.proxyLh.Number())
 		err := gw.proxy.Serve(proxyLn)
 		gw.proxyAwaiter <- err
@@ -195,12 +201,13 @@ func (gw *GrpcWrapper) startHTTPProxy() error {
 	return nil
 }
 
-func (gw *GrpcWrapper) startGrpcServer() error {
+func (gw *GrpcWrapper) startGrpcServer(wg *sync.WaitGroup) error {
 	// Starting gRPC server
 	if gw.serviceLn != nil {
 		return nil
 	}
 
+	wg.Add(1)
 	serviceLn, err := gw.serviceLh.Obtain()
 	if err != nil {
 		gw.logger.WithFields(log.Fields{
@@ -223,6 +230,7 @@ func (gw *GrpcWrapper) startGrpcServer() error {
 	gw.grpcAwaiter = make(chan error)
 
 	go func() {
+		wg.Done()
 		gw.logger.Infof("Serving gRPC on :%d", gw.serviceLh.Number())
 		err := gw.server.Serve(serviceLn)
 		gw.grpcAwaiter <- err
