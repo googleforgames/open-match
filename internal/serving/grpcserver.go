@@ -239,7 +239,7 @@ func healthzServer(conn *grpc.ClientConn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		if s := conn.GetState(); s != connectivity.Ready {
-			http.Error(w, fmt.Sprintf("ClientConn is %s", s), http.StatusBadGateway)
+			http.Error(w, fmt.Sprintf("Service Unavailable: ClientConn is %s", s), http.StatusServiceUnavailable)
 			return
 		}
 		fmt.Fprintln(w, "ok")
