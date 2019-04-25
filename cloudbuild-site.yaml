@@ -1,0 +1,79 @@
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+################################################################################
+#                   Open Match Script for Google Cloud Build                   #
+################################################################################
+
+# To run this locally:
+# cloud-build-local --config=cloudbuild.yaml --dryrun=false --substitutions=_OM_VERSION=DEV .
+# To run this remotely:
+# gcloud builds submit --config=cloudbuild.yaml --substitutions=_OM_VERSION=DEV .
+
+# Requires gcloud to be installed to work. (https://cloud.google.com/sdk/)
+# gcloud auth login
+# gcloud components install cloud-build-local
+
+# This YAML contains all the build steps for building Open Match.
+# All PRs are verified against this script to prevent build breakages and regressions.
+
+# Conventions
+# Each build step is ID'ed with "Prefix: Description".
+#   The prefix portion determines what kind of step it is and it's impact.
+#   Docker Image: Read-Only, outputs a docker image.
+#   Lint: Read-Only, verifies correctness and formatting of a file.
+#   Build: Read-Write, outputs a build artifact. Ok to run in parallel if the artifact will not collide with another one.
+#   Generate: Read-Write, outputs files within /workspace that are used in other build step. Do not run these in parallel.
+#   Setup: Read-Write, similar to generate but steps that run before any other step.
+
+# Some useful things to know about Cloud Build.
+# The root of this repository is always stored in /workspace.
+#    Any modifications that occur within /workspace are persisted between builds anything else is forgotten.
+# If a build step has intermediate files that need to be persisted for a future step then use volumes.
+#    An example of this is the go-vol which is where the pkg/ data for go mod is stored.
+#    More information here: https://cloud.google.com/cloud-build/docs/build-config#build_steps
+# A build step is basically a docker image that is tuned for Cloud Build,
+#    https://github.com/GoogleCloudPlatform/cloud-builders/tree/master/go
+
+steps:
+- id: 'Docker Image: open-match-build'
+  name: gcr.io/kaniko-project/executor
+  args: ['--destination=gcr.io/$PROJECT_ID/open-match-build', '--cache=true', '--cache-ttl=6h', '--dockerfile=Dockerfile.ci', '.']
+  waitFor: ['-']
+
+- id: 'Build: Clean'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'clean']
+  waitFor: ['Docker Image: open-match-build']
+
+- id: 'Build: Website'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'build/site/']
+  waitFor: ['Build: Install Toolchain']
+
+- id: 'Test: Website'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'site-test']
+  waitFor: ['Build: Website']
+
+- id: 'Deploy: Website'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', VERSION_SUFFIX=$SHORT_SHA', 'BRANCH_NAME=$BRANCH_NAME', 'ci-deploy-dev-site']
+  waitFor: ['Test: Website']
+substitutions:
+    _OM_VERSION: "0.5.0-rc1"
+    _GCB_POST_SUBMIT: "0"
+logsBucket: 'gs://open-match-build-logs/'
+options:
+  sourceProvenanceHash: ['SHA256']

@@ -50,7 +50,7 @@ steps:
 # Blocked by https://github.com/GoogleContainerTools/kaniko/issues/477
 - id: 'Docker Image: open-match-build'
   name: gcr.io/kaniko-project/executor
-  args: ['--destination=gcr.io/$PROJECT_ID/open-match-build', '--cache=true', '--cache-ttl=6h', '--dockerfile=Dockerfile.ci', '.']
+  args: ['--destination=gcr.io/$PROJECT_ID/open-match-build', '--cache=true', '--cache-ttl=48h', '--dockerfile=Dockerfile.ci', '.']
   waitFor: ['-']
 
 - id: 'Build: Clean'
@@ -194,7 +194,7 @@ substitutions:
 logsBucket: 'gs://open-match-build-logs/'
 options:
   sourceProvenanceHash: ['SHA256']
-  machineType: 'N1_HIGHCPU_8'
+  machineType: 'N1_HIGHCPU_32'
 # TODO: The build is slow because we don't vendor. go get takes a very long time.
 # Also we are rebuilding a lot of code unnecessarily. This should improve once
 # we have new hermetic and reproducible Dockerfiles.
