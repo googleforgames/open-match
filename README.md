@@ -55,7 +55,7 @@ This command also deploys a component that continuously generates players with d
 
 ### Generate Matches!
 
-The in a real setup, a game backend (Director / DGS etc.) will request Open Match for mathes. For demo purposes, this is simulated by a backend client that requests Open Match to continuously list matches till it runs out of players.
+In a real setup, a game backend (Director / DGS etc.) will request matches from Open Match. For demo purposes, this is simulated by a backend client that requests Open Match to continuously list matches until it runs out of players.
 
 ```bash
 kubectl run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=gcr.io/open-match-public-images/openmatch-backendclient:0.5.0-rc.2 --namespace=open-match
