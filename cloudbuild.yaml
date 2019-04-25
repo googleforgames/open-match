@@ -194,7 +194,7 @@ substitutions:
 logsBucket: 'gs://open-match-build-logs/'
 options:
   sourceProvenanceHash: ['SHA256']
-  machineType: 'N1_HIGHCPU_8'
+  machineType: 'N1_HIGHCPU_32'
 # TODO: The build is slow because we don't vendor. go get takes a very long time.
 # Also we are rebuilding a lot of code unnecessarily. This should improve once
 # we have new hermetic and reproducible Dockerfiles.
