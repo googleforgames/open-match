@@ -19,5 +19,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
 
 FROM gcr.io/distroless/static
 COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/cmd/frontendapi/frontendapi .
+# TODO: Use go-bindata to embed the json file
+COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/api/protobuf-spec/frontend.swagger.json .
 
 ENTRYPOINT ["/frontendapi"]

@@ -72,7 +72,7 @@ func Bind(omSrv *serving.OpenMatchServer) {
 	omSrv.GrpcServer.AddService(func(server *grpc.Server) {
 		pb.RegisterBackendServer(server, handler)
 	})
-	omSrv.GrpcServer.AddProxy(pb.RegisterBackendHandlerFromEndpoint)
+	omSrv.GrpcServer.AddProxy(pb.RegisterBackendHandler)
 }
 
 // CreateMatch is this service's implementation of the CreateMatch gRPC method

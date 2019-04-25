@@ -2,6 +2,7 @@ package testing
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/GoogleCloudPlatform/open-match/internal/config"
@@ -36,6 +37,17 @@ func (mm *MiniMatchServer) GetFrontendClient() (pb.FrontendClient, error) {
 	return pb.NewFrontendClient(conn), nil
 }
 
+// GetFrontendProxyClient gets the REST proxy of the frontend client
+func (mm *MiniMatchServer) GetFrontendProxyClient() (*http.Client, string) {
+	httpClient := &http.Client{
+		Timeout: time.Second * 3,
+	}
+
+	baseURL := fmt.Sprintf("http://localhost:%d", mm.Config.GetInt("api.frontend.proxyport"))
+
+	return httpClient, baseURL
+}
+
 // GetBackendClient gets the backend client.
 func (mm *MiniMatchServer) GetBackendClient() (pb.BackendClient, error) {
 	port := mm.Config.GetInt("api.backend.port")
@@ -44,6 +56,17 @@ func (mm *MiniMatchServer) GetBackendClient() (pb.BackendClient, error) {
 		return nil, err
 	}
 	return pb.NewBackendClient(conn), nil
+}
+
+// GetBackendProxyClient gets the REST proxy of the backend client
+func (mm *MiniMatchServer) GetBackendProxyClient() (*http.Client, string) {
+	httpClient := &http.Client{
+		Timeout: time.Second * 3,
+	}
+
+	baseURL := fmt.Sprintf("http://localhost:%d", mm.Config.GetInt("api.backend.proxyport"))
+
+	return httpClient, baseURL
 }
 
 // Stop shuts down Mini Match
