@@ -99,7 +99,7 @@ steps:
 - id: 'Build: Push Images'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'push-images', '-j16']
-  waitFor: ['Build: Docker Images']
+  waitFor: ['Build: Protocol Buffers']
 
 - id: 'Build: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
