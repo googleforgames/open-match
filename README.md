@@ -25,13 +25,16 @@ Open Match framework is a collection of servers that run within a Kubernetes clu
 * [Set up a Google Cloud Kubernetes Cluster](docs/gcloud.md) (*this may involve extra charges unless you are on free tier*)
 * [Set up a Local Minikube cluster](https://kubernetes.io/docs/setup/minikube/)
 
-### Deplying Open Match
+### Deploying Open Match
 
 Run the following steps to deploy core Open Match components and the monitoring services in the Kubernetes cluster.
 
 ```bash
-# Create a cluster role binding (if using gcloud)
+# Create a cluster role binding (if using gcloud on Linux or OSX)
 kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user `gcloud config get-value account`
+
+# Create a cluster role binding (if using gcloud on Windows)
+for /F %i in ('gcloud config get-value account') do kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user %i
 
 # Create a cluster role binding (if using minikube)
 kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-admin --serviceaccount=kube-system:default
@@ -56,7 +59,7 @@ This command also deploys a component that continuously generates players with d
 
 ### Generate Matches! 
 
-The in a real setup, a game backend (Director / DGS etc.) will request Open Match for mathes. For demo purposes, this is simulated by a backend client that requests Open Match to continuously list matches till it runs out of players.
+In a real setup, a game backend (Director / DGS etc.) will request Open Match for matches. For demo purposes, this is simulated by a backend client that requests Open Match to continuously list matches till it runs out of players.
 
 ```bash
 # Install the example MMF and Evaluator.
