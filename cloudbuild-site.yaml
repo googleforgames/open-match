@@ -60,7 +60,7 @@ steps:
 - id: 'Build: Website'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'build/site/']
-  waitFor: ['Build: Install Toolchain']
+  waitFor: ['Build: Clean']
 
 - id: 'Test: Website'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
