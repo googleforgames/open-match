@@ -24,14 +24,7 @@ metadata:
     {{- include "openmatch.chartmeta" (set . "indent" 4) }}
 data:
   {{- $root := . -}}
-  {{- $overrides := default (dict) $root.Values.openmatch.config.contents -}}
-
-  {{ range $path, $bytes := .Files.Glob "config/**.yaml" }}
-  {{- $override := index $overrides (base $path) -}}
-  {{- if not (empty $override) }}
-  {{ base $path }}: |- {{- tpl (toYaml $override | nindent 4) $root -}}
-  {{- else }}
-  {{ base $path }}: |- {{- $root.Files.Get $path | nindent 4 -}}
-  {{- end -}}
+  {{ range $path, $content := $root.Values.openmatch.config.files }}
+  {{ $path }}: |- {{- tpl (toYaml $content | nindent 4) $root -}}
   {{- end -}}
 {{- end }}
