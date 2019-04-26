@@ -375,10 +375,11 @@ set-redis-password:
 		printf "apiVersion: v1\nkind: Secret\nmetadata:\n  name: $(REDIS_NAME)\n  namespace: $(OPEN_MATCH_KUBERNETES_NAMESPACE)\ndata:\n  redis-password: $$REDIS_PASSWORD\n" | \
 		$(KUBECTL) replace -f - --force
 
-install-toolchain: install-kubernetes-tools install-web-tools install-protoc-tools
+install-toolchain: install-kubernetes-tools install-web-tools install-protoc-tools install-openmatch-tools
 install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)
 install-web-tools: build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/bin/htmltest$(EXE_EXTENSION) build/toolchain/nodejs/
 install-protoc-tools: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
+install-openmatch-tools: build/toolchain/bin/certgen$(EXE_EXTENSION)
 
 install-stress-test-tools:
 	sudo apt-get install python3 virtualenv
@@ -482,6 +483,10 @@ else
 	cd build/toolchain/nodejs/ && tar xzf ../../archives/$(NODEJS_PACKAGE_NAME) --strip-components 1
 endif
 
+build/toolchain/bin/certgen$(EXE_EXTENSION): tools/certgen/certgen$(EXE_EXTENSION)
+	mkdir -p $(TOOLCHAIN_BIN)
+	cp -f $(REPOSITORY_ROOT)/tools/certgen/certgen$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION)
+
 push-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) create serviceaccount --namespace kube-system tiller
 	$(HELM) init --service-account tiller --force-upgrade
@@ -560,9 +565,11 @@ build:
 
 test:
 	$(GO) test ./... -race
+	$(GO) test ./... -run IgnoreRace$$
 
 ci-test:
 	$(GO) test ./... -race -test.count 25 -cover
+	$(GO) test ./... -run IgnoreRace$$ -cover
 
 stress-test-%: install-stress-test-tools
 	$(REPOSITORY_ROOT)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
@@ -610,6 +617,13 @@ test/cmd/clientloadgen/clientloadgen$(EXE_EXTENSION):
 
 test/cmd/frontendclient/frontendclient$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/messages.pb.go
 	cd test/cmd/frontendclient; $(GO_BUILD_COMMAND)
+
+tools/certgen/certgen$(EXE_EXTENSION):
+	cd tools/certgen/ && $(GO_BUILD_COMMAND)
+
+build/certificates/: build/toolchain/bin/certgen$(EXE_EXTENSION)
+	mkdir -p $(BUILD_DIR)/certificates/
+	cd $(BUILD_DIR)/certificates/ && $(REPOSITORY_ROOT)/build/toolchain/bin/certgen$(EXE_EXTENSION)
 
 node_modules/: build/toolchain/nodejs/
 	-rm -r package.json package-lock.json
@@ -664,12 +678,13 @@ else
 	echo "Not deploying development.open-match.dev because this is not a post commit change."
 endif
 
-all: service-binaries client-binaries example-binaries
+all: service-binaries client-binaries example-binaries tools-binaries
 service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/backendapi/backendapi$(EXE_EXTENSION) cmd/frontendapi/frontendapi$(EXE_EXTENSION) cmd/mmlogicapi/mmlogicapi$(EXE_EXTENSION)
 client-binaries: examples/backendclient/backendclient$(EXE_EXTENSION) test/cmd/clientloadgen/clientloadgen$(EXE_EXTENSION) test/cmd/frontendclient/frontendclient$(EXE_EXTENSION)
 example-binaries: example-mmf-binaries example-evaluator-binaries
 example-mmf-binaries: examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION)
 example-evaluator-binaries: examples/evaluators/golang/serving/serving$(EXE_EXTENSION)
+tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: update-deps clean-protos all-protos fmt vet build test
