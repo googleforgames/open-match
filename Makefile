@@ -64,7 +64,7 @@ GOLANGCI_VERSION = 1.16.0
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
 GO = GO111MODULE=on go
 # Defines the absolute local directory of the open-match project
-REPOSITORY_ROOT := $(dir $(abspath $(MAKEFILE_LIST)))
+REPOSITORY_ROOT := $(realpath $(dir $(abspath $(MAKEFILE_LIST))))
 GO_BUILD_COMMAND = CGO_ENABLED=0 $(GO) build -a -installsuffix cgo .
 BUILD_DIR = $(REPOSITORY_ROOT)/build
 TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
@@ -381,9 +381,17 @@ install-web-tools: build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/bin/
 install-protoc-tools: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 install-openmatch-tools: build/toolchain/bin/certgen$(EXE_EXTENSION)
 
+
 install-stress-test-tools:
-	sudo apt-get install python3 virtualenv
-	cd $(REPOSITORY_ROOT) && virtualenv --python=python3 python && python/bin/pip install locustio
+	cd $(REPOSITORY_ROOT)
+ifeq (, $(shell which python3))
+	sudo apt-get install python3
+endif
+ifeq (, $(shell which virtualenv))
+	sudo apt-get install virtualenv
+endif
+	if ! [ -d "build/python" ]; then virtualenv --python=python3 build/python; fi
+	build/python/bin/pip install locustio
 
 build/toolchain/bin/helm$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
