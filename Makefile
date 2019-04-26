@@ -580,7 +580,7 @@ ci-test:
 	$(GO) test ./... -run IgnoreRace$$ -cover
 
 stress-test-%: install-stress-test-tools
-	$(REPOSITORY_ROOT)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
+	$(REPOSITORY_ROOT)/build/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
 		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
 
 fmt:
