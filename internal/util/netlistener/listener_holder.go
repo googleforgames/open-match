@@ -13,6 +13,7 @@ import (
 type ListenerHolder struct {
 	number   int
 	listener net.Listener
+	addr     string
 	sync.RWMutex
 }
 
@@ -31,6 +32,13 @@ func (lh *ListenerHolder) Obtain() (net.Listener, error) {
 // Number returns the port number.
 func (lh *ListenerHolder) Number() int {
 	return lh.number
+}
+
+// AddrString returns the address of the serving port.
+// Use this over fmt.Sprintf(":%d", lh.Number()) because the address is represented differently in
+// systems that prefer IPv4 and IPv6.
+func (lh *ListenerHolder) AddrString() string {
+	return lh.addr
 }
 
 // Close shutsdown the TCP listener.
@@ -59,6 +67,7 @@ func NewFromPortNumber(portNumber int) (*ListenerHolder, error) {
 		return &ListenerHolder{
 			number:   tcpConn.Port,
 			listener: conn,
+			addr:     conn.Addr().String(),
 		}, nil
 	}
 	return nil, err
