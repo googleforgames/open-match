@@ -16,6 +16,13 @@
 *swo
 *~
 
+# python virtualenv directory
+python/
+
+# Load testing residuals
+test/stress/*.csv
+test/stress/__pycache__
+
 # Ping data files
 *.ping
 *.pings

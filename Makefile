@@ -381,9 +381,8 @@ install-web-tools: build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/bin/
 install-protoc-tools: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 
 install-stress-test-tools:
-	sudo apt-get install python3 python3-venv
-	cd $(REPOSITORY_ROOT) && python3 -m venv env
-	$(REPOSITORY_ROOT)/env/bin/pip install locustio
+	sudo apt-get install python3 virtualenv
+	cd $(REPOSITORY_ROOT) && virtualenv --python=python3 python && python/bin/pip install locustio
 
 build/toolchain/bin/helm$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -565,8 +564,9 @@ test:
 ci-test:
 	$(GO) test ./... -race -test.count 25 -cover
 
-stress-test: install-stress-test-tools
-	$(REPOSITORY_ROOT)/env/bin/locust -f $(REPOSITORY_ROOT)/test/stress/create_player.py --host=http://localhost:51504
+stress-test-%: install-stress-test-tools
+	$(REPOSITORY_ROOT)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
+		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
 
 fmt:
 	$(GO) fmt ./...
@@ -730,7 +730,8 @@ clean-install-yaml:
 	rm -f $(REPOSITORY_ROOT)/install/yaml/04-grafana-chart.yaml
 
 clean-stress-test-tools:
-	rm -rf $(REPOSITORY_ROOT)/env
+	rm -rf $(REPOSITORY_ROOT)/python
+	rm $(REPOSITORY_ROOT)/test/stress/*.csv
 
 clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools
 
