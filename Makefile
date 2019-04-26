@@ -731,7 +731,7 @@ clean-install-yaml:
 
 clean-stress-test-tools:
 	rm -rf $(REPOSITORY_ROOT)/python
-	rm $(REPOSITORY_ROOT)/test/stress/*.csv
+	rm -f $(REPOSITORY_ROOT)/test/stress/*.csv
 
 clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools
 
