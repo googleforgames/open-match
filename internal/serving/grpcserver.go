@@ -159,7 +159,7 @@ func (gw *GrpcWrapper) startHTTPProxy(wg *sync.WaitGroup) error {
 
 	proxyMux := runtime.NewServeMux()
 
-	serviceEndpoint := fmt.Sprintf("localhost:%d", gw.serviceLh.Number())
+	serviceEndpoint := gw.serviceLh.AddrString()
 	gw.grpcClient, err = grpc.DialContext(ctx, serviceEndpoint, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		gw.logger.WithFields(log.Fields{
@@ -186,7 +186,7 @@ func (gw *GrpcWrapper) startHTTPProxy(wg *sync.WaitGroup) error {
 
 	go func() {
 		wg.Done()
-		gw.logger.Infof("Serving proxy on :%d", gw.proxyLh.Number())
+		gw.logger.Infof("Serving proxy on %s", gw.proxyLh.AddrString())
 		err := gw.proxy.Serve(proxyLn)
 		gw.proxyAwaiter <- err
 		if err != nil {
@@ -231,7 +231,7 @@ func (gw *GrpcWrapper) startGrpcServer(wg *sync.WaitGroup) error {
 
 	go func() {
 		wg.Done()
-		gw.logger.Infof("Serving gRPC on :%d", gw.serviceLh.Number())
+		gw.logger.Infof("Serving gRPC on %s", gw.serviceLh.AddrString())
 		err := gw.server.Serve(serviceLn)
 		gw.grpcAwaiter <- err
 		if err != nil {
