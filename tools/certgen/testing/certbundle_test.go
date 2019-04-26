@@ -49,13 +49,12 @@ func TestCreateRootedCertificateAndPrivateKeyForTestingAreValid(t *testing.T) {
 
 	rootPub, rootPk, err := certgenInternal.ReadKeyPair(rootPubData, rootPrivData)
 	assert.Nil(err)
+	assert.NotNil(rootPk)
 	pub, pk, err := certgenInternal.ReadKeyPair(pubData, privData)
 	assert.Nil(err)
-
-	pub.CheckSignatureFrom(rootPub)
-
-	assert.NotNil(rootPk)
 	assert.NotNil(pk)
+
+	assert.Nil(pub.CheckSignatureFrom(rootPub))
 }
 
 func TestCreateCertificateAndPrivateKeyForTestingAreDifferent(t *testing.T) {
