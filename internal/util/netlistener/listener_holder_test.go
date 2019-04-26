@@ -1,6 +1,8 @@
 package netlistener
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -9,6 +11,32 @@ import (
 const (
 	numIterations = 1000
 )
+
+// TestAddrString verifies that AddrString() is consistent with the port's Addr().String() value.
+func TestAddrString(t *testing.T) {
+	lh, err := NewFromPortNumber(0)
+	if err != nil {
+		t.Fatalf("NewFromPortNumber(0) had error, %s", err)
+	}
+
+	if !strings.HasSuffix(lh.AddrString(), fmt.Sprintf(":%d", lh.Number())) {
+		t.Errorf("%s does not have suffix ':%d'", lh.AddrString(), lh.Number())
+	}
+
+	port, err := lh.Obtain()
+	defer func() {
+		err := port.Close()
+		if err != nil {
+			t.Errorf("error %s while calling port.Close()", err)
+		}
+	}()
+	if err != nil {
+		t.Errorf("error %s while calling lh.Obtain", err)
+	}
+	if port.Addr().String() != lh.AddrString() {
+		t.Errorf("port.Addr().String() = %s should match lh.AddrString() = %s", port.Addr().String(), lh.AddrString())
+	}
+}
 
 // TestObtain verifies that a ListenerHolder only returns Obtain() once.
 func TestObtain(t *testing.T) {
