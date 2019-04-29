@@ -39,7 +39,7 @@ openmatch:
     testprofile: /profiles
   image:
     registry: gcr.io/open-match-public-images
-    tag: 0.5.0-rc.2
+    tag: 0.5.0
     backendclient:
       name: openmatch-backendclient
       pullPolicy: Always
