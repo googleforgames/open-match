@@ -217,6 +217,9 @@ issues:
     - text: "tag."
       linters:
         - gochecknoglobals
+    - text: "logrus."
+      linters:
+        - gochecknoglobals
 
     # Exclude known linters from partially hard-vendored code,
     # which is impossible to exclude via "nolint" comments.
