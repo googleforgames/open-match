@@ -64,7 +64,7 @@ GOLANGCI_VERSION = 1.16.0
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
 GO = GO111MODULE=on go
 # Defines the absolute local directory of the open-match project
-REPOSITORY_ROOT := $(realpath $(dir $(abspath $(MAKEFILE_LIST))))
+REPOSITORY_ROOT := $(dir $(abspath $(MAKEFILE_LIST)))
 GO_BUILD_COMMAND = CGO_ENABLED=0 $(GO) build -a -installsuffix cgo .
 BUILD_DIR = $(REPOSITORY_ROOT)/build
 TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
@@ -441,9 +441,10 @@ build/toolchain/bin/golangci-lint$(EXE_EXTENSION):
 	rm -rf $(TOOLCHAIN_DIR)/temp-golangci/
 
 build/toolchain/python/:
-	# mkdir -p $(TOOLCHAIN_DIR)/python/
-	if ! [ -d "$(TOOLCHAIN_DIR)/python" ]; then virtualenv --python=python3 $(TOOLCHAIN_DIR)/python/; fi
-	$(TOOLCHAIN_DIR)/python/bin/pip install locustio
+	virtualenv --python=python3 $(TOOLCHAIN_DIR)/python/
+	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
+	cd build/toolchain/python/bin && ln -s python3 pytho
+	cd build/toolchain/python/ && . bin/activate && pip install locustio && deactivate
 
 build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -746,7 +747,7 @@ clean-install-yaml:
 	rm -f $(REPOSITORY_ROOT)/install/yaml/04-grafana-chart.yaml
 
 clean-stress-test-tools:
-	rm -rf $(REPOSITORY_ROOT)/python
+	rm -rf $(TOOLCHAIN_DIR)/python
 	rm -f $(REPOSITORY_ROOT)/test/stress/*.csv
 
 clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools
