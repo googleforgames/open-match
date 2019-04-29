@@ -47,7 +47,6 @@
 #    https://github.com/GoogleCloudPlatform/cloud-builders/tree/master/go
 
 steps:
-# Blocked by https://github.com/GoogleContainerTools/kaniko/issues/477
 - id: 'Docker Image: open-match-build'
   name: gcr.io/kaniko-project/executor
   args: ['--destination=gcr.io/$PROJECT_ID/open-match-build', '--cache=true', '--cache-ttl=48h', '--dockerfile=Dockerfile.ci', '.']
@@ -144,21 +143,6 @@ steps:
   - name: 'go-vol'
     path: '/go'
 
-#- id: 'Deploy: Create Cluster'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', 'create-gke-cluster', 'push-helm']
-#  waitFor: ['Build: Docker Images']
-
-#- id: 'Deploy: Install Charts'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', 'sleep-10', 'install-chart', 'install-example-chart']
-#  waitFor: ['Deploy: Create Cluster']
-
-#- id: 'Deploy: Teardown Cluster'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', 'sleep-10', 'delete-gke-cluster']
-#  waitFor: ['Deploy: Install Charts']
-
 artifacts:
     objects:
         location: gs://open-match-build-artifacts/output/
@@ -195,13 +179,4 @@ logsBucket: 'gs://open-match-build-logs/'
 options:
   sourceProvenanceHash: ['SHA256']
   machineType: 'N1_HIGHCPU_32'
-# TODO: The build is slow because we don't vendor. go get takes a very long time.
-# Also we are rebuilding a lot of code unnecessarily. This should improve once
-# we have new hermetic and reproducible Dockerfiles.
 timeout: 1200s
-# TODO Build Steps
-# config/matchmaker_config.yaml: Lint this file so it's verified as a valid YAML file.
-# examples/profiles/*.json: Verify valid JSON files.
-#
-# Consolidate many of these build steps via Makefile.
-# Caching of dependencies is a serious problem. Cloud Build does not complete within 20 minutes!
