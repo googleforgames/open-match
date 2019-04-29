@@ -46,7 +46,7 @@
 ##
 # http://makefiletutorial.com/
 
-BASE_VERSION = 0.5.0-rc1
+BASE_VERSION = 0.0.0-dev
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
@@ -681,7 +681,7 @@ example-evaluator-binaries: examples/evaluators/golang/serving/serving$(EXE_EXTE
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: update-deps clean-protos all-protos fmt vet build test
+presubmit: update-deps clean-protos all-protos lint build test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
