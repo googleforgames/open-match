@@ -371,9 +371,7 @@ set-redis-password:
 		read REDIS_PASSWORD; \
 		stty echo; \
 		printf "\n"; \
-		REDIS_PASSWORD=$$(printf "$$REDIS_PASSWORD" | base64); \
-		printf "apiVersion: v1\nkind: Secret\nmetadata:\n  name: $(REDIS_NAME)\n  namespace: $(OPEN_MATCH_KUBERNETES_NAMESPACE)\ndata:\n  redis-password: $$REDIS_PASSWORD\n" | \
-		$(KUBECTL) replace -f - --force
+		$(KUBECTL) create secret generic $(REDIS_NAME) -n $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
 
 install-toolchain: install-kubernetes-tools install-web-tools install-protoc-tools install-openmatch-tools
 install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)
@@ -436,7 +434,11 @@ endif
 build/toolchain/bin/golangci-lint$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-golangci
-	cd $(TOOLCHAIN_DIR)/temp-golangci && curl -Lo golangci.tar.gz $(GOLANGCI_PACKAGE) && tar xvzf golangci.tar.gz --strip-components 1
+ifeq ($(suffix $(GOLANGCI_PACKAGE)),.zip)
+	cd $(TOOLCHAIN_DIR)/temp-golangci && curl -Lo golangci.zip $(GOLANGCI_PACKAGE) && unzip -j -q -o golangci.zip
+else
+	cd $(TOOLCHAIN_DIR)/temp-golangci && curl -Lo golangci.tar.gz $(GOLANGCI_PACKAGE) && tar xzf golangci.tar.gz --strip-components 1
+endif
 	mv $(TOOLCHAIN_DIR)/temp-golangci/golangci-lint$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-golangci/
 
