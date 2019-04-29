@@ -46,7 +46,7 @@
 ##
 # http://makefiletutorial.com/
 
-BASE_VERSION = 0.5.0-rc.2
+BASE_VERSION = 0.5.0
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
@@ -725,4 +725,3 @@ endif
 endif
 
 .PHONY: docker gcloud deploy-redirect-site sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-toolchain clean-binaries clean-protos presubmit test test-in-ci vet
-
