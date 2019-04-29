@@ -73,6 +73,8 @@ spec:
           containerPort: {{ .Values.openmatch.backendapi.proxy.port }}
         - name: metrics
           containerPort: {{ .Values.openmatch.metrics.port }}
+        {{- $port := dict "port" .Values.openmatch.backendapi.proxy.port -}}
+        {{- include "probe.readiness" $port | nindent 8 }}
         resources:
           requests:
             memory: 100Mi
