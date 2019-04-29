@@ -381,18 +381,6 @@ install-web-tools: build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/bin/
 install-protoc-tools: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 install-openmatch-tools: build/toolchain/bin/certgen$(EXE_EXTENSION)
 
-
-install-stress-test-tools:
-	cd $(REPOSITORY_ROOT)
-ifeq (, $(shell which python3))
-	sudo apt-get install python3
-endif
-ifeq (, $(shell which virtualenv))
-	sudo apt-get install virtualenv
-endif
-	if ! [ -d "build/python" ]; then virtualenv --python=python3 build/python; fi
-	build/python/bin/pip install locustio
-
 build/toolchain/bin/helm$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-helm
@@ -451,6 +439,11 @@ build/toolchain/bin/golangci-lint$(EXE_EXTENSION):
 	cd $(TOOLCHAIN_DIR)/temp-golangci && curl -Lo golangci.tar.gz $(GOLANGCI_PACKAGE) && tar xvzf golangci.tar.gz --strip-components 1
 	mv $(TOOLCHAIN_DIR)/temp-golangci/golangci-lint$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-golangci/
+
+build/toolchain/python/:
+	# mkdir -p $(TOOLCHAIN_DIR)/python/
+	if ! [ -d "$(TOOLCHAIN_DIR)/python" ]; then virtualenv --python=python3 $(TOOLCHAIN_DIR)/python/; fi
+	$(TOOLCHAIN_DIR)/python/bin/pip install locustio
 
 build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -579,8 +572,8 @@ ci-test:
 	$(GO) test ./... -race -test.count 25 -cover
 	$(GO) test ./... -run IgnoreRace$$ -cover
 
-stress-test-%: install-stress-test-tools
-	$(REPOSITORY_ROOT)/build/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
+stress-test-%: build/toolchain/python/
+	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
 		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
 
 fmt:
