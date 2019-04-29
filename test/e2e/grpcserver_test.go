@@ -17,12 +17,12 @@ package e2e
 import (
 	"context"
 
-	pb "github.com/GoogleCloudPlatform/open-match/internal/pb"
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
-	servingTesting "github.com/GoogleCloudPlatform/open-match/internal/serving/testing"
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
-	netlistenerTesting "github.com/GoogleCloudPlatform/open-match/internal/util/netlistener/testing"
 	"github.com/sirupsen/logrus"
+	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/serving"
+	servingTesting "open-match.dev/open-match/internal/serving/testing"
+	"open-match.dev/open-match/internal/util/netlistener"
+	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 
 	"log"
 	"testing"

@@ -20,11 +20,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/app/minimatch"
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/rs/xid"
+	"open-match.dev/open-match/internal/app/minimatch"
+	"open-match.dev/open-match/internal/pb"
 
-	omTesting "github.com/GoogleCloudPlatform/open-match/internal/serving/testing"
+	omTesting "open-match.dev/open-match/internal/serving/testing"
 )
 
 func TestMinimatchStartup(t *testing.T) {

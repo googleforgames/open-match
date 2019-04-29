@@ -15,9 +15,9 @@
 package frontendapi
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi/apisrv"
-	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
+	"open-match.dev/open-match/internal/app/frontendapi/apisrv"
+	"open-match.dev/open-match/internal/metrics"
+	"open-match.dev/open-match/internal/serving"
 
 	"github.com/sirupsen/logrus"
 )

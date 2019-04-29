@@ -23,14 +23,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
+	"open-match.dev/open-match/internal/pb"
 
 	"context"
 
-	shellTesting "github.com/GoogleCloudPlatform/open-match/internal/future/testing"
-	netlistenerTesting "github.com/GoogleCloudPlatform/open-match/internal/util/netlistener/testing"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
+	shellTesting "open-match.dev/open-match/internal/future/testing"
+	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 )
 
 func TestInsecureStartStop(t *testing.T) {

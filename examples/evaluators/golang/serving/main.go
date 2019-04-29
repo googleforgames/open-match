@@ -23,8 +23,8 @@ import (
 	"context"
 	"fmt"
 
-	harness "github.com/GoogleCloudPlatform/open-match/internal/harness/evaluator/golang"
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
+	harness "open-match.dev/open-match/internal/harness/evaluator/golang"
+	"open-match.dev/open-match/internal/pb"
 )
 
 func main() {

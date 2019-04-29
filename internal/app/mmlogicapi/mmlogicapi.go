@@ -16,9 +16,9 @@
 package mmlogicapi
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi/apisrv"
-	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
+	"open-match.dev/open-match/internal/app/mmlogicapi/apisrv"
+	"open-match.dev/open-match/internal/metrics"
+	"open-match.dev/open-match/internal/serving"
 
 	"github.com/sirupsen/logrus"
 )

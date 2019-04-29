@@ -20,10 +20,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/util/netlistener"
 )
 
 var (

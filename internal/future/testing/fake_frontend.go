@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
+	"open-match.dev/open-match/internal/pb"
 )
 
 // FakeFrontend is an empty gRPC handler.

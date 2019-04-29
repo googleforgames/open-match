@@ -22,13 +22,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/logging"
-	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
-	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
-	netlistenerTesting "github.com/GoogleCloudPlatform/open-match/internal/util/netlistener/testing"
 	"github.com/alicebob/miniredis"
 	"github.com/opencensus-integrations/redigo/redis"
 	"github.com/sirupsen/logrus"
@@ -36,6 +29,13 @@ import (
 	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/logging"
+	"open-match.dev/open-match/internal/metrics"
+	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/serving"
+	redishelpers "open-match.dev/open-match/internal/statestorage/redis"
+	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 )
 
 // MiniMatchServer is an OpenMatchServer with additional context for testing.

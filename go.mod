@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module github.com/GoogleCloudPlatform/open-match
+module open-match.dev/open-match
 
 go 1.12
 

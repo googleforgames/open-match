@@ -11,13 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package backendapi
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/backendapi/apisrv"
-	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
+	"open-match.dev/open-match/internal/app/backendapi/apisrv"
+	"open-match.dev/open-match/internal/metrics"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
+	"open-match.dev/open-match/internal/serving"
 
 	"github.com/sirupsen/logrus"
 )

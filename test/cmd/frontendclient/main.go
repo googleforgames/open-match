@@ -27,10 +27,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
-	"github.com/GoogleCloudPlatform/open-match/test/cmd/frontendclient/player"
 	"github.com/gobs/pretty"
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/test/cmd/frontendclient/player"
 )
 
 var (
