@@ -1,4 +1,4 @@
-host: open-match-site.appspot.com
+host: open-match.dev
 cache_max_age: 3600
 paths:
   /open-match:

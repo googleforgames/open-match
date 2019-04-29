@@ -46,7 +46,7 @@
 ##
 # http://makefiletutorial.com/
 
-BASE_VERSION = 0.5.0-rc1
+BASE_VERSION = 0.0.0-dev
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
@@ -371,9 +371,7 @@ set-redis-password:
 		read REDIS_PASSWORD; \
 		stty echo; \
 		printf "\n"; \
-		REDIS_PASSWORD=$$(printf "$$REDIS_PASSWORD" | base64); \
-		printf "apiVersion: v1\nkind: Secret\nmetadata:\n  name: $(REDIS_NAME)\n  namespace: $(OPEN_MATCH_KUBERNETES_NAMESPACE)\ndata:\n  redis-password: $$REDIS_PASSWORD\n" | \
-		$(KUBECTL) replace -f - --force
+		$(KUBECTL) create secret generic $(REDIS_NAME) -n $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
 
 install-toolchain: install-kubernetes-tools install-web-tools install-protoc-tools install-openmatch-tools
 install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)
@@ -436,7 +434,11 @@ endif
 build/toolchain/bin/golangci-lint$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-golangci
-	cd $(TOOLCHAIN_DIR)/temp-golangci && curl -Lo golangci.tar.gz $(GOLANGCI_PACKAGE) && tar xvzf golangci.tar.gz --strip-components 1
+ifeq ($(suffix $(GOLANGCI_PACKAGE)),.zip)
+	cd $(TOOLCHAIN_DIR)/temp-golangci && curl -Lo golangci.zip $(GOLANGCI_PACKAGE) && unzip -j -q -o golangci.zip
+else
+	cd $(TOOLCHAIN_DIR)/temp-golangci && curl -Lo golangci.tar.gz $(GOLANGCI_PACKAGE) && tar xzf golangci.tar.gz --strip-components 1
+endif
 	mv $(TOOLCHAIN_DIR)/temp-golangci/golangci-lint$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-golangci/
 
@@ -679,7 +681,7 @@ example-evaluator-binaries: examples/evaluators/golang/serving/serving$(EXE_EXTE
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: update-deps clean-protos all-protos fmt vet build test
+presubmit: update-deps clean-protos all-protos lint build test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
