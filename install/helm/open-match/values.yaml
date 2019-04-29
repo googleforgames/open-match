@@ -38,13 +38,106 @@ openmatch:
       port: 50503
     proxy:
       port: 51503
+  functions:
+    grpc:
+      port: 50502
+    proxy:
+      port: 51502
+
   config:
     install: true
     mountPath: /config
-    contents:
+    files:
       matchmaker_config.yaml:
-        # Write YAML here to replace default Open-match config with your custom one.
-        # You can refer to other chart values using the Helm templates syntax here.
+        debug: true
+
+        logging:
+          level: debug
+          format: text
+          source: false
+
+        api: 
+          backend: 
+            hostname: om-backendapi
+            port: "{{.Values.openmatch.backendapi.grpc.port}}"
+            proxyport: "{{.Values.openmatch.backendapi.proxy.port}}"
+            backoff: "[2 32] *2 ~0.33 <30"
+          frontend: 
+            hostname: om-frontendapi
+            port: "{{.Values.openmatch.frontendapi.grpc.port}}"
+            proxyport: "{{.Values.openmatch.frontendapi.proxy.port}}"
+            backoff: "[2 32] *2 ~0.33 <300"
+          mmlogic: 
+            hostname: om-mmlogicapi
+            port: "{{.Values.openmatch.mmlogicapi.grpc.port}}"
+            proxyport: "{{.Values.openmatch.mmlogicapi.proxy.port}}"
+          functions:
+            port: "{{.Values.openmatch.functions.grpc.port}}"
+            proxyport: "{{.Values.openmatch.functions.proxy.port}}"
+          
+        evalutor: 
+          pollIntervalMs: 1000
+          maxWaitMs: 10000
+
+        metrics: 
+          port: "{{.Values.openmatch.metrics.port}}"
+          endpoint: "{{.Values.openmatch.metrics.path}}"
+          reportingPeriod: 5
+
+        queues: 
+          proposals: 
+            name: proposalq
+          
+        ignoreLists: 
+          proposed: 
+            name: proposed
+            offset: 0
+            duration: 800
+          deindexed: 
+            name: deindexed
+            offset: 0
+            duration: 800
+          expired: 
+            name: OM_METADATA.accessed
+            offset: 800
+            duration: 0 
+
+        redis: 
+          pool: 
+            maxIdle: 3
+            maxActive: 0
+            idleTimeout: 60
+          queryArgs:
+            count: 10000
+          results: 
+            pageSize: 10000
+          expirations: 
+            player: 43200
+            matchobject: 43200 
+
+        jsonkeys:
+          rosters: properties.rosters
+          pools: properties.pools
+
+        playerIndices:
+        - char.cleric
+        - char.knight
+        - char.paladin
+        - map.aleroth
+        - map.oasis
+        - mmr.rating
+        - mode.battleroyale
+        - mode.ctf
+        - mode.demo
+        - region.europe-east1
+        - region.europe-west1
+        - region.europe-west2
+        - region.europe-west3
+        - region.europe-west4
+        - role.dps
+        - role.support
+        - role.tank
+
   image:
     registry: gcr.io/open-match-public-images
     tag: 0.0.0-dev
