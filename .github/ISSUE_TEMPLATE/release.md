@@ -64,11 +64,13 @@ Complete Milestone
 ------------------
 - [ ] Create the next version milestone, use [semantic versioning](https://semver.org/) when naming it to be consistent with the [Go community](https://blog.golang.org/versioning-proposal).
 - [ ] Visit the [milestone](https://github.com/GoogleCloudPlatform/open-match/milestone).
-  - [ ] Create a *draft* release with the [release template](release-template).
+  - [ ] [`Draft a new release`](https://github.com/GoogleCloudPlatform/open-match/releases/new).  Steps in this guide require editing this draft release, DO NOT publish until instructed.  You may `Save Draft` to save your progress.
     - [ ] `Tag` = v{version}. Example: v0.5.0. Append -rc.# for release candidates. Example: v0.5.0-rc.1.
     - [ ] `Target` = release-X.Y. Example: release-0.5.
     - [ ] `Release Title` = `Tag`
-    - [ ] `Write` section will contain the contents from the [release template](release-template).
+    - [ ] Copy the contents of [release template](release-template) to `Write`.
+    - [ ] If this is the first release candidate, or a hotfix, start the release notes from scratch.  Otherwise copy the release notes from the previous release candidate.  (Clicking edit on the release without saving allows copying the raw markdown.)
+    - [ ] Check `This is a pre-release` if this is a release candidate, or open match has not yet reached 1.0.
   - [ ] Add the milestone to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/GoogleCloudPlatform/open-match/releases) and look for the "X commits to master since this release" for the diff.
   - [ ] Review all [milestone-less closed issues](https://github.com/GoogleCloudPlatform/open-match/issues?q=is%3Aissue+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
   - [ ] Review all [issues in milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) for proper [labels](https://github.com/GoogleCloudPlatform/open-match/labels) (ex: area/build).
