@@ -57,7 +57,7 @@ _Find the release branch relevant for your release. It will have the name releas
   - [ ] Open the [`site/config.toml`] and change the `release_branch` and `release_version` entries.
   - [ ] Open the [`cloudbuild.yaml`] and change the `_OM_VERSION` entry.
   - [ ] Run `make clean release`
-  - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
+  - [ ] Search for "0.0.0-dev" and replace with the {version} with the exception of changelogs.
   - [ ] Submit the pull request.
 
 Complete Milestone
