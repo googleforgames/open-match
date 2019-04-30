@@ -1,11 +1,9 @@
-## REST compatibility
-Follow the guidelines at https://cloud.google.com/endpoints/docs/grpc/transcoding to keep the gRPC service definitions friendly to REST transcoding. An excerpt:
+# Open Match API
 
-"Transcoding involves mapping HTTP/JSON requests and their parameters to gRPC methods and their parameters and return types (we'll look at exactly how you do this in the following sections). Because of this, while it's possible to map an HTTP/JSON request to any arbitrary API method, it's simplest and most intuitive to do so if the gRPC API itself is structured in a resource-oriented way, just like a traditional HTTP REST API. In other words, the API service should be designed so that it uses a small number of standard methods (corresponding to HTTP verbs like GET, PUT, and so on) that operate on the service's resources (and collections of resources, which are themselves a type of resource). These standard methods are List, Get, Create, Update, and Delete."
+Open Match API is exposed via [gRPC](https://grpc.io/) and HTTP REST with [Swagger](https://swagger.io/tools/swagger-codegen/).
 
-It is for these reasons we don't have gRPC calls that support bi-directional streaming in Open Match.
+gRPC has first-class support for [many languages](https://grpc.io/docs/) and provides the most performance. It is a RPC protocol built on top of HTTP/2 and provides TLS for secure transport.
 
-## REST API Usage
-Open Match gateway proxy transcodes any REST calls to its underlying gRPC service. Follow the [examples](https://cloud.google.com/endpoints/docs/grpc-service-config/reference/rpc/google.api#httprule) for further details.
+For HTTP/HTTPS Open Match uses a gRPC proxy to serve the API. Since HTTP does not provide a structure for request/responses we use Swagger to provide a schema. You can view the Swagger docs for each service in this directory's `*.swagger.json` files. In addition each server will host it's swagger doc via `GET /swagger.json` if you want to dynamically load them at runtime.
 
-<TODO: Add a sample REST API call>
+Lastly, Open Match supports insecure and TLS mode for serving the API. It's strongly preferred to use TLS mode in production but insecure mode can be used for test and local development. To help with certificates management see `tools/certgen` to create self-signed certificates.

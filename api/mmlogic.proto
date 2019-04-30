@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,22 +17,30 @@ package api;
 option go_package = "internal/future/pb";
 
 import 'api/messages.proto';
+import 'google/api/annotations.proto';
 
-message RetrievePoolRequest{
+message RetrievePoolRequest {
   // The Pool representing the set of Filters to be queried.
-  messages.Pool pool = 1;
+  Pool pool = 1;
 }
 
-message RetrievePoolResponse{
+message RetrievePoolResponse {
   // The Tickets that meet the Filter criteria requested by the Pool.
-  repeated messages.Ticket ticket = 1;
+  repeated Ticket ticket = 1;
 }
 
-// The MMLogic API provides utility functions for common MMF functionality such as retreiving Tickets
-// from state storage.
+// The MMLogic API provides utility functions for common MMF functionality such
+// as retreiving Tickets from state storage.
 service MmLogic {
-  // RetrievePool gets the list of Tickets that match every Filter in the specified Pool.
+  // RetrievePool gets the list of Tickets that match every Filter in the
+  // specified Pool.
+  // TODO: Consider renaming to "GetPool" to be consistent with HTTP REST CRUD
+  // conventions.
   rpc RetrievePool(RetrievePoolRequest) returns (stream RetrievePoolResponse) {
+    option (google.api.http) = {
+      post: "/v1/mmlogic/pools"
+      body: "*"
+      additional_bindings { post: "/v1/mmlogic/pools/{pool.name}" body: "*" }
+    };
   }
 }
-

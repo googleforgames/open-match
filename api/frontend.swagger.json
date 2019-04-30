@@ -1,0 +1,251 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "api/frontend.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/frontend/tickets": {
+      "get": {
+        "summary": "GetTicket fetches the ticket associated with the specified Ticket id.",
+        "operationId": "GetTicket",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiTicket"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "description": "Ticket id of the Ticket to fetch.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Frontend"
+        ]
+      },
+      "post": {
+        "summary": "CreateTicket will create a new ticket, assign a Ticket id to it and put the\nTicket in state storage. It will then look through the 'properties' field\nfor the attributes defined as indices the matchmakaking config. If the\nattributes exist and are valid integers, they will be indexed. Creating a\nticket adds the Ticket to the pool of Tickets considered for matchmaking.",
+        "operationId": "CreateTicket",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiCreateTicketsResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiCreateTicketRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Frontend"
+        ]
+      }
+    },
+    "/v1/frontend/tickets/assign": {
+      "post": {
+        "summary": "GetTicketUpdates streams matchmaking results from Open Match for the\nprovided Ticket id.",
+        "operationId": "GetTicketUpdates",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "$ref": "#/x-stream-definitions/apiGetTicketUpdatesResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiGetTicketUpdatesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Frontend"
+        ]
+      }
+    },
+    "/v1/frontend/tickets/{ticket_id}": {
+      "delete": {
+        "summary": "DeleteTicket removes the Ticket from state storage and from corresponding\nconfigured indices. Deleting the ticket stops the ticket from being\nconsidered for future matchmaking requests.",
+        "operationId": "DeleteTicket",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiDeleteTicketResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "description": "Ticket id of the Ticket to be deleted.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Frontend"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "apiAssignment": {
+      "type": "object",
+      "properties": {
+        "connection": {
+          "type": "string",
+          "description": "Connection information for this Assignment."
+        },
+        "properties": {
+          "type": "string",
+          "description": "Other details to be sent to the players. (Optional)\nOpen Match does not interpret these properties."
+        },
+        "error": {
+          "type": "string",
+          "description": "Error when finding an Assignment for this Ticket."
+        }
+      },
+      "description": "An Assignment object represents the assignment associated with a Ticket."
+    },
+    "apiCreateTicketRequest": {
+      "type": "object",
+      "properties": {
+        "ticket": {
+          "$ref": "#/definitions/apiTicket",
+          "description": "Ticket object with the properties of the Ticket to be created."
+        }
+      }
+    },
+    "apiCreateTicketsResponse": {
+      "type": "object",
+      "properties": {
+        "ticket": {
+          "$ref": "#/definitions/apiTicket",
+          "description": "Ticket object for the created Ticket - with the ticket id populated."
+        }
+      }
+    },
+    "apiDeleteTicketResponse": {
+      "type": "object"
+    },
+    "apiGetTicketUpdatesRequest": {
+      "type": "object",
+      "properties": {
+        "ticket_id": {
+          "type": "string",
+          "description": "Ticket id of the Ticket to get updates on."
+        }
+      }
+    },
+    "apiGetTicketUpdatesResponse": {
+      "type": "object",
+      "properties": {
+        "assignment": {
+          "$ref": "#/definitions/apiAssignment",
+          "description": "The updated Ticket object."
+        }
+      }
+    },
+    "apiTicket": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The Ticket id generated by Open Match."
+        },
+        "properties": {
+          "type": "string",
+          "description": "JSON string for properties associated with this Ticket. A subset of these\nproperties will be indexed based on the indexing configuration."
+        },
+        "assignment": {
+          "$ref": "#/definitions/apiAssignment",
+          "description": "Assignment associated with the Ticket."
+        }
+      },
+      "description": "A Ticket is a basic matchmaking entity in Open Match. In order to enter\nmatchmaking using Open Match, the client should generate a Ticket, passing in\nthe properties to be associated with this Ticket. Open Match will generate an\nid for a Ticket during creation. A Ticket could be used to represent an\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\nof properties. Open Match stores the Ticket in state storage and enables an\nAssignment to be associated with this Ticket."
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "runtimeStreamError": {
+      "type": "object",
+      "properties": {
+        "grpc_code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "http_code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "http_status": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  },
+  "x-stream-definitions": {
+    "apiGetTicketUpdatesResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/apiGetTicketUpdatesResponse"
+        },
+        "error": {
+          "$ref": "#/definitions/runtimeStreamError"
+        }
+      },
+      "title": "Stream result of apiGetTicketUpdatesResponse"
+    }
+  }
+}

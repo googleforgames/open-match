@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,15 +17,16 @@ package api;
 option go_package = "internal/future/pb";
 
 import 'api/messages.proto';
+import 'google/api/annotations.proto';
 
 message CreateTicketRequest {
   // Ticket object with the properties of the Ticket to be created.
-  messages.Ticket ticket = 1;
+  Ticket ticket = 1;
 }
 
 message CreateTicketsResponse {
   // Ticket object for the created Ticket - with the ticket id populated.
-  messages.Ticket ticket = 1;
+  Ticket ticket = 1;
 }
 
 message DeleteTicketRequest {
@@ -33,8 +34,7 @@ message DeleteTicketRequest {
   string ticket_id = 1;
 }
 
-message DeleteTicketResponse {
-}
+message DeleteTicketResponse {}
 
 message GetTicketRequest {
   // Ticket id of the Ticket to fetch.
@@ -48,28 +48,47 @@ message GetTicketUpdatesRequest {
 
 message GetTicketUpdatesResponse {
   // The updated Ticket object.
-  messages.Assignment assignment = 1;
+  Assignment assignment = 1;
 }
 
-// The Frontend service enables creating Tickets for matchmaking and fetching the status of these Tickets.
+// The Frontend service enables creating Tickets for matchmaking and fetching
+// the status of these Tickets.
 service Frontend {
-  // CreateTicket will create a new ticket, assign a Ticket id to it and put the Ticket in state storage.
-  // It will then look through the 'properties' field for the attributes defined as indices the matchmakaking
-  // config. If the attributes exist and are valid integers, they will be indexed. Creating a ticket adds
-  // the Ticket to the pool of Tickets considered for matchmaking.
+  // CreateTicket will create a new ticket, assign a Ticket id to it and put the
+  // Ticket in state storage. It will then look through the 'properties' field
+  // for the attributes defined as indices the matchmakaking config. If the
+  // attributes exist and are valid integers, they will be indexed. Creating a
+  // ticket adds the Ticket to the pool of Tickets considered for matchmaking.
   rpc CreateTicket(CreateTicketRequest) returns (CreateTicketsResponse) {
+    option (google.api.http) = {
+      post: "/v1/frontend/tickets"
+      body: "*"
+    };
   }
 
-  // DeleteTicket removes the Ticket from state storage and from corresponding configured indices. Deleting
-  // the ticket stops the ticket from being considered for future matchmaking requests.
+  // DeleteTicket removes the Ticket from state storage and from corresponding
+  // configured indices. Deleting the ticket stops the ticket from being
+  // considered for future matchmaking requests.
   rpc DeleteTicket(DeleteTicketRequest) returns (DeleteTicketResponse) {
+    option (google.api.http) = {
+      delete: "/v1/frontend/tickets/{ticket_id}"
+    };
   }
 
   // GetTicket fetches the ticket associated with the specified Ticket id.
   rpc GetTicket(GetTicketRequest) returns (Ticket) {
+    option (google.api.http) = {
+      get: "/v1/frontend/tickets"
+    };
   }
 
-  // GetTicketUpdates streams matchmaking results from Open Match for the provided Ticket id.
-  rpc GetTicketUpdates(GetTicketUpdatesRequest) returns (stream GetTicketUpdatesResponse) {
+  // GetTicketUpdates streams matchmaking results from Open Match for the
+  // provided Ticket id.
+  rpc GetTicketUpdates(GetTicketUpdatesRequest)
+      returns (stream GetTicketUpdatesResponse) {
+    option (google.api.http) = {
+      post: "/v1/frontend/tickets/assign"
+      body: "*"
+    };
   }
 }
