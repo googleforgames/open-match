@@ -15,11 +15,8 @@
 package serving
 
 import (
-	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -31,7 +28,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func TestInsecureStartStop(t *testing.T) {
+func TestStartStopServer(t *testing.T) {
 	assert := assert.New(t)
 	grpcLh := netlistenerTesting.MustListen()
 	httpLh := netlistenerTesting.MustListen()
@@ -41,9 +38,10 @@ func TestInsecureStartStop(t *testing.T) {
 	params.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServer(s, ff)
 	}, pb.RegisterFrontendHandlerFromEndpoint)
-	s := newInsecureServer(grpcLh, httpLh)
-	defer s.stop()
-	waitForStart, err := s.start(params)
+	s := New()
+	defer s.Stop()
+
+	waitForStart, err := s.Start(params)
 	assert.Nil(err)
 	waitForStart()
 
@@ -54,43 +52,29 @@ func TestInsecureStartStop(t *testing.T) {
 	httpClient := &http.Client{
 		Timeout: time.Second,
 	}
-	runGrpcWithProxyTests(assert, s, conn, httpClient, endpoint)
+
+	runGrpcWithProxyTests(assert, s.serverWithProxy, conn, httpClient, endpoint)
 }
 
-func runGrpcWithProxyTests(assert *assert.Assertions, s grpcServerWithProxy, conn *grpc.ClientConn, httpClient *http.Client, endpoint string) {
-	ctx := context.Background()
-	feClient := pb.NewFrontendClient(conn)
-	grpcResp, err := feClient.CreatePlayer(ctx, &pb.CreatePlayerRequest{})
-	assert.Nil(err)
-	assert.NotNil(grpcResp)
+func TestMustServeForever(t *testing.T) {
+	assert := assert.New(t)
+	grpcLh := netlistenerTesting.MustListen()
+	httpLh := netlistenerTesting.MustListen()
+	ff := shellTesting.NewFakeFrontend()
 
-	httpReq, err := http.NewRequest(http.MethodPut, endpoint+"/v1/frontend/players", strings.NewReader("{}"))
+	params := NewParamsFromListeners(grpcLh, httpLh)
+	params.AddHandleFunc(func(s *grpc.Server) {
+		pb.RegisterFrontendServer(s, ff)
+	}, pb.RegisterFrontendHandlerFromEndpoint)
+	serveUntilKilledFunc, stopServingFunc, err := startServingIndefinitely(params)
 	assert.Nil(err)
-	assert.NotNil(httpReq)
-	httpResp, err := httpClient.Do(httpReq)
-	assert.Nil(err)
-	assert.NotNil(httpResp)
-	defer func() {
-		if httpResp != nil {
-			httpResp.Body.Close()
-		}
+	go func() {
+		// Wait for 500ms before killing the server.
+		// It really doesn't matter if it actually comes up.
+		// We just care that the server can respect an unexpected shutdown quickly after starting.
+		time.Sleep(time.Millisecond * 500)
+		stopServingFunc()
 	}()
-
-	body, err := ioutil.ReadAll(httpResp.Body)
-	assert.Nil(err)
-	assert.Equal(200, httpResp.StatusCode)
-	assert.Equal("{}", string(body))
-
-	httpReq, err = http.NewRequest(http.MethodGet, endpoint+"/healthz", nil)
-	assert.Nil(err)
-
-	httpResp, err = httpClient.Do(httpReq)
-	assert.Nil(err)
-	assert.NotNil(httpResp)
-	body, err = ioutil.ReadAll(httpResp.Body)
-	assert.Nil(err)
-	assert.Equal(200, httpResp.StatusCode)
-	assert.Equal("ok", string(body))
-
-	s.stop()
+	serveUntilKilledFunc()
+	// This test will intentionally deadlock if the stop function is not respected.
 }
