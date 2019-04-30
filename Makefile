@@ -609,8 +609,8 @@ build:
 	$(GO) build ./...
 
 test:
-	$(GO) test ./... -race
-	$(GO) test ./... -run IgnoreRace$$
+	$(GO) test ./... -race -cover
+	$(GO) test ./... -run -cover IgnoreRace$$
 
 ci-test:
 	$(GO) test ./... -race -test.count 25 -cover
