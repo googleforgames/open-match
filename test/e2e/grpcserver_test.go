@@ -10,6 +10,7 @@ import (
 	netlistenerTesting "github.com/GoogleCloudPlatform/open-match/internal/util/netlistener/testing"
 	"github.com/sirupsen/logrus"
 
+	"log"
 	"testing"
 
 	"google.golang.org/grpc"
