@@ -28,16 +28,16 @@ import (
 
 	"github.com/GoogleCloudPlatform/open-match/internal/serving"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // CreateServerParams creates the configuration and prepares the binding for serving handler.
 func CreateServerParams() *serving.ServerParams {
 	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
-	log.AddHook(metrics.NewHook(apisrv.BeLogLines, apisrv.KeySeverity))
+	logrus.AddHook(metrics.NewHook(apisrv.BeLogLines, apisrv.KeySeverity))
 
 	return &serving.ServerParams{
-		BaseLogFields: log.Fields{
+		BaseLogFields: logrus.Fields{
 			"app":       "openmatch",
 			"component": "backend",
 		},

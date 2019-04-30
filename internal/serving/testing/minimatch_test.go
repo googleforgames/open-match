@@ -10,7 +10,7 @@ import (
 
 	pb "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/serving"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
@@ -18,7 +18,7 @@ func TestNewMiniMatch(t *goTesting.T) {
 	ff := &FakeFrontend{}
 	mm, closer, err := NewMiniMatch([]*serving.ServerParams{
 		&serving.ServerParams{
-			BaseLogFields: log.Fields{
+			BaseLogFields: logrus.Fields{
 				"app":       "openmatch",
 				"component": "frontend",
 			},

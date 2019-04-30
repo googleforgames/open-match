@@ -8,15 +8,15 @@ import (
 	servingTesting "github.com/GoogleCloudPlatform/open-match/internal/serving/testing"
 	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	netlistenerTesting "github.com/GoogleCloudPlatform/open-match/internal/util/netlistener/testing"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"testing"
 
 	"google.golang.org/grpc"
 )
 
-func createLogger() *log.Entry {
-	return log.WithFields(log.Fields{
+func createLogger() *logrus.Entry {
+	return logrus.WithFields(logrus.Fields{
 		"test": "test",
 	})
 }
