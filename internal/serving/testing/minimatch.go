@@ -73,7 +73,7 @@ func (mm *MiniMatchServer) GetBackendProxyClient() (*http.Client, string) {
 func (mm *MiniMatchServer) Stop() {
 	err := mm.OpenMatchServer.Stop()
 	if err != nil {
-		mm.Logger.WithFields(logrus.Fields{"error": err.Error()}).Fatal("Failed to stop server")
+		mm.Logger.WithFields(logrus.Fields{"error": err.Error()}).Debug("Failed to stop server")
 	}
 	mm.mRedis.Close()
 }
