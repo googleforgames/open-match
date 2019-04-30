@@ -14,7 +14,7 @@ import (
 	netlistenerTesting "github.com/GoogleCloudPlatform/open-match/internal/util/netlistener/testing"
 	"github.com/alicebob/miniredis"
 	"github.com/opencensus-integrations/redigo/redis"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/stats/view"
@@ -71,7 +71,10 @@ func (mm *MiniMatchServer) GetBackendProxyClient() (*http.Client, string) {
 
 // Stop shuts down Mini Match
 func (mm *MiniMatchServer) Stop() {
-	mm.OpenMatchServer.Stop()
+	err := mm.OpenMatchServer.Stop()
+	if err != nil {
+		mm.Logger.WithFields(logrus.Fields{"error": err.Error()}).Fatal("Failed to stop server")
+	}
 	mm.mRedis.Close()
 }
 
@@ -94,7 +97,7 @@ func NewMiniMatch(params []*serving.ServerParams) (*MiniMatchServer, func(), err
 	// Start serving traffic.
 	err = mm.Start()
 	if err != nil {
-		logger.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to start server")
+		logger.WithFields(logrus.Fields{"error": err.Error()}).Fatal("Failed to start server")
 		return nil, func() {}, err
 	}
 	closer := func() {
@@ -104,7 +107,7 @@ func NewMiniMatch(params []*serving.ServerParams) (*MiniMatchServer, func(), err
 }
 
 func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer, error) {
-	logger := log.WithFields(paramsList[0].BaseLogFields)
+	logger := logrus.WithFields(paramsList[0].BaseLogFields)
 
 	cfg := viper.New()
 	cfg.Set("logging.level", "debug")
@@ -134,7 +137,7 @@ func createOpenMatchServer(paramsList []*serving.ServerParams) (*MiniMatchServer
 	ocServerViews = append(ocServerViews, ocgrpc.DefaultServerViews...)      // gRPC OpenCensus views.
 	ocServerViews = append(ocServerViews, config.CfgVarCountView)            // config loader view.
 	ocServerViews = append(ocServerViews, redis.ObservabilityMetricViews...) // redis OpenCensus views.
-	logger.WithFields(log.Fields{"viewscount": len(ocServerViews)}).Info("Loaded OpenCensus views")
+	logger.WithFields(logrus.Fields{"viewscount": len(ocServerViews)}).Info("Loaded OpenCensus views")
 	metrics.ConfigureOpenCensusPrometheusExporter(promListener, cfg, ocServerViews)
 
 	// Connect to redis

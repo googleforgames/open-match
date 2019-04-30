@@ -22,6 +22,7 @@ limitations under the License.
 
 */
 
+// Package apisrv provides the evaluator service for Open Match harness.
 package apisrv
 
 import (
@@ -43,6 +44,7 @@ import (
 	"go.opencensus.io/tag"
 )
 
+// EvaluateFunction is the evaluator function type.
 type EvaluateFunction func(context.Context, []*pb.MatchObject) ([]string, error)
 
 // Evaluator contains the configuration for various components of the Evaluator.
@@ -54,13 +56,19 @@ type Evaluator struct {
 	Evaluate EvaluateFunction
 }
 
+// EvaluateForever loops indefinitely to perform Open Match evaluations.
 func (s *Evaluator) EvaluateForever() {
+	logger := s.Logger
+
 	// Get connection to redis
 	redisConn := s.Pool.Get()
-	defer redisConn.Close()
-
+	defer func() {
+		err := redisConn.Close()
+		if err != nil {
+			logger.Errorf("failed to close redis connection, %s", err)
+		}
+	}()
 	start := time.Now()
-	logger := s.Logger
 	checkProposals := true
 	pollInterval := s.Config.GetInt("evaluator.pollIntervalMs")
 	maxWait := s.Config.GetInt64("evaluator.maxWaitMs")
@@ -104,7 +112,6 @@ func (s *Evaluator) EvaluateForever() {
 		case numRunning <= 0: // Can be less than zero in some less common cases.
 			logger.Info("All MMFs complete, trigger evaluation")
 			ctx, _ = tag.New(ctx, tag.Insert(KeyEvalTrigger, "mmfs_completed"))
-			numRunning = 0
 			checkProposals = true
 		}
 
@@ -149,7 +156,12 @@ func (s *Evaluator) evaluator(ctx context.Context) error {
 
 	// Get connection to redis
 	redisConn := s.Pool.Get()
-	defer redisConn.Close()
+	defer func() {
+		err := redisConn.Close()
+		if err != nil {
+			logger.Errorf("failed to close Redis connection, %v", err)
+		}
+	}()
 
 	start := time.Now()
 	// Get the number of proposals currently queued for evaluation.

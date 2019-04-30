@@ -17,6 +17,7 @@ limitations under the License.
 
 */
 
+// Package apisrv provides the frontendapi service for Open Match.
 package apisrv
 
 import (
@@ -170,7 +171,7 @@ func (s *frontendAPI) GetUpdates(req *pb.GetUpdatesRequest, assignmentStream pb.
 	for {
 		select {
 		case <-ctx.Done():
-			// Context cancelled
+			// Context canceled
 			s.logger.WithField("playerid", p.Id).Info("client closed connection successfully")
 			return nil
 
