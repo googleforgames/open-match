@@ -36,7 +36,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	"github.com/gogo/protobuf/proto"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"go.opencensus.io/tag"
 
 	"github.com/gomodule/redigo/redis"
@@ -51,7 +51,7 @@ import (
 type mmlogicAPI struct {
 	cfg    config.View
 	pool   *redis.Pool
-	logger *log.Entry
+	logger *logrus.Entry
 }
 
 // Bind binds the gRPC endpoint to OpenMatchServer
@@ -78,11 +78,11 @@ func (s *mmlogicAPI) GetProfile(c context.Context, req *pb.GetProfileRequest) (*
 	defer redisConn.Close()
 
 	// Get profile.
-	mlLog.WithFields(log.Fields{"profileid": profile.Id}).Info("Attempting retreival of profile")
+	mlLog.WithFields(logrus.Fields{"profileid": profile.Id}).Info("Attempting retreival of profile")
 	err := redispb.UnmarshalFromRedis(c, s.pool, profile)
 	mlLog.Warn("returned profile from redispb", profile)
 	if err != nil {
-		mlLog.WithFields(log.Fields{
+		mlLog.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 			"profileid": profile.Id,
@@ -90,7 +90,7 @@ func (s *mmlogicAPI) GetProfile(c context.Context, req *pb.GetProfileRequest) (*
 
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
-	mlLog.WithFields(log.Fields{"profileid": profile.Id}).Debug("Retrieved profile from state storage")
+	mlLog.WithFields(logrus.Fields{"profileid": profile.Id}).Debug("Retrieved profile from state storage")
 
 	mlLog.Debug(profile)
 
@@ -119,7 +119,7 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, req *pb.CreateProposalReq
 	fnCtx, _ := tag.New(c, tag.Insert(KeyMethod, funcName))
 
 	// Log what kind of results we received.
-	cpLog := mlLog.WithFields(log.Fields{"id": prop.Id})
+	cpLog := mlLog.WithFields(logrus.Fields{"id": prop.Id})
 	if len(prop.Error) == 0 {
 		cpLog.Info("writing MMF propsal to state storage")
 	} else {
@@ -144,14 +144,14 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, req *pb.CreateProposalReq
 
 		// If players were on the roster, add them to the ignorelist
 		if len(playerIDs) > 0 {
-			cpLog.WithFields(log.Fields{
+			cpLog.WithFields(logrus.Fields{
 				"count":      len(playerIDs),
 				"ignorelist": list,
 			}).Info("adding players to ignorelist")
 
 			err := ignorelist.Add(redisConn, list, playerIDs)
 			if err != nil {
-				cpLog.WithFields(log.Fields{
+				cpLog.WithFields(logrus.Fields{
 					"error":      err.Error(),
 					"component":  "statestorage",
 					"ignorelist": list,
@@ -164,7 +164,7 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, req *pb.CreateProposalReq
 		}
 
 		// add propkey to proposalsq
-		pqLog := cpLog.WithFields(log.Fields{
+		pqLog := cpLog.WithFields(logrus.Fields{
 			"component": "statestorage",
 			"queue":     proposalq,
 		})
@@ -172,7 +172,7 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, req *pb.CreateProposalReq
 
 		_, err = redisConn.Do("SADD", proposalq, prop.Id)
 		if err != nil {
-			pqLog.WithFields(log.Fields{"error": err.Error()}).Error("State storage error")
+			pqLog.WithFields(logrus.Fields{"error": err.Error()}).Error("State storage error")
 
 			return nil, status.Error(codes.Unknown, err.Error())
 		}
@@ -181,14 +181,14 @@ func (s *mmlogicAPI) CreateProposal(c context.Context, req *pb.CreateProposalReq
 	// Mark this MMF as finished by decrementing the concurrent MMFs.
 	// This is used to trigger the evaluator early if all MMFs have finished
 	// before its next scheduled run.
-	cmLog := cpLog.WithFields(log.Fields{
+	cmLog := cpLog.WithFields(logrus.Fields{
 		"component": "statestorage",
 		"key":       "concurrentMMFs",
 	})
 	cmLog.Info("marking MMF finished for evaluator")
 	_, err = redishelpers.Decrement(fnCtx, s.pool, "concurrentMMFs")
 	if err != nil {
-		cmLog.WithFields(log.Fields{"error": err.Error()}).Error("State storage error")
+		cmLog.WithFields(logrus.Fields{"error": err.Error()}).Error("State storage error")
 
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
@@ -211,7 +211,7 @@ func (s *mmlogicAPI) GetPlayerPool(req *pb.GetPlayerPoolRequest, stream pb.MmLog
 	// Create context for tagging OpenCensus metrics.
 	funcName := "GetPlayerPool"
 
-	mlLog.WithFields(log.Fields{
+	mlLog.WithFields(logrus.Fields{
 		"filterCount": len(pool.Filters),
 		"pool":        pool.Name,
 		"funcName":    funcName,
@@ -229,21 +229,21 @@ func (s *mmlogicAPI) GetPlayerPool(req *pb.GetPlayerPoolRequest, stream pb.MmLog
 		filterStart := time.Now()
 		results, err := s.applyFilter(ctx, thisFilter)
 		thisFilter.Stats = &pb.Stats{Count: int64(len(results)), Elapsed: time.Since(filterStart).Seconds()}
-		mlLog.WithFields(log.Fields{
+		mlLog.WithFields(logrus.Fields{
 			"count":      int64(len(results)),
 			"elapsed":    time.Since(filterStart).Seconds(),
 			"filterName": thisFilter.Name,
 		}).Debug("Filter stats")
 
 		if err != nil {
-			mlLog.WithFields(log.Fields{"error": err.Error(), "filterName": thisFilter.Name}).Debug("Error applying filter")
+			mlLog.WithFields(logrus.Fields{"error": err.Error(), "filterName": thisFilter.Name}).Debug("Error applying filter")
 
 			if len(results) == 0 {
 				// One simple optimization here: check the count returned by a
 				// ZCOUNT query for each filter before doing anything.  If any of the
 				// filters return a ZCOUNT of 0, then the logical AND of all filters will
 				// container no players and we can shortcircuit and quit.
-				mlLog.WithFields(log.Fields{
+				mlLog.WithFields(logrus.Fields{
 					"count":      0,
 					"filterName": thisFilter.Name,
 					"pool":       pool.Name,
@@ -285,7 +285,7 @@ func (s *mmlogicAPI) GetPlayerPool(req *pb.GetPlayerPoolRequest, stream pb.MmLog
 		overlap = set.Intersection(overlap, thesePlayers)
 
 		_ = field
-		//mlLog.WithFields(log.Fields{"count": len(overlap), "field": field}).Debug("Amount of overlap")
+		//mlLog.WithFields(logrus.Fields{"count": len(overlap), "field": field}).Debug("Amount of overlap")
 	}
 
 	// Get contents of all ignore lists and remove those players from the pool.
@@ -293,10 +293,10 @@ func (s *mmlogicAPI) GetPlayerPool(req *pb.GetPlayerPoolRequest, stream pb.MmLog
 	if err != nil {
 		mlLog.Error(err)
 	}
-	mlLog.WithFields(log.Fields{"count": len(overlap)}).Debug("Pool size before applying ignorelists")
-	mlLog.WithFields(log.Fields{"count": len(il)}).Debug("Ignorelist size")
+	mlLog.WithFields(logrus.Fields{"count": len(overlap)}).Debug("Pool size before applying ignorelists")
+	mlLog.WithFields(logrus.Fields{"count": len(il)}).Debug("Ignorelist size")
 	playerList := set.Difference(overlap, il) // removes ignorelist from the Roster
-	mlLog.WithFields(log.Fields{"count": len(playerList)}).Debug("Final Pool size")
+	mlLog.WithFields(logrus.Fields{"count": len(playerList)}).Debug("Final Pool size")
 
 	// Reformat the playerList as a gRPC PlayerPool message. Send partial results as we go.
 	// This is pretty agressive in the partial result 'page'
@@ -338,7 +338,7 @@ func (s *mmlogicAPI) GetPlayerPool(req *pb.GetPlayerPoolRequest, stream pb.MmLog
 		}
 	}
 
-	mlLog.WithFields(log.Fields{"count": len(playerList), "pool": pool.Name}).Debug("player pool streaming complete")
+	mlLog.WithFields(logrus.Fields{"count": len(playerList), "pool": pool.Name}).Debug("player pool streaming complete")
 
 	return nil
 }
@@ -362,7 +362,7 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *pb.Filter) (map[stri
 		maxv = "+inf"
 	}
 
-	mlLog.WithFields(log.Fields{"filterField": filter.Attribute}).Debug("In applyFilter")
+	mlLog.WithFields(logrus.Fields{"filterField": filter.Attribute}).Debug("In applyFilter")
 
 	// Get redis connection from pool
 	redisConn := s.pool.Get()
@@ -372,7 +372,7 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *pb.Filter) (map[stri
 	cmd := "ZCOUNT"
 	count, err := redis.Int64(redisConn.Do(cmd, filter.Attribute, filter.Minv, maxv))
 	//DEBUG: count, err := redis.Int64(redisConn.Do(cmd, "BLARG", filter.Minv, maxv))
-	mlLog = mlLog.WithFields(log.Fields{
+	mlLog = mlLog.WithFields(logrus.Fields{
 		"query": cmd,
 		"field": filter.Attribute,
 		"minv":  filter.Minv,
@@ -380,7 +380,7 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *pb.Filter) (map[stri
 		"count": count,
 	})
 	if err != nil {
-		mlLog.WithFields(log.Fields{"error": err.Error()}).Error("state storage error")
+		mlLog.WithFields(logrus.Fields{"error": err.Error()}).Error("state storage error")
 		return nil, err
 	}
 
@@ -414,7 +414,7 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *pb.Filter) (map[stri
 	for len(pool) == offset {
 		results, err := redis.Int64Map(redisConn.Do(cmd, filter.Attribute, filter.Minv, maxv, "WITHSCORES", "LIMIT", offset, s.cfg.GetInt("redis.queryArgs.count")))
 		if err != nil {
-			mlLog.WithFields(log.Fields{
+			mlLog.WithFields(logrus.Fields{
 				"query":  cmd,
 				"field":  filter.Attribute,
 				"minv":   filter.Minv,
@@ -443,7 +443,7 @@ func (s *mmlogicAPI) applyFilter(c context.Context, filter *pb.Filter) (map[stri
 	}
 
 	// Log completion and return
-	//mlLog.WithFields(log.Fields{
+	//mlLog.WithFields(logrus.Fields{
 	//	"poolSize": len(pool),
 	//	"field":    filter.Attribute,
 	//	"minv":     filter.Minv,
@@ -480,12 +480,12 @@ func (s *mmlogicAPI) ListIgnoredPlayers(c context.Context, req *pb.ListIgnoredPl
 	redisConn := s.pool.Get()
 	defer redisConn.Close()
 
-	mlLog.WithFields(log.Fields{"ignorelist": ilName}).Info("Attempting to get ignorelist")
+	mlLog.WithFields(logrus.Fields{"ignorelist": ilName}).Info("Attempting to get ignorelist")
 
 	// retreive ignore list
 	il, err := ignorelist.Retrieve(redisConn, s.cfg, ilName)
 	if err != nil {
-		mlLog.WithFields(log.Fields{
+		mlLog.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 			"key":       ilName,
