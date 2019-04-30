@@ -70,7 +70,7 @@ Complete Milestone
     - [ ] `Release Title` = `Tag`
     - [ ] Copy the contents of [release template](release-template) to `Write`.
     - [ ] If this is the first release candidate, or a hotfix, start the release notes from scratch.  Otherwise copy the release notes from the previous release candidate.  (Clicking edit on the release without saving allows copying the raw markdown.)
-    - [ ] Check `This is a pre-release` if this is a release candidate, or open match has not yet reached 1.0.
+    - [ ] Check `This is a pre-release` if the release is not meant to run in production. All releases before 1.0 are pre-releases.
   - [ ] Add the milestone to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/GoogleCloudPlatform/open-match/releases) and look for the "X commits to master since this release" for the diff.
   - [ ] Review all [milestone-less closed issues](https://github.com/GoogleCloudPlatform/open-match/issues?q=is%3Aissue+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
   - [ ] Review all [issues in milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) for proper [labels](https://github.com/GoogleCloudPlatform/open-match/labels) (ex: area/build).
