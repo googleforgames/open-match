@@ -33,7 +33,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 
 	"github.com/cenkalti/backoff"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/gomodule/redigo/redis"
 
@@ -47,7 +47,7 @@ import (
 type frontendAPI struct {
 	cfg    config.View
 	pool   *redis.Pool
-	logger *log.Entry
+	logger *logrus.Entry
 }
 
 // Bind binds the gRPC endpoint to OpenMatchServer
@@ -69,7 +69,7 @@ func (s *frontendAPI) CreatePlayer(ctx context.Context, req *pb.CreatePlayerRequ
 	// Write group
 	err := redispb.MarshalToRedis(ctx, s.pool, group, s.cfg.GetInt("redis.expirations.player"))
 	if err != nil {
-		s.logger.WithFields(log.Fields{
+		s.logger.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("State storage error")
@@ -80,7 +80,7 @@ func (s *frontendAPI) CreatePlayer(ctx context.Context, req *pb.CreatePlayerRequ
 	// Index group
 	err = playerindices.Create(ctx, s.pool, s.cfg, *group)
 	if err != nil {
-		s.logger.WithFields(log.Fields{
+		s.logger.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("State storage error")
@@ -99,7 +99,7 @@ func (s *frontendAPI) DeletePlayer(ctx context.Context, req *pb.DeletePlayerRequ
 	// their actual player object from Redis later.
 	err := playerindices.Delete(ctx, s.pool, s.cfg, group.Id)
 	if err != nil {
-		s.logger.WithFields(log.Fields{
+		s.logger.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("State storage error")
@@ -120,7 +120,7 @@ func (s *frontendAPI) DeletePlayer(ctx context.Context, req *pb.DeletePlayerRequ
 func (s *frontendAPI) deletePlayer(id string) {
 	err := redishelpers.Delete(context.Background(), s.pool, id)
 	if err != nil {
-		s.logger.WithFields(log.Fields{
+		s.logger.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Warn("Error deleting player from state storage, this could leak state storage memory but is usually not a fatal error")
@@ -137,7 +137,7 @@ func (s *frontendAPI) deletePlayer(id string) {
 		}
 		_, err := redisConn.Do("EXEC")
 		if err != nil {
-			s.logger.WithFields(log.Fields{
+			s.logger.WithFields(logrus.Fields{
 				"error":     err.Error(),
 				"component": "statestorage",
 			}).Error("Error de-indexing player from ignorelists")
@@ -178,7 +178,7 @@ func (s *frontendAPI) GetUpdates(req *pb.GetUpdatesRequest, assignmentStream pb.
 			if !ok {
 				// Timeout reached without client closing connection
 				err := errors.New("server timeout reached without client closing connection")
-				s.logger.WithFields(log.Fields{
+				s.logger.WithFields(logrus.Fields{
 					"error":     err.Error(),
 					"component": "statestorage",
 					"playerid":  p.Id,
@@ -190,7 +190,7 @@ func (s *frontendAPI) GetUpdates(req *pb.GetUpdatesRequest, assignmentStream pb.
 				return status.Error(codes.DeadlineExceeded, err.Error())
 			}
 
-			s.logger.WithFields(log.Fields{
+			s.logger.WithFields(logrus.Fields{
 				"assignment": a.Assignment,
 				"playerid":   a.Id,
 				"status":     a.Status,

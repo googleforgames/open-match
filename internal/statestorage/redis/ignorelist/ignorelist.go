@@ -27,16 +27,16 @@ import (
 
 	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	"github.com/gomodule/redigo/redis"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Logrus structured logging setup
 var (
-	ilLogFields = log.Fields{
+	ilLogFields = logrus.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
 	}
-	ilLog = log.WithFields(ilLogFields)
+	ilLog = logrus.WithFields(ilLogFields)
 )
 
 // Create generates an ignorelist in redis by ZADD'ing elements with a score of
@@ -48,7 +48,7 @@ func Create(redisConn redis.Conn, ignorelistID string, playerIDs []string) error
 
 	cmdArgs := buildElementValueList(ignorelistID, playerIDs)
 
-	ilLog.WithFields(log.Fields{
+	ilLog.WithFields(logrus.Fields{
 		"query": cmd,
 		"args":  cmdArgs,
 	}).Debug("state storage operation")
@@ -67,7 +67,7 @@ func Move(ctx context.Context, pool *redis.Pool, playerIDs []string, src string,
 	defer redisConn.Close()
 
 	// Setup default logging
-	ilLog.WithFields(log.Fields{
+	ilLog.WithFields(logrus.Fields{
 		"src":        src,
 		"dest":       dest,
 		"numPlayers": len(playerIDs),
@@ -88,7 +88,7 @@ func SendAdd(redisConn redis.Conn, ignorelistID string, playerIDs []string) {
 
 	cmdArgs := buildElementValueList(ignorelistID, playerIDs)
 
-	ilLog.WithFields(log.Fields{
+	ilLog.WithFields(logrus.Fields{
 		"query": cmd,
 		"args":  cmdArgs,
 	}).Debug("state storage transaction operation")
@@ -110,7 +110,7 @@ func Remove(redisConn redis.Conn, ignorelistID string, playerIDs []string) error
 
 	cmdArgs := buildElementValueList(ignorelistID, playerIDs)
 
-	ilLog.WithFields(log.Fields{
+	ilLog.WithFields(logrus.Fields{
 		"query": cmd,
 		"args":  cmdArgs,
 	}).Debug("state storage operation")
@@ -128,7 +128,7 @@ func SendRemove(redisConn redis.Conn, ignorelistID string, playerIDs []string) {
 
 	cmdArgs := buildElementValueList(ignorelistID, playerIDs)
 
-	ilLog.WithFields(log.Fields{
+	ilLog.WithFields(logrus.Fields{
 		"query": cmd,
 		"args":  cmdArgs,
 	}).Debug("state storage transaction operation")
@@ -171,7 +171,7 @@ func Retrieve(redisConn redis.Conn, cfg config.View, il string) ([]string, error
 		minTS = maxTS - cfg.GetInt64("duration")
 	}
 
-	ilLog.WithFields(log.Fields{
+	ilLog.WithFields(logrus.Fields{
 		"query": cmd,
 		"key":   ilName,
 		"minv":  minTS,

@@ -32,16 +32,16 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gomodule/redigo/redis"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Logrus structured logging setup
 var (
-	moLogFields = log.Fields{
+	moLogFields = logrus.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
 	}
-	moLog = log.WithFields(moLogFields)
+	moLog = logrus.WithFields(moLogFields)
 )
 
 // UnmarshalFromRedis unmarshals a MatchObject from a redis hash.
@@ -53,7 +53,7 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 	redisConn, err := pool.GetContext(context.Background())
 	defer redisConn.Close()
 	if err != nil {
-		moLog.WithFields(log.Fields{
+		moLog.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("failed to connect to redis")
@@ -63,7 +63,7 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 	// Prepare redis command.
 	cmd := "HGETALL"
 	key := pb.Id
-	resultLog := moLog.WithFields(log.Fields{
+	resultLog := moLog.WithFields(logrus.Fields{
 		"component": "statestorage",
 		"cmd":       cmd,
 		"key":       key,
