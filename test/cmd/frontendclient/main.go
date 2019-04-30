@@ -198,17 +198,17 @@ func waitForResults(resultsChan chan pb.Player, stream pb.Frontend_GetUpdatesCli
 	}
 }
 
-func udpClient(ctx context.Context, address string) (err error) {
+func udpClient(ctx context.Context, address string) error {
 	// Resolve address
 	raddr, err := net.ResolveUDPAddr("udp", address)
 	if err != nil {
-		return
+		return err
 	}
 
 	// Connect
 	conn, err := net.DialUDP("udp", nil, raddr)
 	if err != nil {
-		return
+		return err
 	}
 	defer conn.Close()
 
@@ -234,7 +234,6 @@ func udpClient(ctx context.Context, address string) (err error) {
 			}
 
 			log.Printf("received %v\n", string(buffer[:n]))
-
 		}
 	}()
 
@@ -246,7 +245,7 @@ func udpClient(ctx context.Context, address string) (err error) {
 	case err = <-doneChan:
 	}
 
-	return
+	return err
 }
 
 func cleanup(client pb.FrontendClient, g *pb.Player, kind string) {

@@ -40,7 +40,7 @@ func main() {
 	// match function. The harness itself queries open match for player pools for
 	// the specified request and passes the pools to the match function to generate
 	// proposals.
-	harness.ServeMatchFunction(&harness.HarnessParams{
+	harness.ServeMatchFunction(&harness.Params{
 		FunctionName:          "simple-matchfunction",
 		ServicePortConfigName: "api.functions.port",
 		ProxyPortConfigName:   "api.functions.proxyport",

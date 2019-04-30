@@ -40,8 +40,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// HarnessParams is a collection of parameters used to create a MatchFunction server.
-type HarnessParams struct {
+// Params is a collection of parameters used to create a MatchFunction server.
+type Params struct {
 	FunctionName          string
 	ServicePortConfigName string
 	ProxyPortConfigName   string
@@ -49,7 +49,7 @@ type HarnessParams struct {
 }
 
 // ServeMatchFunction is a hook for the main() method in the main executable.
-func ServeMatchFunction(params *HarnessParams) {
+func ServeMatchFunction(params *Params) {
 	mfServer, err := newMatchFunctionServer(params)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
@@ -93,7 +93,7 @@ func ServeMatchFunction(params *HarnessParams) {
 }
 
 // newMatchFunctionServer creates a MatchFunctionServer based on the harness parameters.
-func newMatchFunctionServer(params *HarnessParams) (*apisrv.MatchFunctionServer, error) {
+func newMatchFunctionServer(params *Params) (*apisrv.MatchFunctionServer, error) {
 	logrus.AddHook(metrics.NewHook(apisrv.HarnessLogLines, apisrv.KeySeverity))
 	logger := logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",

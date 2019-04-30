@@ -1,7 +1,6 @@
 /*
 Copyright 2018 Google LLC
 
-/*
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -14,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package apisrv
 
 import (
@@ -77,8 +77,10 @@ var (
 
 var (
 	// KeyMethod is used to tag a measure with the currently running API method.
-	KeyMethod, _   = tag.NewKey("method")
-	KeyFnName, _   = tag.NewKey("matchfunction")
+	KeyMethod, _ = tag.NewKey("method")
+	// KeyFnName is used to tag a MMF name with the currently running API method.
+	KeyFnName, _ = tag.NewKey("matchfunction")
+	// KeySeverity is used to tag a the severity of a log message.
 	KeySeverity, _ = tag.NewKey("severity")
 )
 
@@ -153,7 +155,7 @@ var (
 	}
 )
 
-// DefaultFunctionAPIViews are the default mmf API OpenCensus measure views.
+// DefaultFunctionViews are the default mmf API OpenCensus measure views.
 var DefaultFunctionViews = []*view.View{
 	FnLogCountView,
 	HarnessRequestCountView,
