@@ -543,33 +543,67 @@ create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	$(MINIKUBE) delete
 
-all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
+# Deprecated
+deprecated-all-protos: deprecated-golang-protos deprecated-http-proxy-golang-protos deprecated-swagger-json-docs
 
-golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
+# Deprecated
+deprecated-golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
 
-http-proxy-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go
+# Deprecated
+deprecated-http-proxy-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go
 
-swagger-json-docs: api/protobuf-spec/frontend.swagger.json api/protobuf-spec/backend.swagger.json api/protobuf-spec/mmlogic.swagger.json api/protobuf-spec/matchfunction.swagger.json
+# Deprecated
+deprecated-swagger-json-docs: api/protobuf-spec/frontend.swagger.json api/protobuf-spec/backend.swagger.json api/protobuf-spec/mmlogic.swagger.json api/protobuf-spec/matchfunction.swagger.json
 
+# Deprecated
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
+# Deprecated
 internal/pb/%.pb.gw.go: api/protobuf-spec/%.proto internal/pb/%.pb.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
    		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
-
+# Deprecated
 api/protobuf-spec/%.swagger.json: api/protobuf-spec/%.proto internal/pb/%.pb.gw.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) --swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
+# Deprecated
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
 internal/pb/backend.pb.go: internal/pb/messages.pb.go
 internal/pb/frontend.pb.go: internal/pb/messages.pb.go
 internal/pb/mmlogic.pb.go: internal/pb/messages.pb.go
 internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
+
+all-protos: deprecated-all-protos golang-protos http-proxy-golang-protos swagger-json-docs
+golang-protos: internal/future/pb/backend.pb.go internal/future/pb/frontend.pb.go internal/future/pb/matchfunction.pb.go internal/future/pb/messages.pb.go internal/future/pb/mmlogic.pb.go
+
+http-proxy-golang-protos: internal/future/pb/backend.pb.gw.go internal/future/pb/frontend.pb.gw.go internal/future/pb/matchfunction.pb.gw.go internal/future/pb/messages.pb.gw.go internal/future/pb/mmlogic.pb.gw.go
+
+swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json
+
+internal/future/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
+
+internal/future/pb/%.pb.gw.go: api/%.proto internal/future/pb/%.pb.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
+
+api/%.swagger.json: api/%.proto internal/future/pb/%.pb.gw.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) --swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
+
+# Include structure of the protos needs to be called out do the dependency chain is run through properly.
+internal/future/pb/backend.pb.go: internal/future/pb/messages.pb.go
+internal/future/pb/frontend.pb.go: internal/future/pb/messages.pb.go
+internal/future/pb/mmlogic.pb.go: internal/future/pb/messages.pb.go
+internal/future/pb/matchfunction.pb.go: internal/future/pb/messages.pb.go
 
 build:
 	$(GO) build ./...
@@ -588,7 +622,7 @@ fmt:
 vet:
 	$(GO) vet ./...
 
-# Blocked on https://github.com/golangci/golangci-lint/issues/500
+# Blocked on https://github.com/golangci/golangci-lint/issues/500 to be added to `make lint`
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 	build/toolchain/bin/golangci-lint$(EXE_EXTENSION) run -v --config=.golangci.yaml
 
