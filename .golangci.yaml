@@ -208,16 +208,19 @@ issues:
         - gosec
 
     # Allowed global variable types.
-    - text: "flag."
+    - source: "flag."
       linters:
         - gochecknoglobals
-    - text: "View."
+    - source: "View."
       linters:
         - gochecknoglobals
-    - text: "tag."
+    - source: "tag."
       linters:
         - gochecknoglobals
-    - text: "logrus."
+    - source: "logrus."
+      linters:
+        - gochecknoglobals
+    - source: "stats."
       linters:
         - gochecknoglobals
 
