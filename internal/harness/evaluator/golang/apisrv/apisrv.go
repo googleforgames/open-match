@@ -40,7 +40,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 
 	"github.com/gomodule/redigo/redis"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"go.opencensus.io/tag"
 )
 
@@ -50,7 +50,7 @@ type EvaluateFunction func(context.Context, []*pb.MatchObject) ([]string, error)
 // Evaluator contains the configuration for various components of the Evaluator.
 type Evaluator struct {
 	Config   config.View
-	Logger   *log.Entry
+	Logger   *logrus.Entry
 	Pool     *redis.Pool
 	MMLogic  pb.MmLogicClient
 	Evaluate EvaluateFunction
@@ -134,7 +134,7 @@ func (s *Evaluator) EvaluateForever() {
 			// has written to the counter since last evaluation.
 			err = redishelpers.Delete(context.Background(), s.Pool, "concurrentMMFs")
 			if err != nil {
-				logger.WithFields(log.Fields{
+				logger.WithFields(logrus.Fields{
 					"error": err.Error(),
 				}).Error("error deleting concurrent MMF counter")
 			}
@@ -143,7 +143,7 @@ func (s *Evaluator) EvaluateForever() {
 
 		// A sleep here is not critical but just a useful safety valve in case
 		// things are broken, to keep the main loop from going all-out and spamming the log.
-		logger.WithFields(log.Fields{"elapsed ": time.Since(cycleStart)}).Info("Evaluation complete. Sleeping for 1 sec.")
+		logger.WithFields(logrus.Fields{"elapsed ": time.Since(cycleStart)}).Info("Evaluation complete. Sleeping for 1 sec.")
 		time.Sleep(time.Duration(1000) * time.Millisecond)
 	}
 }

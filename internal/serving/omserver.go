@@ -60,7 +60,7 @@ func mustServeOpenMatchForever(omServer *OpenMatchServer, err error) {
 	defer func() {
 		stopErr := omServer.Stop()
 		if stopErr != nil {
-			logger.WithFields(logrus.Fields{"error": err.Error()}).Infof("Server shutdown error, %s.", stopErr)
+			logger.WithFields(logrus.Fields{"error": stopErr.Error()}).Infof("Server shutdown error, %s.", stopErr)
 		}
 	}()
 	// Start serving traffic.

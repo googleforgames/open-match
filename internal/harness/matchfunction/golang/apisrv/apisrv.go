@@ -33,20 +33,20 @@ import (
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // MatchFunction is the function signature for the Match Making Function (MMF) to be implemented by the user.
 // The harness will pass the Rosters and PlayerPool for the match profile to this
 // function and it will return the Rosters to be populated in the proposal.
-type MatchFunction func(context.Context, *log.Entry, string, []*pb.Roster, []*pb.PlayerPool) (string, []*pb.Roster, error)
+type MatchFunction func(context.Context, *logrus.Entry, string, []*pb.Roster, []*pb.PlayerPool) (string, []*pb.Roster, error)
 
 // MatchFunctionServer implements pb.MatchFunctionServer, the server generated
 // by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
 type MatchFunctionServer struct {
 	FunctionName string
 	Config       config.View
-	Logger       *log.Entry
+	Logger       *logrus.Entry
 	Func         MatchFunction
 	MMLogic      pb.MmLogicClient
 }
@@ -57,13 +57,13 @@ func (s *MatchFunctionServer) Run(ctx context.Context, req *pb.RunRequest) (*pb.
 
 	fnCtx, err := tag.New(ctx, tag.Insert(KeyMethod, "Run"))
 	if err != nil {
-		s.Logger.WithFields(log.Fields{"error": err.Error()}).Error("Failed setting up OpenCensus tagging")
+		s.Logger.WithFields(logrus.Fields{"error": err.Error()}).Error("Failed setting up OpenCensus tagging")
 		return nil, err
 	}
 
 	fnCtx, err = tag.New(fnCtx, tag.Insert(KeyFnName, s.FunctionName))
 	if err != nil {
-		s.Logger.WithFields(log.Fields{"error": err.Error()}).Error("Failed setting up OpenCensus tagging")
+		s.Logger.WithFields(logrus.Fields{"error": err.Error()}).Error("Failed setting up OpenCensus tagging")
 		return nil, err
 	}
 
@@ -72,7 +72,7 @@ func (s *MatchFunctionServer) Run(ctx context.Context, req *pb.RunRequest) (*pb.
 	err = s.runMatchFunction(fnCtx, req)
 	stats.Record(fnCtx, HarnessLatencySec.M(time.Since(start).Seconds()))
 	if err != nil {
-		s.Logger.WithFields(log.Fields{"error": err.Error()}).Error("harness.Run error")
+		s.Logger.WithFields(logrus.Fields{"error": err.Error()}).Error("harness.Run error")
 		stats.Record(fnCtx, HarnessFailures.M(1))
 		return &pb.RunResponse{}, err
 	}
@@ -151,7 +151,7 @@ func (s *MatchFunctionServer) runMatchFunction(ctx context.Context, req *pb.RunR
 		results, rosters, err := s.Func(ctx, s.Logger, profile.Properties, profile.Rosters, playerPools)
 		stats.Record(ctx, FnLatencySec.M(time.Since(start).Seconds()))
 		if err != nil {
-			s.Logger.WithFields(log.Fields{
+			s.Logger.WithFields(logrus.Fields{
 				"error": err.Error(),
 				"id":    req.ResultId,
 			}).Error("matchfunction returned an unrecoverable error")
@@ -170,6 +170,6 @@ func (s *MatchFunctionServer) runMatchFunction(ctx context.Context, req *pb.RunR
 		return fmt.Errorf("Failed to create a proposal for %v, %v", match.Id, err)
 	}
 
-	s.Logger.WithFields(log.Fields{"id": req.ProposalId}).Info("Proposal written successfully!")
+	s.Logger.WithFields(logrus.Fields{"id": req.ProposalId}).Info("Proposal written successfully!")
 	return nil
 }
