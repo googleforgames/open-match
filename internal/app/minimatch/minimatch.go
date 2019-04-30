@@ -17,6 +17,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+// Package minimatch provides in-process serving for all Open Match servers for e2e testing.
 package minimatch
 
 import (
