@@ -35,12 +35,12 @@ service MmLogic {
   // RetrievePool gets the list of Tickets that match every Filter in the
   // specified Pool.
   // TODO: Consider renaming to "GetPool" to be consistent with HTTP REST CRUD
-  // conventions.
+  // conventions. Right now there's a GET and a POST for this verb.
   rpc RetrievePool(RetrievePoolRequest) returns (stream RetrievePoolResponse) {
     option (google.api.http) = {
       post: "/v1/mmlogic/pools"
       body: "*"
-      additional_bindings { post: "/v1/mmlogic/pools/{pool.name}" body: "*" }
+      additional_bindings { get: "/v1/mmlogic/pools/{pool.name}" }
     };
   }
 }

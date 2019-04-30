@@ -53,17 +53,13 @@ func request_MmLogic_RetrievePool_0(ctx context.Context, marshaler runtime.Marsh
 
 }
 
+var (
+	filter_MmLogic_RetrievePool_1 = &utilities.DoubleArray{Encoding: map[string]int{"pool": 0, "name": 1}, Base: []int{1, 1, 1, 0}, Check: []int{0, 1, 2, 3}}
+)
+
 func request_MmLogic_RetrievePool_1(ctx context.Context, marshaler runtime.Marshaler, client MmLogicClient, req *http.Request, pathParams map[string]string) (MmLogic_RetrievePoolClient, runtime.ServerMetadata, error) {
 	var protoReq RetrievePoolRequest
 	var metadata runtime.ServerMetadata
-
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
-	}
 
 	var (
 		val string
@@ -81,6 +77,10 @@ func request_MmLogic_RetrievePool_1(ctx context.Context, marshaler runtime.Marsh
 
 	if err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "pool.name", err)
+	}
+
+	if err := runtime.PopulateQueryParameters(&protoReq, req.URL.Query(), filter_MmLogic_RetrievePool_1); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
 	stream, err := client.RetrievePool(ctx, &protoReq)
@@ -154,7 +154,7 @@ func RegisterMmLogicHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 
 	})
 
-	mux.Handle("POST", pattern_MmLogic_RetrievePool_1, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("GET", pattern_MmLogic_RetrievePool_1, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)

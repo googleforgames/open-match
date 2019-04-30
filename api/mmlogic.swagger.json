@@ -17,7 +17,7 @@
   "paths": {
     "/v1/mmlogic/pools": {
       "post": {
-        "summary": "RetrievePool gets the list of Tickets that match every Filter in the\nspecified Pool.\nTODO: Consider renaming to \"GetPool\" to be consistent with HTTP REST CRUD\nconventions.",
+        "summary": "RetrievePool gets the list of Tickets that match every Filter in the\nspecified Pool.\nTODO: Consider renaming to \"GetPool\" to be consistent with HTTP REST CRUD\nconventions. Right now there's a GET and a POST for this verb.",
         "operationId": "RetrievePool",
         "responses": {
           "200": {
@@ -43,8 +43,8 @@
       }
     },
     "/v1/mmlogic/pools/{pool.name}": {
-      "post": {
-        "summary": "RetrievePool gets the list of Tickets that match every Filter in the\nspecified Pool.\nTODO: Consider renaming to \"GetPool\" to be consistent with HTTP REST CRUD\nconventions.",
+      "get": {
+        "summary": "RetrievePool gets the list of Tickets that match every Filter in the\nspecified Pool.\nTODO: Consider renaming to \"GetPool\" to be consistent with HTTP REST CRUD\nconventions. Right now there's a GET and a POST for this verb.",
         "operationId": "RetrievePool2",
         "responses": {
           "200": {
@@ -61,14 +61,6 @@
             "in": "path",
             "required": true,
             "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/apiRetrievePoolRequest"
-            }
           }
         ],
         "tags": [

@@ -78,7 +78,7 @@ service Frontend {
   // GetTicket fetches the ticket associated with the specified Ticket id.
   rpc GetTicket(GetTicketRequest) returns (Ticket) {
     option (google.api.http) = {
-      get: "/v1/frontend/tickets"
+      get: "/v1/frontend/tickets/{ticket_id}"
     };
   }
 
@@ -87,8 +87,7 @@ service Frontend {
   rpc GetTicketUpdates(GetTicketUpdatesRequest)
       returns (stream GetTicketUpdatesResponse) {
     option (google.api.http) = {
-      post: "/v1/frontend/tickets/assign"
-      body: "*"
+      get: "/v1/frontend/tickets/{ticket_id}/updates"
     };
   }
 }

@@ -16,30 +16,6 @@
   ],
   "paths": {
     "/v1/frontend/tickets": {
-      "get": {
-        "summary": "GetTicket fetches the ticket associated with the specified Ticket id.",
-        "operationId": "GetTicket",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiTicket"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "ticket_id",
-            "description": "Ticket id of the Ticket to fetch.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "Frontend"
-        ]
-      },
       "post": {
         "summary": "CreateTicket will create a new ticket, assign a Ticket id to it and put the\nTicket in state storage. It will then look through the 'properties' field\nfor the attributes defined as indices the matchmakaking config. If the\nattributes exist and are valid integers, they will be indexed. Creating a\nticket adds the Ticket to the pool of Tickets considered for matchmaking.",
         "operationId": "CreateTicket",
@@ -66,34 +42,31 @@
         ]
       }
     },
-    "/v1/frontend/tickets/assign": {
-      "post": {
-        "summary": "GetTicketUpdates streams matchmaking results from Open Match for the\nprovided Ticket id.",
-        "operationId": "GetTicketUpdates",
+    "/v1/frontend/tickets/{ticket_id}": {
+      "get": {
+        "summary": "GetTicket fetches the ticket associated with the specified Ticket id.",
+        "operationId": "GetTicket",
         "responses": {
           "200": {
-            "description": "A successful response.(streaming responses)",
+            "description": "A successful response.",
             "schema": {
-              "$ref": "#/x-stream-definitions/apiGetTicketUpdatesResponse"
+              "$ref": "#/definitions/apiTicket"
             }
           }
         },
         "parameters": [
           {
-            "name": "body",
-            "in": "body",
+            "name": "ticket_id",
+            "description": "Ticket id of the Ticket to fetch.",
+            "in": "path",
             "required": true,
-            "schema": {
-              "$ref": "#/definitions/apiGetTicketUpdatesRequest"
-            }
+            "type": "string"
           }
         ],
         "tags": [
           "Frontend"
         ]
-      }
-    },
-    "/v1/frontend/tickets/{ticket_id}": {
+      },
       "delete": {
         "summary": "DeleteTicket removes the Ticket from state storage and from corresponding\nconfigured indices. Deleting the ticket stops the ticket from being\nconsidered for future matchmaking requests.",
         "operationId": "DeleteTicket",
@@ -109,6 +82,32 @@
           {
             "name": "ticket_id",
             "description": "Ticket id of the Ticket to be deleted.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Frontend"
+        ]
+      }
+    },
+    "/v1/frontend/tickets/{ticket_id}/updates": {
+      "get": {
+        "summary": "GetTicketUpdates streams matchmaking results from Open Match for the\nprovided Ticket id.",
+        "operationId": "GetTicketUpdates",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "$ref": "#/x-stream-definitions/apiGetTicketUpdatesResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "description": "Ticket id of the Ticket to get updates on.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -159,15 +158,6 @@
     },
     "apiDeleteTicketResponse": {
       "type": "object"
-    },
-    "apiGetTicketUpdatesRequest": {
-      "type": "object",
-      "properties": {
-        "ticket_id": {
-          "type": "string",
-          "description": "Ticket id of the Ticket to get updates on."
-        }
-      }
     },
     "apiGetTicketUpdatesResponse": {
       "type": "object",
