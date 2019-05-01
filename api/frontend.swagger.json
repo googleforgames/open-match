@@ -23,7 +23,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiCreateTicketsResponse"
+              "$ref": "#/definitions/apiCreateTicketResponse"
             }
           }
         },
@@ -147,7 +147,7 @@
         }
       }
     },
-    "apiCreateTicketsResponse": {
+    "apiCreateTicketResponse": {
       "type": "object",
       "properties": {
         "ticket": {
