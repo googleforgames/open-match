@@ -37,14 +37,14 @@ import (
 	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // RunEvaluator is a hook for the main() method in the evaluator executable.
 func RunEvaluator(fn apisrv.EvaluateFunction) {
 	evaluator, err := newEvaluator(fn)
 	if err != nil {
-		log.Errorf("Cannot construct the Evaluator, %v", err)
+		logrus.Errorf("Cannot construct the Evaluator, %v", err)
 		return
 	}
 
@@ -53,16 +53,16 @@ func RunEvaluator(fn apisrv.EvaluateFunction) {
 
 // newEvaluator creates and initializes an Evaluator.
 func newEvaluator(fn apisrv.EvaluateFunction) (*apisrv.Evaluator, error) {
-	log.AddHook(metrics.NewHook(apisrv.EvaluatorLogLines, apisrv.KeySeverity))
-	logger := log.WithFields(log.Fields{
+	logrus.AddHook(metrics.NewHook(apisrv.EvaluatorLogLines, apisrv.KeySeverity))
+	logger := logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
 		"component": "evaluator"})
-	log.SetReportCaller(true)
+	logrus.SetReportCaller(true)
 
 	// Initialize the configuration
 	cfg, err := config.Read()
 	if err != nil {
-		logger.WithFields(log.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Error("Unable to load config file")
 		return nil, err
@@ -79,11 +79,11 @@ func newEvaluator(fn apisrv.EvaluateFunction) (*apisrv.Evaluator, error) {
 	ocEvaluatorViews = append(ocEvaluatorViews, apisrv.DefaultEvaluatorViews...)
 	ocEvaluatorViews = append(ocEvaluatorViews, config.CfgVarCountView) // config loader view.
 
-	logger.WithFields(log.Fields{"viewscount": len(ocEvaluatorViews)}).Info("Loaded OpenCensus views")
+	logger.WithFields(logrus.Fields{"viewscount": len(ocEvaluatorViews)}).Info("Loaded OpenCensus views")
 
 	promLh, err := netlistener.NewFromPortNumber(cfg.GetInt("metrics.port"))
 	if err != nil {
-		logger.WithFields(log.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Error("Unable to create metrics TCP listener")
 		return nil, err
@@ -93,7 +93,7 @@ func newEvaluator(fn apisrv.EvaluateFunction) (*apisrv.Evaluator, error) {
 	// Get the MMLogic client.
 	mmlogic, err := getMMLogicClient(cfg)
 	if err != nil {
-		logger.WithFields(log.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Error("Failed to get MMLogic client")
 		return nil, err
@@ -102,7 +102,7 @@ func newEvaluator(fn apisrv.EvaluateFunction) (*apisrv.Evaluator, error) {
 	// Get redis connection pool.
 	pool, err := redishelpers.ConnectionPool(cfg)
 	if err != nil {
-		logger.WithFields(log.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Error("Unable to connect to redis")
 		return nil, err
