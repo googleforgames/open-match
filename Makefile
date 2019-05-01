@@ -64,7 +64,7 @@ GOLANGCI_VERSION = 1.16.0
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
 GO = GO111MODULE=on go
 # Defines the absolute local directory of the open-match project
-REPOSITORY_ROOT := $(dir $(abspath $(MAKEFILE_LIST)))
+REPOSITORY_ROOT := $(patsubst %/,%,$(dir $(abspath $(MAKEFILE_LIST))))
 GO_BUILD_COMMAND = CGO_ENABLED=0 $(GO) build -a -installsuffix cgo .
 BUILD_DIR = $(REPOSITORY_ROOT)/build
 TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
@@ -448,6 +448,27 @@ build/toolchain/python/:
 	cd build/toolchain/python/bin && ln -s python3 pytho
 	cd build/toolchain/python/ && . bin/activate && pip install locustio && deactivate
 
+build/toolchain/include/google/api/:
+	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
+	mkdir -p $(TOOLCHAIN_BIN)
+	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L \
+		https://github.com/googleapis/googleapis/archive/master.zip
+	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
+	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
+		$(PROTOC_INCLUDES)/google/api
+	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
+
+build/toolchain/include/protoc-gen-swagger/:
+	mkdir -p $(TOOLCHAIN_DIR)/grpc-gateway-temp/
+	mkdir -p $(TOOLCHAIN_BIN)
+	mkdir -p $(PROTOC_INCLUDES)/protoc-gen-swagger/options/
+	curl -o $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway.zip -L \
+		https://github.com/grpc-ecosystem/grpc-gateway/archive/master.zip
+	(cd $(TOOLCHAIN_DIR)/grpc-gateway-temp/; unzip -q -o grpc-gateway.zip)
+	cp -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/*.proto \
+		$(PROTOC_INCLUDES)/protoc-gen-swagger/options/
+	rm -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp
+
 build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -o $(TOOLCHAIN_DIR)/protoc-temp.zip -L $(PROTOC_PACKAGE)
@@ -458,18 +479,10 @@ build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
-build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
-	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
-	mkdir -p $(TOOLCHAIN_BIN)
-	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L \
-		https://github.com/googleapis/googleapis/archive/master.zip
-	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
-	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
-		$(PROTOC_INCLUDES)/google/api
-	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
+build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION): build/toolchain/include/google/api/
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
-build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION):
+build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
 	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
@@ -536,33 +549,67 @@ create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	$(MINIKUBE) delete
 
-all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
+# Deprecated
+deprecated-all-protos: deprecated-golang-protos deprecated-http-proxy-golang-protos deprecated-swagger-json-docs
 
-golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
+# Deprecated
+deprecated-golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
 
-http-proxy-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go
+# Deprecated
+deprecated-http-proxy-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go
 
-swagger-json-docs: api/protobuf-spec/frontend.swagger.json api/protobuf-spec/backend.swagger.json api/protobuf-spec/mmlogic.swagger.json api/protobuf-spec/matchfunction.swagger.json
+# Deprecated
+deprecated-swagger-json-docs: api/protobuf-spec/frontend.swagger.json api/protobuf-spec/backend.swagger.json api/protobuf-spec/mmlogic.swagger.json api/protobuf-spec/matchfunction.swagger.json
 
+# Deprecated
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
+# Deprecated
 internal/pb/%.pb.gw.go: api/protobuf-spec/%.proto internal/pb/%.pb.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
    		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
-
+# Deprecated
 api/protobuf-spec/%.swagger.json: api/protobuf-spec/%.proto internal/pb/%.pb.gw.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) --swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
+# Deprecated
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
 internal/pb/backend.pb.go: internal/pb/messages.pb.go
 internal/pb/frontend.pb.go: internal/pb/messages.pb.go
 internal/pb/mmlogic.pb.go: internal/pb/messages.pb.go
 internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
+
+all-protos: deprecated-all-protos golang-protos http-proxy-golang-protos swagger-json-docs
+golang-protos: internal/future/pb/backend.pb.go internal/future/pb/frontend.pb.go internal/future/pb/matchfunction.pb.go internal/future/pb/messages.pb.go internal/future/pb/mmlogic.pb.go
+
+http-proxy-golang-protos: internal/future/pb/backend.pb.gw.go internal/future/pb/frontend.pb.gw.go internal/future/pb/matchfunction.pb.gw.go internal/future/pb/messages.pb.gw.go internal/future/pb/mmlogic.pb.gw.go
+
+swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json
+
+internal/future/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
+
+internal/future/pb/%.pb.gw.go: api/%.proto internal/future/pb/%.pb.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
+
+api/%.swagger.json: api/%.proto internal/future/pb/%.pb.gw.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) --swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
+
+# Include structure of the protos needs to be called out do the dependency chain is run through properly.
+internal/future/pb/backend.pb.go: internal/future/pb/messages.pb.go
+internal/future/pb/frontend.pb.go: internal/future/pb/messages.pb.go
+internal/future/pb/mmlogic.pb.go: internal/future/pb/messages.pb.go
+internal/future/pb/matchfunction.pb.go: internal/future/pb/messages.pb.go
 
 build:
 	$(GO) build ./...
@@ -585,7 +632,7 @@ fmt:
 vet:
 	$(GO) vet ./...
 
-# Blocked on https://github.com/golangci/golangci-lint/issues/500
+# Blocked on https://github.com/golangci/golangci-lint/issues/500 to be added to `make lint`
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 	build/toolchain/bin/golangci-lint$(EXE_EXTENSION) run -v --config=.golangci.yaml
 

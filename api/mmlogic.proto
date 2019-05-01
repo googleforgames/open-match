@@ -1,0 +1,46 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = 'proto3';
+package api;
+option go_package = "internal/future/pb";
+
+import 'api/messages.proto';
+import 'google/api/annotations.proto';
+
+message RetrievePoolRequest {
+  // The Pool representing the set of Filters to be queried.
+  Pool pool = 1;
+}
+
+message RetrievePoolResponse {
+  // The Tickets that meet the Filter criteria requested by the Pool.
+  repeated Ticket ticket = 1;
+}
+
+// The MMLogic API provides utility functions for common MMF functionality such
+// as retreiving Tickets from state storage.
+service MmLogic {
+  // RetrievePool gets the list of Tickets that match every Filter in the
+  // specified Pool.
+  // TODO: Consider renaming to "GetPool" to be consistent with HTTP REST CRUD
+  // conventions. Right now there's a GET and a POST for this verb.
+  rpc RetrievePool(RetrievePoolRequest) returns (stream RetrievePoolResponse) {
+    option (google.api.http) = {
+      post: "/v1/mmlogic/pools"
+      body: "*"
+      additional_bindings { get: "/v1/mmlogic/pools/{pool.name}" }
+    };
+  }
+}

@@ -207,14 +207,23 @@ issues:
         - dupl
         - gosec
 
-    # Allowed global variable types.
-    - text: "flag."
+    # The following are allowed global variable patterns.
+    # Generally it's ok to have constants or variables that effectively act as constants such as a static logger or flag values.
+    # The filters below specify the source code pattern that's allowed when declaring a global
+    # 'source: "flag."' will match 'var destFlag = flag.String("dest", "", "")'
+    - source: "flag."
       linters:
         - gochecknoglobals
-    - text: "View."
+    - source: "View."
       linters:
         - gochecknoglobals
-    - text: "tag."
+    - source: "tag."
+      linters:
+        - gochecknoglobals
+    - source: "logrus."
+      linters:
+        - gochecknoglobals
+    - source: "stats."
       linters:
         - gochecknoglobals
 

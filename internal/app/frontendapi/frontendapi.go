@@ -19,6 +19,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+// Package frontendapi provices the server for frontendapi.
 package frontendapi
 
 import (
@@ -26,16 +28,16 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
 	"github.com/GoogleCloudPlatform/open-match/internal/serving"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // CreateServerParams creates the configuration and prepares the binding for serving handler.
 func CreateServerParams() *serving.ServerParams {
 	// Add a hook to the logger to auto-count log lines for metrics output thru OpenCensus
-	log.AddHook(metrics.NewHook(apisrv.FeLogLines, apisrv.KeySeverity))
+	logrus.AddHook(metrics.NewHook(apisrv.FeLogLines, apisrv.KeySeverity))
 
 	return &serving.ServerParams{
-		BaseLogFields: log.Fields{
+		BaseLogFields: logrus.Fields{
 			"app":       "openmatch",
 			"component": "frontend",
 		},

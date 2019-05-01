@@ -69,7 +69,7 @@ func TestMinimatchStartup(t *testing.T) {
 func createFakePlayer() *pb.Player {
 	properties := make(map[string]interface{})
 	// For properties that are just flags, the key is the important bit.
-	// It's existance denotes a boolean true value.
+	// It's existence denotes a boolean true value.
 	// Just use an epoch timestamp as the value.
 	now := int(time.Now().Unix())
 	properties["char"] = map[string]int{

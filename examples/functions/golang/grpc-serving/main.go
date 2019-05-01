@@ -31,7 +31,7 @@ import (
 	harness "github.com/GoogleCloudPlatform/open-match/internal/harness/matchfunction/golang"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -40,7 +40,7 @@ func main() {
 	// match function. The harness itself queries open match for player pools for
 	// the specified request and passes the pools to the match function to generate
 	// proposals.
-	harness.ServeMatchFunction(&harness.HarnessParams{
+	harness.ServeMatchFunction(&harness.Params{
 		FunctionName:          "simple-matchfunction",
 		ServicePortConfigName: "api.functions.port",
 		ProxyPortConfigName:   "api.functions.proxyport",
@@ -65,7 +65,7 @@ func main() {
 //              the players you want to assign to your DGS in Roster(s) when you call the
 //              BackendAPI CreateAssignments() endpoint.  Might as well put them in rosters now.
 //  - error :   Use if you need to return an unrecoverable error.
-func makeMatches(ctx context.Context, logger *log.Entry, profile string, rosters []*pb.Roster, pools []*pb.PlayerPool) (string, []*pb.Roster, error) {
+func makeMatches(ctx context.Context, logger *logrus.Entry, profile string, rosters []*pb.Roster, pools []*pb.PlayerPool) (string, []*pb.Roster, error) {
 
 	// Open Match will try to marshal your JSON roster to an array of protobuf Roster objects. It's
 	// up to you if you want to fill these protobuf Roster objects or just write your Rosters in your

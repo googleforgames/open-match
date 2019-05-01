@@ -134,11 +134,11 @@ func New() {
 // For PoC, we're flattening the JSON so it can be easily indexed in Redis.
 // Flattened keys are joined using periods.
 // That should be abstracted out of this level and into the db storage module
-func Generate() (Xid string, properties map[string]int, debug map[string]string) {
+func Generate() (string, map[string]int, map[string]string) {
 	//return Xid, properties, debug
-	Xid = xid.New().String()
-	properties = map[string]int{}
-	debug = map[string]string{}
+	Xid := xid.New().String()
+	properties := map[string]int{}
+	debug := map[string]string{}
 
 	city := pick()
 	debug["city"] = city
@@ -173,5 +173,5 @@ func Generate() (Xid string, properties map[string]int, debug map[string]string)
 	properties["mode.ctf"] = now
 	properties["timestamp.enter"] = now
 
-	return
+	return Xid, properties, debug
 }
