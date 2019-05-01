@@ -53,7 +53,7 @@ VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
 
 PROTOC_VERSION = 3.7.1
 HELM_VERSION = 2.13.1
-HUGO_VERSION = 0.55.2
+HUGO_VERSION = 0.55.4
 KUBECTL_VERSION = 1.14.1
 NODEJS_VERSION = 10.15.3
 SKAFFOLD_VERSION = latest
@@ -680,7 +680,6 @@ node_modules/: build/toolchain/nodejs/
 	-rm -r package.json package-lock.json
 	-rm -rf node_modules/
 	echo "{}" > package.json
-	-rm -f package-lock.json
 	$(TOOLCHAIN_DIR)/nodejs/bin/npm install postcss-cli autoprefixer
 
 build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
