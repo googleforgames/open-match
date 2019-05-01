@@ -1,30 +1,29 @@
-/*
-certgen generates self-signed certificates for Open Match to run in TLS mode.
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Copyright 2019 Google LLC
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Package main is the certgen tool which generates public-certificate/private-key for Open Match to run in TLS mode.
 package main
-
-// This code is an adapted version of https://golang.org/src/crypto/tls/generate_cert.go
 
 import (
 	"flag"
+	"io/ioutil"
 	"log"
+	"strings"
 	"time"
 
 	certgenInternal "github.com/GoogleCloudPlatform/open-match/tools/certgen/internal"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -46,14 +45,25 @@ func main() {
 }
 
 func createCertificateViaFlags() error {
-	return certgenInternal.CreateCertificateAndPrivateKeyFiles(&certgenInternal.Params{
-		CertificateAuthority:      *caFlag,
-		RootPublicCertificatePath: *rootPublicCertificateFlag,
-		RootPrivateKeyPath:        *rootPrivateKeyFlag,
-		PublicCertificatePath:     *publicCertificateFlag,
-		PrivateKeyPath:            *privateKeyFlag,
-		ValidityDuration:          *validityDurationFlag,
-		Hostnames:                 *hostnamesFlag,
-		RSAKeyLength:              *rsaKeyLengthFlag,
-	})
+	params := &certgenInternal.Params{
+		CertificateAuthority: *caFlag,
+		ValidityDuration:     *validityDurationFlag,
+		Hostnames:            strings.Split(*hostnamesFlag, ","),
+		RSAKeyLength:         *rsaKeyLengthFlag,
+	}
+
+	if len(*rootPublicCertificateFlag) > 0 {
+		if rootPublicCertificateData, err := ioutil.ReadFile(*rootPublicCertificateFlag); err == nil {
+			params.RootPublicCertificateData = rootPublicCertificateData
+		} else {
+			return errors.WithStack(err)
+		}
+		if rootPrivateKeyData, err := ioutil.ReadFile(*rootPrivateKeyFlag); err == nil {
+			params.RootPrivateKeyData = rootPrivateKeyData
+		} else {
+			return errors.WithStack(err)
+		}
+	}
+
+	return certgenInternal.CreateCertificateAndPrivateKeyFiles(*publicCertificateFlag, *privateKeyFlag, params)
 }

@@ -1,18 +1,17 @@
-/*
-Copyright 2019 Google LLC
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package internal
 
 import (
@@ -32,14 +31,6 @@ const (
 	secretMessage = "this is a secret message"
 )
 
-func TestParamsGetHostname(t *testing.T) {
-	assert := assert.New(t)
-	p := &Params{
-		Hostnames: "a.com,b.com,127.0.0.1",
-	}
-	assert.ElementsMatch([]string{"a.com", "b.com", "127.0.0.1"}, p.GetHostnames())
-}
-
 func TestCreateCertificate(t *testing.T) {
 	assert := assert.New(t)
 
@@ -50,13 +41,14 @@ func TestCreateCertificate(t *testing.T) {
 	assert.Nil(err)
 	publicCertPath := filepath.Join(tmpDir, "public.cert")
 	privateKeyPath := filepath.Join(tmpDir, "private.key")
-	err = CreateCertificateAndPrivateKeyFiles(&Params{
-		PublicCertificatePath: publicCertPath,
-		PrivateKeyPath:        privateKeyPath,
-		ValidityDuration:      time.Hour * 1,
-		Hostnames:             "a.com,b.com,127.0.0.1",
-		RSAKeyLength:          2048,
-	})
+	err = CreateCertificateAndPrivateKeyFiles(
+		publicCertPath,
+		privateKeyPath,
+		&Params{
+			ValidityDuration: time.Hour * 1,
+			Hostnames:        []string{"a.com", "b.com", "127.0.0.1"},
+			RSAKeyLength:     2048,
+		})
 	assert.Nil(err)
 
 	assert.FileExists(publicCertPath)
