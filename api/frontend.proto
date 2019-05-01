@@ -24,7 +24,7 @@ message CreateTicketRequest {
   Ticket ticket = 1;
 }
 
-message CreateTicketsResponse {
+message CreateTicketResponse {
   // Ticket object for the created Ticket - with the ticket id populated.
   Ticket ticket = 1;
 }
@@ -59,7 +59,7 @@ service Frontend {
   // for the attributes defined as indices the matchmakaking config. If the
   // attributes exist and are valid integers, they will be indexed. Creating a
   // ticket adds the Ticket to the pool of Tickets considered for matchmaking.
-  rpc CreateTicket(CreateTicketRequest) returns (CreateTicketsResponse) {
+  rpc CreateTicket(CreateTicketRequest) returns (CreateTicketResponse) {
     option (google.api.http) = {
       post: "/v1/frontend/tickets"
       body: "*"

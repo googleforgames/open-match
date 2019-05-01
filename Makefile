@@ -442,6 +442,12 @@ endif
 	mv $(TOOLCHAIN_DIR)/temp-golangci/golangci-lint$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-golangci/
 
+build/toolchain/python/:
+	virtualenv --python=python3 $(TOOLCHAIN_DIR)/python/
+	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
+	cd build/toolchain/python/bin && ln -s python3 pytho
+	cd build/toolchain/python/ && . bin/activate && pip install locustio && deactivate
+
 build/toolchain/include/google/api/:
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -616,6 +622,10 @@ ci-test:
 	$(GO) test ./... -race -test.count 25 -cover
 	$(GO) test ./... -run IgnoreRace$$ -cover
 
+stress-test-%: build/toolchain/python/
+	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
+		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
+
 fmt:
 	$(GO) fmt ./...
 
@@ -732,60 +742,64 @@ presubmit: update-deps clean-protos all-protos lint build test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
-	cp install/yaml/* $(BUILD_DIR)/release/
+	cp $(REPOSITORY_ROOT)/install/yaml/* $(BUILD_DIR)/release/
 
 release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
 release: TAG = $(BASE_VERSION)
 release: build/release/
 
 clean-release:
-	rm -rf build/release/
+	rm -rf $(REPOSITORY_ROOT)/build/release/
 
 clean-site:
-	rm -rf build/site/
+	rm -rf $(REPOSITORY_ROOT)/build/site/
 
 clean-swagger-docs:
-	rm -rf api/protobuf-spec/*.json
+	rm -rf $(REPOSITORY_ROOT)/api/protobuf-spec/*.json
 
 clean-protos:
-	rm -rf internal/pb/
-	rm -rf api/protobuf_spec/
+	rm -rf $(REPOSITORY_ROOT)/internal/pb/
+	rm -rf $(REPOSITORY_ROOT)/api/protobuf_spec/
 
 clean-binaries:
-	rm -rf cmd/minimatch/minimatch
-	rm -rf cmd/backendapi/backendapi
-	rm -rf cmd/frontendapi/frontendapi
-	rm -rf cmd/mmlogicapi/mmlogicapi
-	rm -rf examples/backendclient/backendclient
-	rm -rf examples/evaluators/golang/serving/serving
-	rm -rf examples/functions/golang/grpc-serving/grpc-serving
-	rm -rf test/cmd/clientloadgen/clientloadgen
-	rm -rf test/cmd/frontendclient/frontendclient
+	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch
+	rm -rf $(REPOSITORY_ROOT)/cmd/backendapi/backendapi
+	rm -rf $(REPOSITORY_ROOT)/cmd/frontendapi/frontendapi
+	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogicapi/mmlogicapi
+	rm -rf $(REPOSITORY_ROOT)/examples/backendclient/backendclient
+	rm -rf $(REPOSITORY_ROOT)/examples/evaluators/golang/serving/serving
+	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/grpc-serving/grpc-serving
+	rm -rf $(REPOSITORY_ROOT)/test/cmd/clientloadgen/clientloadgen
+	rm -rf $(REPOSITORY_ROOT)/test/cmd/frontendclient/frontendclient
 
 clean-build: clean-toolchain clean-archives clean-release
-	rm -rf build/
+	rm -rf $(REPOSITORY_ROOT)/build/
 
 clean-toolchain:
-	rm -rf build/toolchain/
+	rm -rf $(REPOSITORY_ROOT)/build/toolchain/
 
 clean-archives:
-	rm -rf build/archives/
+	rm -rf $(REPOSITORY_ROOT)/build/archives/
 
 clean-nodejs:
-	rm -rf build/toolchain/nodejs/
-	rm -rf node_modules/
-	rm -rf package.json
-	rm -rf package-lock.json
+	rm -rf $(REPOSITORY_ROOT)/build/toolchain/nodejs/
+	rm -rf $(REPOSITORY_ROOT)/node_modules/
+	rm -rf $(REPOSITORY_ROOT)/package.json
+	rm -rf $(REPOSITORY_ROOT)/package-lock.json
 
 clean-install-yaml:
-	rm -f install/yaml/install.yaml
-	rm -f install/yaml/install-example.yaml
-	rm -f install/yaml/01-redis-chart.yaml
-	rm -f install/yaml/02-open-match.yaml
-	rm -f install/yaml/03-prometheus-chart.yaml
-	rm -f install/yaml/04-grafana-chart.yaml
+	rm -f $(REPOSITORY_ROOT)/install/yaml/install.yaml
+	rm -f $(REPOSITORY_ROOT)/install/yaml/install-example.yaml
+	rm -f $(REPOSITORY_ROOT)/install/yaml/01-redis-chart.yaml
+	rm -f $(REPOSITORY_ROOT)/install/yaml/02-open-match.yaml
+	rm -f $(REPOSITORY_ROOT)/install/yaml/03-prometheus-chart.yaml
+	rm -f $(REPOSITORY_ROOT)/install/yaml/04-grafana-chart.yaml
 
-clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml
+clean-stress-test-tools:
+	rm -rf $(TOOLCHAIN_DIR)/python
+	rm -f $(REPOSITORY_ROOT)/test/stress/*.csv
+
+clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools
 
 run-backendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) $(KUBECTL_RUN_ENV)
@@ -833,5 +847,5 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
-.PHONY: docker gcloud deploy-redirect-site update-deps sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test test-in-ci vet
+.PHONY: docker gcloud deploy-redirect-site update-deps sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-test vet
 
