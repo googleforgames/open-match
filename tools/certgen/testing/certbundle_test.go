@@ -21,14 +21,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	fakeAddress = []string{"localhost:1024"}
+const (
+	fakeAddress = "localhost:1024"
 )
 
 func TestCreateCertificateAndPrivateKeyForTestingAreValid(t *testing.T) {
 	assert := assert.New(t)
 
-	pubData, privData, err := CreateCertificateAndPrivateKeyForTesting(fakeAddress)
+	pubData, privData, err := CreateCertificateAndPrivateKeyForTesting([]string{fakeAddress})
 	assert.Nil(err)
 
 	// Verify that we can load the public/private key pair.
@@ -41,9 +41,9 @@ func TestCreateCertificateAndPrivateKeyForTestingAreValid(t *testing.T) {
 func TestCreateRootedCertificateAndPrivateKeyForTestingAreValid(t *testing.T) {
 	assert := assert.New(t)
 
-	rootPubData, rootPrivData, err := CreateRootCertificateAndPrivateKeyForTesting(fakeAddress)
+	rootPubData, rootPrivData, err := CreateRootCertificateAndPrivateKeyForTesting([]string{fakeAddress})
 	assert.Nil(err)
-	pubData, privData, err := CreateDerivedCertificateAndPrivateKeyForTesting(rootPubData, rootPrivData, fakeAddress)
+	pubData, privData, err := CreateDerivedCertificateAndPrivateKeyForTesting(rootPubData, rootPrivData, []string{fakeAddress})
 	assert.Nil(err)
 
 	rootPub, rootPk, err := certgenInternal.ReadKeyPair(rootPubData, rootPrivData)
@@ -59,9 +59,9 @@ func TestCreateRootedCertificateAndPrivateKeyForTestingAreValid(t *testing.T) {
 func TestCreateCertificateAndPrivateKeyForTestingAreDifferent(t *testing.T) {
 	assert := assert.New(t)
 
-	pubData1, privData1, err := CreateCertificateAndPrivateKeyForTesting(fakeAddress)
+	pubData1, privData1, err := CreateCertificateAndPrivateKeyForTesting([]string{fakeAddress})
 	assert.Nil(err)
-	pubData2, privData2, err := CreateCertificateAndPrivateKeyForTesting(fakeAddress)
+	pubData2, privData2, err := CreateCertificateAndPrivateKeyForTesting([]string{fakeAddress})
 	assert.Nil(err)
 
 	assert.NotEqual(string(pubData1), string(pubData2))
