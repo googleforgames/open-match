@@ -27,11 +27,11 @@ import (
 )
 
 var (
-	caFlag                    = flag.Bool("ca", false, "Public key certificate path")
-	rootPublicCertificateFlag = flag.String("rootpubliccertificate", "", "Public key certificate path")
-	rootPrivateKeyFlag        = flag.String("rootprivatekey", "", "Private key PEM file path")
-	publicCertificateFlag     = flag.String("publiccertificate", "public.cert", "Public key certificate path")
-	privateKeyFlag            = flag.String("privatekey", "private.key", "Private key PEM file path")
+	caFlag                    = flag.Bool("ca", false, "Create a root certificate. Use if you want a chain of trust with other certificates.")
+	rootPublicCertificateFlag = flag.String("rootpubliccertificate", "", "(optional) Path to root certificate file. If set the output certificate is rooted from this certificate.")
+	rootPrivateKeyFlag        = flag.String("rootprivatekey", "", "(required if --rootpubliccertificate is set) Path to private key paired from root certificate file.")
+	publicCertificateFlag     = flag.String("publiccertificate", "public.cert", "Public key certificate path to be generated")
+	privateKeyFlag            = flag.String("privatekey", "private.key", "Private key file path to be generated")
 	validityDurationFlag      = flag.Duration("duration", time.Hour*24*365*5, "Lifetime for certificate validity (default is 5 years)")
 	hostnamesFlag             = flag.String("hostnames", "om-frontendapi,om-backendapi,om-mmforc,om-function,om-mmlogicapi,om-evaluator", "Comma separated list of host names.")
 	rsaKeyLengthFlag          = flag.Int("rsa", 2048, "RSA Encryption Key bit length for certificate.")
