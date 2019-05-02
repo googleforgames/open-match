@@ -164,86 +164,136 @@ help:
 local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),BRANCH_NAME=$(BRANCH_NAME) .
 
-push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
-push-service-images: push-minimatch-image push-frontendapi-image push-backendapi-image push-mmlogicapi-image
-push-mmf-example-images: push-mmf-go-grpc-serving-simple-image
-push-client-images: push-backendclient-image push-clientloadgen-image push-frontendclient-image
-push-evaluator-example-images: push-evaluator-serving-image
+push-images: push-service-images deprecated-push-images
+push-service-images: push-backend-image push-frontend-image  push-mmlogic-image
 
-push-minimatch-image: docker build-minimatch-image
+push-backend-image: docker build-backend-image
+	docker push $(REGISTRY)/openmatch-backend:$(TAG)
+	docker push $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
+
+push-frontend-image: docker build-frontend-image
+	docker push $(REGISTRY)/openmatch-frontend:$(TAG)
+	docker push $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
+
+push-mmlogic-image: docker build-mmlogic-image
+	docker push $(REGISTRY)/openmatch-mmlogic:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
+
+deprecated-push-images: deprecated-push-service-images deprecated-push-client-images deprecated-push-mmf-example-images deprecated-push-evaluator-example-images
+deprecated-push-service-images: deprecated-push-minimatch-image deprecated-push-frontendapi-image deprecated-push-backendapi-image deprecated-push-mmlogicapi-image
+deprecated-push-mmf-example-images: deprecated-push-mmf-go-grpc-serving-simple-image
+deprecated-push-client-images: deprecated-push-backendclient-image deprecated-push-clientloadgen-image deprecated-push-frontendclient-image
+deprecated-push-evaluator-example-images: deprecated-push-evaluator-serving-image
+
+# Deprecated
+deprecated-push-minimatch-image: docker deprecated-build-minimatch-image
 	docker push $(REGISTRY)/openmatch-minimatch:$(TAG)
 	docker push $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 
-push-frontendapi-image: docker build-frontendapi-image
+# Deprecated
+deprecated-push-frontendapi-image: docker deprecated-build-frontendapi-image
 	docker push $(REGISTRY)/openmatch-frontendapi:$(TAG)
 	docker push $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
 
-push-backendapi-image: docker build-backendapi-image
+# Deprecated
+deprecated-push-backendapi-image: docker deprecated-build-backendapi-image
 	docker push $(REGISTRY)/openmatch-backendapi:$(TAG)
 	docker push $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG)
 
-push-mmlogicapi-image: docker build-mmlogicapi-image
+# Deprecated
+deprecated-push-mmlogicapi-image: docker deprecated-build-mmlogicapi-image
 	docker push $(REGISTRY)/openmatch-mmlogicapi:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG)
 
-push-mmf-go-grpc-serving-simple-image: docker build-mmf-go-grpc-serving-simple-image
+# Deprecated
+deprecated-push-mmf-go-grpc-serving-simple-image: docker deprecated-build-mmf-go-grpc-serving-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
 
-push-backendclient-image: docker build-backendclient-image
+# Deprecated
+deprecated-push-backendclient-image: docker deprecated-build-backendclient-image
 	docker push $(REGISTRY)/openmatch-backendclient:$(TAG)
 	docker push $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG)
 
-push-clientloadgen-image: docker build-clientloadgen-image
+# Deprecated
+deprecated-push-clientloadgen-image: docker deprecated-build-clientloadgen-image
 	docker push $(REGISTRY)/openmatch-clientloadgen:$(TAG)
 	docker push $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG)
 
-push-frontendclient-image: docker build-frontendclient-image
+# Deprecated
+deprecated-push-frontendclient-image: docker deprecated-build-frontendclient-image
 	docker push $(REGISTRY)/openmatch-frontendclient:$(TAG)
 	docker push $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG)
 
-push-evaluator-serving-image: build-evaluator-serving-image
+# Deprecated
+deprecated-push-evaluator-serving-image: docker deprecated-build-evaluator-serving-image
 	docker push $(REGISTRY)/openmatch-evaluator-serving:$(TAG)
 	docker push $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG)
 
-build-images: build-service-images build-client-images build-mmf-example-images build-evaluator-example-images
-build-service-images: build-minimatch-image build-frontendapi-image build-backendapi-image build-mmlogicapi-image
-build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
-build-mmf-example-images: build-mmf-go-grpc-serving-simple-image
-build-evaluator-example-images: build-evaluator-serving-image
+build-images: build-service-images deprecated-build-images
+build-service-images: build-backend-image build-frontend-image build-mmlogic-image
 
 build-base-build-image: docker
 	docker build -f Dockerfile.base-build -t open-match-base-build .
 
-build-minimatch-image: docker build-base-build-image
+build-backend-image: docker build-base-build-image
+	docker build -f cmd/future/backend/Dockerfile -t $(REGISTRY)/openmatch-backend:$(TAG) -t $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG) .
+
+build-frontend-image: docker build-base-build-image
+	docker build -f cmd/future/frontend/Dockerfile -t $(REGISTRY)/openmatch-frontend:$(TAG) -t $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG) .
+
+build-mmlogic-image: docker build-base-build-image
+	docker build -f cmd/future/mmlogic/Dockerfile -t $(REGISTRY)/openmatch-mmlogic:$(TAG) -t $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG) .
+
+# Deprecated
+deprecated-build-images: deprecated-build-service-images deprecated-build-client-images deprecated-build-mmf-example-images deprecated-build-evaluator-example-images
+deprecated-build-service-images: deprecated-build-minimatch-image deprecated-build-frontendapi-image deprecated-build-backendapi-image deprecated-build-mmlogicapi-image
+deprecated-build-client-images: deprecated-build-backendclient-image deprecated-build-clientloadgen-image deprecated-build-frontendclient-image
+deprecated-build-mmf-example-images: deprecated-build-mmf-go-grpc-serving-simple-image
+deprecated-build-evaluator-example-images: deprecated-build-evaluator-serving-image
+
+# Deprecated
+deprecated-build-minimatch-image: docker build-base-build-image
 	docker build -f cmd/minimatch/Dockerfile -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
 
-build-frontendapi-image: docker build-base-build-image
+# Deprecated
+deprecated-build-frontendapi-image: docker build-base-build-image
 	docker build -f cmd/frontendapi/Dockerfile -t $(REGISTRY)/openmatch-frontendapi:$(TAG) -t $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG) .
 
-build-backendapi-image: docker build-base-build-image
+# Deprecated
+deprecated-build-backendapi-image: docker build-base-build-image
 	docker build -f cmd/backendapi/Dockerfile -t $(REGISTRY)/openmatch-backendapi:$(TAG) -t $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG) .
 
-build-mmlogicapi-image: docker build-base-build-image
+# Deprecated
+deprecated-build-mmlogicapi-image: docker build-base-build-image
 	docker build -f cmd/mmlogicapi/Dockerfile -t $(REGISTRY)/openmatch-mmlogicapi:$(TAG) -t $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG) .
 
-build-mmf-go-grpc-serving-simple-image: docker build-base-build-image
+# Deprecated
+deprecated-build-mmf-go-grpc-serving-simple-image: docker build-base-build-image
 	docker build -f examples/functions/golang/grpc-serving/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG) .
 
-build-backendclient-image: docker build-base-build-image
+# Deprecated
+deprecated-build-backendclient-image: docker build-base-build-image
 	docker build -f examples/backendclient/Dockerfile -t $(REGISTRY)/openmatch-backendclient:$(TAG) -t $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG) .
 
-build-clientloadgen-image: docker build-base-build-image
+# Deprecated
+deprecated-build-clientloadgen-image: docker build-base-build-image
 	docker build -f test/cmd/clientloadgen/Dockerfile -t $(REGISTRY)/openmatch-clientloadgen:$(TAG) -t $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG) .
 
-build-frontendclient-image: docker build-base-build-image
+# Deprecated
+deprecated-build-frontendclient-image: docker build-base-build-image
 	docker build -f test/cmd/frontendclient/Dockerfile -t $(REGISTRY)/openmatch-frontendclient:$(TAG) -t $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG) .
 
-build-evaluator-serving-image: build-base-build-image
+# Deprecated
+deprecated-build-evaluator-serving-image: build-base-build-image
 	docker build -f examples/evaluators/golang/serving/Dockerfile -t $(REGISTRY)/openmatch-evaluator-serving:$(TAG) -t $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG) .
 
 clean-images: docker
 	-docker rmi -f open-match-base-build
+
+	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-frontend:$(TAG) $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmlogic:$(TAG) $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
 
 	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontendapi:$(TAG) $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
@@ -638,6 +688,31 @@ golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 
 lint: fmt vet lint-chart
 
+all: service-binaries deprecated-all
+service-binaries: cmd/future/backend/backend$(EXE_EXTENSION) cmd/future/frontend/frontend$(EXE_EXTENSION) cmd/future/mmlogic/mmlogic$(EXE_EXTENSION)
+tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
+
+cmd/future/backend/backend$(EXE_EXTENSION): internal/future/pb/backend.pb.go internal/future/pb/backend.pb.gw.go api/backend.swagger.json
+	cd cmd/future/backend; $(GO_BUILD_COMMAND)
+
+cmd/future/frontend/frontend$(EXE_EXTENSION): internal/future/pb/frontend.pb.go internal/future/pb/frontend.pb.gw.go api/frontend.swagger.json
+	cd cmd/future/frontend; $(GO_BUILD_COMMAND)
+
+cmd/future/mmlogic/mmlogic$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go internal/future/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+	cd cmd/future/mmlogic; $(GO_BUILD_COMMAND)
+
+tools/certgen/certgen$(EXE_EXTENSION):
+	cd tools/certgen/ && $(GO_BUILD_COMMAND)
+
+# Deprecated
+deprecated-all: deprecated-service-binaries deprecated-client-binaries deprecated-example-binaries tools-binaries
+deprecated-service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/backendapi/backendapi$(EXE_EXTENSION) cmd/frontendapi/frontendapi$(EXE_EXTENSION) cmd/mmlogicapi/mmlogicapi$(EXE_EXTENSION)
+deprecated-client-binaries: examples/backendclient/backendclient$(EXE_EXTENSION) test/cmd/clientloadgen/clientloadgen$(EXE_EXTENSION) test/cmd/frontendclient/frontendclient$(EXE_EXTENSION)
+deprecated-example-binaries: deprecated-example-mmf-binaries deprecated-example-evaluator-binaries
+deprecated-example-mmf-binaries: examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION)
+deprecated-example-evaluator-binaries: examples/evaluators/golang/serving/serving$(EXE_EXTENSION)
+
+# Deprecated
 # Note: This list of dependencies is long but only add file references here. If you add a .PHONY dependency make will always rebuild it.
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/protobuf-spec/backend.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/protobuf-spec/frontend.swagger.json
@@ -645,32 +720,37 @@ cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/m
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd cmd/minimatch; $(GO_BUILD_COMMAND)
 
+# Deprecated
 cmd/backendapi/backendapi$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/protobuf-spec/backend.swagger.json
 	cd cmd/backendapi; $(GO_BUILD_COMMAND)
 
+# Deprecated
 cmd/frontendapi/frontendapi$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/protobuf-spec/frontend.swagger.json
 	cd cmd/frontendapi; $(GO_BUILD_COMMAND)
 
+# Deprecated
 cmd/mmlogicapi/mmlogicapi$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/protobuf-spec/mmlogic.swagger.json
 	cd cmd/mmlogicapi; $(GO_BUILD_COMMAND)
 
+# Deprecated
 examples/backendclient/backendclient$(EXE_EXTENSION): internal/pb/backend.pb.go
 	cd examples/backendclient; $(GO_BUILD_COMMAND)
 
+# Deprecated
 examples/evaluators/golang/serving/serving$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd examples/evaluators/golang/serving; $(GO_BUILD_COMMAND)
 
+# Deprecated
 examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd examples/functions/golang/grpc-serving; $(GO_BUILD_COMMAND)
 
+# Deprecated
 test/cmd/clientloadgen/clientloadgen$(EXE_EXTENSION):
 	cd test/cmd/clientloadgen; $(GO_BUILD_COMMAND)
 
+# Deprecated
 test/cmd/frontendclient/frontendclient$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/messages.pb.go
 	cd test/cmd/frontendclient; $(GO_BUILD_COMMAND)
-
-tools/certgen/certgen$(EXE_EXTENSION):
-	cd tools/certgen/ && $(GO_BUILD_COMMAND)
 
 build/certificates/: build/toolchain/bin/certgen$(EXE_EXTENSION)
 	mkdir -p $(BUILD_DIR)/certificates/
@@ -728,14 +808,6 @@ else
 	echo "Not deploying development.open-match.dev because this is not a post commit change."
 endif
 
-all: service-binaries client-binaries example-binaries tools-binaries
-service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/backendapi/backendapi$(EXE_EXTENSION) cmd/frontendapi/frontendapi$(EXE_EXTENSION) cmd/mmlogicapi/mmlogicapi$(EXE_EXTENSION)
-client-binaries: examples/backendclient/backendclient$(EXE_EXTENSION) test/cmd/clientloadgen/clientloadgen$(EXE_EXTENSION) test/cmd/frontendclient/frontendclient$(EXE_EXTENSION)
-example-binaries: example-mmf-binaries example-evaluator-binaries
-example-mmf-binaries: examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION)
-example-evaluator-binaries: examples/evaluators/golang/serving/serving$(EXE_EXTENSION)
-tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
-
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: update-deps clean-protos all-protos lint build test clean-site site-test
 
@@ -761,6 +833,9 @@ clean-protos:
 	rm -rf $(REPOSITORY_ROOT)/api/protobuf_spec/
 
 clean-binaries:
+	rm -rf $(REPOSITORY_ROOT)/cmd/future/backend/backend
+	rm -rf $(REPOSITORY_ROOT)/cmd/future/frontend/frontend
+	rm -rf $(REPOSITORY_ROOT)/cmd/future/mmlogic/mmlogic
 	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch
 	rm -rf $(REPOSITORY_ROOT)/cmd/backendapi/backendapi
 	rm -rf $(REPOSITORY_ROOT)/cmd/frontendapi/frontendapi
