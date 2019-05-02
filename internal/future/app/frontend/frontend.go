@@ -14,7 +14,40 @@
 
 package frontend
 
+import (
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/future/pb"
+	"github.com/GoogleCloudPlatform/open-match/internal/future/serving"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+)
+
+var (
+	frontendLogger = logrus.WithFields(logrus.Fields{
+		"app":       "openmatch",
+		"component": "frontend",
+	})
+)
+
 // RunApplication creates a server.
 func RunApplication() {
-	// TODO: Add server scaffolding.
+	cfg, err := config.Read()
+	if err != nil {
+		frontendLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatalf("cannot read configuration.")
+	}
+	p, err := serving.NewParamsFromConfig(cfg, "api.frontend")
+	if err != nil {
+		frontendLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatalf("cannot construct server.")
+	}
+
+	service := &frontendService{}
+	p.AddHandleFunc(func(s *grpc.Server) {
+		pb.RegisterFrontendServer(s, service)
+	}, pb.RegisterFrontendHandlerFromEndpoint)
+	// TODO: Requires #330
+	//serving.MustServeForever(p)
 }

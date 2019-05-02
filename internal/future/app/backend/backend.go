@@ -14,7 +14,40 @@
 
 package backend
 
+import (
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/future/pb"
+	"github.com/GoogleCloudPlatform/open-match/internal/future/serving"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+)
+
+var (
+	backendLogger = logrus.WithFields(logrus.Fields{
+		"app":       "openmatch",
+		"component": "backend",
+	})
+)
+
 // RunApplication creates a server.
 func RunApplication() {
-	// TODO: Add server scaffolding.
+	cfg, err := config.Read()
+	if err != nil {
+		backendLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatalf("cannot read configuration.")
+	}
+	p, err := serving.NewParamsFromConfig(cfg, "api.backend")
+	if err != nil {
+		backendLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatalf("cannot construct server.")
+	}
+
+	service := &backendService{}
+	p.AddHandleFunc(func(s *grpc.Server) {
+		pb.RegisterBackendServer(s, service)
+	}, pb.RegisterBackendHandlerFromEndpoint)
+	// TODO: Requires #330
+	//serving.MustServeForever(p)
 }

@@ -14,7 +14,40 @@
 
 package mmlogic
 
+import (
+	"github.com/GoogleCloudPlatform/open-match/internal/config"
+	"github.com/GoogleCloudPlatform/open-match/internal/future/pb"
+	"github.com/GoogleCloudPlatform/open-match/internal/future/serving"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+)
+
+var (
+	mmlogicLogger = logrus.WithFields(logrus.Fields{
+		"app":       "openmatch",
+		"component": "backend",
+	})
+)
+
 // RunApplication creates a server.
 func RunApplication() {
-	// TODO: Add server scaffolding.
+	cfg, err := config.Read()
+	if err != nil {
+		mmlogicLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatalf("cannot read configuration.")
+	}
+	p, err := serving.NewParamsFromConfig(cfg, "api.backend")
+	if err != nil {
+		mmlogicLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatalf("cannot construct server.")
+	}
+
+	service := &mmlogicService{}
+	p.AddHandleFunc(func(s *grpc.Server) {
+		pb.RegisterMmLogicServer(s, service)
+	}, pb.RegisterMmLogicHandlerFromEndpoint)
+	// TODO: Requires #330
+	//serving.MustServeForever(p)
 }

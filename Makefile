@@ -167,6 +167,18 @@ local-cloud-build: gcloud
 push-images: push-service-images deprecated-push-images
 push-service-images: push-backend-image push-frontend-image  push-mmlogic-image
 
+push-backend-image: docker build-backend-image
+	docker push $(REGISTRY)/openmatch-backend:$(TAG)
+	docker push $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
+
+push-frontend-image: docker build-frontend-image
+	docker push $(REGISTRY)/openmatch-frontend:$(TAG)
+	docker push $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
+
+push-mmlogic-image: docker build-mmlogic-image
+	docker push $(REGISTRY)/openmatch-mmlogic:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
+
 deprecated-push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
 deprecated-push-service-images: push-minimatch-image push-frontendapi-image push-backendapi-image push-mmlogicapi-image
 deprecated-push-mmf-example-images: push-mmf-go-grpc-serving-simple-image
