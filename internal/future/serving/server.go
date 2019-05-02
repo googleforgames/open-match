@@ -61,7 +61,7 @@ type Params struct {
 	privateKeyFileData []byte
 }
 
-// NewParamsFromConfig returns.
+// NewParamsFromConfig returns server Params initialized from the configuration file.
 func NewParamsFromConfig(cfg config.View, prefix string) (*Params, error) {
 	grpcLh, err := netlistener.NewFromPortNumber(cfg.GetInt(prefix + ".port"))
 	if err != nil {
@@ -100,7 +100,7 @@ func NewParamsFromConfig(cfg config.View, prefix string) (*Params, error) {
 	return p, nil
 }
 
-// NewParamsFromListeners returns.
+// NewParamsFromListeners returns server Params initialized with the ListenerHolder variables.
 func NewParamsFromListeners(grpcLh *netlistener.ListenerHolder, proxyLh *netlistener.ListenerHolder) *Params {
 	return &Params{
 		ServeMux:             http.NewServeMux(),
@@ -128,14 +128,13 @@ func (p *Params) usingTLS() bool {
 }
 
 // AddHandleFunc binds gRPC service handler and an associated HTTP proxy handler.
-func (p *Params) AddHandleFunc(handlerFunc GrpcHandler, grpcProxyHandler GrpcProxyHandler) *Params {
+func (p *Params) AddHandleFunc(handlerFunc GrpcHandler, grpcProxyHandler GrpcProxyHandler) {
 	if handlerFunc != nil {
 		p.handlersForGrpc = append(p.handlersForGrpc, handlerFunc)
 	}
 	if grpcProxyHandler != nil {
 		p.handlersForGrpcProxy = append(p.handlersForGrpcProxy, grpcProxyHandler)
 	}
-	return p
 }
 
 // invalidate closes all the TCP listeners that would otherwise leak if initialization fails.
