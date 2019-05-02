@@ -737,7 +737,7 @@ example-evaluator-binaries: examples/evaluators/golang/serving/serving$(EXE_EXTE
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: update-deps clean-protos all-protos lint build test
+presubmit: update-deps clean-protos all-protos lint build test clean-site site-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -783,8 +783,8 @@ clean-archives:
 clean-nodejs:
 	rm -rf $(REPOSITORY_ROOT)/build/toolchain/nodejs/
 	rm -rf $(REPOSITORY_ROOT)/node_modules/
-	rm -rf $(REPOSITORY_ROOT)/package.json
-	rm -rf $(REPOSITORY_ROOT)/package-lock.json
+	rm -f $(REPOSITORY_ROOT)/package.json
+	rm -f $(REPOSITORY_ROOT)/package-lock.json
 
 clean-install-yaml:
 	rm -f $(REPOSITORY_ROOT)/install/yaml/install.yaml

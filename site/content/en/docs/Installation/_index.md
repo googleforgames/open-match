@@ -12,7 +12,7 @@ In this quickstart, we'll create a Kubernetes cluster, install Open Match, and c
 
 This guide is for users that do not have a Kubernetes cluster. If you already have one that you can install Open Match into skip this section.
 
-* [Set up a Google Cloud Kubernetes Cluster](docs/gcloud.md) (*this may involve extra charges unless you are on free tier*)
+* [Set up a Google Cloud Kubernetes Cluster]({{< relref "./setup-gke.md" >}}) (*this may involve extra charges unless you are on free tier*)
 * [Set up a Local Minikube cluster](https://kubernetes.io/docs/setup/minikube/)
 
 ## Install Open Match Servers
@@ -43,7 +43,7 @@ Open Match framework requires the user to author a custom match function and an 
 
 ```bash
 # Install the example MMF and Evaluator.
-kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.0-rc.1/install-example.yaml --namespace open-match
+kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.0/install-example.yaml --namespace open-match
 ```
 
 This command also deploys a component that continuously generates players with different properties and adds them to Open Match state storage. This is because a populated player pool is required to generate matches.
@@ -54,7 +54,7 @@ In a real setup, a game backend (Director / DGS etc.) will request Open Match fo
 
 ```bash
 # Install the example MMF and Evaluator.
-kubectl run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=gcr.io/open-match-public-images/openmatch-backendclient:0.5.0-rc1 --namespace=open-match
+kubectl run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=gcr.io/open-match-public-images/openmatch-backendclient:0.5.0 --namespace=open-match
 ```
 
 If successful, the backend client should successfully generate matches, displaying players populated in Rosters.
@@ -65,3 +65,4 @@ To delete Open Match from this cluster, simply run:
 
 ```bash
 kubectl delete namespace open-match
+```
