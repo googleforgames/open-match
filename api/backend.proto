@@ -12,12 +12,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = 'proto3';
+syntax = "proto3";
 package api;
 option go_package = "internal/future/pb";
 
-import 'api/messages.proto';
-import 'google/api/annotations.proto';
+import "api/messages.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  info: {
+    title: "Backend"
+    version: "1.0"
+    contact: {
+      name: "Open Match"
+      url: "https://open-match.dev"
+      email: "open-match-discuss@googlegroups.com"
+    }
+    license: {
+      name: "Apache 2.0 License"
+      url: "https://github.com/GoogleCloudPlatform/open-match/blob/master/LICENSE"
+    }
+  }
+  external_docs: {
+    url: "https://open-match.dev/site/docs/"
+    description: "Open Match Documentation"
+  }
+  schemes: HTTP
+  schemes: HTTPS
+  consumes: "application/json"
+  produces: "application/json"
+  responses: {
+    key: "404"
+    value: {
+      description: "Returned when the resource does not exist."
+      schema: { json_schema: { type: STRING } }
+    }
+  }
+  // TODO Add annotations for security_defintiions.
+  // See
+  // https://github.com/grpc-ecosystem/grpc-gateway/blob/master/examples/proto/examplepb/a_bit_of_everything.proto
+};
 
 // Configuration for the Match Function to be triggered by Open Match to
 // generate proposals.
@@ -56,10 +91,10 @@ message GetMatchesResponse {
 }
 
 message AssignTicketsRequest {
-  // List of Ticket ids for which the Assinment is to be made.
+  // List of Ticket IDs for which the Assignment is to be made.
   repeated string ticket_id = 1;
 
-  // Assignment to be associated with the Ticket ids.
+  // Assignment to be associated with the Ticket IDs.
   Assignment assignment = 2;
 }
 
@@ -82,7 +117,7 @@ service Backend {
   }
 
   // AssignTickets sets the specified Assignment on the Tickets for the Ticket
-  // ids passed.
+  // IDs passed.
   rpc AssignTickets(AssignTicketsRequest) returns (AssignTicketsResponse) {
     option (google.api.http) = {
       post: "/v1/backend/tickets/assign"
