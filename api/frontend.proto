@@ -12,12 +12,49 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = 'proto3';
+syntax = "proto3";
 package api;
 option go_package = "internal/future/pb";
 
-import 'api/messages.proto';
-import 'google/api/annotations.proto';
+import "api/messages.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+	info: {
+		title: "Frontend";
+		version: "1.0";
+		contact: {
+			name: "Open Match";
+			url: "https://open-match.dev";
+			email: "open-match-discuss@googlegroups.com";
+		}
+		license: {
+			name: "Apache 2.0 License";
+			url: "https://github.com/GoogleCloudPlatform/open-match/blob/master/LICENSE";
+		}
+	}
+	external_docs: {
+		url: "https://open-match.dev/site/docs/";
+		description: "Open Match Documentation";
+	}
+	schemes: HTTP;
+	schemes: HTTPS;
+	consumes: "application/json";
+	produces: "application/json";
+	responses: {
+		key: "404";
+		value: {
+			description: "Returned when the resource does not exist.";
+			schema: {
+				json_schema: {
+					type: STRING;
+				}
+			}
+		}
+	}
+};
 
 message CreateTicketRequest {
   // Ticket object with the properties of the Ticket to be created.
