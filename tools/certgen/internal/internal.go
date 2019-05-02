@@ -64,7 +64,6 @@ type Params struct {
 
 // CreateCertificateAndPrivateKeyFiles writes the random public certificate and private key pair to disk.
 func CreateCertificateAndPrivateKeyFiles(publicCertificateFilePath string, privateKeyFilePath string, params *Params) error {
-<<<<<<< HEAD
 	if len(publicCertificateFilePath) == 0 {
 		return errors.New("public certificate file path must not be empty")
 	}
@@ -87,8 +86,6 @@ func CreateCertificateAndPrivateKeyFiles(publicCertificateFilePath string, priva
 		return errors.New("validity duration is required, otherwise the certificate would immediately expire")
 	}
 
-=======
->>>>>>> 26cf73cffe850aa5e44ebc1e6faef9a19215aaa3
 	publicCertificatePemBytes, privateKeyPemBytes, err := CreateCertificateAndPrivateKey(params)
 	if err != nil {
 		return err

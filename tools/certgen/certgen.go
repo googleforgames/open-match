@@ -17,17 +17,13 @@ package main
 
 import (
 	"flag"
-<<<<<<< HEAD
 	"fmt"
-=======
->>>>>>> 26cf73cffe850aa5e44ebc1e6faef9a19215aaa3
 	"io/ioutil"
 	"log"
 	"strings"
 	"time"
 
 	certgenInternal "github.com/GoogleCloudPlatform/open-match/tools/certgen/internal"
-	"github.com/pkg/errors"
 )
 
 var (
@@ -57,7 +53,6 @@ func createCertificateViaFlags() error {
 	}
 
 	if len(*rootPublicCertificateFlag) > 0 {
-<<<<<<< HEAD
 		if len(*rootPrivateKeyFlag) == 0 {
 			return fmt.Errorf("--rootprivatekey is required if --rootpubliccertificate=%s is set", *rootPublicCertificateFlag)
 		}
@@ -65,21 +60,11 @@ func createCertificateViaFlags() error {
 			params.RootPublicCertificateData = rootPublicCertificateData
 		} else {
 			return fmt.Errorf("cannot read the root public certificate from %s", *rootPublicCertificateFlag)
-=======
-		if rootPublicCertificateData, err := ioutil.ReadFile(*rootPublicCertificateFlag); err == nil {
-			params.RootPublicCertificateData = rootPublicCertificateData
-		} else {
-			return errors.WithStack(err)
->>>>>>> 26cf73cffe850aa5e44ebc1e6faef9a19215aaa3
 		}
 		if rootPrivateKeyData, err := ioutil.ReadFile(*rootPrivateKeyFlag); err == nil {
 			params.RootPrivateKeyData = rootPrivateKeyData
 		} else {
-<<<<<<< HEAD
 			return fmt.Errorf("cannot read the root private key from %s", *rootPrivateKeyFlag)
-=======
-			return errors.WithStack(err)
->>>>>>> 26cf73cffe850aa5e44ebc1e6faef9a19215aaa3
 		}
 	}
 
