@@ -182,7 +182,7 @@ func startServingIndefinitely(params *Params) (func(), func(), error) {
 	s := &Server{}
 
 	// Start serving traffic.
-	waitForServing, err := s.Start(params)
+	waitForStart, err := s.Start(params)
 	if err != nil {
 		serverLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -193,7 +193,7 @@ func startServingIndefinitely(params *Params) (func(), func(), error) {
 	// Exit when we see a signal
 	waitUntilKilled, forceStopServingFunc := signal.New()
 
-	waitForServing()
+	waitForStart()
 	serveUntilKilledFunc := func() {
 		waitUntilKilled()
 		s.Stop()

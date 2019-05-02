@@ -48,10 +48,10 @@ var (
 )
 
 // ClientCredentialsFromFile gets TransportCredentials from public certificate.
-func ClientCredentialsFromFile(certFile string) (credentials.TransportCredentials, error) {
-	publicCertFileData, err := ioutil.ReadFile(certFile)
+func ClientCredentialsFromFile(certPath string) (credentials.TransportCredentials, error) {
+	publicCertFileData, err := ioutil.ReadFile(certPath)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, fmt.Errorf("cannot read public certificate from %s", certPath)
 	}
 	return ClientCredentialsFromFileData(publicCertFileData, "")
 }
@@ -78,11 +78,11 @@ func ClientCredentialsFromFileData(publicCertFileData []byte, serverOverride str
 func CertificateFromFiles(publicCertificatePath string, privateKeyPath string) (*tls.Certificate, error) {
 	publicCertFileData, err := ioutil.ReadFile(publicCertificatePath)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, fmt.Errorf("cannot read public certificate from %s", publicCertificatePath)
 	}
 	privateKeyFileData, err := ioutil.ReadFile(privateKeyPath)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, fmt.Errorf("cannot read private key from %s", privateKeyPath)
 	}
 	return CertificateFromFileData(publicCertFileData, privateKeyFileData)
 }
