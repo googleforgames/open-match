@@ -1,21 +1,42 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /*
 
 Add styles or override variables from the theme here.
 
+Open Match Colors
+Light Blue: #2D70DE
+Dark Blue: #0A1A3F
 */
-$enable-rounded: false;
+
+$enable-rounded: true;
 // $enable-shadows: false;
 
 $display1-weight: 500 !default;
 $display2-weight: 100 !default;
 
+$light-blue: #2D70DE;
+$dark-blue: #0A1A3F;
 
 $primary: rgb(255, 255,255)  !default;
 $primary-light: lighten($primary, 75%) !default;
-$secondary: #2D70DE !default;
+$secondary: $dark-blue !default;
 $light: rgb(255, 255,255) !default;
 $grey:  #888 !default;
 $orange: $secondary;
+$blue: $light-blue !default;
 
 .nav-shadow {
     box-shadow: 0 2px 2px -2px rgba(0,0,0,.2);
@@ -50,6 +71,7 @@ $orange: $secondary;
 #site-search {
     background: rgba(190, 185, 185, 0.3);
 }
+
 input[type="search"]::placeholder {
     color:  #9B9595 !important;
 }
@@ -61,3 +83,20 @@ input[type="search"]::placeholder {
 #community a {
     color: #121314 !important;
 }
+/*
+.text-primary {
+    color: $light-blue !important;
+}
+
+.text-secondary {
+    color: $dark-blue !important;
+}
+
+.bg-dark {
+    background-color: $dark-blue;
+}
+
+.navbar-dark {
+    background-color: $dark-blue;
+}
+*/
