@@ -50,6 +50,9 @@ func (s *insecureServer) start(params *Params) (func(), error) {
 	s.httpServeWaiter = make(chan error)
 	var serverStartWaiter sync.WaitGroup
 
+	s.httpMux = params.ServeMux
+	s.proxyMux = runtime.NewServeMux()
+
 	// Configure the gRPC server.
 	grpcListener, err := s.grpcLh.Obtain()
 	if err != nil {
@@ -119,9 +122,7 @@ func (s *insecureServer) stop() {
 
 func newInsecureServer(grpcLh *netlistener.ListenerHolder, httpLh *netlistener.ListenerHolder) *insecureServer {
 	return &insecureServer{
-		grpcLh:   grpcLh,
-		httpLh:   httpLh,
-		httpMux:  http.NewServeMux(),
-		proxyMux: runtime.NewServeMux(),
+		grpcLh: grpcLh,
+		httpLh: httpLh,
 	}
 }

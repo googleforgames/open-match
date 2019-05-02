@@ -38,7 +38,7 @@ func TestStartStopServer(t *testing.T) {
 	params.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServer(s, ff)
 	}, pb.RegisterFrontendHandlerFromEndpoint)
-	s := New()
+	s := &Server{}
 	defer s.Stop()
 
 	waitForStart, err := s.Start(params)

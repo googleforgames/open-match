@@ -119,6 +119,9 @@ func (s *tlsServer) start(params *Params) (func(), error) {
 	s.httpServeWaiter = make(chan error)
 	var serverStartWaiter sync.WaitGroup
 
+	s.httpMux = params.ServeMux
+	s.proxyMux = runtime.NewServeMux()
+
 	grpcAddress := fmt.Sprintf("localhost:%d", s.grpcLh.Number())
 
 	grpcListener, err := s.grpcLh.Obtain()
@@ -199,17 +202,14 @@ func (s *tlsServer) start(params *Params) (func(), error) {
 
 func (s *tlsServer) stop() {
 	s.grpcServer.Stop()
-	// Close the TCP listener, it'll always report that the port is closed so just log the error.
 	if err := s.grpcListener.Close(); err != nil {
 		tlsServerLogger.Error(err)
 	}
 
-	// Close the TCP listener, it'll always report that the port is closed so just log the error.
 	if err := s.httpServer.Close(); err != nil {
 		tlsServerLogger.Error(err)
 	}
 
-	// Close the TCP listener, it'll always report that the port is closed so just log the error.
 	if err := s.httpListener.Close(); err != nil {
 		tlsServerLogger.Error(err)
 	}
@@ -217,9 +217,7 @@ func (s *tlsServer) stop() {
 
 func newTLSServer(grpcLh *netlistener.ListenerHolder, httpLh *netlistener.ListenerHolder) *tlsServer {
 	return &tlsServer{
-		grpcLh:   grpcLh,
-		httpLh:   httpLh,
-		httpMux:  http.NewServeMux(),
-		proxyMux: runtime.NewServeMux(),
+		grpcLh: grpcLh,
+		httpLh: httpLh,
 	}
 }

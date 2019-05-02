@@ -17,6 +17,7 @@ package serving
 import (
 	"context"
 	"io/ioutil"
+	"net/http"
 
 	"github.com/sirupsen/logrus"
 
@@ -41,17 +42,23 @@ type GrpcHandler func(*grpc.Server)
 // GrpcProxyHandler binds HTTP handler to gRPC service.
 type GrpcProxyHandler func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error
 
-// Params yeah
+// Params holds all the parameters required to start a gRPC server.
 type Params struct {
+	// ServeMux is the router for the HTTP server. You can use this to serve pages in addition to the HTTP proxy.
+	// Do NOT register "/" handler because it's reserved for the proxy.
+	ServeMux             *http.ServeMux
 	handlersForGrpc      []GrpcHandler
 	handlersForGrpcProxy []GrpcProxyHandler
 	grpcListener         *netlistener.ListenerHolder
 	grpcProxyListener    *netlistener.ListenerHolder
 
-	// TLS configuration
+	// Root CA public certificate in PEM format.
 	rootCaPublicCertificateFileData []byte
-	publicCertificateFileData       []byte
-	privateKeyFileData              []byte
+	// Public certificate in PEM format.
+	// If this field is the same as rootCaPublicCertificateFileData then the certificate is not backed by a CA.
+	publicCertificateFileData []byte
+	// Private key in PEM format.
+	privateKeyFileData []byte
 }
 
 // NewParamsFromConfig returns.
@@ -96,6 +103,7 @@ func NewParamsFromConfig(cfg config.View, prefix string) (*Params, error) {
 // NewParamsFromListeners returns.
 func NewParamsFromListeners(grpcLh *netlistener.ListenerHolder, proxyLh *netlistener.ListenerHolder) *Params {
 	return &Params{
+		ServeMux:             http.NewServeMux(),
 		handlersForGrpc:      []GrpcHandler{},
 		handlersForGrpcProxy: []GrpcProxyHandler{},
 		grpcListener:         grpcLh,
@@ -167,13 +175,11 @@ func (s *Server) Stop() {
 	s.serverWithProxy.stop()
 }
 
-// New creates an instance of an Open Match server.
-func New() *Server {
-	return &Server{}
-}
-
+// startServingIndefinitely creates a server based on the params and begins serving the gRPC and HTTP proxy.
+// It returns waitUntilKilled() which will wait indefinitely until crash or Ctrl+C is pressed.
+// forceStopServingFunc() is also returned which is used to force kill the server for tests.
 func startServingIndefinitely(params *Params) (func(), func(), error) {
-	s := New()
+	s := &Server{}
 
 	// Start serving traffic.
 	waitForServing, err := s.Start(params)
@@ -185,7 +191,7 @@ func startServingIndefinitely(params *Params) (func(), func(), error) {
 	}
 	serverLogger.Info("Server has started.")
 	// Exit when we see a signal
-	waitUntilKilled, stopServingFunc := signal.New()
+	waitUntilKilled, forceStopServingFunc := signal.New()
 
 	waitForServing()
 	serveUntilKilledFunc := func() {
@@ -193,7 +199,7 @@ func startServingIndefinitely(params *Params) (func(), func(), error) {
 		s.Stop()
 		serverLogger.Info("Shutting down server")
 	}
-	return serveUntilKilledFunc, stopServingFunc, nil
+	return serveUntilKilledFunc, forceStopServingFunc, nil
 }
 
 // MustServeForever is a convenience method for starting a server and running it indefinitely.
