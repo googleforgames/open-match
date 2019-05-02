@@ -48,6 +48,5 @@ func RunApplication() {
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterBackendServer(s, service)
 	}, pb.RegisterBackendHandlerFromEndpoint)
-	// TODO: Requires #330
-	//serving.MustServeForever(p)
+	serving.MustServeForever(p)
 }
