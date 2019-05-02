@@ -12,5 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package backendapi provides the scaffolding for starting the service.
+// Package backendapi provides the scaffolding for starting the backend service.
 package backendapi
