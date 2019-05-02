@@ -65,7 +65,7 @@ func (m *CreateTicketRequest) GetTicket() *Ticket {
 }
 
 type CreateTicketResponse struct {
-	// Ticket object for the created Ticket - with the ticket id populated.
+	// Ticket object for the created Ticket - with the ticket ID populated.
 	Ticket               *Ticket  `protobuf:"bytes,1,opt,name=ticket,proto3" json:"ticket,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -105,7 +105,7 @@ func (m *CreateTicketResponse) GetTicket() *Ticket {
 }
 
 type DeleteTicketRequest struct {
-	// Ticket id of the Ticket to be deleted.
+	// Ticket ID of the Ticket to be deleted.
 	TicketId             string   `protobuf:"bytes,1,opt,name=ticket_id,json=ticketId,proto3" json:"ticket_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -176,7 +176,7 @@ func (m *DeleteTicketResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_DeleteTicketResponse proto.InternalMessageInfo
 
 type GetTicketRequest struct {
-	// Ticket id of the Ticket to fetch.
+	// Ticket ID of the Ticket to fetch.
 	TicketId             string   `protobuf:"bytes,1,opt,name=ticket_id,json=ticketId,proto3" json:"ticket_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -216,7 +216,7 @@ func (m *GetTicketRequest) GetTicketId() string {
 }
 
 type GetTicketUpdatesRequest struct {
-	// Ticket id of the Ticket to get updates on.
+	// Ticket ID of the Ticket to get updates on.
 	TicketId             string   `protobuf:"bytes,1,opt,name=ticket_id,json=ticketId,proto3" json:"ticket_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -363,7 +363,7 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type FrontendClient interface {
-	// CreateTicket will create a new ticket, assign a Ticket id to it and put the
+	// CreateTicket will create a new ticket, assign a Ticket ID to it and put the
 	// Ticket in state storage. It will then look through the 'properties' field
 	// for the attributes defined as indices the matchmakaking config. If the
 	// attributes exist and are valid integers, they will be indexed. Creating a
@@ -373,10 +373,10 @@ type FrontendClient interface {
 	// configured indices. Deleting the ticket stops the ticket from being
 	// considered for future matchmaking requests.
 	DeleteTicket(ctx context.Context, in *DeleteTicketRequest, opts ...grpc.CallOption) (*DeleteTicketResponse, error)
-	// GetTicket fetches the ticket associated with the specified Ticket id.
+	// GetTicket fetches the ticket associated with the specified Ticket ID.
 	GetTicket(ctx context.Context, in *GetTicketRequest, opts ...grpc.CallOption) (*Ticket, error)
 	// GetTicketUpdates streams matchmaking results from Open Match for the
-	// provided Ticket id.
+	// provided Ticket ID.
 	GetTicketUpdates(ctx context.Context, in *GetTicketUpdatesRequest, opts ...grpc.CallOption) (Frontend_GetTicketUpdatesClient, error)
 }
 
@@ -449,7 +449,7 @@ func (x *frontendGetTicketUpdatesClient) Recv() (*GetTicketUpdatesResponse, erro
 
 // FrontendServer is the server API for Frontend service.
 type FrontendServer interface {
-	// CreateTicket will create a new ticket, assign a Ticket id to it and put the
+	// CreateTicket will create a new ticket, assign a Ticket ID to it and put the
 	// Ticket in state storage. It will then look through the 'properties' field
 	// for the attributes defined as indices the matchmakaking config. If the
 	// attributes exist and are valid integers, they will be indexed. Creating a
@@ -459,10 +459,10 @@ type FrontendServer interface {
 	// configured indices. Deleting the ticket stops the ticket from being
 	// considered for future matchmaking requests.
 	DeleteTicket(context.Context, *DeleteTicketRequest) (*DeleteTicketResponse, error)
-	// GetTicket fetches the ticket associated with the specified Ticket id.
+	// GetTicket fetches the ticket associated with the specified Ticket ID.
 	GetTicket(context.Context, *GetTicketRequest) (*Ticket, error)
 	// GetTicketUpdates streams matchmaking results from Open Match for the
-	// provided Ticket id.
+	// provided Ticket ID.
 	GetTicketUpdates(*GetTicketUpdatesRequest, Frontend_GetTicketUpdatesServer) error
 }
 

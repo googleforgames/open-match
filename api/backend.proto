@@ -91,10 +91,10 @@ message GetMatchesResponse {
 }
 
 message AssignTicketsRequest {
-  // List of Ticket ids for which the Assinment is to be made.
+  // List of Ticket IDs for which the Assignment is to be made.
   repeated string ticket_id = 1;
 
-  // Assignment to be associated with the Ticket ids.
+  // Assignment to be associated with the Ticket IDs.
   Assignment assignment = 2;
 }
 
@@ -117,7 +117,7 @@ service Backend {
   }
 
   // AssignTickets sets the specified Assignment on the Tickets for the Ticket
-  // ids passed.
+  // IDs passed.
   rpc AssignTickets(AssignTicketsRequest) returns (AssignTicketsResponse) {
     option (google.api.http) = {
       post: "/v1/backend/tickets/assign"

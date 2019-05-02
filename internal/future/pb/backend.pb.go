@@ -309,9 +309,9 @@ func (m *GetMatchesResponse) GetMatch() *Match {
 }
 
 type AssignTicketsRequest struct {
-	// List of Ticket ids for which the Assinment is to be made.
+	// List of Ticket IDs for which the Assignment is to be made.
 	TicketId []string `protobuf:"bytes,1,rep,name=ticket_id,json=ticketId,proto3" json:"ticket_id,omitempty"`
-	// Assignment to be associated with the Ticket ids.
+	// Assignment to be associated with the Ticket IDs.
 	Assignment           *Assignment `protobuf:"bytes,2,opt,name=assignment,proto3" json:"assignment,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
@@ -470,7 +470,7 @@ type BackendClient interface {
 	// executing a MatchFunction.
 	GetMatches(ctx context.Context, in *GetMatchesRequest, opts ...grpc.CallOption) (Backend_GetMatchesClient, error)
 	// AssignTickets sets the specified Assignment on the Tickets for the Ticket
-	// ids passed.
+	// IDs passed.
 	AssignTickets(ctx context.Context, in *AssignTicketsRequest, opts ...grpc.CallOption) (*AssignTicketsResponse, error)
 }
 
@@ -533,7 +533,7 @@ type BackendServer interface {
 	// executing a MatchFunction.
 	GetMatches(*GetMatchesRequest, Backend_GetMatchesServer) error
 	// AssignTickets sets the specified Assignment on the Tickets for the Ticket
-	// ids passed.
+	// IDs passed.
 	AssignTickets(context.Context, *AssignTicketsRequest) (*AssignTicketsResponse, error)
 }
 
