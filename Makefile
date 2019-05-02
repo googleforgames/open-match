@@ -179,7 +179,7 @@ push-mmlogic-image: docker build-mmlogic-image
 	docker push $(REGISTRY)/openmatch-mmlogic:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
 
-deprecated-push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
+deprecated-push-images: deprecated-push-service-images deprecated-push-client-images deprecated-push-mmf-example-images deprecated-push-evaluator-example-images
 deprecated-push-service-images: push-minimatch-image push-frontendapi-image push-backendapi-image push-mmlogicapi-image
 deprecated-push-mmf-example-images: push-mmf-go-grpc-serving-simple-image
 deprecated-push-client-images: push-backendclient-image push-clientloadgen-image push-frontendclient-image
@@ -233,12 +233,6 @@ push-evaluator-serving-image: build-evaluator-serving-image
 build-images: build-service-images deprecated-build-images
 build-service-images: build-backend-image build-frontend-image build-mmlogic-image
 
-deprecated-build-images: deprecated-build-service-images deprecated-build-client-images deprecated-build-mmf-example-images deprecated-build-evaluator-example-images
-deprecated-build-service-images: build-minimatch-image build-frontendapi-image build-backendapi-image build-mmlogicapi-image
-deprecated-build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
-deprecated-build-mmf-example-images: build-mmf-go-grpc-serving-simple-image
-deprecated-build-evaluator-example-images: build-evaluator-serving-image
-
 build-base-build-image: docker
 	docker build -f Dockerfile.base-build -t open-match-base-build .
 
@@ -250,6 +244,13 @@ build-frontend-image: docker build-base-build-image
 
 build-mmlogic-image: docker build-base-build-image
 	docker build -f cmd/future/mmlogic/Dockerfile -t $(REGISTRY)/openmatch-mmlogic:$(TAG) -t $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG) .
+
+# Deprecated
+deprecated-build-images: deprecated-build-service-images deprecated-build-client-images deprecated-build-mmf-example-images deprecated-build-evaluator-example-images
+deprecated-build-service-images: build-minimatch-image build-frontendapi-image build-backendapi-image build-mmlogicapi-image
+deprecated-build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
+deprecated-build-mmf-example-images: build-mmf-go-grpc-serving-simple-image
+deprecated-build-evaluator-example-images: build-evaluator-serving-image
 
 # Deprecated
 build-minimatch-image: docker build-base-build-image
