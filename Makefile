@@ -46,6 +46,7 @@ BASE_VERSION = 0.0.0-dev
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
+BUILD_DATE = $(date -u +'%Y-%m-%dT%H:%M:%SZ')
 
 PROTOC_VERSION = 3.7.1
 HELM_VERSION = 2.13.1
@@ -102,6 +103,7 @@ REDIS_NAME = om-redis
 GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | cut -c 10-)
 _GCB_POST_SUBMIT ?= 0
 DEV_SITE_VERSION = head
+IMAGE_BUILD_ARGS=--build-arg BUILD_DATE=$(BUILD_DATE) --build-arg=VCS_REF=$(SHORT_SHA) --build-arg BUILD_VERSION=$(BASE_VERSION)
 
 # Make port forwards accessible outside of the proxy machine.
 PORT_FORWARD_ADDRESS_FLAG = --address 0.0.0.0
@@ -186,16 +188,16 @@ build-base-build-image: docker
 	docker build -f Dockerfile.base-build -t open-match-base-build .
 
 build-backend-image: docker build-base-build-image
-	docker build -f cmd/future/backend/Dockerfile -t $(REGISTRY)/openmatch-backend:$(TAG) -t $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG) .
+	docker build -f cmd/future/backend/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-backend:$(TAG) -t $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG) .
 
 build-frontend-image: docker build-base-build-image
-	docker build -f cmd/future/frontend/Dockerfile -t $(REGISTRY)/openmatch-frontend:$(TAG) -t $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG) .
+	docker build -f cmd/future/frontend/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-frontend:$(TAG) -t $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG) .
 
 build-mmlogic-image: docker build-base-build-image
-	docker build -f cmd/future/mmlogic/Dockerfile -t $(REGISTRY)/openmatch-mmlogic:$(TAG) -t $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG) .
+	docker build -f cmd/future/mmlogic/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-mmlogic:$(TAG) -t $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG) .
 
 build-minimatch-image: docker build-base-build-image
-	docker build -f cmd/future/minimatch/Dockerfile -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
+	docker build -f cmd/future/minimatch/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
 
 clean-images: docker deprecated-clean-images
 	-docker rmi -f open-match-base-build

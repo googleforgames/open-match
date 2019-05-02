@@ -13,7 +13,7 @@
 # limitations under the License.
 
 FROM open-match-base-build as builder
-
+    
 WORKDIR /go/src/open-match.dev/open-match/cmd/backendapi/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
 
