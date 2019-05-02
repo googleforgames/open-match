@@ -180,53 +180,53 @@ push-mmlogic-image: docker build-mmlogic-image
 	docker push $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
 
 deprecated-push-images: deprecated-push-service-images deprecated-push-client-images deprecated-push-mmf-example-images deprecated-push-evaluator-example-images
-deprecated-push-service-images: push-minimatch-image push-frontendapi-image push-backendapi-image push-mmlogicapi-image
-deprecated-push-mmf-example-images: push-mmf-go-grpc-serving-simple-image
-deprecated-push-client-images: push-backendclient-image push-clientloadgen-image push-frontendclient-image
-deprecated-push-evaluator-example-images: push-evaluator-serving-image
+deprecated-push-service-images: deprecated-push-minimatch-image deprecated-push-frontendapi-image deprecated-push-backendapi-image deprecated-push-mmlogicapi-image
+deprecated-push-mmf-example-images: deprecated-push-mmf-go-grpc-serving-simple-image
+deprecated-push-client-images: deprecated-push-backendclient-image deprecated-push-clientloadgen-image deprecated-push-frontendclient-image
+deprecated-push-evaluator-example-images: deprecated-push-evaluator-serving-image
 
 # Deprecated
-push-minimatch-image: docker build-minimatch-image
+deprecated-push-minimatch-image: docker deprecated-build-minimatch-image
 	docker push $(REGISTRY)/openmatch-minimatch:$(TAG)
 	docker push $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 
 # Deprecated
-push-frontendapi-image: docker build-frontendapi-image
+deprecated-push-frontendapi-image: docker deprecated-build-frontendapi-image
 	docker push $(REGISTRY)/openmatch-frontendapi:$(TAG)
 	docker push $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
 
 # Deprecated
-push-backendapi-image: docker build-backendapi-image
+deprecated-push-backendapi-image: docker deprecated-build-backendapi-image
 	docker push $(REGISTRY)/openmatch-backendapi:$(TAG)
 	docker push $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG)
 
 # Deprecated
-push-mmlogicapi-image: docker build-mmlogicapi-image
+deprecated-push-mmlogicapi-image: docker deprecated-build-mmlogicapi-image
 	docker push $(REGISTRY)/openmatch-mmlogicapi:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG)
 
 # Deprecated
-push-mmf-go-grpc-serving-simple-image: docker build-mmf-go-grpc-serving-simple-image
+deprecated-push-mmf-go-grpc-serving-simple-image: docker deprecated-build-mmf-go-grpc-serving-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
 
 # Deprecated
-push-backendclient-image: docker build-backendclient-image
+deprecated-push-backendclient-image: docker deprecated-build-backendclient-image
 	docker push $(REGISTRY)/openmatch-backendclient:$(TAG)
 	docker push $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG)
 
 # Deprecated
-push-clientloadgen-image: docker build-clientloadgen-image
+deprecated-push-clientloadgen-image: docker deprecated-build-clientloadgen-image
 	docker push $(REGISTRY)/openmatch-clientloadgen:$(TAG)
 	docker push $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG)
 
 # Deprecated
-push-frontendclient-image: docker build-frontendclient-image
+deprecated-push-frontendclient-image: docker deprecated-build-frontendclient-image
 	docker push $(REGISTRY)/openmatch-frontendclient:$(TAG)
 	docker push $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG)
 
 # Deprecated
-push-evaluator-serving-image: build-evaluator-serving-image
+deprecated-push-evaluator-serving-image: docker deprecated-build-evaluator-serving-image
 	docker push $(REGISTRY)/openmatch-evaluator-serving:$(TAG)
 	docker push $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG)
 
@@ -247,49 +247,53 @@ build-mmlogic-image: docker build-base-build-image
 
 # Deprecated
 deprecated-build-images: deprecated-build-service-images deprecated-build-client-images deprecated-build-mmf-example-images deprecated-build-evaluator-example-images
-deprecated-build-service-images: build-minimatch-image build-frontendapi-image build-backendapi-image build-mmlogicapi-image
-deprecated-build-client-images: build-backendclient-image build-clientloadgen-image build-frontendclient-image
-deprecated-build-mmf-example-images: build-mmf-go-grpc-serving-simple-image
-deprecated-build-evaluator-example-images: build-evaluator-serving-image
+deprecated-build-service-images: deprecated-build-minimatch-image deprecated-build-frontendapi-image deprecated-build-backendapi-image deprecated-build-mmlogicapi-image
+deprecated-build-client-images: deprecated-build-backendclient-image deprecated-build-clientloadgen-image deprecated-build-frontendclient-image
+deprecated-build-mmf-example-images: deprecated-build-mmf-go-grpc-serving-simple-image
+deprecated-build-evaluator-example-images: deprecated-build-evaluator-serving-image
 
 # Deprecated
-build-minimatch-image: docker build-base-build-image
+deprecated-build-minimatch-image: docker build-base-build-image
 	docker build -f cmd/minimatch/Dockerfile -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
 
 # Deprecated
-build-frontendapi-image: docker build-base-build-image
+deprecated-build-frontendapi-image: docker build-base-build-image
 	docker build -f cmd/frontendapi/Dockerfile -t $(REGISTRY)/openmatch-frontendapi:$(TAG) -t $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG) .
 
 # Deprecated
-build-backendapi-image: docker build-base-build-image
+deprecated-build-backendapi-image: docker build-base-build-image
 	docker build -f cmd/backendapi/Dockerfile -t $(REGISTRY)/openmatch-backendapi:$(TAG) -t $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG) .
 
 # Deprecated
-build-mmlogicapi-image: docker build-base-build-image
+deprecated-build-mmlogicapi-image: docker build-base-build-image
 	docker build -f cmd/mmlogicapi/Dockerfile -t $(REGISTRY)/openmatch-mmlogicapi:$(TAG) -t $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG) .
 
 # Deprecated
-build-mmf-go-grpc-serving-simple-image: docker build-base-build-image
+deprecated-build-mmf-go-grpc-serving-simple-image: docker build-base-build-image
 	docker build -f examples/functions/golang/grpc-serving/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG) .
 
 # Deprecated
-build-backendclient-image: docker build-base-build-image
+deprecated-build-backendclient-image: docker build-base-build-image
 	docker build -f examples/backendclient/Dockerfile -t $(REGISTRY)/openmatch-backendclient:$(TAG) -t $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG) .
 
 # Deprecated
-build-clientloadgen-image: docker build-base-build-image
+deprecated-build-clientloadgen-image: docker build-base-build-image
 	docker build -f test/cmd/clientloadgen/Dockerfile -t $(REGISTRY)/openmatch-clientloadgen:$(TAG) -t $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG) .
 
 # Deprecated
-build-frontendclient-image: docker build-base-build-image
+deprecated-build-frontendclient-image: docker build-base-build-image
 	docker build -f test/cmd/frontendclient/Dockerfile -t $(REGISTRY)/openmatch-frontendclient:$(TAG) -t $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG) .
 
 # Deprecated
-build-evaluator-serving-image: build-base-build-image
+deprecated-build-evaluator-serving-image: build-base-build-image
 	docker build -f examples/evaluators/golang/serving/Dockerfile -t $(REGISTRY)/openmatch-evaluator-serving:$(TAG) -t $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG) .
 
 clean-images: docker
 	-docker rmi -f open-match-base-build
+
+	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-frontend:$(TAG) $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmlogic:$(TAG) $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
 
 	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontendapi:$(TAG) $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
