@@ -1,8 +1,10 @@
 {{ $cover := .HasShortcode "blocks/cover" }}
 <nav class="js-navbar-scroll navbar navbar-expand navbar-light {{ if not $cover }} nav-shadow {{ end }}flex-column flex-md-row td-navbar">
-	<a id="openmatch-top" {{ if $cover }} style="display: none;" {{end}} class="navbar-brand" href="{{ .Site.Home.RelPermalink }}">
+	
+	<a id="agones-top" {{ if $cover }} style="display: none;" {{end}} class="navbar-brand" href="{{ .Site.Home.RelPermalink }}">
 		{{ with resources.Get "icons/logo.svg" }}{{ ( . | minify).Content | safeHTML }} {{ end }}<span class="text-uppercase font-weight-bold">{{ .Site.Title }}</span>
 	</a>
+	
 	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
 		<ul class="navbar-nav mt-2 mt-lg-0">
 			{{ $p := . }}
@@ -25,7 +27,7 @@
 				<div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
 					<a class="dropdown-item" href="https://development-dot-open-match-site.appspot.com/site/">Development</a>
 					<a class="dropdown-item" href="https://development-dot-open-match-site.appspot.com/site/">{{ .Site.Params.release_version }}</a>
-					<a class="dropdown-item" href="https://development-dot-open-match-site.appspot.com/site/">0.5.0</a>
+					<a class="dropdown-item" href="https://development-dot-open-match-site.appspot.com/site/">0.6.0</a>
 				</div>
 			</li>
 			{{ if  (gt (len .Site.Home.Translations) 0) }}

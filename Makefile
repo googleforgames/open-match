@@ -53,7 +53,7 @@ VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
 
 PROTOC_VERSION = 3.7.1
 HELM_VERSION = 2.13.1
-HUGO_VERSION = 0.55.2
+HUGO_VERSION = 0.55.4
 KUBECTL_VERSION = 1.14.1
 NODEJS_VERSION = 10.15.3
 SKAFFOLD_VERSION = latest
@@ -760,7 +760,6 @@ node_modules/: build/toolchain/nodejs/
 	-rm -r package.json package-lock.json
 	-rm -rf node_modules/
 	echo "{}" > package.json
-	-rm -f package-lock.json
 	$(TOOLCHAIN_DIR)/nodejs/bin/npm install postcss-cli autoprefixer
 
 build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
@@ -810,7 +809,7 @@ else
 endif
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: update-deps clean-protos all-protos lint build test
+presubmit: update-deps clean-protos all-protos lint build test clean-site site-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -859,8 +858,8 @@ clean-archives:
 clean-nodejs:
 	rm -rf $(REPOSITORY_ROOT)/build/toolchain/nodejs/
 	rm -rf $(REPOSITORY_ROOT)/node_modules/
-	rm -rf $(REPOSITORY_ROOT)/package.json
-	rm -rf $(REPOSITORY_ROOT)/package-lock.json
+	rm -f $(REPOSITORY_ROOT)/package.json
+	rm -f $(REPOSITORY_ROOT)/package-lock.json
 
 clean-install-yaml:
 	rm -f $(REPOSITORY_ROOT)/install/yaml/install.yaml
