@@ -1,4 +1,4 @@
-# Copyright 2019 Google Inc. All Rights Reserved.
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -74,6 +74,8 @@ spec:
           containerPort: {{ .Values.openmatch.frontendapi.proxy.port }}
         - name: metrics
           containerPort: {{ .Values.openmatch.metrics.port }}
+        {{- $port := dict "port" .Values.openmatch.frontendapi.proxy.port -}}
+        {{- include "probe.readiness" $port | nindent 8 }}
         resources:
           requests:
             memory: 100Mi

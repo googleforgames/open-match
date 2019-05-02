@@ -1,27 +1,22 @@
-/*
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-This server is currently a stand alone application that runs evaluation in a
-conditional loop through its lifetime, calling the user's evaluation method
-in each run. This abstracts the user's evaluation method from how Open Match
-stores proposals, interprets results etc - having the user method to simply
-focus on approving matches from a set of proposals.
-
-Copyright 2018 Google LLC
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-*/
-
+// Package apisrv is currently a stand alone application that runs evaluation in a
+// conditional loop through its lifetime, calling the user's evaluation method
+// in each run. This abstracts the user's evaluation method from how Open Match
+// stores proposals, interprets results etc - having the user method to simply
+// focus on approving matches from a set of proposals.
 package apisrv
 
 import (
@@ -39,28 +34,35 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 
 	"github.com/gomodule/redigo/redis"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"go.opencensus.io/tag"
 )
 
+// EvaluateFunction is the evaluator function type.
 type EvaluateFunction func(context.Context, []*pb.MatchObject) ([]string, error)
 
 // Evaluator contains the configuration for various components of the Evaluator.
 type Evaluator struct {
 	Config   config.View
-	Logger   *log.Entry
+	Logger   *logrus.Entry
 	Pool     *redis.Pool
 	MMLogic  pb.MmLogicClient
 	Evaluate EvaluateFunction
 }
 
+// EvaluateForever loops indefinitely to perform Open Match evaluations.
 func (s *Evaluator) EvaluateForever() {
+	logger := s.Logger
+
 	// Get connection to redis
 	redisConn := s.Pool.Get()
-	defer redisConn.Close()
-
+	defer func() {
+		err := redisConn.Close()
+		if err != nil {
+			logger.Errorf("failed to close redis connection, %s", err)
+		}
+	}()
 	start := time.Now()
-	logger := s.Logger
 	checkProposals := true
 	pollInterval := s.Config.GetInt("evaluator.pollIntervalMs")
 	maxWait := s.Config.GetInt64("evaluator.maxWaitMs")
@@ -104,7 +106,6 @@ func (s *Evaluator) EvaluateForever() {
 		case numRunning <= 0: // Can be less than zero in some less common cases.
 			logger.Info("All MMFs complete, trigger evaluation")
 			ctx, _ = tag.New(ctx, tag.Insert(KeyEvalTrigger, "mmfs_completed"))
-			numRunning = 0
 			checkProposals = true
 		}
 
@@ -127,7 +128,7 @@ func (s *Evaluator) EvaluateForever() {
 			// has written to the counter since last evaluation.
 			err = redishelpers.Delete(context.Background(), s.Pool, "concurrentMMFs")
 			if err != nil {
-				logger.WithFields(log.Fields{
+				logger.WithFields(logrus.Fields{
 					"error": err.Error(),
 				}).Error("error deleting concurrent MMF counter")
 			}
@@ -136,7 +137,7 @@ func (s *Evaluator) EvaluateForever() {
 
 		// A sleep here is not critical but just a useful safety valve in case
 		// things are broken, to keep the main loop from going all-out and spamming the log.
-		logger.WithFields(log.Fields{"elapsed ": time.Since(cycleStart)}).Info("Evaluation complete. Sleeping for 1 sec.")
+		logger.WithFields(logrus.Fields{"elapsed ": time.Since(cycleStart)}).Info("Evaluation complete. Sleeping for 1 sec.")
 		time.Sleep(time.Duration(1000) * time.Millisecond)
 	}
 }
@@ -149,7 +150,12 @@ func (s *Evaluator) evaluator(ctx context.Context) error {
 
 	// Get connection to redis
 	redisConn := s.Pool.Get()
-	defer redisConn.Close()
+	defer func() {
+		err := redisConn.Close()
+		if err != nil {
+			logger.Errorf("failed to close Redis connection, %v", err)
+		}
+	}()
 
 	start := time.Now()
 	// Get the number of proposals currently queued for evaluation.

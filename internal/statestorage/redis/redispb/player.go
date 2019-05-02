@@ -1,25 +1,17 @@
-// Package redispb marshals and unmarshals Open Match Frontend protobuf
-// messages ('Players' or groups) for redis state storage.
-//  More details about the protobuf messages used in Open Match can be found in
-//  the api/protobuf-spec/om_messages.proto file.
-/*
-Copyright 2018 Google LLC
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-All of this can probably be done more succinctly with some more interface and
-reflection, this is a hack but works for now.
-*/
 package redispb
 
 import (
@@ -32,16 +24,16 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gomodule/redigo/redis"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Logrus structured logging setup
 var (
-	pLogFields = log.Fields{
+	pLogFields = logrus.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
 	}
-	pLog = log.WithFields(pLogFields)
+	pLog = logrus.WithFields(pLogFields)
 )
 
 // UnmarshalPlayerFromRedis unmarshals a Player from a redis hash.
@@ -53,7 +45,7 @@ func UnmarshalPlayerFromRedis(ctx context.Context, pool *redis.Pool, player *om_
 	redisConn, err := pool.GetContext(context.Background())
 	defer redisConn.Close()
 	if err != nil {
-		pLog.WithFields(log.Fields{
+		pLog.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("failed to connect to redis")
@@ -63,7 +55,7 @@ func UnmarshalPlayerFromRedis(ctx context.Context, pool *redis.Pool, player *om_
 	// Prepare redis command.
 	cmd := "HGETALL"
 	key := player.Id
-	resultLog := pLog.WithFields(log.Fields{
+	resultLog := pLog.WithFields(logrus.Fields{
 		"component": "statestorage",
 		"cmd":       cmd,
 		"key":       key,
@@ -107,7 +99,7 @@ func UnmarshalPlayerFromRedis(ctx context.Context, pool *redis.Pool, player *om_
 //  you've received the results you were waiting for to stop doing work!
 func PlayerWatcher(bo backoff.BackOffContext, pool *redis.Pool, pb om_messages.Player) <-chan om_messages.Player {
 
-	pwLog := pLog.WithFields(log.Fields{"playerId": pb.Id})
+	pwLog := pLog.WithFields(logrus.Fields{"playerId": pb.Id})
 
 	// Establish channel to return results on.
 	watchChan := make(chan om_messages.Player, 1)
@@ -125,7 +117,7 @@ func PlayerWatcher(bo backoff.BackOffContext, pool *redis.Pool, pb om_messages.P
 			if err != nil {
 				// Not fatal, but this error should be addressed.  This could
 				// cause the player to expire while still actively connected!
-				pwLog.WithFields(log.Fields{"error": err.Error()}).Error("Unable to update accessed metadata timestamp")
+				pwLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Unable to update accessed metadata timestamp")
 			}
 
 			// Get player from redis.

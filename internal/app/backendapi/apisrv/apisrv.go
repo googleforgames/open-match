@@ -1,23 +1,18 @@
-/*
-package apisrv provides an implementation of the gRPC server defined in
-../../../api/protobuf-spec/backend.proto
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Copyright 2018 Google LLC
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-*/
-
+// Package apisrv provides the core serving logic for this service.
 package apisrv
 
 import (
@@ -38,7 +33,7 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
 
@@ -57,7 +52,7 @@ import (
 type backendAPI struct {
 	cfg        config.View
 	pool       *redis.Pool
-	logger     *log.Entry
+	logger     *logrus.Entry
 	mmfClients map[string]pb.MatchFunctionClient
 }
 
@@ -98,7 +93,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 	if profile.Pools == nil && s.cfg.IsSet("jsonkeys.pools") &&
 		gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).Exists() {
 		poolsJSON := fmt.Sprintf("{\"pools\": %v}", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.pools")).String())
-		ppLog := beLog.WithFields(log.Fields{"jsonkey": s.cfg.GetString("jsonkeys.pools")})
+		ppLog := beLog.WithFields(logrus.Fields{"jsonkey": s.cfg.GetString("jsonkeys.pools")})
 		ppLog.Debug("poolsJSON: ", poolsJSON)
 
 		ppools := &pb.MatchObject{}
@@ -117,7 +112,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 	if profile.Rosters == nil && s.cfg.IsSet("jsonkeys.rosters") &&
 		gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.rosters")).Exists() {
 		rostersJSON := fmt.Sprintf("{\"rosters\": %v}", gjson.Get(profile.Properties, s.cfg.GetString("jsonkeys.rosters")).String())
-		rLog := beLog.WithFields(log.Fields{"jsonkey": s.cfg.GetString("jsonkeys.rosters")})
+		rLog := beLog.WithFields(logrus.Fields{"jsonkey": s.cfg.GetString("jsonkeys.rosters")})
 
 		prosters := &pb.MatchObject{}
 		err := jsonpb.UnmarshalString(rostersJSON, prosters)
@@ -130,7 +125,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 	}
 
 	// Add fields for all subsequent logging
-	beLog = beLog.WithFields(log.Fields{
+	beLog = beLog.WithFields(logrus.Fields{
 		"profileID": profile.Id,
 		"func":      funcName,
 		"requestID": requestID,
@@ -142,7 +137,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 	// Write profile to state storage
 	err := redispb.MarshalToRedis(ctx, s.pool, profile, s.cfg.GetInt("redis.expirations.matchobject"))
 	if err != nil {
-		beLog.WithFields(log.Fields{
+		beLog.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("State storage failure to create match profile")
@@ -157,7 +152,7 @@ func (s *backendAPI) CreateMatch(c context.Context, req *pb.CreateMatchRequest) 
 	switch req.Mmfcfg.Type {
 	case pb.MmfConfig_GRPC:
 		// Call the MMF directly as a gRPC endpoint
-		mgLog := beLog.WithFields(log.Fields{
+		mgLog := beLog.WithFields(logrus.Fields{
 			"host": req.Mmfcfg.Host,
 			"port": req.Mmfcfg.Port,
 			"type": "grpc",
@@ -257,8 +252,8 @@ func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Back
 	// Create context for tagging OpenCensus metrics.
 	funcName := "ListMatches"
 
-	beLog = beLog.WithFields(log.Fields{"func": funcName})
-	beLog.WithFields(log.Fields{
+	beLog = beLog.WithFields(logrus.Fields{"func": funcName})
+	beLog.WithFields(logrus.Fields{
 		"profileID": p.Id,
 	}).Info("gRPC call executing. Calling CreateMatch. Looping until cancelled.")
 
@@ -266,7 +261,7 @@ func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Back
 		select {
 		case <-ctx.Done():
 			// Context cancelled, probably because the client cancelled their request, time to exit.
-			beLog.WithFields(log.Fields{
+			beLog.WithFields(logrus.Fields{
 				"profileID": p.Id,
 			}).Info("gRPC Context cancelled; client is probably finished receiving matches")
 
@@ -281,13 +276,13 @@ func (s *backendAPI) ListMatches(req *pb.ListMatchesRequest, matchStream pb.Back
 				Mmfcfg: proto.Clone(req.Mmfcfg).(*pb.MmfConfig),
 			})
 
-			beLog = beLog.WithFields(log.Fields{"func": funcName})
+			beLog = beLog.WithFields(logrus.Fields{"func": funcName})
 
 			if err != nil {
-				beLog.WithFields(log.Fields{"error": err.Error()}).Error("Failure calling CreateMatch")
+				beLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Failure calling CreateMatch")
 				return status.Error(codes.Unavailable, err.Error())
 			}
-			beLog.WithFields(log.Fields{"matchProperties": fmt.Sprintf("%v", mo)}).Debug("Streaming back match object")
+			beLog.WithFields(logrus.Fields{"matchProperties": fmt.Sprintf("%v", mo)}).Debug("Streaming back match object")
 			res := proto.Clone(mo.Match).(*pb.MatchObject)
 			err = matchStream.Send(&pb.ListMatchesResponse{
 				Match: res,
@@ -312,14 +307,14 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, req *pb.DeleteMatchRequest
 	// Create context for tagging OpenCensus metrics.
 	funcName := "DeleteMatch"
 
-	beLog = beLog.WithFields(log.Fields{"func": funcName})
-	beLog.WithFields(log.Fields{
+	beLog = beLog.WithFields(logrus.Fields{"func": funcName})
+	beLog.WithFields(logrus.Fields{
 		"matchObjectID": req.Match.Id,
 	}).Info("gRPC call executing")
 
 	err := redishelpers.Delete(ctx, s.pool, req.Match.Id)
 	if err != nil {
-		beLog.WithFields(log.Fields{
+		beLog.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("State storage error")
@@ -327,7 +322,7 @@ func (s *backendAPI) DeleteMatch(ctx context.Context, req *pb.DeleteMatchRequest
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 
-	beLog.WithFields(log.Fields{
+	beLog.WithFields(logrus.Fields{
 		"matchObjectID": req.Match.Id,
 	}).Info("Match Object deleted.")
 	return &pb.DeleteMatchResponse{}, nil
@@ -361,8 +356,8 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, req *pb.CreateAssign
 	funcName := "CreateAssignments"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
-	beLog = beLog.WithFields(log.Fields{"func": funcName})
-	beLog.WithFields(log.Fields{
+	beLog = beLog.WithFields(logrus.Fields{"func": funcName})
+	beLog.WithFields(logrus.Fields{
 		"numAssignments": len(players),
 	}).Info("gRPC call executing")
 
@@ -373,7 +368,7 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, req *pb.CreateAssign
 
 	// Issue encountered
 	if err != nil {
-		beLog.WithFields(log.Fields{
+		beLog.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("State storage error")
@@ -386,7 +381,7 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, req *pb.CreateAssign
 
 	// Issue encountered
 	if err != nil {
-		beLog.WithFields(log.Fields{
+		beLog.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "ignorelist",
 		}).Error("Error moving player to ignore list")
@@ -396,7 +391,7 @@ func (s *backendAPI) CreateAssignments(ctx context.Context, req *pb.CreateAssign
 	}
 
 	// Success!
-	beLog.WithFields(log.Fields{
+	beLog.WithFields(logrus.Fields{
 		"numPlayers": len(players),
 	}).Info("Assignments complete")
 
@@ -414,8 +409,8 @@ func (s *backendAPI) DeleteAssignments(ctx context.Context, req *pb.DeleteAssign
 	funcName := "DeleteAssignments"
 	fnCtx, _ := tag.New(ctx, tag.Insert(KeyMethod, funcName))
 
-	beLog = beLog.WithFields(log.Fields{"func": funcName})
-	beLog.WithFields(log.Fields{
+	beLog = beLog.WithFields(logrus.Fields{"func": funcName})
+	beLog.WithFields(logrus.Fields{
 		"numAssignments": len(assignments),
 	}).Info("gRPC call executing")
 
@@ -423,7 +418,7 @@ func (s *backendAPI) DeleteAssignments(ctx context.Context, req *pb.DeleteAssign
 
 	// Issue encountered
 	if err != nil {
-		beLog.WithFields(log.Fields{
+		beLog.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("State storage error")

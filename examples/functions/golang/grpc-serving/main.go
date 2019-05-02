@@ -1,25 +1,22 @@
-/*
-This is a sample match function that uses the GRPC harness to set up
-the match making function as a service. This sample is a reference
-to demonstrate the usage of the GRPC harness and should only be used as
-a starting point for your match function. You will need to modify the
-matchmaking logic in this function based on your game's requirements.
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Copyright 2018 Google LLC
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
+// Package main a sample match function that uses the GRPC harness to set up
+// the match making function as a service. This sample is a reference
+// to demonstrate the usage of the GRPC harness and should only be used as
+// a starting point for your match function. You will need to modify the
+// matchmaking logic in this function based on your game's requirements.
 package main
 
 import (
@@ -31,7 +28,7 @@ import (
 	harness "github.com/GoogleCloudPlatform/open-match/internal/harness/matchfunction/golang"
 	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -40,7 +37,7 @@ func main() {
 	// match function. The harness itself queries open match for player pools for
 	// the specified request and passes the pools to the match function to generate
 	// proposals.
-	harness.ServeMatchFunction(&harness.HarnessParams{
+	harness.ServeMatchFunction(&harness.Params{
 		FunctionName:          "simple-matchfunction",
 		ServicePortConfigName: "api.functions.port",
 		ProxyPortConfigName:   "api.functions.proxyport",
@@ -65,7 +62,7 @@ func main() {
 //              the players you want to assign to your DGS in Roster(s) when you call the
 //              BackendAPI CreateAssignments() endpoint.  Might as well put them in rosters now.
 //  - error :   Use if you need to return an unrecoverable error.
-func makeMatches(ctx context.Context, logger *log.Entry, profile string, rosters []*pb.Roster, pools []*pb.PlayerPool) (string, []*pb.Roster, error) {
+func makeMatches(ctx context.Context, logger *logrus.Entry, profile string, rosters []*pb.Roster, pools []*pb.PlayerPool) (string, []*pb.Roster, error) {
 
 	// Open Match will try to marshal your JSON roster to an array of protobuf Roster objects. It's
 	// up to you if you want to fill these protobuf Roster objects or just write your Rosters in your

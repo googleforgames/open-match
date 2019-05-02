@@ -1,22 +1,18 @@
-/*
-package apisrv provides an implementation of the gRPC server defined in ../../../api/protobuf-spec/pb.proto.
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Copyright 2018 Google LLC
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-*/
-
+// Package apisrv provides the frontendapi service for Open Match.
 package apisrv
 
 import (
@@ -33,7 +29,7 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 
 	"github.com/cenkalti/backoff"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/gomodule/redigo/redis"
 
@@ -47,7 +43,7 @@ import (
 type frontendAPI struct {
 	cfg    config.View
 	pool   *redis.Pool
-	logger *log.Entry
+	logger *logrus.Entry
 }
 
 // Bind binds the gRPC endpoint to OpenMatchServer
@@ -69,7 +65,7 @@ func (s *frontendAPI) CreatePlayer(ctx context.Context, req *pb.CreatePlayerRequ
 	// Write group
 	err := redispb.MarshalToRedis(ctx, s.pool, group, s.cfg.GetInt("redis.expirations.player"))
 	if err != nil {
-		s.logger.WithFields(log.Fields{
+		s.logger.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("State storage error")
@@ -80,7 +76,7 @@ func (s *frontendAPI) CreatePlayer(ctx context.Context, req *pb.CreatePlayerRequ
 	// Index group
 	err = playerindices.Create(ctx, s.pool, s.cfg, *group)
 	if err != nil {
-		s.logger.WithFields(log.Fields{
+		s.logger.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("State storage error")
@@ -99,7 +95,7 @@ func (s *frontendAPI) DeletePlayer(ctx context.Context, req *pb.DeletePlayerRequ
 	// their actual player object from Redis later.
 	err := playerindices.Delete(ctx, s.pool, s.cfg, group.Id)
 	if err != nil {
-		s.logger.WithFields(log.Fields{
+		s.logger.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("State storage error")
@@ -120,7 +116,7 @@ func (s *frontendAPI) DeletePlayer(ctx context.Context, req *pb.DeletePlayerRequ
 func (s *frontendAPI) deletePlayer(id string) {
 	err := redishelpers.Delete(context.Background(), s.pool, id)
 	if err != nil {
-		s.logger.WithFields(log.Fields{
+		s.logger.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Warn("Error deleting player from state storage, this could leak state storage memory but is usually not a fatal error")
@@ -137,7 +133,7 @@ func (s *frontendAPI) deletePlayer(id string) {
 		}
 		_, err := redisConn.Do("EXEC")
 		if err != nil {
-			s.logger.WithFields(log.Fields{
+			s.logger.WithFields(logrus.Fields{
 				"error":     err.Error(),
 				"component": "statestorage",
 			}).Error("Error de-indexing player from ignorelists")
@@ -170,7 +166,7 @@ func (s *frontendAPI) GetUpdates(req *pb.GetUpdatesRequest, assignmentStream pb.
 	for {
 		select {
 		case <-ctx.Done():
-			// Context cancelled
+			// Context canceled
 			s.logger.WithField("playerid", p.Id).Info("client closed connection successfully")
 			return nil
 
@@ -178,7 +174,7 @@ func (s *frontendAPI) GetUpdates(req *pb.GetUpdatesRequest, assignmentStream pb.
 			if !ok {
 				// Timeout reached without client closing connection
 				err := errors.New("server timeout reached without client closing connection")
-				s.logger.WithFields(log.Fields{
+				s.logger.WithFields(logrus.Fields{
 					"error":     err.Error(),
 					"component": "statestorage",
 					"playerid":  p.Id,
@@ -190,7 +186,7 @@ func (s *frontendAPI) GetUpdates(req *pb.GetUpdatesRequest, assignmentStream pb.
 				return status.Error(codes.DeadlineExceeded, err.Error())
 			}
 
-			s.logger.WithFields(log.Fields{
+			s.logger.WithFields(logrus.Fields{
 				"assignment": a.Assignment,
 				"playerid":   a.Id,
 				"status":     a.Status,

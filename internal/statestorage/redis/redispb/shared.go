@@ -1,25 +1,17 @@
-// Package redispb marshals and unmarshals Open Match Backend protobuf messages
-// ('MatchObject') for redis state storage.
-//  More details about the protobuf messages used in Open Match can be found in
-//  the api/protobuf-spec/om_messages.proto file.
-/*
-Copyright 2018 Google LLC
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-All of this can probably be done more succinctly with some more interface and
-reflection, this is a hack but works for now.
-*/
 package redispb
 
 import (
@@ -31,17 +23,17 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
 // Logrus structured logging setup
 var (
-	sLogFields = log.Fields{
+	sLogFields = logrus.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
 	}
-	sLog = log.WithFields(sLogFields)
+	sLog = logrus.WithFields(sLogFields)
 )
 
 // MarshalToRedis marshals a protobuf message to a redis hash.
@@ -54,7 +46,7 @@ func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message, ttl
 	this := jsonpb.Marshaler{}
 	jsonMsg, err := this.MarshalToString(pb)
 	if err != nil {
-		sLog.WithFields(log.Fields{
+		sLog.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 			"protobuf":  pb,
@@ -68,7 +60,7 @@ func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message, ttl
 	// Return error if the provided protobuf message doesn't have an ID field
 	if !keyResult.Exists() {
 		err = errors.New("cannot unmarshal protobuf messages without an id field")
-		sLog.WithFields(log.Fields{
+		sLog.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("failed to retrieve from redis")
@@ -78,7 +70,7 @@ func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message, ttl
 
 	// Prepare redis command.
 	cmd := "HSET"
-	resultLog := sLog.WithFields(log.Fields{
+	resultLog := sLog.WithFields(logrus.Fields{
 		"key": key,
 		"cmd": cmd,
 	})
@@ -86,7 +78,7 @@ func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message, ttl
 	// Get the Redis connection.
 	redisConn, err := pool.GetContext(context.Background())
 	if err != nil {
-		sLog.WithFields(log.Fields{
+		sLog.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("failed to connect to redis")
@@ -109,14 +101,14 @@ func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message, ttl
 			// This isn't the ID field, so write it to the redis hash.
 			err = redisConn.Send(cmd, key, field, value)
 			if err != nil {
-				resultLog.WithFields(log.Fields{
+				resultLog.WithFields(logrus.Fields{
 					"error":     err.Error(),
 					"component": "statestorage",
 					"field":     field,
 				}).Error("State storage error")
 				return err
 			}
-			resultLog.WithFields(log.Fields{
+			resultLog.WithFields(logrus.Fields{
 				"component": "statestorage",
 				"field":     field,
 				"value":     value,
@@ -125,12 +117,12 @@ func MarshalToRedis(ctx context.Context, pool *redis.Pool, pb proto.Message, ttl
 	}
 	if ttl > 0 {
 		redisConn.Send("EXPIRE", key, ttl)
-		resultLog.WithFields(log.Fields{
+		resultLog.WithFields(logrus.Fields{
 			"component": "statestorage",
 			"ttl":       ttl,
 		}).Info("State storage expiration set")
 	} else {
-		resultLog.WithFields(log.Fields{
+		resultLog.WithFields(logrus.Fields{
 			"component": "statestorage",
 			"ttl":       ttl,
 		}).Debug("State storage expiration not set")
