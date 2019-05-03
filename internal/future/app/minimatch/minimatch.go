@@ -12,20 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package backend
+package minimatch
 
 import (
 	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/future/pb"
+	"github.com/GoogleCloudPlatform/open-match/internal/future/app/backend"
+	"github.com/GoogleCloudPlatform/open-match/internal/future/app/frontend"
+	"github.com/GoogleCloudPlatform/open-match/internal/future/app/mmlogic"
 	"github.com/GoogleCloudPlatform/open-match/internal/future/serving"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 var (
-	backendLogger = logrus.WithFields(logrus.Fields{
+	minimatchLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "backend",
+		"component": "minimatch",
 	})
 )
 
@@ -33,24 +34,19 @@ var (
 func RunApplication() {
 	cfg, err := config.Read()
 	if err != nil {
-		backendLogger.WithFields(logrus.Fields{
+		minimatchLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
-	p, err := serving.NewParamsFromConfig(cfg, "api.backend")
+	p, err := serving.NewParamsFromConfig(cfg, "api.frontend")
 	if err != nil {
-		backendLogger.WithFields(logrus.Fields{
+		minimatchLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("cannot construct server.")
 	}
 
+	backend.BindService(p)
+	frontend.BindService(p)
+	mmlogic.BindService(p)
 	serving.MustServeForever(p)
-}
-
-// BindService creates the backend service to the server Params.
-func BindService(p *serving.Params) {
-	service := &backendService{}
-	p.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterBackendServer(s, service)
-	}, pb.RegisterBackendHandlerFromEndpoint)
 }

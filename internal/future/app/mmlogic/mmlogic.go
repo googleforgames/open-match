@@ -44,9 +44,14 @@ func RunApplication() {
 		}).Fatalf("cannot construct server.")
 	}
 
+	BindService(p)
+	serving.MustServeForever(p)
+}
+
+// BindService creates the mmlogic service to the server Params.
+func BindService(p *serving.Params) {
 	service := &mmlogicService{}
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterMmLogicServer(s, service)
 	}, pb.RegisterMmLogicHandlerFromEndpoint)
-	serving.MustServeForever(p)
 }
