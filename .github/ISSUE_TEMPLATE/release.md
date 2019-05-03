@@ -6,14 +6,12 @@ labels: kind/release
 assignees: ''
 ---
 
-Open Match Release Process
-==========================
+# Open Match Release Process
 
 Follow these instructions to create an Open Match release.  The output of the
 release process is new images and new configuration.
 
-Getting setup
--------------
+## Getting setup
 
 *note: the commands below are pasted from the 0.5 release.  make the necessary
 changes to match your naming & environment.*
@@ -26,8 +24,13 @@ but there are some small differences.
 ```shell
 git clone git@github.com:afeddersen/open-match.git
 ```
+**2. Move into the new open-match directory.**
 
-**2. Configure a remote that points to the upstream repository. This is required to sync changes you make in a fork with the original repository.  Note: Upstream is the gatekeeper of the project or the source of truth to which you wish to contribute.**
+```shell
+cd open-match
+```
+
+**3. Configure a remote that points to the upstream repository. This is required to sync changes you make in a fork with the original repository.  Note: Upstream is the gatekeeper of the project or the source of truth to which you wish to contribute.**
 
 ```shell
 git remote add upstream https://github.com/GoogleCloudPlatform/open-match.git
@@ -39,23 +42,17 @@ git remote add upstream https://github.com/GoogleCloudPlatform/open-match.git
 git fetch upstream
 ```
 
-**4.  Create a local release branch.**
+**4.  Create a local release branch that tracks upstream and check it out.**
 
 ```shell
-git branch release-0.5
+git checkout -b release-0.5 upstream/release-0.5
 ```
 
-**5.  Move to the branch to make the upcoming changes.**
+## Releases & Versions
 
-```shell
-git checkout release-0.5
-```
-
-Releases & Versions
--------------------
 
 Open Match uses Semantic Versioning 2.0.0.  If you're not familiar please
-see the documentation - https://semver.org/.
+see the documentation - [https://semver.org/](https://semver.org/).
 
 Full Release / Stable Release:
 
@@ -74,17 +71,17 @@ Hot Fixes:
   that's been discovered after the full release.
 * Naming example: 1.0.1
 
-Detailed Instructions
-=====================
+# Detailed Instructions
 
-Find and replace
-----------------
+
+## Find and replace
+
 
 Below this point you will see {version} used as a placeholder for future
 releases.  Find {version} and replace with the current release (e.g. 0.5.0)
 
-Create a release branch in the upstream repository
---------------------------------------------------
+## Create a release branch in the upstream repository
+
 
 **Note: This step is performed by the person who starts the release.  It is
 only required once.**
@@ -110,8 +107,8 @@ git push origin release-0.5
 - [ ] Create a PR with the changes and include the release candidate name.
 - [ ] Merge your changes once the PR is approved.
 
-Complete Milestone
-------------------
+## Complete Milestone
+
 
 **Note: This step is performed by the person who starts the release.  It is
 only required once.**
@@ -134,8 +131,7 @@ only required once.**
 
 TODO: Add guidelines for labeling issues.
 
-Build Artifacts
----------------
+## Build Artifacts
 
 - [ ] Go to [Cloud Build](https://pantheon.corp.google.com/cloud-build/triggers?project=open-match-build), under Post Submit click "Run Trigger".
 - [ ] Go to the History section and find the "Post Submit" build that's running. Wait for it to go Green. If it's red, fix error repeat this section. Take note of the docker image version tag for next step. Example: 0.5.0-a4706cb.
@@ -147,8 +143,8 @@ Build Artifacts
 - [ ] Open the [`README.md`](readme-deploy) update the version references and submit. (Release candidates can ignore this step.)
 - [ ] Publish the [Release](om-release) in Github.
 
-Announce
---------
+## Announce
+
 - [ ] Send an email to the [mailing list](mailing-list-post) with the release details (copy-paste the release blog post)
 - [ ] Send a chat on the [Slack channel](om-slack). "Open Match {version} has been released! Check it out at {release url}."
 
