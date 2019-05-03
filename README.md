@@ -43,7 +43,7 @@ kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-ad
 kubectl create namespace open-match
 
 # Install the core Open Match and monitoring services.
-kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.0-rc.1/install.yaml --namespace open-match
+kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.0/install.yaml --namespace open-match
 ```
 
 ### Deploy demo components
@@ -52,18 +52,18 @@ Open Match framework requires the user to author a custom match function and an 
 
 ```bash
 # Install the example MMF and Evaluator.
-kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.0-rc.1/install-example.yaml --namespace open-match
+kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.0/install-example.yaml --namespace open-match
 ```
 
 This command also deploys a component that continuously generates players with different properties and adds them to Open Match state storage. This is because a populated player pool is required to generate matches.
 
-### Generate Matches! 
+### Generate Matches!
 
 In a real setup, a game backend (Director / DGS etc.) will request Open Match for matches. For demo purposes, this is simulated by a backend client that requests Open Match to continuously list matches till it runs out of players.
 
 ```bash
 # Install the example MMF and Evaluator.
-kubectl run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=gcr.io/open-match-public-images/openmatch-backendclient:0.5.0-rc1 --namespace=open-match
+kubectl run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=gcr.io/open-match-public-images/openmatch-backendclient:0.5.0 --namespace=open-match
 ```
 
 If successful, the backend client should successfully generate matches, displaying players populated in Rosters.
