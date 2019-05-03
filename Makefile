@@ -313,8 +313,9 @@ set-redis-password:
 		printf "\n"; \
 		$(KUBECTL) create secret generic $(REDIS_NAME) -n $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
 
-install-toolchain: install-kubernetes-tools install-web-tools install-protoc-tools install-openmatch-tools
+install-toolchain: install-kubernetes-tools install-golang-tools install-web-tools install-protoc-tools install-openmatch-tools
 install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)
+install-golang-tools: build/toolchain/bin/go-bindata$(EXE_EXTENSION) build/toolchain/bin/go-bindata-assetfs$(EXE_EXTENSION)
 install-web-tools: build/toolchain/bin/hugo$(EXE_EXTENSION) build/toolchain/bin/htmltest$(EXE_EXTENSION) build/toolchain/nodejs/
 install-protoc-tools: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 install-openmatch-tools: build/toolchain/bin/certgen$(EXE_EXTENSION)
@@ -388,6 +389,7 @@ build/toolchain/python/:
 	cd build/toolchain/python/bin && ln -s python3 pytho
 	cd build/toolchain/python/ && . bin/activate && pip install locustio && deactivate
 
+build/toolchain/include/: build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
 build/toolchain/include/google/api/:
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -415,16 +417,24 @@ build/toolchain/bin/protoc$(EXE_EXTENSION):
 	(cd $(TOOLCHAIN_DIR); unzip -q -o protoc-temp.zip)
 	rm $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
 
-build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
+build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION): build/toolchain/include/
 	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
-build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION): build/toolchain/include/google/api/
+build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION): build/toolchain/include/
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
-build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
+build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION): build/toolchain/include/
 	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+
+build/toolchain/bin/go-bindata$(EXE_EXTENSION):
+	mkdir -p $(TOOLCHAIN_BIN)
+	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/kevinburke/go-bindata/go-bindata
+
+ build/toolchain/bin/go-bindata-assetfs$(EXE_EXTENSION):
+	mkdir -p $(TOOLCHAIN_BIN)
+	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs
 
 build/archives/$(NODEJS_PACKAGE_NAME):
 	mkdir -p build/archives/
@@ -547,13 +557,13 @@ all: service-binaries deprecated-all
 service-binaries: cmd/future/backend/backend$(EXE_EXTENSION) cmd/future/frontend/frontend$(EXE_EXTENSION) cmd/future/mmlogic/mmlogic$(EXE_EXTENSION)
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
-cmd/future/backend/backend$(EXE_EXTENSION): internal/future/pb/backend.pb.go internal/future/pb/backend.pb.gw.go api/backend.swagger.json
+cmd/future/backend/backend$(EXE_EXTENSION): internal/future/pb/backend.pb.go internal/future/pb/backend.pb.gw.go api/backend.swagger.json internal/future/assets/bindata.go
 	cd cmd/future/backend; $(GO_BUILD_COMMAND)
 
-cmd/future/frontend/frontend$(EXE_EXTENSION): internal/future/pb/frontend.pb.go internal/future/pb/frontend.pb.gw.go api/frontend.swagger.json
+cmd/future/frontend/frontend$(EXE_EXTENSION): internal/future/pb/frontend.pb.go internal/future/pb/frontend.pb.gw.go api/frontend.swagger.json internal/future/assets/bindata.go
 	cd cmd/future/frontend; $(GO_BUILD_COMMAND)
 
-cmd/future/mmlogic/mmlogic$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go internal/future/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+cmd/future/mmlogic/mmlogic$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go internal/future/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/future/assets/bindata.go
 	cd cmd/future/mmlogic; $(GO_BUILD_COMMAND)
 
 tools/certgen/certgen$(EXE_EXTENSION):
@@ -578,6 +588,16 @@ build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
 	-cp -f site/.gcloudignore $(BUILD_DIR)/site/.gcloudignore
 	#cd $(BUILD_DIR)/site && "SERVICE=$(SERVICE) envsubst < app.yaml > .app.yaml"
 	cp $(BUILD_DIR)/site/app.yaml $(BUILD_DIR)/site/.app.yaml
+
+all-assets: internal/future/assets/bindata.go
+
+internal/future/assets/bindata.go: build/toolchain/bin/go-bindata$(EXE_EXTENSION)
+internal/future/assets/bindata.go: api/backend.swagger.json api/frontend.swagger.json api/matchfunction.swagger.json api/matchfunction.swagger.json api/mmlogic.swagger.json
+	mkdir -p build/temp/bindata/
+	cp api/*.json build/temp/bindata/
+	cd $(BUILD_DIR)/temp/bindata/ && $(TOOLCHAIN_BIN)/go-bindata$(EXE_EXTENSION) -pkg assets .
+	mkdir -p $(REPOSITORY_ROOT)/internal/future/assets/
+	cp $(BUILD_DIR)/temp/bindata/bindata.go $(REPOSITORY_ROOT)/internal/future/assets/bindata.go
 
 site-test: TEMP_SITE_DIR := /tmp/open-match-site
 site-test: build/site/ build/toolchain/bin/htmltest$(EXE_EXTENSION)
@@ -616,7 +636,7 @@ else
 endif
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: update-deps clean-protos all-protos lint build test clean-site site-test
+presubmit: update-deps clean-protos all-protos all-assets lint build test clean-site site-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -625,6 +645,10 @@ build/release/: presubmit clean-install-yaml install/yaml/
 release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
 release: TAG = $(BASE_VERSION)
 release: build/release/
+
+clean-assets:
+	rm -rf $(BUILD_DIR)/temp/bindata/
+	rm -f $(REPOSITORY_ROOT)/internal/future/assets/bindata.go
 
 clean-release:
 	rm -rf $(REPOSITORY_ROOT)/build/release/
@@ -671,7 +695,7 @@ clean-stress-test-tools:
 	rm -rf $(TOOLCHAIN_DIR)/python
 	rm -f $(REPOSITORY_ROOT)/test/stress/*.csv
 
-clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools
+clean: clean-images clean-binaries clean-site clean-release clean-build clean-assets clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools
 
 proxy-grafana: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	echo "User: admin"
