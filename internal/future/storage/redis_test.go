@@ -31,15 +31,6 @@ func TestRedisConnection(t *testing.T) {
 	assert.Nil(closer())
 }
 
-func TestRedisGetSet(t *testing.T) {
-	assert := assert.New(t)
-	rb, closer := createRedis(t)
-
-	assert.NotNil(rb)
-
-	assert.Nil(closer())
-}
-
 func createRedis(t *testing.T) (Service, func() error) {
 	cfg := viper.New()
 	mredis, err := miniredis.Run()
