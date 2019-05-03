@@ -15,11 +15,11 @@
 package mmlogic
 
 import (
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/future/pb"
 	"open-match.dev/open-match/internal/future/serving"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 var (

@@ -25,7 +25,6 @@ import (
 	"crypto/x509"
 	"net"
 
-	"open-match.dev/open-match/internal/util/netlistener"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -33,6 +32,7 @@ import (
 	"go.opencensus.io/zpages"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"open-match.dev/open-match/internal/util/netlistener"
 )
 
 const (

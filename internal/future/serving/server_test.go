@@ -22,10 +22,10 @@ import (
 
 	"open-match.dev/open-match/internal/pb"
 
-	shellTesting "open-match.dev/open-match/internal/future/testing"
-	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
+	shellTesting "open-match.dev/open-match/internal/future/testing"
+	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 )
 
 func TestStartStopServer(t *testing.T) {

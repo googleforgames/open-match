@@ -20,9 +20,9 @@ import (
 	"open-match.dev/open-match/internal/future/serving"
 	"open-match.dev/open-match/internal/pb"
 
-	shellTesting "open-match.dev/open-match/internal/future/testing"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
+	shellTesting "open-match.dev/open-match/internal/future/testing"
 )
 
 // TestMustParamsForTesting verifies that a server can stand up in insecure mode.

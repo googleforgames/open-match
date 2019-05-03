@@ -25,8 +25,6 @@ import (
 
 	"open-match.dev/open-match/internal/pb"
 
-	"context"
-
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	shellTesting "open-match.dev/open-match/internal/future/testing"

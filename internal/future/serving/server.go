@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/signal"
 	"open-match.dev/open-match/internal/util/netlistener"
 )
 
