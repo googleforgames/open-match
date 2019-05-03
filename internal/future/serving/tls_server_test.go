@@ -23,8 +23,8 @@ import (
 
 	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 
+	"github.com/GoogleCloudPlatform/open-match/internal/future/pb"
 	shellTesting "github.com/GoogleCloudPlatform/open-match/internal/future/testing"
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	netlistenerTesting "github.com/GoogleCloudPlatform/open-match/internal/util/netlistener/testing"
 	certgenTesting "github.com/GoogleCloudPlatform/open-match/tools/certgen/testing"
 	"github.com/stretchr/testify/assert"
@@ -93,7 +93,7 @@ type tlsServerTestParams struct {
 func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 	assert := assert.New(t)
 
-	ff := shellTesting.NewFakeFrontend()
+	ff := &shellTesting.FakeFrontend{}
 
 	serverParams := NewParamsFromListeners(tp.grpcLh, tp.proxyLh)
 	serverParams.AddHandleFunc(func(s *grpc.Server) {

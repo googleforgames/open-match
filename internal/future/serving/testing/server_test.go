@@ -17,8 +17,8 @@ package testing
 import (
 	"testing"
 
+	"github.com/GoogleCloudPlatform/open-match/internal/future/pb"
 	"github.com/GoogleCloudPlatform/open-match/internal/future/serving"
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 
 	shellTesting "github.com/GoogleCloudPlatform/open-match/internal/future/testing"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +37,7 @@ func TestMustParamsForTestingTLS(t *testing.T) {
 
 func runServerStartStopTest(t *testing.T, p *serving.Params) {
 	assert := assert.New(t)
-	ff := shellTesting.NewFakeFrontend()
+	ff := &shellTesting.FakeFrontend{}
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServer(s, ff)
 	}, pb.RegisterFrontendHandlerFromEndpoint)
