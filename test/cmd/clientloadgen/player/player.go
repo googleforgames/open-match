@@ -1,21 +1,18 @@
-/*
-Package player is module of functions for generating stubbed players to go into
-the matchmaking pool.
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Copyright 2018 Google LLC
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Package player is module of functions for generating stubbed players to go into the matchmaking pool.
 package player
 
 import (
@@ -134,11 +131,11 @@ func New() {
 // For PoC, we're flattening the JSON so it can be easily indexed in Redis.
 // Flattened keys are joined using periods.
 // That should be abstracted out of this level and into the db storage module
-func Generate() (Xid string, properties map[string]int, debug map[string]string) {
+func Generate() (string, map[string]int, map[string]string) {
 	//return Xid, properties, debug
-	Xid = xid.New().String()
-	properties = map[string]int{}
-	debug = map[string]string{}
+	Xid := xid.New().String()
+	properties := map[string]int{}
+	debug := map[string]string{}
 
 	city := pick()
 	debug["city"] = city
@@ -173,5 +170,5 @@ func Generate() (Xid string, properties map[string]int, debug map[string]string)
 	properties["mode.ctf"] = now
 	properties["timestamp.enter"] = now
 
-	return
+	return Xid, properties, debug
 }

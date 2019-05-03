@@ -1,20 +1,18 @@
-/*
-Package metrics is an internal package that provides helper functions for
-OpenCensus instrumentation in Open Match.
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Copyright 2018 Google LLC
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Package metrics is an internal package that provides helper functions for OpenCensus instrumentation in Open Match.
 package metrics
 
 import (
@@ -25,7 +23,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"go.opencensus.io/exporter/prometheus"
 	"go.opencensus.io/stats"
@@ -34,11 +32,11 @@ import (
 )
 
 var (
-	metricsLogFields = log.Fields{
+	metricsLogFields = logrus.Fields{
 		"app":       "openmatch",
 		"component": "metrics",
 	}
-	mhLog = log.WithFields(metricsLogFields)
+	mhLog = logrus.WithFields(metricsLogFields)
 )
 
 // ConfigureOpenCensusPrometheusExporter reads from the provided
@@ -55,7 +53,7 @@ func ConfigureOpenCensusPrometheusExporter(lh *netlistener.ListenerHolder, cfg c
 	// Set OpenCensus to export to Prometheus
 	pe, err := prometheus.NewExporter(prometheus.Options{Namespace: "open_match"})
 	if err != nil {
-		mhLog.WithFields(log.Fields{"error": err}).Fatal(
+		mhLog.WithFields(logrus.Fields{"error": err}).Fatal(
 			"Failed to initialize OpenCensus exporter to Prometheus")
 	}
 	mhLog.Info("OpenCensus exporter to Promethus initialized")
@@ -70,7 +68,7 @@ func ConfigureOpenCensusPrometheusExporter(lh *netlistener.ListenerHolder, cfg c
 
 	// Change the frequency of updates to the metrics endpoint
 	view.SetReportingPeriod(time.Duration(metricsRP) * time.Second)
-	mhLog.WithFields(log.Fields{
+	mhLog.WithFields(logrus.Fields{
 		"port":            metricsPort,
 		"endpoint":        metricsEP,
 		"retentionPeriod": metricsRP,
@@ -80,13 +78,13 @@ func ConfigureOpenCensusPrometheusExporter(lh *netlistener.ListenerHolder, cfg c
 	go func() {
 		mux := http.NewServeMux()
 		mux.Handle(metricsEP, pe)
-		mhLog.WithFields(log.Fields{
+		mhLog.WithFields(logrus.Fields{
 			"port":     metricsPort,
 			"endpoint": metricsEP,
 		}).Info("Attempting to start http server for OpenCensus metrics on localhost")
 		listener, err := lh.Obtain()
 		if err != nil {
-			mhLog.WithFields(log.Fields{
+			mhLog.WithFields(logrus.Fields{
 				"error":    err,
 				"port":     metricsPort,
 				"endpoint": metricsEP,
@@ -94,13 +92,13 @@ func ConfigureOpenCensusPrometheusExporter(lh *netlistener.ListenerHolder, cfg c
 		}
 		err = http.Serve(listener, mux)
 		if err != nil {
-			mhLog.WithFields(log.Fields{
+			mhLog.WithFields(logrus.Fields{
 				"error":    err,
 				"port":     metricsPort,
 				"endpoint": metricsEP,
 			}).Fatal("Failed to run Prometheus endpoint")
 		}
-		mhLog.WithFields(log.Fields{
+		mhLog.WithFields(logrus.Fields{
 			"port":     metricsPort,
 			"endpoint": metricsEP,
 		}).Info("Successfully started http server for OpenCensus metrics on localhost")
@@ -113,8 +111,8 @@ type Hook struct {
 	keySeverity tag.Key
 }
 
-// NewHook returns a new log.Hook for counting log lines using OpenCensus.
-func NewHook(m *stats.Int64Measure, ks tag.Key) log.Hook {
+// NewHook returns a new logrus.Hook for counting log lines using OpenCensus.
+func NewHook(m *stats.Int64Measure, ks tag.Key) logrus.Hook {
 	return Hook{
 		count:       m,
 		keySeverity: ks,
@@ -122,7 +120,7 @@ func NewHook(m *stats.Int64Measure, ks tag.Key) log.Hook {
 }
 
 // Fire is run every time log logs a line and increments the OpenCensus counter
-func (h Hook) Fire(e *log.Entry) error {
+func (h Hook) Fire(e *logrus.Entry) error {
 	// get the entry's log level, and tag this opencensus counter increment with that level
 	ctx, err := tag.New(context.Background(), tag.Insert(h.keySeverity, e.Level.String()))
 	if err != nil {
@@ -133,6 +131,6 @@ func (h Hook) Fire(e *log.Entry) error {
 }
 
 // Levels returns all log levels, because we want the hook to always fire when a line is logged.
-func (h Hook) Levels() []log.Level {
-	return log.AllLevels
+func (h Hook) Levels() []logrus.Level {
+	return logrus.AllLevels
 }

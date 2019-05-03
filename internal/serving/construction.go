@@ -1,3 +1,17 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package serving
 
 import (
@@ -7,7 +21,7 @@ import (
 	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
 	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	"github.com/opencensus-integrations/redigo/redis"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/stats/view"
 )
@@ -17,7 +31,7 @@ type BindingFunc func(*OpenMatchServer)
 
 // ServerParams is a collection of parameters used to create an Open Match server.
 type ServerParams struct {
-	BaseLogFields         log.Fields
+	BaseLogFields         logrus.Fields
 	ServicePortConfigName string
 	ProxyPortConfigName   string
 	CustomMeasureViews    []*view.View
@@ -41,11 +55,11 @@ func New(params *ServerParams) (*OpenMatchServer, error) {
 // NewMulti creates an OpenMatchServer based on the parameters.
 func NewMulti(paramsList []*ServerParams) (*OpenMatchServer, error) {
 	// FIXME: We only take the first item in the list.
-	logger := log.WithFields(paramsList[0].BaseLogFields)
+	logger := logrus.WithFields(paramsList[0].BaseLogFields)
 
 	cfg, err := config.Read()
 	if err != nil {
-		logger.WithFields(log.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Error("Unable to load config file")
 		return nil, err
@@ -65,10 +79,10 @@ func NewMulti(paramsList []*ServerParams) (*OpenMatchServer, error) {
 	ocServerViews = append(ocServerViews, ocgrpc.DefaultServerViews...)      // gRPC OpenCensus views.
 	ocServerViews = append(ocServerViews, config.CfgVarCountView)            // config loader view.
 	ocServerViews = append(ocServerViews, redis.ObservabilityMetricViews...) // redis OpenCensus views.
-	logger.WithFields(log.Fields{"viewscount": len(ocServerViews)}).Info("Loaded OpenCensus views")
+	logger.WithFields(logrus.Fields{"viewscount": len(ocServerViews)}).Info("Loaded OpenCensus views")
 	promLh, err := netlistener.NewFromPortNumber(cfg.GetInt("metrics.port"))
 	if err != nil {
-		logger.WithFields(log.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Error("Unable to create metrics TCP listener")
 		return nil, err

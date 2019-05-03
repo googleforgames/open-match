@@ -1,21 +1,18 @@
-// Package playerindices indexes player attributes in Redis for faster
-// filtering of player pools.
-/*
-Copyright 2018 Google LLC
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-*/
+// Package playerindices indexes player attributes in Redis for faster filtering of player pools.
 package playerindices
 
 import (
@@ -28,17 +25,17 @@ import (
 	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/gomodule/redigo/redis"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
 var (
 	// Logrus structured logging setup
-	piLogFields = log.Fields{
+	piLogFields = logrus.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
 	}
-	piLog = log.WithFields(piLogFields)
+	piLog = logrus.WithFields(piLogFields)
 
 	// OM Internal metadata indices
 	MetaIndices = []string{
@@ -116,7 +113,7 @@ func Create(ctx context.Context, rPool *redis.Pool, cfg config.View, player om_m
 	redisConn := rPool.Get()
 	defer redisConn.Close()
 
-	iLog := piLog.WithFields(log.Fields{"playerId": player.Id})
+	iLog := piLog.WithFields(logrus.Fields{"playerId": player.Id})
 
 	// Get the indices from configuration
 	indices, err := Retrieve(cfg)
@@ -145,13 +142,13 @@ func Create(ctx context.Context, rPool *redis.Pool, cfg config.View, player om_m
 			// If this attribute wasn't provided in the JSON, continue to the
 			// next attribute to index.
 			if !v.Exists() {
-				iLog.WithFields(log.Fields{"attribute": attribute, "value": v.Raw}).Debug("Couldn't find index in JSON: ", player.Properties)
+				iLog.WithFields(logrus.Fields{"attribute": attribute, "value": v.Raw}).Debug("Couldn't find index in JSON: ", player.Properties)
 				continue
 			} else if -9223372036854775808 <= v.Int() && v.Int() <= 9223372036854775807 {
 				// value contains a valid 64-bit integer
 				value = v.Int()
 			} else {
-				iLog.WithFields(log.Fields{"attribute": attribute}).Debug("No valid value for attribute, not indexing")
+				iLog.WithFields(logrus.Fields{"attribute": attribute}).Debug("No valid value for attribute, not indexing")
 			}
 
 		}
@@ -173,7 +170,7 @@ func Create(ctx context.Context, rPool *redis.Pool, cfg config.View, player om_m
 // TODO: make this quit cleanly if the context is cancelled.
 func Delete(ctx context.Context, rPool *redis.Pool, cfg config.View, playerID string) error {
 
-	diLog := piLog.WithFields(log.Fields{"playerID": playerID})
+	diLog := piLog.WithFields(logrus.Fields{"playerID": playerID})
 
 	// Connect to redis
 	redisConn := rPool.Get()
@@ -191,7 +188,7 @@ func Delete(ctx context.Context, rPool *redis.Pool, cfg config.View, playerID st
 	// Remove playerID from indices
 	redisConn.Send("MULTI")
 	for _, attribute := range indices {
-		diLog.WithFields(log.Fields{"attribute": attribute}).Debug("De-indexing")
+		diLog.WithFields(logrus.Fields{"attribute": attribute}).Debug("De-indexing")
 		redisConn.Send("ZREM", attribute, playerID)
 	}
 	_, err = redisConn.Do("EXEC")
@@ -206,7 +203,7 @@ func Delete(ctx context.Context, rPool *redis.Pool, cfg config.View, playerID st
 // TODO: make this quit cleanly if the context is cancelled.
 func DeleteMeta(ctx context.Context, rPool *redis.Pool, playerID string) {
 
-	dmLog := piLog.WithFields(log.Fields{"playerID": playerID})
+	dmLog := piLog.WithFields(logrus.Fields{"playerID": playerID})
 
 	// Connect to redis
 	redisConn := rPool.Get()
@@ -215,12 +212,12 @@ func DeleteMeta(ctx context.Context, rPool *redis.Pool, playerID string) {
 	// Remove playerID from metaindices
 	redisConn.Send("MULTI")
 	for _, attribute := range MetaIndices {
-		dmLog.WithFields(log.Fields{"attribute": attribute}).Debug("De-indexing from metadata")
+		dmLog.WithFields(logrus.Fields{"attribute": attribute}).Debug("De-indexing from metadata")
 		redisConn.Send("ZREM", attribute, playerID)
 	}
 	_, err := redisConn.Do("EXEC")
 	if err != nil {
-		dmLog.WithFields(log.Fields{"error": err.Error}).Error("Error de-indexing from metadata")
+		dmLog.WithFields(logrus.Fields{"error": err.Error}).Error("Error de-indexing from metadata")
 	}
 }
 

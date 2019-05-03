@@ -1,0 +1,127 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package api;
+option go_package = "internal/future/pb";
+
+import "api/messages.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  info: {
+    title: "Backend"
+    version: "1.0"
+    contact: {
+      name: "Open Match"
+      url: "https://open-match.dev"
+      email: "open-match-discuss@googlegroups.com"
+    }
+    license: {
+      name: "Apache 2.0 License"
+      url: "https://github.com/GoogleCloudPlatform/open-match/blob/master/LICENSE"
+    }
+  }
+  external_docs: {
+    url: "https://open-match.dev/site/docs/"
+    description: "Open Match Documentation"
+  }
+  schemes: HTTP
+  schemes: HTTPS
+  consumes: "application/json"
+  produces: "application/json"
+  responses: {
+    key: "404"
+    value: {
+      description: "Returned when the resource does not exist."
+      schema: { json_schema: { type: STRING } }
+    }
+  }
+  // TODO Add annotations for security_defintiions.
+  // See
+  // https://github.com/grpc-ecosystem/grpc-gateway/blob/master/examples/proto/examplepb/a_bit_of_everything.proto
+};
+
+// Configuration for the Match Function to be triggered by Open Match to
+// generate proposals.
+message MatchFunctionConfig {
+  message GrpcFunctionProperties {
+    string host = 1;
+    int32 port = 2;
+  }
+
+  message RestFunctionProperties {
+    string host = 1;
+    int32 port = 2;
+  }
+
+  // A developer-chosen human-readable name for this Match Function.
+  string name = 1;
+
+  // Properties for the type of this function.
+  oneof function {
+    GrpcFunctionProperties grpc_function = 10001;
+    RestFunctionProperties rest_function = 10002;
+  }
+}
+
+message GetMatchesRequest {
+  // MatchFunction to be executed for the given list of MatchProfiles
+  MatchFunctionConfig function = 1;
+
+  // MatchProfiles for which this MatchFunction should be executed.
+  repeated MatchProfile profile = 2;
+}
+
+message GetMatchesResponse {
+  // Result Match for the requested MatchProfile.
+  Match match = 1;
+}
+
+message AssignTicketsRequest {
+  // List of Ticket IDs for which the Assignment is to be made.
+  repeated string ticket_id = 1;
+
+  // Assignment to be associated with the Ticket IDs.
+  Assignment assignment = 2;
+}
+
+message AssignTicketsResponse {}
+
+// The service implementing the Backent API that is called to generate matches
+// and make assignments for Tickets.
+service Backend {
+  // GetMatches triggers execution of the specfied MatchFunction for each of the
+  // specified MatchProfiles. Each MatchFunction execution returns a set of
+  // proposals which are then evaluated to generate results. GetMatches method
+  // streams these results back to the caller.
+  // TODO: Should this be renamed to createProposal? It's not a "Get" if it's
+  // executing a MatchFunction.
+  rpc GetMatches(GetMatchesRequest) returns (stream GetMatchesResponse) {
+    option (google.api.http) = {
+      post: "/v1/backend/matches/createProposal"
+      body: "*"
+    };
+  }
+
+  // AssignTickets sets the specified Assignment on the Tickets for the Ticket
+  // IDs passed.
+  rpc AssignTickets(AssignTicketsRequest) returns (AssignTicketsResponse) {
+    option (google.api.http) = {
+      post: "/v1/backend/tickets/assign"
+      body: "*"
+    };
+  }
+}

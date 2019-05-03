@@ -8,10 +8,6 @@ Open Match is an open source game matchmaking framework designed to allow game c
 
 Matchmaking begins when a player tells the game that they want to play. Every player has a set of attributes like skill, location, playtime, win-lose ratio, etc which may factor in how they are paired with other players. Typically, there's a trade off between the quality of the match vs the time to wait. Since Open Match is designed to scale with the player population, it should be possible to still have high quality matches while having high player count.
 
-Under the covers matchmaking approaches touch on significant areas of computer science including graph theory and massively concurrent processing. Open Match is an effort to provide a foundation upon which these difficult problems can be addressed by the wider game development community. As Josh Menke &mdash; famous for working on matchmaking for many popular triple-A franchises &mdash; put it:
-
-["Matchmaking, a lot of it actually really is just really good engineering. There's a lot of really hard networking and plumbing problems that need to be solved, depending on the size of your audience."](https://youtu.be/-pglxege-gU?t=830)
-
 This project attempts to solve the networking and plumbing problems, so game developers can focus on the logic to match players into great games.
 
 ## Open Match Demo

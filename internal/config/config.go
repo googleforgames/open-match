@@ -1,25 +1,23 @@
-/*
-Package config contains convenience functions for reading and managing viper configs.
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Copyright 2018 Google LLC
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Package config contains convenience functions for reading and managing viper configs.
 package config
 
 import (
 	"github.com/fsnotify/fsnotify"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
@@ -27,11 +25,11 @@ import (
 
 var (
 	// Logrus structured logging setup
-	logFields = log.Fields{
+	logFields = logrus.Fields{
 		"app":       "openmatch",
 		"component": "config",
 	}
-	cfgLog = log.WithFields(logFields)
+	cfgLog = logrus.WithFields(logFields)
 
 	// Map of the config file keys to environment variable names populated by
 	// k8s into pods. Examples of redis-related env vars as written by k8s
@@ -85,7 +83,7 @@ func Read() (View, error) {
 	// Read in config file using Viper
 	err := cfg.ReadInConfig()
 	if err != nil {
-		cfgLog.WithFields(log.Fields{
+		cfgLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatal("Fatal error reading config file")
 	}
@@ -99,7 +97,7 @@ func Read() (View, error) {
 		err = cfg.BindEnv(cfgKey, envVar)
 
 		if err != nil {
-			cfgLog.WithFields(log.Fields{
+			cfgLog.WithFields(logrus.Fields{
 				"configkey": cfgKey,
 				"envvar":    envVar,
 				"error":     err.Error(),
@@ -107,7 +105,7 @@ func Read() (View, error) {
 			}).Warn("Unable to bind environment var as a config variable")
 
 		} else {
-			cfgLog.WithFields(log.Fields{
+			cfgLog.WithFields(logrus.Fields{
 				"configkey": cfgKey,
 				"envvar":    envVar,
 				"module":    "config",
@@ -123,7 +121,7 @@ func Read() (View, error) {
 	cfg.WatchConfig() // Watch and re-read config file.
 	// Write a log when the configuration changes.
 	cfg.OnConfigChange(func(event fsnotify.Event) {
-		cfgLog.WithFields(log.Fields{
+		cfgLog.WithFields(logrus.Fields{
 			"filename":  event.Name,
 			"operation": event.Op,
 		}).Info("Server configuration changed.")

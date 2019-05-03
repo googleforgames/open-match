@@ -1,23 +1,18 @@
-/*
-package apisrv provides an implementation of the gRPC server defined in
-../../../api/protobuf-spec/matchfunction.proto.
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Copyright 2018 Google LLC
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-*/
-
+// Package apisrv provides the Match Making Function service for Open Match harness.
 package apisrv
 
 import (
@@ -32,20 +27,20 @@ import (
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
-// This is the function signature for the function to be implemented by the user.
+// MatchFunction is the function signature for the Match Making Function (MMF) to be implemented by the user.
 // The harness will pass the Rosters and PlayerPool for the match profile to this
 // function and it will return the Rosters to be populated in the proposal.
-type MatchFunction func(context.Context, *log.Entry, string, []*pb.Roster, []*pb.PlayerPool) (string, []*pb.Roster, error)
+type MatchFunction func(context.Context, *logrus.Entry, string, []*pb.Roster, []*pb.PlayerPool) (string, []*pb.Roster, error)
 
 // MatchFunctionServer implements pb.MatchFunctionServer, the server generated
 // by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
 type MatchFunctionServer struct {
 	FunctionName string
 	Config       config.View
-	Logger       *log.Entry
+	Logger       *logrus.Entry
 	Func         MatchFunction
 	MMLogic      pb.MmLogicClient
 }
@@ -56,13 +51,13 @@ func (s *MatchFunctionServer) Run(ctx context.Context, req *pb.RunRequest) (*pb.
 
 	fnCtx, err := tag.New(ctx, tag.Insert(KeyMethod, "Run"))
 	if err != nil {
-		s.Logger.WithFields(log.Fields{"error": err.Error()}).Error("Failed setting up OpenCensus tagging")
+		s.Logger.WithFields(logrus.Fields{"error": err.Error()}).Error("Failed setting up OpenCensus tagging")
 		return nil, err
 	}
 
 	fnCtx, err = tag.New(fnCtx, tag.Insert(KeyFnName, s.FunctionName))
 	if err != nil {
-		s.Logger.WithFields(log.Fields{"error": err.Error()}).Error("Failed setting up OpenCensus tagging")
+		s.Logger.WithFields(logrus.Fields{"error": err.Error()}).Error("Failed setting up OpenCensus tagging")
 		return nil, err
 	}
 
@@ -71,7 +66,7 @@ func (s *MatchFunctionServer) Run(ctx context.Context, req *pb.RunRequest) (*pb.
 	err = s.runMatchFunction(fnCtx, req)
 	stats.Record(fnCtx, HarnessLatencySec.M(time.Since(start).Seconds()))
 	if err != nil {
-		s.Logger.WithFields(log.Fields{"error": err.Error()}).Error("harness.Run error")
+		s.Logger.WithFields(logrus.Fields{"error": err.Error()}).Error("harness.Run error")
 		stats.Record(fnCtx, HarnessFailures.M(1))
 		return &pb.RunResponse{}, err
 	}
@@ -150,7 +145,7 @@ func (s *MatchFunctionServer) runMatchFunction(ctx context.Context, req *pb.RunR
 		results, rosters, err := s.Func(ctx, s.Logger, profile.Properties, profile.Rosters, playerPools)
 		stats.Record(ctx, FnLatencySec.M(time.Since(start).Seconds()))
 		if err != nil {
-			s.Logger.WithFields(log.Fields{
+			s.Logger.WithFields(logrus.Fields{
 				"error": err.Error(),
 				"id":    req.ResultId,
 			}).Error("matchfunction returned an unrecoverable error")
@@ -169,6 +164,6 @@ func (s *MatchFunctionServer) runMatchFunction(ctx context.Context, req *pb.RunR
 		return fmt.Errorf("Failed to create a proposal for %v, %v", match.Id, err)
 	}
 
-	s.Logger.WithFields(log.Fields{"id": req.ProposalId}).Info("Proposal written successfully!")
+	s.Logger.WithFields(logrus.Fields{"id": req.ProposalId}).Info("Proposal written successfully!")
 	return nil
 }

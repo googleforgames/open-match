@@ -1,19 +1,18 @@
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Package redishelpers is a package for wrapping redis functionality.
-/*
-Copyright 2018 Google LLC
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package redishelpers
 
 import (
@@ -25,18 +24,18 @@ import (
 
 	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	"github.com/gomodule/redigo/redis"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Logrus structured logging setup
 // Note: nearly every log in this package under normal operation should be at
 //  the Debug logging level as it can get very spammy.
 var (
-	rhLogFields = log.Fields{
+	rhLogFields = logrus.Fields{
 		"app":       "openmatch",
 		"component": "redishelpers",
 	}
-	rhLog = log.WithFields(rhLogFields)
+	rhLog = logrus.WithFields(rhLogFields)
 )
 
 // ConnectionPool reads the configuration and attempts to instantiate a redis connection
@@ -60,24 +59,16 @@ func ConnectionPool(cfg config.View) (*redis.Pool, error) {
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
 		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout") * time.Second,
-		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
+		Dial: func() (redis.Conn, error) {
+			return redis.DialURL(
+				redisURL,
+				redis.DialConnectTimeout(5*time.Second),
+				redis.DialReadTimeout(3*time.Second),
+			)
+		},
 	}
 
-	// Sanity check that connection works before passing it back.  Redigo
-	// always returns a valid connection, and will just fail on the first
-	// query: https://godoc.org/github.com/gomodule/redigo/redis#Pool.Get
-	redisConn := pool.Get()
-	defer redisConn.Close()
-	_, err := redisConn.Do("SELECT", "0")
-	// Encountered an issue getting a connection from the pool.
-	if err != nil {
-		rhLog.WithFields(log.Fields{
-			"error": err.Error(),
-			"query": "SELECT 0"}).Error("state storage connection error")
-		return nil, fmt.Errorf("cannot connect to Redis at %s, %s", maskedURL, err)
-	}
-
-	rhLog.Info("Connected to Redis")
+	rhLog.Info("Created Redis Client Pool")
 	return pool, nil
 }
 
@@ -90,7 +81,7 @@ func ConnectionPool(cfg config.View) (*redis.Pool, error) {
 // reference: https://talks.golang.org/2012/concurrency.slide#25
 func Watcher(ctx context.Context, pool *redis.Pool, key string) <-chan string {
 	// Add the key as a field to all logs for the execution of this function.
-	rhLog = rhLog.WithFields(log.Fields{"key": key})
+	rhLog = rhLog.WithFields(logrus.Fields{"key": key})
 	rhLog.Debug("Watching key in statestorage for changes")
 
 	watchChan := make(chan string)
@@ -128,11 +119,11 @@ func Watcher(ctx context.Context, pool *redis.Pool, key string) <-chan string {
 func Create(ctx context.Context, pool *redis.Pool, key string, values map[string]string) (string, error) {
 
 	// Add the key as a field to all logs for the execution of this function.
-	rhLog = rhLog.WithFields(log.Fields{"key": key})
+	rhLog = rhLog.WithFields(logrus.Fields{"key": key})
 
 	cmd := "HSET"
 
-	cLog := rhLog.WithFields(log.Fields{
+	cLog := rhLog.WithFields(logrus.Fields{
 		"query":  cmd,
 		"key":    key,
 		"values": values,
@@ -142,7 +133,7 @@ func Create(ctx context.Context, pool *redis.Pool, key string, values map[string
 	redisConn, err := pool.GetContext(ctx)
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
-		cLog.WithFields(log.Fields{
+		cLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Error("state storage connection error")
 		return "", err
@@ -166,17 +157,17 @@ func Create(ctx context.Context, pool *redis.Pool, key string, values map[string
 func Retrieve(ctx context.Context, pool *redis.Pool, key string) (string, error) {
 
 	// Add the key as a field to all logs for the execution of this function.
-	rhLog = rhLog.WithFields(log.Fields{"key": key})
+	rhLog = rhLog.WithFields(logrus.Fields{"key": key})
 
 	cmd := "GET"
-	rhLog.WithFields(log.Fields{"query": cmd}).Debug("state storage operation")
+	rhLog.WithFields(logrus.Fields{"query": cmd}).Debug("state storage operation")
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
-		rhLog.WithFields(log.Fields{
+		rhLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 			"query": cmd}).Error("state storage connection error")
 		return "", err
@@ -191,11 +182,11 @@ func Retrieve(ctx context.Context, pool *redis.Pool, key string) (string, error)
 func RetrieveField(ctx context.Context, pool *redis.Pool, key string, field string) (string, error) {
 
 	// Add the key as a field to all logs for the execution of this function.
-	rhLog = rhLog.WithFields(log.Fields{"key": key})
+	rhLog = rhLog.WithFields(logrus.Fields{"key": key})
 
 	cmd := "HGET"
 
-	cLog := rhLog.WithFields(log.Fields{
+	cLog := rhLog.WithFields(logrus.Fields{
 		"query": cmd,
 		"key":   key,
 		"field": field,
@@ -206,7 +197,7 @@ func RetrieveField(ctx context.Context, pool *redis.Pool, key string, field stri
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
-		cLog.WithFields(log.Fields{
+		cLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Error("state storage connection error")
 		return "", err
@@ -222,11 +213,11 @@ func RetrieveField(ctx context.Context, pool *redis.Pool, key string, field stri
 func RetrieveAll(ctx context.Context, pool *redis.Pool, key string) (map[string]string, error) {
 
 	// Add the key as a field to all logs for the execution of this function.
-	rhLog = rhLog.WithFields(log.Fields{"key": key})
+	rhLog = rhLog.WithFields(logrus.Fields{"key": key})
 
 	cmd := "HGETALL"
 
-	cLog := rhLog.WithFields(log.Fields{
+	cLog := rhLog.WithFields(logrus.Fields{
 		"query": cmd,
 		"key":   key,
 	})
@@ -236,7 +227,7 @@ func RetrieveAll(ctx context.Context, pool *redis.Pool, key string) (map[string]
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
-		cLog.WithFields(log.Fields{
+		cLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Error("state storage connection error")
 		return nil, err
@@ -254,17 +245,17 @@ func RetrieveAll(ctx context.Context, pool *redis.Pool, key string) (map[string]
 func Update(ctx context.Context, pool *redis.Pool, key string, value string) (string, error) {
 
 	// Add the key as a field to all logs for the execution of this function.
-	rhLog = rhLog.WithFields(log.Fields{"key": key})
+	rhLog = rhLog.WithFields(logrus.Fields{"key": key})
 
 	cmd := "SADD"
-	rhLog.WithFields(log.Fields{"query": cmd, "value": value}).Debug("state storage operation")
+	rhLog.WithFields(logrus.Fields{"query": cmd, "value": value}).Debug("state storage operation")
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
-		rhLog.WithFields(log.Fields{
+		rhLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 			"query": cmd,
 			"value": value}).Error("state storage connection error")
@@ -286,14 +277,14 @@ func UpdateMultiFields(ctx context.Context, pool *redis.Pool, kv map[string]stri
 
 	// Add the cmd & field to all logs for the execution of this function.
 	cmd := "HSET"
-	dfLog := rhLog.WithFields(log.Fields{"field": field, "query": cmd})
+	dfLog := rhLog.WithFields(logrus.Fields{"field": field, "query": cmd})
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
-		dfLog.WithFields(log.Fields{
+		dfLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Error("state storage connection error")
 		return err
@@ -303,7 +294,7 @@ func UpdateMultiFields(ctx context.Context, pool *redis.Pool, kv map[string]stri
 	// Run redis query and return
 	redisConn.Send("MULTI")
 	for key, value := range kv {
-		dfLog.WithFields(log.Fields{"key": key, "value": value}).Debug("state storage operation")
+		dfLog.WithFields(logrus.Fields{"key": key, "value": value}).Debug("state storage operation")
 		redisConn.Send(cmd, key, field, value)
 	}
 	_, err = redisConn.Do("EXEC")
@@ -315,7 +306,7 @@ func Delete(ctx context.Context, pool *redis.Pool, key string) error {
 
 	// Add the key as a field to all logs for the execution of this function.
 	cmd := "DEL"
-	dLog := rhLog.WithFields(log.Fields{"key": key, "query": cmd})
+	dLog := rhLog.WithFields(logrus.Fields{"key": key, "query": cmd})
 	dLog.Debug("state storage operation")
 
 	// Get a connection to redis
@@ -323,7 +314,7 @@ func Delete(ctx context.Context, pool *redis.Pool, key string) error {
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
-		dLog.WithFields(log.Fields{
+		dLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Error("state storage connection error")
 		return err
@@ -341,14 +332,14 @@ func DeleteMultiFields(ctx context.Context, pool *redis.Pool, keys []string, fie
 
 	// Add the cmd & field to all logs for the execution of this function.
 	cmd := "HDEL"
-	dfLog := rhLog.WithFields(log.Fields{"field": field, "query": cmd})
+	dfLog := rhLog.WithFields(logrus.Fields{"field": field, "query": cmd})
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
-		dfLog.WithFields(log.Fields{
+		dfLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Error("state storage connection error")
 		return err
@@ -358,7 +349,7 @@ func DeleteMultiFields(ctx context.Context, pool *redis.Pool, keys []string, fie
 	// Run redis query and return
 	redisConn.Send("MULTI")
 	for _, key := range keys {
-		dfLog.WithFields(log.Fields{"key": key}).Debug("state storage operation")
+		dfLog.WithFields(logrus.Fields{"key": key}).Debug("state storage operation")
 		redisConn.Send(cmd, key, field)
 	}
 	_, err = redisConn.Do("EXEC")
@@ -368,17 +359,17 @@ func DeleteMultiFields(ctx context.Context, pool *redis.Pool, keys []string, fie
 // Count is a concurrent-safe, context-aware redis SCARD on the input key
 func Count(ctx context.Context, pool *redis.Pool, key string) (int, error) {
 	// Add the key as a field to all logs for the execution of this function.
-	rhLog = rhLog.WithFields(log.Fields{"key": key})
+	rhLog = rhLog.WithFields(logrus.Fields{"key": key})
 
 	cmd := "SCARD"
-	rhLog.WithFields(log.Fields{"query": cmd}).Debug("state storage operation")
+	rhLog.WithFields(logrus.Fields{"query": cmd}).Debug("state storage operation")
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
-		rhLog.WithFields(log.Fields{
+		rhLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 			"query": cmd}).Error("state storage connection error")
 		return 0, err
@@ -393,17 +384,17 @@ func Count(ctx context.Context, pool *redis.Pool, key string) (int, error) {
 func Increment(ctx context.Context, pool *redis.Pool, key string) (interface{}, error) {
 
 	// Add the key as a field to all logs for the execution of this function.
-	rhLog = rhLog.WithFields(log.Fields{"key": key})
+	rhLog = rhLog.WithFields(logrus.Fields{"key": key})
 
 	cmd := "INCR"
-	rhLog.WithFields(log.Fields{"query": cmd}).Debug("state storage operation")
+	rhLog.WithFields(logrus.Fields{"query": cmd}).Debug("state storage operation")
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
-		rhLog.WithFields(log.Fields{
+		rhLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 			"query": cmd}).Error("state storage connection error")
 		return "", err
@@ -418,17 +409,17 @@ func Increment(ctx context.Context, pool *redis.Pool, key string) (interface{}, 
 func Decrement(ctx context.Context, pool *redis.Pool, key string) (interface{}, error) {
 
 	// Add the key as a field to all logs for the execution of this function.
-	rhLog = rhLog.WithFields(log.Fields{"key": key})
+	rhLog = rhLog.WithFields(logrus.Fields{"key": key})
 
 	cmd := "DECR"
-	rhLog.WithFields(log.Fields{"query": cmd}).Debug("state storage operation")
+	rhLog.WithFields(logrus.Fields{"query": cmd}).Debug("state storage operation")
 
 	// Get a connection to redis
 	redisConn, err := pool.GetContext(ctx)
 
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
-		rhLog.WithFields(log.Fields{
+		rhLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 			"query": cmd}).Error("state storage connection error")
 		return "", err

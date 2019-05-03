@@ -1,5 +1,5 @@
 {*
- Copyright 2019 Google Inc. All Rights Reserved.
+ Copyright 2019 Google LLC
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -73,4 +73,15 @@ prometheus.io/scrape: "true"
 prometheus.io/port: {{ .Values.openmatch.metrics.port | quote }}
 prometheus.io/path: {{ .Values.openmatch.metrics.path }}
 {{- end -}}
+{{- end -}}
+
+
+{{- define "probe.readiness" -}}
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: {{ .port }}
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  failureThreshold: 3
 {{- end -}}

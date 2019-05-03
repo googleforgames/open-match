@@ -1,25 +1,21 @@
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Package redispb marshals and unmarshals Open Match Backend protobuf messages
 // ('MatchObject') for redis state storage.
 //  More details about the protobuf messages used in Open Match can be found in
 //  the api/protobuf-spec/om_messages.proto file.
-/*
-Copyright 2018 Google LLC
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-All of this can probably be done more succinctly with some more interface and
-reflection, this is a hack but works for now.
-*/
 package redispb
 
 import (
@@ -32,16 +28,16 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gomodule/redigo/redis"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Logrus structured logging setup
 var (
-	moLogFields = log.Fields{
+	moLogFields = logrus.Fields{
 		"app":       "openmatch",
 		"component": "statestorage",
 	}
-	moLog = log.WithFields(moLogFields)
+	moLog = logrus.WithFields(moLogFields)
 )
 
 // UnmarshalFromRedis unmarshals a MatchObject from a redis hash.
@@ -53,7 +49,7 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 	redisConn, err := pool.GetContext(context.Background())
 	defer redisConn.Close()
 	if err != nil {
-		moLog.WithFields(log.Fields{
+		moLog.WithFields(logrus.Fields{
 			"error":     err.Error(),
 			"component": "statestorage",
 		}).Error("failed to connect to redis")
@@ -63,7 +59,7 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 	// Prepare redis command.
 	cmd := "HGETALL"
 	key := pb.Id
-	resultLog := moLog.WithFields(log.Fields{
+	resultLog := moLog.WithFields(logrus.Fields{
 		"component": "statestorage",
 		"cmd":       cmd,
 		"key":       key,

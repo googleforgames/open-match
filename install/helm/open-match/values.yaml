@@ -1,4 +1,4 @@
-# Copyright 2019 Google Inc. All Rights Reserved.
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,19 +20,19 @@ openmatch:
     stackdriverProjectID: ""
     port: 9555
     path: "/metrics"
-  backendapi:
+  backend:
     install: true
     grpc:
       port: 50505
     proxy:
       port: 51505
-  frontendapi:
+  frontend:
     install: true
     grpc:
       port: 50504
     proxy:
       port: 51504
-  mmlogicapi:
+  mmlogic:
     install: true
     grpc:
       port: 50503
@@ -56,64 +56,64 @@ openmatch:
           format: text
           source: false
 
-        api: 
-          backend: 
-            hostname: om-backendapi
-            port: "{{.Values.openmatch.backendapi.grpc.port}}"
-            proxyport: "{{.Values.openmatch.backendapi.proxy.port}}"
+        api:
+          backend:
+            hostname: om-backend
+            port: "{{.Values.openmatch.backend.grpc.port}}"
+            proxyport: "{{.Values.openmatch.backend.proxy.port}}"
             backoff: "[2 32] *2 ~0.33 <30"
-          frontend: 
-            hostname: om-frontendapi
-            port: "{{.Values.openmatch.frontendapi.grpc.port}}"
-            proxyport: "{{.Values.openmatch.frontendapi.proxy.port}}"
+          frontend:
+            hostname: om-frontend
+            port: "{{.Values.openmatch.frontend.grpc.port}}"
+            proxyport: "{{.Values.openmatch.frontend.proxy.port}}"
             backoff: "[2 32] *2 ~0.33 <300"
-          mmlogic: 
-            hostname: om-mmlogicapi
-            port: "{{.Values.openmatch.mmlogicapi.grpc.port}}"
-            proxyport: "{{.Values.openmatch.mmlogicapi.proxy.port}}"
+          mmlogic:
+            hostname: om-mmlogic
+            port: "{{.Values.openmatch.mmlogic.grpc.port}}"
+            proxyport: "{{.Values.openmatch.mmlogic.proxy.port}}"
           functions:
             port: "{{.Values.openmatch.functions.grpc.port}}"
             proxyport: "{{.Values.openmatch.functions.proxy.port}}"
-          
-        evalutor: 
+
+        evalutor:
           pollIntervalMs: 1000
           maxWaitMs: 10000
 
-        metrics: 
+        metrics:
           port: "{{.Values.openmatch.metrics.port}}"
           endpoint: "{{.Values.openmatch.metrics.path}}"
           reportingPeriod: 5
 
-        queues: 
-          proposals: 
+        queues:
+          proposals:
             name: proposalq
-          
-        ignoreLists: 
-          proposed: 
+
+        ignoreLists:
+          proposed:
             name: proposed
             offset: 0
             duration: 800
-          deindexed: 
+          deindexed:
             name: deindexed
             offset: 0
             duration: 800
-          expired: 
+          expired:
             name: OM_METADATA.accessed
             offset: 800
-            duration: 0 
+            duration: 0
 
-        redis: 
-          pool: 
+        redis:
+          pool:
             maxIdle: 3
             maxActive: 0
             idleTimeout: 60
           queryArgs:
             count: 10000
-          results: 
+          results:
             pageSize: 10000
-          expirations: 
+          expirations:
             player: 43200
-            matchobject: 43200 
+            matchobject: 43200
 
         jsonkeys:
           rosters: properties.rosters
@@ -140,15 +140,15 @@ openmatch:
 
   image:
     registry: gcr.io/open-match-public-images
-    tag: 0.5.0-rc1
-    backendapi:
-      name: openmatch-backendapi
+    tag: 0.0.0-dev
+    backend:
+      name: openmatch-backend
       pullPolicy: Always
-    frontendapi:
-      name: openmatch-frontendapi
+    frontend:
+      name: openmatch-frontend
       pullPolicy: Always
-    mmlogicapi:
-      name: openmatch-mmlogicapi
+    mmlogic:
+      name: openmatch-mmlogic
       pullPolicy: Always
 
 # https://hub.helm.sh/charts/stable/redis
