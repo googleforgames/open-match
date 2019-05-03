@@ -17,8 +17,8 @@ package testing
 import (
 	"testing"
 
-	"open-match.dev/open-match/internal/future/serving"
 	"open-match.dev/open-match/internal/future/pb"
+	"open-match.dev/open-match/internal/future/serving"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
