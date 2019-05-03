@@ -45,8 +45,13 @@ func RunApplication() {
 		}).Fatalf("cannot construct server.")
 	}
 
+	BindService(p)
+	serving.MustServeForever(p)
+}
+
+// BindService creates the minimatch service to the server Params.
+func BindService(p *serving.Params) {
 	backend.BindService(p)
 	frontend.BindService(p)
 	mmlogic.BindService(p)
-	serving.MustServeForever(p)
 }
