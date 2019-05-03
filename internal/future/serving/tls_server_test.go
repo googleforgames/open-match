@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	shellTesting "open-match.dev/open-match/internal/future/testing"
-	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/future/pb"
 	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
@@ -93,7 +93,7 @@ type tlsServerTestParams struct {
 func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 	assert := assert.New(t)
 
-	ff := shellTesting.NewFakeFrontend()
+	ff := &shellTesting.FakeFrontend{}
 
 	serverParams := NewParamsFromListeners(tp.grpcLh, tp.proxyLh)
 	serverParams.AddHandleFunc(func(s *grpc.Server) {
