@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{{- if .Values.openmatch.frontendapi.install }}
+{{- if .Values.openmatch.backend.install }}
 kind: Service
 apiVersion: v1
 metadata:
-  name: om-frontendapi
+  name: om-backend
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
@@ -24,31 +24,30 @@ metadata:
 spec:
   selector:
     app: {{ template "openmatch.name" . }}
-    component: frontend
-    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
+    component: backend
   ports:
   - name: grpc
     protocol: TCP
-    port: {{ .Values.openmatch.frontendapi.grpc.port }}
+    port: {{ .Values.openmatch.backend.grpc.port }}
   - name: proxy
     protocol: TCP
-    port: {{ .Values.openmatch.frontendapi.proxy.port }}
+    port: {{ .Values.openmatch.backend.proxy.port }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: om-frontendapi
+  name: om-backend
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
-    component: frontend
+    component: backend
     {{- include "openmatch.chartmeta" (set . "indent" 4) }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: {{ template "openmatch.name" . }}
-      component: frontend
+      component: backend
       {{- include "openmatch.chartmeta" (set . "indent" 6) }}
   template:
     metadata:
@@ -57,24 +56,24 @@ spec:
         {{- include "prometheus.annotations" . | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
-        component: frontend
+        component: backend
         {{- include "openmatch.chartmeta" (set . "indent" 8) }}
     spec:
       containers:
-      - name: om-frontendapi
-        image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.frontendapi.name}}:{{ .Values.openmatch.image.tag }}"
-        imagePullPolicy: {{ .Values.openmatch.image.frontendapi.pullPolicy }}
+      - name: om-backend
+        image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.backend.name}}:{{ .Values.openmatch.image.tag }}"
+        imagePullPolicy: {{ .Values.openmatch.image.backend.pullPolicy }}
         volumeMounts:
         - name: om-config-volume
           mountPath: {{ .Values.openmatch.config.mountPath }}
         ports:
         - name: grpc
-          containerPort: {{ .Values.openmatch.frontendapi.grpc.port }}
+          containerPort: {{ .Values.openmatch.backend.grpc.port }}
         - name: proxy
-          containerPort: {{ .Values.openmatch.frontendapi.proxy.port }}
+          containerPort: {{ .Values.openmatch.backend.proxy.port }}
         - name: metrics
           containerPort: {{ .Values.openmatch.metrics.port }}
-        {{- $port := dict "port" .Values.openmatch.frontendapi.proxy.port -}}
+        {{- $port := dict "port" .Values.openmatch.backend.proxy.port -}}
         {{- include "probe.readiness" $port | nindent 8 }}
         resources:
           requests:

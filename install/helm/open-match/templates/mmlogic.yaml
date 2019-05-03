@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{{- if .Values.openmatch.mmlogicapi.install }}
+{{- if .Values.openmatch.mmlogic.install }}
 kind: Service
 apiVersion: v1
 metadata:
-  name: om-mmlogicapi
+  name: om-mmlogic
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
@@ -29,15 +29,15 @@ spec:
   ports:
   - name: grpc
     protocol: TCP
-    port: {{ .Values.openmatch.mmlogicapi.grpc.port }}
+    port: {{ .Values.openmatch.mmlogic.grpc.port }}
   - name: proxy
     protocol: TCP
-    port: {{ .Values.openmatch.mmlogicapi.proxy.port }}
+    port: {{ .Values.openmatch.mmlogic.proxy.port }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: om-mmlogicapi
+  name: om-mmlogic
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
@@ -62,19 +62,19 @@ spec:
     spec:
       containers:
       - name: om-mmlogic
-        image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.mmlogicapi.name}}:{{ .Values.openmatch.image.tag }}"
-        imagePullPolicy: {{ .Values.openmatch.image.mmlogicapi.pullPolicy }}
+        image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.mmlogic.name}}:{{ .Values.openmatch.image.tag }}"
+        imagePullPolicy: {{ .Values.openmatch.image.mmlogic.pullPolicy }}
         volumeMounts:
         - name: om-config-volume
           mountPath: {{ .Values.openmatch.config.mountPath }}
         ports:
         - name: grpc
-          containerPort: {{ .Values.openmatch.mmlogicapi.grpc.port }}
+          containerPort: {{ .Values.openmatch.mmlogic.grpc.port }}
         - name: proxy
-          containerPort: {{ .Values.openmatch.mmlogicapi.proxy.port }}
+          containerPort: {{ .Values.openmatch.mmlogic.proxy.port }}
         - name: metrics
           containerPort: {{ .Values.openmatch.metrics.port }}
-        {{- $port := dict "port" .Values.openmatch.mmlogicapi.proxy.port -}}
+        {{- $port := dict "port" .Values.openmatch.mmlogic.proxy.port -}}
         {{- include "probe.readiness" $port | nindent 8 }}
         resources:
           requests:
