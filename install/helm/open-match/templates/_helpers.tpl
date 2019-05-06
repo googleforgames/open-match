@@ -68,10 +68,10 @@ heritage: {{ .Release.Service }}
 
 
 {{- define "prometheus.annotations" -}}
-{{- if and (.Values.openmatch.metrics.prometheusServiceDiscovery) (.Values.openmatch.metrics.prometheusEnabled) -}}
+{{- if and ($.prometheus.serviceDiscovery) ($.prometheus.enabled) -}}
 prometheus.io/scrape: "true"
-prometheus.io/port: {{ .Values.openmatch.metrics.port | quote }}
-prometheus.io/path: {{ .Values.openmatch.metrics.path }}
+prometheus.io/port: {{ .port | quote }}
+prometheus.io/path: {{ $.prometheus.endpoint }}
 {{- end -}}
 {{- end -}}
 

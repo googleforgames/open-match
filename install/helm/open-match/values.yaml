@@ -13,35 +13,46 @@
 # limitations under the License.
 
 openmatch:
-  metrics:
-    prometheusEnabled: true
-    prometheusServiceDiscovery: true
-    stackdriverEnabled: false
-    stackdriverProjectID: ""
-    port: 9555
-    path: "/metrics"
+  monitoring:
+    jaeger:
+      enabled: true
+      agentEndpoint: "open-match-jaeger-agent:6831"
+      collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
+    prometheus:
+      enabled: true
+      endpoint: "/metrics"
+      serviceDiscovery: true
+    stackdriver:
+      enabled: false
+      gcpProjectId: "project_id"
+      metricPrefix: "open_match"
+    zipkin:
+      enabled: false
+      endpoint: "/zipkin"
+      reporterEndpoint: "zipkin"
+    reportingPeriod: "5s"
   backend:
     install: true
     grpc:
       port: 50505
-    proxy:
+    http:
       port: 51505
   frontend:
     install: true
     grpc:
       port: 50504
-    proxy:
+    http:
       port: 51504
   mmlogic:
     install: true
     grpc:
       port: 50503
-    proxy:
+    http:
       port: 51503
   functions:
     grpc:
       port: 50502
-    proxy:
+    http:
       port: 51502
 
   config:
@@ -59,30 +70,43 @@ openmatch:
         api:
           backend:
             hostname: om-backend
-            port: "{{.Values.openmatch.backend.grpc.port}}"
-            proxyport: "{{.Values.openmatch.backend.proxy.port}}"
+            grpcport: "{{.Values.openmatch.backend.grpc.port}}"
+            httpport: "{{.Values.openmatch.backend.http.port}}"
             backoff: "[2 32] *2 ~0.33 <30"
           frontend:
             hostname: om-frontend
             port: "{{.Values.openmatch.frontend.grpc.port}}"
-            proxyport: "{{.Values.openmatch.frontend.proxy.port}}"
+            httpport: "{{.Values.openmatch.frontend.http.port}}"
             backoff: "[2 32] *2 ~0.33 <300"
           mmlogic:
             hostname: om-mmlogic
-            port: "{{.Values.openmatch.mmlogic.grpc.port}}"
-            proxyport: "{{.Values.openmatch.mmlogic.proxy.port}}"
+            grpcport: "{{.Values.openmatch.mmlogic.grpc.port}}"
+            httpport: "{{.Values.openmatch.mmlogic.http.port}}"
           functions:
-            port: "{{.Values.openmatch.functions.grpc.port}}"
-            proxyport: "{{.Values.openmatch.functions.proxy.port}}"
+            grpcport: "{{.Values.openmatch.functions.grpc.port}}"
+            httpport: "{{.Values.openmatch.functions.http.port}}"
 
         evalutor:
           pollIntervalMs: 1000
           maxWaitMs: 10000
 
-        metrics:
-          port: "{{.Values.openmatch.metrics.port}}"
-          endpoint: "{{.Values.openmatch.metrics.path}}"
-          reportingPeriod: 5
+        monitoring:
+          jaeger:
+            enable: "{{.Values.openmatch.monitoring.jaeger.enabled}}"
+            agentEndpoint: "{{.Values.openmatch.monitoring.jaeger.agentEndpoint}}"
+            collectorEndpoint: "{{.Values.openmatch.monitoring.jaeger.collectorEndpoint}}"
+          prometheus:
+            enable: "{{.Values.openmatch.monitoring.prometheus.enabled}}"
+            endpoint: "{{.Values.openmatch.monitoring.prometheus.endpoint}}"
+          stackdriver:
+            enable: "{{.Values.openmatch.monitoring.stackdriver.enabled}}"
+            gcpProjectId: "{{.Values.openmatch.monitoring.stackdriver.gcpProjectId}}"
+            metricPrefix: "{{.Values.openmatch.monitoring.stackdriver.metricPrefix}}"
+          zipkin:
+            enable: "{{.Values.openmatch.monitoring.zipkin.enabled}}"
+            endpoint: "{{.Values.openmatch.monitoring.zipkin.endpoint}}"
+            reporterEndpoint: "{{.Values.openmatch.monitoring.zipkin.reporterEndpoint}}"
+          reportingPeriod: "{{.Values.openmatch.monitoring.reportingPeriod}}"
 
         queues:
           proposals:

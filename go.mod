@@ -24,6 +24,7 @@ require (
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
 	github.com/alicebob/gopher-json v0.0.0-20180125190556-5a6b3ba71ee6 // indirect
 	github.com/alicebob/miniredis v2.5.0+incompatible
+	github.com/aws/aws-sdk-go v1.19.25 // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gobs/pretty v0.0.0-20180724170744-09732c25a95b
