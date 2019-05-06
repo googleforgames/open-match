@@ -146,14 +146,14 @@ artifacts:
             - cmd/future/backend/backend
             - cmd/future/frontend/frontend
             - cmd/future/mmlogic/mmlogic
+            - cmd/future/minimatch/minimatch
             - install/yaml/install.yaml
             - install/yaml/install-example.yaml
             - install/yaml/01-redis-chart.yaml
             - install/yaml/02-open-match.yaml
             - install/yaml/03-prometheus-chart.yaml
             - install/yaml/04-grafana-chart.yaml
-            # Deprecated
-            - cmd/minimatch/minimatch
+######################################### Deprecated #########################################
             - cmd/backendapi/backendapi
             - cmd/frontendapi/frontendapi
             - cmd/mmlogicapi/mmlogicapi
@@ -166,8 +166,8 @@ images:
 - 'gcr.io/$PROJECT_ID/openmatch-backend:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-frontend:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmlogic:${_OM_VERSION}-${SHORT_SHA}'
-# Deprecated
 - 'gcr.io/$PROJECT_ID/openmatch-minimatch:${_OM_VERSION}-${SHORT_SHA}'
+######################################### Deprecated #########################################
 - 'gcr.io/$PROJECT_ID/openmatch-backendapi:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-frontendapi:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmlogicapi:${_OM_VERSION}-${SHORT_SHA}'

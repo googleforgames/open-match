@@ -19,7 +19,5 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
 
 FROM gcr.io/distroless/static
 COPY --from=builder /go/src/open-match.dev/open-match/cmd/future/frontend/frontend .
-# TODO: Use go-bindata to embed the json file
-COPY --from=builder /go/src/open-match.dev/open-match/api/frontend.swagger.json .
 
 ENTRYPOINT ["/frontend"]

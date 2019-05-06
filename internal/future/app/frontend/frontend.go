@@ -43,10 +43,14 @@ func RunApplication() {
 			"error": err.Error(),
 		}).Fatalf("cannot construct server.")
 	}
+	BindService(p)
+	serving.MustServeForever(p)
+}
 
+// BindService creates the frontend service to the server Params.
+func BindService(p *serving.Params) {
 	service := &frontendService{}
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServer(s, service)
 	}, pb.RegisterFrontendHandlerFromEndpoint)
-	serving.MustServeForever(p)
 }
