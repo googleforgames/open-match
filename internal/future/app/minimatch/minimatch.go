@@ -15,12 +15,12 @@
 package minimatch
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/future/app/backend"
-	"github.com/GoogleCloudPlatform/open-match/internal/future/app/frontend"
-	"github.com/GoogleCloudPlatform/open-match/internal/future/app/mmlogic"
-	"github.com/GoogleCloudPlatform/open-match/internal/future/serving"
 	"github.com/sirupsen/logrus"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/future/app/backend"
+	"open-match.dev/open-match/internal/future/app/frontend"
+	"open-match.dev/open-match/internal/future/app/mmlogic"
+	"open-match.dev/open-match/internal/future/serving"
 )
 
 var (

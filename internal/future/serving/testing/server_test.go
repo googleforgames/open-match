@@ -17,12 +17,12 @@ package testing
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/future/pb"
-	"github.com/GoogleCloudPlatform/open-match/internal/future/serving"
+	"open-match.dev/open-match/internal/future/pb"
+	"open-match.dev/open-match/internal/future/serving"
 
-	shellTesting "github.com/GoogleCloudPlatform/open-match/internal/future/testing"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
+	shellTesting "open-match.dev/open-match/internal/future/testing"
 )
 
 // TestMustParamsForTesting verifies that a server can stand up in insecure mode.

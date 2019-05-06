@@ -21,11 +21,11 @@ import (
 	"io"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/gogo/protobuf/proto"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/pb"
 
 	"github.com/sirupsen/logrus"
 )

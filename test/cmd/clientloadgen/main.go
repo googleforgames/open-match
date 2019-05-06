@@ -21,11 +21,11 @@ import (
 	"log"
 	"time"
 
-	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
+	redishelpers "open-match.dev/open-match/internal/statestorage/redis"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/player"
-	"github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/redis/playerq"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/test/cmd/clientloadgen/player"
+	"open-match.dev/open-match/test/cmd/clientloadgen/redis/playerq"
 
 	"github.com/gomodule/redigo/redis"
 )

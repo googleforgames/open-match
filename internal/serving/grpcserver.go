@@ -23,11 +23,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/zpages"
+	"open-match.dev/open-match/internal/util/netlistener"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"golang.org/x/net/context"

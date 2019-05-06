@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
+	"open-match.dev/open-match/internal/pb"
 )
 
 // FakeFrontend with empty method impl used for testing

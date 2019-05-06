@@ -15,10 +15,10 @@
 package serving
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/signal"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/signal"
 )
 
 // OpenMatchServer contains the context of a standard Open Match Server.

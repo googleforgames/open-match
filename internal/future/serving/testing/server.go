@@ -17,10 +17,10 @@ package testing
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/future/serving"
-	netlistenerTesting "github.com/GoogleCloudPlatform/open-match/internal/util/netlistener/testing"
-	certgenTesting "github.com/GoogleCloudPlatform/open-match/tools/certgen/testing"
 	"github.com/stretchr/testify/assert"
+	"open-match.dev/open-match/internal/future/serving"
+	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
+	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 
 // MustParamsForTesting sets up a test server in insecure-mode.

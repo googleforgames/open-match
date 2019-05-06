@@ -15,15 +15,15 @@
 package serving
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/logging"
-	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	"github.com/opencensus-integrations/redigo/redis"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/stats/view"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/logging"
+	"open-match.dev/open-match/internal/metrics"
+	redishelpers "open-match.dev/open-match/internal/statestorage/redis"
+	"open-match.dev/open-match/internal/util/netlistener"
 )
 
 // BindingFunc is used as a callback to configure OpenMatchServer most notably the GRPC server instance.

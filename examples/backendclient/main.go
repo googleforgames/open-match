@@ -29,10 +29,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/gobs/pretty"
 	"github.com/tidwall/gjson"
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/pb"
 )
 
 var (

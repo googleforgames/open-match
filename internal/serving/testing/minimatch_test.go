@@ -24,10 +24,10 @@ import (
 	"net/http"
 	goTesting "testing"
 
-	pb "github.com/GoogleCloudPlatform/open-match/internal/pb"
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	pb "open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/serving"
 )
 
 func TestNewMiniMatch(t *goTesting.T) {

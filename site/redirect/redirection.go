@@ -162,7 +162,7 @@ func (h *handler) serveInstallYaml(w http.ResponseWriter, r *http.Request, path 
 }
 
 func (h *handler) serveIndex(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://github.com/GoogleCloudPlatform/open-match/", http.StatusTemporaryRedirect)
+	http.Redirect(w, r, "https://open-match.dev/open-match/", http.StatusTemporaryRedirect)
 }
 
 func (h *handler) Host(r *http.Request) string {

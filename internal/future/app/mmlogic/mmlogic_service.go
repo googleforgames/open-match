@@ -15,7 +15,7 @@
 package mmlogic
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/future/pb"
+	"open-match.dev/open-match/internal/future/pb"
 )
 
 // The MMLogic API provides utility functions for common MMF functionality such

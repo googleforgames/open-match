@@ -16,7 +16,7 @@
 package main
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/future/app/minimatch"
+	"open-match.dev/open-match/internal/future/app/minimatch"
 )
 
 func main() {

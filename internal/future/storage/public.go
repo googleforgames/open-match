@@ -15,9 +15,9 @@
 package storage
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
+	"open-match.dev/open-match/internal/config"
 )
 
 var (

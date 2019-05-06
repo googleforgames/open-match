@@ -15,7 +15,7 @@
 FROM golang:latest
 ENV GO111MODULE=on
 
-WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match
+WORKDIR /go/src/open-match.dev/open-match
 COPY . .
 RUN go mod download
 

@@ -21,9 +21,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	"github.com/sirupsen/logrus"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/util/netlistener"
 
 	"go.opencensus.io/exporter/prometheus"
 	"go.opencensus.io/stats"

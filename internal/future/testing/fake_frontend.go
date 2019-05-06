@@ -19,9 +19,9 @@ package testing
 import (
 	"context"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/future/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/future/pb"
 )
 
 // FakeFrontend is an empty gRPC handler.

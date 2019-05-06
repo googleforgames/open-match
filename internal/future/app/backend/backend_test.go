@@ -17,7 +17,7 @@ package backend
 import (
 	"testing"
 
-	servingTesting "github.com/GoogleCloudPlatform/open-match/internal/future/serving/testing"
+	servingTesting "open-match.dev/open-match/internal/future/serving/testing"
 )
 
 func TestServerBinding(t *testing.T) {

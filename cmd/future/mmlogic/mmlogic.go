@@ -19,7 +19,7 @@ limitations under the License.
 package main
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/future/app/mmlogic"
+	"open-match.dev/open-match/internal/future/app/mmlogic"
 )
 
 func main() {

@@ -19,12 +19,12 @@ import (
 	"fmt"
 	"time"
 
-	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
-	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/playerindices"
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
+	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/statestorage/redis/playerindices"
 )
 
 // Logrus structured logging setup
@@ -39,7 +39,7 @@ var (
 // UnmarshalPlayerFromRedis unmarshals a Player from a redis hash.
 // This can probably be deprecated if we work on getting the above generic enough.
 // The problem is that protobuf message reflection is pretty messy.
-func UnmarshalPlayerFromRedis(ctx context.Context, pool *redis.Pool, player *om_messages.Player) error {
+func UnmarshalPlayerFromRedis(ctx context.Context, pool *redis.Pool, player *pb.Player) error {
 
 	// Get the Redis connection.
 	redisConn, err := pool.GetContext(context.Background())
@@ -97,12 +97,12 @@ func UnmarshalPlayerFromRedis(ctx context.Context, pool *redis.Pool, player *om_
 // NOTE: this function will never stop querying Redis during normal operation! You need to
 //  disconnect the client from the frontend API (which closes the context) once
 //  you've received the results you were waiting for to stop doing work!
-func PlayerWatcher(bo backoff.BackOffContext, pool *redis.Pool, pb om_messages.Player) <-chan om_messages.Player {
+func PlayerWatcher(bo backoff.BackOffContext, pool *redis.Pool, player pb.Player) <-chan pb.Player {
 
-	pwLog := pLog.WithFields(logrus.Fields{"playerId": pb.Id})
+	pwLog := pLog.WithFields(logrus.Fields{"playerId": player.Id})
 
 	// Establish channel to return results on.
-	watchChan := make(chan om_messages.Player, 1)
+	watchChan := make(chan pb.Player, 1)
 
 	go func() {
 		defer close(watchChan)
@@ -113,7 +113,7 @@ func PlayerWatcher(bo backoff.BackOffContext, pool *redis.Pool, pb om_messages.P
 		// Loop, querying redis until this key has a value or the Redis query fails
 		for {
 			// Update the player's 'accessed' timestamp to denote they haven't disappeared
-			err := playerindices.Touch(bo.Context(), pool, pb.Id)
+			err := playerindices.Touch(bo.Context(), pool, player.Id)
 			if err != nil {
 				// Not fatal, but this error should be addressed.  This could
 				// cause the player to expire while still actively connected!
@@ -121,7 +121,7 @@ func PlayerWatcher(bo backoff.BackOffContext, pool *redis.Pool, pb om_messages.P
 			}
 
 			// Get player from redis.
-			results := om_messages.Player{Id: pb.Id}
+			results := pb.Player{Id: player.Id}
 			err = UnmarshalPlayerFromRedis(bo.Context(), pool, &results)
 			if err != nil {
 				// Return error and quit.
@@ -145,7 +145,7 @@ func PlayerWatcher(bo backoff.BackOffContext, pool *redis.Pool, pb om_messages.P
 			} else {
 				// Return value retreived from Redis
 				pwLog.Debug("state storage watched player record changed")
-				watchedFields := om_messages.Player{
+				watchedFields := pb.Player{
 					// Return only the watched fields to minimize traffic
 					Id:         results.Id,
 					Assignment: results.Assignment,

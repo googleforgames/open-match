@@ -17,7 +17,7 @@ package backend
 import (
 	"context"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/future/pb"
+	"open-match.dev/open-match/internal/future/pb"
 )
 
 // The service implementing the Backent API that is called to generate matches
