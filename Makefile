@@ -195,7 +195,7 @@ build-mmlogic-image: docker build-base-build-image
 	docker build -f cmd/future/mmlogic/Dockerfile -t $(REGISTRY)/openmatch-mmlogic:$(TAG) -t $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG) .
 
 build-minimatch-image: docker build-base-build-image
-	docker build -f cmd/minimatch/Dockerfile -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
+	docker build -f cmd/future/minimatch/Dockerfile -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
 
 clean-images: docker deprecated-clean-images
 	-docker rmi -f open-match-base-build
