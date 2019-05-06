@@ -180,7 +180,7 @@ push-minimatch-image: docker build-minimatch-image
 	docker push $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 
 build-images: build-service-images deprecated-build-images
-build-service-images: build-backend-image build-frontend-image build-mmlogic-image
+build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image
 
 build-base-build-image: docker
 	docker build -f Dockerfile.base-build -t open-match-base-build .
@@ -931,4 +931,3 @@ run-frontendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 run-clientloadgen: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) run om-clientloadgen --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-clientloadgen:$(TAG) --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) $(KUBECTL_RUN_ENV)
-
