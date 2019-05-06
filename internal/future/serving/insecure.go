@@ -23,12 +23,12 @@ import (
 
 	"net"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
 	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/zpages"
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/util/netlistener"
 )
 
 type insecureServer struct {

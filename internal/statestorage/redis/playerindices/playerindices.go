@@ -22,11 +22,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
+	"open-match.dev/open-match/internal/config"
+	om_messages "open-match.dev/open-match/internal/pb"
 )
 
 var (
@@ -97,7 +97,7 @@ var (
 // ConfigMap.  Kubernetes will write those contents to a file inside your
 // running container for you.
 //
-// https://github.com/GoogleCloudPlatform/open-match/issues/42 discusses more
+// https://open-match.dev/open-match/issues/42 discusses more
 // about how configs are managed in Open Match.
 //
 // You can update the list of indices at run-time if you need to add or remove

@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main is the minimatch in-process testing binary for Open Match.
-package main
+package frontend
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/minimatch"
+	"testing"
+
+	servingTesting "open-match.dev/open-match/internal/future/serving/testing"
 )
 
-func main() {
-	minimatch.RunApplication()
+func TestServerBinding(t *testing.T) {
+	servingTesting.TestServerBinding(t, BindService)
 }

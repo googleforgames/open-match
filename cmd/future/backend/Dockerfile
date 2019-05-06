@@ -14,12 +14,10 @@
 
 FROM open-match-base-build as builder
 
-WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/cmd/future/backend/
+WORKDIR /go/src/open-match.dev/open-match/cmd/future/backend/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
 
 FROM gcr.io/distroless/static
-COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/cmd/future/backend/backend .
-# TODO: Use go-bindata to embed the json file
-COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/api/backend.swagger.json .
+COPY --from=builder /go/src/open-match.dev/open-match/cmd/future/backend/backend .
 
 ENTRYPOINT ["/backend"]

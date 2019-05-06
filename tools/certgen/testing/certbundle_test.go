@@ -17,8 +17,8 @@ package testing
 import (
 	"testing"
 
-	certgenInternal "github.com/GoogleCloudPlatform/open-match/tools/certgen/internal"
 	"github.com/stretchr/testify/assert"
+	certgenInternal "open-match.dev/open-match/tools/certgen/internal"
 )
 
 const (

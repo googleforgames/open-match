@@ -15,11 +15,11 @@
 package mmlogic
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/future/pb"
-	"github.com/GoogleCloudPlatform/open-match/internal/future/serving"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/future/pb"
+	"open-match.dev/open-match/internal/future/serving"
 )
 
 var (
@@ -44,9 +44,14 @@ func RunApplication() {
 		}).Fatalf("cannot construct server.")
 	}
 
+	BindService(p)
+	serving.MustServeForever(p)
+}
+
+// BindService creates the mmlogic service to the server Params.
+func BindService(p *serving.Params) {
 	service := &mmlogicService{}
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterMmLogicServer(s, service)
 	}, pb.RegisterMmLogicHandlerFromEndpoint)
-	serving.MustServeForever(p)
 }

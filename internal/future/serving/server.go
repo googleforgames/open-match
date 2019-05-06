@@ -21,12 +21,12 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/signal"
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/signal"
+	"open-match.dev/open-match/internal/util/netlistener"
 )
 
 var (

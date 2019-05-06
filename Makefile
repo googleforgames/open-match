@@ -161,7 +161,7 @@ local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),BRANCH_NAME=$(BRANCH_NAME) .
 
 push-images: push-service-images deprecated-push-images
-push-service-images: push-backend-image push-frontend-image  push-mmlogic-image
+push-service-images: push-backend-image push-frontend-image  push-mmlogic-image push-minimatch-image
 
 push-backend-image: docker build-backend-image
 	docker push $(REGISTRY)/openmatch-backend:$(TAG)
@@ -175,8 +175,12 @@ push-mmlogic-image: docker build-mmlogic-image
 	docker push $(REGISTRY)/openmatch-mmlogic:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
 
+push-minimatch-image: docker build-minimatch-image
+	docker push $(REGISTRY)/openmatch-minimatch:$(TAG)
+	docker push $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
+
 build-images: build-service-images deprecated-build-images
-build-service-images: build-backend-image build-frontend-image build-mmlogic-image
+build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image
 
 build-base-build-image: docker
 	docker build -f Dockerfile.base-build -t open-match-base-build .
@@ -190,12 +194,16 @@ build-frontend-image: docker build-base-build-image
 build-mmlogic-image: docker build-base-build-image
 	docker build -f cmd/future/mmlogic/Dockerfile -t $(REGISTRY)/openmatch-mmlogic:$(TAG) -t $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG) .
 
+build-minimatch-image: docker build-base-build-image
+	docker build -f cmd/future/minimatch/Dockerfile -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
+
 clean-images: docker deprecated-clean-images
 	-docker rmi -f open-match-base-build
 
 	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontend:$(TAG) $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-mmlogic:$(TAG) $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 
 install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug $(REDIS_NAME) stable/redis --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
@@ -554,7 +562,7 @@ golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 lint: fmt vet lint-chart
 
 all: service-binaries deprecated-all
-service-binaries: cmd/future/backend/backend$(EXE_EXTENSION) cmd/future/frontend/frontend$(EXE_EXTENSION) cmd/future/mmlogic/mmlogic$(EXE_EXTENSION)
+service-binaries: cmd/future/minimatch/minimatch$(EXE_EXTENSION) cmd/future/backend/backend$(EXE_EXTENSION) cmd/future/frontend/frontend$(EXE_EXTENSION) cmd/future/mmlogic/mmlogic$(EXE_EXTENSION)
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
 cmd/future/backend/backend$(EXE_EXTENSION): internal/future/pb/backend.pb.go internal/future/pb/backend.pb.gw.go api/backend.swagger.json internal/future/assets/bindata.go
@@ -565,6 +573,13 @@ cmd/future/frontend/frontend$(EXE_EXTENSION): internal/future/pb/frontend.pb.go 
 
 cmd/future/mmlogic/mmlogic$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go internal/future/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/future/assets/bindata.go
 	cd cmd/future/mmlogic; $(GO_BUILD_COMMAND)
+
+# Note: This list of dependencies is long but only add file references here. If you add a .PHONY dependency make will always rebuild it.
+cmd/future/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/backend.pb.go internal/future/pb/backend.pb.gw.go api/backend.swagger.json
+cmd/future/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/frontend.pb.go internal/future/pb/frontend.pb.gw.go api/frontend.swagger.json
+cmd/future/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go internal/future/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+cmd/future/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/messages.pb.go
+	cd cmd/future/minimatch; $(GO_BUILD_COMMAND)
 
 tools/certgen/certgen$(EXE_EXTENSION):
 	cd tools/certgen/ && $(GO_BUILD_COMMAND)
@@ -666,7 +681,7 @@ clean-binaries: deprecated-clean-binaries
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/backend/backend
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/frontend/frontend
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/mmlogic/mmlogic
-	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch
+	rm -rf $(REPOSITORY_ROOT)/cmd/future/minimatch/minimatch
 
 clean-build: clean-toolchain clean-archives clean-release
 	rm -rf $(REPOSITORY_ROOT)/build/
@@ -741,15 +756,10 @@ endif
 ################################################################################
 
 deprecated-push-images: deprecated-push-service-images deprecated-push-client-images deprecated-push-mmf-example-images deprecated-push-evaluator-example-images
-deprecated-push-service-images: deprecated-push-minimatch-image deprecated-push-frontendapi-image deprecated-push-backendapi-image deprecated-push-mmlogicapi-image
+deprecated-push-service-images: deprecated-push-frontendapi-image deprecated-push-backendapi-image deprecated-push-mmlogicapi-image
 deprecated-push-mmf-example-images: deprecated-push-mmf-go-grpc-serving-simple-image
 deprecated-push-client-images: deprecated-push-backendclient-image deprecated-push-clientloadgen-image deprecated-push-frontendclient-image
 deprecated-push-evaluator-example-images: deprecated-push-evaluator-serving-image
-
-# Deprecated
-deprecated-push-minimatch-image: docker deprecated-build-minimatch-image
-	docker push $(REGISTRY)/openmatch-minimatch:$(TAG)
-	docker push $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 
 # Deprecated
 deprecated-push-frontendapi-image: docker deprecated-build-frontendapi-image
@@ -793,14 +803,10 @@ deprecated-push-evaluator-serving-image: docker deprecated-build-evaluator-servi
 
 # Deprecated
 deprecated-build-images: deprecated-build-service-images deprecated-build-client-images deprecated-build-mmf-example-images deprecated-build-evaluator-example-images
-deprecated-build-service-images: deprecated-build-minimatch-image deprecated-build-frontendapi-image deprecated-build-backendapi-image deprecated-build-mmlogicapi-image
+deprecated-build-service-images: deprecated-build-frontendapi-image deprecated-build-backendapi-image deprecated-build-mmlogicapi-image
 deprecated-build-client-images: deprecated-build-backendclient-image deprecated-build-clientloadgen-image deprecated-build-frontendclient-image
 deprecated-build-mmf-example-images: deprecated-build-mmf-go-grpc-serving-simple-image
 deprecated-build-evaluator-example-images: deprecated-build-evaluator-serving-image
-
-# Deprecated
-deprecated-build-minimatch-image: docker build-base-build-image
-	docker build -f cmd/minimatch/Dockerfile -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
 
 # Deprecated
 deprecated-build-frontendapi-image: docker build-base-build-image
@@ -837,7 +843,6 @@ deprecated-build-evaluator-serving-image: build-base-build-image
 deprecated-clean-images: docker
 	-docker rmi -f open-match-base-build
 
-	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontendapi:$(TAG) $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-backendapi:$(TAG) $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-mmlogicapi:$(TAG) $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG)
@@ -886,19 +891,11 @@ internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
 
 # Deprecated
 deprecated-all: deprecated-service-binaries deprecated-client-binaries deprecated-example-binaries tools-binaries
-deprecated-service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/backendapi/backendapi$(EXE_EXTENSION) cmd/frontendapi/frontendapi$(EXE_EXTENSION) cmd/mmlogicapi/mmlogicapi$(EXE_EXTENSION)
+deprecated-service-binaries: cmd/backendapi/backendapi$(EXE_EXTENSION) cmd/frontendapi/frontendapi$(EXE_EXTENSION) cmd/mmlogicapi/mmlogicapi$(EXE_EXTENSION)
 deprecated-client-binaries: examples/backendclient/backendclient$(EXE_EXTENSION) test/cmd/clientloadgen/clientloadgen$(EXE_EXTENSION) test/cmd/frontendclient/frontendclient$(EXE_EXTENSION)
 deprecated-example-binaries: deprecated-example-mmf-binaries deprecated-example-evaluator-binaries
 deprecated-example-mmf-binaries: examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION)
 deprecated-example-evaluator-binaries: examples/evaluators/golang/serving/serving$(EXE_EXTENSION)
-
-# Deprecated
-# Note: This list of dependencies is long but only add file references here. If you add a .PHONY dependency make will always rebuild it.
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/protobuf-spec/backend.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/protobuf-spec/frontend.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/protobuf-spec/mmlogic.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/messages.pb.go
-	cd cmd/minimatch; $(GO_BUILD_COMMAND)
 
 # Deprecated
 cmd/backendapi/backendapi$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/protobuf-spec/backend.swagger.json
@@ -940,6 +937,7 @@ deprecated-clean-protos:
 	rm -rf $(REPOSITORY_ROOT)/api/protobuf_spec/
 
 deprecated-clean-binaries:
+	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch
 	rm -rf $(REPOSITORY_ROOT)/cmd/backendapi/backendapi
 	rm -rf $(REPOSITORY_ROOT)/cmd/frontendapi/frontendapi
 	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogicapi/mmlogicapi
@@ -957,4 +955,3 @@ run-frontendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 run-clientloadgen: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) run om-clientloadgen --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-clientloadgen:$(TAG) --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) $(KUBECTL_RUN_ENV)
-

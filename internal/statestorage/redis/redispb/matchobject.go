@@ -24,11 +24,11 @@ import (
 	"fmt"
 	"time"
 
-	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
+	"open-match.dev/open-match/internal/pb"
 )
 
 // Logrus structured logging setup
@@ -43,7 +43,7 @@ var (
 // UnmarshalFromRedis unmarshals a MatchObject from a redis hash.
 // This can probably be made generic to work with other pb messages in the future.
 // In every case where we don't get an update, we return an error.
-func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.MatchObject) error {
+func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, match *pb.MatchObject) error {
 
 	// Get the Redis connection.
 	redisConn, err := pool.GetContext(context.Background())
@@ -58,7 +58,7 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 
 	// Prepare redis command.
 	cmd := "HGETALL"
-	key := pb.Id
+	key := match.Id
 	resultLog := moLog.WithFields(logrus.Fields{
 		"component": "statestorage",
 		"cmd":       cmd,
@@ -70,13 +70,13 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 	}
 
 	// Put values from redis into the MatchObject message
-	pb.Error = pbMap["error"]
-	pb.Properties = pbMap["properties"]
+	match.Error = pbMap["error"]
+	match.Properties = pbMap["properties"]
 
 	// TODO: Room for improvement here.
 	if j := pbMap["pools"]; j != "" {
 		poolsJSON := fmt.Sprintf("{\"pools\": %v}", j)
-		err = jsonpb.UnmarshalString(poolsJSON, pb)
+		err = jsonpb.UnmarshalString(poolsJSON, match)
 		if err != nil {
 			resultLog.Error("failure on pool")
 			resultLog.Error(j)
@@ -86,7 +86,7 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 
 	if j := pbMap["rosters"]; j != "" {
 		rostersJSON := fmt.Sprintf("{\"rosters\": %v}", j)
-		err = jsonpb.UnmarshalString(rostersJSON, pb)
+		err = jsonpb.UnmarshalString(rostersJSON, match)
 		if err != nil {
 			resultLog.Error("failure on roster")
 			resultLog.Error(j)
@@ -94,7 +94,7 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 		}
 	}
 	moLog.Debug("Final pb:")
-	moLog.Debug(pb)
+	moLog.Debug(match)
 	return err
 }
 
@@ -107,17 +107,17 @@ func UnmarshalFromRedis(ctx context.Context, pool *redis.Pool, pb *om_messages.M
 // reference: https://talks.golang.org/2012/concurrency.slide#25
 //
 // NOTE: runs until cancelled, timed out or result is found in Redis.
-func Watcher(bo backoff.BackOffContext, pool *redis.Pool, pb om_messages.MatchObject) <-chan om_messages.MatchObject {
+func Watcher(bo backoff.BackOffContext, pool *redis.Pool, match pb.MatchObject) <-chan pb.MatchObject {
 
-	watchChan := make(chan om_messages.MatchObject)
-	results := om_messages.MatchObject{Id: pb.Id}
+	watchChan := make(chan pb.MatchObject)
+	results := pb.MatchObject{Id: match.Id}
 
 	go func() {
 		defer close(watchChan)
 
 		// Loop, querying redis until this key has a value
 		for {
-			results = om_messages.MatchObject{Id: pb.Id}
+			results = pb.MatchObject{Id: match.Id}
 			err := UnmarshalFromRedis(bo.Context(), pool, &results)
 			if err == nil {
 				// Return value retreived from Redis asynchonously and tell calling function we're done

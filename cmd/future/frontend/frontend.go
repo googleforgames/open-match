@@ -19,7 +19,7 @@ limitations under the License.
 package main
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/future/app/frontend"
+	"open-match.dev/open-match/internal/future/app/frontend"
 )
 
 func main() {

@@ -16,10 +16,10 @@
 package minimatch
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/backendapi"
-	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi"
-	"github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi"
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
+	"open-match.dev/open-match/internal/app/backendapi"
+	"open-match.dev/open-match/internal/app/frontendapi"
+	"open-match.dev/open-match/internal/app/mmlogicapi"
+	"open-match.dev/open-match/internal/serving"
 )
 
 // CreateServerParams creates the configuration and prepares the binding for serving handler.

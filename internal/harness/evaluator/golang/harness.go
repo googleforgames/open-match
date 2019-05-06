@@ -17,15 +17,15 @@ package harness
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/harness/evaluator/golang/apisrv"
-	"github.com/GoogleCloudPlatform/open-match/internal/logging"
-	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
-	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
 	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/harness/evaluator/golang/apisrv"
+	"open-match.dev/open-match/internal/logging"
+	"open-match.dev/open-match/internal/metrics"
+	"open-match.dev/open-match/internal/pb"
+	redishelpers "open-match.dev/open-match/internal/statestorage/redis"
+	"open-match.dev/open-match/internal/util/netlistener"
 
 	"github.com/sirupsen/logrus"
 )

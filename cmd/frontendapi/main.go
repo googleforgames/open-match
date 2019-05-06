@@ -15,7 +15,7 @@
 package main
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi"
+	"open-match.dev/open-match/internal/app/frontendapi"
 )
 
 func main() {

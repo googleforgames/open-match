@@ -14,12 +14,12 @@
 
 FROM open-match-base-build as builder
 
-WORKDIR /go/src/github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/
+WORKDIR /go/src/open-match.dev/open-match/test/cmd/clientloadgen/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o clientloadgen . 
 
 FROM gcr.io/distroless/static  
-COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/clientloadgen .
-COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/*.percent ./
-COPY --from=builder /go/src/github.com/GoogleCloudPlatform/open-match/test/cmd/clientloadgen/*.ping ./
+COPY --from=builder /go/src/open-match.dev/open-match/test/cmd/clientloadgen/clientloadgen .
+COPY --from=builder /go/src/open-match.dev/open-match/test/cmd/clientloadgen/*.percent ./
+COPY --from=builder /go/src/open-match.dev/open-match/test/cmd/clientloadgen/*.ping ./
 
 ENTRYPOINT ["/clientloadgen"]

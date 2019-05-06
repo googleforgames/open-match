@@ -16,7 +16,7 @@
 package main
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi"
+	"open-match.dev/open-match/internal/app/mmlogicapi"
 )
 
 func main() {

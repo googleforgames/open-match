@@ -15,7 +15,7 @@
 package main
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/backendapi"
+	"open-match.dev/open-match/internal/app/backendapi"
 )
 
 func main() {

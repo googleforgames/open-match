@@ -15,11 +15,11 @@
 package backend
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/future/pb"
-	"github.com/GoogleCloudPlatform/open-match/internal/future/serving"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/future/pb"
+	"open-match.dev/open-match/internal/future/serving"
 )
 
 var (
@@ -44,9 +44,13 @@ func RunApplication() {
 		}).Fatalf("cannot construct server.")
 	}
 
+	serving.MustServeForever(p)
+}
+
+// BindService creates the backend service to the server Params.
+func BindService(p *serving.Params) {
 	service := &backendService{}
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterBackendServer(s, service)
 	}, pb.RegisterBackendHandlerFromEndpoint)
-	serving.MustServeForever(p)
 }

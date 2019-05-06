@@ -23,16 +23,16 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
-	"github.com/GoogleCloudPlatform/open-match/internal/set"
-	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
-	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
-	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/tag"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/serving"
+	"open-match.dev/open-match/internal/set"
+	redishelpers "open-match.dev/open-match/internal/statestorage/redis"
+	"open-match.dev/open-match/internal/statestorage/redis/ignorelist"
+	"open-match.dev/open-match/internal/statestorage/redis/redispb"
 
 	"github.com/gomodule/redigo/redis"
 
