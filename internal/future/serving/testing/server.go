@@ -15,9 +15,12 @@
 package testing
 
 import (
+	"testing"
+
 	"github.com/GoogleCloudPlatform/open-match/internal/future/serving"
 	netlistenerTesting "github.com/GoogleCloudPlatform/open-match/internal/util/netlistener/testing"
 	certgenTesting "github.com/GoogleCloudPlatform/open-match/tools/certgen/testing"
+	"github.com/stretchr/testify/assert"
 )
 
 // MustParamsForTesting sets up a test server in insecure-mode.
@@ -38,4 +41,16 @@ func MustParamsForTestingTLS() *serving.Params {
 	p.SetTLSConfiguration(pub, pub, priv)
 
 	return p
+}
+
+// TestServerBinding verifies that a server can start and shutdown.
+func TestServerBinding(t *testing.T, binder func(*serving.Params)) {
+	assert := assert.New(t)
+	p := MustParamsForTesting()
+	binder(p)
+	s := &serving.Server{}
+	defer s.Stop()
+	waitForStart, err := s.Start(p)
+	assert.Nil(err)
+	waitForStart()
 }
