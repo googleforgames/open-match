@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/future/pb"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
@@ -35,7 +35,7 @@ func TestInsecureStartStop(t *testing.T) {
 	assert := assert.New(t)
 	grpcLh := netlistenerTesting.MustListen()
 	httpLh := netlistenerTesting.MustListen()
-	ff := shellTesting.NewFakeFrontend()
+	ff := &shellTesting.FakeFrontend{}
 
 	params := NewParamsFromListeners(grpcLh, httpLh)
 	params.AddHandleFunc(func(s *grpc.Server) {
@@ -60,11 +60,11 @@ func TestInsecureStartStop(t *testing.T) {
 func runGrpcWithProxyTests(assert *assert.Assertions, s grpcServerWithProxy, conn *grpc.ClientConn, httpClient *http.Client, endpoint string) {
 	ctx := context.Background()
 	feClient := pb.NewFrontendClient(conn)
-	grpcResp, err := feClient.CreatePlayer(ctx, &pb.CreatePlayerRequest{})
+	grpcResp, err := feClient.CreateTicket(ctx, &pb.CreateTicketRequest{})
 	assert.Nil(err)
 	assert.NotNil(grpcResp)
 
-	httpReq, err := http.NewRequest(http.MethodPut, endpoint+"/v1/frontend/players", strings.NewReader("{}"))
+	httpReq, err := http.NewRequest(http.MethodPost, endpoint+"/v1/frontend/tickets", strings.NewReader("{}"))
 	assert.Nil(err)
 	assert.NotNil(httpReq)
 	httpResp, err := httpClient.Do(httpReq)

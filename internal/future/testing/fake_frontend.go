@@ -18,31 +18,39 @@ package testing
 
 import (
 	"context"
-	"fmt"
 
-	"open-match.dev/open-match/internal/pb"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/future/pb"
 )
 
 // FakeFrontend is an empty gRPC handler.
 type FakeFrontend struct {
 }
 
-// NewFakeFrontend creates a new FakeFrontend for tests.
-func NewFakeFrontend() *FakeFrontend {
-	return &FakeFrontend{}
+// CreateTicket will create a new ticket, assign a Ticket id to it and put the
+// Ticket in state storage. It will then look through the 'properties' field
+// for the attributes defined as indices the matchmakaking config. If the
+// attributes exist and are valid integers, they will be indexed. Creating a
+// ticket adds the Ticket to the pool of Tickets considered for matchmaking.
+func (s *FakeFrontend) CreateTicket(ctx context.Context, req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
+	return &pb.CreateTicketResponse{}, nil
 }
 
-// CreatePlayer is this service's implementation of the CreatePlayer gRPC method defined in frontend.proto
-func (s *FakeFrontend) CreatePlayer(ctx context.Context, group *pb.CreatePlayerRequest) (*pb.CreatePlayerResponse, error) {
-	return &pb.CreatePlayerResponse{}, nil
+// DeleteTicket removes the Ticket from state storage and from corresponding
+// configured indices. Deleting the ticket stops the ticket from being
+// considered for future matchmaking requests.
+func (s *FakeFrontend) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*pb.DeleteTicketResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
-// DeletePlayer is this service's implementation of the DeletePlayer gRPC method defined in frontend.proto
-func (s *FakeFrontend) DeletePlayer(ctx context.Context, group *pb.DeletePlayerRequest) (*pb.DeletePlayerResponse, error) {
-	return nil, fmt.Errorf("not supported")
+// GetTicket fetches the ticket associated with the specified Ticket id.
+func (s *FakeFrontend) GetTicket(ctx context.Context, req *pb.GetTicketRequest) (*pb.Ticket, error) {
+	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
-// GetUpdates is this service's implementation of the GetUpdates gRPC method defined in frontend.proto
-func (s *FakeFrontend) GetUpdates(p *pb.GetUpdatesRequest, assignmentStream pb.Frontend_GetUpdatesServer) error {
-	return fmt.Errorf("not supported")
+// GetTicketUpdates streams matchmaking results from Open Match for the
+// provided Ticket id.
+func (s *FakeFrontend) GetTicketUpdates(req *pb.GetTicketUpdatesRequest, stream pb.Frontend_GetTicketUpdatesServer) error {
+	return status.Error(codes.Unimplemented, "not implemented")
 }

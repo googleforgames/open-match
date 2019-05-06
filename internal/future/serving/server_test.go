@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/future/pb"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
@@ -32,7 +32,7 @@ func TestStartStopServer(t *testing.T) {
 	assert := assert.New(t)
 	grpcLh := netlistenerTesting.MustListen()
 	httpLh := netlistenerTesting.MustListen()
-	ff := shellTesting.NewFakeFrontend()
+	ff := &shellTesting.FakeFrontend{}
 
 	params := NewParamsFromListeners(grpcLh, httpLh)
 	params.AddHandleFunc(func(s *grpc.Server) {
@@ -60,7 +60,7 @@ func TestMustServeForever(t *testing.T) {
 	assert := assert.New(t)
 	grpcLh := netlistenerTesting.MustListen()
 	httpLh := netlistenerTesting.MustListen()
-	ff := shellTesting.NewFakeFrontend()
+	ff := &shellTesting.FakeFrontend{}
 
 	params := NewParamsFromListeners(grpcLh, httpLh)
 	params.AddHandleFunc(func(s *grpc.Server) {
