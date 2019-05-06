@@ -161,7 +161,7 @@ local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),BRANCH_NAME=$(BRANCH_NAME) .
 
 push-images: push-service-images deprecated-push-images
-push-service-images: push-backend-image push-frontend-image  push-mmlogic-image
+push-service-images: push-backend-image push-frontend-image  push-mmlogic-image push-minimatch-image
 
 push-backend-image: docker build-backend-image
 	docker push $(REGISTRY)/openmatch-backend:$(TAG)
