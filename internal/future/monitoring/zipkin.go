@@ -17,8 +17,6 @@ package monitoring
 //https://opencensus.io/quickstart/go/tracing/
 
 import (
-	"net/http"
-
 	"contrib.go.opencensus.io/exporter/zipkin"
 	"go.opencensus.io/trace"
 
@@ -35,7 +33,7 @@ var (
 	})
 )
 
-func bindZipkin(mux *http.ServeMux, cfg config.View) {
+func bindZipkin(cfg config.View) {
 	if !cfg.GetBool("monitoring.zipkin.enable") {
 		zipkinLogger.Info("Zipkin Tracing: Disabled")
 		return

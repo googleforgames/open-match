@@ -15,8 +15,6 @@
 package monitoring
 
 import (
-	"net/http"
-
 	"contrib.go.opencensus.io/exporter/stackdriver"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/stats/view"
@@ -31,7 +29,7 @@ var (
 	})
 )
 
-func bindStackDriver(mux *http.ServeMux, cfg config.View) {
+func bindStackDriver(cfg config.View) {
 	if !cfg.GetBool("monitoring.stackdriver.enable") {
 		stackdriverLogger.Info("StackDriver Metrics: Disabled")
 		return

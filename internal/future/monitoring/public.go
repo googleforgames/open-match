@@ -42,10 +42,10 @@ func Setup(mux *http.ServeMux, cfg config.View) {
 		reportingPeriod = time.Second * 10
 	}
 
-	bindJaeger(mux, cfg)
+	bindJaeger(cfg)
 	bindPrometheus(mux, cfg)
-	bindStackDriver(mux, cfg)
-	bindZipkin(mux, cfg)
+	bindStackDriver(cfg)
+	bindZipkin(cfg)
 	bindZpages(mux, cfg)
 
 	// Change the frequency of updates to the metrics endpoint

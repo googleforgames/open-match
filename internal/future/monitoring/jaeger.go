@@ -15,8 +15,6 @@
 package monitoring
 
 import (
-	"net/http"
-
 	"contrib.go.opencensus.io/exporter/jaeger"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
@@ -30,7 +28,7 @@ var (
 	})
 )
 
-func bindJaeger(mux *http.ServeMux, cfg config.View) {
+func bindJaeger(cfg config.View) {
 	if !cfg.GetBool("monitoring.jaeger.enable") {
 		jaegerLogger.Info("Jaeger Tracing: Disabled")
 		return
