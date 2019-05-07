@@ -208,8 +208,8 @@ clean-images: docker deprecated-clean-images
 install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug $(REDIS_NAME) stable/redis --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 
-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd install/helm/open-match; $(HELM) dependency update)
+update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
+	(cd install/helm/open-match; $(HELM) repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com; $(HELM) dependency update)
 
 lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd install/helm; $(HELM) lint open-match; $(HELM) lint open-match-example)
@@ -219,6 +219,7 @@ print-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
+		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG)
