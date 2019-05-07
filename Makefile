@@ -49,12 +49,12 @@ VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
 
 PROTOC_VERSION = 3.7.1
 HELM_VERSION = 2.13.1
-HUGO_VERSION = 0.55.4
+HUGO_VERSION = 0.55.5
 KUBECTL_VERSION = 1.14.1
 NODEJS_VERSION = 10.15.3
 SKAFFOLD_VERSION = latest
 MINIKUBE_VERSION = latest
-HTMLTEST_VERSION = 0.10.1
+HTMLTEST_VERSION = 0.10.3
 GOLANGCI_VERSION = 1.16.0
 
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
@@ -88,6 +88,9 @@ GO111MODULE = on
 PROMETHEUS_PORT = 9090
 GRAFANA_PORT = 3000
 SITE_PORT = 8080
+FRONTEND_PORT = 51504
+BACKEND_PORT = 51505
+MMLOGIC_PORT = 51503
 HELM = $(TOOLCHAIN_BIN)/helm
 TILLER = $(TOOLCHAIN_BIN)/tiller
 MINIKUBE = $(TOOLCHAIN_BIN)/minikube
@@ -240,9 +243,9 @@ dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) delete --purge $(OPEN_MATCH_CHART_NAME)
-	-$(KUBECTL) delete crd prometheuses.monitoring.coreos.com
-	-$(KUBECTL) delete crd servicemonitors.monitoring.coreos.com
-	-$(KUBECTL) delete crd prometheusrules.monitoring.coreos.com
+	-$(KUBECTL) --ignore-not-found delete crd prometheuses.monitoring.coreos.com
+	-$(KUBECTL) --ignore-not-found delete crd servicemonitors.monitoring.coreos.com
+	-$(KUBECTL) --ignore-not-found delete crd prometheusrules.monitoring.coreos.com
 
 update-helm-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd install/helm/open-match; $(HELM) dependencies update)
@@ -459,17 +462,17 @@ push-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$
 ifneq ($(strip $($(KUBECTL) get clusterroles | grep -i rbac)),)
 	$(KUBECTL) patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
 endif
-	echo "Waiting for Tiller to become ready..."
+	@echo "Waiting for Tiller to become ready..."
 	$(KUBECTL) wait deployment --timeout=60s --for condition=available -l app=helm,name=tiller --namespace kube-system
 
 delete-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) reset
-	-$(KUBECTL) delete serviceaccount --namespace kube-system tiller
-	-$(KUBECTL) delete clusterrolebinding tiller-cluster-rule
+	-$(KUBECTL) --ignore-not-found delete serviceaccount --namespace kube-system tiller
+	-$(KUBECTL) --ignore-not-found delete clusterrolebinding tiller-cluster-rule
 ifneq ($(strip $($(KUBECTL) get clusterroles | grep -i rbac)),)
-	-$(KUBECTL) delete deployment --namespace kube-system tiller-deploy
+	-$(KUBECTL) --ignore-not-found delete deployment --namespace kube-system tiller-deploy
 endif
-	echo "Waiting for Tiller to go away..."
+	@echo "Waiting for Tiller to go away..."
 	-$(KUBECTL) wait deployment --timeout=60s --for delete -l app=helm,name=tiller --namespace kube-system
 
 # Fake target for docker
@@ -609,11 +612,11 @@ deploy-dev-site: build/site/ gcloud
 
 ci-deploy-dev-site: build/site/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
-	echo "Deploying website to development.open-match.dev..."
+	@echo "Deploying website to development.open-match.dev..."
 	cd $(BUILD_DIR)/site && find .
 	cd $(BUILD_DIR)/site && pwd && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(DEV_SITE_VERSION) --verbosity=info
 else
-	echo "Not deploying development.open-match.dev because this is not a post commit change."
+	@echo "Not deploying development.open-match.dev because this is not a post commit change."
 endif
 
 deploy-redirect-site: gcloud
@@ -627,7 +630,7 @@ ifeq ($(_GCB_POST_SUBMIT),1)
 	#gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/$(VERSION_SUFFIX)/
 	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/yaml/$(BRANCH_NAME)-latest/
 else
-	echo "Not deploying development.open-match.dev because this is not a post commit change."
+	@echo "Not deploying development.open-match.dev because this is not a post commit change."
 endif
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
@@ -688,9 +691,27 @@ clean-stress-test-tools:
 
 clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools
 
+proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	@echo "Health: http://localhost:$(FRONTEND_PORT)/healthz"
+	@echo "RPC: http://localhost:$(FRONTEND_PORT)/debug/rpcz"
+	@echo "Trace: http://localhost:$(FRONTEND_PORT)/debug/tracez"
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=frontend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(FRONTEND_PORT):51504 $(PORT_FORWARD_ADDRESS_FLAG)
+
+ proxy-backend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	@echo "Health: http://localhost:$(BACKEND_PORT)/healthz"
+	@echo "RPC: http://localhost:$(BACKEND_PORT)/debug/rpcz"
+	@echo "Trace: http://localhost:$(BACKEND_PORT)/debug/tracez"
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=backend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(BACKEND_PORT):51505 $(PORT_FORWARD_ADDRESS_FLAG)
+
+ proxy-mmlogic: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	@echo "Health: http://localhost:$(MMLOGIC_PORT)/healthz"
+	@echo "RPC: http://localhost:$(MMLOGIC_PORT)/debug/rpcz"
+	@echo "Trace: http://localhost:$(MMLOGIC_PORT)/debug/tracez"
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=mmlogic,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(MMLOGIC_PORT):51503 $(PORT_FORWARD_ADDRESS_FLAG)
+
 proxy-grafana: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	echo "User: admin"
-	echo "Password: openmatch"
+	@echo "User: admin"
+	@echo "Password: openmatch"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=grafana,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(GRAFANA_PORT):3000 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
@@ -699,12 +720,18 @@ proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
+# Run `make proxy` instead to run everything at the same time.
+# If you run this directly it will just run each proxy sequentially.
+proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-dashboard
+
+proxy:
+	# This is an exception case where we'll call recursive make.
+	# To simplify accessing all the proxy ports we'll call `make proxy-all` with enough subprocesses to run them concurrently.
+	$(MAKE) proxy-all -j20
+
 update-deps:
 	$(GO) mod tidy
 	cd site && $(GO) mod tidy
-
-proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=frontend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') 51504:51504 $(PORT_FORWARD_ADDRESS_FLAG) 
 
 sync-deps:
 	$(GO) mod download
@@ -718,9 +745,9 @@ sleep-10:
 no-sudo:
 ifndef ALLOW_BUILD_WITH_SUDO
 ifeq ($(shell whoami),root)
-	echo "ERROR: Running Makefile as root (or sudo)"
-	echo "Please follow the instructions at https://docs.docker.com/install/linux/linux-postinstall/ if you are trying to sudo run the Makefile because of the 'Cannot connect to the Docker daemon' error."
-	echo "NOTE: sudo/root do not have the authentication token to talk to any GCP service via gcloud."
+	@echo "ERROR: Running Makefile as root (or sudo)"
+	@echo "Please follow the instructions at https://docs.docker.com/install/linux/linux-postinstall/ if you are trying to sudo run the Makefile because of the 'Cannot connect to the Docker daemon' error."
+	@echo "NOTE: sudo/root do not have the authentication token to talk to any GCP service via gcloud."
 	exit 1
 endif
 endif
