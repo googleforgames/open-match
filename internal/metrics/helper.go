@@ -25,7 +25,7 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/util/netlistener"
 
-	"go.opencensus.io/exporter/prometheus"
+	"contrib.go.opencensus.io/exporter/prometheus"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
