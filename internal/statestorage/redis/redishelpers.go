@@ -60,24 +60,16 @@ func ConnectionPool(cfg config.View) (*redis.Pool, error) {
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
 		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout") * time.Second,
-		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
+		Dial: func() (redis.Conn, error) {
+			return redis.DialURL(
+				redisURL,
+				redis.DialConnectTimeout(5*time.Second),
+				redis.DialReadTimeout(3*time.Second),
+			)
+		},
 	}
 
-	// Sanity check that connection works before passing it back.  Redigo
-	// always returns a valid connection, and will just fail on the first
-	// query: https://godoc.org/github.com/gomodule/redigo/redis#Pool.Get
-	redisConn := pool.Get()
-	defer redisConn.Close()
-	_, err := redisConn.Do("SELECT", "0")
-	// Encountered an issue getting a connection from the pool.
-	if err != nil {
-		rhLog.WithFields(log.Fields{
-			"error": err.Error(),
-			"query": "SELECT 0"}).Error("state storage connection error")
-		return nil, fmt.Errorf("cannot connect to Redis at %s, %s", maskedURL, err)
-	}
-
-	rhLog.Info("Connected to Redis")
+	rhLog.Info("Created Redis Client Pool")
 	return pool, nil
 }
 

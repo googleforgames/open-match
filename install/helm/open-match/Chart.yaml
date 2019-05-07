@@ -13,8 +13,8 @@
 # limitations under the License.
 
 apiVersion: v1
-appVersion: "0.5.0"
-version: 0.5.0
+appVersion: "0.5.1"
+version: 0.5.1
 name: open-match
 description: Flexible, extensible, and scalable video game matchmaking.
 keywords:

@@ -46,7 +46,7 @@
 ##
 # http://makefiletutorial.com/
 
-BASE_VERSION = 0.5.0
+BASE_VERSION = 0.5.1
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
@@ -705,6 +705,13 @@ proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
+
+update-deps:
+	$(GO) mod tidy
+	cd site && $(GO) mod tidy
+
+proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=frontend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') 51504:51504 $(PORT_FORWARD_ADDRESS_FLAG) 
 
 sync-deps:
 	$(GO) mod download

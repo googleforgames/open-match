@@ -40,7 +40,7 @@ kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-ad
 kubectl create namespace open-match
 
 # Install the core Open Match and monitoring services.
-kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.0-rc.2/install.yaml --namespace open-match
+kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.1/install.yaml --namespace open-match
 ```
 
 ### Deploy demo components
@@ -48,7 +48,7 @@ kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/down
 Open Match framework requires the user to author a custom match function and an evaluator that are invoked to create matches. For demo purposes, we will use an example MMF and Evaluator. The following command deploys these in the kubernetes cluster:
 
 ```bash
-kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.0-rc.2/install-example.yaml --namespace open-match
+kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.1/install-example.yaml --namespace open-match
 ```
 
 This command also deploys a component that continuously generates players with different properties and adds them to Open Match state storage. This is because a populated player pool is required to generate matches.
@@ -58,7 +58,7 @@ This command also deploys a component that continuously generates players with d
 In a real setup, a game backend (Director / DGS etc.) will request matches from Open Match. For demo purposes, this is simulated by a backend client that requests Open Match to continuously list matches until it runs out of players.
 
 ```bash
-kubectl run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=gcr.io/open-match-public-images/openmatch-backendclient:0.5.0-rc.2 --namespace=open-match
+kubectl run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=gcr.io/open-match-public-images/openmatch-backendclient:0.5.1 --namespace=open-match
 ```
 
 If successful, the backend client should successfully generate matches, displaying players populated in Rosters.

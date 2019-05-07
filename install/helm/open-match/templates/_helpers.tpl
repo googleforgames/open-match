@@ -74,3 +74,14 @@ prometheus.io/port: {{ .Values.openmatch.metrics.port | quote }}
 prometheus.io/path: {{ .Values.openmatch.metrics.path }}
 {{- end -}}
 {{- end -}}
+
+
+{{- define "probe.readiness" -}}
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: {{ .port }}
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  failureThreshold: 3
+{{- end -}}
