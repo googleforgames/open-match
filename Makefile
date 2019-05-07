@@ -56,6 +56,7 @@ SKAFFOLD_VERSION = latest
 MINIKUBE_VERSION = latest
 HTMLTEST_VERSION = 0.10.1
 GOLANGCI_VERSION = 1.16.0
+KIND_VERSION = 0.2.1
 
 PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
 GO = GO111MODULE=on go
@@ -93,6 +94,7 @@ TILLER = $(TOOLCHAIN_BIN)/tiller
 MINIKUBE = $(TOOLCHAIN_BIN)/minikube
 KUBECTL = $(TOOLCHAIN_BIN)/kubectl
 HTMLTEST = $(TOOLCHAIN_BIN)/htmltest
+KIND = $(TOOLCHAIN_BIN)/kind
 SERVICE = default
 OPEN_MATCH_CHART_NAME = open-match
 OPEN_MATCH_KUBERNETES_NAMESPACE = open-match
@@ -126,6 +128,7 @@ ifeq ($(OS),Windows_NT)
 	NODEJS_PACKAGE_NAME = nodejs.zip
 	HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_windows_amd64.zip
 	GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-windows-amd64.zip
+	KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/kind-windows-amd64
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
@@ -139,6 +142,7 @@ else
 		NODEJS_PACKAGE_NAME = nodejs.tar.gz
 		HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_linux_amd64.tar.gz
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64.tar.gz
+		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/kind-linux-amd64
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
@@ -151,6 +155,7 @@ else
 		NODEJS_PACKAGE_NAME = nodejs.tar.gz
 		HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_osx_amd64.tar.gz
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-darwin-amd64.tar.gz
+		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/kind-darwin-amd64
 	endif
 endif
 
@@ -390,6 +395,11 @@ endif
 	mv $(TOOLCHAIN_DIR)/temp-golangci/golangci-lint$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-golangci/
 
+build/toolchain/bin/kind$(EXE_EXTENSION):
+	mkdir -p $(TOOLCHAIN_BIN)
+	curl -Lo $(TOOLCHAIN_BIN)/kind$(EXE_EXTENSION) $(KIND_PACKAGE)
+	chmod +x $(TOOLCHAIN_BIN)/kind$(EXE_EXTENSION)
+
 build/toolchain/python/:
 	virtualenv --python=python3 $(TOOLCHAIN_DIR)/python/
 	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
@@ -483,6 +493,12 @@ auth-docker: gcloud docker
 
 auth-gke-cluster: gcloud
 	gcloud $(GCP_PROJECT_FLAG) container clusters get-credentials $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG)
+
+create-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	$(KIND) create cluster
+
+delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	$(KIND) delete cluster
 
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
 	gcloud $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --machine-type n1-standard-4 --tags open-match $(KUBERNETES_COMPAT)
