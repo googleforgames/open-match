@@ -552,7 +552,7 @@ ci-test:
 	$(GO) test ./... -race -test.count 25 -cover
 	$(GO) test ./... -run IgnoreRace$$ -cover
 
-stress-test-%: build/toolchain/python/
+stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
 		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
 

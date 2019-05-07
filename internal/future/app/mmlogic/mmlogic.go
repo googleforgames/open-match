@@ -37,7 +37,7 @@ func RunApplication() {
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
-	p, err := serving.NewParamsFromConfig(cfg, "api.backend")
+	p, err := serving.NewParamsFromConfig(cfg, "api.mmlogic")
 	if err != nil {
 		mmlogicLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
