@@ -31,7 +31,3 @@ dependencies:
     version: 0.10.2
     repository: https://kubernetes-charts-incubator.storage.googleapis.com/
     condition: jaeger.enabled
-  - name: mongodb
-    version: 5.17.0
-    repository: https://kubernetes-charts.storage.googleapis.com/
-    condition: mongodb.enabled

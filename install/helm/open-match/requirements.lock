@@ -11,8 +11,5 @@ dependencies:
 - name: jaeger
   repository: https://kubernetes-charts-incubator.storage.googleapis.com/
   version: 0.10.2
-- name: mongodb
-  repository: https://kubernetes-charts.storage.googleapis.com/
-  version: 5.17.0
-digest: sha256:14fa4944ab5c88e6c72f03bd1d3edac5341717f2f65cac526cd6ce7df19eb827
-generated: 2019-05-07T04:32:53.042408068Z
+digest: sha256:3c5f199dca3f5e9025a41a39999768fc4bfeb3a6345575e6b003b212feacc590
+generated: 2019-05-07T11:10:58.983105838-07:00
