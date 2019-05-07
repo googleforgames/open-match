@@ -28,8 +28,8 @@ var _ status.Status
 var _ = runtime.String
 var _ = utilities.NewDoubleArray
 
-func request_Backend_GetMatches_0(ctx context.Context, marshaler runtime.Marshaler, client BackendClient, req *http.Request, pathParams map[string]string) (Backend_GetMatchesClient, runtime.ServerMetadata, error) {
-	var protoReq GetMatchesRequest
+func request_Backend_CreateProposal_0(ctx context.Context, marshaler runtime.Marshaler, client BackendClient, req *http.Request, pathParams map[string]string) (Backend_CreateProposalClient, runtime.ServerMetadata, error) {
+	var protoReq CreateProposalRequest
 	var metadata runtime.ServerMetadata
 
 	newReader, berr := utilities.IOReaderFactory(req.Body)
@@ -40,7 +40,7 @@ func request_Backend_GetMatches_0(ctx context.Context, marshaler runtime.Marshal
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	stream, err := client.GetMatches(ctx, &protoReq)
+	stream, err := client.CreateProposal(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
 	}
@@ -108,7 +108,7 @@ func RegisterBackendHandler(ctx context.Context, mux *runtime.ServeMux, conn *gr
 // "BackendClient" to call the correct interceptors.
 func RegisterBackendHandlerClient(ctx context.Context, mux *runtime.ServeMux, client BackendClient) error {
 
-	mux.Handle("POST", pattern_Backend_GetMatches_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_Backend_CreateProposal_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
@@ -117,14 +117,14 @@ func RegisterBackendHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_Backend_GetMatches_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_Backend_CreateProposal_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_Backend_GetMatches_0(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
+		forward_Backend_CreateProposal_0(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -152,13 +152,13 @@ func RegisterBackendHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 }
 
 var (
-	pattern_Backend_GetMatches_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "backend", "matches", "createProposal"}, ""))
+	pattern_Backend_CreateProposal_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "backend", "proposal", "create"}, ""))
 
 	pattern_Backend_AssignTickets_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "backend", "tickets", "assign"}, ""))
 )
 
 var (
-	forward_Backend_GetMatches_0 = runtime.ForwardResponseStream
+	forward_Backend_CreateProposal_0 = runtime.ForwardResponseStream
 
 	forward_Backend_AssignTickets_0 = runtime.ForwardResponseMessage
 )

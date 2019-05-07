@@ -26,13 +26,13 @@
   "paths": {
     "/v1/mmlogic/pools": {
       "post": {
-        "summary": "RetrievePool gets the list of Tickets that match every Filter in the\nspecified Pool.\nTODO: Consider renaming to \"GetPool\" to be consistent with HTTP REST CRUD\nconventions. Right now there's a GET and a POST for this verb.",
-        "operationId": "RetrievePool",
+        "summary": "GetPoolTickets gets the list of Tickets that match every Filter in the\nspecified Pool.\nRight now there's a GET and a POST for this verb.",
+        "operationId": "GetPoolTickets",
         "responses": {
           "200": {
             "description": "A successful response.(streaming responses)",
             "schema": {
-              "$ref": "#/x-stream-definitions/apiRetrievePoolResponse"
+              "$ref": "#/x-stream-definitions/apiGetPoolTicketsResponse"
             }
           },
           "404": {
@@ -48,7 +48,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiRetrievePoolRequest"
+              "$ref": "#/definitions/apiGetPoolTicketsRequest"
             }
           }
         ],
@@ -59,13 +59,13 @@
     },
     "/v1/mmlogic/pools/{pool.name}": {
       "get": {
-        "summary": "RetrievePool gets the list of Tickets that match every Filter in the\nspecified Pool.\nTODO: Consider renaming to \"GetPool\" to be consistent with HTTP REST CRUD\nconventions. Right now there's a GET and a POST for this verb.",
-        "operationId": "RetrievePool2",
+        "summary": "GetPoolTickets gets the list of Tickets that match every Filter in the\nspecified Pool.\nRight now there's a GET and a POST for this verb.",
+        "operationId": "GetPoolTickets2",
         "responses": {
           "200": {
             "description": "A successful response.(streaming responses)",
             "schema": {
-              "$ref": "#/x-stream-definitions/apiRetrievePoolResponse"
+              "$ref": "#/x-stream-definitions/apiGetPoolTicketsResponse"
             }
           },
           "404": {
@@ -129,6 +129,27 @@
       },
       "description": "A hard filter used to query a subset of Tickets meeting the filtering\ncriteria."
     },
+    "apiGetPoolTicketsRequest": {
+      "type": "object",
+      "properties": {
+        "pool": {
+          "$ref": "#/definitions/apiPool",
+          "description": "The Pool representing the set of Filters to be queried."
+        }
+      }
+    },
+    "apiGetPoolTicketsResponse": {
+      "type": "object",
+      "properties": {
+        "ticket": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiTicket"
+          },
+          "description": "The Tickets that meet the Filter criteria requested by the Pool."
+        }
+      }
+    },
     "apiPool": {
       "type": "object",
       "properties": {
@@ -142,27 +163,6 @@
             "$ref": "#/definitions/apiFilter"
           },
           "description": "Set of Filters indicating the filtering criteria. Selected players must\nmatch every Filter."
-        }
-      }
-    },
-    "apiRetrievePoolRequest": {
-      "type": "object",
-      "properties": {
-        "pool": {
-          "$ref": "#/definitions/apiPool",
-          "description": "The Pool representing the set of Filters to be queried."
-        }
-      }
-    },
-    "apiRetrievePoolResponse": {
-      "type": "object",
-      "properties": {
-        "ticket": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/apiTicket"
-          },
-          "description": "The Tickets that meet the Filter criteria requested by the Pool."
         }
       }
     },
@@ -226,17 +226,17 @@
     }
   },
   "x-stream-definitions": {
-    "apiRetrievePoolResponse": {
+    "apiGetPoolTicketsResponse": {
       "type": "object",
       "properties": {
         "result": {
-          "$ref": "#/definitions/apiRetrievePoolResponse"
+          "$ref": "#/definitions/apiGetPoolTicketsResponse"
         },
         "error": {
           "$ref": "#/definitions/runtimeStreamError"
         }
       },
-      "title": "Stream result of apiRetrievePoolResponse"
+      "title": "Stream result of apiGetPoolTicketsResponse"
     }
   },
   "externalDocs": {

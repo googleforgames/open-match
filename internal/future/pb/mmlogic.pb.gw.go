@@ -28,8 +28,8 @@ var _ status.Status
 var _ = runtime.String
 var _ = utilities.NewDoubleArray
 
-func request_MmLogic_RetrievePool_0(ctx context.Context, marshaler runtime.Marshaler, client MmLogicClient, req *http.Request, pathParams map[string]string) (MmLogic_RetrievePoolClient, runtime.ServerMetadata, error) {
-	var protoReq RetrievePoolRequest
+func request_MmLogic_GetPoolTickets_0(ctx context.Context, marshaler runtime.Marshaler, client MmLogicClient, req *http.Request, pathParams map[string]string) (MmLogic_GetPoolTicketsClient, runtime.ServerMetadata, error) {
+	var protoReq GetPoolTicketsRequest
 	var metadata runtime.ServerMetadata
 
 	newReader, berr := utilities.IOReaderFactory(req.Body)
@@ -40,7 +40,7 @@ func request_MmLogic_RetrievePool_0(ctx context.Context, marshaler runtime.Marsh
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	stream, err := client.RetrievePool(ctx, &protoReq)
+	stream, err := client.GetPoolTickets(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
 	}
@@ -54,11 +54,11 @@ func request_MmLogic_RetrievePool_0(ctx context.Context, marshaler runtime.Marsh
 }
 
 var (
-	filter_MmLogic_RetrievePool_1 = &utilities.DoubleArray{Encoding: map[string]int{"pool": 0, "name": 1}, Base: []int{1, 1, 1, 0}, Check: []int{0, 1, 2, 3}}
+	filter_MmLogic_GetPoolTickets_1 = &utilities.DoubleArray{Encoding: map[string]int{"pool": 0, "name": 1}, Base: []int{1, 1, 1, 0}, Check: []int{0, 1, 2, 3}}
 )
 
-func request_MmLogic_RetrievePool_1(ctx context.Context, marshaler runtime.Marshaler, client MmLogicClient, req *http.Request, pathParams map[string]string) (MmLogic_RetrievePoolClient, runtime.ServerMetadata, error) {
-	var protoReq RetrievePoolRequest
+func request_MmLogic_GetPoolTickets_1(ctx context.Context, marshaler runtime.Marshaler, client MmLogicClient, req *http.Request, pathParams map[string]string) (MmLogic_GetPoolTicketsClient, runtime.ServerMetadata, error) {
+	var protoReq GetPoolTicketsRequest
 	var metadata runtime.ServerMetadata
 
 	var (
@@ -79,11 +79,11 @@ func request_MmLogic_RetrievePool_1(ctx context.Context, marshaler runtime.Marsh
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "pool.name", err)
 	}
 
-	if err := runtime.PopulateQueryParameters(&protoReq, req.URL.Query(), filter_MmLogic_RetrievePool_1); err != nil {
+	if err := runtime.PopulateQueryParameters(&protoReq, req.URL.Query(), filter_MmLogic_GetPoolTickets_1); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	stream, err := client.RetrievePool(ctx, &protoReq)
+	stream, err := client.GetPoolTickets(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
 	}
@@ -134,7 +134,7 @@ func RegisterMmLogicHandler(ctx context.Context, mux *runtime.ServeMux, conn *gr
 // "MmLogicClient" to call the correct interceptors.
 func RegisterMmLogicHandlerClient(ctx context.Context, mux *runtime.ServeMux, client MmLogicClient) error {
 
-	mux.Handle("POST", pattern_MmLogic_RetrievePool_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_MmLogic_GetPoolTickets_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
@@ -143,18 +143,18 @@ func RegisterMmLogicHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_MmLogic_RetrievePool_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_MmLogic_GetPoolTickets_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_MmLogic_RetrievePool_0(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
+		forward_MmLogic_GetPoolTickets_0(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("GET", pattern_MmLogic_RetrievePool_1, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("GET", pattern_MmLogic_GetPoolTickets_1, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
@@ -163,14 +163,14 @@ func RegisterMmLogicHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_MmLogic_RetrievePool_1(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_MmLogic_GetPoolTickets_1(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_MmLogic_RetrievePool_1(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
+		forward_MmLogic_GetPoolTickets_1(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -178,13 +178,13 @@ func RegisterMmLogicHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 }
 
 var (
-	pattern_MmLogic_RetrievePool_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "mmlogic", "pools"}, ""))
+	pattern_MmLogic_GetPoolTickets_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "mmlogic", "pools"}, ""))
 
-	pattern_MmLogic_RetrievePool_1 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "mmlogic", "pools", "pool.name"}, ""))
+	pattern_MmLogic_GetPoolTickets_1 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "mmlogic", "pools", "pool.name"}, ""))
 )
 
 var (
-	forward_MmLogic_RetrievePool_0 = runtime.ForwardResponseStream
+	forward_MmLogic_GetPoolTickets_0 = runtime.ForwardResponseStream
 
-	forward_MmLogic_RetrievePool_1 = runtime.ForwardResponseStream
+	forward_MmLogic_GetPoolTickets_1 = runtime.ForwardResponseStream
 )

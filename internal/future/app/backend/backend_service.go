@@ -25,13 +25,13 @@ import (
 type backendService struct {
 }
 
-// GetMatches triggers execution of the specfied MatchFunction for each of the
+// CreateProposal triggers execution of the specfied MatchFunction for each of the
 // specified MatchProfiles. Each MatchFunction execution returns a set of
-// proposals which are then evaluated to generate results. GetMatches method
+// proposals which are then evaluated to generate results. CreateProposal method
 // streams these results back to the caller.
 // TODO: Should this be renamed to createProposal? It's not a "Get" if it's
 // executing a MatchFunction.
-func (s *backendService) GetMatches(req *pb.GetMatchesRequest, stream pb.Backend_GetMatchesServer) error {
+func (s *backendService) CreateProposal(req *pb.CreateProposalRequest, stream pb.Backend_CreateProposalServer) error {
 	ctx := stream.Context()
 
 	for {
@@ -40,7 +40,7 @@ func (s *backendService) GetMatches(req *pb.GetMatchesRequest, stream pb.Backend
 			return nil
 
 		default:
-			err := stream.Send(&pb.GetMatchesResponse{})
+			err := stream.Send(&pb.CreateProposalResponse{})
 			if err != nil {
 				return err
 			}
