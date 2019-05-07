@@ -423,11 +423,11 @@ build/toolchain/bin/protoc$(EXE_EXTENSION):
 	(cd $(TOOLCHAIN_DIR); unzip -q -o protoc-temp.zip)
 	rm $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
 
-build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
+build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
 	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
-build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION): build/toolchain/include/google/api/
+build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
 build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
