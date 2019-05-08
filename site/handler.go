@@ -146,16 +146,19 @@ func (h *handler) serveIndex(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) serveChart(w http.ResponseWriter, r *http.Request, path string) {
 	root := "https://storage.googleapis.com/open-match-chart/chart"
+	h.withCors(w)
 	http.Redirect(w, r, root+path, http.StatusTemporaryRedirect)
 }
 
 func (h *handler) serveInstallYaml(w http.ResponseWriter, r *http.Request, path string) {
 	root := "https://storage.googleapis.com/open-match-chart/install"
+	h.withCors(w)
 	http.Redirect(w, r, root+path, http.StatusTemporaryRedirect)
 }
 
 func (h *handler) serveSwaggerAPI(w http.ResponseWriter, r *http.Request, path string) {
 	root := "https://storage.googleapis.com/open-match-chart/api"
+	h.withCors(w)
 	http.Redirect(w, r, root+path, http.StatusTemporaryRedirect)
 }
 
@@ -165,6 +168,14 @@ func (h *handler) Host(r *http.Request) string {
 		host = defaultHost(r)
 	}
 	return host
+}
+
+// withCors adds CORS headers to responses to tell the browser it's ok to read data from this URI if the source does not match the base URI.
+// This is ok because we are not serving executable code (javascript) from these locations, only configuration.
+func (h *handler) withCors(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+    w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 }
 
 var vanityTmpl = template.Must(template.New("vanity").Parse(`<!DOCTYPE html>

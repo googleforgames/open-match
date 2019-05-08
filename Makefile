@@ -658,6 +658,9 @@ ifeq ($(_GCB_POST_SUBMIT),1)
 	ifeq ($(MAJOR_MINOR_VERSION),$(_GCB_LATEST_VERSION))
 	sed -i 's/service:.*/service: default/g' $(BUILD_DIR)/site/.app.yaml
 	(cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(GAE_SITE_VERSION) --verbosity=info)
+	# Set CORS policy on GCS bucket so that Swagger UI will work against it.
+	# This only needs to be set once but in the interest of enforcing a consistency we'll apply this every deployment.
+	gsutil cors set $(REPOSITORY_ROOT)/site/gcs-cors.json gs://open-match-chart/
 	endif
 else
 	@echo "Not deploying $(GAE_SERVICE_NAME).open-match.dev because this is not a post commit change."
