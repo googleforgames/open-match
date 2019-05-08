@@ -128,6 +128,11 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.serveInstallYaml(w, r, path)
 		return
 	}
+	if pc == nil && strings.Contains(current, "/api") {
+		path := strings.Replace(current, "/api", "", 1)
+		h.serveSwaggerAPI(w, r, path)
+		return
+	}
 	if pc == nil {
 		h.serveIndex(w, r)
 		return
@@ -158,6 +163,11 @@ func (h *handler) serveChart(w http.ResponseWriter, r *http.Request, path string
 
 func (h *handler) serveInstallYaml(w http.ResponseWriter, r *http.Request, path string) {
 	root := "https://storage.googleapis.com/open-match-chart/install"
+	http.Redirect(w, r, root+path, http.StatusTemporaryRedirect)
+}
+
+func (h *handler) serveSwaggerAPI(w http.ResponseWriter, r *http.Request, path string) {
+	root := "https://storage.googleapis.com/open-match-chart/api"
 	http.Redirect(w, r, root+path, http.StatusTemporaryRedirect)
 }
 
