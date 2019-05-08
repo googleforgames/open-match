@@ -13,7 +13,7 @@
 # limitations under the License.
 
 runtime: go111
-service: default
+service: development
 
 handlers:
   - url: /site/$
