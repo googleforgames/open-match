@@ -40,7 +40,6 @@ require (
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 // indirect
 	github.com/prometheus/procfs v0.0.0-20190403104016-ea9eea638872 // indirect
 	github.com/rafaeljusto/redigomock v0.0.0-20190202135759-257e089e14a1
-	github.com/rs/xid v1.2.1
 	github.com/sirupsen/logrus v1.4.1
 	github.com/spf13/viper v1.3.2
 	github.com/stretchr/testify v1.3.0

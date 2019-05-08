@@ -570,7 +570,7 @@ golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 
 lint: fmt vet lint-chart
 
-all: service-binaries deprecated-all
+all: service-binaries tools-binaries deprecated-all
 service-binaries: cmd/future/minimatch/minimatch$(EXE_EXTENSION) cmd/future/backend/backend$(EXE_EXTENSION) cmd/future/frontend/frontend$(EXE_EXTENSION) cmd/future/mmlogic/mmlogic$(EXE_EXTENSION)
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
@@ -774,26 +774,9 @@ endif
 #                              Deprecated Targets                              #
 ################################################################################
 
-deprecated-push-images: deprecated-push-service-images deprecated-push-client-images deprecated-push-mmf-example-images deprecated-push-evaluator-example-images
-deprecated-push-service-images: deprecated-push-frontendapi-image deprecated-push-backendapi-image deprecated-push-mmlogicapi-image
+deprecated-push-images: deprecated-push-mmf-example-images deprecated-push-evaluator-example-images
 deprecated-push-mmf-example-images: deprecated-push-mmf-go-grpc-serving-simple-image
-deprecated-push-client-images: deprecated-push-backendclient-image deprecated-push-clientloadgen-image deprecated-push-frontendclient-image
 deprecated-push-evaluator-example-images: deprecated-push-evaluator-serving-image
-
-# Deprecated
-deprecated-push-frontendapi-image: docker deprecated-build-frontendapi-image
-	docker push $(REGISTRY)/openmatch-frontendapi:$(TAG)
-	docker push $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
-
-# Deprecated
-deprecated-push-backendapi-image: docker deprecated-build-backendapi-image
-	docker push $(REGISTRY)/openmatch-backendapi:$(TAG)
-	docker push $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG)
-
-# Deprecated
-deprecated-push-mmlogicapi-image: docker deprecated-build-mmlogicapi-image
-	docker push $(REGISTRY)/openmatch-mmlogicapi:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG)
 
 # Deprecated
 deprecated-push-mmf-go-grpc-serving-simple-image: docker deprecated-build-mmf-go-grpc-serving-simple-image
@@ -801,59 +784,18 @@ deprecated-push-mmf-go-grpc-serving-simple-image: docker deprecated-build-mmf-go
 	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
 
 # Deprecated
-deprecated-push-backendclient-image: docker deprecated-build-backendclient-image
-	docker push $(REGISTRY)/openmatch-backendclient:$(TAG)
-	docker push $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG)
-
-# Deprecated
-deprecated-push-clientloadgen-image: docker deprecated-build-clientloadgen-image
-	docker push $(REGISTRY)/openmatch-clientloadgen:$(TAG)
-	docker push $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG)
-
-# Deprecated
-deprecated-push-frontendclient-image: docker deprecated-build-frontendclient-image
-	docker push $(REGISTRY)/openmatch-frontendclient:$(TAG)
-	docker push $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG)
-
-# Deprecated
 deprecated-push-evaluator-serving-image: docker deprecated-build-evaluator-serving-image
 	docker push $(REGISTRY)/openmatch-evaluator-serving:$(TAG)
 	docker push $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG)
 
 # Deprecated
-deprecated-build-images: deprecated-build-service-images deprecated-build-client-images deprecated-build-mmf-example-images deprecated-build-evaluator-example-images
-deprecated-build-service-images: deprecated-build-frontendapi-image deprecated-build-backendapi-image deprecated-build-mmlogicapi-image
-deprecated-build-client-images: deprecated-build-backendclient-image deprecated-build-clientloadgen-image deprecated-build-frontendclient-image
+deprecated-build-images: deprecated-build-mmf-example-images deprecated-build-evaluator-example-images
 deprecated-build-mmf-example-images: deprecated-build-mmf-go-grpc-serving-simple-image
 deprecated-build-evaluator-example-images: deprecated-build-evaluator-serving-image
 
 # Deprecated
-deprecated-build-frontendapi-image: docker build-base-build-image
-	docker build -f cmd/frontendapi/Dockerfile -t $(REGISTRY)/openmatch-frontendapi:$(TAG) -t $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG) .
-
-# Deprecated
-deprecated-build-backendapi-image: docker build-base-build-image
-	docker build -f cmd/backendapi/Dockerfile -t $(REGISTRY)/openmatch-backendapi:$(TAG) -t $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG) .
-
-# Deprecated
-deprecated-build-mmlogicapi-image: docker build-base-build-image
-	docker build -f cmd/mmlogicapi/Dockerfile -t $(REGISTRY)/openmatch-mmlogicapi:$(TAG) -t $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG) .
-
-# Deprecated
 deprecated-build-mmf-go-grpc-serving-simple-image: docker build-base-build-image
 	docker build -f examples/functions/golang/grpc-serving/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG) .
-
-# Deprecated
-deprecated-build-backendclient-image: docker build-base-build-image
-	docker build -f examples/backendclient/Dockerfile -t $(REGISTRY)/openmatch-backendclient:$(TAG) -t $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG) .
-
-# Deprecated
-deprecated-build-clientloadgen-image: docker build-base-build-image
-	docker build -f test/cmd/clientloadgen/Dockerfile -t $(REGISTRY)/openmatch-clientloadgen:$(TAG) -t $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG) .
-
-# Deprecated
-deprecated-build-frontendclient-image: docker build-base-build-image
-	docker build -f test/cmd/frontendclient/Dockerfile -t $(REGISTRY)/openmatch-frontendclient:$(TAG) -t $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG) .
 
 # Deprecated
 deprecated-build-evaluator-serving-image: build-base-build-image
@@ -861,16 +803,7 @@ deprecated-build-evaluator-serving-image: build-base-build-image
 
 deprecated-clean-images: docker
 	-docker rmi -f open-match-base-build
-
-	-docker rmi -f $(REGISTRY)/openmatch-frontendapi:$(TAG) $(REGISTRY)/openmatch-frontendapi:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-backendapi:$(TAG) $(REGISTRY)/openmatch-backendapi:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-mmlogicapi:$(TAG) $(REGISTRY)/openmatch-mmlogicapi:$(ALTERNATE_TAG)
-
 	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
-
-	-docker rmi -f $(REGISTRY)/openmatch-backendclient:$(TAG) $(REGISTRY)/openmatch-backendclient:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-clientloadgen:$(TAG) $(REGISTRY)/openmatch-clientloadgen:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-frontendclient:$(TAG) $(REGISTRY)/openmatch-frontendclient:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator-serving:$(TAG) $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG)
 
 # Deprecated
@@ -909,28 +842,10 @@ internal/pb/mmlogic.pb.go: internal/pb/messages.pb.go
 internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
 
 # Deprecated
-deprecated-all: deprecated-service-binaries deprecated-client-binaries deprecated-example-binaries tools-binaries
-deprecated-service-binaries: cmd/backendapi/backendapi$(EXE_EXTENSION) cmd/frontendapi/frontendapi$(EXE_EXTENSION) cmd/mmlogicapi/mmlogicapi$(EXE_EXTENSION)
-deprecated-client-binaries: examples/backendclient/backendclient$(EXE_EXTENSION) test/cmd/clientloadgen/clientloadgen$(EXE_EXTENSION) test/cmd/frontendclient/frontendclient$(EXE_EXTENSION)
+deprecated-all: deprecated-example-binaries
 deprecated-example-binaries: deprecated-example-mmf-binaries deprecated-example-evaluator-binaries
 deprecated-example-mmf-binaries: examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION)
 deprecated-example-evaluator-binaries: examples/evaluators/golang/serving/serving$(EXE_EXTENSION)
-
-# Deprecated
-cmd/backendapi/backendapi$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/protobuf-spec/backend.swagger.json
-	cd cmd/backendapi; $(GO_BUILD_COMMAND)
-
-# Deprecated
-cmd/frontendapi/frontendapi$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/protobuf-spec/frontend.swagger.json
-	cd cmd/frontendapi; $(GO_BUILD_COMMAND)
-
-# Deprecated
-cmd/mmlogicapi/mmlogicapi$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/protobuf-spec/mmlogic.swagger.json
-	cd cmd/mmlogicapi; $(GO_BUILD_COMMAND)
-
-# Deprecated
-examples/backendclient/backendclient$(EXE_EXTENSION): internal/pb/backend.pb.go
-	cd examples/backendclient; $(GO_BUILD_COMMAND)
 
 # Deprecated
 examples/evaluators/golang/serving/serving$(EXE_EXTENSION): internal/pb/messages.pb.go
@@ -940,14 +855,6 @@ examples/evaluators/golang/serving/serving$(EXE_EXTENSION): internal/pb/messages
 examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd examples/functions/golang/grpc-serving; $(GO_BUILD_COMMAND)
 
-# Deprecated
-test/cmd/clientloadgen/clientloadgen$(EXE_EXTENSION):
-	cd test/cmd/clientloadgen; $(GO_BUILD_COMMAND)
-
-# Deprecated
-test/cmd/frontendclient/frontendclient$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/messages.pb.go
-	cd test/cmd/frontendclient; $(GO_BUILD_COMMAND)
-
 deprecated-clean-swagger-docs:
 	rm -rf $(REPOSITORY_ROOT)/api/protobuf-spec/*.json
 
@@ -956,21 +863,5 @@ deprecated-clean-protos:
 	rm -rf $(REPOSITORY_ROOT)/api/protobuf_spec/
 
 deprecated-clean-binaries:
-	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch
-	rm -rf $(REPOSITORY_ROOT)/cmd/backendapi/backendapi
-	rm -rf $(REPOSITORY_ROOT)/cmd/frontendapi/frontendapi
-	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogicapi/mmlogicapi
-	rm -rf $(REPOSITORY_ROOT)/examples/backendclient/backendclient
 	rm -rf $(REPOSITORY_ROOT)/examples/evaluators/golang/serving/serving
 	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/grpc-serving/grpc-serving
-	rm -rf $(REPOSITORY_ROOT)/test/cmd/clientloadgen/clientloadgen
-	rm -rf $(REPOSITORY_ROOT)/test/cmd/frontendclient/frontendclient
-
-run-backendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) run om-backendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-backendclient:$(TAG) --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) $(KUBECTL_RUN_ENV)
-
-run-frontendclient: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) run om-frontendclient --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-frontendclient:$(TAG) --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) $(KUBECTL_RUN_ENV)
-
-run-clientloadgen: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) run om-clientloadgen --rm --restart=Never --image-pull-policy=Always -i --tty --image=$(REGISTRY)/openmatch-clientloadgen:$(TAG) --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) $(KUBECTL_RUN_ENV)
