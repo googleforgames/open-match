@@ -46,7 +46,9 @@ BASE_VERSION = 0.0.0-dev
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
-BUILD_DATE = $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+BUILD_DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+YEAR_MONTH = $(shell date -u +'%Y%m')
+MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
 
 PROTOC_VERSION = 3.7.1
 HELM_VERSION = 2.13.1
@@ -107,12 +109,25 @@ OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE = open-match
 REDIS_NAME = om-redis
 GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | cut -c 10-)
 _GCB_POST_SUBMIT ?= 0
+# Latest version triggers builds of :latest images and deploy to main website.
+_GCB_LATEST_VERSION ?=
 DEV_SITE_VERSION = head
 IMAGE_BUILD_ARGS=--build-arg BUILD_DATE=$(BUILD_DATE) --build-arg=VCS_REF=$(SHORT_SHA) --build-arg BUILD_VERSION=$(BASE_VERSION)
 
 # Make port forwards accessible outside of the proxy machine.
 PORT_FORWARD_ADDRESS_FLAG = --address 0.0.0.0
 DASHBOARD_PORT = 9092
+
+# AppEngine variables
+GAE_SITE_VERSION = om$(YEAR_MONTH)
+
+# If the version is 0.0* then the service name is "development" as in development.open-match.dev.
+ifeq ($(MAJOR_MINOR_VERSION),0.0)
+	GAE_SERVICE_NAME = development
+else
+	GAE_SERVICE_NAME = $(shell echo $(MAJOR_MINOR_VERSION) | tr . -)
+endif 
+
 export PATH := $(REPOSITORY_ROOT)/node_modules/.bin/:$(TOOLCHAIN_BIN):$(TOOLCHAIN_DIR)/nodejs/bin:$(PATH)
 
 # Get the project from gcloud if it's not set.
@@ -232,7 +247,13 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
-		--set openmatch.image.tag=$(TAG)
+		--set openmatch.image.tag=$(TAG) \
+		--set grafana.enabled=true \
+		--set jaeger.enabled=true \
+		--set prometheus.enabled=true \
+		--set redis.enabled=true \
+		--set openmatch.monitoring.stackdriver.enabled=true \
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug $(OPEN_MATCH_EXAMPLE_CHART_NAME) install/helm/open-match-example \
@@ -610,7 +631,6 @@ build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
 	# Only copy the root directory since that has the AppEngine serving code.
 	-cp -f site/* $(BUILD_DIR)/site
 	-cp -f site/.gcloudignore $(BUILD_DIR)/site/.gcloudignore
-	#cd $(BUILD_DIR)/site && "SERVICE=$(SERVICE) envsubst < app.yaml > .app.yaml"
 	cp $(BUILD_DIR)/site/app.yaml $(BUILD_DIR)/site/.app.yaml
 
 site-test: TEMP_SITE_DIR := /tmp/open-match-site
@@ -626,16 +646,24 @@ browse-site: build/site/
 deploy-dev-site: build/site/ gcloud
 	cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(VERSION_SUFFIX) --quiet
 
-ci-deploy-dev-site: build/site/ gcloud
+# The website is deployed on Post Submit of every build based on the BASE_VERSION in this file.
+# If the site 
+ci-deploy-site: build/site/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
-	@echo "Deploying website to development.open-match.dev..."
-	cd $(BUILD_DIR)/site && find .
-	cd $(BUILD_DIR)/site && pwd && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(DEV_SITE_VERSION) --verbosity=info
+	@echo "Deploying website to $(GAE_SERVICE_NAME).open-match.dev version=$(GAE_SITE_VERSION)..."
+	# Replace "service:"" with "service: $(GAE_SERVICE_NAME)" example, "service: 0-5"
+	sed -i 's/service:.*/service: $(GAE_SERVICE_NAME)/g' $(BUILD_DIR)/site/.app.yaml
+	(cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(GAE_SITE_VERSION) --verbosity=info)
+	# If the version matches the "latest" version from CI then also deploy to the default instance.
+	ifeq ($(MAJOR_MINOR_VERSION),$(_GCB_LATEST_VERSION))
+	sed -i 's/service:.*/service: default/g' $(BUILD_DIR)/site/.app.yaml
+	(cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(GAE_SITE_VERSION) --verbosity=info)
 	# Set CORS policy on GCS bucket so that Swagger UI will work against it.
 	# This only needs to be set once but in the interest of enforcing a consistency we'll apply this every deployment.
 	gsutil cors set $(REPOSITORY_ROOT)/site/gcs-cors.json gs://open-match-chart/
+	endif
 else
-	@echo "Not deploying development.open-match.dev because this is not a post commit change."
+	@echo "Not deploying $(GAE_SERVICE_NAME).open-match.dev because this is not a post commit change."
 endif
 
 deploy-redirect-site: gcloud
@@ -644,10 +672,11 @@ deploy-redirect-site: gcloud
 run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) server --debug --watch --enableGitInfo . --baseURL=http://localhost:$(SITE_PORT)/ --bind 0.0.0.0 --port $(SITE_PORT) --disableFastRender
 
-ci-deploy-artifacts: install/yaml/ gcloud
+ci-deploy-artifacts: install/yaml/ swagger-json-docs gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
-	#gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/$(VERSION_SUFFIX)/
-	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/yaml/$(BRANCH_NAME)-latest/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/v$(BASE_VERSION)/yaml/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/api/*.json gs://open-match-chart/api/v$(BASE_VERSION)/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/helm/ gs://open-match-chart/chart/v$(BASE_VERSION)/
 else
 	@echo "Not deploying development.open-match.dev because this is not a post commit change."
 endif
@@ -716,13 +745,13 @@ proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Trace: http://localhost:$(FRONTEND_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=frontend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(FRONTEND_PORT):51504 $(PORT_FORWARD_ADDRESS_FLAG)
 
- proxy-backend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+proxy-backend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Health: http://localhost:$(BACKEND_PORT)/healthz"
 	@echo "RPC: http://localhost:$(BACKEND_PORT)/debug/rpcz"
 	@echo "Trace: http://localhost:$(BACKEND_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=backend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(BACKEND_PORT):51505 $(PORT_FORWARD_ADDRESS_FLAG)
 
- proxy-mmlogic: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+proxy-mmlogic: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Health: http://localhost:$(MMLOGIC_PORT)/healthz"
 	@echo "RPC: http://localhost:$(MMLOGIC_PORT)/debug/rpcz"
 	@echo "Trace: http://localhost:$(MMLOGIC_PORT)/debug/tracez"

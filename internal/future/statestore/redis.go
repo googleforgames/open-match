@@ -12,21 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package storage
+package statestore
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/future/pb"
 )
 
 var (
 	redisLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "storage.redis",
+		"component": "statestore.redis",
 	})
 )
 
@@ -38,7 +42,7 @@ func (rb *redisBackend) Close() error {
 	return rb.redisPool.Close()
 }
 
-// NewRedis creates a storage.Service backed by Redis database.
+// newRedis creates a statestore.Service backed by Redis database.
 func newRedis(cfg config.View) (Service, error) {
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
@@ -88,4 +92,34 @@ func redisCloser(closer func() error) {
 			"error": err.Error(),
 		}).Info("failed to close redis")
 	}
+}
+
+// CreateTicket creates a new Ticket in the state storage. This method fails if the Ticket already exists.
+func (rb *redisBackend) CreateTicket(context.Context, pb.Ticket, int) error {
+	return status.Error(codes.Unimplemented, "not implemented")
+}
+
+// GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
+func (rb *redisBackend) GetTicket(context.Context, string) (*pb.Ticket, error) {
+	return nil, status.Error(codes.Unimplemented, "not implemented")
+}
+
+// DeleteTicket removes the Ticket with the specified id from state storage. This method succeeds if the Ticket does not exist.
+func (rb *redisBackend) DeleteTicket(context.Context, string) error {
+	return status.Error(codes.Unimplemented, "not implemented")
+}
+
+// IndexTicket indexes the Ticket id for the specified fields.
+func (rb *redisBackend) IndexTicket(context.Context, pb.Ticket, []string) error {
+	return status.Error(codes.Unimplemented, "not implemented")
+}
+
+// DeindexTicket removes the indexing for the specified Ticket. Only the indexes are removed but the Ticket continues to exist.
+func (rb *redisBackend) DeindexTicket(context.Context, string, []string) error {
+	return status.Error(codes.Unimplemented, "not implemented")
+}
+
+// FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria.
+func (rb *redisBackend) FilterTickets(context.Context, []pb.Filter) ([]string, error) {
+	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
