@@ -68,10 +68,10 @@ heritage: {{ .Release.Service }}
 
 
 {{- define "prometheus.annotations" -}}
-{{- if and ($.prometheus.serviceDiscovery) ($.prometheus.enabled) -}}
+{{- if and (.prometheus.serviceDiscovery) (.prometheus.enabled) -}}
 prometheus.io/scrape: "true"
 prometheus.io/port: {{ .port | quote }}
-prometheus.io/path: {{ $.prometheus.endpoint }}
+prometheus.io/path: {{ .prometheus.endpoint }}
 {{- end -}}
 {{- end -}}
 
