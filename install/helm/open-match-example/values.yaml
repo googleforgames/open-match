@@ -20,12 +20,6 @@ openmatch:
     stackdriverProjectID: ""
     port: 9555
     path: "/metrics"
-  backendclient:
-    install: false
-  frontendclient:
-    install: false
-  clientloadgen:
-    install: true
   evaluator:
     install: true
   function:
@@ -40,15 +34,6 @@ openmatch:
   image:
     registry: gcr.io/open-match-public-images
     tag: 0.0.0-dev
-    backendclient:
-      name: openmatch-backendclient
-      pullPolicy: Always
-    frontendclient:
-      name: openmatch-frontendclient
-      pullPolicy: Always
-    clientloadgen:
-      name: openmatch-clientloadgen
-      pullPolicy: Always
     evaluator:
       name: openmatch-evaluator-serving
       pullPolicy: Always

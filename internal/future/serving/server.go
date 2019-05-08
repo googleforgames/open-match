@@ -18,6 +18,7 @@ import (
 	"context"
 	"io/ioutil"
 	"net/http"
+	"open-match.dev/open-match/internal/future/monitoring"
 
 	"github.com/sirupsen/logrus"
 
@@ -63,12 +64,12 @@ type Params struct {
 
 // NewParamsFromConfig returns server Params initialized from the configuration file.
 func NewParamsFromConfig(cfg config.View, prefix string) (*Params, error) {
-	grpcLh, err := netlistener.NewFromPortNumber(cfg.GetInt(prefix + ".port"))
+	grpcLh, err := netlistener.NewFromPortNumber(cfg.GetInt(prefix + ".grpcport"))
 	if err != nil {
 		serverLogger.Fatal(err)
 		return nil, err
 	}
-	httpLh, err := netlistener.NewFromPortNumber(cfg.GetInt(prefix + ".proxyport"))
+	httpLh, err := netlistener.NewFromPortNumber(cfg.GetInt(prefix + ".httpport"))
 	if err != nil {
 		closeErr := grpcLh.Close()
 		if closeErr != nil {
@@ -97,6 +98,8 @@ func NewParamsFromConfig(cfg config.View, prefix string) (*Params, error) {
 		}
 		p.SetTLSConfiguration(publicCertData, publicCertData, privateKeyData)
 	}
+
+	monitoring.Setup(p.ServeMux, cfg)
 	return p, nil
 }
 

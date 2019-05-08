@@ -104,6 +104,7 @@ tmp/
 # Open Match Binaries
 cmd/future/backend/backend
 cmd/future/frontend/frontend
+cmd/future/minimatch/minimatch
 cmd/future/mmlogic/mmlogic
 cmd/future/minimatch/minimatch
 tools/certgen/certgen
