@@ -631,6 +631,9 @@ ifeq ($(_GCB_POST_SUBMIT),1)
 	@echo "Deploying website to development.open-match.dev..."
 	cd $(BUILD_DIR)/site && find .
 	cd $(BUILD_DIR)/site && pwd && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(DEV_SITE_VERSION) --verbosity=info
+	# Set CORS policy on GCS bucket so that Swagger UI will work against it.
+	# This only needs to be set once but in the interest of enforcing a consistency we'll apply this every deployment.
+	gsutil cors set $(REPOSITORY_ROOT)/site/gcs-cors.json gs://open-match-chart/
 else
 	@echo "Not deploying development.open-match.dev because this is not a post commit change."
 endif
