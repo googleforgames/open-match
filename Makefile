@@ -676,7 +676,8 @@ ci-deploy-artifacts: install/yaml/ swagger-json-docs gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
 	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/v$(BASE_VERSION)/yaml/
 	gsutil cp -a public-read $(REPOSITORY_ROOT)/api/*.json gs://open-match-chart/api/v$(BASE_VERSION)/
-	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/helm/ gs://open-match-chart/chart/v$(BASE_VERSION)/
+	# TODO Add Helm Artifacts later.
+	# Example: https://github.com/GoogleCloudPlatform/agones/blob/3b324a74e5e8f7049c2169ec589e627d4c8cab79/build/Makefile#L211
 else
 	@echo "Not deploying development.open-match.dev because this is not a post commit change."
 endif
