@@ -18,7 +18,7 @@ If you want to make simple edits to a page (changes that do not require formatti
 
 ## Advanced Edits
 
-If you're adding a new page or making substantial changes.
+If you're adding a new page, changing the landing page, or making substantial changes.
 
  1. Checkout the repository.
  1. Create a branch via `git checkout -b mychange upstream/master`.

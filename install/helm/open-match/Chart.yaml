@@ -24,7 +24,7 @@ keywords:
   - matchmaking
   - go
   - golang
-home: https://github.com/GoogleCloudPlatform/open-match
+home: https://open-match.dev
 sources:
   - https://github.com/GoogleCloudPlatform/open-match
 maintainers:
