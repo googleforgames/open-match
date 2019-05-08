@@ -25,7 +25,7 @@ import (
 var (
 	mmlogicLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "backend",
+		"component": "mmlogic",
 	})
 )
 

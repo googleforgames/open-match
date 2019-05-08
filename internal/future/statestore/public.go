@@ -17,7 +17,6 @@ package statestore
 import (
 	"context"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/future/pb"
@@ -48,7 +47,7 @@ type Service interface {
 	DeindexTicket(ctx context.Context, id string, indices []string) error
 
 	// FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria.
-	FilterTickets(ctx context.Context, filters []pb.Filter) ([]string, error)
+	FilterTickets(ctx context.Context, filters []*pb.Filter) (map[string]map[string]int64, error)
 
 	// Closes the connection to the underlying storage.
 	Close() error
@@ -57,16 +56,4 @@ type Service interface {
 // New creates a Service based on the configuration.
 func New(cfg config.View) (Service, error) {
 	return newRedis(cfg)
-}
-
-// GetDeprecatedRedisPool returns a Redigo Redis pool.
-// This method is used to allow code to be ported over to the new storage.Service APIs iteratively.
-// This method will be going away after the 0.6.0 release.
-func GetDeprecatedRedisPool(service Service) *redis.Pool {
-	rb, ok := service.(*redisBackend)
-	if !ok {
-		publicLogger.Warningf("storage.Service was assumed to be *redisBackend but was %T instead, returning nil.", service)
-		return nil
-	}
-	return rb.redisPool
 }

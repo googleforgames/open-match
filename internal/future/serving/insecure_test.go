@@ -48,6 +48,7 @@ func TestInsecureStartStop(t *testing.T) {
 	waitForStart()
 
 	conn, err := grpc.Dial(fmt.Sprintf(":%d", grpcLh.Number()), grpc.WithInsecure())
+	defer conn.Close()
 	assert.Nil(err)
 
 	endpoint := fmt.Sprintf("http://localhost:%d", httpLh.Number())

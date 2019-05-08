@@ -15,26 +15,28 @@
 package mmlogic
 
 import (
-	"math"
-	"time"
-
 	"encoding/json"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/future/pb"
-	"open-match.dev/open-match/internal/set"
+	"open-match.dev/open-match/internal/future/statestore"
+)
 
-	"fmt"
+var (
+	logger = logrus.WithFields(logrus.Fields{
+		"app":       "openmatch",
+		"component": "app.mmlogic.mmlogic_service",
+	})
 )
 
 // The MMLogic API provides utility functions for common MMF functionality such
 // as retreiving Tickets from state storage.
 type mmlogicService struct {
-	redisPool *redis.Pool
-	logger    *logrus.Entry
-	cfg       config.View
+	storageService statestore.Service
+	cfg            config.View
 }
 
 // newMmlogic creates and initializes the mmlogic service.
@@ -55,97 +57,46 @@ func newMmlogic(cfg config.View) (*mmlogicService, error) {
 
 // GetPoolTickets gets the list of Tickets that match every Filter in the
 // specified Pool.
-// TODO: Consider renaming to "GetPool" to be consistent with HTTP REST CRUD
-// conventions. Right now there's a GET and a POST for this verb.
-func (s *mmlogicService) RetrievePool(req *pb.RetrievePoolRequest, responseServer pb.MmLogic_RetrievePoolServer) error {
-	poolName := req.Pool.Name
+func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.MmLogic_QueryTicketsServer) error {
+	ctx := responseServer.Context()
 	poolFilters := req.Pool.Filter
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
 
-	s.logger.WithFields(logrus.Fields{
-		"Pool.Name":    poolName,
-		"Pool.Filters": poolFilters,
-	}).Debug("Received RetrievePoolRequest.")
-
-	// A map[attribute]map[playerID]value
-	selectedPlayerPools := make(map[string]map[string]int64)
-	// A set of playerIds that satisfies all filters
-	playerIdsSet := make([]string, 0)
-
-	// For each filter, do a range query to Redis on Filter.Attribute
-	for i, filter := range poolFilters {
-		filterStart := time.Now()
-		// Time Complexity O(logN + M), where N is the number of elements in the attribute set
-		// and M is the number of entries being returned.
-		filterPlayers, err := redis.Int64Map(redisConn.Do("ZRANGEBYSCORE", filter.Attribute, filter.Min, filter.Max, "WITHSCORES"))
-
-		if err != nil {
-			s.logger.WithFields(logrus.Fields{
-				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %d %d WITHSCORES", filter.Attribute, filter.Min, filter.Max),
-			}).WithError(err)
-		}
-
-		s.logger.WithFields(logrus.Fields{
-			"Filter.Attribute": filter.Attribute,
-			"Filter.Min":       filter.Min,
-			"Filter.Max":       filter.Max,
-			"TimeElapsed":      time.Since(filterStart).Seconds(),
-			"ResultCounts":     len(filterPlayers),
-		}).Debug("Filter Stats.")
-
-		selectedPlayerPools[filter.Attribute] = filterPlayers
-
-		filterPlayerKeys := make([]string, 0)
-		for key := range filterPlayers {
-			filterPlayerKeys = append(filterPlayerKeys, key)
-		}
-
-		if i == 0 {
-			playerIdsSet = filterPlayerKeys
-		} else {
-			playerIdsSet = set.Intersection(playerIdsSet, filterPlayerKeys)
-		}
+	// Send requests to the storage service
+	idsToProperties, err := s.store.FilterTickets(ctx, poolFilters)
+	if err != nil {
+		logger.WithError(err).Error("Failed to retrieve result from storage service.")
+		return status.Error(codes.Internal, err.Error())
 	}
 
-	ctx := responseServer.Context()
-	pageSize := s.cfg.GetInt("redis.results.pageSize")
-	pageCount := int(math.Ceil(float64(len(playerIdsSet) / pageSize)))
-	setOffset := 0
+	page := []*pb.Ticket{}
+	// The ith entry when iterating through the idsToProperties map
+	mapIdx := 0
+	// The number of tickets in a paging response
+	pSize := s.cfg.GetInt("storage.page.size")
 
-	for pageIndex := 0; pageIndex < pageCount; pageIndex++ {
-		// Initialize a response to send for each page
-		responseTickets := []*pb.Ticket{}
-
-		for pageOffset := 0; pageOffset < pageSize && setOffset < len(playerIdsSet); pageOffset++ {
-			ticketID := playerIdsSet[setOffset]
-			ticketAttribute := make(map[string]int64, 0)
-
-			for attribute, attributePool := range selectedPlayerPools {
-				ticketAttribute[attribute] = attributePool[ticketID]
-			}
-
-			ticketAttributeJSONByte, err := json.Marshal(ticketAttribute)
-			ticketAttributeJSON := string(ticketAttributeJSONByte)
-
-			if err != nil {
-				s.logger.WithError(err).Error("Failed to convert go struct to JSON")
-				return err
-			}
-
-			responseTickets = append(responseTickets, &pb.Ticket{Id: ticketID, Properties: ticketAttributeJSON})
-
-			setOffset++
-		}
+	for id, property := range idsToProperties {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
-			if err := responseServer.Send(&pb.RetrievePoolResponse{
-				Ticket: responseTickets,
-			}); err != nil {
-				s.logger.WithError(err).Error("Failed to send Redis response to grpc server")
-				return err
+			propertyByte, err := json.Marshal(property)
+			if err != nil {
+				logger.WithError(err).Error("Failed to convert property map to JSON")
+				return status.Errorf(codes.Internal, err.Error())
+			}
+			page = append(page, &pb.Ticket{Id: id, Properties: string(propertyByte)})
+
+			mapIdx++
+
+			endPage := mapIdx%pSize == 0 || mapIdx == len(idsToProperties)-1
+			if endPage {
+				// Reaches page limit; Send a stream response then reset the page
+				err := responseServer.Send(&pb.RetrievePoolResponse{Ticket: page})
+				if err != nil {
+					logger.WithError(err).Error("Failed to send Redis response to grpc server")
+					return status.Errorf(codes.Aborted, err.Error())
+				}
+				page = []*pb.Ticket{}
 			}
 		}
 	}
