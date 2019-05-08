@@ -12,24 +12,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package storage
+package statestore
 
 import (
+	"context"
+
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/future/pb"	
 )
 
 var (
 	publicLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "storage.public",
+		"component": "statestore.public",
 	})
 )
 
 // Service is a generic interface for talking to a storage backend.
 type Service interface {
-	// Close shutsdown the database connection.
+	// CreateTicket creates a new Ticket in the state storage. This method fails if the Ticket already exists. 
+	CreateTicket(ctx context.Context, ticket pb.Ticket, ttl int) error
+
+	// GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
+	GetTicket(ctx context.Context, id string) (*pb.Ticket, error)
+
+	// DeleteTicket removes the Ticket with the specified id from state storage. This method succeeds if the Ticket does not exist.
+	DeleteTicket(ctx context.Context, id string) error
+
+	// IndexTicket indexes the Ticket id for the specified fields.
+	IndexTicket(ctx context.Context, ticket pb.Ticket, indices []string) error
+
+	// DeindexTicket removes the indexing for the specified Ticket. Only the indexes are removed but the Ticket continues to exist.
+	DeindexTicket(ctx context.Context, id string, indices []string) error
+
+	// FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria. 
+	FilterTickets(ctx context.Context, filters []pb.Filter) ([]string, error)
+
+	// Closes the connection to the underlying storage.
 	Close() error
 }
 

@@ -247,7 +247,13 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
-		--set openmatch.image.tag=$(TAG)
+		--set openmatch.image.tag=$(TAG) \
+		--set grafana.enabled=true \
+		--set jaeger.enabled=true \
+		--set prometheus.enabled=true \
+		--set redis.enabled=true \
+		--set openmatch.monitoring.stackdriver.enabled=true \
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug $(OPEN_MATCH_EXAMPLE_CHART_NAME) install/helm/open-match-example \
@@ -736,13 +742,13 @@ proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Trace: http://localhost:$(FRONTEND_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=frontend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(FRONTEND_PORT):51504 $(PORT_FORWARD_ADDRESS_FLAG)
 
- proxy-backend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+proxy-backend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Health: http://localhost:$(BACKEND_PORT)/healthz"
 	@echo "RPC: http://localhost:$(BACKEND_PORT)/debug/rpcz"
 	@echo "Trace: http://localhost:$(BACKEND_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=backend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(BACKEND_PORT):51505 $(PORT_FORWARD_ADDRESS_FLAG)
 
- proxy-mmlogic: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+proxy-mmlogic: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Health: http://localhost:$(MMLOGIC_PORT)/healthz"
 	@echo "RPC: http://localhost:$(MMLOGIC_PORT)/debug/rpcz"
 	@echo "Trace: http://localhost:$(MMLOGIC_PORT)/debug/tracez"

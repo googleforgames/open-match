@@ -29,9 +29,9 @@ spec:
   - name: grpc
     protocol: TCP
     port: {{ .Values.openmatch.backend.grpc.port }}
-  - name: proxy
+  - name: http
     protocol: TCP
-    port: {{ .Values.openmatch.backend.proxy.port }}
+    port: {{ .Values.openmatch.backend.http.port }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -53,7 +53,7 @@ spec:
     metadata:
       namespace: {{ .Release.Namespace }}
       annotations:
-        {{- include "prometheus.annotations" . | nindent 8 }}
+        {{- include "prometheus.annotations" (dict "port" .Values.openmatch.backend.http.port "prometheus" .Values.openmatch.monitoring.prometheus) | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
         component: backend
@@ -69,12 +69,9 @@ spec:
         ports:
         - name: grpc
           containerPort: {{ .Values.openmatch.backend.grpc.port }}
-        - name: proxy
-          containerPort: {{ .Values.openmatch.backend.proxy.port }}
-        - name: metrics
-          containerPort: {{ .Values.openmatch.metrics.port }}
-        {{- $port := dict "port" .Values.openmatch.backend.proxy.port -}}
-        {{- include "probe.readiness" $port | nindent 8 }}
+        - name: http
+          containerPort: {{ .Values.openmatch.backend.http.port }}
+        {{- include "probe.readiness" (dict "port" .Values.openmatch.backend.http.port) | nindent 8 }}
         resources:
           requests:
             memory: 100Mi
