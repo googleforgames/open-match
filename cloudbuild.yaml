@@ -125,7 +125,7 @@ steps:
 
 - id: 'Deploy: Website'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', VERSION_SUFFIX=$SHORT_SHA', 'BRANCH_NAME=$BRANCH_NAME', 'ci-deploy-dev-site']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', VERSION_SUFFIX=$SHORT_SHA', 'BRANCH_NAME=$BRANCH_NAME', 'ci-deploy-site']
   waitFor: ['Test: Website', 'Build: Binaries']
   volumes:
   - name: 'go-vol'
