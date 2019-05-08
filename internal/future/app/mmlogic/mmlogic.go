@@ -44,14 +44,25 @@ func RunApplication() {
 		}).Fatalf("cannot construct server.")
 	}
 
-	BindService(p)
+	if err := BindService(p, cfg); err != nil {
+		mmlogicLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatalf("failed to bind mmlogic service.")
+	}
+
 	serving.MustServeForever(p)
 }
 
-// BindService creates the mmlogic service to the server Params.
-func BindService(p *serving.Params) {
-	service := &mmlogicService{}
+// BindService creates the mmlogic service and binds it to the serving harness.
+func BindService(p *serving.Params, cfg config.View) error {
+	service, err := newMmlogic(cfg)
+	if err != nil {
+		return err
+	}
+
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterMmLogicServer(s, service)
 	}, pb.RegisterMmLogicHandlerFromEndpoint)
+
+	return nil
 }

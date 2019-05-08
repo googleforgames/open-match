@@ -18,14 +18,13 @@ import (
 	"context"
 	"io/ioutil"
 	"net/http"
-	"open-match.dev/open-match/internal/future/monitoring"
-
-	"github.com/sirupsen/logrus"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/future/monitoring"
 	"open-match.dev/open-match/internal/signal"
 	"open-match.dev/open-match/internal/util/netlistener"
 )

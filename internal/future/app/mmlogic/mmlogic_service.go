@@ -15,12 +15,32 @@
 package mmlogic
 
 import (
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/future/pb"
+	"open-match.dev/open-match/internal/future/statestore"
 )
 
 // The MMLogic API provides utility functions for common MMF functionality such
 // as retreiving Tickets from state storage.
 type mmlogicService struct {
+	cfg   config.View
+	store statestore.Service
+}
+
+// newMmlogic creates and initializes the mmlogic service.
+func newMmlogic(cfg config.View) (*mmlogicService, error) {
+	ms := &mmlogicService{
+		cfg: cfg,
+	}
+
+	// Initialize the state storage interface.
+	var err error
+	ms.store, err = statestore.New(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return ms, nil
 }
 
 // RetrievePool gets the list of Tickets that match every Filter in the
