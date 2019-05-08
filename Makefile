@@ -627,8 +627,9 @@ all-assets: internal/future/assets/bindata.go
 
 internal/future/assets/bindata.go: build/toolchain/bin/go-bindata$(EXE_EXTENSION)
 internal/future/assets/bindata.go: api/backend.swagger.json api/frontend.swagger.json api/matchfunction.swagger.json api/matchfunction.swagger.json api/mmlogic.swagger.json
-	mkdir -p build/temp/bindata/
-	cp api/*.json build/temp/bindata/
+	rm -rf $(BUILD_DIR)/temp/bindata/
+	mkdir -p $(BUILD_DIR)/temp/bindata/
+	cp api/*.json $(BUILD_DIR)/temp/bindata/
 	cd $(BUILD_DIR)/temp/bindata/ && $(TOOLCHAIN_BIN)/go-bindata$(EXE_EXTENSION) -pkg assets .
 	mkdir -p $(REPOSITORY_ROOT)/internal/future/assets/
 	cp $(BUILD_DIR)/temp/bindata/bindata.go $(REPOSITORY_ROOT)/internal/future/assets/bindata.go
