@@ -20,7 +20,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/future/pb"	
+	"open-match.dev/open-match/internal/future/pb"
 )
 
 var (
@@ -32,7 +32,7 @@ var (
 
 // Service is a generic interface for talking to a storage backend.
 type Service interface {
-	// CreateTicket creates a new Ticket in the state storage. This method fails if the Ticket already exists. 
+	// CreateTicket creates a new Ticket in the state storage. This method fails if the Ticket already exists.
 	CreateTicket(ctx context.Context, ticket pb.Ticket, ttl int) error
 
 	// GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
@@ -47,7 +47,7 @@ type Service interface {
 	// DeindexTicket removes the indexing for the specified Ticket. Only the indexes are removed but the Ticket continues to exist.
 	DeindexTicket(ctx context.Context, id string, indices []string) error
 
-	// FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria. 
+	// FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria.
 	FilterTickets(ctx context.Context, filters []pb.Filter) ([]string, error)
 
 	// Closes the connection to the underlying storage.

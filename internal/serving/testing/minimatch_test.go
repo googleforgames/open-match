@@ -33,7 +33,7 @@ import (
 func TestNewMiniMatch(t *goTesting.T) {
 	ff := &FakeFrontend{}
 	mm, closer, err := NewMiniMatch([]*serving.ServerParams{
-		&serving.ServerParams{
+		{
 			BaseLogFields: logrus.Fields{
 				"app":       "openmatch",
 				"component": "frontend",
