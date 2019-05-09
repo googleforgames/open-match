@@ -99,8 +99,8 @@ func request_Frontend_GetTicket_0(ctx context.Context, marshaler runtime.Marshal
 
 }
 
-func request_Frontend_GetTicketUpdates_0(ctx context.Context, marshaler runtime.Marshaler, client FrontendClient, req *http.Request, pathParams map[string]string) (Frontend_GetTicketUpdatesClient, runtime.ServerMetadata, error) {
-	var protoReq GetTicketUpdatesRequest
+func request_Frontend_GetAssignments_0(ctx context.Context, marshaler runtime.Marshaler, client FrontendClient, req *http.Request, pathParams map[string]string) (Frontend_GetAssignmentsClient, runtime.ServerMetadata, error) {
+	var protoReq GetAssignmentsRequest
 	var metadata runtime.ServerMetadata
 
 	var (
@@ -121,7 +121,7 @@ func request_Frontend_GetTicketUpdates_0(ctx context.Context, marshaler runtime.
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "ticket_id", err)
 	}
 
-	stream, err := client.GetTicketUpdates(ctx, &protoReq)
+	stream, err := client.GetAssignments(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
 	}
@@ -232,7 +232,7 @@ func RegisterFrontendHandlerClient(ctx context.Context, mux *runtime.ServeMux, c
 
 	})
 
-	mux.Handle("GET", pattern_Frontend_GetTicketUpdates_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("GET", pattern_Frontend_GetAssignments_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
@@ -241,14 +241,14 @@ func RegisterFrontendHandlerClient(ctx context.Context, mux *runtime.ServeMux, c
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_Frontend_GetTicketUpdates_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_Frontend_GetAssignments_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_Frontend_GetTicketUpdates_0(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
+		forward_Frontend_GetAssignments_0(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -262,7 +262,7 @@ var (
 
 	pattern_Frontend_GetTicket_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "frontend", "tickets", "ticket_id"}, ""))
 
-	pattern_Frontend_GetTicketUpdates_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "frontend", "tickets", "ticket_id", "updates"}, ""))
+	pattern_Frontend_GetAssignments_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "frontend", "tickets", "ticket_id", "assignments"}, ""))
 )
 
 var (
@@ -272,5 +272,5 @@ var (
 
 	forward_Frontend_GetTicket_0 = runtime.ForwardResponseMessage
 
-	forward_Frontend_GetTicketUpdates_0 = runtime.ForwardResponseStream
+	forward_Frontend_GetAssignments_0 = runtime.ForwardResponseStream
 )

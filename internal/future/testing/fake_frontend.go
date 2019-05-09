@@ -51,6 +51,6 @@ func (s *FakeFrontend) GetTicket(ctx context.Context, req *pb.GetTicketRequest) 
 
 // GetTicketUpdates streams matchmaking results from Open Match for the
 // provided Ticket id.
-func (s *FakeFrontend) GetTicketUpdates(req *pb.GetTicketUpdatesRequest, stream pb.Frontend_GetTicketUpdatesServer) error {
+func (s *FakeFrontend) GetAssignments(req *pb.GetAssignmentsRequest, stream pb.Frontend_GetAssignmentsServer) error {
 	return status.Error(codes.Unimplemented, "not implemented")
 }
