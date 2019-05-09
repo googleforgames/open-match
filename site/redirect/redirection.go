@@ -123,8 +123,8 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.serveChart(w, r, path)
 		return
 	}
-	if pc == nil && strings.Contains(current, "/install/yaml") {
-		path := strings.Replace(current, "/install/yaml", "", 1)
+	if pc == nil && strings.Contains(current, "/install") {
+		path := strings.Replace(current, "/install", "", 1)
 		h.serveInstallYaml(w, r, path)
 		return
 	}
