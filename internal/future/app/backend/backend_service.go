@@ -25,11 +25,11 @@ import (
 type backendService struct {
 }
 
-// QueryMatches triggers execution of the specfied MatchFunction for each of the
+// FetchMatches triggers execution of the specfied MatchFunction for each of the
 // specified MatchProfiles. Each MatchFunction execution returns a set of
-// proposals which are then evaluated to generate results. QueryMatches method
+// proposals which are then evaluated to generate results. FetchMatches method
 // streams these results back to the caller.
-func (s *backendService) QueryMatches(req *pb.QueryMatchesRequest, stream pb.Backend_QueryMatchesServer) error {
+func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Backend_FetchMatchesServer) error {
 	ctx := stream.Context()
 
 	for {
@@ -38,7 +38,7 @@ func (s *backendService) QueryMatches(req *pb.QueryMatchesRequest, stream pb.Bac
 			return nil
 
 		default:
-			err := stream.Send(&pb.QueryMatchesResponse{})
+			err := stream.Send(&pb.FetchMatchesResponse{})
 			if err != nil {
 				return err
 			}
