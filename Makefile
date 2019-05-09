@@ -581,6 +581,7 @@ stress-frontend-%: build/toolchain/python/
 
 fmt:
 	$(GO) fmt ./...
+	gofmt -s -w .
 
 vet:
 	$(GO) vet ./...
@@ -653,15 +654,17 @@ ifeq ($(_GCB_POST_SUBMIT),1)
 	@echo "Deploying website to $(GAE_SERVICE_NAME).open-match.dev version=$(GAE_SITE_VERSION)..."
 	# Replace "service:"" with "service: $(GAE_SERVICE_NAME)" example, "service: 0-5"
 	sed -i 's/service:.*/service: $(GAE_SERVICE_NAME)/g' $(BUILD_DIR)/site/.app.yaml
-	(cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(GAE_SITE_VERSION) --verbosity=info)
+	(cd $(BUILD_DIR)/site && gcloud --quiet $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(GAE_SITE_VERSION) --verbosity=info)
 	# If the version matches the "latest" version from CI then also deploy to the default instance.
-	ifeq ($(MAJOR_MINOR_VERSION),$(_GCB_LATEST_VERSION))
+ifeq ($(MAJOR_MINOR_VERSION),$(_GCB_LATEST_VERSION))
+	@echo "Deploying website to open-match.dev version=$(GAE_SITE_VERSION)..."
 	sed -i 's/service:.*/service: default/g' $(BUILD_DIR)/site/.app.yaml
-	(cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(GAE_SITE_VERSION) --verbosity=info)
+	(cd $(BUILD_DIR)/site && gcloud --quiet $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(GAE_SITE_VERSION) --verbosity=info)
 	# Set CORS policy on GCS bucket so that Swagger UI will work against it.
 	# This only needs to be set once but in the interest of enforcing a consistency we'll apply this every deployment.
+	# CORS policies signal to browsers that it's ok to use this resource in services not hosted from itself (open-match.dev)
 	gsutil cors set $(REPOSITORY_ROOT)/site/gcs-cors.json gs://open-match-chart/
-	endif
+endif
 else
 	@echo "Not deploying $(GAE_SERVICE_NAME).open-match.dev because this is not a post commit change."
 endif
@@ -679,7 +682,7 @@ ifeq ($(_GCB_POST_SUBMIT),1)
 	# TODO Add Helm Artifacts later.
 	# Example: https://github.com/GoogleCloudPlatform/agones/blob/3b324a74e5e8f7049c2169ec589e627d4c8cab79/build/Makefile#L211
 else
-	@echo "Not deploying development.open-match.dev because this is not a post commit change."
+	@echo "Not deploying build artifacts to open-match.dev because this is not a post commit change."
 endif
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.

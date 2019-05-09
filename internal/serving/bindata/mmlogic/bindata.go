@@ -224,7 +224,7 @@ type bintree struct {
 }
 
 var _bintree = &bintree{nil, map[string]*bintree{
-	"mmlogic.swagger.json": &bintree{mmlogicSwaggerJson, map[string]*bintree{}},
+	"mmlogic.swagger.json": {mmlogicSwaggerJson, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory.

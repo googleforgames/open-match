@@ -13,4 +13,4 @@
 // limitations under the License.
 
 // Package openmatch provides flexible, extensible, and scalable video game matchmaking.
-package openmatch
+package openmatch // import "open-match.dev/open-match"
