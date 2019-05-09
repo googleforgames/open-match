@@ -25,7 +25,7 @@ type mmlogicService struct {
 
 // GetPoolTickets gets the list of Tickets that match every Filter in the
 // specified Pool.
-func (s *mmlogicService) GetPoolTickets(req *pb.GetPoolTicketsRequest, stream pb.MmLogic_GetPoolTicketsServer) error {
+func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, stream pb.MmLogic_QueryTicketsServer) error {
 	ctx := stream.Context()
 
 	for {
@@ -34,7 +34,7 @@ func (s *mmlogicService) GetPoolTickets(req *pb.GetPoolTicketsRequest, stream pb
 			return nil
 
 		default:
-			err := stream.Send(&pb.GetPoolTicketsResponse{})
+			err := stream.Send(&pb.QueryTicketsResponse{})
 			if err != nil {
 				return err
 			}

@@ -48,7 +48,7 @@ func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketReques
 
 // GetTicketUpdates streams matchmaking results from Open Match for the
 // provided Ticket id.
-func (s *frontendService) GetTicketUpdates(req *pb.GetTicketUpdatesRequest, stream pb.Frontend_GetTicketUpdatesServer) error {
+func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream pb.Frontend_GetAssignmentsServer) error {
 	ctx := stream.Context()
 
 	for {
@@ -57,7 +57,7 @@ func (s *frontendService) GetTicketUpdates(req *pb.GetTicketUpdatesRequest, stre
 			return nil
 
 		default:
-			err := stream.Send(&pb.GetTicketUpdatesResponse{})
+			err := stream.Send(&pb.GetAssignmentsResponse{})
 			if err != nil {
 				return err
 			}

@@ -109,7 +109,7 @@ service Backend {
   // streams these results back to the caller.
   rpc CreateProposal(CreateProposalRequest) returns (stream CreateProposalResponse) {
     option (google.api.http) = {
-      post: "/v1/backend/proposal/create"
+      post: "/v1/backend/proposals"
       body: "*"
     };
   }
@@ -118,7 +118,7 @@ service Backend {
   // IDs passed.
   rpc AssignTickets(AssignTicketsRequest) returns (AssignTicketsResponse) {
     option (google.api.http) = {
-      post: "/v1/backend/tickets/assign"
+      post: "/v1/backend/tickets:assign"
       body: "*"
     };
   }

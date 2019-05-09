@@ -24,7 +24,7 @@
     "application/json"
   ],
   "paths": {
-    "/v1/backend/proposal/create": {
+    "/v1/backend/proposals": {
       "post": {
         "summary": "CreateProposal triggers execution of the specfied MatchFunction for each of the\nspecified MatchProfiles. Each MatchFunction execution returns a set of\nproposals which are then evaluated to generate results. CreateProposal method\nstreams these results back to the caller.",
         "operationId": "CreateProposal",
@@ -57,7 +57,7 @@
         ]
       }
     },
-    "/v1/backend/tickets/assign": {
+    "/v1/backend/tickets:assign": {
       "post": {
         "summary": "AssignTickets sets the specified Assignment on the Tickets for the Ticket\nIDs passed.",
         "operationId": "AssignTickets",
