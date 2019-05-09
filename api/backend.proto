@@ -77,7 +77,7 @@ message MatchFunctionConfig {
   }
 }
 
-message GetMatchesRequest {
+message FetchMatchesRequest {
   // MatchFunction to be executed for the given list of MatchProfiles
   MatchFunctionConfig function = 1;
 
@@ -85,7 +85,7 @@ message GetMatchesRequest {
   repeated MatchProfile profile = 2;
 }
 
-message GetMatchesResponse {
+message FetchMatchesResponse {
   // Result Match for the requested MatchProfile.
   Match match = 1;
 }
@@ -103,15 +103,13 @@ message AssignTicketsResponse {}
 // The service implementing the Backent API that is called to generate matches
 // and make assignments for Tickets.
 service Backend {
-  // GetMatches triggers execution of the specfied MatchFunction for each of the
+  // FetchMatch triggers execution of the specfied MatchFunction for each of the
   // specified MatchProfiles. Each MatchFunction execution returns a set of
-  // proposals which are then evaluated to generate results. GetMatches method
+  // proposals which are then evaluated to generate results. FetchMatch method
   // streams these results back to the caller.
-  // TODO: Should this be renamed to createProposal? It's not a "Get" if it's
-  // executing a MatchFunction.
-  rpc GetMatches(GetMatchesRequest) returns (stream GetMatchesResponse) {
+  rpc FetchMatches(FetchMatchesRequest) returns (stream FetchMatchesResponse) {
     option (google.api.http) = {
-      post: "/v1/backend/matches/createProposal"
+      post: "/v1/backend/matches:fetch"
       body: "*"
     };
   }
@@ -120,7 +118,7 @@ service Backend {
   // IDs passed.
   rpc AssignTickets(AssignTicketsRequest) returns (AssignTicketsResponse) {
     option (google.api.http) = {
-      post: "/v1/backend/tickets/assign"
+      post: "/v1/backend/tickets:assign"
       body: "*"
     };
   }

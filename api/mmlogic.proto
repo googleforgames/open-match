@@ -54,12 +54,12 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   // https://github.com/grpc-ecosystem/grpc-gateway/blob/master/examples/proto/examplepb/a_bit_of_everything.proto
 };
 
-message RetrievePoolRequest {
+message QueryTicketsRequest {
   // The Pool representing the set of Filters to be queried.
   Pool pool = 1;
 }
 
-message RetrievePoolResponse {
+message QueryTicketsResponse {
   // The Tickets that meet the Filter criteria requested by the Pool.
   repeated Ticket ticket = 1;
 }
@@ -67,15 +67,12 @@ message RetrievePoolResponse {
 // The MMLogic API provides utility functions for common MMF functionality such
 // as retreiving Tickets from state storage.
 service MmLogic {
-  // RetrievePool gets the list of Tickets that match every Filter in the
+  // QueryTickets gets the list of Tickets that match every Filter in the
   // specified Pool.
-  // TODO: Consider renaming to "GetPool" to be consistent with HTTP REST CRUD
-  // conventions. Right now there's a GET and a POST for this verb.
-  rpc RetrievePool(RetrievePoolRequest) returns (stream RetrievePoolResponse) {
+  rpc QueryTickets(QueryTicketsRequest) returns (stream QueryTicketsResponse) {
     option (google.api.http) = {
-      post: "/v1/mmlogic/pools"
+      post: "/v1/mmlogic/tickets:query"
       body: "*"
-      additional_bindings { get: "/v1/mmlogic/pools/{pool.name}" }
     };
   }
 }
