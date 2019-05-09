@@ -72,7 +72,7 @@ service MatchFunction {
   // generate Match proposals.
   rpc Run(RunRequest) returns (stream RunResponse) {
     option (google.api.http) = {
-      post: "/v1/matchfunction/profile:run"
+      post: "/v1/matchfunction:run"
       body: "*"
     };
   }
