@@ -50,6 +50,8 @@ BASE_VERSION = 0.5.1
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
+YEAR_MONTH = $(shell date -u +'%Y%m')
+MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
 
 PROTOC_VERSION = 3.7.1
 HELM_VERSION = 2.13.1
@@ -105,10 +107,24 @@ OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE = open-match
 REDIS_NAME = om-redis
 GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | cut -c 10-)
 _GCB_POST_SUBMIT ?= 0
+# Latest version triggers builds of :latest images and deploy to main website.
+_GCB_LATEST_VERSION ?= undefined
+DEV_SITE_VERSION = head
 
 # Make port forwards accessible outside of the proxy machine.
 PORT_FORWARD_ADDRESS_FLAG = --address 0.0.0.0
 DASHBOARD_PORT = 9092
+
+# AppEngine variables
+GAE_SITE_VERSION = om$(YEAR_MONTH)
+
+# If the version is 0.0* then the service name is "development" as in development.open-match.dev.
+ifeq ($(MAJOR_MINOR_VERSION),0.0)
+	GAE_SERVICE_NAME = development
+else
+	GAE_SERVICE_NAME = $(shell echo $(MAJOR_MINOR_VERSION) | tr . -)
+endif 
+
 export PATH := $(REPOSITORY_ROOT)/node_modules/.bin/:$(TOOLCHAIN_BIN):$(TOOLCHAIN_DIR)/nodejs/bin:$(PATH)
 
 # Get the project from gcloud if it's not set.
@@ -161,7 +177,7 @@ help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
 
 local-cloud-build: gcloud
-	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),BRANCH_NAME=$(BRANCH_NAME) .
+	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
 push-images: push-service-images push-client-images push-mmf-example-images push-evaluator-example-images
 push-service-images: push-minimatch-image push-frontendapi-image push-backendapi-image push-mmlogicapi-image
@@ -498,13 +514,13 @@ create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	$(MINIKUBE) delete
 
-all-protos: golang-protos reverse-golang-protos swagger-def-protos
+all-protos: golang-protos reverse-golang-protos swagger-json-docs
 
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
 
 reverse-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go
 
-swagger-def-protos: internal/swagger/frontend.proto internal/swagger/backend.proto internal/swagger/mmlogic.proto internal/swagger/matchfunction.proto
+swagger-json-docs: api/protobuf-spec/frontend.swagger.json api/protobuf-spec/backend.swagger.json api/protobuf-spec/mmlogic.swagger.json api/protobuf-spec/matchfunction.swagger.json
 
 internal/pb/%.pb.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
@@ -516,7 +532,7 @@ internal/pb/%.pb.gw.go: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EX
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
    		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)\
 
-internal/swagger/%.proto: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+api/protobuf-spec/%.swagger.json: api/protobuf-spec/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--swagger_out=logtostderr=true,allow_delete_body=true:.
@@ -605,13 +621,26 @@ browse-site: build/site/
 deploy-dev-site: build/site/ gcloud
 	cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(VERSION_SUFFIX) --quiet
 
-ci-deploy-dev-site: build/site/ gcloud
+# The website is deployed on Post Submit of every build based on the BASE_VERSION in this file.
+# If the site 
+ci-deploy-site: build/site/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
-	echo "Deploying website to development.open-match.dev..."
-	# TODO: Install GAE SDK and use the Service Account to deploy to GAE.
-	#cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(VERSION_SUFFIX) --quiet
+	@echo "Deploying website to $(GAE_SERVICE_NAME).open-match.dev version=$(GAE_SITE_VERSION)..."
+	# Replace "service:"" with "service: $(GAE_SERVICE_NAME)" example, "service: 0-5"
+	sed -i 's/service:.*/service: $(GAE_SERVICE_NAME)/g' $(BUILD_DIR)/site/.app.yaml
+	(cd $(BUILD_DIR)/site && gcloud --quiet $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(GAE_SITE_VERSION) --verbosity=info)
+	# If the version matches the "latest" version from CI then also deploy to the default instance.
+ifeq ($(MAJOR_MINOR_VERSION),$(_GCB_LATEST_VERSION))
+	@echo "Deploying website to open-match.dev version=$(GAE_SITE_VERSION)..."
+	sed -i 's/service:.*/service: default/g' $(BUILD_DIR)/site/.app.yaml
+	(cd $(BUILD_DIR)/site && gcloud --quiet $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(GAE_SITE_VERSION) --verbosity=info)
+	# Set CORS policy on GCS bucket so that Swagger UI will work against it.
+	# This only needs to be set once but in the interest of enforcing a consistency we'll apply this every deployment.
+	# CORS policies signal to browsers that it's ok to use this resource in services not hosted from itself (open-match.dev)
+	gsutil cors set $(REPOSITORY_ROOT)/site/gcs-cors.json gs://open-match-chart/
+endif
 else
-	echo "Not deploying development.open-match.dev because this is not a post commit change."
+	@echo "Not deploying $(GAE_SERVICE_NAME).open-match.dev because this is not a post commit change."
 endif
 
 deploy-redirect-site: gcloud
@@ -620,12 +649,14 @@ deploy-redirect-site: gcloud
 run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) server --debug --watch --enableGitInfo . --baseURL=http://localhost:$(SITE_PORT)/ --bind 0.0.0.0 --port $(SITE_PORT) --disableFastRender
 
-ci-deploy-artifacts: install/yaml/ gcloud
+ci-deploy-artifacts: install/yaml/ swagger-json-docs gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
-	#gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/$(VERSION_SUFFIX)/
-	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/yaml/$(BRANCH_NAME)-latest/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/v$(BASE_VERSION)/yaml/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/api/protobuf-spec/*.json gs://open-match-chart/api/v$(BASE_VERSION)/
+	# TODO Add Helm Artifacts later.
+	# Example: https://github.com/GoogleCloudPlatform/agones/blob/3b324a74e5e8f7049c2169ec589e627d4c8cab79/build/Makefile#L211
 else
-	echo "Not deploying development.open-match.dev because this is not a post commit change."
+	@echo "Not deploying build artifacts to open-match.dev because this is not a post commit change."
 endif
 
 all: service-binaries client-binaries example-binaries

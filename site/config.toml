@@ -89,8 +89,8 @@ breadcrumb_disable = false
 [params.ui.feedback]
 enable = true
 # The responses that the user sees after clicking "yes" (the page was helpful) or "no" (the page was not helpful).
-yes = 'Glad to hear it! Please <a href="https://github.com/GoogleCloudPlatform/open-match/issues/new">tell us how we can improve</a>.'
-no = 'Sorry to hear that. Please <a href="https://github.com/GoogleCloudPlatform/open-match/issues/new">tell us how we can improve</a>.'
+yes = 'Glad to hear it! Please <a href="https://open-match.dev/open-match/issues/new">tell us how we can improve</a>.'
+no = 'Sorry to hear that. Please <a href="https://open-match.dev/open-match/issues/new">tell us how we can improve</a>.'
 
 [params.links]
 # End user relevant links. These will show up on left side of footer and in the community page if you have one.

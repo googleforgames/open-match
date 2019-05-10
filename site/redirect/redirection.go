@@ -1,4 +1,4 @@
-// Copyright 2017 Google Inc. All Rights Reserved.
+// Copyright 2017 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// govanityurls serves Go vanity URLs.
+// Package main is the App Engine based website for open-match.dev temporary redirect site.
 package main
 
 import (
@@ -123,9 +123,14 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.serveChart(w, r, path)
 		return
 	}
-	if pc == nil && strings.Contains(current, "/install/yaml") {
-		path := strings.Replace(current, "/install/yaml", "", 1)
+	if pc == nil && strings.Contains(current, "/install") {
+		path := strings.Replace(current, "/install", "", 1)
 		h.serveInstallYaml(w, r, path)
+		return
+	}
+	if pc == nil && strings.Contains(current, "/api") {
+		path := strings.Replace(current, "/api", "", 1)
+		h.serveSwaggerAPI(w, r, path)
 		return
 	}
 	if pc == nil {
@@ -153,16 +158,32 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) serveChart(w http.ResponseWriter, r *http.Request, path string) {
 	root := "https://storage.googleapis.com/open-match-chart/chart"
+	h.withCors(w)
 	http.Redirect(w, r, root+path, http.StatusTemporaryRedirect)
 }
 
 func (h *handler) serveInstallYaml(w http.ResponseWriter, r *http.Request, path string) {
 	root := "https://storage.googleapis.com/open-match-chart/install"
+	h.withCors(w)
+	http.Redirect(w, r, root+path, http.StatusTemporaryRedirect)
+}
+
+func (h *handler) serveSwaggerAPI(w http.ResponseWriter, r *http.Request, path string) {
+	root := "https://storage.googleapis.com/open-match-chart/api"
+	h.withCors(w)
 	http.Redirect(w, r, root+path, http.StatusTemporaryRedirect)
 }
 
 func (h *handler) serveIndex(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://github.com/GoogleCloudPlatform/open-match/", http.StatusTemporaryRedirect)
+	http.Redirect(w, r, "https://open-match.dev/open-match/", http.StatusTemporaryRedirect)
+}
+
+// withCors adds CORS headers to responses to tell the browser it's ok to read data from this URI if the source does not match the base URI.
+// This is ok because we are not serving executable code (javascript) from these locations, only configuration.
+func (h *handler) withCors(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 }
 
 func (h *handler) Host(r *http.Request) string {
