@@ -119,15 +119,15 @@
         ]
       }
     },
-    "/v1/frontend/tickets/{ticket_id}/updates": {
+    "/v1/frontend/tickets/{ticket_id}/assignments": {
       "get": {
-        "summary": "GetTicketUpdates streams matchmaking results from Open Match for the\nprovided Ticket ID.",
-        "operationId": "GetTicketUpdates",
+        "summary": "GetAssignments streams matchmaking results from Open Match for the\nprovided Ticket ID.",
+        "operationId": "GetAssignments",
         "responses": {
           "200": {
             "description": "A successful response.(streaming responses)",
             "schema": {
-              "$ref": "#/x-stream-definitions/apiGetTicketUpdatesResponse"
+              "$ref": "#/x-stream-definitions/apiGetAssignmentsResponse"
             }
           },
           "404": {
@@ -192,7 +192,7 @@
     "apiDeleteTicketResponse": {
       "type": "object"
     },
-    "apiGetTicketUpdatesResponse": {
+    "apiGetAssignmentsResponse": {
       "type": "object",
       "properties": {
         "assignment": {
@@ -261,17 +261,17 @@
     }
   },
   "x-stream-definitions": {
-    "apiGetTicketUpdatesResponse": {
+    "apiGetAssignmentsResponse": {
       "type": "object",
       "properties": {
         "result": {
-          "$ref": "#/definitions/apiGetTicketUpdatesResponse"
+          "$ref": "#/definitions/apiGetAssignmentsResponse"
         },
         "error": {
           "$ref": "#/definitions/runtimeStreamError"
         }
       },
-      "title": "Stream result of apiGetTicketUpdatesResponse"
+      "title": "Stream result of apiGetAssignmentsResponse"
     }
   },
   "externalDocs": {

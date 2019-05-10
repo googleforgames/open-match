@@ -43,11 +43,9 @@ func newMmlogic(cfg config.View) (*mmlogicService, error) {
 	return ms, nil
 }
 
-// RetrievePool gets the list of Tickets that match every Filter in the
+// GetPoolTickets gets the list of Tickets that match every Filter in the
 // specified Pool.
-// TODO: Consider renaming to "GetPool" to be consistent with HTTP REST CRUD
-// conventions. Right now there's a GET and a POST for this verb.
-func (s *mmlogicService) RetrievePool(req *pb.RetrievePoolRequest, stream pb.MmLogic_RetrievePoolServer) error {
+func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, stream pb.MmLogic_QueryTicketsServer) error {
 	ctx := stream.Context()
 
 	for {
@@ -56,7 +54,7 @@ func (s *mmlogicService) RetrievePool(req *pb.RetrievePoolRequest, stream pb.MmL
 			return nil
 
 		default:
-			err := stream.Send(&pb.RetrievePoolResponse{})
+			err := stream.Send(&pb.QueryTicketsResponse{})
 			if err != nil {
 				return err
 			}

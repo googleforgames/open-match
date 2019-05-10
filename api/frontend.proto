@@ -76,12 +76,12 @@ message GetTicketRequest {
   string ticket_id = 1;
 }
 
-message GetTicketUpdatesRequest {
+message GetAssignmentsRequest {
   // Ticket ID of the Ticket to get updates on.
   string ticket_id = 1;
 }
 
-message GetTicketUpdatesResponse {
+message GetAssignmentsResponse {
   // The updated Ticket object.
   Assignment assignment = 1;
 }
@@ -117,12 +117,12 @@ service Frontend {
     };
   }
 
-  // GetTicketUpdates streams matchmaking results from Open Match for the
+  // GetAssignments streams matchmaking results from Open Match for the
   // provided Ticket ID.
-  rpc GetTicketUpdates(GetTicketUpdatesRequest)
-      returns (stream GetTicketUpdatesResponse) {
+  rpc GetAssignments(GetAssignmentsRequest)
+      returns (stream GetAssignmentsResponse) {
     option (google.api.http) = {
-      get: "/v1/frontend/tickets/{ticket_id}/updates"
+      get: "/v1/frontend/tickets/{ticket_id}/assignments"
     };
   }
 }
