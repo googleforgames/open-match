@@ -613,9 +613,9 @@ all: service-binaries example-binaries tools-binaries deprecated-all
 service-binaries: cmd/future/minimatch/minimatch$(EXE_EXTENSION) cmd/future/backend/backend$(EXE_EXTENSION) cmd/future/frontend/frontend$(EXE_EXTENSION) cmd/future/mmlogic/mmlogic$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries
-example-mmf-binaries: examples/future/functions/go/grpc-serving/grpc-serving$(EXE_EXTENSION)
+example-mmf-binaries: examples/future/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION)
 
-examples/future/functions/go/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/future/pb/messages.pb.go
+examples/future/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/future/pb/messages.pb.go
 	cd examples/future/functions/go/grpc-serving; $(GO_BUILD_COMMAND)
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
@@ -737,7 +737,7 @@ clean-binaries: deprecated-clean-binaries
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/frontend/frontend
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/mmlogic/mmlogic
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/minimatch/minimatch
-	rm -rf $(REPOSITORY_ROOT)/examples/future/functions/go/grpc-serving/grpc-serving
+	rm -rf $(REPOSITORY_ROOT)/examples/future/functions/golang/grpc-serving/grpc-serving
 
 clean-build: clean-toolchain clean-archives clean-release
 	rm -rf $(REPOSITORY_ROOT)/build/
