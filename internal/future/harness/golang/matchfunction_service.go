@@ -37,6 +37,16 @@ var (
 // MatchFunction is the function signature for the Match Making Function (MMF) to be implemented by the user.
 // The harness will pass the Rosters and PlayerPool for the match profile to this
 // function and it will return the Rosters to be populated in the proposal.
+// Input:
+//  - logger:
+//			A logger used to generate error/debug logs
+//  - properties:
+//			'Properties' of a MatchObject.
+//  - rosters:
+//			An array of Rosters. By convention, your input Roster contains players already in
+//          the match, and the names of pools to search when trying to fill an empty slot.
+//  - filteredTickets:
+//			A map that contains mappings from pool name to a list of tickets that satisfied the filters in the pool
 type matchFunction func(*logrus.Entry, string, []*pb.Roster, map[string][]*pb.Ticket) []*pb.Match
 
 // matchFunctionService implements pb.MatchFunctionServer, the server generated
