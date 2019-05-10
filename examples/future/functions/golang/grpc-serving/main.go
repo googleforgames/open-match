@@ -20,8 +20,6 @@
 package main
 
 import (
-	"context"
-
 	goHarness "open-match.dev/open-match/internal/future/harness/golang"
 	"open-match.dev/open-match/internal/future/pb"
 
@@ -40,6 +38,6 @@ func main() {
 }
 
 // makeMatches is where your custom matchmaking logic lives.
-func makeMatches(ctx context.Context, logger *logrus.Entry, profile string, rosters []*pb.Roster, pools []*pb.Pool) (string, []*pb.Roster, error) {
-	return "", nil, nil
+func makeMatches(logger *logrus.Entry, profile string, rosters []*pb.Roster, poolNameToTickets map[string][]*pb.Ticket) []*pb.Match {
+	return nil
 }

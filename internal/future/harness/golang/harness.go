@@ -35,7 +35,7 @@ var (
 // FunctionSettings is a collection of parameters used to customize matchfunction views.
 type FunctionSettings struct {
 	FunctionName string
-	Func         MatchFunction
+	Func         matchFunction
 }
 
 // RunMatchFunction is a hook for the main() method in the main executable.

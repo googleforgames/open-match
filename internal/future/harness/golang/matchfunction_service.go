@@ -17,7 +17,10 @@ package golang
 
 import (
 	"context"
+	"io"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/future/pb"
 
@@ -34,24 +37,75 @@ var (
 // MatchFunction is the function signature for the Match Making Function (MMF) to be implemented by the user.
 // The harness will pass the Rosters and PlayerPool for the match profile to this
 // function and it will return the Rosters to be populated in the proposal.
-type MatchFunction func(context.Context, *logrus.Entry, string, []*pb.Roster, []*pb.Pool) (string, []*pb.Roster, error)
+type matchFunction func(*logrus.Entry, string, []*pb.Roster, map[string][]*pb.Ticket) []*pb.Match
 
-// MatchFunctionServer implements pb.MatchFunctionServer, the server generated
+// matchFunctionService implements pb.MatchFunctionServer, the server generated
 // by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
 type matchFunctionService struct {
 	cfg           config.View
 	functionName  string
-	function      MatchFunction
+	function      matchFunction
 	mmlogicClient pb.MmLogicClient
 }
 
 // Run is this harness's implementation of the gRPC call defined in api/protobuf-spec/matchfunction.proto.
-func (s *matchFunctionService) Run(*pb.RunRequest, pb.MatchFunction_RunServer) error {
+func (s *matchFunctionService) Run(req *pb.RunRequest, mf_server pb.MatchFunction_RunServer) error {
+	ctx := mf_server.Context()
+
+	poolNameToTickets, err := s.getMatchManifest(ctx, req)
+	if err != nil {
+		return status.Error(codes.Code(codes.Aborted), err.Error())
+	}
+
+	// The matchfunction takes in some half-filled/empty rosters, a property bag, and a map[poolNames]tickets to generate match proposals
+	matchProposals := s.function(matchfunctionLogger, req.Profile.Properties, req.Profile.Roster, poolNameToTickets)
+
+	// Send the proposals back in stream
+	for _, match := range matchProposals {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			err := mf_server.Send(&pb.RunResponse{Proposal: match})
+			if err != nil {
+				matchfunctionLogger.WithError(err).Error("Failed to send Run response to grpc server.")
+				return status.Error(codes.Code(codes.Aborted), err.Error())
+			}
+		}
+	}
 	return nil
 }
 
-// runMatchFunction fetches all the data needed from the mmlogic API and calls
-// the match function. It then creates a proposal for the match returned.
-func (s *matchFunctionService) runMatchFunction(ctx context.Context, req *pb.RunRequest) error {
-	return nil
+// getMatchManifest fetches all the data needed from the mmlogic API.
+func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.RunRequest) (map[string][]*pb.Ticket, error) {
+	poolNameToTickets := make(map[string][]*pb.Ticket)
+	filterPools := req.Profile.Pool
+
+	for _, pool := range filterPools {
+		qtClient, err := s.mmlogicClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
+		if err != nil {
+			matchfunctionLogger.WithError(err).Error("Failed to get queryTicketClient from mmlogic.")
+			return nil, err
+		}
+
+		// Aggregate tickets by poolName
+		poolTickets := make([]*pb.Ticket, 0)
+		for {
+			qtResponse, err := qtClient.Recv()
+			if err == io.EOF {
+				matchfunctionLogger.Trace("Received all results from the queryTicketClient.")
+				// Break when all results are received
+				break
+			}
+
+			if err != nil {
+				matchfunctionLogger.WithError(err).Error("Failed to receive a response from the queryTicketClient.")
+				return nil, err
+			}
+			poolTickets = append(poolTickets, qtResponse.Ticket...)
+		}
+		poolNameToTickets[pool.Name] = poolTickets
+	}
+
+	return poolNameToTickets, nil
 }
