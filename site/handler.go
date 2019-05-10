@@ -104,8 +104,8 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.serveChart(w, r, path)
 		return
 	}
-	if pc == nil && strings.Contains(current, "/install/yaml") {
-		path := strings.Replace(current, "/install/yaml", "", 1)
+	if pc == nil && strings.Contains(current, "/install") {
+		path := strings.Replace(current, "/install", "", 1)
 		h.serveInstallYaml(w, r, path)
 		return
 	}
@@ -174,8 +174,8 @@ func (h *handler) Host(r *http.Request) string {
 // This is ok because we are not serving executable code (javascript) from these locations, only configuration.
 func (h *handler) withCors(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-    w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-    w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 }
 
 var vanityTmpl = template.Must(template.New("vanity").Parse(`<!DOCTYPE html>
