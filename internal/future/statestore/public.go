@@ -33,7 +33,7 @@ var (
 // Service is a generic interface for talking to a storage backend.
 type Service interface {
 	// CreateTicket creates a new Ticket in the state storage. This method fails if the Ticket already exists.
-	CreateTicket(ctx context.Context, ticket pb.Ticket, ttl int) error
+	CreateTicket(ctx context.Context, ticket *pb.Ticket) error
 
 	// GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
 	GetTicket(ctx context.Context, id string) (*pb.Ticket, error)
