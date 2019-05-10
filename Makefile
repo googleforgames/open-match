@@ -126,7 +126,7 @@ ifeq ($(MAJOR_MINOR_VERSION),0.0)
 	GAE_SERVICE_NAME = development
 else
 	GAE_SERVICE_NAME = $(shell echo $(MAJOR_MINOR_VERSION) | tr . -)
-endif 
+endif
 
 export PATH := $(REPOSITORY_ROOT)/node_modules/.bin/:$(TOOLCHAIN_BIN):$(TOOLCHAIN_DIR)/nodejs/bin:$(PATH)
 
@@ -185,7 +185,7 @@ help:
 local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
-push-images: push-service-images deprecated-push-images
+push-images: push-service-images push-example-images deprecated-push-images
 push-service-images: push-backend-image push-frontend-image  push-mmlogic-image push-minimatch-image
 
 push-backend-image: docker build-backend-image
@@ -204,7 +204,16 @@ push-minimatch-image: docker build-minimatch-image
 	docker push $(REGISTRY)/openmatch-minimatch:$(TAG)
 	docker push $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 
-build-images: build-service-images deprecated-build-images
+push-example-images: push-mmf-example-images
+
+push-mmf-example-images: push-mmf-go-grpc-serving-simple-image
+
+push-mmf-go-grpc-serving-simple-image: docker build-mmf-go-grpc-serving-simple-image
+	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
+
+build-images: build-service-images build-example-images deprecated-build-images
+
 build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image
 
 build-base-build-image: docker
@@ -222,9 +231,16 @@ build-mmlogic-image: docker build-base-build-image
 build-minimatch-image: docker build-base-build-image
 	docker build -f cmd/future/minimatch/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
 
+build-example-images: build-mmf-example-images
+
+build-mmf-example-images: build-mmf-go-grpc-serving-simple-image
+
+build-mmf-go-grpc-serving-simple-image: docker build-base-build-image
+	docker build -f examples/future/functions/go/grpc-serving/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG) .
+
 clean-images: docker deprecated-clean-images
 	-docker rmi -f open-match-base-build
-
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontend:$(TAG) $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-mmlogic:$(TAG) $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
@@ -592,8 +608,16 @@ golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 
 lint: fmt vet lint-chart
 
-all: service-binaries tools-binaries deprecated-all
+all: service-binaries example-binaries tools-binaries deprecated-all
+
 service-binaries: cmd/future/minimatch/minimatch$(EXE_EXTENSION) cmd/future/backend/backend$(EXE_EXTENSION) cmd/future/frontend/frontend$(EXE_EXTENSION) cmd/future/mmlogic/mmlogic$(EXE_EXTENSION)
+
+example-binaries: example-mmf-binaries
+example-mmf-binaries: examples/future/functions/go/grpc-serving/grpc-serving$(EXE_EXTENSION)
+
+examples/future/functions/go/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/future/pb/messages.pb.go
+	cd examples/future/functions/go/grpc-serving; $(GO_BUILD_COMMAND)
+
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
 cmd/future/backend/backend$(EXE_EXTENSION): internal/future/pb/backend.pb.go internal/future/pb/backend.pb.gw.go api/backend.swagger.json
@@ -648,7 +672,7 @@ deploy-dev-site: build/site/ gcloud
 	cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(VERSION_SUFFIX) --quiet
 
 # The website is deployed on Post Submit of every build based on the BASE_VERSION in this file.
-# If the site 
+# If the site
 ci-deploy-site: build/site/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
 	@echo "Deploying website to $(GAE_SERVICE_NAME).open-match.dev version=$(GAE_SITE_VERSION)..."
@@ -713,6 +737,7 @@ clean-binaries: deprecated-clean-binaries
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/frontend/frontend
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/mmlogic/mmlogic
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/minimatch/minimatch
+	rm -rf $(REPOSITORY_ROOT)/examples/future/functions/go/grpc-serving/grpc-serving
 
 clean-build: clean-toolchain clean-archives clean-release
 	rm -rf $(REPOSITORY_ROOT)/build/
@@ -810,14 +835,8 @@ endif
 #                              Deprecated Targets                              #
 ################################################################################
 
-deprecated-push-images: deprecated-push-mmf-example-images deprecated-push-evaluator-example-images
-deprecated-push-mmf-example-images: deprecated-push-mmf-go-grpc-serving-simple-image
+deprecated-push-images: deprecated-push-evaluator-example-images
 deprecated-push-evaluator-example-images: deprecated-push-evaluator-serving-image
-
-# Deprecated
-deprecated-push-mmf-go-grpc-serving-simple-image: docker deprecated-build-mmf-go-grpc-serving-simple-image
-	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
 
 # Deprecated
 deprecated-push-evaluator-serving-image: docker deprecated-build-evaluator-serving-image
@@ -825,13 +844,8 @@ deprecated-push-evaluator-serving-image: docker deprecated-build-evaluator-servi
 	docker push $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG)
 
 # Deprecated
-deprecated-build-images: deprecated-build-mmf-example-images deprecated-build-evaluator-example-images
-deprecated-build-mmf-example-images: deprecated-build-mmf-go-grpc-serving-simple-image
+deprecated-build-images: deprecated-build-evaluator-example-images
 deprecated-build-evaluator-example-images: deprecated-build-evaluator-serving-image
-
-# Deprecated
-deprecated-build-mmf-go-grpc-serving-simple-image: docker build-base-build-image
-	docker build -f examples/functions/golang/grpc-serving/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG) .
 
 # Deprecated
 deprecated-build-evaluator-serving-image: build-base-build-image
@@ -839,7 +853,6 @@ deprecated-build-evaluator-serving-image: build-base-build-image
 
 deprecated-clean-images: docker
 	-docker rmi -f open-match-base-build
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator-serving:$(TAG) $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG)
 
 # Deprecated
@@ -879,17 +892,12 @@ internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
 
 # Deprecated
 deprecated-all: deprecated-example-binaries
-deprecated-example-binaries: deprecated-example-mmf-binaries deprecated-example-evaluator-binaries
-deprecated-example-mmf-binaries: examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION)
+deprecated-example-binaries: deprecated-example-evaluator-binaries
 deprecated-example-evaluator-binaries: examples/evaluators/golang/serving/serving$(EXE_EXTENSION)
 
 # Deprecated
 examples/evaluators/golang/serving/serving$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd examples/evaluators/golang/serving; $(GO_BUILD_COMMAND)
-
-# Deprecated
-examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/pb/messages.pb.go
-	cd examples/functions/golang/grpc-serving; $(GO_BUILD_COMMAND)
 
 deprecated-clean-swagger-docs:
 	rm -rf $(REPOSITORY_ROOT)/api/protobuf-spec/*.json
@@ -900,4 +908,3 @@ deprecated-clean-protos:
 
 deprecated-clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/examples/evaluators/golang/serving/serving
-	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/grpc-serving/grpc-serving

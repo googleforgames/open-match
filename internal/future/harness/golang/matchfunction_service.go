@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package harness provides the Match Making Function service for Open Match harness.
-package harness
+package golang
 
 import (
 	"context"

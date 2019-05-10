@@ -19,4 +19,4 @@
 // config and set up logging and metrics, then start the server. The harness
 // functionality is implemented in harness/apisrv, which implements the gRPC server
 // defined in the frontendapi/proto/matchfunction.pb.go file.
-package harness
+package golang
