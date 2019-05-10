@@ -514,7 +514,7 @@ create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	$(MINIKUBE) delete
 
-all-protos: golang-protos reverse-golang-protos swagger-def-protos
+all-protos: golang-protos reverse-golang-protos swagger-json-docs
 
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
 
