@@ -1,0 +1,19 @@
+[
+    {
+        "maxAgeSeconds": 3600,
+        "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "HEAD",
+            "DELETE"
+        ],
+        "origin": [
+            "*"
+        ],
+        "responseHeader": [
+            "Content-Type"
+        ]
+    }
+]

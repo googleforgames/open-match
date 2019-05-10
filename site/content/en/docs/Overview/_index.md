@@ -3,11 +3,11 @@ title: "Overview"
 linkTitle: "Overview"
 weight: 1
 description: >
-  A short lead descripton about this section page. Text here can also be **bold** or _italic_ and can even be split over multiple paragraphs.
+  Open Match is a *framework* for video game matchmaking.
 ---
 
-This is the section landing page.
+Matchmaking begins when a player tells the game that they want to play. Every player has a set of attributes like skill, location, playtime, win-lose ratio, etc which may factor in how they are paired with other players. Typically, there's a trade off between the quality of the match vs the time to wait. Since Open Match is designed to scale with the player population, it should be possible to still have high quality matches while having high player count.
 
-* Summarize
-* Your section
-* Here
+## Disclaimer
+
+This software is currently alpha, and subject to change. Not to be used in production systems.

@@ -130,7 +130,7 @@ steps:
 
 - id: 'Deploy: Website'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', VERSION_SUFFIX=$SHORT_SHA', 'BRANCH_NAME=$BRANCH_NAME', 'ci-deploy-dev-site']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', VERSION_SUFFIX=$SHORT_SHA', 'BRANCH_NAME=$BRANCH_NAME', 'ci-deploy-site']
   waitFor: ['Test: Website', 'Build: Binaries']
   volumes:
   - name: 'go-vol'
@@ -191,6 +191,7 @@ images:
 substitutions:
     _OM_VERSION: "0.5.1"
     _GCB_POST_SUBMIT: "0"
+    _GCB_LATEST_VERSION: "undefined"
 logsBucket: 'gs://open-match-build-logs/'
 options:
   sourceProvenanceHash: ['SHA256']

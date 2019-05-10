@@ -1,17 +1,20 @@
 ---
-title: "Contribution Guidelines"
-linkTitle: "Contribution Guidelines"
+title: "Contributing"
+linkTitle: "Contributing"
 weight: 9
 description: >
-  How to contribute to the docs
+  How to contribute to Open Match
 ---
+
+Open Match is an open source project where anyone can contribute to it.
+If there's some thing you see that can be [improved](https://github.com/GoogleCloudPlatform/open-match/issues/new) we'd be happy to help you make those changes.
 
 ## Get involved
 
-* [Slack channel](https://open-match.slack.com/)
-    * [Signup link](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLWQzMzE1MGY5YmYyYWY3ZjE2MjNjZTdmYmQ1ZTQzMmNiNGViYmQyN2M4ZmVkMDY2YzZlOTUwMTYwMzI1Y2I2MjU)
-* [Mailing list](https://groups.google.com/forum/#!forum/open-match-discuss)
-* [Managed Service Survey](https://goo.gl/forms/cbrFTNCmy9rItSv72)
+There's many ways to get in touch with the Open Match community.
+
+* [Slack](https://open-match.slack.com/) ([Join](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLWQzMzE1MGY5YmYyYWY3ZjE2MjNjZTdmYmQ1ZTQzMmNiNGViYmQyN2M4ZmVkMDY2YzZlOTUwMTYwMzI1Y2I2MjU)) - Talk to the Open Match engineers and users on Slack.
+* [open-match-discuss@ mailing list](https://groups.google.com/forum/#!forum/open-match-discuss) - Get the latest information on changes happening to Open Match.
 
 ## Code of Conduct
 
@@ -19,20 +22,4 @@ Participation in this project comes under the Contributor Covenant Code of Condu
 
 ## Development and Contribution
 
-Please read the CONTRIBUTING.md guide for directions on submitting Pull Requests to Open Match.
-
-See the Development guide for documentation for development and building Open Match from source.
-
-The Release Process documentation displays the project's upcoming release calendar and release process. (NYI)
-
-Open Match is in active development - we would love your help in shaping its future!
-
-## This all sounds great, but can you explain Docker and/or Kubernetes to me?
-
-### Docker
-- [Docker's official "Getting Started" guide](https://docs.docker.com/get-started/)
-- [Katacoda's free, interactive Docker course](https://www.katacoda.com/courses/docker)
-
-### Kubernetes
-- [You should totally read this comic, and interactive tutorial](https://cloud.google.com/kubernetes-engine/kubernetes-comic/)
-- [Katacoda's free, interactive Kubernetes course](https://www.katacoda.com/courses/kubernetes)
+Please read the [CONTRIBUTING.md](https://github.com/GoogleCloudPlatform/open-match/blob/master/CONTRIBUTING.md) guide for directions on submitting Pull Requests to Open Match.
