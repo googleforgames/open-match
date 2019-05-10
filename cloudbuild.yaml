@@ -153,8 +153,8 @@ artifacts:
             - install/yaml/02-open-match.yaml
             - install/yaml/03-prometheus-chart.yaml
             - install/yaml/04-grafana-chart.yaml
+            - examples/future/functions/golang/grpc-serving/grpc-serving
 ######################################### Deprecated #########################################
-            - examples/functions/golang/grpc-serving/grpc-serving
             - examples/evaluators/golang/serving/serving
 images:
 - 'gcr.io/$PROJECT_ID/openmatch-backend:${_OM_VERSION}-${SHORT_SHA}'
