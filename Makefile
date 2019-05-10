@@ -236,7 +236,7 @@ build-example-images: build-mmf-example-images
 build-mmf-example-images: build-mmf-go-grpc-serving-simple-image
 
 build-mmf-go-grpc-serving-simple-image: docker build-base-build-image
-	docker build -f examples/future/functions/go/grpc-serving/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG) .
+	docker build -f examples/future/functions/golang/grpc-serving/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG) .
 
 clean-images: docker deprecated-clean-images
 	-docker rmi -f open-match-base-build
@@ -616,7 +616,7 @@ example-binaries: example-mmf-binaries
 example-mmf-binaries: examples/future/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION)
 
 examples/future/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/future/pb/messages.pb.go
-	cd examples/future/functions/go/grpc-serving; $(GO_BUILD_COMMAND)
+	cd examples/future/functions/golang/grpc-serving; $(GO_BUILD_COMMAND)
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
