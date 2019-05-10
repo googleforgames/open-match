@@ -17,12 +17,32 @@ package backend
 import (
 	"context"
 
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/future/pb"
+	"open-match.dev/open-match/internal/future/statestore"
 )
 
 // The service implementing the Backent API that is called to generate matches
 // and make assignments for Tickets.
 type backendService struct {
+	cfg   config.View
+	store statestore.Service
+}
+
+// newBackend creates and initializes the backend service.
+func newBackend(cfg config.View) (*backendService, error) {
+	bs := &backendService{
+		cfg: cfg,
+	}
+
+	// Initialize the state storage interface.
+	var err error
+	bs.store, err = statestore.New(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return bs, nil
 }
 
 // FetchMatches triggers execution of the specfied MatchFunction for each of the

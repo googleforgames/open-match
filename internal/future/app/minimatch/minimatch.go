@@ -45,13 +45,28 @@ func RunApplication() {
 		}).Fatalf("cannot construct server.")
 	}
 
-	BindService(p)
+	if err := BindService(p, cfg); err != nil {
+		minimatchLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatalf("cannot bind server.")
+	}
+
 	serving.MustServeForever(p)
 }
 
 // BindService creates the minimatch service to the server Params.
-func BindService(p *serving.Params) {
-	backend.BindService(p)
-	frontend.BindService(p)
-	mmlogic.BindService(p)
+func BindService(p *serving.Params, cfg config.View) error {
+	if err := backend.BindService(p, cfg); err != nil {
+		return err
+	}
+
+	if err := frontend.BindService(p, cfg); err != nil {
+		return err
+	}
+
+	if err := mmlogic.BindService(p, cfg); err != nil {
+		return err
+	}
+
+	return nil
 }

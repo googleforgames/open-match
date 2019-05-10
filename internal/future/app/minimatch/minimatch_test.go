@@ -14,12 +14,4 @@
 
 package minimatch
 
-import (
-	"testing"
-
-	servingTesting "open-match.dev/open-match/internal/future/serving/testing"
-)
-
-func TestServerBinding(t *testing.T) {
-	servingTesting.TestServerBinding(t, BindService)
-}
+// Add Minimatch tests here.

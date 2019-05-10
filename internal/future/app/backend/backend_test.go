@@ -17,9 +17,18 @@ package backend
 import (
 	"testing"
 
+	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/future/pb"
+	"open-match.dev/open-match/internal/future/serving"
 	servingTesting "open-match.dev/open-match/internal/future/serving/testing"
 )
 
 func TestServerBinding(t *testing.T) {
-	servingTesting.TestServerBinding(t, BindService)
+	bs := func(p *serving.Params) {
+		p.AddHandleFunc(func(s *grpc.Server) {
+			pb.RegisterBackendServer(s, &backendService{})
+		}, pb.RegisterBackendHandlerFromEndpoint)
+	}
+
+	servingTesting.TestServerBinding(t, bs)
 }

@@ -43,14 +43,26 @@ func RunApplication() {
 			"error": err.Error(),
 		}).Fatalf("cannot construct server.")
 	}
-	BindService(p)
+
+	if err := BindService(p, cfg); err != nil {
+		frontendLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatalf("failed to bind frontend service.")
+	}
+
 	serving.MustServeForever(p)
 }
 
-// BindService creates the frontend service to the server Params.
-func BindService(p *serving.Params) {
-	service := &frontendService{}
+// BindService creates the frontend service and binds it to the serving harness.
+func BindService(p *serving.Params, cfg config.View) error {
+	service, err := newFrontend(cfg)
+	if err != nil {
+		return err
+	}
+
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServer(s, service)
 	}, pb.RegisterFrontendHandlerFromEndpoint)
+
+	return nil
 }
