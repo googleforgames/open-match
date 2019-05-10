@@ -46,7 +46,7 @@
 ##
 # http://makefiletutorial.com/
 
-BASE_VERSION = 0.5.2-rc.1
+BASE_VERSION = 0.5.1
 VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
