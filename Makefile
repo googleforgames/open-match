@@ -888,7 +888,7 @@ examples/evaluators/golang/serving/serving$(EXE_EXTENSION): internal/pb/messages
 	cd examples/evaluators/golang/serving; $(GO_BUILD_COMMAND)
 
 # Deprecated
-examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/pb/messages.pb.go
+examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/pb/mmlogic.pb.go
 	cd examples/functions/golang/grpc-serving; $(GO_BUILD_COMMAND)
 
 deprecated-clean-swagger-docs:
