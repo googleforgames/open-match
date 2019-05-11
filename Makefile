@@ -615,7 +615,7 @@ service-binaries: cmd/future/minimatch/minimatch$(EXE_EXTENSION) cmd/future/back
 example-binaries: example-mmf-binaries
 example-mmf-binaries: examples/future/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION)
 
-examples/future/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/future/pb/messages.pb.go
+examples/future/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go
 	cd examples/future/functions/golang/grpc-serving; $(GO_BUILD_COMMAND)
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
