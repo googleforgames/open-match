@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package golang provides the Match Making Function service for Open Match golang harness.
 package golang
 
 import (
