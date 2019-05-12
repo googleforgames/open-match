@@ -12,17 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package serving
+package rpc
 
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"sync"
 
 	"crypto/tls"
-	"crypto/x509"
 	"net"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -32,6 +30,7 @@ import (
 	"go.opencensus.io/zpages"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"open-match.dev/open-match/internal/future/serving"
 	"open-match.dev/open-match/internal/util/netlistener"
 )
 
@@ -46,59 +45,6 @@ var (
 		"component": "tls_server",
 	})
 )
-
-// ClientCredentialsFromFile gets TransportCredentials from public certificate.
-func ClientCredentialsFromFile(certPath string) (credentials.TransportCredentials, error) {
-	publicCertFileData, err := ioutil.ReadFile(certPath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read public certificate from %s", certPath)
-	}
-	return ClientCredentialsFromFileData(publicCertFileData, "")
-}
-
-// TrustedCertificates gets TransportCredentials from public certificate file contents.
-func TrustedCertificates(publicCertFileData []byte) (*x509.CertPool, error) {
-	pool := x509.NewCertPool()
-	if !pool.AppendCertsFromPEM(publicCertFileData) {
-		return nil, errors.WithStack(fmt.Errorf("ClientCredentialsFromFileData: failed to append certificates"))
-	}
-	return pool, nil
-}
-
-// ClientCredentialsFromFileData gets TransportCredentials from public certificate file contents.
-func ClientCredentialsFromFileData(publicCertFileData []byte, serverOverride string) (credentials.TransportCredentials, error) {
-	pool := x509.NewCertPool()
-	if !pool.AppendCertsFromPEM(publicCertFileData) {
-		return nil, errors.WithStack(fmt.Errorf("ClientCredentialsFromFileData: failed to append certificates"))
-	}
-	return credentials.NewClientTLSFromCert(pool, serverOverride), nil
-}
-
-// CertificateFromFiles returns a tls.Certificate from PEM encoded X.509 public certificate and RSA private key files.
-func CertificateFromFiles(publicCertificatePath string, privateKeyPath string) (*tls.Certificate, error) {
-	publicCertFileData, err := ioutil.ReadFile(publicCertificatePath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read public certificate from %s", publicCertificatePath)
-	}
-	privateKeyFileData, err := ioutil.ReadFile(privateKeyPath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read private key from %s", privateKeyPath)
-	}
-	return CertificateFromFileData(publicCertFileData, privateKeyFileData)
-}
-
-// CertificateFromFileData returns a tls.Certificate from PEM encoded file data.
-func CertificateFromFileData(publicCertFileData []byte, privateKeyFileData []byte) (*tls.Certificate, error) {
-	cert, err := tls.X509KeyPair(publicCertFileData, privateKeyFileData)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	cert.Leaf, err = x509.ParseCertificate(cert.Certificate[0])
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	return &cert, nil
-}
 
 type tlsServer struct {
 	grpcLh          *netlistener.ListenerHolder
@@ -130,16 +76,16 @@ func (s *tlsServer) start(params *Params) (func(), error) {
 	}
 	s.grpcListener = grpcListener
 
-	rootCaCert, err := TrustedCertificates(params.rootCaPublicCertificateFileData)
+	rootCaCert, err := serving.TrustedCertificates(params.rootCaPublicCertificateFileData)
 	if err != nil {
 		return func() {}, errors.WithStack(err)
 	}
-	credsForProxyToGrpc, err := ClientCredentialsFromFileData(params.publicCertificateFileData, "")
+	credsForProxyToGrpc, err := serving.ClientCredentialsFromFileData(params.publicCertificateFileData, "")
 	if err != nil {
 		return func() {}, errors.WithStack(err)
 	}
 
-	grpcTLSCertificate, err := CertificateFromFileData(params.publicCertificateFileData, params.privateKeyFileData)
+	grpcTLSCertificate, err := serving.CertificateFromFileData(params.publicCertificateFileData, params.privateKeyFileData)
 	if err != nil {
 		return func() {}, errors.WithStack(err)
 	}

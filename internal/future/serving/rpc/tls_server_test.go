@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package serving
+package rpc
 
 import (
 	"crypto/tls"
@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/future/pb"
+	"open-match.dev/open-match/internal/future/serving"
 	shellTesting "open-match.dev/open-match/internal/future/testing"
 	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
@@ -108,14 +109,14 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 	assert.Nil(err)
 	waitForStart()
 
-	creds, err := ClientCredentialsFromFileData(tp.publicCertificateFileData, tp.grpcAddress)
+	creds, err := serving.ClientCredentialsFromFileData(tp.publicCertificateFileData, tp.grpcAddress)
 	assert.Nil(err)
 	conn, err := grpc.Dial(tp.grpcAddress, grpc.WithTransportCredentials(creds))
 	assert.Nil(err)
 
-	tlsCert, err := CertificateFromFileData(tp.publicCertificateFileData, tp.privateKeyFileData)
+	tlsCert, err := serving.CertificateFromFileData(tp.publicCertificateFileData, tp.privateKeyFileData)
 	assert.Nil(err)
-	pool, err := TrustedCertificates(tp.rootPublicCertificateFileData)
+	pool, err := serving.TrustedCertificates(tp.rootPublicCertificateFileData)
 	assert.Nil(err)
 	tlsTransport := &http.Transport{
 		TLSClientConfig: &tls.Config{

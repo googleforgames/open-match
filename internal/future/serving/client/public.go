@@ -12,23 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package frontend
+package client
 
-import (
-	"testing"
+// Params contains the connection parameters to connect to an Open Match service.
+type Params struct {
+	Hostname          string
+	Port              int
+	PublicCertificate []byte
+}
 
-	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/future/pb"
-	"open-match.dev/open-match/internal/future/serving/rpc"
-	servingTesting "open-match.dev/open-match/internal/future/serving/testing"
-)
-
-func TestServerBinding(t *testing.T) {
-	bs := func(p *rpc.Params) {
-		p.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterFrontendServer(s, &frontendService{})
-		}, pb.RegisterFrontendHandlerFromEndpoint)
-	}
-
-	servingTesting.TestServerBinding(t, bs)
+func (p *Params) usingTLS() bool {
+	return len(p.PublicCertificate) > 0
 }

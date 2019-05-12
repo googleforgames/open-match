@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"open-match.dev/open-match/internal/future/pb"
-	"open-match.dev/open-match/internal/future/serving"
+	"open-match.dev/open-match/internal/future/serving/rpc"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
@@ -35,13 +35,13 @@ func TestMustParamsForTestingTLS(t *testing.T) {
 	runServerStartStopTest(t, MustParamsForTestingTLS())
 }
 
-func runServerStartStopTest(t *testing.T, p *serving.Params) {
+func runServerStartStopTest(t *testing.T, p *rpc.Params) {
 	assert := assert.New(t)
 	ff := &shellTesting.FakeFrontend{}
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServer(s, ff)
 	}, pb.RegisterFrontendHandlerFromEndpoint)
-	s := &serving.Server{}
+	s := &rpc.Server{}
 	defer s.Stop()
 	waitForStart, err := s.Start(p)
 	assert.Nil(err)
