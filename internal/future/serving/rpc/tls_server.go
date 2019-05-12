@@ -12,26 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package serving
+package rpc
 
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 
+	"crypto/tls"
 	"net"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/zpages"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"open-match.dev/open-match/internal/future/serving"
 	"open-match.dev/open-match/internal/util/netlistener"
 )
 
-type insecureServer struct {
+const (
+	// https://http2.github.io/http2-spec/#rfc.section.3.1
+	http2WithTLSVersionID = "h2"
+)
+
+var (
+	tlsServerLogger = logrus.WithFields(logrus.Fields{
+		"app":       "openmatch",
+		"component": "tls_server",
+	})
+)
+
+type tlsServer struct {
 	grpcLh          *netlistener.ListenerHolder
 	grpcListener    net.Listener
 	grpcServeWaiter chan error
@@ -45,7 +60,7 @@ type insecureServer struct {
 	httpServer      *http.Server
 }
 
-func (s *insecureServer) start(params *Params) (func(), error) {
+func (s *tlsServer) start(params *Params) (func(), error) {
 	s.grpcServeWaiter = make(chan error)
 	s.httpServeWaiter = make(chan error)
 	var serverStartWaiter sync.WaitGroup
@@ -53,13 +68,29 @@ func (s *insecureServer) start(params *Params) (func(), error) {
 	s.httpMux = params.ServeMux
 	s.proxyMux = runtime.NewServeMux()
 
-	// Configure the gRPC server.
+	grpcAddress := fmt.Sprintf("localhost:%d", s.grpcLh.Number())
+
 	grpcListener, err := s.grpcLh.Obtain()
 	if err != nil {
 		return func() {}, errors.WithStack(err)
 	}
 	s.grpcListener = grpcListener
-	s.grpcServer = grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{}))
+
+	rootCaCert, err := serving.TrustedCertificates(params.rootCaPublicCertificateFileData)
+	if err != nil {
+		return func() {}, errors.WithStack(err)
+	}
+	credsForProxyToGrpc, err := serving.ClientCredentialsFromFileData(params.publicCertificateFileData, "")
+	if err != nil {
+		return func() {}, errors.WithStack(err)
+	}
+
+	grpcTLSCertificate, err := serving.CertificateFromFileData(params.publicCertificateFileData, params.privateKeyFileData)
+	if err != nil {
+		return func() {}, errors.WithStack(err)
+	}
+	creds := credentials.NewServerTLSFromCert(grpcTLSCertificate)
+	s.grpcServer = grpc.NewServer(grpc.Creds(creds), grpc.StatsHandler(&ocgrpc.ServerHandler{}))
 	// Bind gRPC handlers
 	for _, handlerFunc := range params.handlersForGrpc {
 		handlerFunc(s.grpcServer)
@@ -71,22 +102,24 @@ func (s *insecureServer) start(params *Params) (func(), error) {
 		s.grpcServeWaiter <- s.grpcServer.Serve(s.grpcListener)
 	}()
 
-	// Configure the HTTP proxy server.
+	// Start HTTP server
 	httpListener, err := s.httpLh.Obtain()
 	if err != nil {
 		return func() {}, errors.WithStack(err)
 	}
 	s.httpListener = httpListener
-
 	// Bind gRPC handlers
 	ctx := context.Background()
 
+	httpsToGrpcProxyOptions := []grpc.DialOption{grpc.WithTransportCredentials(credsForProxyToGrpc)}
+
 	for _, handlerFunc := range params.handlersForGrpcProxy {
-		if err = handlerFunc(ctx, s.proxyMux, grpcListener.Addr().String(), []grpc.DialOption{grpc.WithInsecure()}); err != nil {
+		if err = handlerFunc(ctx, s.proxyMux, grpcAddress, httpsToGrpcProxyOptions); err != nil {
 			return func() {}, errors.WithStack(err)
 		}
 	}
 
+	// Bind HTTPS handlers
 	s.httpMux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "ok")
 	})
@@ -95,33 +128,41 @@ func (s *insecureServer) start(params *Params) (func(), error) {
 	s.httpServer = &http.Server{
 		Addr:    s.httpListener.Addr().String(),
 		Handler: s.httpMux,
+		TLSConfig: &tls.Config{
+			Certificates: []tls.Certificate{*grpcTLSCertificate},
+			ClientCAs:    rootCaCert,
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			NextProtos:   []string{http2WithTLSVersionID}, // https://github.com/grpc-ecosystem/grpc-gateway/issues/220
+		},
 	}
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
-		s.httpServeWaiter <- s.httpServer.Serve(s.httpListener)
+		tlsListener := tls.NewListener(s.httpListener, s.httpServer.TLSConfig)
+		s.httpServeWaiter <- s.httpServer.Serve(tlsListener)
 	}()
 
+	// Wait for the servers to come up.
 	return serverStartWaiter.Wait, nil
 }
 
-func (s *insecureServer) stop() {
+func (s *tlsServer) stop() {
 	s.grpcServer.Stop()
 	if err := s.grpcListener.Close(); err != nil {
-		log.Printf("%s", err)
+		tlsServerLogger.Error(err)
 	}
 
 	if err := s.httpServer.Close(); err != nil {
-		log.Printf("%s", err)
+		tlsServerLogger.Error(err)
 	}
 
 	if err := s.httpListener.Close(); err != nil {
-		log.Printf("%s", err)
+		tlsServerLogger.Error(err)
 	}
 }
 
-func newInsecureServer(grpcLh *netlistener.ListenerHolder, httpLh *netlistener.ListenerHolder) *insecureServer {
-	return &insecureServer{
+func newTLSServer(grpcLh *netlistener.ListenerHolder, httpLh *netlistener.ListenerHolder) *tlsServer {
+	return &tlsServer{
 		grpcLh: grpcLh,
 		httpLh: httpLh,
 	}

@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package serving
+package rpc
 
 import (
+	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -77,4 +80,42 @@ func TestMustServeForever(t *testing.T) {
 	}()
 	serveUntilKilledFunc()
 	// This test will intentionally deadlock if the stop function is not respected.
+}
+
+func runGrpcWithProxyTests(assert *assert.Assertions, s grpcServerWithProxy, conn *grpc.ClientConn, httpClient *http.Client, endpoint string) {
+	ctx := context.Background()
+	feClient := pb.NewFrontendClient(conn)
+	grpcResp, err := feClient.CreateTicket(ctx, &pb.CreateTicketRequest{})
+	assert.Nil(err)
+	assert.NotNil(grpcResp)
+
+	httpReq, err := http.NewRequest(http.MethodPost, endpoint+"/v1/frontend/tickets", strings.NewReader("{}"))
+	assert.Nil(err)
+	assert.NotNil(httpReq)
+	httpResp, err := httpClient.Do(httpReq)
+	assert.Nil(err)
+	assert.NotNil(httpResp)
+	defer func() {
+		if httpResp != nil {
+			httpResp.Body.Close()
+		}
+	}()
+
+	body, err := ioutil.ReadAll(httpResp.Body)
+	assert.Nil(err)
+	assert.Equal(200, httpResp.StatusCode)
+	assert.Equal("{}", string(body))
+
+	httpReq, err = http.NewRequest(http.MethodGet, endpoint+"/healthz", nil)
+	assert.Nil(err)
+
+	httpResp, err = httpClient.Do(httpReq)
+	assert.Nil(err)
+	assert.NotNil(httpResp)
+	body, err = ioutil.ReadAll(httpResp.Body)
+	assert.Nil(err)
+	assert.Equal(200, httpResp.StatusCode)
+	assert.Equal("ok", string(body))
+
+	s.stop()
 }
