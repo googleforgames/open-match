@@ -16,6 +16,8 @@
 package config
 
 import (
+	"time"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -25,36 +27,10 @@ import (
 
 var (
 	// Logrus structured logging setup
-	logFields = logrus.Fields{
+	cfgLog = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
 		"component": "config",
-	}
-	cfgLog = logrus.WithFields(logFields)
-
-	// Map of the config file keys to environment variable names populated by
-	// k8s into pods. Examples of redis-related env vars as written by k8s
-	// REDIS_SENTINEL_PORT_6379_TCP=tcp://10.55.253.195:6379
-	// REDIS_SENTINEL_PORT=tcp://10.55.253.195:6379
-	// REDIS_SENTINEL_PORT_6379_TCP_ADDR=10.55.253.195
-	// REDIS_SENTINEL_SERVICE_PORT=6379
-	// REDIS_SENTINEL_PORT_6379_TCP_PORT=6379
-	// REDIS_SENTINEL_PORT_6379_TCP_PROTO=tcp
-	// REDIS_SENTINEL_SERVICE_HOST=10.55.253.195
-	//
-	// MMFs are expected to get their configuation from env vars instead
-	// of reading the config file.  So, config parameters that are required
-	// by MMFs should be populated to env vars.
-	envMappings = map[string]string{
-		"redis.user":             "REDIS_USER",
-		"redis.password":         "REDIS_PASSWORD",
-		"redis.hostname":         "REDIS_SERVICE_HOST",
-		"redis.port":             "REDIS_SERVICE_PORT",
-		"redis.pool.maxIdle":     "REDIS_POOL_MAXIDLE",
-		"redis.pool.maxActive":   "REDIS_POOL_MAXACTIVE",
-		"redis.pool.idleTimeout": "REDIS_POOL_IDLETIMEOUT",
-		"api.mmlogic.hostname":   "OM_MMLOGICAPI_SERVICE_HOST",
-		"api.mmlogic.port":       "OM_MMLOGICAPI_SERVICE_PORT",
-	}
+	})
 
 	// OpenCensus
 	cfgVarCount = stats.Int64("config/vars_total", "Number of config vars read during initialization", "1")
@@ -66,6 +42,19 @@ var (
 		Aggregation: view.Count(),
 	}
 )
+
+// View is a read-only view of the Open Match configuration.
+// New accessors from Viper should be added here.
+type View interface {
+	IsSet(string) bool
+	GetString(string) string
+	GetInt(string) int
+	GetInt64(string) int64
+	GetStringSlice(string) []string
+	GetBool(string) bool
+	GetDuration(string) time.Duration
+	GetStringMap(string) map[string]interface{}
+}
 
 // Read reads a config file into a viper.Viper instance and associates environment vars defined in
 // config.envMappings
@@ -86,31 +75,6 @@ func Read() (View, error) {
 		cfgLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatal("Fatal error reading config file")
-	}
-
-	// Bind this envvars to viper config vars.
-	// https://github.com/spf13/viper#working-with-environment-variables
-	// One important thing to recognize when working with ENV variables is
-	// that the value will be read each time it is accessed. Viper does not
-	// fix the value when the BindEnv is called.
-	for cfgKey, envVar := range envMappings {
-		err = cfg.BindEnv(cfgKey, envVar)
-
-		if err != nil {
-			cfgLog.WithFields(logrus.Fields{
-				"configkey": cfgKey,
-				"envvar":    envVar,
-				"error":     err.Error(),
-				"module":    "config",
-			}).Warn("Unable to bind environment var as a config variable")
-
-		} else {
-			cfgLog.WithFields(logrus.Fields{
-				"configkey": cfgKey,
-				"envvar":    envVar,
-				"module":    "config",
-			}).Info("Binding environment var as a config variable")
-		}
 	}
 
 	// Look for updates to the config; in Kubernetes, this is implemented using

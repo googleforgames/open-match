@@ -84,7 +84,6 @@ GCP_REGION = us-west1
 GCP_ZONE = us-west1-a
 EXE_EXTENSION =
 LOCAL_CLOUD_BUILD_PUSH = # --push
-KUBECTL_RUN_ENV = --env='REDIS_SERVICE_HOST=$$(OM_REDIS_MASTER_SERVICE_HOST)' --env='REDIS_SERVICE_PORT=$$(OM_REDIS_MASTER_SERVICE_PORT)'
 GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
 # Flags to simulate behavior of newer versions of Kubernetes
 KUBERNETES_COMPAT = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
@@ -126,7 +125,7 @@ ifeq ($(MAJOR_MINOR_VERSION),0.0)
 	GAE_SERVICE_NAME = development
 else
 	GAE_SERVICE_NAME = $(shell echo $(MAJOR_MINOR_VERSION) | tr . -)
-endif 
+endif
 
 export PATH := $(REPOSITORY_ROOT)/node_modules/.bin/:$(TOOLCHAIN_BIN):$(TOOLCHAIN_DIR)/nodejs/bin:$(PATH)
 
@@ -648,7 +647,7 @@ deploy-dev-site: build/site/ gcloud
 	cd $(BUILD_DIR)/site && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy .app.yaml --promote --version=$(VERSION_SUFFIX) --quiet
 
 # The website is deployed on Post Submit of every build based on the BASE_VERSION in this file.
-# If the site 
+# If the site
 ci-deploy-site: build/site/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
 	@echo "Deploying website to $(GAE_SERVICE_NAME).open-match.dev version=$(GAE_SITE_VERSION)..."
