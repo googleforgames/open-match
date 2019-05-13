@@ -31,7 +31,7 @@ RUN sudo apt-get install -y -qq docker-ce docker-ce-cli containerd.io
 RUN export CLOUD_SDK_REPO="cloud-sdk-stretch" && \
     echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
-    apt-get update -y && apt-get install google-cloud-sdk -y -qq
+    apt-get update -y && apt-get install google-cloud-sdk google-cloud-sdk-app-engine-go -y -qq
 
 # Install Golang
 # https://github.com/docker-library/golang/blob/fd272b2b72db82a0bd516ce3d09bba624651516c/1.12/stretch/Dockerfile
