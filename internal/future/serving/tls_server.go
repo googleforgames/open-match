@@ -17,12 +17,10 @@ package serving
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"sync"
 
 	"crypto/tls"
-	"crypto/x509"
 	"net"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
