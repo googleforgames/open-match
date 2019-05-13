@@ -135,9 +135,7 @@ openmatch:
             count: 10000
           results:
             pageSize: 10000
-          expirations:
-            player: 43200
-            matchobject: 43200
+          expiration: 43200
 
         jsonkeys:
           rosters: properties.rosters

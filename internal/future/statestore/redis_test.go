@@ -54,3 +54,6 @@ func createRedis(t *testing.T) (Service, func() error) {
 		return rbCloseErr
 	}
 }
+
+// TODO: Add tests to validate Redis functionality in isolation once we have clarity
+// on state storage to be used.
