@@ -20,6 +20,9 @@
 package main
 
 import (
+	"fmt"
+	"time"
+	
 	goHarness "open-match.dev/open-match/internal/future/harness/golang"
 	"open-match.dev/open-match/internal/future/pb"
 )
@@ -28,7 +31,7 @@ func main() {
 	// Invoke the harness to setup a GRPC service that handles requests to run the
 	// match function. The harness itself queries open match for player pools for
 	// the specified request and passes the pools to the match function to generate
-	// proposals.
+	// proposals. 
 	goHarness.RunMatchFunction(&goHarness.FunctionSettings{
 		FunctionName: "simple-matchfunction",
 		Func:         makeMatches,
@@ -37,5 +40,35 @@ func main() {
 
 // makeMatches is where your custom matchmaking logic lives.
 func makeMatches(view *goHarness.MatchFunctionParams) []*pb.Match {
-	return nil
+	// This simple match function does the following things
+	// 1. Flatten the poolNameToTickets map into an array
+	// 2. Fill in the rosters by iterating through the tickets array
+	// 3. Create one single match candidate and return it.
+
+	allTickets := make([]*pb.Ticket, 0)
+	ticketOffset := 0
+	for _, tickets := range view.PoolNameToTickets {
+		allTickets = append(allTickets, tickets...)
+	}
+
+	// This example does nothing but fills the rosters until they are full.
+	for _, roster := range view.Rosters {
+		rosterSize := len(roster.TicketId)
+		view.Logger.Tracef("Filling roster: %s, roster size: %d", roster.Name, rosterSize)
+		for rosterOffset := 0; rosterOffset < rosterSize; rosterOffset++ {
+			roster.TicketId[rosterOffset] = allTickets[ticketOffset].Id
+			ticketOffset++
+		}
+	}
+
+	return []*pb.Match{
+		{
+			MatchId:       fmt.Sprintf("profile-%s-time-%s", view.ProfileName, time.Now().Format("00:00")),
+			MatchProfile:  view.ProfileName,
+			MatchFunction: "a-simple-matchfunction",
+			Ticket:        allTickets[:ticketOffset:ticketOffset],
+			Roster:        view.Rosters,
+			Properties:    view.Properties,
+		},
+	}
 }
