@@ -35,8 +35,8 @@ var (
 // The MMLogic API provides utility functions for common MMF functionality such
 // as retreiving Tickets from state storage.
 type mmlogicService struct {
-	storageService statestore.Service
-	cfg            config.View
+	cfg   config.View
+	store statestore.Service
 }
 
 // newMmlogic creates and initializes the mmlogic service.
@@ -91,7 +91,7 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 			endPage := mapIdx%pSize == 0 || mapIdx == len(idsToProperties)-1
 			if endPage {
 				// Reaches page limit; Send a stream response then reset the page
-				err := responseServer.Send(&pb.RetrievePoolResponse{Ticket: page})
+				err := responseServer.Send(&pb.QueryTicketsResponse{Ticket: page})
 				if err != nil {
 					logger.WithError(err).Error("Failed to send Redis response to grpc server")
 					return status.Errorf(codes.Aborted, err.Error())
