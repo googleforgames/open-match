@@ -1,3 +1,9 @@
+---
+title: "Get Started Guide"
+linkTitle: "Get Started"
+weight: 1
+description: Follow these steps to get familiar with using Open Match.
+---
 # Get Started
 - [Concept](#concepts)
 - [Match Making Lifecycle](#match-making-lifecycle)
