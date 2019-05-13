@@ -185,7 +185,8 @@ help:
 local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
-push-images: push-service-images push-example-images deprecated-push-images
+push-images: push-service-images push-example-images
+
 push-service-images: push-backend-image push-frontend-image  push-mmlogic-image push-minimatch-image
 
 push-backend-image: docker build-backend-image
@@ -212,7 +213,7 @@ push-mmf-go-simple-image: docker build-mmf-go-simple-image
 	docker push $(REGISTRY)/openmatch-mmf-go-simple:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-go-simple:$(ALTERNATE_TAG)
 
-build-images: build-service-images build-example-images deprecated-build-images
+build-images: build-service-images build-example-images
 
 build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image
 
@@ -238,7 +239,7 @@ build-mmf-example-images: build-mmf-go-simple-image
 build-mmf-go-simple-image: docker build-base-build-image
 	docker build -f examples/functions/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-simple:$(ALTERNATE_TAG) .
 
-clean-images: docker deprecated-clean-images
+clean-images: docker
 	-docker rmi -f open-match-base-build
 	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-simple:$(TAG) $(REGISTRY)/openmatch-mmf-go-simple:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
@@ -553,7 +554,7 @@ create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	$(MINIKUBE) delete
 
-all-protos: deprecated-all-protos golang-protos http-proxy-golang-protos swagger-json-docs
+all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
 golang-protos: internal/future/pb/backend.pb.go internal/future/pb/frontend.pb.go internal/future/pb/matchfunction.pb.go internal/future/pb/messages.pb.go internal/future/pb/mmlogic.pb.go
 
 http-proxy-golang-protos: internal/future/pb/backend.pb.gw.go internal/future/pb/frontend.pb.gw.go internal/future/pb/matchfunction.pb.gw.go internal/future/pb/messages.pb.gw.go internal/future/pb/mmlogic.pb.gw.go
@@ -608,8 +609,12 @@ golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 
 lint: fmt vet lint-chart
 
+<<<<<<< HEAD
 all: service-binaries example-binaries tools-binaries deprecated-all
 
+=======
+all: service-binaries tools-binaries
+>>>>>>> 62d392b... Delete evaluator
 service-binaries: cmd/future/minimatch/minimatch$(EXE_EXTENSION) cmd/future/backend/backend$(EXE_EXTENSION) cmd/future/frontend/frontend$(EXE_EXTENSION) cmd/future/mmlogic/mmlogic$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries
@@ -726,13 +731,13 @@ clean-release:
 clean-site:
 	rm -rf $(REPOSITORY_ROOT)/build/site/
 
-clean-swagger-docs: deprecated-clean-swagger-docs
+clean-swagger-docs:
 	rm -rf $(REPOSITORY_ROOT)/api/*.json
 
-clean-protos: deprecated-clean-protos
+clean-protos:
 	rm -rf $(REPOSITORY_ROOT)/internal/future/pb/
 
-clean-binaries: deprecated-clean-binaries
+clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/backend/backend
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/frontend/frontend
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/mmlogic/mmlogic
@@ -829,6 +834,7 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
+<<<<<<< HEAD
 .PHONY: docker gcloud deploy-redirect-site update-deps sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-test vet
 
 ################################################################################
@@ -908,3 +914,6 @@ deprecated-clean-protos:
 
 deprecated-clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/examples/evaluators/golang/serving/serving
+=======
+.PHONY: docker gcloud deploy-redirect-site update-deps sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-test vet
+>>>>>>> 62d392b... Delete evaluator
