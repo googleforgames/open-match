@@ -14,10 +14,10 @@
 
 FROM open-match-base-build as builder
 
-WORKDIR /go/src/open-match.dev/open-match/examples/future/functions/golang/grpc-serving
+WORKDIR /go/src/open-match.dev/open-match/examples/functions/golang/simple
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o matchfunction .
 
 FROM gcr.io/distroless/static
-COPY --from=builder /go/src/open-match.dev/open-match/examples/future/functions/golang/grpc-serving/matchfunction .
+COPY --from=builder /go/src/open-match.dev/open-match/examples/future/functions/golang/simple/matchfunction .
 
 ENTRYPOINT ["/matchfunction"]
