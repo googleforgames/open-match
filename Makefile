@@ -206,11 +206,11 @@ push-minimatch-image: docker build-minimatch-image
 
 push-example-images: push-mmf-example-images
 
-push-mmf-example-images: push-mmf-go-grpc-serving-simple-image
+push-mmf-example-images: push-mmf-go-simple-image
 
-push-mmf-go-grpc-serving-simple-image: docker build-mmf-go-grpc-serving-simple-image
-	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
+push-mmf-go-simple-image: docker build-mmf-go-simple-image
+	docker push $(REGISTRY)/openmatch-mmf-go-simple:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmf-go-simple:$(ALTERNATE_TAG)
 
 build-images: build-service-images build-example-images deprecated-build-images
 
@@ -233,14 +233,14 @@ build-minimatch-image: docker build-base-build-image
 
 build-example-images: build-mmf-example-images
 
-build-mmf-example-images: build-mmf-go-grpc-serving-simple-image
+build-mmf-example-images: build-mmf-go-simple-image
 
-build-mmf-go-grpc-serving-simple-image: docker build-base-build-image
-	docker build -f examples/future/functions/golang/grpc-serving/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG) .
+build-mmf-go-simple-image: docker build-base-build-image
+	docker build -f examples/functions/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-simple:$(ALTERNATE_TAG) .
 
 clean-images: docker deprecated-clean-images
 	-docker rmi -f open-match-base-build
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-simple:$(TAG) $(REGISTRY)/openmatch-mmf-go-simple:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontend:$(TAG) $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-mmlogic:$(TAG) $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
@@ -613,10 +613,10 @@ all: service-binaries example-binaries tools-binaries deprecated-all
 service-binaries: cmd/future/minimatch/minimatch$(EXE_EXTENSION) cmd/future/backend/backend$(EXE_EXTENSION) cmd/future/frontend/frontend$(EXE_EXTENSION) cmd/future/mmlogic/mmlogic$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries
-example-mmf-binaries: examples/future/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION)
+example-mmf-binaries: examples/functions/golang/simple$(EXE_EXTENSION)
 
-examples/future/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go
-	cd examples/future/functions/golang/grpc-serving; $(GO_BUILD_COMMAND)
+examples/functions/golang/simple$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go internal/future/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/future/pb/matchfunction.pb.go internal/future/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+	cd examples/functions/golang/simple; $(GO_BUILD_COMMAND)
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
@@ -737,7 +737,7 @@ clean-binaries: deprecated-clean-binaries
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/frontend/frontend
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/mmlogic/mmlogic
 	rm -rf $(REPOSITORY_ROOT)/cmd/future/minimatch/minimatch
-	rm -rf $(REPOSITORY_ROOT)/examples/future/functions/golang/grpc-serving/grpc-serving
+	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/simple/simple
 
 clean-build: clean-toolchain clean-archives clean-release
 	rm -rf $(REPOSITORY_ROOT)/build/

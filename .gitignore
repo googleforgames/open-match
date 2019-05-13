@@ -108,7 +108,7 @@ cmd/future/minimatch/minimatch
 cmd/future/mmlogic/mmlogic
 cmd/future/minimatch/minimatch
 tools/certgen/certgen
-examples/future/functions/golang/grpc-serving/grpc-serving
+examples/functions/golang/simple
 
 # Deprecated Compiled Binaries
 cmd/minimatch/minimatch
@@ -117,6 +117,6 @@ cmd/frontendapi/frontendapi
 cmd/mmlogicapi/mmlogicapi
 examples/backendclient/backendclient
 examples/evaluators/golang/serving/serving
-examples/functions/golang/grpc-serving/grpc-serving
+examples/functions/golang/simple/simple
 test/cmd/clientloadgen/clientloadgen
 test/cmd/frontendclient/frontendclient

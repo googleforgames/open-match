@@ -77,20 +77,6 @@ func BindService(p *serving.Params, cfg config.View, fs *FunctionSettings) error
 	return nil
 }
 
-func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunctionService, error) {
-	mmlogicClient, err := getMMLogicClient(cfg)
-	if err != nil {
-		harnessLogger.Errorf("Failed to get MMLogic client, %v.", err)
-		return nil, err
-	}
-
-	// Placeholder for things that needs to be done with the cfg in future.
-
-	mmfService := &matchFunctionService{cfg: cfg, functionName: fs.FunctionName, function: fs.Func, mmlogicClient: mmlogicClient}
-
-	return mmfService, nil
-}
-
 // TODO: replace this method once the client side wrapper is done.
 func getMMLogicClient(cfg config.View) (pb.MmLogicClient, error) {
 	host := cfg.GetString("api.mmlogic.hostname")
