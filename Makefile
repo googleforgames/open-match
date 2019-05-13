@@ -810,14 +810,8 @@ endif
 #                              Deprecated Targets                              #
 ################################################################################
 
-deprecated-push-images: deprecated-push-mmf-example-images deprecated-push-evaluator-example-images
-deprecated-push-mmf-example-images: deprecated-push-mmf-go-grpc-serving-simple-image
+deprecated-push-images: deprecated-push-evaluator-example-images
 deprecated-push-evaluator-example-images: deprecated-push-evaluator-serving-image
-
-# Deprecated
-deprecated-push-mmf-go-grpc-serving-simple-image: docker deprecated-build-mmf-go-grpc-serving-simple-image
-	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
 
 # Deprecated
 deprecated-push-evaluator-serving-image: docker deprecated-build-evaluator-serving-image
@@ -825,13 +819,8 @@ deprecated-push-evaluator-serving-image: docker deprecated-build-evaluator-servi
 	docker push $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG)
 
 # Deprecated
-deprecated-build-images: deprecated-build-mmf-example-images deprecated-build-evaluator-example-images
-deprecated-build-mmf-example-images: deprecated-build-mmf-go-grpc-serving-simple-image
+deprecated-build-images: deprecated-build-evaluator-example-images
 deprecated-build-evaluator-example-images: deprecated-build-evaluator-serving-image
-
-# Deprecated
-deprecated-build-mmf-go-grpc-serving-simple-image: docker build-base-build-image
-	docker build -f examples/functions/golang/grpc-serving/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG) .
 
 # Deprecated
 deprecated-build-evaluator-serving-image: build-base-build-image
@@ -839,7 +828,6 @@ deprecated-build-evaluator-serving-image: build-base-build-image
 
 deprecated-clean-images: docker
 	-docker rmi -f open-match-base-build
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(TAG) $(REGISTRY)/openmatch-mmf-go-grpc-serving-simple:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator-serving:$(TAG) $(REGISTRY)/openmatch-evaluator-serving:$(ALTERNATE_TAG)
 
 # Deprecated
@@ -879,17 +867,12 @@ internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
 
 # Deprecated
 deprecated-all: deprecated-example-binaries
-deprecated-example-binaries: deprecated-example-mmf-binaries deprecated-example-evaluator-binaries
-deprecated-example-mmf-binaries: examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION)
+deprecated-example-binaries: deprecated-example-evaluator-binaries
 deprecated-example-evaluator-binaries: examples/evaluators/golang/serving/serving$(EXE_EXTENSION)
 
 # Deprecated
 examples/evaluators/golang/serving/serving$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd examples/evaluators/golang/serving; $(GO_BUILD_COMMAND)
-
-# Deprecated
-examples/functions/golang/grpc-serving/grpc-serving$(EXE_EXTENSION): internal/pb/mmlogic.pb.go
-	cd examples/functions/golang/grpc-serving; $(GO_BUILD_COMMAND)
 
 deprecated-clean-swagger-docs:
 	rm -rf $(REPOSITORY_ROOT)/api/protobuf-spec/*.json
