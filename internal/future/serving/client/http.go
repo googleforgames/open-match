@@ -24,7 +24,17 @@ import (
 	"open-match.dev/open-match/internal/future/serving"
 )
 
-// TODO: provides HTTPS client support
+// SecureHTTPFromConfig creates an HTTPS client from a configuration.
+func SecureHTTPFromConfig(cfg config.View, prefix string, publicKeyBytes, privateKeyBytes []byte) (*http.Client, string, error) {
+	hostname := cfg.GetString(prefix + ".hostname")
+	portNumber := cfg.GetInt(prefix + ".httpport")
+	return HTTPFromParams(&Params{
+		Hostname:          hostname,
+		Port:              portNumber,
+		PublicCertificate: publicKeyBytes,
+		PrivateKeyData:    privateKeyBytes,
+	})
+}
 
 // InsecureHTTPFromConfig creates an HTTP client from a configuration.
 func InsecureHTTPFromConfig(cfg config.View, prefix string) (*http.Client, string, error) {
@@ -41,14 +51,16 @@ func HTTPFromParams(params *Params) (*http.Client, string, error) {
 	address := fmt.Sprintf("%s:%d", params.Hostname, params.Port)
 	if params.usingTLS() {
 		baseURL := "https://" + address + "/"
+		tlsCert, err := serving.CertificateFromFileData(params.PublicCertificate, params.PrivateKeyData)
 		pool, err := serving.TrustedCertificates(params.PublicCertificate)
 		if err != nil {
 			return nil, "", err
 		}
 		tlsTransport := &http.Transport{
 			TLSClientConfig: &tls.Config{
-				ServerName: address,
-				RootCAs:    pool,
+				ServerName:   address,
+				RootCAs:      pool,
+				Certificates: []tls.Certificate{*tlsCert},
 			},
 		}
 		httpClient := &http.Client{

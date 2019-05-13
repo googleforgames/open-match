@@ -15,25 +15,58 @@
 package client
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/future/pb"
 	"open-match.dev/open-match/internal/future/serving/rpc"
 	shellTesting "open-match.dev/open-match/internal/future/testing"
 	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
+	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 
+func TestHTTPSFromConfig(t *testing.T) {
+	runHTTPClientTests(t, true)
+}
 func TestInsecureHTTPFromConfig(t *testing.T) {
+	runHTTPClientTests(t, false)
+}
+
+func runHTTPClientTests(t *testing.T, useTLS bool) {
 	assert := assert.New(t)
+
+	var (
+		configPrefix      = "httpTest"
+		clientHostNameKey = "httpTest.hostname"
+		clientHTTPPortKey = "httpTest.httpport"
+		httpClient        *http.Client
+		baseURL           string
+	)
 
 	// Create netlisteners on random ports used for rpv serving
 	grpcLh := netlistenerTesting.MustListen()
 	httpLh := netlistenerTesting.MustListen()
 	rpcParams := rpc.NewParamsFromListeners(grpcLh, httpLh)
+
+	cfg := viper.New()
+	cfg.Set(clientHostNameKey, "localhost")
+	cfg.Set(clientHTTPPortKey, httpLh.Number())
+
+	grpcAddress := fmt.Sprintf("localhost:%d", grpcLh.Number())
+	proxyAddress := fmt.Sprintf("localhost:%d", httpLh.Number())
+	allHostnames := []string{grpcAddress, proxyAddress}
+	pub, priv, err := certgenTesting.CreateCertificateAndPrivateKeyForTesting(allHostnames)
+	assert.Nil(err)
+
+	// TLS setup
+	if useTLS {
+		rpcParams.SetTLSConfiguration(pub, pub, priv)
+	}
 
 	// Serve a fake frontend server and wait for its full start up
 	ff := &shellTesting.FakeFrontend{}
@@ -46,11 +79,14 @@ func TestInsecureHTTPFromConfig(t *testing.T) {
 	assert.Nil(err)
 	waitForStart()
 
-	httpClient, baseURL, err := HTTPFromParams(&Params{
-		Hostname: "localhost",
-		Port:     httpLh.Number(),
-	})
+	// Acquire http client
+	if useTLS {
+		httpClient, baseURL, err = SecureHTTPFromConfig(cfg, configPrefix, pub, priv)
+	} else {
+		httpClient, baseURL, err = InsecureHTTPFromConfig(cfg, configPrefix)
+	}
 
+	// Confirm the client works as expected
 	httpReq, err := http.NewRequest(http.MethodGet, baseURL+"/healthz", nil)
 	assert.Nil(err)
 	assert.NotNil(httpReq)

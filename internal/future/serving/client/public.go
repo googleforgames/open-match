@@ -19,6 +19,7 @@ type Params struct {
 	Hostname          string
 	Port              int
 	PublicCertificate []byte
+	PrivateKeyData    []byte
 }
 
 func (p *Params) usingTLS() bool {

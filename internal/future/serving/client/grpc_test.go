@@ -16,7 +16,10 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"testing"
+
+	"github.com/spf13/viper"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
@@ -24,34 +27,70 @@ import (
 	"open-match.dev/open-match/internal/future/serving/rpc"
 	shellTesting "open-match.dev/open-match/internal/future/testing"
 	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
+	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 
+func TestSecureGRPCFromConfig(t *testing.T) {
+	runGrpcClientTests(t, true)
+}
+
 func TestInsecureGRPCFromConfig(t *testing.T) {
+	runGrpcClientTests(t, false)
+}
+
+func runGrpcClientTests(t *testing.T, useTLS bool) {
 	assert := assert.New(t)
+
+	var (
+		configPrefix      = "grpcTest"
+		clientHostNameKey = "grpcTest.hostname"
+		clientGRPCPortKey = "grpcTest.grpcport"
+		grpcConn          *grpc.ClientConn
+	)
 
 	// Create netlisteners on random ports used for rpv serving
 	grpcLh := netlistenerTesting.MustListen()
 	httpLh := netlistenerTesting.MustListen()
 	rpcParams := rpc.NewParamsFromListeners(grpcLh, httpLh)
 
+	// Fake the config
+	cfg := viper.New()
+	cfg.Set(clientHostNameKey, "localhost")
+	cfg.Set(clientGRPCPortKey, grpcLh.Number())
+
+	grpcAddress := fmt.Sprintf("localhost:%d", grpcLh.Number())
+	proxyAddress := fmt.Sprintf("localhost:%d", httpLh.Number())
+	allHostnames := []string{grpcAddress, proxyAddress}
+	pub, priv, err := certgenTesting.CreateCertificateAndPrivateKeyForTesting(allHostnames)
+	assert.Nil(err)
+
+	// TLS setup
+	if useTLS {
+		rpcParams.SetTLSConfiguration(pub, pub, priv)
+	}
+
 	// Serve a fake frontend server and wait for its full start up
 	ff := &shellTesting.FakeFrontend{}
 	rpcParams.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServer(s, ff)
 	}, pb.RegisterFrontendHandlerFromEndpoint)
+
 	s := &rpc.Server{}
 	defer s.Stop()
 	waitForStart, err := s.Start(rpcParams)
 	assert.Nil(err)
 	waitForStart()
 
-	grpcConn, err := GRPCFromParams(&Params{
-		Hostname: "localhost",
-		Port:     grpcLh.Number(),
-	})
+	// Acquire grpc client
+	if useTLS {
+		grpcConn, err = SecureGRPCFromConfig(cfg, configPrefix, pub)
+	} else {
+		grpcConn, err = InsecureGRPCFromConfig(cfg, configPrefix)
+	}
 	assert.Nil(err)
 	assert.NotNil(grpcConn)
 
+	// Confirm the client works as expected
 	ctx := context.Background()
 	feClient := pb.NewFrontendClient(grpcConn)
 	grpcResp, err := feClient.CreateTicket(ctx, &pb.CreateTicketRequest{})

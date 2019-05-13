@@ -23,7 +23,16 @@ import (
 	"open-match.dev/open-match/internal/future/serving"
 )
 
-// TODO: provides TLS client support
+// SecureGRPCFromConfig creates a gRPC client connection with TLS support from a configuration.
+func SecureGRPCFromConfig(cfg config.View, prefix string, publicKeyBytes []byte) (*grpc.ClientConn, error) {
+	hostname := cfg.GetString(prefix + ".hostname")
+	portNumber := cfg.GetInt(prefix + ".grpcport")
+	return GRPCFromParams(&Params{
+		Hostname:          hostname,
+		Port:              portNumber,
+		PublicCertificate: publicKeyBytes,
+	})
+}
 
 // InsecureGRPCFromConfig creates a gRPC client connection without TLS support from a configuration.
 func InsecureGRPCFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, error) {
