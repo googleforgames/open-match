@@ -77,3 +77,4 @@ func CertificateFromFileData(publicCertFileData []byte, privateKeyFileData []byt
 	}
 	return &cert, nil
 }
+
