@@ -22,6 +22,11 @@ See deatailed explanation in [Core Concepts](https://github.com/GoogleCloudPlatf
 
 
 ## Match Making Lifecycle
+
+[TODO]: # (add a chart to illustrate dataflow in open-match)
+[TODO]: # (the chart is not added because we have not finalize the API changes yet.)
+
+
 1. A service (potentially a lobby service) figures out a match-making entity (aka. _ticket_) is in-queue for a game match, it then gets a frontend client and triggers the `CreateTicket` function of the frontend service.
 2. The frontend service receives the request, indexes the attributes of the entity with its storage service and acknowledges this request.
 3. Later at some point, a service that wants a match (aka. _director service_) triggers the `FetchMatches` function of the backend service.
