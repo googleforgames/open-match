@@ -22,13 +22,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	matchfunctionLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "harness.golang.matchfunction_service",
-	})
-)
-
 // matchFunction is the function signature for the Match Making Function (MMF) to be implemented by the user.
 // The harness will pass the Rosters and PlayerPool for the match profile to this
 // function and it will return the Rosters to be populated in the proposal.
