@@ -34,7 +34,7 @@ docker pull gcr.io/open-match-public-images/openmatch-mmlogicapi:{version}
 docker pull gcr.io/open-match-public-images/openmatch-evaluator-serving:{version}
 
 # Sample Match Making Functions
-docker pull gcr.io/open-match-public-images/openmatch-mmf-go-grpc-serving-simple:{version}
+docker pull gcr.io/open-match-public-images/openmatch-mmf-go-simple:{version}
 
 # Test Clients
 docker pull gcr.io/open-match-public-images/openmatch-backendclient:{version}

@@ -38,5 +38,5 @@ openmatch:
       name: openmatch-evaluator-serving
       pullPolicy: Always
     function:
-      name: openmatch-mmf-go-grpc-serving-simple
+      name: openmatch-mmf-go-simple
       pullPolicy: Always
