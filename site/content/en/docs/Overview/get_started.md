@@ -7,8 +7,9 @@ description: Follow these steps to get familiar with using Open Match.
 # Get Started
 - [Concept](#concepts)
 - [Match Making Lifecycle](#match-making-lifecycle)
-- [Generate your first match](#generate-your-first-match)
-- [Customize your match function](#customize-your-match-function)
+
+[TODO]: # (- [Generate your first match](#generate-your-first-match))
+[TODO]: # (- [Customize your match function](#customize-your-match-function))
 
 
 ## Concepts
