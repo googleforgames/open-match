@@ -66,6 +66,7 @@ GO = GO111MODULE=on go
 # Defines the absolute local directory of the open-match project
 REPOSITORY_ROOT := $(patsubst %/,%,$(dir $(abspath $(MAKEFILE_LIST))))
 GO_BUILD_COMMAND = CGO_ENABLED=0 $(GO) build -a -installsuffix cgo
+GO_BUILD_SLIM_FLAGS = -ldflags='-s -w'
 BUILD_DIR = $(REPOSITORY_ROOT)/build
 TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
 TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
@@ -597,13 +598,13 @@ service-binaries: cmd/future/minimatch/minimatch$(EXE_EXTENSION) cmd/future/back
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
 cmd/future/backend/backend$(EXE_EXTENSION): internal/future/pb/backend.pb.go internal/future/pb/backend.pb.gw.go api/backend.swagger.json
-	cd cmd/future/backend; $(GO_BUILD_COMMAND) -ldflags='-s -w' .
+	cd cmd/future/backend; $(GO_BUILD_COMMAND) $(GO_BUILD_SLIM_FLAGS) .
 
 cmd/future/frontend/frontend$(EXE_EXTENSION): internal/future/pb/frontend.pb.go internal/future/pb/frontend.pb.gw.go api/frontend.swagger.json
-	cd cmd/future/frontend; $(GO_BUILD_COMMAND) -ldflags='-s -w' .
+	cd cmd/future/frontend; $(GO_BUILD_COMMAND) $(GO_BUILD_SLIM_FLAGS) .
 
 cmd/future/mmlogic/mmlogic$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go internal/future/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
-	cd cmd/future/mmlogic; $(GO_BUILD_COMMAND) -ldflags='-s -w' .
+	cd cmd/future/mmlogic; $(GO_BUILD_COMMAND) $(GO_BUILD_SLIM_FLAGS) .
 
 # Note: This list of dependencies is long but only add file references here. If you add a .PHONY dependency make will always rebuild it.
 cmd/future/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/backend.pb.go internal/future/pb/backend.pb.gw.go api/backend.swagger.json
@@ -613,7 +614,7 @@ cmd/future/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/messages.pb.g
 	cd cmd/future/minimatch; $(GO_BUILD_COMMAND) .
 
 tools/certgen/certgen$(EXE_EXTENSION):
-	cd tools/certgen/ && $(GO_BUILD_COMMAND) -ldflags='-s -w' .
+	cd tools/certgen/ && $(GO_BUILD_COMMAND) $(GO_BUILD_SLIM_FLAGS) .
 
 build/certificates/: build/toolchain/bin/certgen$(EXE_EXTENSION)
 	mkdir -p $(BUILD_DIR)/certificates/
