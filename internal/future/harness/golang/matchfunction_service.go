@@ -17,8 +17,10 @@ package golang
 
 import (
 	"context"
+	"fmt"
 	"io"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
@@ -152,4 +154,24 @@ func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.Run
 	}
 
 	return poolNameToTickets, nil
+}
+
+// TODO: replace this method once the client side wrapper is done.
+func getMMLogicClient(cfg config.View) (pb.MmLogicClient, error) {
+	host := cfg.GetString("api.mmlogic.hostname")
+	if len(host) == 0 {
+		return nil, fmt.Errorf("Failed to get hostname for MMLogicAPI from the configuration")
+	}
+
+	port := cfg.GetString("api.mmlogic.port")
+	if len(port) == 0 {
+		return nil, fmt.Errorf("Failed to get port for MMLogicAPI from the configuration")
+	}
+
+	conn, err := grpc.Dial(fmt.Sprintf("%v:%v", host, port), grpc.WithInsecure())
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to %v, %v", fmt.Sprintf("%v:%v", host, port), err)
+	}
+
+	return pb.NewMmLogicClient(conn), nil
 }

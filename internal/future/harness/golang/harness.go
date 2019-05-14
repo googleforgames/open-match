@@ -16,8 +16,6 @@
 package golang
 
 import (
-	"fmt"
-
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/future/pb"
@@ -75,24 +73,4 @@ func BindService(p *serving.Params, cfg config.View, fs *FunctionSettings) error
 	}, pb.RegisterMatchFunctionHandlerFromEndpoint)
 
 	return nil
-}
-
-// TODO: replace this method once the client side wrapper is done.
-func getMMLogicClient(cfg config.View) (pb.MmLogicClient, error) {
-	host := cfg.GetString("api.mmlogic.hostname")
-	if len(host) == 0 {
-		return nil, fmt.Errorf("Failed to get hostname for MMLogicAPI from the configuration")
-	}
-
-	port := cfg.GetString("api.mmlogic.port")
-	if len(port) == 0 {
-		return nil, fmt.Errorf("Failed to get port for MMLogicAPI from the configuration")
-	}
-
-	conn, err := grpc.Dial(fmt.Sprintf("%v:%v", host, port), grpc.WithInsecure())
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to %v, %v", fmt.Sprintf("%v:%v", host, port), err)
-	}
-
-	return pb.NewMmLogicClient(conn), nil
 }
