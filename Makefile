@@ -17,7 +17,7 @@
 ## Or $REGISTRY if you want to use your own custom docker registry.
 ##
 ## Basic Deployment
-## make create-gke-cluster OR make create-mini-cluster
+## make create-gke-cluster OR make create-mini-cluster OR make create-kind-cluster
 ## make push-helm
 ## make REGISTRY=gcr.io/$PROJECT_ID push-images -j$(nproc)
 ## make install-chart
@@ -39,6 +39,7 @@
 ## Teardown
 ## make delete-mini-cluster
 ## make delete-gke-cluster
+## make delete-kind-cluster
 ##
 # http://makefiletutorial.com/
 
@@ -539,7 +540,7 @@ create-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bi
 	$(KIND) create cluster
 
 delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KIND) delete cluster
+	-$(KIND) delete cluster
 
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
 	gcloud $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --machine-type n1-standard-4 --tags open-match $(KUBERNETES_COMPAT)
