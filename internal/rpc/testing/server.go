@@ -18,11 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-<<<<<<< HEAD:internal/rpc/testing/server.go
 	"open-match.dev/open-match/internal/rpc"
-=======
-	"open-match.dev/open-match/internal/serving"
->>>>>>> 98080663752d0ac1d0b3404b07f7f757805707ec:internal/serving/testing/server.go
 	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
