@@ -75,7 +75,7 @@ type MatchFunctionParams struct {
 	PoolNameToTickets map[string][]*pb.Ticket
 }
 
-// Run is this harness's implementation of the gRPC call defined in api/protobuf-spec/matchfunction.proto.
+// Run is this harness's implementation of the gRPC call defined in api/matchfunction.proto.
 func (s *matchFunctionService) Run(req *pb.RunRequest, mfServer pb.MatchFunction_RunServer) error {
 	ctx := mfServer.Context()
 
