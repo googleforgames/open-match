@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"time"
 
-	goHarness "open-match.dev/open-match/internal/future/harness/golang"
-	"open-match.dev/open-match/internal/future/pb"
+	goHarness "open-match.dev/open-match/internal/harness/golang"
+	"open-match.dev/open-match/internal/pb"
 )
 
 func main() {

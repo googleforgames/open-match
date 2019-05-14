@@ -143,10 +143,10 @@ artifacts:
     objects:
         location: gs://open-match-build-artifacts/output/
         paths:
-            - cmd/future/backend/backend
-            - cmd/future/frontend/frontend
-            - cmd/future/mmlogic/mmlogic
-            - cmd/future/minimatch/minimatch
+            - cmd/backend/backend
+            - cmd/frontend/frontend
+            - cmd/mmlogic/mmlogic
+            - cmd/minimatch/minimatch
             - install/yaml/install.yaml
             - install/yaml/install-example.yaml
             - install/yaml/01-redis-chart.yaml
