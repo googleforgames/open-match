@@ -73,7 +73,7 @@ func newRedis(cfg config.View) (service Service, err error) {
 	// always returns a valid connection, and will just fail on the first
 	// query: https://godoc.org/github.com/gomodule/redigo/redis#Pool.Get
 	redisConn := pool.Get()
-	defer handleConnectionClose(redisConn, err)
+	defer handleConnectionClose(redisConn, &err)
 
 	_, err = redisConn.Do("SELECT", "0")
 	// Encountered an issue getting a connection from the pool.
@@ -110,7 +110,7 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) (er
 	if err != nil {
 		return err
 	}
-	defer handleConnectionClose(redisConn, err)
+	defer handleConnectionClose(redisConn, &err)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
@@ -175,7 +175,7 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (ticket *pb.Ti
 	if err != nil {
 		return nil, err
 	}
-	defer handleConnectionClose(redisConn, err)
+	defer handleConnectionClose(redisConn, &err)
 
 	value, err := redis.Bytes(redisConn.Do("GET", id))
 	if err != nil {
@@ -215,7 +215,7 @@ func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) (err error)
 	if err != nil {
 		return err
 	}
-	defer handleConnectionClose(redisConn, err)
+	defer handleConnectionClose(redisConn, &err)
 
 	_, err = redisConn.Do("DEL", id)
 	if err != nil {
@@ -236,7 +236,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket pb.Ticket, indic
 	if err != nil {
 		return err
 	}
-	defer handleConnectionClose(redisConn, err)
+	defer handleConnectionClose(redisConn, &err)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
@@ -304,7 +304,7 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string, indices []
 	if err != nil {
 		return err
 	}
-	defer handleConnectionClose(redisConn, err)
+	defer handleConnectionClose(redisConn, &err)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
@@ -346,9 +346,9 @@ func (rb *redisBackend) FilterTickets(context.Context, []pb.Filter) ([]string, e
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
-func handleConnectionClose(conn redis.Conn, err error) {
+func handleConnectionClose(conn redis.Conn, err *error) {
 	connErr := conn.Close()
 	if err == nil {
-		err = connErr
+		err = &connErr
 	}
 }
