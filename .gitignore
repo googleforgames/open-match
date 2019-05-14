@@ -116,6 +116,5 @@ cmd/backendapi/backendapi
 cmd/frontendapi/frontendapi
 cmd/mmlogicapi/mmlogicapi
 examples/backendclient/backendclient
-examples/evaluators/golang/serving/serving
 test/cmd/clientloadgen/clientloadgen
 test/cmd/frontendclient/frontendclient
