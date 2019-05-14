@@ -120,3 +120,6 @@ test/cmd/frontendclient/frontendclient
 
 # Open Match Build Directory
 build/
+
+# Secrets Directories
+install/helm/open-match/secrets/
