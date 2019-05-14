@@ -348,7 +348,7 @@ func (rb *redisBackend) FilterTickets(context.Context, []pb.Filter) ([]string, e
 
 func handleConnectionClose(conn redis.Conn, err *error) {
 	connErr := conn.Close()
-	if err == nil {
-		err = &connErr
+	if *err == nil {
+		*err = connErr
 	}
 }
