@@ -614,9 +614,9 @@ all: service-binaries example-binaries tools-binaries
 service-binaries: cmd/future/minimatch/minimatch$(EXE_EXTENSION) cmd/future/backend/backend$(EXE_EXTENSION) cmd/future/frontend/frontend$(EXE_EXTENSION) cmd/future/mmlogic/mmlogic$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries
-example-mmf-binaries: examples/functions/golang/simple$(EXE_EXTENSION)
+example-mmf-binaries: examples/functions/golang/simple/simple$(EXE_EXTENSION)
 
-examples/functions/golang/simple$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go internal/future/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/future/pb/matchfunction.pb.go internal/future/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+examples/functions/golang/simple/simple$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go internal/future/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/future/pb/matchfunction.pb.go internal/future/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd examples/functions/golang/simple; $(GO_BUILD_COMMAND)
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
