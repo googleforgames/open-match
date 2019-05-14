@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/set"
 )
 
 var (
@@ -340,9 +341,70 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string, indices []
 	return nil
 }
 
-// FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria.
-func (rb *redisBackend) FilterTickets(context.Context, []pb.Filter) ([]string, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+// FilterTickets returns the Ticket ids and required attribute key-value pairs for the Tickets meeting the specified filtering criteria.
+// map[ticket.Id]map[attributeName][attributeValue]
+// {
+//  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
+//  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
+// }
+func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter) (map[string]map[string]int64, error) {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		redisLogger.WithError(err).Error("Failed to get redis connection with context.")
+	}
+
+	defer func() {
+		if err := redisConn.Close(); err != nil {
+			redisLogger.WithError(err).Error("Failed to close Redis connection.")
+		}
+	}()
+
+	// A map[attribute]map[playerID]value
+	attributeToTickets := make(map[string]map[string]int64)
+	// A set of playerIds that satisfies all filters
+	idSet := make([]string, 0)
+
+	// For each filter, do a range query to Redis on Filter.Attribute
+	for i, filter := range filters {
+		// Time Complexity O(logN + M), where N is the number of elements in the attribute set
+		// and M is the number of entries being returned.
+		// TODO: discuss if we need a LIMIT for # of queries being returned
+		idToValue, err := redis.Int64Map(redisConn.Do("ZRANGEBYSCORE", filter.Attribute, filter.Min, filter.Max, "WITHSCORES"))
+		if err != nil {
+			redisLogger.WithFields(logrus.Fields{
+				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f WITHSCORES", filter.Attribute, filter.Min, filter.Max),
+			}).WithError(err)
+			return nil, err
+		}
+
+		attributeToTickets[filter.Attribute] = idToValue
+
+		idsPerFilter := make([]string, 0)
+		for id := range idToValue {
+			idsPerFilter = append(idsPerFilter, id)
+		}
+
+		if i == 0 {
+			idSet = idsPerFilter
+		} else {
+			idSet = set.Intersection(idSet, idsPerFilter)
+		}
+	}
+
+	// Result is a mapping from ticket ids to attribute key-value pairs
+	results := make(map[string]map[string]int64)
+	for _, id := range idSet {
+		// A map from attribute names to attribute values per ticket
+		propertyPerTicket := make(map[string]int64)
+
+		for attr, tickets := range attributeToTickets {
+			attrVal := tickets[id]
+			propertyPerTicket[attr] = attrVal
+		}
+		results[id] = propertyPerTicket
+	}
+
+	return results, nil
 }
 
 func handleConnectionClose(conn *redis.Conn) {
