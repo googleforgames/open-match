@@ -22,16 +22,16 @@ package main
 import (
 	"fmt"
 	"time"
-	
-	goHarness "open-match.dev/open-match/internal/future/harness/golang"
-	"open-match.dev/open-match/internal/future/pb"
+
+	goHarness "open-match.dev/open-match/internal/harness/golang"
+	"open-match.dev/open-match/internal/pb"
 )
 
 func main() {
 	// Invoke the harness to setup a GRPC service that handles requests to run the
 	// match function. The harness itself queries open match for player pools for
 	// the specified request and passes the pools to the match function to generate
-	// proposals. 
+	// proposals.
 	goHarness.RunMatchFunction(&goHarness.FunctionSettings{
 		FunctionName: "simple-matchfunction",
 		Func:         makeMatches,

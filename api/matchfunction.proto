@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 package api;
-option go_package = "internal/future/pb";
+option go_package = "internal/pb";
 
 import "api/messages.proto";
 import "google/api/annotations.proto";
