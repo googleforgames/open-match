@@ -19,7 +19,7 @@ limitations under the License.
 package main
 
 import (
-	"open-match.dev/open-match/internal/future/app/backend"
+	"open-match.dev/open-match/internal/app/backend"
 )
 
 func main() {
