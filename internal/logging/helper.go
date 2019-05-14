@@ -52,9 +52,4 @@ func ConfigureLogging(cfg config.View) {
 	default:
 		logrus.SetLevel(logrus.InfoLevel)
 	}
-
-	switch cfg.GetBool("logging.source") {
-	case true:
-		logrus.SetReportCaller(true)
-	}
 }
