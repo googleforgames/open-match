@@ -348,6 +348,8 @@ func (rb *redisBackend) FilterTickets(context.Context, []pb.Filter) ([]string, e
 func handleConnectionClose(conn *redis.Conn) {
 	err := (*conn).Close()
 	if err != nil {
-		redisLogger.Tracef("failed to close redis client connection: %s", err.Error())
+		redisLogger.WithFields(logrus.Fields{
+			"error": err,
+		}).Debug("failed to close redis client connection.")
 	}
 }
