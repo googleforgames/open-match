@@ -47,7 +47,7 @@ func (rb *redisBackend) Close() error {
 }
 
 // newRedis creates a statestore.Service backed by Redis database.
-func newRedis(cfg config.View) (service Service, err error) {
+func newRedis(cfg config.View) (Service, error) {
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
 
@@ -73,9 +73,9 @@ func newRedis(cfg config.View) (service Service, err error) {
 	// always returns a valid connection, and will just fail on the first
 	// query: https://godoc.org/github.com/gomodule/redigo/redis#Pool.Get
 	redisConn := pool.Get()
-	defer handleConnectionClose(redisConn, &err)
+	defer handleConnectionClose(&redisConn)
 
-	_, err = redisConn.Do("SELECT", "0")
+	_, err := redisConn.Do("SELECT", "0")
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -85,11 +85,10 @@ func newRedis(cfg config.View) (service Service, err error) {
 	}
 
 	redisLogger.Info("Connected to Redis")
-	service = &redisBackend{
+	return &redisBackend{
 		redisPool: pool,
 		cfg:       cfg,
-	}
-	return service, nil
+	}, nil
 }
 
 func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
@@ -105,12 +104,12 @@ func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
 }
 
 // CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
-func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) (err error) {
+func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
 	}
-	defer handleConnectionClose(redisConn, &err)
+	defer handleConnectionClose(&redisConn)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
@@ -170,12 +169,12 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) (er
 }
 
 // GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
-func (rb *redisBackend) GetTicket(ctx context.Context, id string) (ticket *pb.Ticket, err error) {
+func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, error) {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer handleConnectionClose(redisConn, &err)
+	defer handleConnectionClose(&redisConn)
 
 	value, err := redis.Bytes(redisConn.Do("GET", id))
 	if err != nil {
@@ -196,7 +195,7 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (ticket *pb.Ti
 		return nil, status.Error(codes.NotFound, msg)
 	}
 
-	ticket = &pb.Ticket{}
+	ticket := &pb.Ticket{}
 	err = proto.Unmarshal(value, ticket)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -210,12 +209,12 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (ticket *pb.Ti
 }
 
 // DeleteTicket removes the Ticket with the specified id from state storage.
-func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) (err error) {
+func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
 	}
-	defer handleConnectionClose(redisConn, &err)
+	defer handleConnectionClose(&redisConn)
 
 	_, err = redisConn.Do("DEL", id)
 	if err != nil {
@@ -231,12 +230,12 @@ func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) (err error)
 }
 
 // IndexTicket indexes the Ticket id for the specified fields.
-func (rb *redisBackend) IndexTicket(ctx context.Context, ticket pb.Ticket, indices []string) (err error) {
+func (rb *redisBackend) IndexTicket(ctx context.Context, ticket pb.Ticket, indices []string) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
 	}
-	defer handleConnectionClose(redisConn, &err)
+	defer handleConnectionClose(&redisConn)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
@@ -299,12 +298,12 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket pb.Ticket, indic
 }
 
 // DeindexTicket removes the indexing for the specified Ticket. Only the indexes are removed but the Ticket continues to exist.
-func (rb *redisBackend) DeindexTicket(ctx context.Context, id string, indices []string) (err error) {
+func (rb *redisBackend) DeindexTicket(ctx context.Context, id string, indices []string) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
 	}
-	defer handleConnectionClose(redisConn, &err)
+	defer handleConnectionClose(&redisConn)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
@@ -346,9 +345,9 @@ func (rb *redisBackend) FilterTickets(context.Context, []pb.Filter) ([]string, e
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
-func handleConnectionClose(conn redis.Conn, err *error) {
-	connErr := conn.Close()
-	if *err == nil {
-		*err = connErr
+func handleConnectionClose(conn *redis.Conn) {
+	err := (*conn).Close()
+	if err != nil {
+		redisLogger.Tracef("failed to close redis client connection: %s", err.Error())
 	}
 }
