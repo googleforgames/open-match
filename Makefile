@@ -609,12 +609,8 @@ golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 
 lint: fmt vet lint-chart
 
-<<<<<<< HEAD
-all: service-binaries example-binaries tools-binaries deprecated-all
+all: service-binaries example-binaries tools-binaries
 
-=======
-all: service-binaries tools-binaries
->>>>>>> 62d392b... Delete evaluator
 service-binaries: cmd/future/minimatch/minimatch$(EXE_EXTENSION) cmd/future/backend/backend$(EXE_EXTENSION) cmd/future/frontend/frontend$(EXE_EXTENSION) cmd/future/mmlogic/mmlogic$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries
