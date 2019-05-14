@@ -26,6 +26,7 @@ import (
 )
 
 // clientCredentialsFromFile gets TransportCredentials from public certificate.
+// nolint:deadcode unused
 func clientCredentialsFromFile(certPath string) (credentials.TransportCredentials, error) {
 	publicCertFileData, err := ioutil.ReadFile(certPath)
 	if err != nil {
@@ -53,6 +54,7 @@ func clientCredentialsFromFileData(publicCertFileData []byte, serverOverride str
 }
 
 // certificateFromFiles returns a tls.Certificate from PEM encoded X.509 public certificate and RSA private key files.
+// nolint:deadcode unused
 func certificateFromFiles(publicCertificatePath string, privateKeyPath string) (*tls.Certificate, error) {
 	publicCertFileData, err := ioutil.ReadFile(publicCertificatePath)
 	if err != nil {
