@@ -588,10 +588,12 @@ build:
 test:
 	$(GO) test ./... -race -cover
 	$(GO) test ./... -run -cover IgnoreRace$$
+	(cd site; $(GO) test ./... -race -cover)
 
 ci-test:
 	$(GO) test ./... -race -test.count 25 -cover
 	$(GO) test ./... -run IgnoreRace$$ -cover
+	(cd site; $(GO) test ./... -race -test.count 25 -cover)
 
 stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
