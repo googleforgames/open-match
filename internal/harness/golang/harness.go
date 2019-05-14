@@ -19,7 +19,7 @@ import (
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
-	"open-match.dev/open-match/internal/serving"
+	"open-match.dev/open-match/internal/rpc"
 
 	"github.com/sirupsen/logrus"
 )
@@ -45,7 +45,7 @@ func RunMatchFunction(settings *FunctionSettings) {
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
-	p, err := serving.NewParamsFromConfig(cfg, "api.functions")
+	p, err := rpc.NewParamsFromConfig(cfg, "api.functions")
 	if err != nil {
 		harnessLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -58,11 +58,11 @@ func RunMatchFunction(settings *FunctionSettings) {
 		}).Fatalf("failed to bind functions service.")
 	}
 
-	serving.MustServeForever(p)
+	rpc.MustServeForever(p)
 }
 
 // BindService creates the function service to the server Params.
-func BindService(p *serving.Params, cfg config.View, fs *FunctionSettings) error {
+func BindService(p *rpc.Params, cfg config.View, fs *FunctionSettings) error {
 	service, err := newMatchFunctionService(cfg, fs)
 	if err != nil {
 		return err

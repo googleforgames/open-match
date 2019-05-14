@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package serving
+package rpc
 
 import (
 	"crypto/tls"
@@ -108,14 +108,14 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 	assert.Nil(err)
 	waitForStart()
 
-	creds, err := ClientCredentialsFromFileData(tp.publicCertificateFileData, tp.grpcAddress)
+	creds, err := clientCredentialsFromFileData(tp.publicCertificateFileData, tp.grpcAddress)
 	assert.Nil(err)
 	conn, err := grpc.Dial(tp.grpcAddress, grpc.WithTransportCredentials(creds))
 	assert.Nil(err)
 
-	tlsCert, err := CertificateFromFileData(tp.publicCertificateFileData, tp.privateKeyFileData)
+	tlsCert, err := certificateFromFileData(tp.publicCertificateFileData, tp.privateKeyFileData)
 	assert.Nil(err)
-	pool, err := TrustedCertificates(tp.rootPublicCertificateFileData)
+	pool, err := trustedCertificates(tp.rootPublicCertificateFileData)
 	assert.Nil(err)
 	tlsTransport := &http.Transport{
 		TLSClientConfig: &tls.Config{

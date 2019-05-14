@@ -20,7 +20,7 @@ import (
 	"open-match.dev/open-match/internal/app/frontend"
 	"open-match.dev/open-match/internal/app/mmlogic"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/serving"
+	"open-match.dev/open-match/internal/rpc"
 )
 
 var (
@@ -38,7 +38,7 @@ func RunApplication() {
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
-	p, err := serving.NewParamsFromConfig(cfg, "api.frontend")
+	p, err := rpc.NewParamsFromConfig(cfg, "api.frontend")
 	if err != nil {
 		minimatchLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -51,11 +51,11 @@ func RunApplication() {
 		}).Fatalf("cannot bind server.")
 	}
 
-	serving.MustServeForever(p)
+	rpc.MustServeForever(p)
 }
 
 // BindService creates the minimatch service to the server Params.
-func BindService(p *serving.Params, cfg config.View) error {
+func BindService(p *rpc.Params, cfg config.View) error {
 	if err := backend.BindService(p, cfg); err != nil {
 		return err
 	}

@@ -19,16 +19,16 @@ import (
 
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/pb"
-	"open-match.dev/open-match/internal/serving"
-	servingTesting "open-match.dev/open-match/internal/serving/testing"
+	"open-match.dev/open-match/internal/rpc"
+	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 )
 
 func TestServerBinding(t *testing.T) {
-	bs := func(p *serving.Params) {
+	bs := func(p *rpc.Params) {
 		p.AddHandleFunc(func(s *grpc.Server) {
 			pb.RegisterMmLogicServer(s, &mmlogicService{})
 		}, pb.RegisterMmLogicHandlerFromEndpoint)
 	}
 
-	servingTesting.TestServerBinding(t, bs)
+	rpcTesting.TestServerBinding(t, bs)
 }

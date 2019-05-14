@@ -18,18 +18,18 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"open-match.dev/open-match/internal/serving"
+	"open-match.dev/open-match/internal/rpc"
 	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 
 // MustParamsForTesting sets up a test server in insecure-mode.
-func MustParamsForTesting() *serving.Params {
-	return serving.NewParamsFromListeners(netlistenerTesting.MustListen(), netlistenerTesting.MustListen())
+func MustParamsForTesting() *rpc.Params {
+	return rpc.NewParamsFromListeners(netlistenerTesting.MustListen(), netlistenerTesting.MustListen())
 }
 
 // MustParamsForTestingTLS sets up a test server in TLS-mode.
-func MustParamsForTestingTLS() *serving.Params {
+func MustParamsForTestingTLS() *rpc.Params {
 	grpcLh := netlistenerTesting.MustListen()
 	proxyLh := netlistenerTesting.MustListen()
 
@@ -37,18 +37,18 @@ func MustParamsForTestingTLS() *serving.Params {
 	if err != nil {
 		panic(err)
 	}
-	p := serving.NewParamsFromListeners(grpcLh, proxyLh)
+	p := rpc.NewParamsFromListeners(grpcLh, proxyLh)
 	p.SetTLSConfiguration(pub, pub, priv)
 
 	return p
 }
 
 // TestServerBinding verifies that a server can start and shutdown.
-func TestServerBinding(t *testing.T, binder func(*serving.Params)) {
+func TestServerBinding(t *testing.T, binder func(*rpc.Params)) {
 	assert := assert.New(t)
 	p := MustParamsForTesting()
 	binder(p)
-	s := &serving.Server{}
+	s := &rpc.Server{}
 	defer s.Stop()
 	waitForStart, err := s.Start(p)
 	assert.Nil(err)
