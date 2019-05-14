@@ -16,6 +16,7 @@ package serving
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -84,18 +85,30 @@ func NewParamsFromConfig(cfg config.View, prefix string) (*Params, error) {
 	certFile := cfg.GetString("api.tls.certificatefile")
 	privateKeyFile := cfg.GetString("api.tls.privatekey")
 	if len(certFile) > 0 && len(privateKeyFile) > 0 {
-		serverLogger.Printf("Loading TLS certificate from, %s", certFile)
+		serverLogger.Debugf("Loading TLS certificate (%s) and private key (%s)", certFile, privateKeyFile)
 		publicCertData, err := ioutil.ReadFile(certFile)
 		if err != nil {
 			p.invalidate()
-			return nil, errors.WithStack(err)
+			return nil, errors.WithStack(fmt.Errorf("cannot read TLS server public certificate file, %s, %s", certFile, err))
 		}
 		privateKeyData, err := ioutil.ReadFile(privateKeyFile)
 		if err != nil {
 			p.invalidate()
-			return nil, errors.WithStack(err)
+			return nil, errors.WithStack(fmt.Errorf("cannot read TLS server private key file, %s, %s", privateKeyFile, err))
 		}
-		p.SetTLSConfiguration(publicCertData, publicCertData, privateKeyData)
+		// If there's no root CA certificate then use the public certificate as the trusted root.
+		rootPublicCertData := publicCertData
+
+		rootCertFile := cfg.GetString("api.tls.rootcertificatefile")
+		if len(rootCertFile) > 0 {
+			serverLogger.Debugf("Loading Root CA TLS certificate (%s)", rootCertFile)
+			rootPublicCertData, err = ioutil.ReadFile(rootCertFile)
+			if err != nil {
+				p.invalidate()
+				return nil, errors.WithStack(fmt.Errorf("cannot read TLS server root certificate file, %s, %s", rootCertFile, err))
+			}
+		}
+		p.SetTLSConfiguration(rootPublicCertData, publicCertData, privateKeyData)
 	}
 
 	monitoring.Setup(p.ServeMux, cfg)
