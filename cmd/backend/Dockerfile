@@ -14,19 +14,19 @@
 
 FROM open-match-base-build as builder
 
-WORKDIR /go/src/open-match.dev/open-match/cmd/future/minimatch/
+WORKDIR /go/src/open-match.dev/open-match/cmd/backend/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
 
 FROM gcr.io/distroless/static
-COPY --from=builder /go/src/open-match.dev/open-match/cmd/future/minimatch/minimatch .
+COPY --from=builder /go/src/open-match.dev/open-match/cmd/backend/backend .
 
-ENTRYPOINT ["/minimatch"]
+ENTRYPOINT ["/backend"]
 
 # Docker Image Arguments
 ARG BUILD_DATE
 ARG VCS_REF
 ARG BUILD_VERSION
-ARG IMAGE_TITLE="Mini Match"
+ARG IMAGE_TITLE="Open Match Backend API"
 
 # Standardized Docker Image Labels
 # https://github.com/opencontainers/image-spec/blob/master/annotations.md

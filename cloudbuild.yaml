@@ -143,10 +143,10 @@ artifacts:
     objects:
         location: gs://open-match-build-artifacts/output/
         paths:
-            - cmd/future/backend/backend
-            - cmd/future/frontend/frontend
-            - cmd/future/mmlogic/mmlogic
-            - cmd/future/minimatch/minimatch
+            - cmd/backend/backend
+            - cmd/frontend/frontend
+            - cmd/mmlogic/mmlogic
+            - cmd/minimatch/minimatch
             - install/yaml/install.yaml
             - install/yaml/install-example.yaml
             - install/yaml/01-redis-chart.yaml
@@ -154,16 +154,12 @@ artifacts:
             - install/yaml/03-prometheus-chart.yaml
             - install/yaml/04-grafana-chart.yaml
             - examples/functions/golang/simple/simple
-######################################### Deprecated #########################################
-            - examples/evaluators/golang/serving/serving
 images:
 - 'gcr.io/$PROJECT_ID/openmatch-backend:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-frontend:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmlogic:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-minimatch:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-go-simple:${_OM_VERSION}-${SHORT_SHA}'
-######################################### Deprecated #########################################
-- 'gcr.io/$PROJECT_ID/openmatch-evaluator-serving:${_OM_VERSION}-${SHORT_SHA}'
 substitutions:
     _OM_VERSION: "0.0.0-dev"
     _GCB_POST_SUBMIT: "0"
