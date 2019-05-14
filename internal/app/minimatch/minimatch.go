@@ -16,10 +16,10 @@ package minimatch
 
 import (
 	"github.com/sirupsen/logrus"
-	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/app/backend"
 	"open-match.dev/open-match/internal/app/frontend"
 	"open-match.dev/open-match/internal/app/mmlogic"
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 )
 
