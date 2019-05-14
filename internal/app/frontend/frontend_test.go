@@ -12,13 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main is the minimatch in-process testing binary for Open Match.
-package main
+package frontend
 
 import (
-	"open-match.dev/open-match/internal/app/minimatch"
+	"testing"
+
+	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/serving"
+	servingTesting "open-match.dev/open-match/internal/serving/testing"
 )
 
-func main() {
-	minimatch.RunApplication()
+func TestServerBinding(t *testing.T) {
+	bs := func(p *serving.Params) {
+		p.AddHandleFunc(func(s *grpc.Server) {
+			pb.RegisterFrontendServer(s, &frontendService{})
+		}, pb.RegisterFrontendHandlerFromEndpoint)
+	}
+
+	servingTesting.TestServerBinding(t, bs)
 }
