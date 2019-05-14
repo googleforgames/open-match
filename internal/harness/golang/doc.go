@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main is the minimatch in-process testing binary for Open Match.
-package main
-
-import (
-	"open-match.dev/open-match/internal/app/minimatch"
-)
-
-func main() {
-	minimatch.RunApplication()
-}
+// Package golang contains the go files required to run the harness as a GRPC
+// service. To use this harness, you should author the match making function and
+// pass that in as the callback when setting up the function harness service.
+// Note that the main package for the harness does very little except read the
+// config and set up logging and metrics, then start the server. The harness
+// functionality is implemented in harness.go, which implements the gRPC server
+// defined in the internal/pb/matchfunction.pb.go file.
+package golang
