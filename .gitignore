@@ -108,3 +108,4 @@ cmd/mmlogic/mmlogic
 cmd/minimatch/minimatch
 tools/certgen/certgen
 examples/functions/golang/simple/simple
+
