@@ -73,7 +73,8 @@ func newRedis(cfg config.View) (Service, error) {
 	// always returns a valid connection, and will just fail on the first
 	// query: https://godoc.org/github.com/gomodule/redigo/redis#Pool.Get
 	redisConn := pool.Get()
-	defer redisCloser(redisConn.Close)
+	defer handleConnectionClose(&redisConn)
+
 	_, err := redisConn.Do("SELECT", "0")
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
@@ -88,15 +89,6 @@ func newRedis(cfg config.View) (Service, error) {
 		redisPool: pool,
 		cfg:       cfg,
 	}, nil
-}
-
-func redisCloser(closer func() error) {
-	err := closer()
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Info("failed to close redis")
-	}
 }
 
 func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
@@ -117,7 +109,7 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 	if err != nil {
 		return err
 	}
-	defer redisConn.Close()
+	defer handleConnectionClose(&redisConn)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
@@ -182,7 +174,7 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 	if err != nil {
 		return nil, err
 	}
-	defer redisConn.Close()
+	defer handleConnectionClose(&redisConn)
 
 	value, err := redis.Bytes(redisConn.Do("GET", id))
 	if err != nil {
@@ -222,7 +214,7 @@ func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	defer redisConn.Close()
+	defer handleConnectionClose(&redisConn)
 
 	_, err = redisConn.Do("DEL", id)
 	if err != nil {
@@ -243,7 +235,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket pb.Ticket, indic
 	if err != nil {
 		return err
 	}
-	defer redisConn.Close()
+	defer handleConnectionClose(&redisConn)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
@@ -311,7 +303,7 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string, indices []
 	if err != nil {
 		return err
 	}
-	defer redisConn.Close()
+	defer handleConnectionClose(&redisConn)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
@@ -351,4 +343,13 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string, indices []
 // FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria.
 func (rb *redisBackend) FilterTickets(context.Context, []pb.Filter) ([]string, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
+}
+
+func handleConnectionClose(conn *redis.Conn) {
+	err := (*conn).Close()
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err,
+		}).Debug("failed to close redis client connection.")
+	}
 }
