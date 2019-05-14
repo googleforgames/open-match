@@ -221,16 +221,16 @@ build-base-build-image: docker
 	docker build -f Dockerfile.base-build -t open-match-base-build .
 
 build-backend-image: docker build-base-build-image
-	docker build -f cmd/future/backend/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-backend:$(TAG) -t $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG) .
+	docker build -f cmd/backend/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-backend:$(TAG) -t $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG) .
 
 build-frontend-image: docker build-base-build-image
-	docker build -f cmd/future/frontend/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-frontend:$(TAG) -t $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG) .
+	docker build -f cmd/frontend/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-frontend:$(TAG) -t $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG) .
 
 build-mmlogic-image: docker build-base-build-image
-	docker build -f cmd/future/mmlogic/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-mmlogic:$(TAG) -t $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG) .
+	docker build -f cmd/mmlogic/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-mmlogic:$(TAG) -t $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG) .
 
 build-minimatch-image: docker build-base-build-image
-	docker build -f cmd/future/minimatch/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
+	docker build -f cmd/minimatch/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
 
 build-example-images: build-mmf-example-images
 
@@ -611,7 +611,7 @@ lint: fmt vet lint-chart
 
 all: service-binaries example-binaries tools-binaries
 
-service-binaries: cmd/future/minimatch/minimatch$(EXE_EXTENSION) cmd/future/backend/backend$(EXE_EXTENSION) cmd/future/frontend/frontend$(EXE_EXTENSION) cmd/future/mmlogic/mmlogic$(EXE_EXTENSION)
+service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION) cmd/mmlogic/mmlogic$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries
 example-mmf-binaries: examples/functions/golang/simple/simple$(EXE_EXTENSION)
@@ -621,21 +621,21 @@ examples/functions/golang/simple/simple$(EXE_EXTENSION): internal/future/pb/mmlo
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
-cmd/future/backend/backend$(EXE_EXTENSION): internal/future/pb/backend.pb.go internal/future/pb/backend.pb.gw.go api/backend.swagger.json
-	cd cmd/future/backend; $(GO_BUILD_COMMAND)
+cmd/backend/backend$(EXE_EXTENSION): internal/future/pb/backend.pb.go internal/future/pb/backend.pb.gw.go api/backend.swagger.json
+	cd cmd/backend; $(GO_BUILD_COMMAND)
 
-cmd/future/frontend/frontend$(EXE_EXTENSION): internal/future/pb/frontend.pb.go internal/future/pb/frontend.pb.gw.go api/frontend.swagger.json
-	cd cmd/future/frontend; $(GO_BUILD_COMMAND)
+cmd/frontend/frontend$(EXE_EXTENSION): internal/future/pb/frontend.pb.go internal/future/pb/frontend.pb.gw.go api/frontend.swagger.json
+	cd cmd/frontend; $(GO_BUILD_COMMAND)
 
-cmd/future/mmlogic/mmlogic$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go internal/future/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
-	cd cmd/future/mmlogic; $(GO_BUILD_COMMAND)
+cmd/mmlogic/mmlogic$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go internal/future/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+	cd cmd/mmlogic; $(GO_BUILD_COMMAND)
 
 # Note: This list of dependencies is long but only add file references here. If you add a .PHONY dependency make will always rebuild it.
-cmd/future/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/backend.pb.go internal/future/pb/backend.pb.gw.go api/backend.swagger.json
-cmd/future/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/frontend.pb.go internal/future/pb/frontend.pb.gw.go api/frontend.swagger.json
-cmd/future/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go internal/future/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
-cmd/future/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/messages.pb.go
-	cd cmd/future/minimatch; $(GO_BUILD_COMMAND)
+cmd/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/backend.pb.go internal/future/pb/backend.pb.gw.go api/backend.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/frontend.pb.go internal/future/pb/frontend.pb.gw.go api/frontend.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/mmlogic.pb.go internal/future/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): internal/future/pb/messages.pb.go
+	cd cmd/minimatch; $(GO_BUILD_COMMAND)
 
 tools/certgen/certgen$(EXE_EXTENSION):
 	cd tools/certgen/ && $(GO_BUILD_COMMAND)
@@ -734,10 +734,10 @@ clean-protos:
 	rm -rf $(REPOSITORY_ROOT)/internal/future/pb/
 
 clean-binaries:
-	rm -rf $(REPOSITORY_ROOT)/cmd/future/backend/backend
-	rm -rf $(REPOSITORY_ROOT)/cmd/future/frontend/frontend
-	rm -rf $(REPOSITORY_ROOT)/cmd/future/mmlogic/mmlogic
-	rm -rf $(REPOSITORY_ROOT)/cmd/future/minimatch/minimatch
+	rm -rf $(REPOSITORY_ROOT)/cmd/backend/backend
+	rm -rf $(REPOSITORY_ROOT)/cmd/frontend/frontend
+	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic
+	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch
 	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/simple/simple
 
 clean-build: clean-toolchain clean-archives clean-release
