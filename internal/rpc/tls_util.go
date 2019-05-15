@@ -35,6 +35,15 @@ func clientCredentialsFromFile(certPath string) (credentials.TransportCredential
 	return clientCredentialsFromFileData(publicCertFileData, "")
 }
 
+// trustedCertificatesFromFile gets TransportCredentials from trusted public key file name
+func trustedCertificatesFromFile(trustedKeyPath string) (*x509.CertPool, error) {
+	trustedKeyFileData, err := ioutil.ReadFile(trustedKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read trusted key from %s", trustedKeyPath)
+	}
+	return trustedCertificates(trustedKeyFileData)
+}
+
 // trustedCertificates gets TransportCredentials from public certificate file contents.
 func trustedCertificates(publicCertFileData []byte) (*x509.CertPool, error) {
 	pool := x509.NewCertPool()

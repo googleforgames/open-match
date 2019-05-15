@@ -1,0 +1,24 @@
+apiVersion: skaffold/v1beta10
+kind: Config
+build:
+  artifacts: # 	the images you're going to be building.
+  - image: open-match-base-build
+    docker:
+      dockerfile: Dockerfile.base-build
+  - image: openmatch-frontend
+    docker:
+      dockerfile: cmd/frontend/Dockerfile
+      cacheFrom:
+      - open-match-base-build
+deploy:
+  kubectl:
+    manifests:
+      - https://github.com/GoogleCloudPlatform/open-match/releases/download/v0.5.1/install.yaml
+profiles:
+- name: dev
+  build:
+    local:
+            #push: false # 	should images be pushed to a registry. If not specified, images are pushed only if the current Kubernetes context connects to a remote cluster.
+  activation:
+  - command: dev # Auto-activate this profile if the command is `skaffold run`
+
