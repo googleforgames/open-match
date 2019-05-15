@@ -15,15 +15,15 @@
 package statestore
 
 import (
+	"context"
 	"testing"
 	"time"
-	"context"
 
-	"open-match.dev/open-match/internal/pb"
-	testUtil 	"open-match.dev/open-match/internal/testing"
 	"github.com/alicebob/miniredis"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"open-match.dev/open-match/internal/pb"
+	testUtil "open-match.dev/open-match/internal/testing"
 )
 
 func TestRedisConnection(t *testing.T) {
@@ -67,14 +67,14 @@ func TestFilterTickets(t *testing.T) {
 	rs, rsCloser := createRedis(t)
 	defer rsCloser()
 
-		// Inject test data into the fake redis server
+	// Inject test data into the fake redis server
 	ctx := context.Background()
 	rb, ok := rs.(*redisBackend)
 	assert.True(ok)
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	assert.Nil(err)
 
-		redisConn.Do("ZADD", "level",
+	redisConn.Do("ZADD", "level",
 		1, "alice",
 		10, "bob",
 		20, "charlie",
@@ -96,11 +96,11 @@ func TestFilterTickets(t *testing.T) {
 		40, "eddy",
 	)
 
-		ticketsData, err := rs.FilterTickets(ctx, []*pb.Filter{
+	ticketsData, err := rs.FilterTickets(ctx, []*pb.Filter{
 		testUtil.NewPbFilter("level", 0, 15),
 		testUtil.NewPbFilter("attack", 5, 25),
 	})
 
-		assert.Nil(err)
-	assert.Equal(map[string]map[string]int64{"bob": map[string]int64{"attack": 10, "level": 10}}, ticketsData)
+	assert.Nil(err)
+	assert.Equal(map[string]map[string]int64{"bob": {"attack": 10, "level": 10}}, ticketsData)
 }

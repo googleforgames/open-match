@@ -27,8 +27,8 @@ pygmentsUseClassic = false
 # See https://help.farbox.com/pygments.html
 pygmentsStyle = "tango"
 
- # First one is picked as the Twitter card image if not set on page.
- #images = ["images/project-illustration.png"]
+# First one is picked as the Twitter card image if not set on page.
+#images = ["images/project-illustration.png"]
 
 # Configure how URLs look like per section.
 [permalinks]
