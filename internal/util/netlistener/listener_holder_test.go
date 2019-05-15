@@ -39,7 +39,7 @@ func TestAddrString(t *testing.T) {
 
 	port, err := lh.Obtain()
 	defer func() {
-		err := port.Close()
+		err = port.Close()
 		if err != nil {
 			t.Errorf("error %s while calling port.Close()", err)
 		}
