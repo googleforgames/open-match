@@ -73,9 +73,9 @@ steps:
     path: '/go'
   waitFor: ['Setup: Download Dependencies']
 
-- id: 'Build: Protocol Buffers'
+- id: 'Build: Assets'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'all-protos']
+  args: ['make', 'all-protos', 'tls-certs', '-j8']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -87,18 +87,18 @@ steps:
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Build: Protocol Buffers']
+  waitFor: ['Build: Assets']
 - id: 'Test: Core'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'GOPROXY=off', 'ci-test']
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Build: Protocol Buffers']
+  waitFor: ['Build: Assets']
 - id: 'Build: Docker Images'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'push-images', '-j8']
-  waitFor: ['Build: Protocol Buffers']
+  waitFor: ['Build: Assets']
 
 - id: 'Build: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -111,7 +111,7 @@ steps:
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Build: Protocol Buffers', 'Build: Deployment Configs']
+  waitFor: ['Build: Assets', 'Build: Deployment Configs']
 
 - id: 'Build: Website'
   name: 'gcr.io/$PROJECT_ID/open-match-build'

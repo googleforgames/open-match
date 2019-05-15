@@ -109,3 +109,5 @@ cmd/minimatch/minimatch
 tools/certgen/certgen
 examples/functions/golang/simple/simple
 
+# Secrets Directories
+install/helm/open-match/secrets/
