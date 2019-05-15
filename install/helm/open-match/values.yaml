@@ -125,7 +125,9 @@ openmatch:
             name: OM_METADATA.accessed
             offset: 800
             duration: 0
-
+        storage:
+          page:
+            size: 10000
         redis:
           pool:
             maxIdle: 3
@@ -133,6 +135,7 @@ openmatch:
             idleTimeout: 60
           queryArgs:
             count: 10000
+          # TODO: remove unused config
           results:
             pageSize: 10000
           expiration: 43200

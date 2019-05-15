@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 package api;
-option go_package = "internal/future/pb";
+option go_package = "internal/pb";
 
 // A Ticket is a basic matchmaking entity in Open Match. In order to enter
 // matchmaking using Open Match, the client should generate a Ticket, passing in

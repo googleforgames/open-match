@@ -79,12 +79,19 @@ the number of CPUs on your machine._
 
 Kubernetes comes in many flavors and Open Match can be used in any of them.
 
+_We support GKE ([setup guide](gcloud.md)), Minikube, and Kubernetes in Docker (KinD) in the Makefile.
+As long as kubectl is configured to talk to your Kubernetes cluster as the
+default context the Makefile will honor that._
+
 ```bash
-# Create a Kubernetes (k8s) cluster on GKE
+# Step 1: Create a Kubernetes (k8s) cluster
+# KinD cluster: make create-kind-cluster/delete-kind-cluster
+# GKE cluster: make create-gke-cluster/delete-gke-cluster
+# or create a local Minikube cluster
 make create-gke-cluster
-# Install helm in the cluster
+# Step 2: Download helm and install Tiller in the cluster
 make push-helm
-# Build and Push Open Match Images to gcr.io
+# Step 3: Build and Push Open Match Images to gcr.io
 make push-images -j$(nproc)
 # Install Open Match in the cluster.
 make install-chart
@@ -92,17 +99,13 @@ make install-chart
 # Create a proxy to Open Match pods so that you can access them locally.
 # This command consumes a terminal window that you can kill via Ctrl+C.
 # You can run `curl -X POST http://localhost:51504/v1/frontend/tickets` to send
-# a request.
+# a DeleteTicket request to the frontend service in the cluster.
 # Then try visiting http://localhost:3000/ and view the graphs.
 make proxy
 
 # Teardown the install
 make delete-chart
 ```
-
-_We support [GKE](gcloud.md), Minikube, and Kubernetes in Docker (KinD) in the Makefile.
-As long as kubectl is configured to talk to your Kubernetes cluster as the
-default context the Makefile will honor that._
 
 ## IDE Support
 
@@ -112,7 +115,7 @@ relatively new feature in Go so make sure the IDE you are using was built around
 Summer 2019. The latest version of
 [Visual Studio Code](https://code.visualstudio.com/download) supports it.
 
-If your IDE is too old you can work can create a
+If your IDE is too old you can create a
 [Go workspace](https://golang.org/doc/code.html#Workspaces).
 
 ```bash
@@ -143,8 +146,8 @@ make local-cloud-build
 ```
 
 Our [continuous integration](https://console.cloud.google.com/cloud-build/builds?project=open-match-build)
-runs against all PRs. In order to see your build results you'll need to 
-become a member of 
+runs against all PRs. In order to see your build results you'll need to
+become a member of
 [open-match-discuss@googlegroups.com](https://groups.google.com/forum/#!forum/open-match-discuss).
 
 
