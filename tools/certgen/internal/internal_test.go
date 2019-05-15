@@ -71,7 +71,7 @@ func TestCreateCertificate(t *testing.T) {
 	ciphertext, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, pubKey, []byte(secretMessage), []byte{})
 	assert.Nil(err)
 	assert.NotEqual(string(ciphertext), secretMessage)
-	cleartext, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, pk, []byte(ciphertext), []byte{})
+	cleartext, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, pk, ciphertext, []byte{})
 	assert.Nil(err)
 	assert.Equal(string(cleartext), string(secretMessage))
 }

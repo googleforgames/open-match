@@ -102,20 +102,10 @@ install/yaml/
 tmp/
 
 # Open Match Binaries
-cmd/future/backend/backend
-cmd/future/frontend/frontend
-cmd/future/minimatch/minimatch
-cmd/future/mmlogic/mmlogic
-cmd/future/minimatch/minimatch
-tools/certgen/certgen
-
-# Deprecated Compiled Binaries
+cmd/backend/backend
+cmd/frontend/frontend
+cmd/mmlogic/mmlogic
 cmd/minimatch/minimatch
-cmd/backendapi/backendapi
-cmd/frontendapi/frontendapi
-cmd/mmlogicapi/mmlogicapi
-examples/backendclient/backendclient
-examples/evaluators/golang/serving/serving
-examples/functions/golang/grpc-serving/grpc-serving
-test/cmd/clientloadgen/clientloadgen
-test/cmd/frontendclient/frontendclient
+tools/certgen/certgen
+examples/functions/golang/simple/simple
+
