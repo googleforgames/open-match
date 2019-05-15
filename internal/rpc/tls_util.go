@@ -26,7 +26,6 @@ import (
 )
 
 // clientCredentialsFromFile gets TransportCredentials from public certificate.
-// nolint:deadcode unused
 func clientCredentialsFromFile(certPath string) (credentials.TransportCredentials, error) {
 	publicCertFileData, err := ioutil.ReadFile(certPath)
 	if err != nil {

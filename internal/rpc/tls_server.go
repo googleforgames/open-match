@@ -130,8 +130,9 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 		TLSConfig: &tls.Config{
 			Certificates: []tls.Certificate{*grpcTLSCertificate},
 			ClientCAs:    rootCaCert,
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			NextProtos:   []string{http2WithTLSVersionID}, // https://github.com/grpc-ecosystem/grpc-gateway/issues/220
+			// Commented as open-match does not support mutual authentication yet
+			// ClientAuth:   tls.RequireAndVerifyClientCert,
+			NextProtos: []string{http2WithTLSVersionID}, // https://github.com/grpc-ecosystem/grpc-gateway/issues/220
 		},
 	}
 	serverStartWaiter.Add(1)

@@ -33,8 +33,6 @@ import (
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 
-
-
 func TestSecureGRPCFromConfig(t *testing.T) {
 	assert := assert.New(t)
 
@@ -43,11 +41,8 @@ func TestSecureGRPCFromConfig(t *testing.T) {
 	assert.Nil(err)
 	defer removeTempFile(assert, pubFile.Name())
 
-	priFile, err := ioutil.TempFile("", "pri*")
-	assert.Nil(err)
-	defer removeTempFile(assert, priFile.Name())
-
-	cfg, rpcParams := configureConfigAndKeysForTesting(assert, pubFile.Name(), priFile.Name())
+	cfg, rpcParams, closer := configureConfigAndKeysForTesting(assert, true)
+	defer closer()
 
 	runGrpcClientTests(assert, cfg, rpcParams)
 }
@@ -55,7 +50,8 @@ func TestSecureGRPCFromConfig(t *testing.T) {
 func TestInsecureGRPCFromConfig(t *testing.T) {
 	assert := assert.New(t)
 
-	cfg, rpcParams := configureConfigAndKeysForTesting(assert, "", "")
+	cfg, rpcParams, closer := configureConfigAndKeysForTesting(assert, false)
+	defer closer()
 
 	runGrpcClientTests(assert, cfg, rpcParams)
 }
@@ -72,14 +68,16 @@ func TestHTTPSFromConfig(t *testing.T) {
 	assert.Nil(err)
 	defer removeTempFile(assert, priFile.Name())
 
-	cfg, rpcParams := configureConfigAndKeysForTesting(assert, pubFile.Name(), priFile.Name())
+	cfg, rpcParams, closer := configureConfigAndKeysForTesting(assert, true)
+	defer closer()
 
 	runHTTPClientTests(assert, cfg, rpcParams)
 }
 func TestInsecureHTTPFromConfig(t *testing.T) {
 	assert := assert.New(t)
 
-	cfg, rpcParams := configureConfigAndKeysForTesting(assert, "", "")
+	cfg, rpcParams, closer := configureConfigAndKeysForTesting(assert, false)
+	defer closer()
 
 	runHTTPClientTests(assert, cfg, rpcParams)
 }
@@ -142,7 +140,7 @@ func runHTTPClientTests(assert *assert.Assertions, cfg config.View, rpcParams *S
 }
 
 // Generate a config view and optional TLS key manifests (optional) for testing
-func configureConfigAndKeysForTesting(assert *assert.Assertions, pubPath, priPath string) (config.View, *ServerParams) {
+func configureConfigAndKeysForTesting(assert *assert.Assertions, tlsEnabled bool) (config.View, *ServerParams, func()) {
 	// Create netlisteners on random ports used for rpc serving
 	grpcLh := netlistenerTesting.MustListen()
 	httpLh := netlistenerTesting.MustListen()
@@ -154,7 +152,11 @@ func configureConfigAndKeysForTesting(assert *assert.Assertions, pubPath, priPat
 	cfg.Set("test.grpcport", grpcLh.Number())
 	cfg.Set("test.httpport", httpLh.Number())
 
-	if len(pubPath) > 0 && len(priPath) > 0 {
+	// Create temporary TLS key files for testing
+	pubFile, err := ioutil.TempFile("", "pub*")
+	assert.Nil(err)
+
+	if tlsEnabled {
 		// Generate public and private key bytes
 		pubBytes, priBytes, err := certgenTesting.CreateCertificateAndPrivateKeyForTesting([]string{
 			fmt.Sprintf("localhost:%d", grpcLh.Number()),
@@ -163,23 +165,22 @@ func configureConfigAndKeysForTesting(assert *assert.Assertions, pubPath, priPat
 		assert.Nil(err)
 
 		// Write certgen key bytes to the temp files
-		err = ioutil.WriteFile(pubPath, pubBytes, 0400)
-		assert.Nil(err)
-		err = ioutil.WriteFile(priPath, priBytes, 0400)
+		err = ioutil.WriteFile(pubFile.Name(), pubBytes, 0400)
 		assert.Nil(err)
 
 		// Generate a config view with paths to the manifests
 		cfg.Set("tls.enabled", true)
-		cfg.Set("tls.publicKeyPath", pubPath)
-		cfg.Set("tls.privateKeyPath", priPath)
+		cfg.Set("tls.trustedKeyPath", pubFile.Name())
 
 		rpcParams.SetTLSConfiguration(pubBytes, pubBytes, priBytes)
 	}
 
-	return cfg, rpcParams
+	return cfg, rpcParams, func() { removeTempFile(assert, pubFile.Name()) }
 }
 
-func removeTempFile(assert *assert.Assertions, path string) {
-	err := os.Remove(path)
-	assert.Nil(err)
+func removeTempFile(assert *assert.Assertions, paths ...string) {
+	for _, path := range paths {
+		err := os.Remove(path)
+		assert.Nil(err)
+	}
 }

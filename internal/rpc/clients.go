@@ -17,7 +17,6 @@ package rpc
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -67,15 +66,20 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 	address := fmt.Sprintf("%s:%d", params.Hostname, params.Port)
 
+	grpcOptions := []grpc.DialOption{}
+
 	if params.usingTLS() {
-		publicCertFileData, err := ioutil.ReadFile(params.TrustedKeyPath)
-		creds, err := clientCredentialsFromFileData(publicCertFileData, address)
+		creds, err := clientCredentialsFromFile(params.TrustedKeyPath)
 		if err != nil {
+			clientLogger.WithError(err).Error("failed to get transport credentials from file.")
 			return nil, errors.WithStack(err)
 		}
-		return grpc.Dial(address, grpc.WithTransportCredentials(creds))
+		grpcOptions = append(grpcOptions, grpc.WithTransportCredentials(creds))
+	} else {
+		grpcOptions = append(grpcOptions, grpc.WithInsecure())
 	}
-	return grpc.Dial(address, grpc.WithInsecure())
+
+	return grpc.Dial(address, grpcOptions...)
 }
 
 // HTTPClientFromConfig creates a HTTP client from from a configuration.
@@ -85,7 +89,7 @@ func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string,
 
 	clientParams := &ClientParams{
 		Hostname: hostname,
-		Port: portNumber,
+		Port:     portNumber,
 	}
 
 	// If TLS support is enabled in the config, fill in the trustedKeyPath
@@ -103,27 +107,23 @@ func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 	var baseURL string
 
 	if params.usingTLS() {
-		baseURL := "https://" + address
-		tlsCert, err := clientCredentialsFromFile(params.TrustedKeyPath)
-		if err != nil {
-			return nil, "", err
-		}
+		baseURL = "https://" + address
 
 		pool, err := trustedCertificatesFromFile(params.TrustedKeyPath)
 		if err != nil {
+			clientLogger.WithError(err).Error("failed to get cert pool from file.")
 			return nil, "", err
 		}
 
-		tlsTransport := &http.Transport{
+		httpClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				ServerName:   address,
-				RootCAs:      pool,
-				Certificates: []tls.Certificate{*tlsCert},
+				ServerName: address,
+				RootCAs:    pool,
 			},
 		}
-		httpClient.Transport = tlsTransport
+	} else {
+		baseURL = "http://" + address
 	}
 
-	baseURL := "http://" + address
 	return httpClient, baseURL, nil
 }
