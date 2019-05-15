@@ -107,6 +107,7 @@ OPEN_MATCH_CHART_NAME = open-match
 OPEN_MATCH_KUBERNETES_NAMESPACE = open-match
 OPEN_MATCH_EXAMPLE_CHART_NAME = open-match-example
 OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE = open-match
+OPEN_MATCH_SECRETS_DIR = $(REPOSITORY_ROOT)/install/helm/open-match/secrets
 REDIS_NAME = om-redis
 GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | cut -c 10-)
 _GCB_POST_SUBMIT ?= 0
@@ -530,6 +531,18 @@ docker: no-sudo
 # Fake target for gcloud
 gcloud: no-sudo
 
+tls-certs: install/helm/open-match/secrets/
+
+install/helm/open-match/secrets/: install/helm/open-match/secrets/tls/root-ca/ install/helm/open-match/secrets/tls/server/
+
+install/helm/open-match/secrets/tls/root-ca/: build/toolchain/bin/certgen$(EXE_EXTENSION)
+	mkdir -p $(OPEN_MATCH_SECRETS_DIR)/tls/root-ca
+	$(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION) -ca=true -publiccertificate=$(OPEN_MATCH_SECRETS_DIR)/tls/root-ca/public.cert -privatekey=$(OPEN_MATCH_SECRETS_DIR)/tls/root-ca/private.key
+
+install/helm/open-match/secrets/tls/server/: build/toolchain/bin/certgen$(EXE_EXTENSION) install/helm/open-match/secrets/tls/root-ca/
+	mkdir -p $(OPEN_MATCH_SECRETS_DIR)/tls/server/
+	$(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION) -publiccertificate=$(OPEN_MATCH_SECRETS_DIR)/tls/server/public.cert -privatekey=$(OPEN_MATCH_SECRETS_DIR)/tls/server/private.key -rootpubliccertificate=$(OPEN_MATCH_SECRETS_DIR)/tls/root-ca/public.cert -rootprivatekey=$(OPEN_MATCH_SECRETS_DIR)/tls/root-ca/private.key
+
 auth-docker: gcloud docker
 	gcloud $(GCP_PROJECT_FLAG) auth configure-docker
 
@@ -712,7 +725,7 @@ else
 endif
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: update-deps clean-protos all-protos lint build test clean-site site-test
+presubmit: update-deps clean-protos clean-secrets all-protos lint build test clean-site site-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -721,6 +734,9 @@ build/release/: presubmit clean-install-yaml install/yaml/
 release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
 release: TAG = $(BASE_VERSION)
 release: build/release/
+
+clean-secrets:
+	rm -rf $(OPEN_MATCH_SECRETS_DIR)
 
 clean-release:
 	rm -rf $(REPOSITORY_ROOT)/build/release/
@@ -768,7 +784,7 @@ clean-stress-test-tools:
 	rm -rf $(TOOLCHAIN_DIR)/python
 	rm -f $(REPOSITORY_ROOT)/test/stress/*.csv
 
-clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools
+clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools clean-secrets
 
 proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Health: http://localhost:$(FRONTEND_PORT)/healthz"
