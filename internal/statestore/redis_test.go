@@ -17,7 +17,10 @@ package statestore
 import (
 	"testing"
 	"time"
+	"context"
 
+	"open-match.dev/open-match/internal/pb"
+	testUtil 	"open-match.dev/open-match/internal/testing"
 	"github.com/alicebob/miniredis"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -55,5 +58,49 @@ func createRedis(t *testing.T) (Service, func() error) {
 	}
 }
 
-// TODO: Add tests to validate Redis functionality in isolation once we have clarity
-// on state storage to be used.
+// TODO: Test paging logic
+func TestFilterTickets(t *testing.T) {
+	assert := assert.New(t)
+	cfg := viper.New()
+	cfg.Set("storage.page.size", 1000)
+
+	rs, rsCloser := createRedis(t)
+	defer rsCloser()
+
+		// Inject test data into the fake redis server
+	ctx := context.Background()
+	rb, ok := rs.(*redisBackend)
+	assert.True(ok)
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	assert.Nil(err)
+
+		redisConn.Do("ZADD", "level",
+		1, "alice",
+		10, "bob",
+		20, "charlie",
+		30, "donald",
+		40, "eddy",
+	)
+	redisConn.Do("ZADD", "attack",
+		1, "alice",
+		10, "bob",
+		20, "charlie",
+		30, "donald",
+		40, "eddy",
+	)
+	redisConn.Do("ZADD", "defense",
+		1, "alice",
+		10, "bob",
+		20, "charlie",
+		30, "donald",
+		40, "eddy",
+	)
+
+		ticketsData, err := rs.FilterTickets(ctx, []*pb.Filter{
+		testUtil.NewPbFilter("level", 0, 15),
+		testUtil.NewPbFilter("attack", 5, 25),
+	})
+
+		assert.Nil(err)
+	assert.Equal(map[string]map[string]int64{"bob": map[string]int64{"attack": 10, "level": 10}}, ticketsData)
+}
