@@ -37,7 +37,7 @@ func RunApplication() {
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
-	p, err := rpc.NewParamsFromConfig(cfg, "api.frontend")
+	p, err := rpc.NewServerParamsFromConfig(cfg, "api.frontend")
 	if err != nil {
 		frontendLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -54,7 +54,7 @@ func RunApplication() {
 }
 
 // BindService creates the frontend service and binds it to the serving harness.
-func BindService(p *rpc.Params, cfg config.View) error {
+func BindService(p *rpc.ServerParams, cfg config.View) error {
 	service, err := newFrontend(cfg)
 	if err != nil {
 		return err

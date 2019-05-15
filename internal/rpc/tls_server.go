@@ -59,7 +59,7 @@ type tlsServer struct {
 	httpServer      *http.Server
 }
 
-func (s *tlsServer) start(params *Params) (func(), error) {
+func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	s.grpcServeWaiter = make(chan error)
 	s.httpServeWaiter = make(chan error)
 	var serverStartWaiter sync.WaitGroup

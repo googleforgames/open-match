@@ -95,7 +95,7 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 
 	ff := &shellTesting.FakeFrontend{}
 
-	serverParams := NewParamsFromListeners(tp.grpcLh, tp.proxyLh)
+	serverParams := NewServerParamsFromListeners(tp.grpcLh, tp.proxyLh)
 	serverParams.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServer(s, ff)
 	}, pb.RegisterFrontendHandlerFromEndpoint)
