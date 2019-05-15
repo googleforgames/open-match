@@ -38,7 +38,7 @@ func RunApplication() {
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
-	p, err := rpc.NewParamsFromConfig(cfg, "api.frontend")
+	p, err := rpc.NewServerParamsFromConfig(cfg, "api.frontend")
 	if err != nil {
 		minimatchLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -55,7 +55,7 @@ func RunApplication() {
 }
 
 // BindService creates the minimatch service to the server Params.
-func BindService(p *rpc.Params, cfg config.View) error {
+func BindService(p *rpc.ServerParams, cfg config.View) error {
 	if err := backend.BindService(p, cfg); err != nil {
 		return err
 	}
