@@ -111,3 +111,6 @@ examples/functions/golang/simple/simple
 
 # Open Match Build Directory
 build/
+
+# Secrets Directories
+install/helm/open-match/secrets/

@@ -32,7 +32,7 @@ import (
 )
 
 func TestServerBinding(t *testing.T) {
-	bs := func(p *rpc.Params) {
+	bs := func(p *rpc.ServerParams) {
 		p.AddHandleFunc(func(s *grpc.Server) {
 			pb.RegisterFrontendServer(s, &frontendService{})
 		}, pb.RegisterFrontendHandlerFromEndpoint)

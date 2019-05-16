@@ -45,7 +45,7 @@ func RunMatchFunction(settings *FunctionSettings) {
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
-	p, err := rpc.NewParamsFromConfig(cfg, "api.functions")
+	p, err := rpc.NewServerParamsFromConfig(cfg, "api.functions")
 	if err != nil {
 		harnessLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -62,7 +62,7 @@ func RunMatchFunction(settings *FunctionSettings) {
 }
 
 // BindService creates the function service to the server Params.
-func BindService(p *rpc.Params, cfg config.View, fs *FunctionSettings) error {
+func BindService(p *rpc.ServerParams, cfg config.View, fs *FunctionSettings) error {
 	service, err := newMatchFunctionService(cfg, fs)
 	if err != nil {
 		return err
