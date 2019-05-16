@@ -36,11 +36,6 @@ import (
 func TestSecureGRPCFromConfig(t *testing.T) {
 	assert := assert.New(t)
 
-	// Create temporary TLS key files for testing
-	pubFile, err := ioutil.TempFile("", "pub*")
-	assert.Nil(err)
-	defer removeTempFile(assert, pubFile.Name())
-
 	cfg, rpcParams, closer := configureConfigAndKeysForTesting(assert, true)
 	defer closer()
 
@@ -58,15 +53,6 @@ func TestInsecureGRPCFromConfig(t *testing.T) {
 
 func TestHTTPSFromConfig(t *testing.T) {
 	assert := assert.New(t)
-
-	// Create temporary TLS key files for testing
-	pubFile, err := ioutil.TempFile("", "pub*")
-	assert.Nil(err)
-	defer removeTempFile(assert, pubFile.Name())
-
-	priFile, err := ioutil.TempFile("", "pri*")
-	assert.Nil(err)
-	defer removeTempFile(assert, priFile.Name())
 
 	cfg, rpcParams, closer := configureConfigAndKeysForTesting(assert, true)
 	defer closer()
