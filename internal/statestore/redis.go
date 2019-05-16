@@ -16,14 +16,14 @@ package statestore
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
-	"github.com/tidwall/gjson"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
@@ -266,30 +266,30 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 		// Alternatives for populating this information in proto fields are being considered.
 		// Also, we need to add Ticket creation time to either the ticket or index.
 		// Meta characters bein specified in JSON property keys is currently not supported.
-		v := gjson.Get(ticket.Properties, attribute)
+		v, found := ticket.Properties.Fields[attribute]
 
 		// If this attribute wasn't provided in the JSON, continue to the next attribute to index.
-		if !v.Exists() {
+		if !found {
 			redisLogger.WithFields(logrus.Fields{
 				"attribute": attribute}).Warning("Couldn't find index in Ticket Properties")
 			continue
 		}
 
-		// Value exists. Check if it is a supported value for indexed properties.
-		if v.Int() < math.MaxInt64 || v.Int() > math.MaxInt64 {
-			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute}).Warning("Invalid value for attribute, skip indexing.")
-			continue
+		var d float64
+
+		switch v.Kind.(type) {
+		case *structpb.Value_NumberValue:
+			d = v.GetNumberValue()
+		default:
+			// TODO LOG WRONG TYPE ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		}
 
-		// Index the attribute by value.
-		value := v.Int()
-		err = redisConn.Send("ZADD", attribute, value, ticket.Id)
+		err = redisConn.Send("ZADD", attribute, d, ticket.Id)
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
 				"cmd":       "ZADD",
 				"attribute": attribute,
-				"value":     value,
+				"d":         d,
 				"ticket":    ticket.Id,
 				"error":     err.Error(),
 			}).Error("failed to index ticket attribute")
@@ -367,7 +367,7 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 //  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
-func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter) (map[string]map[string]int64, error) {
+func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter) (map[string]map[string]float64, error) {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
 		redisLogger.WithError(err).Error("Failed to get redis connection with context.")
@@ -375,7 +375,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter)
 	defer handleConnectionClose(&redisConn)
 
 	// A map[attribute]map[playerID]value
-	attributeToTickets := make(map[string]map[string]int64)
+	attributeToTickets := make(map[string]map[string]float64)
 	// A set of playerIds that satisfies all filters
 	idSet := make([]string, 0)
 
@@ -407,10 +407,10 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter)
 	}
 
 	// Result is a mapping from ticket ids to attribute key-value pairs
-	results := make(map[string]map[string]int64)
+	results := make(map[string]map[string]float64)
 	for _, id := range idSet {
 		// A map from attribute names to attribute values per ticket
-		propertyPerTicket := make(map[string]int64)
+		propertyPerTicket := make(map[string]float64)
 
 		for attr, tickets := range attributeToTickets {
 			attrVal := tickets[id]
@@ -429,4 +429,28 @@ func handleConnectionClose(conn *redis.Conn) {
 			"error": err,
 		}).Debug("failed to close redis client connection.")
 	}
+}
+
+// Function which is randomly missing from redigo
+func float64Map(result interface{}, err error) (map[string]float64, error) {
+	values, err := Values(result, err)
+	if err != nil {
+		return nil, err
+	}
+	if len(values)%2 != 0 {
+		return nil, errors.New("redigo: Int64Map expects even number of values result")
+	}
+	m := make(map[string]float64, len(values)/2)
+	for i := 0; i < len(values); i += 2 {
+		key, ok := values[i].([]byte)
+		if !ok {
+			return nil, errors.New("redigo: Int64Map key not a bulk string value")
+		}
+		value, err := redis.Float64(values[i+1], nil)
+		if err != nil {
+			return nil, err
+		}
+		m[string(key)] = value
+	}
+	return m, nil
 }
