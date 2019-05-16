@@ -17,21 +17,24 @@ package statestore
 import (
 	"context"
 	"testing"
-	"time"
 
-	"github.com/alicebob/miniredis"
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
+	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
 func TestStatestoreSetup(t *testing.T) {
 	assert := assert.New(t)
-	cfg := createBackend(t)
+	vp := viper.New()
+
+	cfg, closer, err := statestoreTesting.NewRedisForTesting(vp)
+	defer closer()
+	assert.Nil(err)
+
 	service, err := New(cfg)
 	assert.Nil(err)
 	assert.NotNil(service)
@@ -41,7 +44,13 @@ func TestStatestoreSetup(t *testing.T) {
 func TestTicketLifecycle(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg := createBackend(t)
+	vp := viper.New()
+	vp.Set("playerIndices", []string{"testindex1", "testindex2"})
+
+	cfg, closer, err := statestoreTesting.NewRedisForTesting(vp)
+	defer closer()
+	assert.Nil(err)
+
 	service, err := New(cfg)
 	assert.Nil(err)
 	assert.NotNil(service)
@@ -93,22 +102,4 @@ func TestTicketLifecycle(t *testing.T) {
 func TestTicketIndexing(t *testing.T) {
 	// TODO: The change to filter tickets is currently in progress.
 	// Testing Ticket indexing will be added along with this implementation.
-}
-
-func createBackend(t *testing.T) config.View {
-	cfg := viper.New()
-	mredis, err := miniredis.Run()
-	if err != nil {
-		t.Fatalf("cannot create redis %s", err)
-	}
-
-	cfg.Set("redis.hostname", mredis.Host())
-	cfg.Set("redis.port", mredis.Port())
-	cfg.Set("redis.pool.maxIdle", 1000)
-	cfg.Set("redis.pool.idleTimeout", time.Second)
-	cfg.Set("redis.pool.maxActive", 1000)
-	cfg.Set("redis.expiration", 42000)
-	cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
-
-	return cfg
 }

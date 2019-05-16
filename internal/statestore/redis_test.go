@@ -17,55 +17,40 @@ package statestore
 import (
 	"context"
 	"testing"
-	"time"
 
-	"github.com/alicebob/miniredis"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/internal/pb"
+	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	testUtil "open-match.dev/open-match/internal/testing"
 )
 
 func TestRedisConnection(t *testing.T) {
 	assert := assert.New(t)
-	rb, closer := createRedis(t)
+	cfg, closer, err := statestoreTesting.NewRedisForTesting(viper.New())
 	defer closer()
-	assert.NotNil(rb)
-	assert.Nil(closer())
-}
-
-func createRedis(t *testing.T) (Service, func() error) {
-	cfg := viper.New()
-	mredis, err := miniredis.Run()
-	if err != nil {
-		t.Fatalf("cannot create redis %s", err)
-	}
-
-	cfg.Set("redis.hostname", mredis.Host())
-	cfg.Set("redis.port", mredis.Port())
-	cfg.Set("redis.pool.maxIdle", 1000)
-	cfg.Set("redis.pool.idleTimeout", time.Second)
-	cfg.Set("redis.pool.maxActive", 1000)
+	assert.Nil(err)
 
 	rs, err := newRedis(cfg)
-	if err != nil {
-		t.Fatalf("cannot connect to fake redis %s", err)
-	}
-	return rs, func() error {
-		rbCloseErr := rs.Close()
-		mredis.Close()
-		return rbCloseErr
-	}
+	defer func() {
+		err = rs.Close()
+		assert.Nil(err)
+	}()
+	assert.Nil(err)
+	assert.NotNil(rs)
 }
-
-// TODO: Test paging logic
 func TestFilterTickets(t *testing.T) {
 	assert := assert.New(t)
-	cfg := viper.New()
-	cfg.Set("storage.page.size", 1000)
 
-	rs, rsCloser := createRedis(t)
-	defer rsCloser()
+	cfg, closer, err := statestoreTesting.NewRedisForTesting(viper.New())
+	defer closer()
+	assert.Nil(err)
+
+	rs, err := newRedis(cfg)
+	defer func() {
+		err = rs.Close()
+		assert.Nil(err)
+	}()
 
 	// Inject test data into the fake redis server
 	ctx := context.Background()

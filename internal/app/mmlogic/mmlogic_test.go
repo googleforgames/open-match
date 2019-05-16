@@ -17,12 +17,30 @@ package mmlogic
 import (
 	"testing"
 
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
+	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
+func TestQueryTicketsBasic(t *testing.T) {
+	assert := assert.New(t)
+	vp := viper.New()
+	vp.Set("storage.page.size", 1000)
+
+	cfg, closer, err := statestoreTesting.NewRedisForTesting(vp)
+	assert.Nil(err)
+	defer closer()
+
+	mmlogicService, err := newMmlogic(cfg)
+	assert.Nil(err)
+	assert.NotNil(mmlogicService)
+
+	// TODO: Add more tests after the client wrapper is done
+}
 func TestServerBinding(t *testing.T) {
 	bs := func(p *rpc.ServerParams) {
 		p.AddHandleFunc(func(s *grpc.Server) {
