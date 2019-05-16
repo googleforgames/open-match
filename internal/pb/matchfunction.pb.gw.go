@@ -28,7 +28,7 @@ var _ status.Status
 var _ = runtime.String
 var _ = utilities.NewDoubleArray
 
-func request_MatchFunction_Run_0(ctx context.Context, marshaler runtime.Marshaler, client MatchFunctionClient, req *http.Request, pathParams map[string]string) (MatchFunction_RunClient, runtime.ServerMetadata, error) {
+func request_MatchFunction_Run_0(ctx context.Context, marshaler runtime.Marshaler, client MatchFunctionClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq RunRequest
 	var metadata runtime.ServerMetadata
 
@@ -40,16 +40,8 @@ func request_MatchFunction_Run_0(ctx context.Context, marshaler runtime.Marshale
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	stream, err := client.Run(ctx, &protoReq)
-	if err != nil {
-		return nil, metadata, err
-	}
-	header, err := stream.Header()
-	if err != nil {
-		return nil, metadata, err
-	}
-	metadata.HeaderMD = header
-	return stream, metadata, nil
+	msg, err := client.Run(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
 
 }
 
@@ -107,7 +99,7 @@ func RegisterMatchFunctionHandlerClient(ctx context.Context, mux *runtime.ServeM
 			return
 		}
 
-		forward_MatchFunction_Run_0(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
+		forward_MatchFunction_Run_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -119,5 +111,5 @@ var (
 )
 
 var (
-	forward_MatchFunction_Run_0 = runtime.ForwardResponseStream
+	forward_MatchFunction_Run_0 = runtime.ForwardResponseMessage
 )
