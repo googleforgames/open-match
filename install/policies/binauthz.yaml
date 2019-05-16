@@ -1,0 +1,12 @@
+# Binary Authorization Policy for an Open Match Cluster
+admissionWhitelistPatterns:
+- namePattern: gcr.io/google_containers/*
+- namePattern: gcr.io/google-containers/*
+- namePattern: k8s.gcr.io/*
+- namePattern: gcr.io/stackdriver-agents/*
+- namePattern: gcr.io/$PROJECT_ID/*
+- namePattern: gcr.io/open-match-public-images/*
+defaultAdmissionRule:
+  evaluationMode: ALWAYS_DENY
+  enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+name: projects/$PROJECT_ID/policy

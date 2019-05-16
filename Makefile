@@ -81,14 +81,13 @@ REGISTRY ?= gcr.io/$(GCP_PROJECT_ID)
 TAG := $(VERSION)
 ALTERNATE_TAG := dev
 GKE_CLUSTER_NAME = om-cluster
+KUBERNETES_CLUSTER_SIZE_FLAGS = --machine-type n1-standard-1 --num-nodes 1 --max-nodes 3 --disk-size 50
 GCP_REGION = us-west1
 GCP_ZONE = us-west1-a
 EXE_EXTENSION =
 LOCAL_CLOUD_BUILD_PUSH = # --push
 KUBECTL_RUN_ENV = --env='REDIS_SERVICE_HOST=$$(OM_REDIS_MASTER_SERVICE_HOST)' --env='REDIS_SERVICE_PORT=$$(OM_REDIS_MASTER_SERVICE_PORT)'
 GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
-# Flags to simulate behavior of newer versions of Kubernetes
-KUBERNETES_COMPAT = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 GO111MODULE = on
 PROMETHEUS_PORT = 9090
 GRAFANA_PORT = 3000
@@ -186,6 +185,12 @@ help:
 
 local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
+
+activate-gcp-apis: gcloud
+	gcloud services enable containerregistry.googleapis.com
+	gcloud services enable container.googleapis.com
+	gcloud services enable containeranalysis.googleapis.com
+	gcloud services enable binaryauthorization.googleapis.com
 
 push-images: push-service-images push-example-images
 
@@ -555,9 +560,17 @@ create-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bi
 delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(KIND) delete cluster
 
+create-gke-cluster: GKE_VERSION = 1.12.7-gke.17
+create-gke-cluster: GKE_SHARED_FLAGS = --tags open-match --image-type cos_containerd --enable-autoupgrade --node-labels=cloud.google.com/gke-smt-disabled=true --metadata disable-legacy-endpoints=true --workload-metadata-from-node=SECURE
+create-gke-cluster: GKE_CLUSTER_HARDENING_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-binauthz
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
-	gcloud $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --machine-type n1-standard-4 --tags open-match $(KUBERNETES_COMPAT)
+	gcloud beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --cluster-version $(GKE_VERSION) --enable-stackdriver-kubernetes --enable-ip-alias $(KUBERNETES_CLUSTER_SHAPE_FLAGS) $(GKE_SHARED_FLAGS) $(GKE_CLUSTER_HARDENING_FLAGS)
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
+	# Create a hardened node pool to run Open Match.
+	gcloud beta $(GCP_PROJECT_FLAG) container node-pools create secure-pool $(GCP_LOCATION_FLAG) --node-version $(GKE_VERSION) $(KUBERNETES_CLUSTER_SHAPE_FLAGS) --cluster $(GKE_CLUSTER_NAME) --sandbox type=gvisor $(GKE_SHARED_FLAGS)
+
+protect-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud build/policies/binauthz.yaml
+	gcloud $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
 
 delete-gke-cluster: gcloud
 	gcloud $(GCP_PROJECT_FLAG) container clusters delete $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --quiet
@@ -567,6 +580,11 @@ create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	$(MINIKUBE) delete
+
+build/policies/binauthz.yaml: install/policies/binauthz.yaml
+	mkdir -p $(BUILD_DIR)/policies
+	cp -f $(REPOSITORY_ROOT)/install/policies/binauthz.yaml $(BUILD_DIR)/policies/binauthz.yaml
+	sed -i 's/$$PROJECT_ID/$(GCP_PROJECT_ID)/g' $(BUILD_DIR)/policies/binauthz.yaml
 
 all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go

@@ -75,6 +75,12 @@ prometheus.io/path: {{ .prometheus.endpoint }}
 {{- end -}}
 {{- end -}}
 
+{{- define "runtime.classname" -}}
+{{- if (.Values.gke.sandbox.enabled) -}}
+runtimeClassName: gvisor
+{{- end -}}
+{{- end -}}
+
 
 {{- define "probe.readiness" -}}
 readinessProbe:

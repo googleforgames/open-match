@@ -176,6 +176,10 @@ openmatch:
       name: openmatch-mmlogic
       pullPolicy: Always
 
+gke:
+  sandbox:
+    enabled: true
+
 # https://hub.helm.sh/charts/stable/redis
 # https://github.com/helm/charts/tree/master/stable/redis
 redis:
