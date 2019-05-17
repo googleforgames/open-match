@@ -397,16 +397,8 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 		}
 	}
 
-	for i := 0; i < len(idSet); i += pageSize {
-		end := i + pageSize
-		if end > len(idSet) {
-			end = len(idSet)
-		}
-		page := make([]interface{}, end-i)
-		for i, id := range idSet[i:end] {
-			page[i] = id
-		}
-
+	// TODO: finish reworking this after the proto changes.
+	for _, page := range idsToPages(idSet, pageSize) {
 		ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", page...))
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
@@ -415,7 +407,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 			return err
 		}
 
-		tickets := make([]*pb.Ticket, 0, end-i)
+		tickets := make([]*pb.Ticket, 0, len(page))
 		for i, b := range ticketBytes {
 			// Tickets may be deleted by the time we read it from redis.
 			if b != nil {
@@ -443,6 +435,22 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 	}
 
 	return nil
+}
+
+func idsToPages(ids []string, pageSize int) [][]interface{} {
+	result := make([][]interface{}, 0, len(ids)/pageSize+1)
+	for i := 0; i < len(ids); i += pageSize {
+		end := i + pageSize
+		if end > len(ids) {
+			end = len(ids)
+		}
+		page := make([]interface{}, end-i)
+		for i, id := range ids[i:end] {
+			page[i] = id
+		}
+		result = append(result, page)
+	}
+	return result
 }
 
 func handleConnectionClose(conn *redis.Conn) {
