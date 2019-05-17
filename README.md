@@ -34,7 +34,7 @@ Participation in this project comes under the [Contributor Covenant Code of Cond
 
 Here are some useful links to additional documentation:
 
-* [Get Started](https://open-match.dev/docs/overview/get_started)
+* [Get Started](https://open-match.dev/site/docs/installation/)
 * [Development Guide](docs/development.md)
 * [Future Roadmap](docs/roadmap.md)
 * [Open Match Concepts](docs/concepts.md)
