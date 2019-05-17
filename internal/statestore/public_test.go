@@ -23,6 +23,8 @@ import (
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 )
@@ -58,13 +60,14 @@ func TestTicketLifecycle(t *testing.T) {
 	// Validate that GetTicket fails for a Ticket that does not exist.
 	_, err = service.GetTicket(context.Background(), id)
 	assert.NotNil(err)
+	assert.Equal(status.Code(err), codes.NotFound)
 
 	// Validate nonexisting Ticket deletion
 	err = service.DeleteTicket(context.Background(), id)
 	assert.Nil(err)
 
 	// Validate nonexisting Ticket deindexing
-	err = service.DeindexTicket(context.Background(), id, []string{"test1", "test2"})
+	err = service.DeindexTicket(context.Background(), id)
 	assert.Nil(err)
 
 	// Validate Ticket creation
@@ -104,6 +107,8 @@ func createBackend(t *testing.T) config.View {
 	cfg.Set("redis.pool.maxIdle", 1000)
 	cfg.Set("redis.pool.idleTimeout", time.Second)
 	cfg.Set("redis.pool.maxActive", 1000)
+	cfg.Set("redis.expiration", 42000)
+	cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
 
 	return cfg
 }
