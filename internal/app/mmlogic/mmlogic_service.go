@@ -15,8 +15,6 @@
 package mmlogic
 
 import (
-	"encoding/json"
-
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -61,44 +59,22 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 	ctx := responseServer.Context()
 	poolFilters := req.Pool.Filter
 
+	callback := func(tickets []*pb.Ticket) error {
+		err := responseServer.Send(&pb.QueryTicketsResponse{Ticket: tickets})
+		if err != nil {
+			logger.WithError(err).Error("Failed to send Redis response to grpc server")
+			return status.Errorf(codes.Aborted, err.Error())
+		}
+		return nil
+	}
+
+	pSize := s.cfg.GetInt("storage.page.size")
+
 	// Send requests to the storage service
-	idsToProperties, err := s.store.FilterTickets(ctx, poolFilters)
+	err := s.store.FilterTickets(ctx, poolFilters, pSize, callback)
 	if err != nil {
 		logger.WithError(err).Error("Failed to retrieve result from storage service.")
 		return status.Error(codes.Internal, err.Error())
-	}
-
-	page := []*pb.Ticket{}
-	// The ith entry when iterating through the idsToProperties map
-	mapIdx := 0
-	// The number of tickets in a paging response
-	pSize := s.cfg.GetInt("storage.page.size")
-
-	for id, property := range idsToProperties {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-			propertyByte, err := json.Marshal(property)
-			if err != nil {
-				logger.WithError(err).Error("Failed to convert property map to JSON")
-				return status.Errorf(codes.Internal, err.Error())
-			}
-			page = append(page, &pb.Ticket{Id: id, Properties: string(propertyByte)})
-
-			mapIdx++
-
-			endPage := mapIdx%pSize == 0 || mapIdx == len(idsToProperties)-1
-			if endPage {
-				// Reaches page limit; Send a stream response then reset the page
-				err := responseServer.Send(&pb.QueryTicketsResponse{Ticket: page})
-				if err != nil {
-					logger.WithError(err).Error("Failed to send Redis response to grpc server")
-					return status.Errorf(codes.Aborted, err.Error())
-				}
-				page = []*pb.Ticket{}
-			}
-		}
 	}
 
 	return nil

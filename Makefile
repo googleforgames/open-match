@@ -675,6 +675,9 @@ build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
 	-cp -f site/.gcloudignore $(BUILD_DIR)/site/.gcloudignore
 	cp $(BUILD_DIR)/site/app.yaml $(BUILD_DIR)/site/.app.yaml
 
+md-test: docker
+	docker run -t --rm -v $(CURDIR):/mnt:ro dkhamsing/awesome_bot --white-list "localhost,github.com/GoogleCloudPlatform/open-match/tree/release-,github.com/GoogleCloudPlatform/open-match/blob/release-,github.com/GoogleCloudPlatform/open-match/releases/download/v" --allow-dupe --allow-redirect --skip-save-results `find . -type f -name '*.md' -not -path './build/*' -not -path './node_modules/*' -not -path './site*' -not -path './.git*'`
+
 site-test: TEMP_SITE_DIR := /tmp/open-match-site
 site-test: build/site/ build/toolchain/bin/htmltest$(EXE_EXTENSION)
 	rm -rf $(TEMP_SITE_DIR)
@@ -727,7 +730,7 @@ else
 endif
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: update-deps clean-protos clean-secrets all-protos lint build test clean-site site-test
+presubmit: update-deps clean-protos clean-secrets all-protos lint build test clean-site site-test md-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -849,4 +852,4 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
-.PHONY: docker gcloud deploy-redirect-site update-deps sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-test vet
+.PHONY: docker gcloud deploy-redirect-site update-deps sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-test site-test md-test vet
