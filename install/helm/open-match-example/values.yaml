@@ -20,9 +20,6 @@ openmatch:
     stackdriverProjectID: ""
     port: 9555
     path: "/metrics"
-  evaluator:
-  # TODO: Enable it once v.6 evaluator is done.
-    install: false
   function:
     install: true
     grpc:
@@ -35,9 +32,6 @@ openmatch:
   image:
     registry: gcr.io/open-match-public-images
     tag: 0.0.0-dev
-    evaluator:
-      name: openmatch-evaluator-serving
-      pullPolicy: Always
     function:
       name: openmatch-mmf-go-simple
       pullPolicy: Always
