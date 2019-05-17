@@ -156,7 +156,7 @@ func configureConfigAndKeysForTesting(assert *assert.Assertions, tlsEnabled bool
 
 		// Generate a config view with paths to the manifests
 		cfg.Set("tls.enabled", true)
-		cfg.Set("tls.trustedKeyPath", pubFile.Name())
+		cfg.Set("tls.trustedCertificatesPath", pubFile.Name())
 
 		rpcParams.SetTLSConfiguration(pubBytes, pubBytes, priBytes)
 	}

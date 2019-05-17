@@ -17,7 +17,9 @@ package rpc
 import (
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -35,13 +37,13 @@ var (
 
 // ClientParams contains the connection parameters to connect to an Open Match service.
 type ClientParams struct {
-	Hostname       string
-	Port           int
-	TrustedKeyPath string
+	Hostname           string
+	Port               int
+	TrustedCertificate []byte
 }
 
 func (p *ClientParams) usingTLS() bool {
-	return len(p.TrustedKeyPath) > 0
+	return len(p.TrustedCertificate) > 0
 }
 
 // GRPCClientFromConfig creates a gRPC client connection from a configuration.
@@ -51,9 +53,19 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 		Port:     cfg.GetInt(prefix + ".grpcport"),
 	}
 
-	// If TLS support is enabled in the config, fill in the trusted key for decrpting server certificate.
+	// If TLS support is enabled in the config, fill in the trusted certificates for decrpting server certificate.
 	if cfg.GetBool("tls.enabled") {
-		clientParams.TrustedKeyPath = cfg.GetString("tls.trustedKeyPath")
+		_, err := os.Stat(cfg.GetString("tls.trustedCertificatesPath"))
+		if err != nil {
+			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
+			return nil, err
+		}
+
+		clientParams.TrustedCertificate, err = ioutil.ReadFile(cfg.GetString("tls.trustedCertificatesPath"))
+		if err != nil {
+			clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
+			return nil, err
+		}
 	}
 
 	return GRPCClientFromParams(clientParams)
@@ -66,7 +78,7 @@ func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 	grpcOptions := []grpc.DialOption{}
 
 	if params.usingTLS() {
-		creds, err := clientCredentialsFromFile(params.TrustedKeyPath)
+		creds, err := clientCredentialsFromFileData(params.TrustedCertificate, "")
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to get transport credentials from file.")
 			return nil, errors.WithStack(err)
@@ -86,9 +98,19 @@ func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string,
 		Port:     cfg.GetInt(prefix + ".httpport"),
 	}
 
-	// If TLS support is enabled in the config, fill in the trustedKeyPath
+	// If TLS support is enabled in the config, fill in the trusted certificates for decrpting server certificate.
 	if cfg.GetBool("tls.enabled") {
-		clientParams.TrustedKeyPath = cfg.GetString("tls.trustedKeyPath")
+		_, err := os.Stat(cfg.GetString("tls.trustedCertificatesPath"))
+		if err != nil {
+			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
+			return nil, "", err
+		}
+
+		clientParams.TrustedCertificate, err = ioutil.ReadFile(cfg.GetString("tls.trustedCertificatesPath"))
+		if err != nil {
+			clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
+			return nil, "", err
+		}
 	}
 
 	return HTTPClientFromParams(clientParams)
@@ -97,13 +119,14 @@ func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string,
 // HTTPClientFromParams creates a HTTP client from the parameters.
 func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 	address := fmt.Sprintf("%s:%d", params.Hostname, params.Port)
+	// Make client Timeout configurable
 	httpClient := &http.Client{Timeout: time.Second * 3}
 	var baseURL string
 
 	if params.usingTLS() {
 		baseURL = "https://" + address
 
-		pool, err := trustedCertificatesFromFile(params.TrustedKeyPath)
+		pool, err := trustedCertificates(params.TrustedCertificate)
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to get cert pool from file.")
 			return nil, "", err
