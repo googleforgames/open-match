@@ -184,6 +184,12 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 			"key":   id,
 			"error": err.Error(),
 		}).Error("failed to get the ticket from state storage")
+
+		// Return NotFound if redigo did not find the ticket in storage.
+		if err == redis.ErrNil {
+			return nil, status.Errorf(codes.NotFound, "%v", err)
+		}
+
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
@@ -230,8 +236,8 @@ func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) error {
 	return nil
 }
 
-// IndexTicket indexes the Ticket id for the specified fields.
-func (rb *redisBackend) IndexTicket(ctx context.Context, ticket pb.Ticket, indices []string) error {
+// IndexTicket indexes the Ticket id for the configured index fields.
+func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
@@ -245,6 +251,13 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket pb.Ticket, indic
 			"error": err.Error(),
 		}).Error("state storage operation failed")
 		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	// Fetch the indices from the configuration.
+	// TODO: Consider adding Open Match specific custom indices in future.
+	var indices []string
+	if rb.cfg.IsSet("playerIndices") {
+		indices = rb.cfg.GetStringSlice("playerIndices")
 	}
 
 	// Loop through all attributes we want to index.
@@ -299,7 +312,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket pb.Ticket, indic
 }
 
 // DeindexTicket removes the indexing for the specified Ticket. Only the indexes are removed but the Ticket continues to exist.
-func (rb *redisBackend) DeindexTicket(ctx context.Context, id string, indices []string) error {
+func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
@@ -313,6 +326,13 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string, indices []
 			"error": err.Error(),
 		}).Error("state storage operation failed")
 		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	// Fetch the indices from the configuration.
+	// TODO: Consider adding Open Match specific custom indices in future.
+	var indices []string
+	if rb.cfg.IsSet("playerIndices") {
+		indices = rb.cfg.GetStringSlice("playerIndices")
 	}
 
 	for _, attribute := range indices {
@@ -352,12 +372,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter)
 	if err != nil {
 		redisLogger.WithError(err).Error("Failed to get redis connection with context.")
 	}
-
-	defer func() {
-		if err := redisConn.Close(); err != nil {
-			redisLogger.WithError(err).Error("Failed to close Redis connection.")
-		}
-	}()
+	defer handleConnectionClose(&redisConn)
 
 	// A map[attribute]map[playerID]value
 	attributeToTickets := make(map[string]map[string]int64)
