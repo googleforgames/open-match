@@ -16,14 +16,14 @@ package statestore
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
+	"github.com/tidwall/gjson"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
@@ -266,30 +266,30 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 		// Alternatives for populating this information in proto fields are being considered.
 		// Also, we need to add Ticket creation time to either the ticket or index.
 		// Meta characters bein specified in JSON property keys is currently not supported.
-		v, found := ticket.Properties.Fields[attribute]
+		v := gjson.Get(ticket.Properties, attribute)
 
 		// If this attribute wasn't provided in the JSON, continue to the next attribute to index.
-		if !found {
+		if !v.Exists() {
 			redisLogger.WithFields(logrus.Fields{
 				"attribute": attribute}).Warning("Couldn't find index in Ticket Properties")
 			continue
 		}
 
-		var d float64
-
-		switch v.Kind.(type) {
-		case *structpb.Value_NumberValue:
-			d = v.GetNumberValue()
-		default:
-			// TODO LOG WRONG TYPE ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// Value exists. Check if it is a supported value for indexed properties.
+		if v.Int() < math.MaxInt64 || v.Int() > math.MaxInt64 {
+			redisLogger.WithFields(logrus.Fields{
+				"attribute": attribute}).Warning("Invalid value for attribute, skip indexing.")
+			continue
 		}
 
-		err = redisConn.Send("ZADD", attribute, d, ticket.Id)
+		// Index the attribute by value.
+		value := v.Int()
+		err = redisConn.Send("ZADD", attribute, value, ticket.Id)
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
 				"cmd":       "ZADD",
 				"attribute": attribute,
-				"d":         d,
+				"value":     value,
 				"ticket":    ticket.Id,
 				"error":     err.Error(),
 			}).Error("failed to index ticket attribute")
@@ -367,15 +367,13 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 //  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
-func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter) (map[string]map[string]float64, error) {
+func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
 		redisLogger.WithError(err).Error("Failed to get redis connection with context.")
 	}
 	defer handleConnectionClose(&redisConn)
 
-	// A map[attribute]map[playerID]value
-	attributeToTickets := make(map[string]map[string]float64)
 	// A set of playerIds that satisfies all filters
 	idSet := make([]string, 0)
 
@@ -384,42 +382,75 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter)
 		// Time Complexity O(logN + M), where N is the number of elements in the attribute set
 		// and M is the number of entries being returned.
 		// TODO: discuss if we need a LIMIT for # of queries being returned
-		idToValue, err := redis.Int64Map(redisConn.Do("ZRANGEBYSCORE", filter.Attribute, filter.Min, filter.Max, "WITHSCORES"))
+		idsInFilter, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.Attribute, filter.Min, filter.Max))
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
-				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f WITHSCORES", filter.Attribute, filter.Min, filter.Max),
-			}).WithError(err)
-			return nil, err
-		}
-
-		attributeToTickets[filter.Attribute] = idToValue
-
-		idsPerFilter := make([]string, 0)
-		for id := range idToValue {
-			idsPerFilter = append(idsPerFilter, id)
+				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f", filter.Attribute, filter.Min, filter.Max),
+			}).WithError(err).Error("Failed to lookup index.")
+			return status.Errorf(codes.Internal, "%v", err)
 		}
 
 		if i == 0 {
-			idSet = idsPerFilter
+			idSet = idsInFilter
 		} else {
-			idSet = set.Intersection(idSet, idsPerFilter)
+			idSet = set.Intersection(idSet, idsInFilter)
 		}
 	}
 
-	// Result is a mapping from ticket ids to attribute key-value pairs
-	results := make(map[string]map[string]float64)
-	for _, id := range idSet {
-		// A map from attribute names to attribute values per ticket
-		propertyPerTicket := make(map[string]float64)
-
-		for attr, tickets := range attributeToTickets {
-			attrVal := tickets[id]
-			propertyPerTicket[attr] = attrVal
+	// TODO: finish reworking this after the proto changes.
+	for _, page := range idsToPages(idSet, pageSize) {
+		ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", page...))
+		if err != nil {
+			redisLogger.WithFields(logrus.Fields{
+				"Command": fmt.Sprintf("MGET %v", page),
+			}).WithError(err).Error("Failed to lookup tickets.")
+			return status.Errorf(codes.Internal, "%v", err)
 		}
-		results[id] = propertyPerTicket
+
+		tickets := make([]*pb.Ticket, 0, len(page))
+		for i, b := range ticketBytes {
+			// Tickets may be deleted by the time we read it from redis.
+			if b != nil {
+				t := &pb.Ticket{}
+				err = proto.Unmarshal(b, t)
+				if err != nil {
+					redisLogger.WithFields(logrus.Fields{
+						"key": page[i],
+					}).WithError(err).Error("Failed to unmarshal ticket from redis.")
+					return status.Errorf(codes.Internal, "%v", err)
+				}
+				tickets = append(tickets, t)
+			}
+		}
+
+		err = callback(tickets)
+		if err != nil {
+			return status.Errorf(codes.Internal, "%v", err)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 	}
 
-	return results, nil
+	return nil
+}
+
+func idsToPages(ids []string, pageSize int) [][]interface{} {
+	result := make([][]interface{}, 0, len(ids)/pageSize+1)
+	for i := 0; i < len(ids); i += pageSize {
+		end := i + pageSize
+		if end > len(ids) {
+			end = len(ids)
+		}
+		page := make([]interface{}, end-i)
+		for i, id := range ids[i:end] {
+			page[i] = id
+		}
+		result = append(result, page)
+	}
+	return result
 }
 
 func handleConnectionClose(conn *redis.Conn) {
@@ -429,28 +460,4 @@ func handleConnectionClose(conn *redis.Conn) {
 			"error": err,
 		}).Debug("failed to close redis client connection.")
 	}
-}
-
-// Function which is randomly missing from redigo
-func float64Map(result interface{}, err error) (map[string]float64, error) {
-	values, err := Values(result, err)
-	if err != nil {
-		return nil, err
-	}
-	if len(values)%2 != 0 {
-		return nil, errors.New("redigo: Int64Map expects even number of values result")
-	}
-	m := make(map[string]float64, len(values)/2)
-	for i := 0; i < len(values); i += 2 {
-		key, ok := values[i].([]byte)
-		if !ok {
-			return nil, errors.New("redigo: Int64Map key not a bulk string value")
-		}
-		value, err := redis.Float64(values[i+1], nil)
-		if err != nil {
-			return nil, err
-		}
-		m[string(key)] = value
-	}
-	return m, nil
 }

@@ -56,13 +56,13 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 
 // Configuration for the Match Function to be triggered by Open Match to
 // generate proposals.
-message MatchFunctionConfig {
-  message GrpcFunctionProperties {
+message FunctionConfig {
+  message Grpc {
     string host = 1;
     int32 port = 2;
   }
 
-  message RestFunctionProperties {
+  message Rest {
     string host = 1;
     int32 port = 2;
   }
@@ -71,15 +71,15 @@ message MatchFunctionConfig {
   string name = 1;
 
   // Properties for the type of this function.
-  oneof function {
-    GrpcFunctionProperties grpc_function = 10001;
-    RestFunctionProperties rest_function = 10002;
+  oneof type {
+    Grpc grpc = 10001;
+    Rest rest = 10002;
   }
 }
 
 message FetchMatchesRequest {
-  // MatchFunction to be executed for the given list of MatchProfiles
-  MatchFunctionConfig function = 1;
+  // Configuration of the MatchFunction to be executed for the given list of MatchProfiles
+  FunctionConfig config = 1;
 
   // MatchProfiles for which this MatchFunction should be executed.
   repeated MatchProfile profile = 2;

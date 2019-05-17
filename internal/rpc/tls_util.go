@@ -16,7 +16,6 @@ package rpc
 
 import (
 	"fmt"
-	"io/ioutil"
 
 	"crypto/tls"
 	"crypto/x509"
@@ -25,18 +24,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// clientCredentialsFromFile gets TransportCredentials from public certificate.
-// nolint:deadcode unused
-func clientCredentialsFromFile(certPath string) (credentials.TransportCredentials, error) {
-	publicCertFileData, err := ioutil.ReadFile(certPath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read public certificate from %s", certPath)
-	}
-	return clientCredentialsFromFileData(publicCertFileData, "")
-}
-
-// trustedCertificates gets TransportCredentials from public certificate file contents.
-func trustedCertificates(publicCertFileData []byte) (*x509.CertPool, error) {
+func trustedCertificateFromFileData(publicCertFileData []byte) (*x509.CertPool, error) {
 	pool := x509.NewCertPool()
 	if !pool.AppendCertsFromPEM(publicCertFileData) {
 		return nil, errors.WithStack(fmt.Errorf("ClientCredentialsFromFileData: failed to append certificates"))
@@ -44,7 +32,6 @@ func trustedCertificates(publicCertFileData []byte) (*x509.CertPool, error) {
 	return pool, nil
 }
 
-// clientCredentialsFromFileData gets TransportCredentials from public certificate file contents.
 func clientCredentialsFromFileData(publicCertFileData []byte, serverOverride string) (credentials.TransportCredentials, error) {
 	pool := x509.NewCertPool()
 	if !pool.AppendCertsFromPEM(publicCertFileData) {
@@ -53,21 +40,6 @@ func clientCredentialsFromFileData(publicCertFileData []byte, serverOverride str
 	return credentials.NewClientTLSFromCert(pool, serverOverride), nil
 }
 
-// certificateFromFiles returns a tls.Certificate from PEM encoded X.509 public certificate and RSA private key files.
-// nolint:deadcode unused
-func certificateFromFiles(publicCertificatePath string, privateKeyPath string) (*tls.Certificate, error) {
-	publicCertFileData, err := ioutil.ReadFile(publicCertificatePath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read public certificate from %s", publicCertificatePath)
-	}
-	privateKeyFileData, err := ioutil.ReadFile(privateKeyPath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read private key from %s", privateKeyPath)
-	}
-	return certificateFromFileData(publicCertFileData, privateKeyFileData)
-}
-
-// certificateFromFileData returns a tls.Certificate from PEM encoded file data.
 func certificateFromFileData(publicCertFileData []byte, privateKeyFileData []byte) (*tls.Certificate, error) {
 	cert, err := tls.X509KeyPair(publicCertFileData, privateKeyFileData)
 	if err != nil {

@@ -76,12 +76,10 @@ type MatchFunctionParams struct {
 }
 
 // Run is this harness's implementation of the gRPC call defined in api/matchfunction.proto.
-func (s *matchFunctionService) Run(req *pb.RunRequest, mfServer pb.MatchFunction_RunServer) error {
-	ctx := mfServer.Context()
-
+func (s *matchFunctionService) Run(ctx context.Context, req *pb.RunRequest) (*pb.RunResponse, error) {
 	poolNameToTickets, err := s.getMatchManifest(ctx, req)
 	if err != nil {
-		return status.Error(codes.Aborted, err.Error())
+		return nil, status.Error(codes.Aborted, err.Error())
 	}
 
 	// The matchfunction takes in some half-filled/empty rosters, a property bag, and a map[poolNames]tickets to generate match proposals
@@ -93,22 +91,11 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, mfServer pb.MatchFunction
 		PoolNameToTickets: poolNameToTickets,
 	}
 	// Run the customize match function!
-	matchProposals := s.function(mfView)
-
-	// Send the proposals back in stream
-	for _, match := range matchProposals {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-			err := mfServer.Send(&pb.RunResponse{Proposal: match})
-			if err != nil {
-				matchfunctionLogger.WithError(err).Error("Failed to send Run response to grpc server.")
-				return status.Error(codes.Aborted, err.Error())
-			}
-		}
-	}
-	return nil
+	proposals := s.function(mfView)
+	matchfunctionLogger.WithFields(logrus.Fields{
+		"proposals": proposals,
+	}).Trace("proposals returned by match function")
+	return &pb.RunResponse{Proposal: proposals}, nil
 }
 
 func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunctionService, error) {
