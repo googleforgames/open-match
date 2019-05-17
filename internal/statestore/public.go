@@ -47,7 +47,7 @@ type Service interface {
 	DeindexTicket(ctx context.Context, id string) error
 
 	// FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria.
-	FilterTickets(ctx context.Context, filters []*pb.Filter) (map[string]map[string]int64, error)
+	FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error
 
 	// Closes the connection to the underlying storage.
 	Close() error
