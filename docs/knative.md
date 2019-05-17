@@ -3,7 +3,7 @@ This describes the basic installation of knative (and istio) for serverless matc
 It also provides experimental instructions for setting up you function host and endpoint.
 
 ## New cluster deploy instructions
-Primarily taken from this [https://github.com/knative/docs/blob/master/install/Knative-custom-install.md] guide 
+Primarily taken from this [https://knative.dev/docs/install/] guide 
 ### Install Istio
 Download and apply the istio manifests
 ```

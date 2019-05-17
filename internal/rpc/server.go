@@ -43,8 +43,8 @@ type GrpcHandler func(*grpc.Server)
 // GrpcProxyHandler binds HTTP handler to gRPC service.
 type GrpcProxyHandler func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error
 
-// Params holds all the parameters required to start a gRPC server.
-type Params struct {
+// ServerParams holds all the parameters required to start a gRPC server.
+type ServerParams struct {
 	// ServeMux is the router for the HTTP server. You can use this to serve pages in addition to the HTTP proxy.
 	// Do NOT register "/" handler because it's reserved for the proxy.
 	ServeMux             *http.ServeMux
@@ -62,8 +62,8 @@ type Params struct {
 	privateKeyFileData []byte
 }
 
-// NewParamsFromConfig returns server Params initialized from the configuration file.
-func NewParamsFromConfig(cfg config.View, prefix string) (*Params, error) {
+// NewServerParamsFromConfig returns server Params initialized from the configuration file.
+func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, error) {
 	grpcLh, err := netlistener.NewFromPortNumber(cfg.GetInt(prefix + ".grpcport"))
 	if err != nil {
 		serverLogger.Fatal(err)
@@ -80,7 +80,7 @@ func NewParamsFromConfig(cfg config.View, prefix string) (*Params, error) {
 		serverLogger.Fatal(err)
 		return nil, err
 	}
-	p := NewParamsFromListeners(grpcLh, httpLh)
+	p := NewServerParamsFromListeners(grpcLh, httpLh)
 
 	certFile := cfg.GetString("api.tls.certificatefile")
 	privateKeyFile := cfg.GetString("api.tls.privatekey")
@@ -115,9 +115,9 @@ func NewParamsFromConfig(cfg config.View, prefix string) (*Params, error) {
 	return p, nil
 }
 
-// NewParamsFromListeners returns server Params initialized with the ListenerHolder variables.
-func NewParamsFromListeners(grpcLh *netlistener.ListenerHolder, proxyLh *netlistener.ListenerHolder) *Params {
-	return &Params{
+// NewServerParamsFromListeners returns server Params initialized with the ListenerHolder variables.
+func NewServerParamsFromListeners(grpcLh *netlistener.ListenerHolder, proxyLh *netlistener.ListenerHolder) *ServerParams {
+	return &ServerParams{
 		ServeMux:             http.NewServeMux(),
 		handlersForGrpc:      []GrpcHandler{},
 		handlersForGrpcProxy: []GrpcProxyHandler{},
@@ -127,7 +127,7 @@ func NewParamsFromListeners(grpcLh *netlistener.ListenerHolder, proxyLh *netlist
 }
 
 // SetTLSConfiguration configures the server to run in TLS mode.
-func (p *Params) SetTLSConfiguration(rootCaPublicCertificateFileData []byte, publicCertificateFileData []byte, privateKeyFileData []byte) *Params {
+func (p *ServerParams) SetTLSConfiguration(rootCaPublicCertificateFileData []byte, publicCertificateFileData []byte, privateKeyFileData []byte) *ServerParams {
 	p.rootCaPublicCertificateFileData = rootCaPublicCertificateFileData
 	if len(p.rootCaPublicCertificateFileData) == 0 {
 		p.rootCaPublicCertificateFileData = publicCertificateFileData
@@ -138,12 +138,12 @@ func (p *Params) SetTLSConfiguration(rootCaPublicCertificateFileData []byte, pub
 }
 
 // usingTLS returns true if a certificate is set.
-func (p *Params) usingTLS() bool {
+func (p *ServerParams) usingTLS() bool {
 	return len(p.publicCertificateFileData) > 0
 }
 
 // AddHandleFunc binds gRPC service handler and an associated HTTP proxy handler.
-func (p *Params) AddHandleFunc(handlerFunc GrpcHandler, grpcProxyHandler GrpcProxyHandler) {
+func (p *ServerParams) AddHandleFunc(handlerFunc GrpcHandler, grpcProxyHandler GrpcProxyHandler) {
 	if handlerFunc != nil {
 		p.handlersForGrpc = append(p.handlersForGrpc, handlerFunc)
 	}
@@ -153,7 +153,7 @@ func (p *Params) AddHandleFunc(handlerFunc GrpcHandler, grpcProxyHandler GrpcPro
 }
 
 // invalidate closes all the TCP listeners that would otherwise leak if initialization fails.
-func (p *Params) invalidate() {
+func (p *ServerParams) invalidate() {
 	if err := p.grpcListener.Close(); err != nil {
 		serverLogger.Errorf("error closing grpc handler, %s", err)
 	}
@@ -170,12 +170,12 @@ type Server struct {
 
 // grpcServerWithProxy this will go away when insecure.go and tls.go are merged into the same server.
 type grpcServerWithProxy interface {
-	start(*Params) (func(), error)
+	start(*ServerParams) (func(), error)
 	stop()
 }
 
 // Start the gRPC+HTTP(s) REST server.
-func (s *Server) Start(p *Params) (func(), error) {
+func (s *Server) Start(p *ServerParams) (func(), error) {
 	if p.usingTLS() {
 		s.serverWithProxy = newTLSServer(p.grpcListener, p.grpcProxyListener)
 	} else {
@@ -192,7 +192,7 @@ func (s *Server) Stop() {
 // startServingIndefinitely creates a server based on the params and begins serving the gRPC and HTTP proxy.
 // It returns waitUntilKilled() which will wait indefinitely until crash or Ctrl+C is pressed.
 // forceStopServingFunc() is also returned which is used to force kill the server for tests.
-func startServingIndefinitely(params *Params) (func(), func(), error) {
+func startServingIndefinitely(params *ServerParams) (func(), func(), error) {
 	s := &Server{}
 
 	// Start serving traffic.
@@ -217,7 +217,7 @@ func startServingIndefinitely(params *Params) (func(), func(), error) {
 }
 
 // MustServeForever is a convenience method for starting a server and running it indefinitely.
-func MustServeForever(params *Params) {
+func MustServeForever(params *ServerParams) {
 	serveUntilKilledFunc, _, err := startServingIndefinitely(params)
 	if err != nil {
 		return

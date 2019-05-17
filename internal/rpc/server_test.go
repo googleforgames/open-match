@@ -37,7 +37,7 @@ func TestStartStopServer(t *testing.T) {
 	httpLh := netlistenerTesting.MustListen()
 	ff := &shellTesting.FakeFrontend{}
 
-	params := NewParamsFromListeners(grpcLh, httpLh)
+	params := NewServerParamsFromListeners(grpcLh, httpLh)
 	params.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServer(s, ff)
 	}, pb.RegisterFrontendHandlerFromEndpoint)
@@ -65,7 +65,7 @@ func TestMustServeForever(t *testing.T) {
 	httpLh := netlistenerTesting.MustListen()
 	ff := &shellTesting.FakeFrontend{}
 
-	params := NewParamsFromListeners(grpcLh, httpLh)
+	params := NewServerParamsFromListeners(grpcLh, httpLh)
 	params.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServer(s, ff)
 	}, pb.RegisterFrontendHandlerFromEndpoint)

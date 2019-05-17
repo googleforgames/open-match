@@ -25,17 +25,17 @@ import (
 	shellTesting "open-match.dev/open-match/internal/testing"
 )
 
-// TestMustParamsForTesting verifies that a server can stand up in insecure mode.
-func TestMustParamsForTesting(t *testing.T) {
-	runServerStartStopTest(t, MustParamsForTesting())
+// TestMustServerParamsForTesting verifies that a server can stand up in insecure mode.
+func TestMustServerParamsForTesting(t *testing.T) {
+	runServerStartStopTest(t, MustServerParamsForTesting())
 }
 
-// TestMustParamsForTestingTLS verifies that a server can stand up in TLS-mode.
-func TestMustParamsForTestingTLS(t *testing.T) {
-	runServerStartStopTest(t, MustParamsForTestingTLS())
+// TestMustServerParamsForTestingTLS verifies that a server can stand up in TLS-mode.
+func TestMustServerParamsForTestingTLS(t *testing.T) {
+	runServerStartStopTest(t, MustServerParamsForTestingTLS())
 }
 
-func runServerStartStopTest(t *testing.T, p *rpc.Params) {
+func runServerStartStopTest(t *testing.T, p *rpc.ServerParams) {
 	assert := assert.New(t)
 	ff := &shellTesting.FakeFrontend{}
 	p.AddHandleFunc(func(s *grpc.Server) {

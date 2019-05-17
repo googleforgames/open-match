@@ -106,6 +106,7 @@ OPEN_MATCH_CHART_NAME = open-match
 OPEN_MATCH_KUBERNETES_NAMESPACE = open-match
 OPEN_MATCH_EXAMPLE_CHART_NAME = open-match-example
 OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE = open-match
+OPEN_MATCH_SECRETS_DIR = $(REPOSITORY_ROOT)/install/helm/open-match/secrets
 REDIS_NAME = om-redis
 GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | cut -c 10-)
 _GCB_POST_SUBMIT ?= 0
@@ -529,6 +530,18 @@ docker: no-sudo
 # Fake target for gcloud
 gcloud: no-sudo
 
+tls-certs: install/helm/open-match/secrets/
+
+install/helm/open-match/secrets/: install/helm/open-match/secrets/tls/root-ca/ install/helm/open-match/secrets/tls/server/
+
+install/helm/open-match/secrets/tls/root-ca/: build/toolchain/bin/certgen$(EXE_EXTENSION)
+	mkdir -p $(OPEN_MATCH_SECRETS_DIR)/tls/root-ca
+	$(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION) -ca=true -publiccertificate=$(OPEN_MATCH_SECRETS_DIR)/tls/root-ca/public.cert -privatekey=$(OPEN_MATCH_SECRETS_DIR)/tls/root-ca/private.key
+
+install/helm/open-match/secrets/tls/server/: build/toolchain/bin/certgen$(EXE_EXTENSION) install/helm/open-match/secrets/tls/root-ca/
+	mkdir -p $(OPEN_MATCH_SECRETS_DIR)/tls/server/
+	$(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION) -publiccertificate=$(OPEN_MATCH_SECRETS_DIR)/tls/server/public.cert -privatekey=$(OPEN_MATCH_SECRETS_DIR)/tls/server/private.key -rootpubliccertificate=$(OPEN_MATCH_SECRETS_DIR)/tls/root-ca/public.cert -rootprivatekey=$(OPEN_MATCH_SECRETS_DIR)/tls/root-ca/private.key
+
 auth-docker: gcloud docker
 	gcloud $(GCP_PROJECT_FLAG) auth configure-docker
 
@@ -587,10 +600,12 @@ build:
 test:
 	$(GO) test ./... -race -cover
 	$(GO) test ./... -run -cover IgnoreRace$$
+	(cd site; $(GO) test ./... -race -cover)
 
 ci-test:
 	$(GO) test ./... -race -test.count 25 -cover
 	$(GO) test ./... -run IgnoreRace$$ -cover
+	(cd site; $(GO) test ./... -race -test.count 25 -cover)
 
 stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
@@ -659,6 +674,9 @@ build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
 	-cp -f site/.gcloudignore $(BUILD_DIR)/site/.gcloudignore
 	cp $(BUILD_DIR)/site/app.yaml $(BUILD_DIR)/site/.app.yaml
 
+md-test: docker
+	docker run -t --rm -v $(CURDIR):/mnt:ro dkhamsing/awesome_bot --white-list "localhost,github.com/GoogleCloudPlatform/open-match/tree/release-,github.com/GoogleCloudPlatform/open-match/blob/release-,github.com/GoogleCloudPlatform/open-match/releases/download/v" --allow-dupe --allow-redirect --skip-save-results `find . -type f -name '*.md' -not -path './build/*' -not -path './node_modules/*' -not -path './site*' -not -path './.git*'`
+
 site-test: TEMP_SITE_DIR := /tmp/open-match-site
 site-test: build/site/ build/toolchain/bin/htmltest$(EXE_EXTENSION)
 	rm -rf $(TEMP_SITE_DIR)
@@ -711,7 +729,7 @@ else
 endif
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: update-deps clean-protos all-protos lint build test clean-site site-test
+presubmit: update-deps clean-protos clean-secrets all-protos lint build test clean-site site-test md-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -720,6 +738,9 @@ build/release/: presubmit clean-install-yaml install/yaml/
 release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
 release: TAG = $(BASE_VERSION)
 release: build/release/
+
+clean-secrets:
+	rm -rf $(OPEN_MATCH_SECRETS_DIR)
 
 clean-release:
 	rm -rf $(REPOSITORY_ROOT)/build/release/
@@ -767,7 +788,7 @@ clean-stress-test-tools:
 	rm -rf $(TOOLCHAIN_DIR)/python
 	rm -f $(REPOSITORY_ROOT)/test/stress/*.csv
 
-clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools
+clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools clean-secrets
 
 proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Health: http://localhost:$(FRONTEND_PORT)/healthz"
@@ -830,4 +851,4 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
-.PHONY: docker gcloud deploy-redirect-site update-deps sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-test vet
+.PHONY: docker gcloud deploy-redirect-site update-deps sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-test site-test md-test vet

@@ -45,7 +45,7 @@ type insecureServer struct {
 	httpServer      *http.Server
 }
 
-func (s *insecureServer) start(params *Params) (func(), error) {
+func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	s.grpcServeWaiter = make(chan error)
 	s.httpServeWaiter = make(chan error)
 	var serverStartWaiter sync.WaitGroup
