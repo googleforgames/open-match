@@ -387,7 +387,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 			redisLogger.WithFields(logrus.Fields{
 				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f", filter.Attribute, filter.Min, filter.Max),
 			}).WithError(err).Error("Failed to lookup index.")
-			return err
+			return status.Errorf(codes.Internal, "%v", err)
 		}
 
 		if i == 0 {
@@ -404,7 +404,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 			redisLogger.WithFields(logrus.Fields{
 				"Command": fmt.Sprintf("MGET %v", page),
 			}).WithError(err).Error("Failed to lookup tickets.")
-			return err
+			return status.Errorf(codes.Internal, "%v", err)
 		}
 
 		tickets := make([]*pb.Ticket, 0, len(page))
@@ -417,7 +417,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 					redisLogger.WithFields(logrus.Fields{
 						"key": page[i],
 					}).WithError(err).Error("Failed to unmarshal ticket from redis.")
-					return err
+					return status.Errorf(codes.Internal, "%v", err)
 				}
 				tickets = append(tickets, t)
 			}
@@ -425,7 +425,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 
 		err = callback(tickets)
 		if err != nil {
-			return err
+			return status.Errorf(codes.Internal, "%v", err)
 		}
 		select {
 		case <-ctx.Done():
