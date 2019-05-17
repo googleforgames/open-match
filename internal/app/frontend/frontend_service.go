@@ -71,7 +71,7 @@ func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicket
 	ticket, ok := proto.Clone(req.Ticket).(*pb.Ticket)
 	if !ok {
 		logger.Error("failed to clone input ticket proto")
-		return nil, status.Errorf(codes.Internal, "failed processing input")
+		return nil, status.Error(codes.Internal, "failed processing input")
 	}
 
 	ticket.Id = xid.New().String()
