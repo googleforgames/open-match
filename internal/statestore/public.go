@@ -17,16 +17,8 @@ package statestore
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
-)
-
-var (
-	publicLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "statestore.public",
-	})
 )
 
 // Service is a generic interface for talking to a storage backend.

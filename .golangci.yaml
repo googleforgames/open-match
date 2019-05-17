@@ -190,6 +190,9 @@ issues:
 
   # Excluding configuration per-path, per-linter, per-text and per-source
   exclude-rules:
+    - path: internal[/\\]config[/\\]
+      linters:
+        - gochecknoglobals
     # Exclue some linters from running on test files
     - path: _test\.go
       linters:
