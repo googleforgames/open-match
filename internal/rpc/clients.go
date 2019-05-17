@@ -55,13 +55,13 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 
 	// If TLS support is enabled in the config, fill in the trusted certificates for decrpting server certificate.
 	if cfg.GetBool("tls.enabled") {
-		_, err := os.Stat(cfg.GetString("tls.trustedCertificatesPath"))
+		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
 		if err != nil {
 			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
 			return nil, err
 		}
 
-		clientParams.TrustedCertificate, err = ioutil.ReadFile(cfg.GetString("tls.trustedCertificatesPath"))
+		clientParams.TrustedCertificate, err = ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
 			return nil, err
@@ -100,13 +100,13 @@ func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string,
 
 	// If TLS support is enabled in the config, fill in the trusted certificates for decrpting server certificate.
 	if cfg.GetBool("tls.enabled") {
-		_, err := os.Stat(cfg.GetString("tls.trustedCertificatesPath"))
+		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
 		if err != nil {
 			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
 			return nil, "", err
 		}
 
-		clientParams.TrustedCertificate, err = ioutil.ReadFile(cfg.GetString("tls.trustedCertificatesPath"))
+		clientParams.TrustedCertificate, err = ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
 			return nil, "", err
@@ -119,14 +119,14 @@ func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string,
 // HTTPClientFromParams creates a HTTP client from the parameters.
 func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 	address := fmt.Sprintf("%s:%d", params.Hostname, params.Port)
-	// Make client Timeout configurable
+	// TODO: Make client Timeout configurable
 	httpClient := &http.Client{Timeout: time.Second * 3}
 	var baseURL string
 
 	if params.usingTLS() {
 		baseURL = "https://" + address
 
-		pool, err := trustedCertificates(params.TrustedCertificate)
+		pool, err := trustedCertificateFromFileData(params.TrustedCertificate)
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to get cert pool from file.")
 			return nil, "", err

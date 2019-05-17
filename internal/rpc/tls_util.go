@@ -24,7 +24,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-func trustedCertificates(publicCertFileData []byte) (*x509.CertPool, error) {
+func trustedCertificateFromFileData(publicCertFileData []byte) (*x509.CertPool, error) {
 	pool := x509.NewCertPool()
 	if !pool.AppendCertsFromPEM(publicCertFileData) {
 		return nil, errors.WithStack(fmt.Errorf("ClientCredentialsFromFileData: failed to append certificates"))
