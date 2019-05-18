@@ -105,7 +105,7 @@ func TestTicketIndexing(t *testing.T) {
 	assert.NotNil(service)
 	defer service.Close()
 
-	for i := 0; i < 10; i += 1 {
+	for i := 0; i < 10; i++ {
 		id := fmt.Sprintf("ticket.no.%d", i)
 
 		ticket := &pb.Ticket{
@@ -158,6 +158,7 @@ func TestTicketIndexing(t *testing.T) {
 		}
 		return nil
 	})
+	assert.Nil(err)
 
 	assert.Equal(len(found), 4)
 	assert.Contains(found, "ticket.no.3")
