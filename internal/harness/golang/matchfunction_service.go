@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -70,7 +71,7 @@ type matchFunctionService struct {
 type MatchFunctionParams struct {
 	Logger            *logrus.Entry
 	ProfileName       string
-	Properties        string
+	Properties        *structpb.Struct
 	Rosters           []*pb.Roster
 	PoolNameToTickets map[string][]*pb.Ticket
 }

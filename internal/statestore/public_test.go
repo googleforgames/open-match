@@ -16,10 +16,12 @@ package statestore
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/alicebob/miniredis"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -50,8 +52,12 @@ func TestTicketLifecycle(t *testing.T) {
 	// Initialize test data
 	id := xid.New().String()
 	ticket := &pb.Ticket{
-		Id:         id,
-		Properties: "test-property",
+		Id: id,
+		Properties: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"testindex1": {Kind: &structpb.Value_NumberValue{NumberValue: 42}},
+			},
+		},
 		Assignment: &pb.Assignment{
 			Connection: "test-tbd",
 		},
@@ -79,7 +85,7 @@ func TestTicketLifecycle(t *testing.T) {
 	assert.Nil(err)
 	assert.NotNil(result)
 	assert.Equal(ticket.Id, result.Id)
-	assert.Equal(ticket.Properties, result.Properties)
+	assert.Equal(ticket.Properties.Fields["testindex1"].GetNumberValue(), result.Properties.Fields["testindex1"].GetNumberValue())
 	assert.Equal(ticket.Assignment.Connection, result.Assignment.Connection)
 
 	// Validate Ticket deletion
@@ -91,8 +97,73 @@ func TestTicketLifecycle(t *testing.T) {
 }
 
 func TestTicketIndexing(t *testing.T) {
-	// TODO: The change to filter tickets is currently in progress.
-	// Testing Ticket indexing will be added along with this implementation.
+	// Create State Store
+	assert := assert.New(t)
+	cfg := createBackend(t)
+	service, err := New(cfg)
+	assert.Nil(err)
+	assert.NotNil(service)
+	defer service.Close()
+
+	for i := 0; i < 10; i += 1 {
+		id := fmt.Sprintf("ticket.no.%d", i)
+
+		ticket := &pb.Ticket{
+			Id: id,
+			Properties: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"testindex1": {Kind: &structpb.Value_NumberValue{NumberValue: float64(i)}},
+					"testindex2": {Kind: &structpb.Value_NumberValue{NumberValue: 0.5}},
+				},
+			},
+			Assignment: &pb.Assignment{
+				Connection: "test-tbd",
+			},
+		}
+
+		err = service.CreateTicket(context.Background(), ticket)
+		assert.Nil(err)
+
+		err = service.IndexTicket(context.Background(), ticket)
+		assert.Nil(err)
+	}
+
+	// Remove one ticket, to test that it doesn't fall over.
+	err = service.DeleteTicket(context.Background(), "ticket.no.5")
+	assert.Nil(err)
+
+	// Remove ticket from index, should not show up.
+	err = service.DeindexTicket(context.Background(), "ticket.no.6")
+	assert.Nil(err)
+
+	found := make(map[string]struct{})
+
+	filters := []*pb.Filter{
+		{
+			Attribute: "testindex1",
+			Min:       2.5,
+			Max:       8.5,
+		},
+		{
+			Attribute: "testindex2",
+			Min:       0.49,
+			Max:       0.51,
+		},
+	}
+
+	err = service.FilterTickets(context.Background(), filters, 2, func(tickets []*pb.Ticket) error {
+		assert.True(len(tickets) <= 2)
+		for _, ticket := range tickets {
+			found[ticket.Id] = struct{}{}
+		}
+		return nil
+	})
+
+	assert.Equal(len(found), 4)
+	assert.Contains(found, "ticket.no.3")
+	assert.Contains(found, "ticket.no.4")
+	assert.Contains(found, "ticket.no.7")
+	assert.Contains(found, "ticket.no.8")
 }
 
 func createBackend(t *testing.T) config.View {
