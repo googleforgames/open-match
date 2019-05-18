@@ -105,6 +105,7 @@ tmp/
 cmd/backend/backend
 cmd/frontend/frontend
 cmd/mmlogic/mmlogic
+cmd/evaluator/evaluator
 cmd/minimatch/minimatch
 tools/certgen/certgen
 examples/functions/golang/simple/simple

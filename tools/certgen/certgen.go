@@ -33,7 +33,7 @@ var (
 	publicCertificateFlag     = flag.String("publiccertificate", "public.cert", "Public key certificate path to be generated")
 	privateKeyFlag            = flag.String("privatekey", "private.key", "Private key file path to be generated")
 	validityDurationFlag      = flag.Duration("duration", time.Hour*24*365*5, "Lifetime for certificate validity (default is 5 years)")
-	hostnamesFlag             = flag.String("hostnames", "om-frontendapi,om-backendapi,om-mmforc,om-function,om-mmlogicapi,om-evaluator", "Comma separated list of host names.")
+	hostnamesFlag             = flag.String("hostnames", "om-frontendapi,om-backendapi,om-evaluatorapi,om-function,om-mmlogicapi", "Comma separated list of host names.")
 	rsaKeyLengthFlag          = flag.Int("rsa", 2048, "RSA Encryption Key bit length for certificate.")
 )
 
