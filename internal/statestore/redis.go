@@ -17,13 +17,12 @@ package statestore
 import (
 	"context"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
-	"github.com/tidwall/gjson"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
@@ -266,30 +265,33 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 		// Alternatives for populating this information in proto fields are being considered.
 		// Also, we need to add Ticket creation time to either the ticket or index.
 		// Meta characters bein specified in JSON property keys is currently not supported.
-		v := gjson.Get(ticket.Properties, attribute)
+		v, ok := ticket.Properties.Fields[attribute]
 
-		// If this attribute wasn't provided in the JSON, continue to the next attribute to index.
-		if !v.Exists() {
+		// If this attribute wasn't provided, continue to the next attribute to index.
+		if !ok {
 			redisLogger.WithFields(logrus.Fields{
 				"attribute": attribute}).Warning("Couldn't find index in Ticket Properties")
 			continue
 		}
 
-		// Value exists. Check if it is a supported value for indexed properties.
-		if v.Int() < math.MaxInt64 || v.Int() > math.MaxInt64 {
+		var d float64
+
+		switch v.Kind.(type) {
+		case *structpb.Value_NumberValue:
+			d = v.GetNumberValue()
+		default:
 			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute}).Warning("Invalid value for attribute, skip indexing.")
-			continue
+				"attribute": attribute,
+			}).Warning("Attribute not a number.")
 		}
 
 		// Index the attribute by value.
-		value := v.Int()
-		err = redisConn.Send("ZADD", attribute, value, ticket.Id)
+		err = redisConn.Send("ZADD", attribute, d, ticket.Id)
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
 				"cmd":       "ZADD",
 				"attribute": attribute,
-				"value":     value,
+				"value":     d,
 				"ticket":    ticket.Id,
 				"error":     err.Error(),
 			}).Error("failed to index ticket attribute")
