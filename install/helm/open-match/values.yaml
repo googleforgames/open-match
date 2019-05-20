@@ -81,7 +81,7 @@ openmatch:
             backoff: "[2 32] *2 ~0.33 <30"
           frontend:
             hostname: om-frontend
-            port: "{{.Values.openmatch.frontend.grpc.port}}"
+            grpcport: "{{.Values.openmatch.frontend.grpc.port}}"
             httpport: "{{.Values.openmatch.frontend.http.port}}"
             backoff: "[2 32] *2 ~0.33 <300"
           mmlogic:
