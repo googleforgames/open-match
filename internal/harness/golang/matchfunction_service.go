@@ -151,7 +151,7 @@ func getMMLogicClient(cfg config.View) (pb.MmLogicClient, error) {
 		return nil, fmt.Errorf("Failed to get hostname for MMLogicAPI from the configuration")
 	}
 
-	port := cfg.GetString("api.mmlogic.port")
+	port := cfg.GetString("api.mmlogic.grpcport")
 	if len(port) == 0 {
 		return nil, fmt.Errorf("Failed to get port for MMLogicAPI from the configuration")
 	}
