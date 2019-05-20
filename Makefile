@@ -529,10 +529,10 @@ endif
 
 delete-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) reset
-	-$(KUBECTL) --ignore-not-found delete serviceaccount --namespace kube-system tiller
-	-$(KUBECTL) --ignore-not-found delete clusterrolebinding tiller-cluster-rule
+	-$(KUBECTL) --ignore-not-found=true delete serviceaccount --namespace kube-system tiller
+	-$(KUBECTL) --ignore-not-found=true delete clusterrolebinding tiller-cluster-rule
 ifneq ($(strip $($(KUBECTL) get clusterroles | grep -i rbac)),)
-	-$(KUBECTL) --ignore-not-found delete deployment --namespace kube-system tiller-deploy
+	-$(KUBECTL) --ignore-not-found=true delete deployment --namespace kube-system tiller-deploy
 endif
 	@echo "Waiting for Tiller to go away..."
 	-$(KUBECTL) wait deployment --timeout=60s --for delete -l app=helm,name=tiller --namespace kube-system
