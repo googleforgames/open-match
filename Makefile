@@ -300,9 +300,9 @@ dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) delete --purge $(OPEN_MATCH_CHART_NAME)
-	-$(KUBECTL) --ignore-not-found delete crd prometheuses.monitoring.coreos.com
-	-$(KUBECTL) --ignore-not-found delete crd servicemonitors.monitoring.coreos.com
-	-$(KUBECTL) --ignore-not-found delete crd prometheusrules.monitoring.coreos.com
+	-$(KUBECTL) --ignore-not-found=true delete crd prometheuses.monitoring.coreos.com
+	-$(KUBECTL) --ignore-not-found=true delete crd servicemonitors.monitoring.coreos.com
+	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
 
 install/yaml/: install/yaml/install.yaml install/yaml/install-example.yaml install/yaml/01-redis-chart.yaml install/yaml/02-open-match.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml
 
@@ -529,10 +529,10 @@ endif
 
 delete-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) reset
-	-$(KUBECTL) --ignore-not-found delete serviceaccount --namespace kube-system tiller
-	-$(KUBECTL) --ignore-not-found delete clusterrolebinding tiller-cluster-rule
+	-$(KUBECTL) --ignore-not-found=true delete serviceaccount --namespace kube-system tiller
+	-$(KUBECTL) --ignore-not-found=true delete clusterrolebinding tiller-cluster-rule
 ifneq ($(strip $($(KUBECTL) get clusterroles | grep -i rbac)),)
-	-$(KUBECTL) --ignore-not-found delete deployment --namespace kube-system tiller-deploy
+	-$(KUBECTL) --ignore-not-found=true delete deployment --namespace kube-system tiller-deploy
 endif
 	@echo "Waiting for Tiller to go away..."
 	-$(KUBECTL) wait deployment --timeout=60s --for delete -l app=helm,name=tiller --namespace kube-system
