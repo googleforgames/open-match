@@ -54,26 +54,28 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   // https://github.com/grpc-ecosystem/grpc-gateway/blob/master/examples/proto/examplepb/a_bit_of_everything.proto
 };
 
+// Configuration for a GRPC Match Function
+message GrpcFunctionConfig {
+  string host = 1;
+  int32 port = 2;
+}
+
+// Configuration for a REST Match Function.
+message RestFunctionConfig {
+  string host = 1;
+  int32 port = 2;
+}
+
 // Configuration for the Match Function to be triggered by Open Match to
 // generate proposals.
 message FunctionConfig {
-  message Grpc {
-    string host = 1;
-    int32 port = 2;
-  }
-
-  message Rest {
-    string host = 1;
-    int32 port = 2;
-  }
-
   // A developer-chosen human-readable name for this Match Function.
   string name = 1;
 
   // Properties for the type of this function.
   oneof type {
-    Grpc grpc = 10001;
-    Rest rest = 10002;
+    GrpcFunctionConfig grpc = 10001;
+    RestFunctionConfig rest = 10002;
   }
 }
 

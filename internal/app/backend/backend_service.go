@@ -73,10 +73,10 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 
 	ctx := stream.Context()
 	var c <-chan *pb.Match
-	switch interface{}(req.Config.Type).(type) {
+	switch (req.Config.Type).(type) {
 	// MatchFunction Hosted as a GRPC service
 	case *pb.FunctionConfig_Grpc:
-		client, err := s.getGRPCClient(interface{}(req.Config.Type).(*pb.FunctionConfig_Grpc))
+		client, err := s.getGRPCClient((req.Config.Type).(*pb.FunctionConfig_Grpc))
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
@@ -124,7 +124,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 }
 
 func (s *backendService) getGRPCClient(config *pb.FunctionConfig_Grpc) (pb.MatchFunctionClient, error) {
-	addr := fmt.Sprintf("%s:%d", config.Host, config.Port)
+	addr := fmt.Sprintf("%s:%d", config.Grpc.Host, config.Grpc.Port)
 	client, ok := s.mmfClients.Load(addr)
 	if !ok {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
