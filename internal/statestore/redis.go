@@ -440,7 +440,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 }
 
 func idsToPages(ids []string, pageSize int) [][]interface{} {
-	result := make([][]interface{}, 0, len(ids)/pageSize+1)
+	result := make([][]interface{}, 0, len(ids)/(pageSize+1))
 	for i := 0; i < len(ids); i += pageSize {
 		end := i + pageSize
 		if end > len(ids) {

@@ -146,11 +146,9 @@ func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.Run
 
 // TODO: replace this method once the client side wrapper is done.
 func getMMLogicClient(cfg config.View) (pb.MmLogicClient, error) {
+	// Retrieve host name and port. It is ok to not specify host name as there are scenarios
+	// where the mmlogic service will be running on the same host.
 	host := cfg.GetString("api.mmlogic.hostname")
-	if len(host) == 0 {
-		return nil, fmt.Errorf("Failed to get hostname for MMLogicAPI from the configuration")
-	}
-
 	port := cfg.GetString("api.mmlogic.grpcport")
 	if len(port) == 0 {
 		return nil, fmt.Errorf("Failed to get port for MMLogicAPI from the configuration")

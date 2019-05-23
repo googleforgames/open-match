@@ -30,6 +30,15 @@ var (
 	})
 )
 
+const (
+	// Minimum number of tickets to be returned in a streamed response for QueryTickets. This value
+	// will be used if page size if not configured or is configured lower than the minimum value.
+	minPageSize int = 10
+	// Maximum number of tickets to be returned in a streamed response for QueryTickets. This value
+	// will be used if page size is configured higher than the minimum value.
+	maxPageSize int = 1000
+)
+
 // The MMLogic API provides utility functions for common MMF functionality such
 // as retreiving Tickets from state storage.
 type mmlogicService struct {
@@ -69,6 +78,15 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 	}
 
 	pSize := s.cfg.GetInt("storage.page.size")
+	if pSize <= 0 {
+		logger.Warningf("page size %v is lower than minimum limit of %v, setting page size as %v", pSize, minPageSize, minPageSize)
+		pSize = minPageSize
+	}
+
+	if pSize > 1000 {
+		logger.Warningf("page size %v is higher than maximum limit of %v, setting page size as %v", pSize, maxPageSize, maxPageSize)
+		pSize = maxPageSize
+	}
 
 	// Send requests to the storage service
 	err := s.store.FilterTickets(ctx, poolFilters, pSize, callback)
