@@ -81,12 +81,10 @@ func NewFromPortNumber(portNumber int) (*ListenerHolder, error) {
 		return nil, fmt.Errorf("net.Listen(\"tcp\", %s) did not return a *net.TCPAddr", addr)
 	}
 
-	if err == nil {
-		return &ListenerHolder{
-			number:   tcpConn.Port,
-			listener: conn,
-			addr:     conn.Addr().String(),
-		}, nil
-	}
-	return nil, err
+	return &ListenerHolder{
+		number:   tcpConn.Port,
+		listener: conn,
+		addr:     conn.Addr().String(),
+	}, nil
+
 }

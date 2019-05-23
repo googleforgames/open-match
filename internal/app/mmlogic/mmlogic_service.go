@@ -78,12 +78,12 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 	}
 
 	pSize := s.cfg.GetInt("storage.page.size")
-	if pSize <= 0 {
+	if pSize < minPageSize {
 		logger.Warningf("page size %v is lower than minimum limit of %v, setting page size as %v", pSize, minPageSize, minPageSize)
 		pSize = minPageSize
 	}
 
-	if pSize > 1000 {
+	if pSize > maxPageSize {
 		logger.Warningf("page size %v is higher than maximum limit of %v, setting page size as %v", pSize, maxPageSize, maxPageSize)
 		pSize = maxPageSize
 	}
