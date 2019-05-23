@@ -42,33 +42,25 @@ func main() {
 func makeMatches(view *goHarness.MatchFunctionParams) []*pb.Match {
 	// This simple match function does the following things
 	// 1. Flatten the poolNameToTickets map into an array
-	// 2. Fill in the rosters by iterating through the tickets array
-	// 3. Create one single match candidate and return it.
+	// 2. Groups players into 1v1 matches.
 
 	allTickets := make([]*pb.Ticket, 0)
-	ticketOffset := 0
 	for _, tickets := range view.PoolNameToTickets {
 		allTickets = append(allTickets, tickets...)
 	}
 
-	// This example does nothing but fills the rosters until they are full.
-	for _, roster := range view.Rosters {
-		rosterSize := len(roster.TicketId)
-		view.Logger.Tracef("Filling roster: %s, roster size: %d", roster.Name, rosterSize)
-		for rosterOffset := 0; rosterOffset < rosterSize; rosterOffset++ {
-			roster.TicketId[rosterOffset] = allTickets[ticketOffset].Id
-			ticketOffset++
-		}
-	}
+	var matches []*pb.Match
 
-	return []*pb.Match{
-		{
-			MatchId:       fmt.Sprintf("profile-%s-time-%s", view.ProfileName, time.Now().Format("00:00")),
+	t := time.Now().Format("2006-01-02T15:04:05.00")
+
+	for i := 0; i+1 < len(allTickets); i += 2 {
+		matches = append(matches, &pb.Match{
+			MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", view.ProfileName, t, i/2),
 			MatchProfile:  view.ProfileName,
 			MatchFunction: "a-simple-matchfunction",
-			Ticket:        allTickets[:ticketOffset:ticketOffset],
-			Roster:        view.Rosters,
-			Properties:    view.Properties,
-		},
+			Ticket:        []*pb.Ticket{allTickets[i], allTickets[i+1]},
+		})
 	}
+
+	return matches
 }
