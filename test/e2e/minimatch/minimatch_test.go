@@ -22,7 +22,6 @@ import (
 	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"open-match.dev/open-match/internal/pb"
 )

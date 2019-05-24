@@ -21,6 +21,7 @@ require (
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
 	contrib.go.opencensus.io/exporter/stackdriver v0.11.0
 	contrib.go.opencensus.io/exporter/zipkin v0.1.1
+	github.com/GoogleCloudPlatform/open-match v0.5.1
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/aws/aws-sdk-go v1.19.25 // indirect
@@ -36,6 +37,7 @@ require (
 	github.com/sirupsen/logrus v1.4.1
 	github.com/spf13/viper v1.3.2
 	github.com/stretchr/testify v1.3.0
+	github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036 // indirect
 	go.opencensus.io v0.21.0
 	google.golang.org/genproto v0.0.0-20190404172233-64821d5d2107
 	google.golang.org/grpc v1.20.0
