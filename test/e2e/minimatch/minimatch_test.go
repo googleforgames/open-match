@@ -34,12 +34,19 @@ const (
 	map2AdvancedPool = "map2advanced"
 )
 
-var (
+func TestMinimatchStartup(t *testing.T) {
+	assert := require.New(t)
+
+	mm, err := NewMiniMatch()
+	if err != nil {
+		t.Fatalf("cannot create mini match server, %s", err)
+	}
+
 	// TODO: Currently, the E2E test uses globally defined test data. Consider
 	// improving this in future iterations to test data scoped to sepcific test cases
 
 	// Tickets used for testing. The id will be populated once the Tickets are created.
-	testTickets = []struct {
+	testTickets := []struct {
 		skill      float64
 		mapValue   string
 		targetPool string
@@ -56,7 +63,7 @@ var (
 
 	// The Pools that are used for testing. Currently, each pool simply represents
 	// a combination of the attributes indexed on a ticket.
-	testPools = map[string]*pb.Pool{
+	testPools := map[string]*pb.Pool{
 		map1BeginnerPool: &pb.Pool{
 			Name: map1BeginnerPool,
 			Filter: []*pb.Filter{
@@ -90,21 +97,12 @@ var (
 	// Test profiles being tested for. Note that each profile embeds two pools - and
 	// the current MMF returns a match per pool in the profile - so each profile should
 	// output two matches that are comprised of tickets belonging to that pool.
-	testProfiles = []struct {
+	testProfiles := []struct {
 		name  string
 		pools []*pb.Pool
 	}{
 		{name: "", pools: []*pb.Pool{testPools[map1BeginnerPool], testPools[map1AdvancedPool]}},
 		{name: "", pools: []*pb.Pool{testPools[map2BeginnerPool], testPools[map2AdvancedPool]}},
-	}
-)
-
-func TestMinimatchStartup(t *testing.T) {
-	assert := require.New(t)
-
-	mm, err := NewMiniMatch()
-	if err != nil {
-		t.Fatalf("cannot create mini match server, %s", err)
 	}
 
 	fe, err := mm.GetFrontendClient()
@@ -137,6 +135,7 @@ func TestMinimatchStartup(t *testing.T) {
 
 	// Query tickets for each pool
 	for _, pool := range testPools {
+		var err error
 		qtstr, err := mml.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: pool})
 		assert.Nil(err)
 		assert.NotNil(qtstr)
@@ -179,6 +178,7 @@ func TestMinimatchStartup(t *testing.T) {
 
 	// Fetch Matches for each test profile.
 	for _, profile := range testProfiles {
+		var err error
 		brs, err := be.FetchMatches(context.Background(), &pb.FetchMatchesRequest{
 			Config:  mf,
 			Profile: []*pb.MatchProfile{&pb.MatchProfile{Name: profile.name, Pool: profile.pools}},
@@ -186,6 +186,7 @@ func TestMinimatchStartup(t *testing.T) {
 		assert.Nil(err)
 
 		for {
+			var err error
 			br, err := brs.Recv()
 			if err == io.EOF {
 				break

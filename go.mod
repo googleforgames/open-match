@@ -22,6 +22,7 @@ require (
 	contrib.go.opencensus.io/exporter/stackdriver v0.11.0
 	contrib.go.opencensus.io/exporter/zipkin v0.1.1
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
+	github.com/alicebob/gopher-json v0.0.0-20180125190556-5a6b3ba71ee6 // indirect
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/aws/aws-sdk-go v1.19.25 // indirect
 	github.com/fsnotify/fsnotify v1.4.7

@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
+	"open-match.dev/open-match/internal/config"
 	"github.com/alicebob/miniredis"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
