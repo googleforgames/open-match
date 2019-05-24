@@ -36,13 +36,13 @@ const (
 	map2attribute     = "map2"
 )
 
-// MiniMatchServer is a test server that serves all core Open Match components.
-type MiniMatchServer struct {
+// Server is a test server that serves all core Open Match components.
+type Server struct {
 	cfg config.View
 }
 
 // GetFrontendClient returns a grpc client for Open Match frontned.
-func (s *MiniMatchServer) GetFrontendClient() (pb.FrontendClient, error) {
+func (s *Server) GetFrontendClient() (pb.FrontendClient, error) {
 	port := s.cfg.GetInt("minimatch.grpcport")
 	conn, err := grpc.Dial(fmt.Sprintf(":%d", port), grpc.WithInsecure())
 	if err != nil {
@@ -53,7 +53,7 @@ func (s *MiniMatchServer) GetFrontendClient() (pb.FrontendClient, error) {
 }
 
 // GetBackendClient returns a grpc client for Open Match backend.
-func (s *MiniMatchServer) GetBackendClient() (pb.BackendClient, error) {
+func (s *Server) GetBackendClient() (pb.BackendClient, error) {
 	port := s.cfg.GetInt("minimatch.grpcport")
 	conn, err := grpc.Dial(fmt.Sprintf(":%d", port), grpc.WithInsecure())
 	if err != nil {
@@ -64,7 +64,7 @@ func (s *MiniMatchServer) GetBackendClient() (pb.BackendClient, error) {
 }
 
 // GetMMLogicClient returns a grpc client for Open Match mmlogic api.
-func (s *MiniMatchServer) GetMMLogicClient() (pb.MmLogicClient, error) {
+func (s *Server) GetMMLogicClient() (pb.MmLogicClient, error) {
 	port := s.cfg.GetInt("minimatch.grpcport")
 	conn, err := grpc.Dial(fmt.Sprintf(":%d", port), grpc.WithInsecure())
 	if err != nil {
@@ -75,9 +75,9 @@ func (s *MiniMatchServer) GetMMLogicClient() (pb.MmLogicClient, error) {
 }
 
 // NewMiniMatch creates and starts an OpenMatchServer context for testing.
-func NewMiniMatch() (*MiniMatchServer, error) {
+func NewMiniMatch() (*Server, error) {
 	// Create the minimatch server to be initialized.
-	mmServer, err := createMinimatchServer()
+	mmServer, err := createServer()
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func NewMiniMatch() (*MiniMatchServer, error) {
 	return mmServer, nil
 }
 
-func createMinimatchServer() (*MiniMatchServer, error) {
+func createServer() (*Server, error) {
 	mredis, err := miniredis.Run()
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func createMinimatchServer() (*MiniMatchServer, error) {
 	cfg.Set("minimatch.grpcport", minimatchGRPCPort)
 	cfg.Set("minimatch.httpport", minimatchHTTPPort)
 
-	mmServer := &MiniMatchServer{
+	mmServer := &Server{
 		cfg: cfg,
 	}
 

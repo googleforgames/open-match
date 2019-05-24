@@ -36,11 +36,6 @@ const (
 )
 
 var (
-	testLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "minimatch-test",
-	})
-
 	// TODO: Currently, the E2E test uses globally defined test data. Consider
 	// improving this in future iterations to test data scoped to sepcific test cases
 
