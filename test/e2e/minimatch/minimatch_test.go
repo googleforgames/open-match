@@ -41,6 +41,7 @@ func TestMinimatchStartup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot create mini match server, %s", err)
 	}
+	defer mm.Stop()
 
 	// TODO: Currently, the E2E test uses globally defined test data. Consider
 	// improving this in future iterations to test data scoped to sepcific test cases
@@ -135,7 +136,6 @@ func TestMinimatchStartup(t *testing.T) {
 
 	// Query tickets for each pool
 	for _, pool := range testPools {
-		var err error
 		qtstr, err := mml.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: pool})
 		assert.Nil(err)
 		assert.NotNil(qtstr)
@@ -173,12 +173,12 @@ func TestMinimatchStartup(t *testing.T) {
 	assert.Nil(err)
 	assert.NotNil(be)
 
-	mf, err := matchFunctionConfig()
+	mf, mfclose, err := matchFunctionConfig()
+	defer mfclose()
 	assert.Nil(err)
 
 	// Fetch Matches for each test profile.
 	for _, profile := range testProfiles {
-		var err error
 		brs, err := be.FetchMatches(context.Background(), &pb.FetchMatchesRequest{
 			Config:  mf,
 			Profile: []*pb.MatchProfile{&pb.MatchProfile{Name: profile.name, Pool: profile.pools}},
@@ -186,7 +186,6 @@ func TestMinimatchStartup(t *testing.T) {
 		assert.Nil(err)
 
 		for {
-			var err error
 			br, err := brs.Recv()
 			if err == io.EOF {
 				break

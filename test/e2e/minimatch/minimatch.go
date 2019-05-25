@@ -39,6 +39,7 @@ const (
 // Server is a test server that serves all core Open Match components.
 type Server struct {
 	cfg config.View
+	rpcserver *rpc.Server
 }
 
 // GetFrontendClient returns a grpc client for Open Match frontned.
@@ -74,6 +75,13 @@ func (s *Server) GetMMLogicClient() (pb.MmLogicClient, error) {
 	return pb.NewMmLogicClient(conn), nil
 }
 
+// GetMMLogicClient returns a grpc client for Open Match mmlogic api.
+func (s *Server) Stop() () {
+	if s.rpcserver != nil {
+		s.rpcserver.Stop()
+	}
+}
+
 // NewMiniMatch creates and starts an OpenMatchServer context for testing.
 func NewMiniMatch() (*Server, error) {
 	// Create the minimatch server to be initialized.
@@ -91,8 +99,15 @@ func NewMiniMatch() (*Server, error) {
 		return nil, err
 	}
 
+	s := &rpc.Server{}
+	mmServer.rpcserver = s
+	waitForStart, err := s.Start(p)
+	if err != nil {
+		return nil, err
+	}
+	
 	go func() {
-		rpc.MustServeForever(p)
+		waitForStart()
 	}()
 
 	return mmServer, nil

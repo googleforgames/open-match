@@ -32,9 +32,10 @@ const (
 
 // matchFunctionConfig returns a function config for a basic match function that
 // can be used for testing E2E scenarios for Open Match.
-func matchFunctionConfig() (*pb.FunctionConfig, error) {
-	if err := serveMatchFunction(); err != nil {
-		return nil, err
+func matchFunctionConfig() (*pb.FunctionConfig, func(), error) {
+	mfclose, err := serveMatchFunction()
+	if err != nil {
+		return nil, nil, err
 	}
 
 	mf := &pb.FunctionConfig{
@@ -47,11 +48,11 @@ func matchFunctionConfig() (*pb.FunctionConfig, error) {
 		},
 	}
 
-	return mf, nil
+	return mf, mfclose, nil
 }
 
 // serveMatchFunction creates a GRPC server and starts it to server the match function forever.
-func serveMatchFunction() error {
+func serveMatchFunction() (func(), error) {
 	cfg := viper.New()
 	// Set match function configuration.
 	cfg.Set("testmmf.hostname", mmfHost)
@@ -65,21 +66,27 @@ func serveMatchFunction() error {
 
 	p, err := rpc.NewServerParamsFromConfig(cfg, mmfHost)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := harness.BindService(p, cfg, &harness.FunctionSettings{
 		FunctionName: mmfName,
 		Func:         makeMatches,
 	}); err != nil {
-		return err
+		return nil, err
 	}
 
+	s := &rpc.Server{}
+	waitForStart, err := s.Start(p)
+	if err != nil {
+		return nil, err
+	}
+	
 	go func() {
-		rpc.MustServeForever(p)
+		waitForStart()
 	}()
 
-	return nil
+	return func(){s.Stop()}, nil
 }
 
 // This is the core match making function that will be triggered by Open Match to generate matches.

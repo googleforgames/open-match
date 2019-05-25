@@ -71,7 +71,7 @@ linters-settings:
 
   govet:
     # report about shadowed variables
-    check-shadowing: true
+    check-shadowing: false
 
     # settings per analyzer
     settings:
