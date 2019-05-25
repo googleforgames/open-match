@@ -75,7 +75,7 @@ func (s *Server) GetMMLogicClient() (pb.MmLogicClient, error) {
 	return pb.NewMmLogicClient(conn), nil
 }
 
-// GetMMLogicClient returns a grpc client for Open Match mmlogic api.
+// Stop stops the rpc server.
 func (s *Server) Stop() () {
 	if s.rpcserver != nil {
 		s.rpcserver.Stop()
