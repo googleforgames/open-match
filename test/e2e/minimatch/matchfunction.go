@@ -81,12 +81,11 @@ func serveMatchFunction() (func(), error) {
 	if err != nil {
 		return nil, err
 	}
-	
 	go func() {
 		waitForStart()
 	}()
 
-	return func(){s.Stop()}, nil
+	return func() { s.Stop() }, nil
 }
 
 // This is the core match making function that will be triggered by Open Match to generate matches.
