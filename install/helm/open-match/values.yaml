@@ -49,6 +49,12 @@ openmatch:
       port: 50503
     http:
       port: 51503
+  evaluator:
+    install: true
+    grpc:
+      port: 50506
+    http:
+      port: 51506
   functions:
     grpc:
       port: 50502
@@ -75,13 +81,17 @@ openmatch:
             backoff: "[2 32] *2 ~0.33 <30"
           frontend:
             hostname: om-frontend
-            port: "{{.Values.openmatch.frontend.grpc.port}}"
+            grpcport: "{{.Values.openmatch.frontend.grpc.port}}"
             httpport: "{{.Values.openmatch.frontend.http.port}}"
             backoff: "[2 32] *2 ~0.33 <300"
           mmlogic:
             hostname: om-mmlogic
             grpcport: "{{.Values.openmatch.mmlogic.grpc.port}}"
             httpport: "{{.Values.openmatch.mmlogic.http.port}}"
+          evaluator:
+            hostname: om-evaluator
+            grpcport: "{{.Values.openmatch.evaluator.grpc.port}}"
+            httpport: "{{.Values.openmatch.evaluator.http.port}}"
           functions:
             grpcport: "{{.Values.openmatch.functions.grpc.port}}"
             httpport: "{{.Values.openmatch.functions.http.port}}"
@@ -174,6 +184,9 @@ openmatch:
       pullPolicy: Always
     mmlogic:
       name: openmatch-mmlogic
+      pullPolicy: Always
+    evaluator:
+      name: openmatch-evaluator
       pullPolicy: Always
 
 # https://hub.helm.sh/charts/stable/redis

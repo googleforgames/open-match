@@ -115,7 +115,7 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 
 	tlsCert, err := certificateFromFileData(tp.publicCertificateFileData, tp.privateKeyFileData)
 	assert.Nil(err)
-	pool, err := trustedCertificates(tp.rootPublicCertificateFileData)
+	pool, err := trustedCertificateFromFileData(tp.rootPublicCertificateFileData)
 	assert.Nil(err)
 	tlsTransport := &http.Transport{
 		TLSClientConfig: &tls.Config{

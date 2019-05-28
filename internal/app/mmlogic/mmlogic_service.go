@@ -15,8 +15,6 @@
 package mmlogic
 
 import (
-	"encoding/json"
-
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -30,6 +28,15 @@ var (
 		"app":       "openmatch",
 		"component": "app.mmlogic.mmlogic_service",
 	})
+)
+
+const (
+	// Minimum number of tickets to be returned in a streamed response for QueryTickets. This value
+	// will be used if page size if not configured or is configured lower than the minimum value.
+	minPageSize int = 10
+	// Maximum number of tickets to be returned in a streamed response for QueryTickets. This value
+	// will be used if page size is configured higher than the minimum value.
+	maxPageSize int = 1000
 )
 
 // The MMLogic API provides utility functions for common MMF functionality such
@@ -61,44 +68,31 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 	ctx := responseServer.Context()
 	poolFilters := req.Pool.Filter
 
+	callback := func(tickets []*pb.Ticket) error {
+		err := responseServer.Send(&pb.QueryTicketsResponse{Ticket: tickets})
+		if err != nil {
+			logger.WithError(err).Error("Failed to send Redis response to grpc server")
+			return status.Errorf(codes.Aborted, err.Error())
+		}
+		return nil
+	}
+
+	pSize := s.cfg.GetInt("storage.page.size")
+	if pSize < minPageSize {
+		logger.Warningf("page size %v is lower than minimum limit of %v, setting page size as %v", pSize, minPageSize, minPageSize)
+		pSize = minPageSize
+	}
+
+	if pSize > maxPageSize {
+		logger.Warningf("page size %v is higher than maximum limit of %v, setting page size as %v", pSize, maxPageSize, maxPageSize)
+		pSize = maxPageSize
+	}
+
 	// Send requests to the storage service
-	idsToProperties, err := s.store.FilterTickets(ctx, poolFilters)
+	err := s.store.FilterTickets(ctx, poolFilters, pSize, callback)
 	if err != nil {
 		logger.WithError(err).Error("Failed to retrieve result from storage service.")
 		return status.Error(codes.Internal, err.Error())
-	}
-
-	page := []*pb.Ticket{}
-	// The ith entry when iterating through the idsToProperties map
-	mapIdx := 0
-	// The number of tickets in a paging response
-	pSize := s.cfg.GetInt("storage.page.size")
-
-	for id, property := range idsToProperties {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-			propertyByte, err := json.Marshal(property)
-			if err != nil {
-				logger.WithError(err).Error("Failed to convert property map to JSON")
-				return status.Errorf(codes.Internal, err.Error())
-			}
-			page = append(page, &pb.Ticket{Id: id, Properties: string(propertyByte)})
-
-			mapIdx++
-
-			endPage := mapIdx%pSize == 0 || mapIdx == len(idsToProperties)-1
-			if endPage {
-				// Reaches page limit; Send a stream response then reset the page
-				err := responseServer.Send(&pb.QueryTicketsResponse{Ticket: page})
-				if err != nil {
-					logger.WithError(err).Error("Failed to send Redis response to grpc server")
-					return status.Errorf(codes.Aborted, err.Error())
-				}
-				page = []*pb.Ticket{}
-			}
-		}
 	}
 
 	return nil

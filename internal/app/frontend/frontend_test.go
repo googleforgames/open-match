@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
@@ -44,7 +45,7 @@ func TestServerBinding(t *testing.T) {
 // validateTicket validates that the fetched ticket is identical to the expected ticket.
 func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
 	assert.Equal(t, got.Id, want.Id)
-	assert.Equal(t, got.Properties, want.Properties)
+	assert.Equal(t, got.Properties.Fields["test-property"].GetNumberValue(), want.Properties.Fields["test-property"].GetNumberValue())
 	assert.Equal(t, got.Assignment.Connection, want.Assignment.Connection)
 	assert.Equal(t, got.Assignment.Properties, want.Assignment.Properties)
 	assert.Equal(t, got.Assignment.Error, want.Assignment.Error)
@@ -82,7 +83,11 @@ func TestFrontendService(t *testing.T) {
 	assert.NotNil(fe)
 
 	ticket := &pb.Ticket{
-		Properties: "test-property",
+		Properties: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+			},
+		},
 		Assignment: &pb.Assignment{
 			Connection: "test-tbd",
 		},

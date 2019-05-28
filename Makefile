@@ -96,6 +96,7 @@ SITE_PORT = 8080
 FRONTEND_PORT = 51504
 BACKEND_PORT = 51505
 MMLOGIC_PORT = 51503
+EVALUATOR_PORT = 51506
 HELM = $(TOOLCHAIN_BIN)/helm
 TILLER = $(TOOLCHAIN_BIN)/tiller
 MINIKUBE = $(TOOLCHAIN_BIN)/minikube
@@ -189,7 +190,7 @@ local-cloud-build: gcloud
 
 push-images: push-service-images push-example-images
 
-push-service-images: push-backend-image push-frontend-image  push-mmlogic-image push-minimatch-image
+push-service-images: push-backend-image push-frontend-image  push-mmlogic-image push-minimatch-image push-evaluator-image
 
 push-backend-image: docker build-backend-image
 	docker push $(REGISTRY)/openmatch-backend:$(TAG)
@@ -207,6 +208,10 @@ push-minimatch-image: docker build-minimatch-image
 	docker push $(REGISTRY)/openmatch-minimatch:$(TAG)
 	docker push $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 
+push-evaluator-image: docker build-evaluator-image
+	docker push $(REGISTRY)/openmatch-evaluator:$(TAG)
+	docker push $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG)
+
 push-example-images: push-mmf-example-images
 
 push-mmf-example-images: push-mmf-go-simple-image
@@ -217,7 +222,7 @@ push-mmf-go-simple-image: docker build-mmf-go-simple-image
 
 build-images: build-service-images build-example-images
 
-build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image
+build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-evaluator-image
 
 build-base-build-image: docker
 	docker build -f Dockerfile.base-build -t open-match-base-build .
@@ -234,6 +239,9 @@ build-mmlogic-image: docker build-base-build-image
 build-minimatch-image: docker build-base-build-image
 	docker build -f cmd/minimatch/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
 
+build-evaluator-image: docker build-base-build-image
+	docker build -f cmd/evaluator/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-evaluator:$(TAG) -t $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG) .
+
 build-example-images: build-mmf-example-images
 
 build-mmf-example-images: build-mmf-go-simple-image
@@ -247,6 +255,7 @@ clean-images: docker
 	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontend:$(TAG) $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-mmlogic:$(TAG) $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-evaluator:$(TAG) $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 
 install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -291,9 +300,9 @@ dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) delete --purge $(OPEN_MATCH_CHART_NAME)
-	-$(KUBECTL) --ignore-not-found delete crd prometheuses.monitoring.coreos.com
-	-$(KUBECTL) --ignore-not-found delete crd servicemonitors.monitoring.coreos.com
-	-$(KUBECTL) --ignore-not-found delete crd prometheusrules.monitoring.coreos.com
+	-$(KUBECTL) --ignore-not-found=true delete crd prometheuses.monitoring.coreos.com
+	-$(KUBECTL) --ignore-not-found=true delete crd servicemonitors.monitoring.coreos.com
+	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
 
 install/yaml/: install/yaml/install.yaml install/yaml/install-example.yaml install/yaml/01-redis-chart.yaml install/yaml/02-open-match.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml
 
@@ -305,6 +314,7 @@ install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backendapi.install=false \
 		--set openmatch.frontendapi.install=false \
 		--set openmatch.mmlogicapi.install=false \
+		--set openmatch.evaluatorapi.install=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=false \
 		install/helm/open-match > install/yaml/01-redis-chart.yaml
@@ -329,6 +339,7 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backendapi.install=false \
 		--set openmatch.frontendapi.install=false \
 		--set openmatch.mmlogicapi.install=false \
+		--set openmatch.evaluatorapi.install=false \
 		--set grafana.enabled=false \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
@@ -340,6 +351,7 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backendapi.install=false \
 		--set openmatch.frontendapi.install=false \
 		--set openmatch.mmlogicapi.install=false \
+		--set openmatch.evaluatorapi.install=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=true \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
@@ -517,10 +529,10 @@ endif
 
 delete-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) reset
-	-$(KUBECTL) --ignore-not-found delete serviceaccount --namespace kube-system tiller
-	-$(KUBECTL) --ignore-not-found delete clusterrolebinding tiller-cluster-rule
+	-$(KUBECTL) --ignore-not-found=true delete serviceaccount --namespace kube-system tiller
+	-$(KUBECTL) --ignore-not-found=true delete clusterrolebinding tiller-cluster-rule
 ifneq ($(strip $($(KUBECTL) get clusterroles | grep -i rbac)),)
-	-$(KUBECTL) --ignore-not-found delete deployment --namespace kube-system tiller-deploy
+	-$(KUBECTL) --ignore-not-found=true delete deployment --namespace kube-system tiller-deploy
 endif
 	@echo "Waiting for Tiller to go away..."
 	-$(KUBECTL) wait deployment --timeout=60s --for delete -l app=helm,name=tiller --namespace kube-system
@@ -569,11 +581,11 @@ delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	$(MINIKUBE) delete
 
 all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
-golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go
+golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go internal/pb/evaluator.pb.go
 
-http-proxy-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go
+http-proxy-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go internal/pb/evaluator.pb.gw.go
 
-swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json
+swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/evaluator.swagger.json
 
 internal/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
@@ -593,6 +605,7 @@ api/%.swagger.json: api/%.proto internal/pb/%.pb.gw.go build/toolchain/bin/proto
 internal/pb/backend.pb.go: internal/pb/messages.pb.go
 internal/pb/frontend.pb.go: internal/pb/messages.pb.go
 internal/pb/mmlogic.pb.go: internal/pb/messages.pb.go
+internal/pb/evaluator.pb.go: internal/pb/messages.pb.go
 internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
 
 build:
@@ -627,7 +640,7 @@ lint: fmt vet lint-chart
 
 all: service-binaries example-binaries tools-binaries
 
-service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION) cmd/mmlogic/mmlogic$(EXE_EXTENSION)
+service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION) cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/evaluator/evaluator$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries
 example-mmf-binaries: examples/functions/golang/simple/simple$(EXE_EXTENSION)
@@ -646,10 +659,14 @@ cmd/frontend/frontend$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/fr
 cmd/mmlogic/mmlogic$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
 	cd cmd/mmlogic; $(GO_BUILD_COMMAND)
 
+cmd/evaluator/evaluator$(EXE_EXTENSION): internal/pb/evaluator.pb.go internal/pb/evaluator.pb.gw.go api/evaluator.swagger.json
+	cd cmd/evaluator; $(GO_BUILD_COMMAND)
+
 # Note: This list of dependencies is long but only add file references here. If you add a .PHONY dependency make will always rebuild it.
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/backend.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/frontend.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/evaluator.pb.go internal/pb/evaluator.pb.gw.go api/evaluator.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd cmd/minimatch; $(GO_BUILD_COMMAND)
 
@@ -757,6 +774,7 @@ clean-protos:
 
 clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/cmd/backend/backend
+	rm -rf $(REPOSITORY_ROOT)/cmd/evaluator/evaluator
 	rm -rf $(REPOSITORY_ROOT)/cmd/frontend/frontend
 	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic
 	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch
@@ -809,6 +827,12 @@ proxy-mmlogic: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Trace: http://localhost:$(MMLOGIC_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=mmlogic,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(MMLOGIC_PORT):51503 $(PORT_FORWARD_ADDRESS_FLAG)
 
+proxy-evaluator: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	@echo "Health: http://localhost:$(EVALUATOR_PORT)/healthz"
+	@echo "RPC: http://localhost:$(EVALUATOR_PORT)/debug/rpcz"
+	@echo "Trace: http://localhost:$(EVALUATOR_PORT)/debug/tracez"
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=evaluator,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(EVALUATOR_PORT):51506 $(PORT_FORWARD_ADDRESS_FLAG)
+
 proxy-grafana: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "User: admin"
 	@echo "Password: openmatch"
@@ -822,7 +846,7 @@ proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
-proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-dashboard
+proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-dashboard proxy-evaluator
 
 proxy:
 	# This is an exception case where we'll call recursive make.
