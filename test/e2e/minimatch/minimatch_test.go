@@ -22,8 +22,9 @@ import (
 	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/rpc"
 )
 
 const (
@@ -39,7 +40,7 @@ const (
 )
 
 func TestMinimatchStartup(t *testing.T) {
-	assert := require.New(t)
+	assert := assert.New(t)
 
 	cfg, err := createServerConfig()
 	assert.Nil(err)
@@ -49,6 +50,10 @@ func TestMinimatchStartup(t *testing.T) {
 		t.Fatalf("cannot create mini match server, %s", err)
 	}
 	defer mm.Stop()
+
+	conn, err := rpc.GRPCClientFromConfig(cfg, minimatchPrefix)
+	assert.Nil(err)
+	assert.NotNil(conn)
 
 	// TODO: Currently, the E2E test uses globally defined test data. Consider
 	// improving this in future iterations to test data scoped to sepcific test cases
@@ -113,9 +118,7 @@ func TestMinimatchStartup(t *testing.T) {
 		{name: "", pools: []*pb.Pool{testPools[map2BeginnerPool], testPools[map2AdvancedPool]}},
 	}
 
-	fe, err := mm.GetFrontendClient()
-	assert.Nil(err)
-	assert.NotNil(fe)
+	fe := pb.NewFrontendClient(conn)
 
 	// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids
 	// to expected player pools.
@@ -134,9 +137,7 @@ func TestMinimatchStartup(t *testing.T) {
 		testTickets[i].id = resp.Ticket.Id
 	}
 
-	mml, err := mm.GetMMLogicClient()
-	assert.Nil(err)
-	assert.NotNil(mml)
+	mml := pb.NewMmLogicClient(conn)
 
 	// poolTickets represents a map of the pool name to all the ticket ids in the pool.
 	poolTickets := make(map[string][]string)
@@ -176,9 +177,7 @@ func TestMinimatchStartup(t *testing.T) {
 		assert.Equal(poolTickets[pool.Name], want)
 	}
 
-	be, err := mm.GetBackendClient()
-	assert.Nil(err)
-	assert.NotNil(be)
+	be := pb.NewBackendClient(conn)
 
 	mf, mfclose, err := matchFunctionConfig()
 	defer mfclose()
