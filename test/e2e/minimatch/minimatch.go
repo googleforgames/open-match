@@ -18,17 +18,18 @@ import (
 	"fmt"
 	"time"
 
-	"open-match.dev/open-match/internal/config"
 	"github.com/alicebob/miniredis"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/app/minimatch"
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 )
 
 const (
-	minimatchHost     = "minimatch"
+	minimatchPrefix   = "minimatch"
+	minimatchHost     = "localhost"
 	minimatchGRPCPort = "50510"
 	minimatchHTTPPort = "51510"
 	skillattribute    = "skill"
@@ -38,7 +39,7 @@ const (
 
 // Server is a test server that serves all core Open Match components.
 type Server struct {
-	cfg config.View
+	cfg       config.View
 	rpcserver *rpc.Server
 }
 
@@ -76,7 +77,7 @@ func (s *Server) GetMMLogicClient() (pb.MmLogicClient, error) {
 }
 
 // Stop stops the rpc server.
-func (s *Server) Stop() () {
+func (s *Server) Stop() {
 	if s.rpcserver != nil {
 		s.rpcserver.Stop()
 	}
@@ -90,7 +91,7 @@ func NewMiniMatch() (*Server, error) {
 		return nil, err
 	}
 
-	p, err := rpc.NewServerParamsFromConfig(mmServer.cfg, minimatchHost)
+	p, err := rpc.NewServerParamsFromConfig(mmServer.cfg, minimatchPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +106,7 @@ func NewMiniMatch() (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	go func() {
 		waitForStart()
 	}()
