@@ -29,6 +29,7 @@ var (
 	})
 )
 
+// FunctionSettings is a collection of parameters used to define the evaluator service.
 type FunctionSettings struct {
 	Func evaluatorFunction
 }
