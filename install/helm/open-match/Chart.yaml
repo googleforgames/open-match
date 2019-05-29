@@ -34,3 +34,23 @@ maintainers:
 engine: gotpl
 icon: https://raw.githubusercontent.com/GoogleCloudPlatform/open-match/master/site/static/images/logo.svg
 tillerVersion: ">2.10.0"
+
+# TIP: Find versions via `gsutil ls gs://kubernetes-charts`
+
+dependencies:
+  - name: prometheus
+    version: 8.10.3
+    repository: https://kubernetes-charts.storage.googleapis.com/
+    condition: prometheus.enabled
+  - name: redis
+    version: 7.1.0
+    repository: https://kubernetes-charts.storage.googleapis.com/
+    condition: redis.enabled
+  - name: grafana
+    version: 3.3.6
+    repository: https://kubernetes-charts.storage.googleapis.com/
+    condition: grafana.enabled
+  - name: jaeger
+    version: 0.10.2
+    repository: https://kubernetes-charts-incubator.storage.googleapis.com/
+    condition: jaeger.enabled
