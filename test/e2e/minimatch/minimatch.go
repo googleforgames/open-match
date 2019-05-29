@@ -32,9 +32,6 @@ const (
 	minimatchHost     = "localhost"
 	minimatchGRPCPort = "50510"
 	minimatchHTTPPort = "51510"
-	skillattribute    = "skill"
-	map1attribute     = "map1"
-	map2attribute     = "map2"
 )
 
 // Server is a test server that serves all core Open Match components.
@@ -84,11 +81,10 @@ func (s *Server) Stop() {
 }
 
 // NewMiniMatch creates and starts an OpenMatchServer context for testing.
-func NewMiniMatch() (*Server, error) {
+func NewMiniMatch(cfg config.View) (*Server, error) {
 	// Create the minimatch server to be initialized.
-	mmServer, err := createServer()
-	if err != nil {
-		return nil, err
+	mmServer := &Server{
+		cfg: cfg,
 	}
 
 	p, err := rpc.NewServerParamsFromConfig(mmServer.cfg, minimatchPrefix)
@@ -114,7 +110,7 @@ func NewMiniMatch() (*Server, error) {
 	return mmServer, nil
 }
 
-func createServer() (*Server, error) {
+func createServerConfig() (config.View, error) {
 	mredis, err := miniredis.Run()
 	if err != nil {
 		return nil, err
@@ -142,9 +138,5 @@ func createServer() (*Server, error) {
 	cfg.Set("minimatch.grpcport", minimatchGRPCPort)
 	cfg.Set("minimatch.httpport", minimatchHTTPPort)
 
-	mmServer := &Server{
-		cfg: cfg,
-	}
-
-	return mmServer, nil
+	return cfg, nil
 }

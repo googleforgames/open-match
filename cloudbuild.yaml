@@ -159,6 +159,7 @@ artifacts:
             - install/yaml/02-open-match.yaml
             - install/yaml/03-prometheus-chart.yaml
             - install/yaml/04-grafana-chart.yaml
+            - install/yaml/05-jaeger-chart.yaml
             - examples/functions/golang/simple/simple
 images:
 - 'gcr.io/$PROJECT_ID/openmatch-backend:${_OM_VERSION}-${SHORT_SHA}'

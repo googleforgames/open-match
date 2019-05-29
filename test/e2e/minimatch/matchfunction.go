@@ -82,7 +82,6 @@ func serveMatchFunction() (func(), error) {
 	if err != nil {
 		return nil, err
 	}
-
 	go func() {
 		waitForStart()
 	}()
