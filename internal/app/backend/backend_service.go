@@ -118,7 +118,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 			logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
 				"function": req.Config,
-			}).Error("failed to connect to match function")
+			}).Error("failed to establish grpc client connection to match function")
 			return status.Error(codes.InvalidArgument, "failed to connect to match function")
 		}
 
@@ -127,6 +127,14 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 
 	// MatchFunction Hosted as a REST service
 	case *pb.FunctionConfig_Rest:
+		_, _, err := s.getHTTPClient((req.Config.Type).(*pb.FunctionConfig_Rest))
+		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"error":    err.Error(),
+				"function": req.Config,
+			}).Error("failed to establish rest client connection to match function")
+			return status.Error(codes.InvalidArgument, "failed to connect to match function")
+		}
 		return status.Error(codes.Unimplemented, "not implemented")
 
 	default:
@@ -184,7 +192,6 @@ func (s *backendService) getHTTPClient(config *pb.FunctionConfig_Rest) (*http.Cl
 	if err != nil {
 		return nil, "", err
 	}
-
 	return client, baseURL, err
 }
 
