@@ -16,6 +16,7 @@ package rpc
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -25,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"open-match.dev/open-match/internal/config"
 )
 
@@ -71,6 +73,21 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 	return GRPCClientFromParams(clientParams)
 }
 
+// GRPCClientFromManifests creates a gRPC client connection from given resources.
+func GRPCClientFromManifests(cfg config.View, hostname string, port int, tc credentials.TransportCredentials) (*grpc.ClientConn, error) {
+	address := fmt.Sprintf("%s:%d", hostname, port)
+
+	grpcOptions := []grpc.DialOption{}
+
+	if cfg.GetBool("tls.enabled") {
+		grpcOptions = append(grpcOptions, grpc.WithTransportCredentials(tc))
+	} else {
+		grpcOptions = append(grpcOptions, grpc.WithInsecure())
+	}
+
+	return grpc.Dial(address, grpcOptions...)
+}
+
 // GRPCClientFromParams creates a gRPC client connection from the parameters.
 func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 	address := fmt.Sprintf("%s:%d", params.Hostname, params.Port)
@@ -78,7 +95,7 @@ func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 	grpcOptions := []grpc.DialOption{}
 
 	if params.usingTLS() {
-		creds, err := clientCredentialsFromFileData(params.TrustedCertificate, "")
+		creds, err := ClientCredentialsFromFileData(params.TrustedCertificate, "")
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to get transport credentials from file.")
 			return nil, errors.WithStack(err)
@@ -116,6 +133,29 @@ func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string,
 	return HTTPClientFromParams(clientParams)
 }
 
+// HTTPClientFromManifests creates a HTTP client from from given resources.
+func HTTPClientFromManifests(cfg config.View, hostname string, port int, pool *x509.CertPool) (*http.Client, string, error) {
+	address := fmt.Sprintf("%s:%d", hostname, port)
+	// TODO: Make client Timeout configurable
+	httpClient := &http.Client{Timeout: time.Second * 3}
+	var baseURL string
+
+	if cfg.GetBool("tls.enabled") {
+		baseURL = "https://" + address
+
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				ServerName: address,
+				RootCAs:    pool,
+			},
+		}
+	} else {
+		baseURL = "http://" + address
+	}
+
+	return httpClient, baseURL, nil
+}
+
 // HTTPClientFromParams creates a HTTP client from the parameters.
 func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 	address := fmt.Sprintf("%s:%d", params.Hostname, params.Port)
@@ -126,7 +166,7 @@ func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 	if params.usingTLS() {
 		baseURL = "https://" + address
 
-		pool, err := trustedCertificateFromFileData(params.TrustedCertificate)
+		pool, err := TrustedCertificateFromFileData(params.TrustedCertificate)
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to get cert pool from file.")
 			return nil, "", err

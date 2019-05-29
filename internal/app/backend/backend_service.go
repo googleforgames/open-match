@@ -16,16 +16,21 @@ package backend
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 )
 
@@ -34,7 +39,13 @@ import (
 type backendService struct {
 	cfg        config.View
 	store      statestore.Service
-	mmfClients sync.Map
+	mmfClients mmfClients
+}
+
+type mmfClients struct {
+	addrMap sync.Map
+	pool    *x509.CertPool
+	tc      credentials.TransportCredentials
 }
 
 var (
@@ -48,6 +59,32 @@ var (
 func newBackend(cfg config.View) (*backendService, error) {
 	bs := &backendService{
 		cfg: cfg,
+	}
+
+	if cfg.GetBool("tls.enabled") {
+		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
+		if err != nil {
+			logger.WithError(err).Error("trusted certificate file may not exists.")
+			return nil, err
+		}
+
+		trustedCertificate, err := ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
+		if err != nil {
+			logger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
+			return nil, err
+		}
+
+		pool, err := rpc.TrustedCertificateFromFileData(trustedCertificate)
+		if err != nil {
+			logger.WithError(err).Error("failed to get cert pool from file.")
+			return nil, err
+		}
+
+		credsForProxyToGrpc, err := rpc.ClientCredentialsFromFileData(trustedCertificate, "")
+		if err != nil {
+			logger.WithError(err).Error("failed to create client credentials from file")
+		}
+		bs.mmfClients = mmfClients{pool: pool, tc: credsForProxyToGrpc}
 	}
 
 	// Initialize the state storage interface.
@@ -125,21 +162,30 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 
 func (s *backendService) getGRPCClient(config *pb.FunctionConfig_Grpc) (pb.MatchFunctionClient, error) {
 	addr := fmt.Sprintf("%s:%d", config.Grpc.Host, config.Grpc.Port)
-	client, ok := s.mmfClients.Load(addr)
+	client, ok := s.mmfClients.addrMap.Load(addr)
 	if !ok {
-		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		conn, err := rpc.GRPCClientFromManifests(s.cfg, config.Grpc.Host, int(config.Grpc.Port), s.mmfClients.tc)
 		if err != nil {
 			return nil, err
 		}
 
 		client = pb.NewMatchFunctionClient(conn)
-		s.mmfClients.Store(addr, client)
+		s.mmfClients.addrMap.Store(addr, client)
 		logger.WithFields(logrus.Fields{
 			"address": config,
 		}).Info("successfully connected to the GRPC match function service")
 	}
 
 	return client.(pb.MatchFunctionClient), nil
+}
+
+func (s *backendService) getHTTPClient(config *pb.FunctionConfig_Rest) (*http.Client, string, error) {
+	client, baseURL, err := rpc.HTTPClientFromManifests(s.cfg, config.Rest.Host, int(config.Rest.Port), s.mmfClients.pool)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return client, baseURL, err
 }
 
 // matchesFromGrpcMMF triggers execution of MMFs to fetch match results for each profile.

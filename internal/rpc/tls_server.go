@@ -75,11 +75,11 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	}
 	s.grpcListener = grpcListener
 
-	rootCaCert, err := trustedCertificateFromFileData(params.rootCaPublicCertificateFileData)
+	rootCaCert, err := TrustedCertificateFromFileData(params.rootCaPublicCertificateFileData)
 	if err != nil {
 		return func() {}, errors.WithStack(err)
 	}
-	credsForProxyToGrpc, err := clientCredentialsFromFileData(params.publicCertificateFileData, "")
+	credsForProxyToGrpc, err := ClientCredentialsFromFileData(params.publicCertificateFileData, "")
 	if err != nil {
 		return func() {}, errors.WithStack(err)
 	}
