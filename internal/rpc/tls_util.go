@@ -24,8 +24,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// TrustedCertificateFromFileData creates a x509 pool from a public certificate
-func TrustedCertificateFromFileData(publicCertFileData []byte) (*x509.CertPool, error) {
+func trustedCertificateFromFileData(publicCertFileData []byte) (*x509.CertPool, error) {
 	pool := x509.NewCertPool()
 	if !pool.AppendCertsFromPEM(publicCertFileData) {
 		return nil, errors.WithStack(fmt.Errorf("ClientCredentialsFromFileData: failed to append certificates"))
@@ -33,8 +32,7 @@ func TrustedCertificateFromFileData(publicCertFileData []byte) (*x509.CertPool, 
 	return pool, nil
 }
 
-// ClientCredentialsFromFileData creates transport credentials used to setup TLS support
-func ClientCredentialsFromFileData(publicCertFileData []byte, serverOverride string) (credentials.TransportCredentials, error) {
+func clientCredentialsFromFileData(publicCertFileData []byte, serverOverride string) (credentials.TransportCredentials, error) {
 	pool := x509.NewCertPool()
 	if !pool.AppendCertsFromPEM(publicCertFileData) {
 		return nil, errors.WithStack(fmt.Errorf("ClientCredentialsFromFileData: failed to append certificates"))

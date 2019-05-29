@@ -108,14 +108,14 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 	assert.Nil(err)
 	waitForStart()
 
-	creds, err := ClientCredentialsFromFileData(tp.publicCertificateFileData, tp.grpcAddress)
+	creds, err := clientCredentialsFromFileData(tp.publicCertificateFileData, tp.grpcAddress)
 	assert.Nil(err)
 	conn, err := grpc.Dial(tp.grpcAddress, grpc.WithTransportCredentials(creds))
 	assert.Nil(err)
 
 	tlsCert, err := certificateFromFileData(tp.publicCertificateFileData, tp.privateKeyFileData)
 	assert.Nil(err)
-	pool, err := TrustedCertificateFromFileData(tp.rootPublicCertificateFileData)
+	pool, err := trustedCertificateFromFileData(tp.rootPublicCertificateFileData)
 	assert.Nil(err)
 	tlsTransport := &http.Transport{
 		TLSClientConfig: &tls.Config{

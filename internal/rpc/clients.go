@@ -35,6 +35,8 @@ var (
 		"app":       "openmatch",
 		"component": "client",
 	})
+	pool *x509.CertPool
+	tc   credentials.TransportCredentials
 )
 
 // ClientParams contains the connection parameters to connect to an Open Match service.
@@ -73,13 +75,33 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 	return GRPCClientFromParams(clientParams)
 }
 
-// GRPCClientFromManifests creates a gRPC client connection from given resources.
-func GRPCClientFromManifests(cfg config.View, hostname string, port int, tc credentials.TransportCredentials) (*grpc.ClientConn, error) {
+// GRPCClientFromEndpoint creates a gRPC client connection from endpoint.
+func GRPCClientFromEndpoint(cfg config.View, hostname string, port int) (*grpc.ClientConn, error) {
 	address := fmt.Sprintf("%s:%d", hostname, port)
 
 	grpcOptions := []grpc.DialOption{}
 
 	if cfg.GetBool("tls.enabled") {
+		if tc == nil {
+			_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
+			if err != nil {
+				clientLogger.WithError(err).Error("trusted certificate file may not exists.")
+				return nil, err
+			}
+
+			trustedCertificate, err := ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
+			if err != nil {
+				clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
+				return nil, err
+			}
+
+			pool, err = trustedCertificateFromFileData(trustedCertificate)
+			if err != nil {
+				clientLogger.WithError(err).Error("failed to get transport credentials from file.")
+				return nil, errors.WithStack(err)
+			}
+			tc = credentials.NewClientTLSFromCert(pool, "")
+		}
 		grpcOptions = append(grpcOptions, grpc.WithTransportCredentials(tc))
 	} else {
 		grpcOptions = append(grpcOptions, grpc.WithInsecure())
@@ -95,7 +117,7 @@ func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 	grpcOptions := []grpc.DialOption{}
 
 	if params.usingTLS() {
-		creds, err := ClientCredentialsFromFileData(params.TrustedCertificate, "")
+		creds, err := clientCredentialsFromFileData(params.TrustedCertificate, "")
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to get transport credentials from file.")
 			return nil, errors.WithStack(err)
@@ -133,8 +155,8 @@ func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string,
 	return HTTPClientFromParams(clientParams)
 }
 
-// HTTPClientFromManifests creates a HTTP client from from given resources.
-func HTTPClientFromManifests(cfg config.View, hostname string, port int, pool *x509.CertPool) (*http.Client, string, error) {
+// HTTPClientFromEndpoint creates a HTTP client from from endpoint.
+func HTTPClientFromEndpoint(cfg config.View, hostname string, port int) (*http.Client, string, error) {
 	address := fmt.Sprintf("%s:%d", hostname, port)
 	// TODO: Make client Timeout configurable
 	httpClient := &http.Client{Timeout: time.Second * 3}
@@ -142,6 +164,25 @@ func HTTPClientFromManifests(cfg config.View, hostname string, port int, pool *x
 
 	if cfg.GetBool("tls.enabled") {
 		baseURL = "https://" + address
+		if pool == nil {
+			_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
+			if err != nil {
+				clientLogger.WithError(err).Error("trusted certificate file may not exists.")
+				return nil, "", err
+			}
+
+			trustedCertificate, err := ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
+			if err != nil {
+				clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
+				return nil, "", err
+			}
+
+			pool, err = trustedCertificateFromFileData(trustedCertificate)
+			if err != nil {
+				clientLogger.WithError(err).Error("failed to get cert pool from file.")
+				return nil, "", err
+			}
+		}
 
 		httpClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
@@ -166,7 +207,7 @@ func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 	if params.usingTLS() {
 		baseURL = "https://" + address
 
-		pool, err := TrustedCertificateFromFileData(params.TrustedCertificate)
+		pool, err := trustedCertificateFromFileData(params.TrustedCertificate)
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to get cert pool from file.")
 			return nil, "", err

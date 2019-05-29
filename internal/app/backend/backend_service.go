@@ -16,17 +16,13 @@ package backend
 
 import (
 	"context"
-	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
@@ -44,8 +40,6 @@ type backendService struct {
 
 type mmfClients struct {
 	addrMap sync.Map
-	pool    *x509.CertPool
-	tc      credentials.TransportCredentials
 }
 
 var (
@@ -59,32 +53,6 @@ var (
 func newBackend(cfg config.View) (*backendService, error) {
 	bs := &backendService{
 		cfg: cfg,
-	}
-
-	if cfg.GetBool("tls.enabled") {
-		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
-		if err != nil {
-			logger.WithError(err).Error("trusted certificate file may not exists.")
-			return nil, err
-		}
-
-		trustedCertificate, err := ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
-		if err != nil {
-			logger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
-			return nil, err
-		}
-
-		pool, err := rpc.TrustedCertificateFromFileData(trustedCertificate)
-		if err != nil {
-			logger.WithError(err).Error("failed to get cert pool from file.")
-			return nil, err
-		}
-
-		credsForProxyToGrpc, err := rpc.ClientCredentialsFromFileData(trustedCertificate, "")
-		if err != nil {
-			logger.WithError(err).Error("failed to create client credentials from file")
-		}
-		bs.mmfClients = mmfClients{pool: pool, tc: credsForProxyToGrpc}
 	}
 
 	// Initialize the state storage interface.
@@ -172,7 +140,7 @@ func (s *backendService) getGRPCClient(config *pb.FunctionConfig_Grpc) (pb.Match
 	addr := fmt.Sprintf("%s:%d", config.Grpc.Host, config.Grpc.Port)
 	client, ok := s.mmfClients.addrMap.Load(addr)
 	if !ok {
-		conn, err := rpc.GRPCClientFromManifests(s.cfg, config.Grpc.Host, int(config.Grpc.Port), s.mmfClients.tc)
+		conn, err := rpc.GRPCClientFromEndpoint(s.cfg, config.Grpc.Host, int(config.Grpc.Port))
 		if err != nil {
 			return nil, err
 		}
@@ -188,7 +156,7 @@ func (s *backendService) getGRPCClient(config *pb.FunctionConfig_Grpc) (pb.Match
 }
 
 func (s *backendService) getHTTPClient(config *pb.FunctionConfig_Rest) (*http.Client, string, error) {
-	client, baseURL, err := rpc.HTTPClientFromManifests(s.cfg, config.Rest.Host, int(config.Rest.Port), s.mmfClients.pool)
+	client, baseURL, err := rpc.HTTPClientFromEndpoint(s.cfg, config.Rest.Host, int(config.Rest.Port))
 	if err != nil {
 		return nil, "", err
 	}
