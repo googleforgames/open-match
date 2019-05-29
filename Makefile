@@ -593,10 +593,10 @@ delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bi
 	-$(KIND) delete cluster
 
 create-gke-cluster: GKE_VERSION = 1.13.6-gke.0 # gcloud beta container get-server-config --zone us-central1-a
-create-gke-cluster: GKE_CLUSTER_SIZE_FLAGS = --machine-type n1-standard-2 --num-nodes 2 --max-nodes 3 --disk-size 50
+create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-2 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 3 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
-	gcloud beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --cluster-version $(GKE_VERSION) --tags open-match $(GKE_CLUSTER_SIZE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS)
+	gcloud beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --cluster-version $(GKE_VERSION) --tags open-match $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS)
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
 delete-gke-cluster: gcloud
