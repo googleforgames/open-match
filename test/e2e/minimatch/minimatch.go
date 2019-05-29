@@ -18,27 +18,25 @@ import (
 	"fmt"
 	"time"
 
-	"open-match.dev/open-match/internal/config"
 	"github.com/alicebob/miniredis"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/app/minimatch"
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 )
 
 const (
-	minimatchHost     = "minimatch"
+	minimatchHost     = "localhost"
+	minimatchPrefix   = "minimatch"
 	minimatchGRPCPort = "50510"
 	minimatchHTTPPort = "51510"
-	skillattribute    = "skill"
-	map1attribute     = "map1"
-	map2attribute     = "map2"
 )
 
 // Server is a test server that serves all core Open Match components.
 type Server struct {
-	cfg config.View
+	cfg       config.View
 	rpcserver *rpc.Server
 }
 
@@ -76,21 +74,20 @@ func (s *Server) GetMMLogicClient() (pb.MmLogicClient, error) {
 }
 
 // Stop stops the rpc server.
-func (s *Server) Stop() () {
+func (s *Server) Stop() {
 	if s.rpcserver != nil {
 		s.rpcserver.Stop()
 	}
 }
 
 // NewMiniMatch creates and starts an OpenMatchServer context for testing.
-func NewMiniMatch() (*Server, error) {
+func NewMiniMatch(cfg config.View) (*Server, error) {
 	// Create the minimatch server to be initialized.
-	mmServer, err := createServer()
-	if err != nil {
-		return nil, err
+	mmServer := &Server{
+		cfg: cfg,
 	}
 
-	p, err := rpc.NewServerParamsFromConfig(mmServer.cfg, minimatchHost)
+	p, err := rpc.NewServerParamsFromConfig(mmServer.cfg, minimatchPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +102,7 @@ func NewMiniMatch() (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	go func() {
 		waitForStart()
 	}()
@@ -113,7 +110,7 @@ func NewMiniMatch() (*Server, error) {
 	return mmServer, nil
 }
 
-func createServer() (*Server, error) {
+func createServerConfig() (config.View, error) {
 	mredis, err := miniredis.Run()
 	if err != nil {
 		return nil, err
@@ -141,9 +138,5 @@ func createServer() (*Server, error) {
 	cfg.Set("minimatch.grpcport", minimatchGRPCPort)
 	cfg.Set("minimatch.httpport", minimatchHTTPPort)
 
-	mmServer := &Server{
-		cfg: cfg,
-	}
-
-	return mmServer, nil
+	return cfg, nil
 }
