@@ -29,8 +29,12 @@ var (
 	})
 )
 
+type FunctionSettings struct {
+	Func evaluatorFunction
+}
+
 // RunApplication creates a server.
-func RunApplication() {
+func RunApplication(settings *FunctionSettings) {
 	cfg, err := config.Read()
 	if err != nil {
 		evaluatorLogger.WithFields(logrus.Fields{
@@ -45,7 +49,7 @@ func RunApplication() {
 		}).Fatalf("cannot construct server.")
 	}
 
-	if err := BindService(p, cfg); err != nil {
+	if err := BindService(p, cfg, settings); err != nil {
 		evaluatorLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("failed to bind evaluator service.")
@@ -55,8 +59,8 @@ func RunApplication() {
 }
 
 // BindService creates the evaluator service and binds it to the serving harness.
-func BindService(p *rpc.ServerParams, cfg config.View) error {
-	service, err := newEvaluator(cfg)
+func BindService(p *rpc.ServerParams, cfg config.View, fs *FunctionSettings) error {
+	service, err := newEvaluator(cfg, fs)
 	if err != nil {
 		return err
 	}
