@@ -24,7 +24,8 @@ import (
 
 const (
 	mmfName        = "test-matchfunction"
-	mmfHost        = "testmmf"
+	mmfPrefix      = "testmmf"
+	mmfHost        = "localhost"
 	mmfGRPCPort    = "50511"
 	mmfHTTPPort    = "51511"
 	mmfGRPCPortInt = 50511
@@ -42,7 +43,7 @@ func matchFunctionConfig() (*pb.FunctionConfig, func(), error) {
 		Name: mmfName,
 		Type: &pb.FunctionConfig_Grpc{
 			Grpc: &pb.GrpcFunctionConfig{
-				Host: "",
+				Host: mmfHost,
 				Port: mmfGRPCPortInt,
 			},
 		},
@@ -60,11 +61,11 @@ func serveMatchFunction() (func(), error) {
 	cfg.Set("testmmf.httpport", mmfHTTPPort)
 
 	// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
-	cfg.Set("api.mmlogic.hostname", "")
+	cfg.Set("api.mmlogic.hostname", minimatchHost)
 	cfg.Set("api.mmlogic.grpcport", minimatchGRPCPort)
 	cfg.Set("api.mmlogic.httpport", minimatchHTTPPort)
 
-	p, err := rpc.NewServerParamsFromConfig(cfg, mmfHost)
+	p, err := rpc.NewServerParamsFromConfig(cfg, mmfPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -81,12 +82,11 @@ func serveMatchFunction() (func(), error) {
 	if err != nil {
 		return nil, err
 	}
-	
 	go func() {
 		waitForStart()
 	}()
 
-	return func(){s.Stop()}, nil
+	return func() { s.Stop() }, nil
 }
 
 // This is the core match making function that will be triggered by Open Match to generate matches.

@@ -12,35 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-## NOTICE: There's 2 variables you need to make sure are set.
-## GCP_PROJECT_ID if you're working against GCP.
-## Or $REGISTRY if you want to use your own custom docker registry.
+## Open Match Make Help
+## ====================
 ##
-## Basic Deployment
-## make create-gke-cluster OR make create-mini-cluster OR make create-kind-cluster
-## make push-helm
-## make REGISTRY=gcr.io/$PROJECT_ID push-images -j$(nproc)
+## Create a GKE Cluster (requires gcloud installed and initialized, https://cloud.google.com/sdk/docs/quickstarts)
+## make enable-gcp-apis
+## make create-gke-cluster push-helm
+##
+## Create a Minikube Cluster (requires VirtualBox)
+## make create-mini-cluster push-helm
+##
+## Create a KinD Cluster
+## make create-kind-cluster push-helm
+##
+## Deploy Open Match
+## make push-images -j$(nproc)
 ## make install-chart
-## Generate Files
-## make all-protos
 ##
-## Building
+## Build and Test
 ## make all -j$(nproc)
+## make test
 ##
 ## Access monitoring
 ## make proxy-prometheus
 ## make proxy-grafana
-##
-## Run those tools
-## make run-backendclient
-## make run-frontendclient
-## make run-clientloadgen
 ##
 ## Teardown
 ## make delete-mini-cluster
 ## make delete-gke-cluster
 ## make delete-kind-cluster
 ##
+## Prepare a Pull Request
+## make presubmit
+
+# If you want information on how to edit this file checkout,
 # http://makefiletutorial.com/
 
 BASE_VERSION = 0.0.0-dev
@@ -52,17 +57,16 @@ YEAR_MONTH = $(shell date -u +'%Y%m')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
 
 PROTOC_VERSION = 3.7.1
-HELM_VERSION = 2.13.1
+HELM_VERSION = 2.14.0
 HUGO_VERSION = 0.55.5
-KUBECTL_VERSION = 1.14.1
+KUBECTL_VERSION = 1.14.2
 NODEJS_VERSION = 10.15.3
 SKAFFOLD_VERSION = latest
 MINIKUBE_VERSION = latest
 HTMLTEST_VERSION = 0.10.3
 GOLANGCI_VERSION = 1.16.0
-KIND_VERSION = 0.2.1
+KIND_VERSION = 0.3.0
 
-PROTOC_RELEASE_BASE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)
 GO = GO111MODULE=on go
 # Defines the absolute local directory of the open-match project
 REPOSITORY_ROOT := $(patsubst %/,%,$(dir $(abspath $(MAKEFILE_LIST))))
@@ -84,11 +88,7 @@ GKE_CLUSTER_NAME = om-cluster
 GCP_REGION = us-west1
 GCP_ZONE = us-west1-a
 EXE_EXTENSION =
-LOCAL_CLOUD_BUILD_PUSH = # --push
-KUBECTL_RUN_ENV = --env='REDIS_SERVICE_HOST=$$(OM_REDIS_MASTER_SERVICE_HOST)' --env='REDIS_SERVICE_PORT=$$(OM_REDIS_MASTER_SERVICE_PORT)'
 GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
-# Flags to simulate behavior of newer versions of Kubernetes
-KUBERNETES_COMPAT = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 GO111MODULE = on
 PROMETHEUS_PORT = 9090
 GRAFANA_PORT = 3000
@@ -103,7 +103,6 @@ MINIKUBE = $(TOOLCHAIN_BIN)/minikube
 KUBECTL = $(TOOLCHAIN_BIN)/kubectl
 HTMLTEST = $(TOOLCHAIN_BIN)/htmltest
 KIND = $(TOOLCHAIN_BIN)/kind
-SERVICE = default
 OPEN_MATCH_CHART_NAME = open-match
 OPEN_MATCH_KUBERNETES_NAMESPACE = open-match
 OPEN_MATCH_EXAMPLE_CHART_NAME = open-match-example
@@ -114,7 +113,6 @@ GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | 
 _GCB_POST_SUBMIT ?= 0
 # Latest version triggers builds of :latest images and deploy to main website.
 _GCB_LATEST_VERSION ?= undefined
-DEV_SITE_VERSION = head
 IMAGE_BUILD_ARGS=--build-arg BUILD_DATE=$(BUILD_DATE) --build-arg=VCS_REF=$(SHORT_SHA) --build-arg BUILD_VERSION=$(BASE_VERSION)
 
 # Make port forwards accessible outside of the proxy machine.
@@ -144,7 +142,7 @@ ifeq ($(OS),Windows_NT)
 	MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-windows-amd64.exe
 	SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-windows-amd64.exe
 	EXE_EXTENSION = .exe
-	PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-win64.zip
+	PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-win64.zip
 	KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/windows/amd64/kubectl.exe
 	HUGO_PACKAGE = https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_extended_$(HUGO_VERSION)_Windows-64bit.zip
 	NODEJS_PACKAGE = https://nodejs.org/dist/v$(NODEJS_VERSION)/node-v$(NODEJS_VERSION)-win-x64.zip
@@ -158,7 +156,7 @@ else
 		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-linux-amd64.tar.gz
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
 		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-linux-amd64
-		PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-linux-x86_64.zip
+		PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
 		KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/linux/amd64/kubectl
 		HUGO_PACKAGE = https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_extended_$(HUGO_VERSION)_Linux-64bit.tar.gz
 		NODEJS_PACKAGE = https://nodejs.org/dist/v$(NODEJS_VERSION)/node-v$(NODEJS_VERSION)-linux-x64.tar.gz
@@ -171,7 +169,7 @@ else
 		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-darwin-amd64
 		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-darwin-amd64
-		PROTOC_PACKAGE = $(PROTOC_RELEASE_BASE)-osx-x86_64.zip
+		PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-osx-x86_64.zip
 		KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/darwin/amd64/kubectl
 		HUGO_PACKAGE = https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_extended_$(HUGO_VERSION)_macOS-64bit.tar.gz
 		NODEJS_PACKAGE = https://nodejs.org/dist/v$(NODEJS_VERSION)/node-v$(NODEJS_VERSION)-darwin-x64.tar.gz
@@ -185,12 +183,13 @@ endif
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
 
+local-cloud-build: LOCAL_CLOUD_BUILD_PUSH = # --push
 local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
 push-images: push-service-images push-example-images
 
-push-service-images: push-backend-image push-frontend-image  push-mmlogic-image push-minimatch-image push-evaluator-image
+push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-evaluator-image
 
 push-backend-image: docker build-backend-image
 	docker push $(REGISTRY)/openmatch-backend:$(TAG)
@@ -304,19 +303,21 @@ delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubec
 	-$(KUBECTL) --ignore-not-found=true delete crd servicemonitors.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
 
-install/yaml/: install/yaml/install.yaml install/yaml/install-example.yaml install/yaml/01-redis-chart.yaml install/yaml/02-open-match.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml
+install/yaml/: install/yaml/install.yaml install/yaml/install-example.yaml install/yaml/01-redis-chart.yaml install/yaml/02-open-match.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml
 
 install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.fullnameOverride='$(REDIS_NAME)' \
 		--set openmatch.config.install=false \
-		--set openmatch.backendapi.install=false \
-		--set openmatch.frontendapi.install=false \
-		--set openmatch.mmlogicapi.install=false \
-		--set openmatch.evaluatorapi.install=false \
+		--set openmatch.backend.install=false \
+		--set openmatch.frontend.install=false \
+		--set openmatch.mmlogic.install=false \
+		--set openmatch.evaluator.install=false \
+		--set redis.enabled=true \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=false \
+		--set jaeger.enabled=false \
 		install/helm/open-match > install/yaml/01-redis-chart.yaml
 
 install/yaml/02-open-match.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -336,11 +337,14 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
-		--set openmatch.backendapi.install=false \
-		--set openmatch.frontendapi.install=false \
-		--set openmatch.mmlogicapi.install=false \
-		--set openmatch.evaluatorapi.install=false \
+		--set openmatch.backend.install=false \
+		--set openmatch.frontend.install=false \
+		--set openmatch.mmlogic.install=false \
+		--set openmatch.evaluator.install=false \
+		--set redis.enabled=false \
+		--set prometheus.enabled=true \
 		--set grafana.enabled=false \
+		--set jaeger.enabled=false \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
 install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -348,13 +352,29 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
-		--set openmatch.backendapi.install=false \
-		--set openmatch.frontendapi.install=false \
-		--set openmatch.mmlogicapi.install=false \
-		--set openmatch.evaluatorapi.install=false \
+		--set openmatch.backend.install=false \
+		--set openmatch.frontend.install=false \
+		--set openmatch.mmlogic.install=false \
+		--set openmatch.evaluator.install=false \
+		--set redis.enabled=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=true \
+		--set jaeger.enabled=false \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
+
+install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
+	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+		--set redis.fullnameOverride='$(REDIS_NAME)' \
+		--set openmatch.config.install=false \
+		--set openmatch.backend.install=false \
+		--set openmatch.frontend.install=false \
+		--set openmatch.mmlogic.install=false \
+		--set redis.enabled=false \
+		--set prometheus.enabled=false \
+		--set grafana.enabled=false \
+		--set jaeger.enabled=true \
+		install/helm/open-match > install/yaml/05-jaeger-chart.yaml
 
 install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
@@ -364,6 +384,7 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set redis.enabled=true \
 		--set prometheus.enabled=true \
 		--set grafana.enabled=true \
+		--set jaeger.enabled=true \
 		install/helm/open-match > install/yaml/install.yaml
 
 install/yaml/install-example.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -561,24 +582,31 @@ auth-docker: gcloud docker
 auth-gke-cluster: gcloud
 	gcloud $(GCP_PROJECT_FLAG) container clusters get-credentials $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG)
 
+activate-gcp-apis: gcloud
+	gcloud services enable containerregistry.googleapis.com
+	gcloud services enable container.googleapis.com
+
 create-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KIND) create cluster
 
 delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(KIND) delete cluster
 
+create-gke-cluster: GKE_VERSION = 1.13.6-gke.0 # gcloud beta container get-server-config --zone us-central1-a
+create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-2 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 3 --disk-size 50
+create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
-	gcloud $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --machine-type n1-standard-4 --tags open-match $(KUBERNETES_COMPAT)
+	gcloud beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --cluster-version $(GKE_VERSION) --tags open-match $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS)
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
 delete-gke-cluster: gcloud
-	gcloud $(GCP_PROJECT_FLAG) container clusters delete $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --quiet
+	-gcloud $(GCP_PROJECT_FLAG) container clusters delete $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --quiet
 
 create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	$(MINIKUBE) start --memory 6144 --cpus 4 --disk-size 50g
 
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
-	$(MINIKUBE) delete
+	-$(MINIKUBE) delete
 
 all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go internal/pb/evaluator.pb.go
@@ -796,12 +824,7 @@ clean-nodejs:
 	rm -f $(REPOSITORY_ROOT)/package-lock.json
 
 clean-install-yaml:
-	rm -f $(REPOSITORY_ROOT)/install/yaml/install.yaml
-	rm -f $(REPOSITORY_ROOT)/install/yaml/install-example.yaml
-	rm -f $(REPOSITORY_ROOT)/install/yaml/01-redis-chart.yaml
-	rm -f $(REPOSITORY_ROOT)/install/yaml/02-open-match.yaml
-	rm -f $(REPOSITORY_ROOT)/install/yaml/03-prometheus-chart.yaml
-	rm -f $(REPOSITORY_ROOT)/install/yaml/04-grafana-chart.yaml
+	rm -f $(REPOSITORY_ROOT)/install/yaml/*
 
 clean-stress-test-tools:
 	rm -rf $(TOOLCHAIN_DIR)/python
