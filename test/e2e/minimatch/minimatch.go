@@ -28,8 +28,8 @@ import (
 )
 
 const (
-	minimatchHost     = "localhost"
 	minimatchPrefix   = "minimatch"
+	minimatchHost     = "localhost"
 	minimatchGRPCPort = "50510"
 	minimatchHTTPPort = "51510"
 )
