@@ -16,13 +16,14 @@ package minimatch
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"math"
 	"testing"
 	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/internal/pb"
 )
 
@@ -35,7 +36,7 @@ const (
 )
 
 func TestMinimatchStartup(t *testing.T) {
-	assert := require.New(t)
+	assert := assert.New(t)
 
 	mm, err := NewMiniMatch()
 	if err != nil {
@@ -187,6 +188,7 @@ func TestMinimatchStartup(t *testing.T) {
 
 		for {
 			br, err := brs.Recv()
+			fmt.Printf("asdasdasdsadasdsadsad %#v\n", err)
 			if err == io.EOF {
 				break
 			}
