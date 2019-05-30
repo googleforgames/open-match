@@ -71,12 +71,16 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		return status.Errorf(codes.InvalidArgument, "match function configuration needs to be provided")
 	}
 
-	ctx := stream.Context()
-	var c <-chan *pb.Match
+	var grpcClient pb.MatchFunctionClient
+	// TODO: Uncomment when rest config is implemented
+	// var httpClient *http.Client
+	// var baseURL string
+	var err error
+
 	switch (req.Config.Type).(type) {
 	// MatchFunction Hosted as a GRPC service
 	case *pb.FunctionConfig_Grpc:
-		client, err := s.getGRPCClient((req.Config.Type).(*pb.FunctionConfig_Grpc))
+		grpcClient, err = s.getGRPCClient((req.Config.Type).(*pb.FunctionConfig_Grpc))
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
@@ -84,25 +88,48 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 			}).Error("failed to connect to match function")
 			return status.Error(codes.InvalidArgument, "failed to connect to match function")
 		}
-
-		// Get the channel over which the generated match results will be sent.
-		c = s.matchesFromGrpcMMF(ctx, req.Profile, client)
-
-	// MatchFunction Hosted as a REST service
+	// MatchFunction Hosted as a HTTP service
 	case *pb.FunctionConfig_Rest:
-		return status.Error(codes.Unimplemented, "not implemented")
-
+		// httpClient, baseURL, err := s.getHTTPClient((req.Config.Type).(*pb.FunctionConfig_Rest))
+		return status.Error(codes.InvalidArgument, "provided match function type is not supported")
 	default:
 		logger.Error("unsupported function type provided")
 		return status.Error(codes.InvalidArgument, "provided match function type is not supported")
 	}
 
+	ctx := stream.Context()
+	matchChan := make(chan *pb.Match)
+	errChan := make(chan error)
+
+	go func(matchChan chan<- *pb.Match, errChan chan<- error) {
+		var wg sync.WaitGroup
+		for _, profile := range req.Profile {
+			wg.Add(1)
+			go func(profile *pb.MatchProfile) {
+				defer wg.Done()
+
+				switch (req.Config.Type).(type) {
+				case *pb.FunctionConfig_Grpc:
+					// Get the channel over which the generated match results will be sent.
+					s.matchesFromGrpcMMF(ctx, profile, grpcClient, matchChan, errChan)
+				case *pb.FunctionConfig_Rest:
+					// TODO: implement matchesFromHttpMMF function
+					// s.matchesFromHttpMMF(ctx, profile, httpClient, baseURL, matchChan, errChan)
+				}
+			}(profile)
+		}
+		wg.Wait()
+		close(matchChan)
+		close(errChan)
+	}(matchChan, errChan)
+
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-
-		case match, ok := <-c:
+		case err := <-errChan:
+			return err
+		case match, ok := <-matchChan:
 			if !ok {
 				// Channel closed indicating that we are done processing matches.
 				return nil
@@ -145,53 +172,32 @@ func (s *backendService) getGRPCClient(config *pb.FunctionConfig_Grpc) (pb.Match
 // matchesFromGrpcMMF triggers execution of MMFs to fetch match results for each profile.
 // These proposals are then sent to evaluator and the results are streamed back on the channel
 // that this function returns to the caller.
-func (s *backendService) matchesFromGrpcMMF(ctx context.Context, profiles []*pb.MatchProfile, client pb.MatchFunctionClient) <-chan *pb.Match {
-	c := make(chan *pb.Match)
+func (s *backendService) matchesFromGrpcMMF(ctx context.Context, profile *pb.MatchProfile, client pb.MatchFunctionClient, matchChan chan<- *pb.Match, errChan chan<- error) {
+	// TODO: This code calls user code and could hang. We need to add a deadline here
+	// and timeout gracefully to ensure that the ListMatches completes.
+	// TODO: Currently, a failure in running the MMF is silently ignored and does not
+	// fail the FetchMatches. This needs to be revisited to investigate whether the
+	// FetchMatches should fail or atleast hint that a part of MMF executions failed.
+	resp, err := client.Run(ctx, &pb.RunRequest{Profile: profile})
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error":   err.Error(),
+			"profile": profile,
+		}).Error("failed to run match function for profile")
+		errChan <- err
+		return
+	}
 
-	// Create a goroutine that will wait for completion of individual goroutines processing each
-	// match profile and then close the channel signaling completion of match results generation.
-	go func(c chan<- *pb.Match) {
-		var wg sync.WaitGroup
-		for _, profile := range profiles {
-			// Trigger a goroutine for each profile. This will call the MatchFunction to get
-			// proposed matches and will then pass these to evaluator to get the accepted
-			// match results that it will send on the output channel.
-			wg.Add(1)
-			go func(profile *pb.MatchProfile) {
-				defer wg.Done()
-				// TODO: This code calls user code and could hang. We need to add a deadline here
-				// and timeout gracefully to ensure that the ListMatches completes.
-				// TODO: Currently, a failure in running the MMF is silently ignored and does not
-				// fail the FetchMatches. This needs to be revisited to investigate whether the
-				// FetchMatches should fail or atleast hint that a part of MMF executions failed.
-				resp, err := client.Run(ctx, &pb.RunRequest{Profile: profile})
-				if err != nil {
-					logger.WithFields(logrus.Fields{
-						"error":   err.Error(),
-						"profile": profile,
-					}).Error("failed to run match function for profile")
-					return
-				}
-
-				logger.WithFields(logrus.Fields{
-					"profile":   profile,
-					"proposals": resp.Proposal,
-				}).Trace("proposals generated for match profile")
-				// TODO: The matches returned by the MatchFunction will be sent to the
-				// Evaluator to select results. Until the evaluator is implemented,
-				// we channel all matches as accepted results.
-				for _, match := range resp.Proposal {
-					c <- match
-				}
-			}(profile)
-		}
-
-		// Wait for all the goroutines handling each profile to return and then close the channel.
-		wg.Wait()
-		close(c)
-	}(c)
-
-	return c
+	logger.WithFields(logrus.Fields{
+		"profile":   profile,
+		"proposals": resp.Proposal,
+	}).Trace("proposals generated for match profile")
+	// TODO: The matches returned by the MatchFunction will be sent to the
+	// Evaluator to select results. Until the evaluator is implemented,
+	// we channel all matches as accepted results.
+	for _, match := range resp.Proposal {
+		matchChan <- match
+	}
 }
 
 // AssignTickets sets the specified Assignment on the Tickets for the Ticket
