@@ -19,8 +19,6 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
-
 	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/pb"
 )

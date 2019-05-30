@@ -16,7 +16,6 @@ package minimatch
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"math"
 	"testing"
@@ -195,7 +194,6 @@ func TestMinimatchStartup(t *testing.T) {
 
 		for {
 			br, err := brs.Recv()
-			fmt.Printf("asdasdasdsadasdsadsad %#v\n", err)
 			if err == io.EOF {
 				break
 			}

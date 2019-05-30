@@ -194,7 +194,6 @@ func (s *backendService) matchesFromGrpcMMF(ctx context.Context, profiles []*pb.
 				// Evaluator to select results. Until the evaluator is implemented,
 				// we channel all matches as accepted results.
 				evaluatorResp, err := s.evalClient.Evaluate(ctx, &pb.EvaluateRequest{Match: resp.Proposal})
-				fmt.Println("iahsdiashdiaugdauegkeuygfekuy")
 				if err != nil {
 					logger.WithFields(logrus.Fields{
 						"error": err.Error(),
