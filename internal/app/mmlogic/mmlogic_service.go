@@ -66,6 +66,9 @@ func newMmlogic(cfg config.View) (*mmlogicService, error) {
 // specified Pool.
 func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.MmLogic_QueryTicketsServer) error {
 	ctx := responseServer.Context()
+	if req.Pool == nil {
+		return status.Error(codes.InvalidArgument, "pool is empty")
+	}
 	poolFilters := req.Pool.Filter
 
 	callback := func(tickets []*pb.Ticket) error {
@@ -79,20 +82,18 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 
 	pSize := s.cfg.GetInt("storage.page.size")
 	if pSize < minPageSize {
-		logger.Warningf("page size %v is lower than minimum limit of %v, setting page size as %v", pSize, minPageSize, minPageSize)
-		pSize = minPageSize
+		return status.Errorf(codes.FailedPrecondition, "page size %v is lower than minimum limit of %v", pSize, minPageSize)
 	}
 
 	if pSize > maxPageSize {
-		logger.Warningf("page size %v is higher than maximum limit of %v, setting page size as %v", pSize, maxPageSize, maxPageSize)
-		pSize = maxPageSize
+		return status.Errorf(codes.FailedPrecondition, "page size %v is higher than maximum limit of %v", pSize, maxPageSize)
 	}
 
 	// Send requests to the storage service
 	err := s.store.FilterTickets(ctx, poolFilters, pSize, callback)
 	if err != nil {
 		logger.WithError(err).Error("Failed to retrieve result from storage service.")
-		return status.Error(codes.Internal, err.Error())
+		return err
 	}
 
 	return nil
