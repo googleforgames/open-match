@@ -16,7 +16,6 @@ package rpc
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -35,8 +34,6 @@ var (
 		"app":       "openmatch",
 		"component": "client",
 	})
-	pool *x509.CertPool
-	tc   credentials.TransportCredentials
 )
 
 // ClientParams contains the connection parameters to connect to an Open Match service.
@@ -82,26 +79,25 @@ func GRPCClientFromEndpoint(cfg config.View, hostname string, port int) (*grpc.C
 	grpcOptions := []grpc.DialOption{}
 
 	if cfg.GetBool("tls.enabled") {
-		if tc == nil {
-			_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
-			if err != nil {
-				clientLogger.WithError(err).Error("trusted certificate file may not exists.")
-				return nil, err
-			}
-
-			trustedCertificate, err := ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
-			if err != nil {
-				clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
-				return nil, err
-			}
-
-			pool, err = trustedCertificateFromFileData(trustedCertificate)
-			if err != nil {
-				clientLogger.WithError(err).Error("failed to get transport credentials from file.")
-				return nil, errors.WithStack(err)
-			}
-			tc = credentials.NewClientTLSFromCert(pool, "")
+		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
+		if err != nil {
+			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
+			return nil, err
 		}
+
+		trustedCertificate, err := ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
+		if err != nil {
+			clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
+			return nil, err
+		}
+
+		pool, err := trustedCertificateFromFileData(trustedCertificate)
+		if err != nil {
+			clientLogger.WithError(err).Error("failed to get transport credentials from file.")
+			return nil, errors.WithStack(err)
+		}
+		tc := credentials.NewClientTLSFromCert(pool, "")
+
 		grpcOptions = append(grpcOptions, grpc.WithTransportCredentials(tc))
 	} else {
 		grpcOptions = append(grpcOptions, grpc.WithInsecure())
@@ -164,24 +160,22 @@ func HTTPClientFromEndpoint(cfg config.View, hostname string, port int) (*http.C
 
 	if cfg.GetBool("tls.enabled") {
 		baseURL = "https://" + address
-		if pool == nil {
-			_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
-			if err != nil {
-				clientLogger.WithError(err).Error("trusted certificate file may not exists.")
-				return nil, "", err
-			}
+		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
+		if err != nil {
+			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
+			return nil, "", err
+		}
 
-			trustedCertificate, err := ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
-			if err != nil {
-				clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
-				return nil, "", err
-			}
+		trustedCertificate, err := ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
+		if err != nil {
+			clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
+			return nil, "", err
+		}
 
-			pool, err = trustedCertificateFromFileData(trustedCertificate)
-			if err != nil {
-				clientLogger.WithError(err).Error("failed to get cert pool from file.")
-				return nil, "", err
-			}
+		pool, err := trustedCertificateFromFileData(trustedCertificate)
+		if err != nil {
+			clientLogger.WithError(err).Error("failed to get cert pool from file.")
+			return nil, "", err
 		}
 
 		httpClient.Transport = &http.Transport{
