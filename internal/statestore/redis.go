@@ -459,24 +459,20 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 		default:
 			err = redisConn.Send("MULTI")
 			if err != nil {
-				redisLogger.WithError(err).Error("failed to open a multi transaction block in redis")
 				return status.Errorf(codes.Internal, "%v", err)
 			}
 
 			// Store assignment data by fields
 			err = redisConn.Send("HSET", connectionTable, id, assignment.Connection)
 			if err != nil {
-				redisLogger.WithError(err).Errorf("failed to hset assignment connection for ticket %#v", id)
 				return status.Errorf(codes.Internal, "%v", err)
 			}
 			err = redisConn.Send("HSET", propertiesTable, id, assignment.Properties)
 			if err != nil {
-				redisLogger.WithError(err).Errorf("failed to hset assignment property for ticket %#v", id)
 				return status.Errorf(codes.Internal, "%v", err)
 			}
 			err = redisConn.Send("HSET", errorsTable, id, assignment.Error)
 			if err != nil {
-				redisLogger.WithError(err).Errorf("failed to hset assignment error for ticket %#v", id)
 				return status.Errorf(codes.Internal, "%v", err)
 			}
 
@@ -506,25 +502,21 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to open a multi transaction block in redis")
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
 	err = redisConn.Send("HGET", connectionTable, id)
 	if err != nil {
-		redisLogger.WithError(err).Errorf("failed to send hget connection request for ticket %#v", id)
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
 	err = redisConn.Send("HGET", propertiesTable, id)
 	if err != nil {
-		redisLogger.WithError(err).Errorf("failed to send hget properties request for ticket %#v", id)
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
 	err = redisConn.Send("HGET", errorsTable, id)
 	if err != nil {
-		redisLogger.WithError(err).Errorf("failed to send hget errors request for ticket %#v", id)
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
