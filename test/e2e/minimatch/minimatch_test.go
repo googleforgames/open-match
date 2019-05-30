@@ -33,12 +33,19 @@ const (
 	map1AdvancedPool = "map1advanced"
 	map2BeginnerPool = "map2beginner"
 	map2AdvancedPool = "map2advanced"
+	// Test specific metadata
+	skillattribute = "skill"
+	map1attribute  = "map1"
+	map2attribute  = "map2"
 )
 
 func TestMinimatchStartup(t *testing.T) {
 	assert := assert.New(t)
 
-	mm, err := NewMiniMatch()
+	cfg, err := createServerConfig()
+	assert.Nil(err)
+
+	mm, err := NewMiniMatch(cfg)
 	if err != nil {
 		t.Fatalf("cannot create mini match server, %s", err)
 	}
@@ -66,28 +73,28 @@ func TestMinimatchStartup(t *testing.T) {
 	// The Pools that are used for testing. Currently, each pool simply represents
 	// a combination of the attributes indexed on a ticket.
 	testPools := map[string]*pb.Pool{
-		map1BeginnerPool: &pb.Pool{
+		map1BeginnerPool: {
 			Name: map1BeginnerPool,
 			Filter: []*pb.Filter{
 				{Attribute: skillattribute, Min: 0, Max: 5},
 				{Attribute: map1attribute, Max: math.MaxFloat64},
 			},
 		},
-		map1AdvancedPool: &pb.Pool{
+		map1AdvancedPool: {
 			Name: map1AdvancedPool,
 			Filter: []*pb.Filter{
 				{Attribute: skillattribute, Min: 6, Max: 10},
 				{Attribute: map1attribute, Max: math.MaxFloat64},
 			},
 		},
-		map2BeginnerPool: &pb.Pool{
+		map2BeginnerPool: {
 			Name: map2BeginnerPool,
 			Filter: []*pb.Filter{
 				{Attribute: skillattribute, Min: 0, Max: 5},
 				{Attribute: map2attribute, Max: math.MaxFloat64},
 			},
 		},
-		map2AdvancedPool: &pb.Pool{
+		map2AdvancedPool: {
 			Name: map2AdvancedPool,
 			Filter: []*pb.Filter{
 				{Attribute: skillattribute, Min: 6, Max: 10},
@@ -182,7 +189,7 @@ func TestMinimatchStartup(t *testing.T) {
 	for _, profile := range testProfiles {
 		brs, err := be.FetchMatches(context.Background(), &pb.FetchMatchesRequest{
 			Config:  mf,
-			Profile: []*pb.MatchProfile{&pb.MatchProfile{Name: profile.name, Pool: profile.pools}},
+			Profile: []*pb.MatchProfile{{Name: profile.name, Pool: profile.pools}},
 		})
 		assert.Nil(err)
 
