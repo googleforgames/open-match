@@ -30,6 +30,5 @@ func main() {
 }
 
 func evaluate(candidates []*pb.Match) []*pb.Match {
-	fmt.Printf("asidhaisudgsaiudgaidgieagcaicugiugea %#v\n", candidates)
 	return candidates
 }
