@@ -11,5 +11,5 @@ dependencies:
 - name: jaeger
   repository: https://kubernetes-charts-incubator.storage.googleapis.com/
   version: 0.10.2
-digest: sha256:3c5f199dca3f5e9025a41a39999768fc4bfeb3a6345575e6b003b212feacc590
-generated: 2019-05-07T11:10:58.983105838-07:00
+digest: sha256:173085826cf82f6f607ce460197dcb68b6db4fc9806e8634689f707de059bf19
+generated: "2019-05-29T09:49:39.401587679-07:00"
