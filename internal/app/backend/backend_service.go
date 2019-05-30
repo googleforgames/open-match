@@ -39,7 +39,8 @@ type backendService struct {
 }
 
 type mmfClients struct {
-	addrMap sync.Map
+	addrMap    sync.Map
+	evalClient pb.EvaluatorClient
 }
 
 var (
@@ -77,6 +78,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	}
 
 	ctx := stream.Context()
+
 	var c <-chan *pb.Match
 	switch (req.Config.Type).(type) {
 	// MatchFunction Hosted as a GRPC service
@@ -198,9 +200,19 @@ func (s *backendService) matchesFromGrpcMMF(ctx context.Context, profiles []*pb.
 					"profile":   profile,
 					"proposals": resp.Proposal,
 				}).Trace("proposals generated for match profile")
+
 				// TODO: The matches returned by the MatchFunction will be sent to the
 				// Evaluator to select results. Until the evaluator is implemented,
 				// we channel all matches as accepted results.
+				// evaluatorResp, err := s.evalClient.Evaluate(ctx, &pb.EvaluateRequest{Match: resp.Proposal})
+				// if err != nil {
+				// 	logger.WithFields(logrus.Fields{
+				// 		"error": err.Error(),
+				// 		"match": resp.Proposal,
+				// 	}).Error("failed to evaluate results given candidate matches")
+				// 	return
+				// }
+
 				for _, match := range resp.Proposal {
 					c <- match
 				}

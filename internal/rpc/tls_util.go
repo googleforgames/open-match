@@ -21,23 +21,14 @@ import (
 	"crypto/x509"
 
 	"github.com/pkg/errors"
-	"google.golang.org/grpc/credentials"
 )
 
 func trustedCertificateFromFileData(publicCertFileData []byte) (*x509.CertPool, error) {
 	pool := x509.NewCertPool()
 	if !pool.AppendCertsFromPEM(publicCertFileData) {
-		return nil, errors.WithStack(fmt.Errorf("ClientCredentialsFromFileData: failed to append certificates"))
+		return nil, errors.WithStack(fmt.Errorf("trustedCertificateFromFileData: failed to append certificates"))
 	}
 	return pool, nil
-}
-
-func clientCredentialsFromFileData(publicCertFileData []byte, serverOverride string) (credentials.TransportCredentials, error) {
-	pool := x509.NewCertPool()
-	if !pool.AppendCertsFromPEM(publicCertFileData) {
-		return nil, errors.WithStack(fmt.Errorf("ClientCredentialsFromFileData: failed to append certificates"))
-	}
-	return credentials.NewClientTLSFromCert(pool, serverOverride), nil
 }
 
 func certificateFromFileData(publicCertFileData []byte, privateKeyFileData []byte) (*tls.Certificate, error) {
