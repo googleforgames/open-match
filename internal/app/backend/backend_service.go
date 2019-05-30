@@ -88,10 +88,10 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 			}).Error("failed to connect to match function")
 			return status.Error(codes.InvalidArgument, "failed to connect to match function")
 		}
-	// MatchFunction Hosted as a HTTP service
+	// MatchFunction Hosted as a REST service
 	case *pb.FunctionConfig_Rest:
 		// httpClient, baseURL, err := s.getHTTPClient((req.Config.Type).(*pb.FunctionConfig_Rest))
-		return status.Error(codes.InvalidArgument, "provided match function type is not supported")
+		return status.Error(codes.Unimplemented, "not implemented")
 	default:
 		logger.Error("unsupported function type provided")
 		return status.Error(codes.InvalidArgument, "provided match function type is not supported")
