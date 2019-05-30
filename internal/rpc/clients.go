@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"open-match.dev/open-match/internal/config"
 )
 
@@ -78,12 +79,12 @@ func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 	grpcOptions := []grpc.DialOption{}
 
 	if params.usingTLS() {
-		creds, err := clientCredentialsFromFileData(params.TrustedCertificate, "")
+		trustedCertPool, err := trustedCertificateFromFileData(params.TrustedCertificate)
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to get transport credentials from file.")
 			return nil, errors.WithStack(err)
 		}
-		grpcOptions = append(grpcOptions, grpc.WithTransportCredentials(creds))
+		grpcOptions = append(grpcOptions, grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(trustedCertPool, "")))
 	} else {
 		grpcOptions = append(grpcOptions, grpc.WithInsecure())
 	}

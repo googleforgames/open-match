@@ -67,6 +67,7 @@ HTMLTEST_VERSION = 0.10.3
 GOLANGCI_VERSION = 1.16.0
 KIND_VERSION = 0.3.0
 
+ENABLE_SECURITY_HARDENING = 0
 GO = GO111MODULE=on go
 # Defines the absolute local directory of the open-match project
 REPOSITORY_ROOT := $(patsubst %/,%,$(dir $(abspath $(MAKEFILE_LIST))))
@@ -579,6 +580,8 @@ auth-gke-cluster: gcloud
 activate-gcp-apis: gcloud
 	gcloud services enable containerregistry.googleapis.com
 	gcloud services enable container.googleapis.com
+	gcloud services enable containeranalysis.googleapis.com
+	gcloud services enable binaryauthorization.googleapis.com
 
 create-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KIND) create cluster
@@ -587,10 +590,10 @@ delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bi
 	-$(KIND) delete cluster
 
 create-gke-cluster: GKE_VERSION = 1.13.6-gke.0 # gcloud beta container get-server-config --zone us-central1-a
-create-gke-cluster: GKE_CLUSTER_SIZE_FLAGS = --machine-type n1-standard-2 --num-nodes 2 --max-nodes 3 --disk-size 50
+create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-2 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 3 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
-	gcloud beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --cluster-version $(GKE_VERSION) --tags open-match $(GKE_CLUSTER_SIZE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS)
+	gcloud beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --cluster-version $(GKE_VERSION) --tags open-match $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS)
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
 delete-gke-cluster: gcloud
@@ -601,6 +604,11 @@ create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	-$(MINIKUBE) delete
+
+gcp-apply-binauthz-policy: build/policies/binauthz.yaml
+ifeq ($(ENABLE_SECURITY_HARDENING),1)
+	gcloud beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
+endif
 
 all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go internal/pb/evaluator.pb.go
@@ -694,6 +702,16 @@ cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/messages.pb.go
 
 tools/certgen/certgen$(EXE_EXTENSION):
 	cd tools/certgen/ && $(GO_BUILD_COMMAND)
+
+build/policies/binauthz.yaml: install/policies/binauthz.yaml
+	mkdir -p $(BUILD_DIR)/policies
+	cp -f $(REPOSITORY_ROOT)/install/policies/binauthz.yaml $(BUILD_DIR)/policies/binauthz.yaml
+	sed -i 's/$$PROJECT_ID/$(GCP_PROJECT_ID)/g' $(BUILD_DIR)/policies/binauthz.yaml
+ifeq ($(ENABLE_SECURITY_HARDENING),1)
+	sed -i 's/$$EVALUATION_MODE/ALWAYS_DENY/g' $(BUILD_DIR)/policies/binauthz.yaml
+else
+	sed -i 's/$$EVALUATION_MODE/ALWAYS_ALLOW/g' $(BUILD_DIR)/policies/binauthz.yaml
+endif
 
 build/certificates/: build/toolchain/bin/certgen$(EXE_EXTENSION)
 	mkdir -p $(BUILD_DIR)/certificates/
