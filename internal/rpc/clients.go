@@ -74,6 +74,7 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 
 // GRPCClientFromEndpoint creates a gRPC client connection from endpoint.
 func GRPCClientFromEndpoint(cfg config.View, hostname string, port int) (*grpc.ClientConn, error) {
+	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
 	address := fmt.Sprintf("%s:%d", hostname, port)
 
 	grpcOptions := []grpc.DialOption{}
@@ -153,6 +154,7 @@ func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string,
 
 // HTTPClientFromEndpoint creates a HTTP client from from endpoint.
 func HTTPClientFromEndpoint(cfg config.View, hostname string, port int) (*http.Client, string, error) {
+	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
 	address := fmt.Sprintf("%s:%d", hostname, port)
 	// TODO: Make client Timeout configurable
 	httpClient := &http.Client{Timeout: time.Second * 3}
