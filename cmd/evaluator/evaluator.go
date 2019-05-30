@@ -17,8 +17,13 @@ package main
 
 import (
 	"open-match.dev/open-match/internal/app/evaluator"
+	"open-match.dev/open-match/internal/pb"
 )
 
 func main() {
-	evaluator.RunApplication()
+	evaluator.RunApplication(&evaluator.FunctionSettings{Func: evaluate})
+}
+
+func evaluate(candidates []*pb.Match) []*pb.Match {
+	return candidates
 }

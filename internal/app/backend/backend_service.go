@@ -26,6 +26,7 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 )
 
@@ -35,6 +36,7 @@ type backendService struct {
 	cfg        config.View
 	store      statestore.Service
 	mmfClients sync.Map
+	evalClient pb.EvaluatorClient
 }
 
 var (
@@ -72,6 +74,16 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	}
 
 	ctx := stream.Context()
+
+	if s.evalClient == nil {
+		conn, err := rpc.GRPCClientFromConfig(s.cfg, "api.evaluator")
+		if err != nil {
+			logger.Errorf("failed to connect to evaluator %s", err.Error())
+			return status.Error(codes.Internal, "failed to connect to evaluator")
+		}
+		s.evalClient = pb.NewEvaluatorClient(conn)
+	}
+
 	var c <-chan *pb.Match
 	switch (req.Config.Type).(type) {
 	// MatchFunction Hosted as a GRPC service
@@ -177,10 +189,20 @@ func (s *backendService) matchesFromGrpcMMF(ctx context.Context, profiles []*pb.
 					"profile":   profile,
 					"proposals": resp.Proposal,
 				}).Trace("proposals generated for match profile")
+
 				// TODO: The matches returned by the MatchFunction will be sent to the
 				// Evaluator to select results. Until the evaluator is implemented,
 				// we channel all matches as accepted results.
-				for _, match := range resp.Proposal {
+				evaluatorResp, err := s.evalClient.Evaluate(ctx, &pb.EvaluateRequest{Match: resp.Proposal})
+				if err != nil {
+					logger.WithFields(logrus.Fields{
+						"error": err.Error(),
+						"match": resp.Proposal,
+					}).Error("failed to evaluate results given candidate matches")
+					return
+				}
+
+				for _, match := range evaluatorResp.Match {
 					c <- match
 				}
 			}(profile)

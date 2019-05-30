@@ -22,7 +22,7 @@ import (
 	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/internal/pb"
 )
 
@@ -39,7 +39,7 @@ const (
 )
 
 func TestMinimatchStartup(t *testing.T) {
-	assert := require.New(t)
+	assert := assert.New(t)
 
 	cfg, err := createServerConfig()
 	assert.Nil(err)
