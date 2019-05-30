@@ -190,7 +190,8 @@ issues:
 
   # Excluding configuration per-path, per-linter, per-text and per-source
   exclude-rules:
-    - path: internal[/\\]config[/\\]
+    - path: internal[/\\]config[/\\]config
+      path: internal[/\\]rpc[/\\]clients
       linters:
         - gochecknoglobals
     # Exclue some linters from running on test files
