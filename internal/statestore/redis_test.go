@@ -210,7 +210,7 @@ func TestGetAssignmentNormalSet(t *testing.T) {
 		return nil
 	})
 
-	// GetAssignment used up all retries yet the assignment is still empty
+	// GetAssignment get the assignment with expected connection string
 	assert.Nil(err)
 	assert.Equal(assignmentResp.Connection, "test-tbd")
 }
@@ -237,7 +237,7 @@ func TestGetAssignmentFatalCallback(t *testing.T) {
 		return permanentError
 	})
 
-	// GetAssignment used up all retries yet the assignment is still empty
+	// GetAssignment encountered permanent error in callback. No more retries.
 	assert.Equal(permanentError, err)
 	assert.Equal(1, retry)
 }

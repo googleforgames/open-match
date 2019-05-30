@@ -147,7 +147,6 @@ func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketReques
 // GetTicketUpdates streams matchmaking results from Open Match for the
 // provided Ticket id.
 func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream pb.Frontend_GetAssignmentsServer) error {
-	// TODO: Still to be implemented.
 	ctx := stream.Context()
 	for {
 		select {
@@ -158,7 +157,6 @@ func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream p
 				err := stream.Send(&pb.GetAssignmentsResponse{Assignment: assignment})
 				if err != nil {
 					logger.WithError(err).Error("Failed to send Redis response to grpc server")
-					// Failed to send GetAssignmentResponse. This is a non-retryable error
 					return status.Errorf(codes.Aborted, err.Error())
 				}
 				return nil
