@@ -153,12 +153,23 @@ func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream p
 		select {
 		case <-ctx.Done():
 			return nil
-
 		default:
-			err := stream.Send(&pb.GetAssignmentsResponse{})
+			callback := func(assignment *pb.Assignment) error {
+				err := stream.Send(&pb.GetAssignmentsResponse{Assignment: assignment})
+				if err != nil {
+					logger.WithError(err).Error("Failed to send Redis response to grpc server")
+					// Failed to send GetAssignmentResponse. This is a non-retryable error
+					return status.Errorf(codes.Aborted, err.Error())
+				}
+				return nil
+			}
+
+			err := s.store.GetAssignments(ctx, req.TicketId, callback)
 			if err != nil {
 				return err
 			}
+
+			return nil
 		}
 	}
 }

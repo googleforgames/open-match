@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/proto"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/gomodule/redigo/redis"
@@ -493,6 +494,76 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 
 // GetAssignments returns the assignment associated with the input ticket id
 func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error {
+	redisConn, err := rb.connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer handleConnectionClose(&redisConn)
+
+	connectionTable := "assignment_connection"
+	propertiesTable := "assignment_properties"
+	errorsTable := "assignment_errors"
+
+	err = redisConn.Send("MULTI")
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to open a multi transaction block in redis")
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	err = redisConn.Send("HGET", connectionTable, id)
+	if err != nil {
+		redisLogger.WithError(err).Errorf("failed to send hget connection request for ticket %#v", id)
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	err = redisConn.Send("HGET", propertiesTable, id)
+	if err != nil {
+		redisLogger.WithError(err).Errorf("failed to send hget properties request for ticket %#v", id)
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	err = redisConn.Send("HGET", errorsTable, id)
+	if err != nil {
+		redisLogger.WithError(err).Errorf("failed to send hget errors request for ticket %#v", id)
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	// Run pipelined Redis commands.
+	resp, err := redis.ByteSlices(redisConn.Do("EXEC"))
+	if err != nil {
+		redisLogger.WithError(err).Errorf("failed to get assignment for ticket %#v", id)
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	assignment := &pb.Assignment{
+		Connection: string(resp[0]),
+		Properties: string(resp[1]),
+		Error:      string(resp[2]),
+	}
+
+	backoffOperation := func() error {
+		if len(assignment.Connection) == 0 {
+			return status.Errorf(codes.NotFound, "assignment not found for the given ticket")
+		}
+
+		err := callback(assignment)
+		if err != nil {
+			return backoff.Permanent(err)
+		}
+
+		return nil
+	}
+
+	// TODO: make max retries configurable
+	err = backoff.Retry(
+		backoffOperation,
+		backoff.WithMaxRetries(backoff.NewExponentialBackOff(), 3),
+	)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
