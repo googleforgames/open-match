@@ -15,10 +15,15 @@
 package backend
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"sync"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -86,7 +91,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		}
 
 		// Get the channel over which the generated match results will be sent.
-		c = s.matchesFromGrpcMMF(ctx, req.Profile, client)
+		c = s.matchesFromGRPCMMF(ctx, req.Profile, client)
 
 	// MatchFunction Hosted as a REST service
 	case *pb.FunctionConfig_Rest:
@@ -142,10 +147,67 @@ func (s *backendService) getGRPCClient(config *pb.FunctionConfig_Grpc) (pb.Match
 	return client.(pb.MatchFunctionClient), nil
 }
 
+// nolint: unused
+func (s *backendService) matchesFromHTTPMMF(profile *pb.MatchProfile, client *http.Client, baseURL string, matchChan chan<- *pb.Match, errChan chan<- error) {
+	marshaler := jsonpb.Marshaler{}
+	jsonProfile, err := marshaler.MarshalToString(profile)
+	if err != nil {
+		errChan <- err
+		logger.WithError(err).Error("failed to marshal profile pb to string")
+		return
+	}
+
+	reqBody, err := json.Marshal(map[string]string{"profile": jsonProfile})
+	if err != nil {
+		errChan <- err
+		logger.WithError(err).Error("failed to marshal request body")
+		return
+	}
+
+	req, err := http.NewRequest("post", baseURL+"/v1/matchfunction:run", bytes.NewBuffer(reqBody))
+	if err != nil {
+		errChan <- err
+		logger.WithError(err).Error("failed to create mmf http request")
+		return
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		errChan <- err
+		logger.WithError(err).Error("failed to get response from mmf run")
+		return
+	}
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			logger.WithError(err).Error("failed to close response body read closer")
+		}
+	}()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		errChan <- err
+		logger.WithError(err).Error("failed to read from response body")
+		return
+	}
+
+	pbResp := &pb.RunResponse{}
+	err = proto.Unmarshal(body, pbResp)
+	if err != nil {
+		errChan <- err
+		logger.WithError(err).Error("failed to unmarshal response body to response pb")
+		return
+	}
+
+	for _, match := range pbResp.Proposal {
+		matchChan <- match
+	}
+}
+
 // matchesFromGrpcMMF triggers execution of MMFs to fetch match results for each profile.
 // These proposals are then sent to evaluator and the results are streamed back on the channel
 // that this function returns to the caller.
-func (s *backendService) matchesFromGrpcMMF(ctx context.Context, profiles []*pb.MatchProfile, client pb.MatchFunctionClient) <-chan *pb.Match {
+func (s *backendService) matchesFromGRPCMMF(ctx context.Context, profiles []*pb.MatchProfile, client pb.MatchFunctionClient) <-chan *pb.Match {
 	c := make(chan *pb.Match)
 
 	// Create a goroutine that will wait for completion of individual goroutines processing each
