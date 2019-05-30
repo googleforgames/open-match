@@ -370,9 +370,9 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
 func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error {
-	redisConn, err := rb.redisPool.GetContext(ctx)
+	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		redisLogger.WithError(err).Error("Failed to get redis connection with context.")
+		return err
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -436,6 +436,63 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 		}
 	}
 
+	return nil
+}
+
+// UpdateAssignments update the match assignments for the input ticket ids
+func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error {
+	redisConn, err := rb.connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer handleConnectionClose(&redisConn)
+
+	connectionTable := "assignment_connection"
+	propertiesTable := "assignment_properties"
+	errorsTable := "assignment_errors"
+
+	for _, id := range ids {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			err = redisConn.Send("MULTI")
+			if err != nil {
+				redisLogger.WithError(err).Error("failed to open a multi transaction block in redis")
+				return status.Errorf(codes.Internal, "%v", err)
+			}
+
+			// Store assignment data by fields
+			err = redisConn.Send("HSET", connectionTable, id, assignment.Connection)
+			if err != nil {
+				redisLogger.WithError(err).Errorf("failed to hset assignment connection for ticket %#v", id)
+				return status.Errorf(codes.Internal, "%v", err)
+			}
+			err = redisConn.Send("HSET", propertiesTable, id, assignment.Properties)
+			if err != nil {
+				redisLogger.WithError(err).Errorf("failed to hset assignment property for ticket %#v", id)
+				return status.Errorf(codes.Internal, "%v", err)
+			}
+			err = redisConn.Send("HSET", errorsTable, id, assignment.Error)
+			if err != nil {
+				redisLogger.WithError(err).Errorf("failed to hset assignment error for ticket %#v", id)
+				return status.Errorf(codes.Internal, "%v", err)
+			}
+
+			// Run pipelined Redis commands.
+			_, err = redisConn.Do("EXEC")
+			if err != nil {
+				redisLogger.WithError(err).Errorf("failed to set assignment for ticket %#v", id)
+				return status.Errorf(codes.Internal, "%v", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// GetAssignments returns the assignment associated with the input ticket id
+func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error {
 	return nil
 }
 
