@@ -32,15 +32,15 @@ import (
 
 // MustServe creates a test server and returns TestContext that can be used to create clients.
 // This method pseudorandomly selects insecure and TLS mode to ensure both paths work.
-func MustServe(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
+func MustServe(t *testing.T, binder func(*rpc.ServerParams), closers ...func()) *TestContext {
 	if rand.Intn(2) == 0 {
-		return MustServeInsecure(t, binder)
+		return MustServeInsecure(t, binder, closers...)
 	}
-	return MustServeTLS(t, binder)
+	return MustServeTLS(t, binder, closers...)
 }
 
 // MustServeInsecure creates a test server without transport encryption and returns TestContext that can be used to create clients.
-func MustServeInsecure(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
+func MustServeInsecure(t *testing.T, binder func(*rpc.ServerParams), closers ...func()) *TestContext {
 	grpcLh := netlistenerTesting.MustListen()
 	proxyLh := netlistenerTesting.MustListen()
 
@@ -54,11 +54,12 @@ func MustServeInsecure(t *testing.T, binder func(*rpc.ServerParams)) *TestContex
 		s:            s,
 		grpcAddress:  grpcAddress,
 		proxyAddress: proxyAddress,
+		closers:      closers,
 	}
 }
 
 // MustServeTLS creates a test server with TLS and returns TestContext that can be used to create clients.
-func MustServeTLS(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
+func MustServeTLS(t *testing.T, binder func(*rpc.ServerParams), closers ...func()) *TestContext {
 	grpcLh := netlistenerTesting.MustListen()
 	proxyLh := netlistenerTesting.MustListen()
 
@@ -79,6 +80,7 @@ func MustServeTLS(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
 		grpcAddress:        grpcAddress,
 		proxyAddress:       proxyAddress,
 		trustedCertificate: pub,
+		closers:            closers,
 	}
 }
 
@@ -94,8 +96,8 @@ func bindAndStart(t *testing.T, p *rpc.ServerParams, binder func(*rpc.ServerPara
 }
 
 // TestServerBinding verifies that a server can start and shutdown.
-func TestServerBinding(t *testing.T, binder func(*rpc.ServerParams)) {
-	tc := MustServe(t, binder)
+func TestServerBinding(t *testing.T, binder func(*rpc.ServerParams), closers ...func()) {
+	tc := MustServe(t, binder, closers...)
 	tc.Close()
 }
 
@@ -107,11 +109,6 @@ type TestContext struct {
 	proxyAddress       string
 	trustedCertificate []byte
 	closers            []func()
-}
-
-// AddCloseFunc adds a close function.
-func (tc *TestContext) AddCloseFunc(closer func()) {
-	tc.closers = append(tc.closers, closer)
 }
 
 // Close shutsdown the server and frees the TCP port.

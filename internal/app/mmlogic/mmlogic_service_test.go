@@ -76,11 +76,10 @@ func queryTicketsLoop(t *testing.T, tc *rpcTesting.TestContext, req *pb.QueryTic
 }
 
 func createMmlogicForTest(t *testing.T) *rpcTesting.TestContext {
-	var closerFunc func()
+	cfg := viper.New()
+	store, closer := statestoreTesting.New(t, cfg)
+
 	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
-		cfg := viper.New()
-		store, closer := statestoreTesting.New(t, cfg)
-		closerFunc = closer
 		cfg.Set("storage.page.size", 10)
 
 		mmlogic := &mmlogicService{
@@ -90,8 +89,6 @@ func createMmlogicForTest(t *testing.T) *rpcTesting.TestContext {
 		p.AddHandleFunc(func(s *grpc.Server) {
 			pb.RegisterMmLogicServer(s, mmlogic)
 		}, pb.RegisterMmLogicHandlerFromEndpoint)
-	})
-	// TODO: This is very ugly. Need a better story around closing resources.
-	tc.AddCloseFunc(closerFunc)
+	}, closer)
 	return tc
 }

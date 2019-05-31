@@ -50,7 +50,7 @@ func TestMustServeTLS(t *testing.T) {
 	runMustServeTest(t, MustServeTLS)
 }
 
-func runMustServeTest(t *testing.T, mustServeFunc func(*testing.T, func(*rpc.ServerParams)) *TestContext) {
+func runMustServeTest(t *testing.T, mustServeFunc func(*testing.T, func(*rpc.ServerParams), ...func()) *TestContext) {
 	assert := assert.New(t)
 	ff := &shellTesting.FakeFrontend{}
 	tc := mustServeFunc(t, func(spf *rpc.ServerParams) {
