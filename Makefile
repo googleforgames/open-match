@@ -265,13 +265,13 @@ update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd install/helm/open-match; $(HELM) repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com; $(HELM) dependency update)
 
 lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd install/helm; $(HELM) lint open-match; $(HELM) lint open-match-example)
+	(cd install/helm; $(HELM) lint $(OPEN_MATCH_CHART_NAME); $(HELM) lint $(OPEN_MATCH_EXAMPLE_CHART_NAME))
 
 print-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd install/helm; $(HELM) install --dry-run --debug open-match; $(HELM) install --dry-run --debug open-match-example)
+	(cd install/helm; $(HELM) install --name $(OPEN_MATCH_CHART_NAME) --dry-run --debug $(OPEN_MATCH_CHART_NAME); $(HELM) install --name $(OPEN_MATCH_EXAMPLE_CHART_NAME) --dry-run --debug $(OPEN_MATCH_EXAMPLE_CHART_NAME))
 
 install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
+	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
@@ -284,7 +284,7 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug $(OPEN_MATCH_EXAMPLE_CHART_NAME) install/helm/open-match-example \
+	$(HELM) upgrade $(OPEN_MATCH_EXAMPLE_CHART_NAME) --install --wait --debug $(OPEN_MATCH_EXAMPLE_CHART_NAME) install/helm/open-match-example \
 	  --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 	  --set openmatch.image.registry=$(REGISTRY) \
 	  --set openmatch.image.tag=$(TAG)
@@ -371,6 +371,7 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backend.install=false \
 		--set openmatch.frontend.install=false \
 		--set openmatch.mmlogic.install=false \
+		--set openmatch.evaluator.install=false \
 		--set redis.enabled=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=false \
@@ -596,7 +597,7 @@ delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bi
 	-$(KIND) delete cluster
 
 create-gke-cluster: GKE_VERSION = 1.13.6-gke.0 # gcloud beta container get-server-config --zone us-central1-a
-create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-2 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 3 --disk-size 50
+create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
 	gcloud beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --cluster-version $(GKE_VERSION) --tags open-match $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS)

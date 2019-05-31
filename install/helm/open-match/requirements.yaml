@@ -16,18 +16,18 @@
 
 dependencies:
   - name: prometheus
-    version: 8.10.3
+    version: 8.11.4
     repository: https://kubernetes-charts.storage.googleapis.com/
     condition: prometheus.enabled
   - name: redis
-    version: 7.1.0
+    version: 8.0.5
     repository: https://kubernetes-charts.storage.googleapis.com/
     condition: redis.enabled
   - name: grafana
-    version: 3.3.6
+    version: 3.3.10
     repository: https://kubernetes-charts.storage.googleapis.com/
     condition: grafana.enabled
   - name: jaeger
-    version: 0.10.2
+    version: 0.10.3
     repository: https://kubernetes-charts-incubator.storage.googleapis.com/
     condition: jaeger.enabled

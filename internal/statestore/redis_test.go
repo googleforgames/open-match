@@ -16,11 +16,13 @@ package statestore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/alicebob/miniredis"
+	"github.com/cenkalti/backoff"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
@@ -33,7 +35,7 @@ import (
 
 func TestStatestoreSetup(t *testing.T) {
 	assert := assert.New(t)
-	cfg := createBackend(t)
+	cfg := createRedis(t)
 	service, err := New(cfg)
 	assert.Nil(err)
 	assert.NotNil(service)
@@ -43,7 +45,7 @@ func TestStatestoreSetup(t *testing.T) {
 func TestTicketLifecycle(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg := createBackend(t)
+	cfg := createRedis(t)
 	service, err := New(cfg)
 	assert.Nil(err)
 	assert.NotNil(service)
@@ -99,7 +101,7 @@ func TestTicketLifecycle(t *testing.T) {
 func TestTicketIndexing(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg := createBackend(t)
+	cfg := createRedis(t)
 	service, err := New(cfg)
 	assert.Nil(err)
 	assert.NotNil(service)
@@ -167,7 +169,80 @@ func TestTicketIndexing(t *testing.T) {
 	assert.Contains(found, "ticket.no.8")
 }
 
-func createBackend(t *testing.T) config.View {
+func TestGetAssignmentBeforeSet(t *testing.T) {
+	// Create State Store
+	assert := assert.New(t)
+	cfg := createRedis(t)
+	service, err := New(cfg)
+	assert.Nil(err)
+	assert.NotNil(service)
+	defer service.Close()
+
+	var assignmentResp *pb.Assignment
+
+	err = service.GetAssignments(context.Background(), "id", func(assignment *pb.Assignment) error {
+		assignmentResp = assignment
+		return nil
+	})
+	// GetAssignment used up all retries yet the assignment is still empty
+	assert.EqualError(err, status.Error(codes.NotFound, "assignment not found for the given ticket").Error())
+	assert.Nil(assignmentResp)
+}
+
+func TestGetAssignmentNormalSet(t *testing.T) {
+	// Create State Store
+	assert := assert.New(t)
+	cfg := createRedis(t)
+	service, err := New(cfg)
+	assert.Nil(err)
+	assert.NotNil(service)
+	defer service.Close()
+
+	err = service.UpdateAssignments(context.Background(), []string{"id"}, &pb.Assignment{
+		Connection: "test-tbd",
+	})
+	assert.Nil(err)
+
+	var assignmentResp *pb.Assignment
+
+	err = service.GetAssignments(context.Background(), "id", func(assignment *pb.Assignment) error {
+		assignmentResp = assignment
+		return nil
+	})
+
+	// GetAssignment get the assignment with expected connection string
+	assert.Nil(err)
+	assert.Equal(assignmentResp.Connection, "test-tbd")
+}
+
+func TestGetAssignmentFatalCallback(t *testing.T) {
+	// Create State Store
+	assert := assert.New(t)
+	cfg := createRedis(t)
+	service, err := New(cfg)
+	assert.Nil(err)
+	assert.NotNil(service)
+	defer service.Close()
+
+	err = service.UpdateAssignments(context.Background(), []string{"id"}, &pb.Assignment{
+		Connection: "test-tbd",
+	})
+	assert.Nil(err)
+
+	retry := 0
+	permanentError := backoff.Permanent(errors.New("some error"))
+
+	err = service.GetAssignments(context.Background(), "id", func(assignment *pb.Assignment) error {
+		retry++
+		return permanentError
+	})
+
+	// GetAssignment encountered permanent error in callback. No more retries.
+	assert.Equal(permanentError, err)
+	assert.Equal(1, retry)
+}
+
+func createRedis(t *testing.T) config.View {
 	cfg := viper.New()
 	mredis, err := miniredis.Run()
 	if err != nil {
@@ -180,6 +255,11 @@ func createBackend(t *testing.T) config.View {
 	cfg.Set("redis.pool.idleTimeout", time.Second)
 	cfg.Set("redis.pool.maxActive", 1000)
 	cfg.Set("redis.expiration", 42000)
+	cfg.Set("backoff.initialInterval", 100*time.Millisecond)
+	cfg.Set("backoff.randFactor", 0.5)
+	cfg.Set("backoff.multiplier", 0.5)
+	cfg.Set("backoff.maxInterval", 300*time.Millisecond)
+	cfg.Set("backoff.maxElapsedTime", 100*time.Millisecond)
 	cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
 
 	return cfg

@@ -31,27 +31,6 @@ const (
 	mmfGRPCPortInt = 50511
 )
 
-// matchFunctionConfig returns a function config for a basic match function that
-// can be used for testing E2E scenarios for Open Match.
-func matchFunctionConfig() (*pb.FunctionConfig, func(), error) {
-	mfclose, err := serveMatchFunction()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	mf := &pb.FunctionConfig{
-		Name: mmfName,
-		Type: &pb.FunctionConfig_Grpc{
-			Grpc: &pb.GrpcFunctionConfig{
-				Host: mmfHost,
-				Port: mmfGRPCPortInt,
-			},
-		},
-	}
-
-	return mf, mfclose, nil
-}
-
 // serveMatchFunction creates a GRPC server and starts it to server the match function forever.
 func serveMatchFunction() (func(), error) {
 	cfg := viper.New()
