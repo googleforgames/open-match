@@ -103,6 +103,13 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 
 	go func(matchChan chan<- *pb.Match, errChan chan<- error) {
 		var wg sync.WaitGroup
+
+		defer func() {
+			wg.Wait()
+			close(matchChan)
+			close(errChan)
+		}()
+
 		for _, profile := range req.Profile {
 			wg.Add(1)
 			go func(profile *pb.MatchProfile) {
@@ -111,16 +118,14 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 				switch (req.Config.Type).(type) {
 				case *pb.FunctionConfig_Grpc:
 					// Get the channel over which the generated match results will be sent.
-					s.matchesFromGrpcMMF(ctx, profile, grpcClient, matchChan, errChan)
+					matchesFromGrpcMMF(ctx, profile, grpcClient, matchChan, errChan)
 				case *pb.FunctionConfig_Rest:
 					// TODO: implement matchesFromHttpMMF function
 					// s.matchesFromHttpMMF(ctx, profile, httpClient, baseURL, matchChan, errChan)
+					errChan <- status.Error(codes.Unimplemented, "rest function config is unimplemented")
 				}
 			}(profile)
 		}
-		wg.Wait()
-		close(matchChan)
-		close(errChan)
 	}(matchChan, errChan)
 
 	for {
@@ -172,7 +177,7 @@ func (s *backendService) getGRPCClient(config *pb.FunctionConfig_Grpc) (pb.Match
 // matchesFromGrpcMMF triggers execution of MMFs to fetch match results for each profile.
 // These proposals are then sent to evaluator and the results are streamed back on the channel
 // that this function returns to the caller.
-func (s *backendService) matchesFromGrpcMMF(ctx context.Context, profile *pb.MatchProfile, client pb.MatchFunctionClient, matchChan chan<- *pb.Match, errChan chan<- error) {
+func matchesFromGrpcMMF(ctx context.Context, profile *pb.MatchProfile, client pb.MatchFunctionClient, matchChan chan<- *pb.Match, errChan chan<- error) {
 	// TODO: This code calls user code and could hang. We need to add a deadline here
 	// and timeout gracefully to ensure that the ListMatches completes.
 	// TODO: Currently, a failure in running the MMF is silently ignored and does not
