@@ -72,18 +72,19 @@ func (lh *ListenerHolder) Close() error {
 func NewFromPortNumber(portNumber int) (*ListenerHolder, error) {
 	addr := fmt.Sprintf(":%d", portNumber)
 	conn, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
 
 	tcpConn, ok := conn.Addr().(*net.TCPAddr)
 	if !ok || tcpConn == nil {
 		return nil, fmt.Errorf("net.Listen(\"tcp\", %s) did not return a *net.TCPAddr", addr)
 	}
 
-	if err == nil {
-		return &ListenerHolder{
-			number:   tcpConn.Port,
-			listener: conn,
-			addr:     conn.Addr().String(),
-		}, nil
-	}
-	return nil, err
+	return &ListenerHolder{
+		number:   tcpConn.Port,
+		listener: conn,
+		addr:     conn.Addr().String(),
+	}, nil
+
 }

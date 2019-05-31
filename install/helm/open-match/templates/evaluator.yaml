@@ -13,6 +13,25 @@
 # limitations under the License.
 
 {{- if .Values.openmatch.evaluator.install }}
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-evaluator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "openmatch.name" . }}
+    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
+spec:
+  selector:
+    app: {{ template "openmatch.name" . }}
+    component: evaluator
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: {{ .Values.openmatch.evaluator.grpc.port }}
+  - name: http
+    protocol: TCP
+    port: {{ .Values.openmatch.evaluator.http.port }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -22,26 +41,23 @@ metadata:
   labels:
     app: {{ template "openmatch.name" . }}
     component: evaluator
-    chart: {{ template "openmatch.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: {{ template "openmatch.name" . }}
       component: evaluator
-      chart: {{ template "openmatch.chart" . }}
-      release: {{ .Release.Name }}
-      heritage: {{ .Release.Service }}
+      {{- include "openmatch.chartmeta" (set . "indent" 6) }}
   template:
     metadata:
+      namespace: {{ .Release.Namespace }}
+      annotations:
+        {{- include "prometheus.annotations" (dict "port" .Values.openmatch.evaluator.http.port "prometheus" .Values.openmatch.monitoring.prometheus) | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
         component: evaluator
-        chart: {{ template "openmatch.chart" . }}
-        release: {{ .Release.Name }}
-        heritage: {{ .Release.Service }}
+        {{- include "openmatch.chartmeta" (set . "indent" 8) }}
     spec:
       containers:
       - name: om-evaluator
@@ -49,7 +65,13 @@ spec:
         imagePullPolicy: {{ .Values.openmatch.image.evaluator.pullPolicy }}
         volumeMounts:
         - name: om-config-volume
-          mountPath: {{ .Values.openmatch.config.matchmaker }}
+          mountPath: {{ .Values.openmatch.config.mountPath }}
+        ports:
+        - name: grpc
+          containerPort: {{ .Values.openmatch.evaluator.grpc.port }}
+        - name: http
+          containerPort: {{ .Values.openmatch.evaluator.http.port }}
+        {{- include "probe.readiness" (dict "port" .Values.openmatch.evaluator.http.port) | nindent 8 }}
         resources:
           requests:
             memory: 100Mi
@@ -59,6 +81,13 @@ spec:
           value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
         - name: REDIS_SERVICE_PORT
           value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
+        {{- if .Values.redis.usePassword }}
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.redis.fullnameOverride }}
+              key: redis-password
+        {{- end}}
       volumes:
       - name: om-config-volume
         configMap:

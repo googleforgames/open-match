@@ -11,13 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
- 
-from locust import HttpLocust, TaskSequence, task, seq_task
-import random
-import string
 import json
 
-ID_LEN = 6
+from locust import HttpLocust, TaskSequence, task, seq_task
+from util import string_generator, number_generator, ticket_generator
 
 class ClientBehavior(TaskSequence):
 
@@ -27,28 +24,16 @@ class ClientBehavior(TaskSequence):
 
   def init(self):
     # Placeholder for initialize future TLS materials and request generators
-    random_generator = lambda len : ''.join(random.choices(string.ascii_uppercase + string.digits, k=len))
-    self.ticket_generator = lambda : {
-        "ticket": {
-            "id": random_generator(ID_LEN),
-            "properties": json.dumps({
-                "level": random_generator(ID_LEN),
-                "strength": random_generator(ID_LEN),
-                "agility": random_generator(ID_LEN)
-            })
-        }
-    }
-
     self.payload = {
-        "endpoint": "/v1/frontend/tickets",
-        "params": None,
-        "body": None
+      "endpoint": "/v1/frontend/tickets",
+      "params": None,
+      "body": None
     }
 
   @seq_task(1)
   @task(5)
   def create_ticket(self):
-    self.payload["body"] = self.ticket_generator()
+    self.payload["body"] = ticket_generator()
 
     method, endpoint, params, data, name = "POST", self.payload["endpoint"], None, json.dumps(self.payload["body"]), "Create: {}".format(self.payload["endpoint"])
 

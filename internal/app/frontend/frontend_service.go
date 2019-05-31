@@ -71,7 +71,7 @@ func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicket
 	ticket, ok := proto.Clone(req.Ticket).(*pb.Ticket)
 	if !ok {
 		logger.Error("failed to clone input ticket proto")
-		return nil, status.Errorf(codes.Internal, "failed processing input")
+		return nil, status.Error(codes.Internal, "failed processing input")
 	}
 
 	ticket.Id = xid.New().String()
@@ -147,18 +147,27 @@ func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketReques
 // GetTicketUpdates streams matchmaking results from Open Match for the
 // provided Ticket id.
 func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream pb.Frontend_GetAssignmentsServer) error {
-	// TODO: Still to be implemented.
 	ctx := stream.Context()
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
-
 		default:
-			err := stream.Send(&pb.GetAssignmentsResponse{})
+			callback := func(assignment *pb.Assignment) error {
+				err := stream.Send(&pb.GetAssignmentsResponse{Assignment: assignment})
+				if err != nil {
+					logger.WithError(err).Error("Failed to send Redis response to grpc server")
+					return status.Errorf(codes.Aborted, err.Error())
+				}
+				return nil
+			}
+
+			err := s.store.GetAssignments(ctx, req.TicketId, callback)
 			if err != nil {
 				return err
 			}
+
+			return nil
 		}
 	}
 }

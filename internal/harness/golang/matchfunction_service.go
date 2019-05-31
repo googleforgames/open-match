@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -70,7 +71,7 @@ type matchFunctionService struct {
 type MatchFunctionParams struct {
 	Logger            *logrus.Entry
 	ProfileName       string
-	Properties        string
+	Properties        *structpb.Struct
 	Rosters           []*pb.Roster
 	PoolNameToTickets map[string][]*pb.Ticket
 }
@@ -145,12 +146,10 @@ func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.Run
 
 // TODO: replace this method once the client side wrapper is done.
 func getMMLogicClient(cfg config.View) (pb.MmLogicClient, error) {
+	// Retrieve host name and port. It is ok to not specify host name as there are scenarios
+	// where the mmlogic service will be running on the same host.
 	host := cfg.GetString("api.mmlogic.hostname")
-	if len(host) == 0 {
-		return nil, fmt.Errorf("Failed to get hostname for MMLogicAPI from the configuration")
-	}
-
-	port := cfg.GetString("api.mmlogic.port")
+	port := cfg.GetString("api.mmlogic.grpcport")
 	if len(port) == 0 {
 		return nil, fmt.Errorf("Failed to get port for MMLogicAPI from the configuration")
 	}

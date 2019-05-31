@@ -32,3 +32,8 @@ func TestServerBinding(t *testing.T) {
 
 	rpcTesting.TestServerBinding(t, bs)
 }
+
+func TestAssignTickets(t *testing.T) {
+	// TODO: add test when test helper #462 is checked in
+	// https://github.com/GoogleCloudPlatform/open-match/pull/462
+}

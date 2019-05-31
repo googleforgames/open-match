@@ -75,11 +75,11 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	}
 	s.grpcListener = grpcListener
 
-	rootCaCert, err := trustedCertificates(params.rootCaPublicCertificateFileData)
+	rootCaCert, err := trustedCertificateFromFileData(params.rootCaPublicCertificateFileData)
 	if err != nil {
 		return func() {}, errors.WithStack(err)
 	}
-	credsForProxyToGrpc, err := clientCredentialsFromFileData(params.publicCertificateFileData, "")
+	certPoolForGrpcEndpoint, err := trustedCertificateFromFileData(params.publicCertificateFileData)
 	if err != nil {
 		return func() {}, errors.WithStack(err)
 	}
@@ -110,7 +110,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	// Bind gRPC handlers
 	ctx := context.Background()
 
-	httpsToGrpcProxyOptions := []grpc.DialOption{grpc.WithTransportCredentials(credsForProxyToGrpc)}
+	httpsToGrpcProxyOptions := []grpc.DialOption{grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(certPoolForGrpcEndpoint, ""))}
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
 		if err = handlerFunc(ctx, s.proxyMux, grpcAddress, httpsToGrpcProxyOptions); err != nil {
@@ -130,8 +130,9 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 		TLSConfig: &tls.Config{
 			Certificates: []tls.Certificate{*grpcTLSCertificate},
 			ClientCAs:    rootCaCert,
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			NextProtos:   []string{http2WithTLSVersionID}, // https://github.com/grpc-ecosystem/grpc-gateway/issues/220
+			// Commented as open-match does not support mutual authentication yet
+			// ClientAuth:   tls.RequireAndVerifyClientCert,
+			NextProtos: []string{http2WithTLSVersionID}, // https://github.com/grpc-ecosystem/grpc-gateway/issues/220
 		},
 	}
 	serverStartWaiter.Add(1)
