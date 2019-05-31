@@ -226,7 +226,7 @@ func TestMinimatchStartup(t *testing.T) {
 	}
 }
 
-func createServerConfig() (config.Mutable, error) {
+func createServerConfig() config.Mutable {
 	cfg := viper.New()
 
 	cfg.Set("storage.page.size", 10)
@@ -243,5 +243,5 @@ func createServerConfig() (config.Mutable, error) {
 	cfg.Set("minimatch.grpcport", minimatchGRPCPort)
 	cfg.Set("minimatch.httpport", minimatchHTTPPort)
 
-	return cfg, nil
+	return cfg
 }
