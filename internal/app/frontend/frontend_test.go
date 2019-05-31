@@ -126,6 +126,7 @@ func createStore(t *testing.T) config.View {
 	cfg.Set("redis.port", mredis.Port())
 	cfg.Set("redis.pool.maxIdle", 1000)
 	cfg.Set("redis.pool.idleTimeout", time.Second)
+	cfg.Set("redis.pool.healthCheckTimeout", 100*time.Millisecond)
 	cfg.Set("redis.pool.maxActive", 1000)
 	cfg.Set("redis.expiration", 42000)
 	cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
