@@ -63,6 +63,12 @@ func newRedis(cfg config.View) (Service, error) {
 	maskedURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
 
 	redisLogger.WithField("redisURL", maskedURL).Debug("Attempting to connect to Redis")
+	return NewRedis(cfg, redisURL, maskedURL)
+}
+
+// NewRedis creates a Redis backed statestore.
+// Do not call this method directly, exposed for testing.
+func NewRedis(cfg config.View, redisURL string, maskedURL string) (Service, error) {
 	pool := &redis.Pool{
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),

@@ -72,6 +72,41 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 	return GRPCClientFromParams(clientParams)
 }
 
+// GRPCClientFromEndpoint creates a gRPC client connection from endpoint.
+func GRPCClientFromEndpoint(cfg config.View, hostname string, port int) (*grpc.ClientConn, error) {
+	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
+	address := fmt.Sprintf("%s:%d", hostname, port)
+
+	grpcOptions := []grpc.DialOption{}
+
+	if cfg.GetBool("tls.enabled") {
+		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
+		if err != nil {
+			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
+			return nil, err
+		}
+
+		trustedCertificate, err := ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
+		if err != nil {
+			clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
+			return nil, err
+		}
+
+		pool, err := trustedCertificateFromFileData(trustedCertificate)
+		if err != nil {
+			clientLogger.WithError(err).Error("failed to get transport credentials from file.")
+			return nil, errors.WithStack(err)
+		}
+		tc := credentials.NewClientTLSFromCert(pool, "")
+
+		grpcOptions = append(grpcOptions, grpc.WithTransportCredentials(tc))
+	} else {
+		grpcOptions = append(grpcOptions, grpc.WithInsecure())
+	}
+
+	return grpc.Dial(address, grpcOptions...)
+}
+
 // GRPCClientFromParams creates a gRPC client connection from the parameters.
 func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 	address := fmt.Sprintf("%s:%d", params.Hostname, params.Port)
@@ -115,6 +150,47 @@ func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string,
 	}
 
 	return HTTPClientFromParams(clientParams)
+}
+
+// HTTPClientFromEndpoint creates a HTTP client from from endpoint.
+func HTTPClientFromEndpoint(cfg config.View, hostname string, port int) (*http.Client, string, error) {
+	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
+	address := fmt.Sprintf("%s:%d", hostname, port)
+	// TODO: Make client Timeout configurable
+	httpClient := &http.Client{Timeout: time.Second * 3}
+	var baseURL string
+
+	if cfg.GetBool("tls.enabled") {
+		baseURL = "https://" + address
+		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
+		if err != nil {
+			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
+			return nil, "", err
+		}
+
+		trustedCertificate, err := ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
+		if err != nil {
+			clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
+			return nil, "", err
+		}
+
+		pool, err := trustedCertificateFromFileData(trustedCertificate)
+		if err != nil {
+			clientLogger.WithError(err).Error("failed to get cert pool from file.")
+			return nil, "", err
+		}
+
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				ServerName: address,
+				RootCAs:    pool,
+			},
+		}
+	} else {
+		baseURL = "http://" + address
+	}
+
+	return httpClient, baseURL, nil
 }
 
 // HTTPClientFromParams creates a HTTP client from the parameters.
