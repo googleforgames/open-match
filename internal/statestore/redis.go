@@ -548,20 +548,13 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 		if err != nil {
 			return backoff.Permanent(err)
 		}
-
 		return nil
 	}
 
-	// TODO: make max retries configurable
-	err = backoff.Retry(
-		backoffOperation,
-		backoff.WithMaxRetries(backoff.NewExponentialBackOff(), 3),
-	)
-
+	err = backoff.Retry(backoffOperation, rb.createBackoffStrat())
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -588,4 +581,15 @@ func handleConnectionClose(conn *redis.Conn) {
 			"error": err,
 		}).Debug("failed to close redis client connection.")
 	}
+}
+
+// TODO: add cache the backoff object
+func (rb *redisBackend) createBackoffStrat() backoff.BackOff {
+	backoffStrat := backoff.NewExponentialBackOff()
+	backoffStrat.InitialInterval = rb.cfg.GetDuration("backoff.initialInterval")
+	backoffStrat.RandomizationFactor = rb.cfg.GetFloat64("backoff.randFactor")
+	backoffStrat.Multiplier = rb.cfg.GetFloat64("backoff.multiplier")
+	backoffStrat.MaxInterval = rb.cfg.GetDuration("backoff.maxInterval")
+	backoffStrat.MaxElapsedTime = rb.cfg.GetDuration("backoff.maxElapsedTime")
+	return backoff.BackOff(backoffStrat)
 }
