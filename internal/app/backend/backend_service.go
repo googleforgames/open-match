@@ -147,7 +147,7 @@ func (s *backendService) getGRPCClient(config *pb.FunctionConfig_Grpc) (pb.Match
 	return client.(pb.MatchFunctionClient), nil
 }
 
-// nolint: unused
+// nolint: unused, deadcode
 func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *http.Client, baseURL string, matchChan chan<- *pb.Match, errChan chan<- error) {
 	marshaler := jsonpb.Marshaler{}
 	jsonProfile, err := marshaler.MarshalToString(profile)
