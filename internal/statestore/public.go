@@ -41,6 +41,12 @@ type Service interface {
 	// FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria.
 	FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error
 
+	// UpdateAssignments update the match assignments for the input ticket ids
+	UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error
+
+	// GetAssignments returns the assignment associated with the input ticket id
+	GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error
+
 	// Closes the connection to the underlying storage.
 	Close() error
 }

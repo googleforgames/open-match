@@ -230,5 +230,11 @@ func (s *backendService) matchesFromGrpcMMF(ctx context.Context, profiles []*pb.
 // AssignTickets sets the specified Assignment on the Tickets for the Ticket
 // ids passed.
 func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
+	err := s.store.UpdateAssignments(ctx, req.TicketId, req.Assignment)
+	if err != nil {
+		logger.WithError(err).Error("failed to update assignments for requested tickets")
+		return nil, err
+	}
+
 	return &pb.AssignTicketsResponse{}, nil
 }
