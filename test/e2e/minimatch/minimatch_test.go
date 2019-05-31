@@ -44,11 +44,9 @@ const (
 func TestMinimatchStartup(t *testing.T) {
 	assert := assert.New(t)
 
-	cfg, err := createServerConfig()
+	cfg := createServerConfig()
 	_, closer := statestoreTesting.New(t, cfg)
 	defer closer()
-
-	assert.Nil(err)
 
 	mm, err := NewMiniMatch(cfg)
 	if err != nil {
