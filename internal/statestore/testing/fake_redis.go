@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"fmt"
+
 	"github.com/alicebob/miniredis"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"

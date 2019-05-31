@@ -19,17 +19,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
+	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
 func TestServerBinding(t *testing.T) {
@@ -77,7 +76,10 @@ func validateDelete(t *testing.T, fe *frontendService, id string) {
 // TestFrontendService tests creating, getting and deleting a ticket using Frontend service.
 func TestFrontendService(t *testing.T) {
 	assert := assert.New(t)
-	cfg := createStore(t)
+	cfg := viper.New()
+	_, closer := statestoreTesting.New(t, cfg)
+	defer closer()
+	
 	fe, err := newFrontend(cfg)
 	assert.Nil(err)
 	assert.NotNil(fe)
@@ -113,22 +115,4 @@ func TestFrontendService(t *testing.T) {
 	_, err = fe.DeleteTicket(context.Background(), &pb.DeleteTicketRequest{TicketId: ticket.Id})
 	assert.Nil(err)
 	validateDelete(t, fe, ticket.Id)
-}
-
-func createStore(t *testing.T) config.View {
-	cfg := viper.New()
-	mredis, err := miniredis.Run()
-	if err != nil {
-		t.Fatalf("cannot create redis %s", err)
-	}
-
-	cfg.Set("redis.hostname", mredis.Host())
-	cfg.Set("redis.port", mredis.Port())
-	cfg.Set("redis.pool.maxIdle", 1000)
-	cfg.Set("redis.pool.idleTimeout", time.Second)
-	cfg.Set("redis.pool.maxActive", 1000)
-	cfg.Set("redis.expiration", 42000)
-	cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
-
-	return cfg
 }
