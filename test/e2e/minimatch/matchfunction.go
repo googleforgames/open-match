@@ -15,11 +15,14 @@
 package minimatch
 
 import (
+	"testing"
+
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
 	harness "open-match.dev/open-match/internal/harness/golang"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
+	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 )
 
 const (
@@ -31,25 +34,27 @@ const (
 	mmfGRPCPortInt = 50511
 )
 
-// matchFunctionConfig returns a function config for a basic match function that
-// can be used for testing E2E scenarios for Open Match.
-func matchFunctionConfig() (*pb.FunctionConfig, func(), error) {
-	mfclose, err := serveMatchFunction()
-	if err != nil {
-		return nil, nil, err
-	}
+func createMatchFunctionForTest(t *testing.T) *rpcTesting.TestContext {
+	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
+		cfg := viper.New()
+		// Set match function configuration.
+		cfg.Set("testmmf.hostname", mmfHost)
+		cfg.Set("testmmf.grpcport", mmfGRPCPort)
+		cfg.Set("testmmf.httpport", mmfHTTPPort)
 
-	mf := &pb.FunctionConfig{
-		Name: mmfName,
-		Type: &pb.FunctionConfig_Grpc{
-			Grpc: &pb.GrpcFunctionConfig{
-				Host: mmfHost,
-				Port: mmfGRPCPortInt,
-			},
-		},
-	}
+		// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
+		cfg.Set("api.mmlogic.hostname", minimatchHost)
+		cfg.Set("api.mmlogic.grpcport", minimatchGRPCPort)
+		cfg.Set("api.mmlogic.httpport", minimatchHTTPPort)
 
-	return mf, mfclose, nil
+		if err := harness.BindService(p, cfg, &harness.FunctionSettings{
+			FunctionName: mmfName,
+			Func:         makeMatches,
+		}); err != nil {
+			t.Error(err)
+		}
+	})
+	return tc
 }
 
 // serveMatchFunction creates a GRPC server and starts it to server the match function forever.
@@ -67,13 +72,6 @@ func serveMatchFunction() (func(), error) {
 
 	p, err := rpc.NewServerParamsFromConfig(cfg, mmfPrefix)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := harness.BindService(p, cfg, &harness.FunctionSettings{
-		FunctionName: mmfName,
-		Func:         makeMatches,
-	}); err != nil {
 		return nil, err
 	}
 

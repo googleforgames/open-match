@@ -155,6 +155,14 @@ func (tc *TestContext) newClientParams(address string) *rpc.ClientParams {
 	}
 }
 
+func (tc *TestContext) GetProxyHostAndPort() (string, int) {
+	return hostnameAndPort(tc.t, tc.proxyAddress)
+}
+
+func (tc *TestContext) GetGRPCHostAndPort() (string, int) {
+	return hostnameAndPort(tc.t, tc.grpcAddress)
+}
+
 func hostnameAndPort(t *testing.T, address string) (string, int) {
 	// Coerce to a url.
 	if !strings.Contains(address, "://") {
