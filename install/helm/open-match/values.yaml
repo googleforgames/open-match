@@ -77,15 +77,15 @@ openmatch:
         # See https://github.com/cenkalti/backoff/blob/v3/exponential.go for detailed explanations
         backoff:
           # The initial retry interval (in milliseconds)
-          initialInterval: 500
-          # maxInterval caps the maximum number of retries
-          maxInterval: 3
+          initialInterval: 100ms
+          # maxInterval caps the maximum time elapsed for a retry interval
+          maxInterval: 500ms
           # The next retry interval is multiplied by this multiplier
           multiplier: 1.5
           # Randomize the retry interval
           randFactor: 0.5
           # maxElapsedTime caps the retry time (in milliseconds)
-          maxElapsedTime: 3000
+          maxElapsedTime: 3000ms
 
         api:
           backend:
