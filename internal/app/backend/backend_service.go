@@ -17,15 +17,16 @@ package backend
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 )
 
@@ -34,7 +35,12 @@ import (
 type backendService struct {
 	cfg        config.View
 	store      statestore.Service
-	mmfClients sync.Map
+	mmfClients mmfClients
+}
+
+type mmfClients struct {
+	addrMap    sync.Map
+	evalClient pb.EvaluatorClient
 }
 
 var (
@@ -85,12 +91,19 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 			logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
 				"function": req.Config,
-			}).Error("failed to connect to match function")
+			}).Error("failed to establish grpc client connection to match function")
 			return status.Error(codes.InvalidArgument, "failed to connect to match function")
 		}
 	// MatchFunction Hosted as a REST service
 	case *pb.FunctionConfig_Rest:
-		// httpClient, baseURL, err := s.getHTTPClient((req.Config.Type).(*pb.FunctionConfig_Rest))
+		_, _, err := s.getHTTPClient((req.Config.Type).(*pb.FunctionConfig_Rest))
+		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"error":    err.Error(),
+				"function": req.Config,
+			}).Error("failed to establish rest client connection to match function")
+			return status.Error(codes.InvalidArgument, "failed to connect to match function")
+		}
 		return status.Error(codes.Unimplemented, "not implemented")
 	default:
 		logger.Error("unsupported function type provided")
@@ -157,21 +170,29 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 
 func (s *backendService) getGRPCClient(config *pb.FunctionConfig_Grpc) (pb.MatchFunctionClient, error) {
 	addr := fmt.Sprintf("%s:%d", config.Grpc.Host, config.Grpc.Port)
-	client, ok := s.mmfClients.Load(addr)
+	client, ok := s.mmfClients.addrMap.Load(addr)
 	if !ok {
-		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		conn, err := rpc.GRPCClientFromEndpoint(s.cfg, config.Grpc.Host, int(config.Grpc.Port))
 		if err != nil {
 			return nil, err
 		}
 
 		client = pb.NewMatchFunctionClient(conn)
-		s.mmfClients.Store(addr, client)
+		s.mmfClients.addrMap.Store(addr, client)
 		logger.WithFields(logrus.Fields{
 			"address": config,
 		}).Info("successfully connected to the GRPC match function service")
 	}
 
 	return client.(pb.MatchFunctionClient), nil
+}
+
+func (s *backendService) getHTTPClient(config *pb.FunctionConfig_Rest) (*http.Client, string, error) {
+	client, baseURL, err := rpc.HTTPClientFromEndpoint(s.cfg, config.Rest.Host, int(config.Rest.Port))
+	if err != nil {
+		return nil, "", err
+	}
+	return client, baseURL, err
 }
 
 // matchesFromGrpcMMF triggers execution of MMFs to fetch match results for each profile.
@@ -208,5 +229,11 @@ func matchesFromGrpcMMF(ctx context.Context, profile *pb.MatchProfile, client pb
 // AssignTickets sets the specified Assignment on the Tickets for the Ticket
 // ids passed.
 func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
+	err := s.store.UpdateAssignments(ctx, req.TicketId, req.Assignment)
+	if err != nil {
+		logger.WithError(err).Error("failed to update assignments for requested tickets")
+		return nil, err
+	}
+
 	return &pb.AssignTicketsResponse{}, nil
 }

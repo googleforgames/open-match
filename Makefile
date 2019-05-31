@@ -57,7 +57,7 @@ YEAR_MONTH = $(shell date -u +'%Y%m')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
 
 PROTOC_VERSION = 3.7.1
-HELM_VERSION = 2.14.0
+HELM_VERSION = 3.0.0-alpha.1
 HUGO_VERSION = 0.55.5
 KUBECTL_VERSION = 1.14.2
 NODEJS_VERSION = 10.15.3
@@ -67,6 +67,7 @@ HTMLTEST_VERSION = 0.10.3
 GOLANGCI_VERSION = 1.16.0
 KIND_VERSION = 0.3.0
 
+ENABLE_SECURITY_HARDENING = 0
 GO = GO111MODULE=on go
 # Defines the absolute local directory of the open-match project
 REPOSITORY_ROOT := $(patsubst %/,%,$(dir $(abspath $(MAKEFILE_LIST))))
@@ -138,7 +139,7 @@ endif
 
 ifeq ($(OS),Windows_NT)
 	# TODO: Windows packages are here but things are broken since many paths are Linux based and zip vs tar.gz.
-	HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-windows-amd64.zip
+	HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-windows-amd64.zip
 	MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-windows-amd64.exe
 	SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-windows-amd64.exe
 	EXE_EXTENSION = .exe
@@ -153,7 +154,7 @@ ifeq ($(OS),Windows_NT)
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
-		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-linux-amd64.tar.gz
+		HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
 		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-linux-amd64
 		PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
@@ -166,7 +167,7 @@ else
 		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/kind-linux-amd64
 	endif
 	ifeq ($(UNAME_S),Darwin)
-		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
+		HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-darwin-amd64
 		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-darwin-amd64
 		PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-osx-x86_64.zip
@@ -264,14 +265,16 @@ update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd install/helm/open-match; $(HELM) repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com; $(HELM) dependency update)
 
 lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd install/helm; $(HELM) lint open-match; $(HELM) lint open-match-example)
+	(cd install/helm; $(HELM) lint $(OPEN_MATCH_CHART_NAME); $(HELM) lint $(OPEN_MATCH_EXAMPLE_CHART_NAME))
 
 print-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd install/helm; $(HELM) install --dry-run --debug open-match; $(HELM) install --dry-run --debug open-match-example)
+	(cd install/helm; $(HELM) install $(OPEN_MATCH_CHART_NAME) --dry-run --debug $(OPEN_MATCH_CHART_NAME); $(HELM) install $(OPEN_MATCH_EXAMPLE_CHART_NAME) --dry-run --debug $(OPEN_MATCH_EXAMPLE_CHART_NAME))
 
 install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
-		--timeout=400 \
+	# https://github.com/helm/helm/issues/5814
+	# --wait isn't implemented yet.
+	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
+		--timeout=10m \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
@@ -283,7 +286,7 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug $(OPEN_MATCH_EXAMPLE_CHART_NAME) install/helm/open-match-example \
+	$(HELM) upgrade $(OPEN_MATCH_EXAMPLE_CHART_NAME) --install --wait --debug $(OPEN_MATCH_EXAMPLE_CHART_NAME) install/helm/open-match-example \
 	  --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 	  --set openmatch.image.registry=$(REGISTRY) \
 	  --set openmatch.image.tag=$(TAG)
@@ -292,13 +295,13 @@ delete-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	-$(HELM) delete --purge $(OPEN_MATCH_EXAMPLE_CHART_NAME)
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
+	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug --dry-run  install/helm/open-match \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG)
 
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	-$(HELM) delete --purge $(OPEN_MATCH_CHART_NAME)
+	-$(HELM) delete $(OPEN_MATCH_CHART_NAME)
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheuses.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd servicemonitors.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
@@ -307,7 +310,7 @@ install/yaml/: install/yaml/install.yaml install/yaml/install-example.yaml insta
 
 install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.fullnameOverride='$(REDIS_NAME)' \
 		--set openmatch.config.install=false \
 		--set openmatch.backend.install=false \
@@ -322,7 +325,7 @@ install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/02-open-match.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.fullnameOverride='$(REDIS_NAME)' \
 		--set redis.enabled=false \
 		--set prometheus.enabled=false \
@@ -334,7 +337,7 @@ install/yaml/02-open-match.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
 		--set openmatch.backend.install=false \
@@ -349,7 +352,7 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
 		--set openmatch.backend.install=false \
@@ -364,7 +367,7 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.fullnameOverride='$(REDIS_NAME)' \
 		--set openmatch.config.install=false \
 		--set openmatch.backend.install=false \
@@ -378,7 +381,7 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
 		--set redis.enabled=true \
@@ -389,7 +392,7 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/install-example.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_EXAMPLE_CHART_NAME) --namespace $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) \
+	$(HELM) template $(OPEN_MATCH_EXAMPLE_CHART_NAME) --namespace $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
 		install/helm/open-match-example > install/yaml/install-example.yaml
@@ -417,7 +420,6 @@ else
 	cd $(TOOLCHAIN_DIR)/temp-helm && curl -Lo helm.tar.gz $(HELM_PACKAGE) && tar xzf helm.tar.gz --strip-components 1
 endif
 	mv $(TOOLCHAIN_DIR)/temp-helm/helm$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/helm$(EXE_EXTENSION)
-	mv $(TOOLCHAIN_DIR)/temp-helm/tiller$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/tiller$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-helm/
 
 build/toolchain/bin/hugo$(EXE_EXTENSION):
@@ -538,15 +540,8 @@ build/toolchain/bin/certgen$(EXE_EXTENSION): tools/certgen/certgen$(EXE_EXTENSIO
 	mkdir -p $(TOOLCHAIN_BIN)
 	cp -f $(REPOSITORY_ROOT)/tools/certgen/certgen$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION)
 
-push-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) create serviceaccount --namespace kube-system tiller
-	$(HELM) init --service-account tiller --force-upgrade
-	$(KUBECTL) create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-ifneq ($(strip $($(KUBECTL) get clusterroles | grep -i rbac)),)
-	$(KUBECTL) patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
-endif
-	@echo "Waiting for Tiller to become ready..."
-	$(KUBECTL) wait deployment --timeout=60s --for condition=available -l app=helm,name=tiller --namespace kube-system
+push-helm: build/toolchain/bin/helm$(EXE_EXTENSION)
+	$(HELM) init
 
 delete-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) reset
@@ -585,6 +580,8 @@ auth-gke-cluster: gcloud
 activate-gcp-apis: gcloud
 	gcloud services enable containerregistry.googleapis.com
 	gcloud services enable container.googleapis.com
+	gcloud services enable containeranalysis.googleapis.com
+	gcloud services enable binaryauthorization.googleapis.com
 
 create-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KIND) create cluster
@@ -593,10 +590,10 @@ delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bi
 	-$(KIND) delete cluster
 
 create-gke-cluster: GKE_VERSION = 1.13.6-gke.0 # gcloud beta container get-server-config --zone us-central1-a
-create-gke-cluster: GKE_CLUSTER_SIZE_FLAGS = --machine-type n1-standard-2 --num-nodes 2 --max-nodes 3 --disk-size 50
+create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-2 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 3 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
-	gcloud beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --cluster-version $(GKE_VERSION) --tags open-match $(GKE_CLUSTER_SIZE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS)
+	gcloud beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --cluster-version $(GKE_VERSION) --tags open-match $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS)
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
 delete-gke-cluster: gcloud
@@ -607,6 +604,11 @@ create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	-$(MINIKUBE) delete
+
+gcp-apply-binauthz-policy: build/policies/binauthz.yaml
+ifeq ($(ENABLE_SECURITY_HARDENING),1)
+	gcloud beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
+endif
 
 all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go internal/pb/evaluator.pb.go
@@ -700,6 +702,16 @@ cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/messages.pb.go
 
 tools/certgen/certgen$(EXE_EXTENSION):
 	cd tools/certgen/ && $(GO_BUILD_COMMAND)
+
+build/policies/binauthz.yaml: install/policies/binauthz.yaml
+	mkdir -p $(BUILD_DIR)/policies
+	cp -f $(REPOSITORY_ROOT)/install/policies/binauthz.yaml $(BUILD_DIR)/policies/binauthz.yaml
+	sed -i 's/$$PROJECT_ID/$(GCP_PROJECT_ID)/g' $(BUILD_DIR)/policies/binauthz.yaml
+ifeq ($(ENABLE_SECURITY_HARDENING),1)
+	sed -i 's/$$EVALUATION_MODE/ALWAYS_DENY/g' $(BUILD_DIR)/policies/binauthz.yaml
+else
+	sed -i 's/$$EVALUATION_MODE/ALWAYS_ALLOW/g' $(BUILD_DIR)/policies/binauthz.yaml
+endif
 
 build/certificates/: build/toolchain/bin/certgen$(EXE_EXTENSION)
 	mkdir -p $(BUILD_DIR)/certificates/
