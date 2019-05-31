@@ -148,33 +148,32 @@ func (s *backendService) getGRPCClient(config *pb.FunctionConfig_Grpc) (pb.Match
 }
 
 // nolint: unused
-func (s *backendService) matchesFromHTTPMMF(profile *pb.MatchProfile, client *http.Client, baseURL string, matchChan chan<- *pb.Match, errChan chan<- error) {
+func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *http.Client, baseURL string, matchChan chan<- *pb.Match, errChan chan<- error) {
 	marshaler := jsonpb.Marshaler{}
 	jsonProfile, err := marshaler.MarshalToString(profile)
 	if err != nil {
-		errChan <- err
+		errChan <- status.Error(codes.FailedPrecondition, err.Error())
 		logger.WithError(err).Error("failed to marshal profile pb to string")
 		return
 	}
 
 	reqBody, err := json.Marshal(map[string]string{"profile": jsonProfile})
 	if err != nil {
-		errChan <- err
+		errChan <- status.Error(codes.FailedPrecondition, err.Error())
 		logger.WithError(err).Error("failed to marshal request body")
 		return
 	}
 
 	req, err := http.NewRequest("post", baseURL+"/v1/matchfunction:run", bytes.NewBuffer(reqBody))
 	if err != nil {
-		errChan <- err
+		errChan <- status.Error(codes.FailedPrecondition, err.Error())
 		logger.WithError(err).Error("failed to create mmf http request")
 		return
 	}
 
-	resp, err := client.Do(req)
+	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
-		errChan <- err
-		logger.WithError(err).Error("failed to get response from mmf run")
+		errChan <- status.Errorf(codes.Internal, "failed to get response from mmf run: %s", err.Error())
 		return
 	}
 	defer func() {
@@ -186,7 +185,7 @@ func (s *backendService) matchesFromHTTPMMF(profile *pb.MatchProfile, client *ht
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		errChan <- err
+		errChan <- status.Error(codes.FailedPrecondition, err.Error())
 		logger.WithError(err).Error("failed to read from response body")
 		return
 	}
@@ -194,7 +193,7 @@ func (s *backendService) matchesFromHTTPMMF(profile *pb.MatchProfile, client *ht
 	pbResp := &pb.RunResponse{}
 	err = proto.Unmarshal(body, pbResp)
 	if err != nil {
-		errChan <- err
+		errChan <- status.Error(codes.FailedPrecondition, err.Error())
 		logger.WithError(err).Error("failed to unmarshal response body to response pb")
 		return
 	}
