@@ -29,6 +29,7 @@ const (
 	mmfGRPCPort    = "50511"
 	mmfHTTPPort    = "51511"
 	mmfGRPCPortInt = 50511
+	mmfHTTPPortInt = 51511
 )
 
 // serveMatchFunction creates a GRPC server and starts it to server the match function forever.
