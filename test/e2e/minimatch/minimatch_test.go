@@ -15,7 +15,6 @@
 package minimatch
 
 import (
-	"context"
 	"io"
 	"math"
 	"testing"
@@ -24,6 +23,7 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/internal/pb"
+	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 )
 
 const (
@@ -45,15 +45,10 @@ type testProfile struct {
 
 func TestMinimatchStartup(t *testing.T) {
 	assert := assert.New(t)
-
-	cfg, err := createServerConfig()
-	assert.Nil(err)
-
-	mm, err := NewMiniMatch(cfg)
-	if err != nil {
-		t.Fatalf("cannot create mini match server, %s", err)
-	}
-	defer mm.Stop()
+	minimatchTc := createMinimatchForTest(t)
+	defer minimatchTc.Close()
+	mmfTc, mmfName := createMatchFunctionForTest(t, minimatchTc)
+	defer mmfTc.Close()
 
 	// TODO: Currently, the E2E test uses globally defined test data. Consider
 	// improving this in future iterations to test data scoped to sepcific test cases
@@ -115,14 +110,12 @@ func TestMinimatchStartup(t *testing.T) {
 		{name: "", pools: []*pb.Pool{testPools[map2BeginnerPool], testPools[map2AdvancedPool]}},
 	}
 
-	fe, err := mm.GetFrontendClient()
-	assert.Nil(err)
-	assert.NotNil(fe)
+	fe := pb.NewFrontendClient(minimatchTc.MustGRPC())
 
 	// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids
 	// to expected player pools.
 	for i, td := range testTickets {
-		resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{
+		resp, err := fe.CreateTicket(minimatchTc.Context(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{
 			Properties: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
 					skillattribute: {Kind: &structpb.Value_NumberValue{NumberValue: td.skill}},
@@ -136,16 +129,14 @@ func TestMinimatchStartup(t *testing.T) {
 		testTickets[i].id = resp.Ticket.Id
 	}
 
-	mml, err := mm.GetMMLogicClient()
-	assert.Nil(err)
-	assert.NotNil(mml)
+	mml := pb.NewMmLogicClient(minimatchTc.MustGRPC())
 
 	// poolTickets represents a map of the pool name to all the ticket ids in the pool.
 	poolTickets := make(map[string][]string)
 
 	// Query tickets for each pool
 	for _, pool := range testPools {
-		qtstr, err := mml.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: pool})
+		qtstr, err := mml.QueryTickets(minimatchTc.Context(), &pb.QueryTicketsRequest{Pool: pool})
 		assert.Nil(err)
 		assert.NotNil(qtstr)
 
@@ -178,13 +169,13 @@ func TestMinimatchStartup(t *testing.T) {
 		assert.Equal(poolTickets[pool.Name], want)
 	}
 
-	cfgs := []*pb.FunctionConfig{
+	fcs := []*pb.FunctionConfig{
 		{
 			Name: mmfName,
 			Type: &pb.FunctionConfig_Grpc{
 				Grpc: &pb.GrpcFunctionConfig{
-					Host: mmfHost,
-					Port: mmfGRPCPortInt,
+					Host: mmfTc.GetHostname(),
+					Port: int32(mmfTc.GetGRPCPort()),
 				},
 			},
 		},
@@ -194,30 +185,24 @@ func TestMinimatchStartup(t *testing.T) {
 		// 	Type: &pb.FunctionConfig_Rest{
 		// 		Rest: &pb.RestFunctionConfig{
 		// 			Host: mmfHost,
-		// 			Port: mmfGRPCPortInt,
+		// 			Port: mmfHTTPPortInt,
 		// 		},
 		// 	},
 		// },
 	}
 
-	for _, cfg := range cfgs {
-		validateFetchMatchesResult(assert, poolTickets, testProfiles, mm, cfg)
+	for _, fc := range fcs {
+		validateFetchMatchesResult(assert, poolTickets, testProfiles, minimatchTc, fc)
 	}
 }
 
-func validateFetchMatchesResult(assert *assert.Assertions, poolTickets map[string][]string, testProfiles []testProfile, mm *Server, mf *pb.FunctionConfig) {
-	be, err := mm.GetBackendClient()
-	assert.Nil(err)
-	assert.NotNil(be)
-
-	mfclose, err := serveMatchFunction()
-	defer mfclose()
-	assert.Nil(err)
+func validateFetchMatchesResult(assert *assert.Assertions, poolTickets map[string][]string, testProfiles []testProfile, tc *rpcTesting.TestContext, fc *pb.FunctionConfig) {
+	be := pb.NewBackendClient(tc.MustGRPC())
 
 	// Fetch Matches for each test profile.
 	for _, profile := range testProfiles {
-		brs, err := be.FetchMatches(context.Background(), &pb.FetchMatchesRequest{
-			Config:  mf,
+		brs, err := be.FetchMatches(tc.Context(), &pb.FetchMatchesRequest{
+			Config:  fc,
 			Profile: []*pb.MatchProfile{{Name: profile.name, Pool: profile.pools}},
 		})
 		assert.Nil(err)

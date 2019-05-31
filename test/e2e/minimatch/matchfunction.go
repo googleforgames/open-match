@@ -25,27 +25,17 @@ import (
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 )
 
-const (
-	mmfName        = "test-matchfunction"
-	mmfPrefix      = "testmmf"
-	mmfHost        = "localhost"
-	mmfGRPCPort    = "50511"
-	mmfHTTPPort    = "51511"
-	mmfGRPCPortInt = 50511
-)
+func createMatchFunctionForTest(t *testing.T, depTc *rpcTesting.TestContext) (*rpcTesting.TestContext, string) {
+	mmfName := "test-matchfunction"
 
-func createMatchFunctionForTest(t *testing.T) *rpcTesting.TestContext {
-	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
+	// TODO: Use insecure for now since minimatch and mmf only works with the same secure mode
+	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
-		// Set match function configuration.
-		cfg.Set("testmmf.hostname", mmfHost)
-		cfg.Set("testmmf.grpcport", mmfGRPCPort)
-		cfg.Set("testmmf.httpport", mmfHTTPPort)
 
 		// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
-		cfg.Set("api.mmlogic.hostname", minimatchHost)
-		cfg.Set("api.mmlogic.grpcport", minimatchGRPCPort)
-		cfg.Set("api.mmlogic.httpport", minimatchHTTPPort)
+		cfg.Set("api.mmlogic.hostname", depTc.GetHostname())
+		cfg.Set("api.mmlogic.grpcport", depTc.GetGRPCPort())
+		cfg.Set("api.mmlogic.httpport", depTc.GetHTTPPort())
 
 		if err := harness.BindService(p, cfg, &harness.FunctionSettings{
 			FunctionName: mmfName,
@@ -54,37 +44,7 @@ func createMatchFunctionForTest(t *testing.T) *rpcTesting.TestContext {
 			t.Error(err)
 		}
 	})
-	return tc
-}
-
-// serveMatchFunction creates a GRPC server and starts it to server the match function forever.
-func serveMatchFunction() (func(), error) {
-	cfg := viper.New()
-	// Set match function configuration.
-	cfg.Set("testmmf.hostname", mmfHost)
-	cfg.Set("testmmf.grpcport", mmfGRPCPort)
-	cfg.Set("testmmf.httpport", mmfHTTPPort)
-
-	// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
-	cfg.Set("api.mmlogic.hostname", minimatchHost)
-	cfg.Set("api.mmlogic.grpcport", minimatchGRPCPort)
-	cfg.Set("api.mmlogic.httpport", minimatchHTTPPort)
-
-	p, err := rpc.NewServerParamsFromConfig(cfg, mmfPrefix)
-	if err != nil {
-		return nil, err
-	}
-
-	s := &rpc.Server{}
-	waitForStart, err := s.Start(p)
-	if err != nil {
-		return nil, err
-	}
-	go func() {
-		waitForStart()
-	}()
-
-	return func() { s.Stop() }, nil
+	return tc, mmfName
 }
 
 // This is the core match making function that will be triggered by Open Match to generate matches.
@@ -102,7 +62,7 @@ func makeMatches(params *harness.MatchFunctionParams) []*pb.Match {
 		result = append(result, &pb.Match{
 			MatchId:       xid.New().String(),
 			MatchProfile:  params.ProfileName,
-			MatchFunction: mmfName,
+			MatchFunction: params.FunctionName,
 			Ticket:        tickets,
 			Roster:        []*pb.Roster{roster},
 		})
