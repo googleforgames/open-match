@@ -81,6 +81,12 @@ type View interface {
 	GetStringMap(string) map[string]interface{}
 }
 
+// Mutable is a read-write view of the Open Match configuration.
+type Mutable interface {
+	Set(string, interface{})
+	View
+}
+
 // Read reads a config file into a viper.Viper instance and associates environment vars defined in
 // config.envMappings
 func Read() (View, error) {
