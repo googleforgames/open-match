@@ -255,11 +255,11 @@ func createRedis(t *testing.T) config.View {
 	cfg.Set("redis.pool.idleTimeout", time.Second)
 	cfg.Set("redis.pool.maxActive", 1000)
 	cfg.Set("redis.expiration", 42000)
-	cfg.Set("backoff.initialInterval", 500*time.Millisecond)
+	cfg.Set("backoff.initialInterval", 100*time.Millisecond)
 	cfg.Set("backoff.randFactor", 0.5)
 	cfg.Set("backoff.multiplier", 0.5)
-	cfg.Set("backoff.maxInterval", 3)
-	cfg.Set("backoff.maxElapsedTime", 3000*time.Millisecond)
+	cfg.Set("backoff.maxInterval", 300*time.Millisecond)
+	cfg.Set("backoff.maxElapsedTime", 100*time.Millisecond)
 	cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
 
 	return cfg

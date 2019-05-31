@@ -586,10 +586,10 @@ func handleConnectionClose(conn *redis.Conn) {
 // TODO: add cache the backoff object
 func (rb *redisBackend) createBackoffStrat() backoff.BackOff {
 	backoffStrat := backoff.NewExponentialBackOff()
-	backoffStrat.InitialInterval = rb.cfg.GetDuration("backoff.initialInterval") * time.Millisecond
+	backoffStrat.InitialInterval = rb.cfg.GetDuration("backoff.initialInterval")
 	backoffStrat.RandomizationFactor = rb.cfg.GetFloat64("backoff.randFactor")
 	backoffStrat.Multiplier = rb.cfg.GetFloat64("backoff.multiplier")
 	backoffStrat.MaxInterval = rb.cfg.GetDuration("backoff.maxInterval")
-	backoffStrat.InitialInterval = rb.cfg.GetDuration("backoff.maxElapsedTime") * time.Millisecond
+	backoffStrat.MaxElapsedTime = rb.cfg.GetDuration("backoff.maxElapsedTime")
 	return backoff.BackOff(backoffStrat)
 }
