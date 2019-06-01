@@ -37,7 +37,8 @@ func TestTestServerBinding(t *testing.T) {
 
 // TestMustServerParamsForTesting verifies that a server can stand up in (insecure or TLS) mode.
 func TestMustServe(t *testing.T) {
-	runMustServeTest(t, MustServe)
+	c := Init()
+	runMustServeTest(t, c.MustServe)
 }
 
 // TestMustServerParamsForTesting verifies that a server can stand up in insecure mode.

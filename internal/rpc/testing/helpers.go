@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/rpc"
@@ -30,15 +31,25 @@ import (
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 
+type config struct {
+	secureMode int
+}
+
+func Init() *config {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return &config{secureMode: r.Intn(2)}
+}
+
 // MustServe creates a test server and returns TestContext that can be used to create clients.
 // This method pseudorandomly selects insecure and TLS mode to ensure both paths work.
-func MustServe(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
-	if rand.Intn(2) == 0 {
+func (c *config) MustServe(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
+	if c.secureMode == 0 {
 		return MustServeInsecure(t, binder)
 	}
 	return MustServeTLS(t, binder)
 }
 
+// TODO: make this function private once TLS mode works in the e2e test
 // MustServeInsecure creates a test server without transport encryption and returns TestContext that can be used to create clients.
 func MustServeInsecure(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
 	grpcLh := netlistenerTesting.MustListen()
@@ -57,6 +68,7 @@ func MustServeInsecure(t *testing.T, binder func(*rpc.ServerParams)) *TestContex
 	}
 }
 
+// TODO: make this function private once TLS mode works in the e2e test
 // MustServeTLS creates a test server with TLS and returns TestContext that can be used to create clients.
 func MustServeTLS(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
 	grpcLh := netlistenerTesting.MustListen()
@@ -95,7 +107,8 @@ func bindAndStart(t *testing.T, p *rpc.ServerParams, binder func(*rpc.ServerPara
 
 // TestServerBinding verifies that a server can start and shutdown.
 func TestServerBinding(t *testing.T, binder func(*rpc.ServerParams)) {
-	tc := MustServe(t, binder)
+	c := Init()
+	tc := c.MustServe(t, binder)
 	tc.Close()
 }
 

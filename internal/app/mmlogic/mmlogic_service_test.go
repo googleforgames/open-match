@@ -77,7 +77,8 @@ func queryTicketsLoop(t *testing.T, tc *rpcTesting.TestContext, req *pb.QueryTic
 
 func createMmlogicForTest(t *testing.T) *rpcTesting.TestContext {
 	var closerFunc func()
-	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
+	c := rpcTesting.Init()
+	tc := c.MustServe(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
 		store, closer := statestoreTesting.New(t, cfg)
 		closerFunc = closer
