@@ -188,16 +188,15 @@ func TestMinimatchStartup(t *testing.T) {
 				},
 			},
 		},
-		// TODO: Uncomment when rest config logic is implemented
-		// &pb.FunctionConfig{
-		// 	Name: mmfName,
-		// 	Type: &pb.FunctionConfig_Rest{
-		// 		Rest: &pb.RestFunctionConfig{
-		// 			Host: mmfHost,
-		// 			Port: mmfGRPCPortInt,
-		// 		},
-		// 	},
-		// },
+		{
+			Name: mmfName,
+			Type: &pb.FunctionConfig_Rest{
+				Rest: &pb.RestFunctionConfig{
+					Host: mmfHost,
+					Port: mmfHTTPPortInt,
+				},
+			},
+		},
 	}
 
 	for _, cfg := range cfgs {
