@@ -16,21 +16,30 @@ package testing
 
 import (
 	"context"
+	"testing"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/internal/pb"
-	"testing"
+	"open-match.dev/open-match/internal/statestore"
 )
 
 func TestFakeStatestore(t *testing.T) {
 	assert := assert.New(t)
+
 	cfg := viper.New()
-	s, closer := New(t, cfg)
+	closer := New(t, cfg)
 	defer closer()
+
+	s, err := statestore.New(cfg)
+	assert.Nil(err)
+	assert.NotNil(s)
+
 	ctx := context.Background()
 	ticket := &pb.Ticket{
 		Id: "abc",
 	}
+
 	assert.Nil(s.CreateTicket(ctx, ticket))
 	retrievedTicket, err := s.GetTicket(ctx, "abc")
 	assert.Nil(err)

@@ -18,6 +18,7 @@ import (
 	"strings"
 	"testing"
 
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 
@@ -28,7 +29,7 @@ import (
 
 func TestTestServerBinding(t *testing.T) {
 	ff := &shellTesting.FakeFrontend{}
-	TestServerBinding(t, func(spf *rpc.ServerParams) {
+	TestServerBinding(t, func(spf *rpc.ServerParams, cfg config.Mutable) {
 		spf.AddHandleFunc(func(s *grpc.Server) {
 			pb.RegisterFrontendServer(s, ff)
 		}, pb.RegisterFrontendHandlerFromEndpoint)
@@ -50,10 +51,10 @@ func TestMustServeTLS(t *testing.T) {
 	runMustServeTest(t, MustServeTLS)
 }
 
-func runMustServeTest(t *testing.T, mustServeFunc func(*testing.T, func(*rpc.ServerParams)) *TestContext) {
+func runMustServeTest(t *testing.T, mustServeFunc func(*testing.T, func(*rpc.ServerParams, config.Mutable)) *TestContext) {
 	assert := assert.New(t)
 	ff := &shellTesting.FakeFrontend{}
-	tc := mustServeFunc(t, func(spf *rpc.ServerParams) {
+	tc := mustServeFunc(t, func(spf *rpc.ServerParams, cfg config.Mutable) {
 		spf.AddHandleFunc(func(s *grpc.Server) {
 			pb.RegisterFrontendServer(s, ff)
 		}, pb.RegisterFrontendHandlerFromEndpoint)

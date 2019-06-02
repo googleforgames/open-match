@@ -17,17 +17,14 @@ package mmlogic
 import (
 	"testing"
 
-	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 )
 
 func TestServerBinding(t *testing.T) {
-	bs := func(p *rpc.ServerParams) {
-		p.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterMmLogicServer(s, &mmlogicService{})
-		}, pb.RegisterMmLogicHandlerFromEndpoint)
+	bs := func(p *rpc.ServerParams, cfg config.Mutable) {
+		BindService(p, cfg)
 	}
 
 	rpcTesting.TestServerBinding(t, bs)

@@ -17,14 +17,18 @@ package testing
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/spf13/viper"
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
@@ -32,23 +36,25 @@ import (
 
 // MustServe creates a test server and returns TestContext that can be used to create clients.
 // This method pseudorandomly selects insecure and TLS mode to ensure both paths work.
-func MustServe(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
+func MustServe(t *testing.T, bindAndConfig func(*rpc.ServerParams, config.Mutable)) *TestContext {
 	if rand.Intn(2) == 0 {
-		return MustServeInsecure(t, binder)
+		return MustServeInsecure(t, bindAndConfig)
 	}
-	return MustServeTLS(t, binder)
+	return MustServeTLS(t, bindAndConfig)
 }
 
 // MustServeInsecure creates a test server without transport encryption and returns TestContext that can be used to create clients.
-func MustServeInsecure(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
+func MustServeInsecure(t *testing.T, bindAndConfig func(*rpc.ServerParams, config.Mutable)) *TestContext {
 	grpcLh := netlistenerTesting.MustListen()
 	proxyLh := netlistenerTesting.MustListen()
 
 	grpcAddress := fmt.Sprintf("localhost:%d", grpcLh.Number())
 	proxyAddress := fmt.Sprintf("localhost:%d", proxyLh.Number())
 
+	cfg := viper.New()
 	p := rpc.NewServerParamsFromListeners(grpcLh, proxyLh)
-	s := bindAndStart(t, p, binder)
+	bindAndConfig(p, cfg)
+	s := start(t, p)
 	return &TestContext{
 		t:            t,
 		s:            s,
@@ -58,32 +64,61 @@ func MustServeInsecure(t *testing.T, binder func(*rpc.ServerParams)) *TestContex
 }
 
 // MustServeTLS creates a test server with TLS and returns TestContext that can be used to create clients.
-func MustServeTLS(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
+func MustServeTLS(t *testing.T, bindAndConfig func(*rpc.ServerParams, config.Mutable)) *TestContext {
 	grpcLh := netlistenerTesting.MustListen()
 	proxyLh := netlistenerTesting.MustListen()
 
 	grpcAddress := fmt.Sprintf("localhost:%d", grpcLh.Number())
 	proxyAddress := fmt.Sprintf("localhost:%d", proxyLh.Number())
 	pub, priv, err := certgenTesting.CreateCertificateAndPrivateKeyForTesting([]string{grpcAddress, proxyAddress})
+
+	cfg := viper.New()
+	p := rpc.NewServerParamsFromListeners(grpcLh, proxyLh)
+	bindAndConfig(p, cfg)
+	p.SetTLSConfiguration(pub, pub, priv)
+
 	if err != nil {
 		t.Fatalf("cannot create certificates %v", err)
 	}
 
-	p := rpc.NewServerParamsFromListeners(grpcLh, proxyLh)
-	p.SetTLSConfiguration(pub, pub, priv)
-	s := bindAndStart(t, p, binder)
+	// Create temporary TLS key files for testing
+	pubFile, err := ioutil.TempFile("", "pub*")
+	if err != nil {
+		t.Fatalf("cannot create local file for trusted certificate %v", err)
+	}
 
-	return &TestContext{
+	// Write certgen key bytes to the temp files
+	err = ioutil.WriteFile(pubFile.Name(), pub, 0400)
+	if err != nil {
+		t.Fatalf("cannot write trusted certificate to local file %v", err)
+	}
+
+	// Generate a config view with paths to the manifests
+	cfg.Set("tls.enabled", true)
+	cfg.Set("tls.trustedCertificatePath", pubFile.Name())
+
+	s := start(t, p)
+
+	tc := &TestContext{
 		t:                  t,
 		s:                  s,
 		grpcAddress:        grpcAddress,
 		proxyAddress:       proxyAddress,
 		trustedCertificate: pub,
 	}
+
+	fileCloser := func() {
+		err := os.Remove(pubFile.Name())
+		if err != nil {
+			t.Fatalf("cannot delete trusted certificate file %v", err)
+		}
+	}
+
+	tc.AddCloseFunc(fileCloser)
+	return tc
 }
 
-func bindAndStart(t *testing.T, p *rpc.ServerParams, binder func(*rpc.ServerParams)) *rpc.Server {
-	binder(p)
+func start(t *testing.T, p *rpc.ServerParams) *rpc.Server {
 	s := &rpc.Server{}
 	waitForStart, err := s.Start(p)
 	if err != nil {
@@ -94,7 +129,7 @@ func bindAndStart(t *testing.T, p *rpc.ServerParams, binder func(*rpc.ServerPara
 }
 
 // TestServerBinding verifies that a server can start and shutdown.
-func TestServerBinding(t *testing.T, binder func(*rpc.ServerParams)) {
+func TestServerBinding(t *testing.T, binder func(*rpc.ServerParams, config.Mutable)) {
 	tc := MustServe(t, binder)
 	tc.Close()
 }

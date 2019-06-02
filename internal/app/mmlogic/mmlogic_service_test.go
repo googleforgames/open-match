@@ -18,11 +18,10 @@ import (
 	"io"
 	"testing"
 
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
@@ -77,19 +76,12 @@ func queryTicketsLoop(t *testing.T, tc *rpcTesting.TestContext, req *pb.QueryTic
 
 func createMmlogicForTest(t *testing.T) *rpcTesting.TestContext {
 	var closerFunc func()
-	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
-		cfg := viper.New()
-		store, closer := statestoreTesting.New(t, cfg)
+	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams, cfg config.Mutable) {
+		closer := statestoreTesting.New(t, cfg)
 		closerFunc = closer
-		cfg.Set("storage.page.size", 10)
 
-		mmlogic := &mmlogicService{
-			cfg:   cfg,
-			store: store,
-		}
-		p.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterMmLogicServer(s, mmlogic)
-		}, pb.RegisterMmLogicHandlerFromEndpoint)
+		cfg.Set("storage.page.size", 10)
+		BindService(p, cfg)
 	})
 	// TODO: This is very ugly. Need a better story around closing resources.
 	tc.AddCloseFunc(closerFunc)

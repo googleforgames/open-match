@@ -23,7 +23,6 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
@@ -33,10 +32,8 @@ import (
 )
 
 func TestServerBinding(t *testing.T) {
-	bs := func(p *rpc.ServerParams) {
-		p.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterFrontendServer(s, &frontendService{})
-		}, pb.RegisterFrontendHandlerFromEndpoint)
+	bs := func(p *rpc.ServerParams, cfg config.Mutable) {
+		BindService(p, cfg)
 	}
 
 	rpcTesting.TestServerBinding(t, bs)

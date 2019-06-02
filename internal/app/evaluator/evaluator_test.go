@@ -17,17 +17,15 @@ package evaluator
 import (
 	"testing"
 
-	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 )
 
 func TestServerBinding(t *testing.T) {
-	bs := func(p *rpc.ServerParams) {
-		p.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterEvaluatorServer(s, &evaluatorService{})
-		}, pb.RegisterEvaluatorHandlerFromEndpoint)
+	bs := func(p *rpc.ServerParams, cfg config.Mutable) {
+		BindService(p, cfg, &FunctionSettings{Func: func([]*pb.Match) []*pb.Match { return nil }})
 	}
 
 	rpcTesting.TestServerBinding(t, bs)
