@@ -17,11 +17,9 @@ package testing
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -71,31 +69,14 @@ func MustServeTLS(t *testing.T, bindAndConfig func(*rpc.ServerParams, config.Mut
 	grpcAddress := fmt.Sprintf("localhost:%d", grpcLh.Number())
 	proxyAddress := fmt.Sprintf("localhost:%d", proxyLh.Number())
 	pub, priv, err := certgenTesting.CreateCertificateAndPrivateKeyForTesting([]string{grpcAddress, proxyAddress})
+	if err != nil {
+		t.Fatalf("cannot create certificates %v", err)
+	}
 
 	cfg := viper.New()
 	p := rpc.NewServerParamsFromListeners(grpcLh, proxyLh)
 	bindAndConfig(p, cfg)
 	p.SetTLSConfiguration(pub, pub, priv)
-
-	if err != nil {
-		t.Fatalf("cannot create certificates %v", err)
-	}
-
-	// Create temporary TLS key files for testing
-	pubFile, err := ioutil.TempFile("", "pub*")
-	if err != nil {
-		t.Fatalf("cannot create local file for trusted certificate %v", err)
-	}
-
-	// Write certgen key bytes to the temp files
-	err = ioutil.WriteFile(pubFile.Name(), pub, 0400)
-	if err != nil {
-		t.Fatalf("cannot write trusted certificate to local file %v", err)
-	}
-
-	// Generate a config view with paths to the manifests
-	cfg.Set("tls.enabled", true)
-	cfg.Set("tls.trustedCertificatePath", pubFile.Name())
 
 	s := start(t, p)
 
@@ -107,14 +88,6 @@ func MustServeTLS(t *testing.T, bindAndConfig func(*rpc.ServerParams, config.Mut
 		trustedCertificate: pub,
 	}
 
-	fileCloser := func() {
-		err := os.Remove(pubFile.Name())
-		if err != nil {
-			t.Fatalf("cannot delete trusted certificate file %v", err)
-		}
-	}
-
-	tc.AddCloseFunc(fileCloser)
 	return tc
 }
 
