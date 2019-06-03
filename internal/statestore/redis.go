@@ -433,6 +433,10 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 
 // UpdateAssignments update the match assignments for the input ticket ids
 func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error {
+	if assignment == nil || (assignment.Connection == "" && assignment.Error == "" && assignment.Properties == "") {
+		return status.Error(codes.InvalidArgument, "assignment is empty")
+	}
+
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
@@ -450,28 +454,28 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 		default:
 			err = redisConn.Send("MULTI")
 			if err != nil {
-				return status.Errorf(codes.Internal, "%v", err)
+				return err
 			}
 
 			// Store assignment data by fields
 			err = redisConn.Send("HSET", connectionTable, id, assignment.Connection)
 			if err != nil {
-				return status.Errorf(codes.Internal, "%v", err)
+				return err
 			}
 			err = redisConn.Send("HSET", propertiesTable, id, assignment.Properties)
 			if err != nil {
-				return status.Errorf(codes.Internal, "%v", err)
+				return err
 			}
 			err = redisConn.Send("HSET", errorsTable, id, assignment.Error)
 			if err != nil {
-				return status.Errorf(codes.Internal, "%v", err)
+				return err
 			}
 
 			// Run pipelined Redis commands.
 			_, err = redisConn.Do("EXEC")
 			if err != nil {
 				redisLogger.WithError(err).Errorf("failed to set assignment for ticket %#v", id)
-				return status.Errorf(codes.Internal, "%v", err)
+				return err
 			}
 		}
 	}
