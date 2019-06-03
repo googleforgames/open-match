@@ -39,14 +39,14 @@ func main() {
 }
 
 // makeMatches is where your custom matchmaking logic lives.
-func makeMatches(view *goHarness.MatchFunctionParams) []*pb.Match {
+func makeMatches(p *goHarness.MatchFunctionParams) []*pb.Match {
 	// This simple match function does the following things
 	// 1. Deduplicates the tickets from the pools into a single list.
 	// 2. Groups players into 1v1 matches.
 
-	tickets := make(map[string]*pb.Ticket)
+	tickets := map[string]*pb.Ticket{}
 
-	for _, pool := range view.PoolNameToTickets {
+	for _, pool := range p.PoolNameToTickets {
 		for _, ticket := range pool {
 			tickets[ticket.Id] = ticket
 		}
@@ -64,8 +64,8 @@ func makeMatches(view *goHarness.MatchFunctionParams) []*pb.Match {
 
 		if len(thisMatch) >= 2 {
 			matches = append(matches, &pb.Match{
-				MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", view.ProfileName, t, matchNum),
-				MatchProfile:  view.ProfileName,
+				MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", p.ProfileName, t, matchNum),
+				MatchProfile:  p.ProfileName,
 				MatchFunction: "a-simple-matchfunction",
 				Ticket:        thisMatch,
 			})
