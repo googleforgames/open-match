@@ -454,41 +454,37 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 	}
 	defer handleConnectionClose(&redisConn)
 
-	connectionTable := "assignment_connection"
-	propertiesTable := "assignment_properties"
-	errorsTable := "assignment_errors"
+	err = redisConn.Send("MULTI")
+	if err != nil {
+		return err
+	}
 
 	for _, id := range ids {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			err = redisConn.Send("MULTI")
+			ticket, err := rb.GetTicket(ctx, id)
 			if err != nil {
-				return status.Errorf(codes.Internal, "%v", err)
+				redisLogger.WithError(err).Errorf("failed to get ticket %s from redis when updating assignments", id)
+				return err
 			}
 
-			// Store assignment data by fields
-			err = redisConn.Send("HSET", connectionTable, id, assignment.Connection)
-			if err != nil {
-				return status.Errorf(codes.Internal, "%v", err)
-			}
-			err = redisConn.Send("HSET", propertiesTable, id, assignment.Properties)
-			if err != nil {
-				return status.Errorf(codes.Internal, "%v", err)
-			}
-			err = redisConn.Send("HSET", errorsTable, id, assignment.Error)
-			if err != nil {
-				return status.Errorf(codes.Internal, "%v", err)
-			}
+			ticket.Assignment = assignment
 
-			// Run pipelined Redis commands.
-			_, err = redisConn.Do("EXEC")
+			err = rb.CreateTicket(ctx, ticket)
 			if err != nil {
-				redisLogger.WithError(err).Errorf("failed to set assignment for ticket %#v", id)
-				return status.Errorf(codes.Internal, "%v", err)
+				redisLogger.WithError(err).Errorf("failed to recreate ticket %#v with new assignment when updating assignments", ticket)
+				return err
 			}
 		}
+	}
+
+	// Run pipelined Redis commands.
+	_, err = redisConn.Do("EXEC")
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to execute update assignments transaction")
+		return err
 	}
 
 	return nil
@@ -502,56 +498,22 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 	}
 	defer handleConnectionClose(&redisConn)
 
-	connectionTable := "assignment_connection"
-	propertiesTable := "assignment_properties"
-	errorsTable := "assignment_errors"
-
-	err = redisConn.Send("MULTI")
-	if err != nil {
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	err = redisConn.Send("HGET", connectionTable, id)
-	if err != nil {
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	err = redisConn.Send("HGET", propertiesTable, id)
-	if err != nil {
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	err = redisConn.Send("HGET", errorsTable, id)
-	if err != nil {
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	// Run pipelined Redis commands.
-	resp, err := redis.ByteSlices(redisConn.Do("EXEC"))
-	if err != nil {
-		redisLogger.WithError(err).Errorf("failed to get assignment for ticket %#v", id)
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	assignment := &pb.Assignment{
-		Connection: string(resp[0]),
-		Properties: string(resp[1]),
-		Error:      string(resp[2]),
-	}
-
 	backoffOperation := func() error {
-		if len(assignment.Connection) == 0 {
-			return status.Errorf(codes.NotFound, "assignment not found for the given ticket")
+		ticket, err := rb.GetTicket(ctx, id)
+		if err != nil {
+			redisLogger.WithError(err).Errorf("failed to get ticket %s when executing get assignments", id)
+			return backoff.Permanent(err)
 		}
 
-		err := callback(assignment)
+		err = callback(ticket.Assignment)
 		if err != nil {
 			return backoff.Permanent(err)
 		}
-		return nil
+
+		return status.Error(codes.Unavailable, "listening on assignment updates, waiting for the next backoff")
 	}
 
-	err = backoff.Retry(backoffOperation, rb.createBackoffStrat())
+	err = backoff.Retry(backoffOperation, rb.createConstantBackoffStrat())
 	if err != nil {
 		return err
 	}
@@ -584,7 +546,13 @@ func handleConnectionClose(conn *redis.Conn) {
 }
 
 // TODO: add cache the backoff object
-func (rb *redisBackend) createBackoffStrat() backoff.BackOff {
+func (rb *redisBackend) createConstantBackoffStrat() backoff.BackOff {
+	backoffStrat := backoff.NewConstantBackOff(rb.cfg.GetDuration("backoff.initialInterval"))
+	return backoff.BackOff(backoffStrat)
+}
+
+// TODO: add cache the backoff object
+func (rb *redisBackend) createExponentialBackoffStrat() backoff.BackOff {
 	backoffStrat := backoff.NewExponentialBackOff()
 	backoffStrat.InitialInterval = rb.cfg.GetDuration("backoff.initialInterval")
 	backoffStrat.RandomizationFactor = rb.cfg.GetFloat64("backoff.randFactor")

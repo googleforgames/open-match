@@ -153,11 +153,18 @@ func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream p
 		case <-ctx.Done():
 			return nil
 		default:
+			var currAssignment *pb.Assignment
 			callback := func(assignment *pb.Assignment) error {
-				err := stream.Send(&pb.GetAssignmentsResponse{Assignment: assignment})
-				if err != nil {
-					logger.WithError(err).Error("Failed to send Redis response to grpc server")
-					return status.Errorf(codes.Aborted, err.Error())
+				if currAssignment == nil ||
+					currAssignment.Connection != assignment.Connection ||
+					currAssignment.Properties != assignment.Properties ||
+					currAssignment.Error != assignment.Error {
+					currAssignment = assignment
+					err := stream.Send(&pb.GetAssignmentsResponse{Assignment: assignment})
+					if err != nil {
+						logger.WithError(err).Error("Failed to send Redis response to grpc server")
+						return status.Errorf(codes.Aborted, err.Error())
+					}
 				}
 				return nil
 			}
