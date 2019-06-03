@@ -552,6 +552,7 @@ func (rb *redisBackend) createConstantBackoffStrat() backoff.BackOff {
 }
 
 // TODO: add cache the backoff object
+// nolint: unused
 func (rb *redisBackend) createExponentialBackoffStrat() backoff.BackOff {
 	backoffStrat := backoff.NewExponentialBackOff()
 	backoffStrat.InitialInterval = rb.cfg.GetDuration("backoff.initialInterval")
