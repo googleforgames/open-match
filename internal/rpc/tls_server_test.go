@@ -25,6 +25,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"open-match.dev/open-match/internal/pb"
 	shellTesting "open-match.dev/open-match/internal/testing"
 	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
@@ -108,14 +109,13 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 	assert.Nil(err)
 	waitForStart()
 
-	creds, err := clientCredentialsFromFileData(tp.publicCertificateFileData, tp.grpcAddress)
+	pool, err := trustedCertificateFromFileData(tp.rootPublicCertificateFileData)
 	assert.Nil(err)
-	conn, err := grpc.Dial(tp.grpcAddress, grpc.WithTransportCredentials(creds))
+
+	conn, err := grpc.Dial(tp.grpcAddress, grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(pool, tp.grpcAddress)))
 	assert.Nil(err)
 
 	tlsCert, err := certificateFromFileData(tp.publicCertificateFileData, tp.privateKeyFileData)
-	assert.Nil(err)
-	pool, err := trustedCertificateFromFileData(tp.rootPublicCertificateFileData)
 	assert.Nil(err)
 	tlsTransport := &http.Transport{
 		TLSClientConfig: &tls.Config{

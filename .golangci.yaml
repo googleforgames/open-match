@@ -71,7 +71,7 @@ linters-settings:
 
   govet:
     # report about shadowed variables
-    check-shadowing: true
+    check-shadowing: false
 
     # settings per analyzer
     settings:
@@ -148,12 +148,8 @@ linters-settings:
     # See https://go-critic.github.io/overview#checks-overview
     # To check which checks are enabled run `GL_DEBUG=gocritic golangci-lint run`
     # By default list of stable checks is used.
-    enabled-checks:
-      - rangeValCopy
-
-    # Which checks should be disabled; can't be combined with 'enabled-checks'; default is empty
-    disabled-checks:
-      - regexpMust
+    # enabled-checks:
+    #   - rangeValCopy
 
     # Enable multiple checks by tags, run `GL_DEBUG=gocritic golangci-lint` run to see all tags and checks.
     # Empty list by default. See https://github.com/go-critic/go-critic#usage -> section "Tags".
@@ -180,6 +176,7 @@ linters:
     - scopelint
     - prealloc
     - gofmt
+    - interfacer # deprecated - "A tool that suggests interfaces is prone to bad suggestions"
 
 #linters:
 #  enable-all: true
@@ -194,33 +191,13 @@ issues:
 
   # Excluding configuration per-path, per-linter, per-text and per-source
   exclude-rules:
-    - path: internal[/\\]app[/\\]backendapi[/\\]
-      linters: [goimports, gochecknoglobals, errcheck, misspell, govet, unparam, golint, gofmt]
-    - path: internal[/\\]app[/\\]backendapi[/\\]
-      linters: [goimports, gochecknoglobals, errcheck, misspell, govet, unparam, golint, gofmt]
-    - path: internal[/\\]app[/\\]mmlogicapi[/\\]
-      linters: [goimports, gochecknoglobals, errcheck, misspell, govet, unparam, golint, gofmt]
-    - path: internal[/\\]statestorage[/\\]
-      linters: [goimports, gochecknoglobals, errcheck, misspell, govet, unparam, golint, gofmt]
-    - path: internal[/\\]expbo[/\\]
-      linters: [goimports, gochecknoglobals, errcheck, misspell, govet, unparam, golint, gofmt]
-    - path: internal[/\\]logging[/\\]
-      linters: [goimports, gochecknoglobals, errcheck, misspell, govet, unparam, golint, gofmt]
-    - path: internal[/\\]metrics[/\\]
-      linters: [goimports, gochecknoglobals, errcheck, misspell, govet, unparam, golint, gofmt]
-    - path: internal[/\\]set[/\\]
-      linters: [goimports, gochecknoglobals, errcheck, misspell, govet, unparam, golint, gofmt]
-    - path: test[/\\]cmd[/\\]
-      linters: [goimports, gochecknoglobals, errcheck, misspell, govet, unparam, golint, gofmt]
-
-    # Exclude some linters from running on tests files.
+    - path: internal[/\\]config[/\\]
+      linters:
+        - gochecknoglobals
+    # Exclue some linters from running on test files
     - path: _test\.go
       linters:
-        - gocyclo
         - errcheck
-        - dupl
-        - gosec
-
     # The following are allowed global variable patterns.
     # Generally it's ok to have constants or variables that effectively act as constants such as a static logger or flag values.
     # The filters below specify the source code pattern that's allowed when declaring a global
