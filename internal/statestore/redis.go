@@ -456,6 +456,10 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 
 // UpdateAssignments update the match assignments for the input ticket ids
 func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error {
+	if assignment == nil || (assignment.Connection == "" && assignment.Error == "" && assignment.Properties == "") {
+		return status.Error(codes.InvalidArgument, "assignment is empty")
+	}
+
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
@@ -467,6 +471,8 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 		return err
 	}
 
+	// Redis does not support roll backs See https://redis.io/topics/transactions
+	// TODO: fake the batch update rollback behavior
 	for _, id := range ids {
 		select {
 		case <-ctx.Done():

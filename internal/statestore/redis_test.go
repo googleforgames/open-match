@@ -196,7 +196,7 @@ func TestUpdateAssignmentFatal(t *testing.T) {
 
 	err := service.UpdateAssignments(context.Background(), []string{"id"}, &pb.Assignment{})
 	// UpdateAssignment failed because the ticket does not exists
-	assert.Equal(status.Convert(err).Code(), codes.NotFound)
+	assert.Equal(codes.InvalidArgument, status.Convert(err).Code())
 	assert.Nil(assignmentResp)
 
 	// Now create a ticket and the state store service
@@ -207,15 +207,10 @@ func TestUpdateAssignmentFatal(t *testing.T) {
 	assert.Nil(err)
 
 	// Try to update the assignmets with the ticket created and some non-existed tickets
-	err = service.UpdateAssignments(context.Background(), []string{"1", "2", "3"}, &pb.Assignment{})
+	err = service.UpdateAssignments(context.Background(), []string{"1", "2", "3"}, &pb.Assignment{Connection: "localhost"})
 	// UpdateAssignment failed because the ticket does not exists
-	assert.Equal(status.Convert(err).Code(), codes.NotFound)
+	assert.Equal(codes.NotFound, status.Convert(err).Code())
 	assert.Nil(assignmentResp)
-
-	// Verify the transaction behavior of the UpdateAssignment.
-	ticket, err := service.GetTicket(context.Background(), "1")
-	assert.Equal(&pb.Assignment{}, ticket.Assignment)
-	assert.Nil(err)
 }
 
 func TestGetAssignmentNormal(t *testing.T) {
