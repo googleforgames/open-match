@@ -673,7 +673,7 @@ vet:
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 	build/toolchain/bin/golangci-lint$(EXE_EXTENSION) run --config=.golangci.yaml
 
-lint: golangci lint-chart
+lint: fmt vet lint-chart
 
 all: service-binaries example-binaries tools-binaries
 
