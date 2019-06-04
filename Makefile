@@ -215,11 +215,11 @@ push-evaluator-image: docker build-evaluator-image
 
 push-example-images: push-mmf-example-images
 
-push-mmf-example-images: push-mmf-go-simple-image
+push-mmf-example-images: push-mmf-go-pool-image
 
-push-mmf-go-simple-image: docker build-mmf-go-simple-image
-	docker push $(REGISTRY)/openmatch-mmf-go-simple:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmf-go-simple:$(ALTERNATE_TAG)
+push-mmf-go-pool-image: docker build-mmf-go-pool-image
+	docker push $(REGISTRY)/openmatch-mmf-go-pool:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG)
 
 build-images: build-service-images build-example-images
 
@@ -245,14 +245,14 @@ build-evaluator-image: docker build-base-build-image
 
 build-example-images: build-mmf-example-images
 
-build-mmf-example-images: build-mmf-go-simple-image
+build-mmf-example-images: build-mmf-go-pool-image
 
-build-mmf-go-simple-image: docker build-base-build-image
-	docker build -f examples/functions/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-simple:$(ALTERNATE_TAG) .
+build-mmf-go-pool-image: docker build-base-build-image
+	docker build -f pkg/functions/golang/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG) .
 
 clean-images: docker
 	-docker rmi -f open-match-base-build
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-simple:$(TAG) $(REGISTRY)/openmatch-mmf-go-simple:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontend:$(TAG) $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-mmlogic:$(TAG) $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
@@ -680,10 +680,10 @@ all: service-binaries example-binaries tools-binaries
 service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION) cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/evaluator/evaluator$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries
-example-mmf-binaries: examples/functions/golang/simple/simple$(EXE_EXTENSION)
+example-mmf-binaries: pkg/functions/golang/golang$(EXE_EXTENSION)
 
-examples/functions/golang/simple/simple$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
-	cd examples/functions/golang/simple; $(GO_BUILD_COMMAND)
+pkg/functions/golang/golang$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+	cd pkg/functions/golang; $(GO_BUILD_COMMAND)
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
@@ -825,7 +825,7 @@ clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/cmd/frontend/frontend
 	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic
 	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch
-	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/simple/simple
+	rm -rf $(REPOSITORY_ROOT)/pkg/functions/golang/golang
 
 clean-build: clean-toolchain clean-archives clean-release
 	rm -rf $(REPOSITORY_ROOT)/build/

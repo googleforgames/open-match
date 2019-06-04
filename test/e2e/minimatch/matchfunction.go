@@ -15,11 +15,10 @@
 package minimatch
 
 import (
-	"github.com/rs/xid"
 	"github.com/spf13/viper"
-	harness "open-match.dev/open-match/internal/harness/golang"
-	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
+	matchfunction "open-match.dev/open-match/pkg/functions/golang/pool"
+	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
 )
 
 const (
@@ -50,9 +49,9 @@ func serveMatchFunction() (func(), error) {
 		return nil, err
 	}
 
-	if err := harness.BindService(p, cfg, &harness.FunctionSettings{
+	if err := mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
 		FunctionName: mmfName,
-		Func:         makeMatches,
+		Func:         matchfunction.MakeMatches,
 	}); err != nil {
 		return nil, err
 	}
@@ -67,28 +66,4 @@ func serveMatchFunction() (func(), error) {
 	}()
 
 	return func() { s.Stop() }, nil
-}
-
-// This is the core match making function that will be triggered by Open Match to generate matches.
-// The goal of this function is to generate predictable matches that can be validated without flakyness.
-// This match function loops through all the pools and generates one match per pool aggregating all players
-// in that pool in the generated match.
-func makeMatches(params *harness.MatchFunctionParams) []*pb.Match {
-	var result []*pb.Match
-	for pool, tickets := range params.PoolNameToTickets {
-		roster := &pb.Roster{Name: pool}
-		for _, ticket := range tickets {
-			roster.TicketId = append(roster.TicketId, ticket.Id)
-		}
-
-		result = append(result, &pb.Match{
-			MatchId:       xid.New().String(),
-			MatchProfile:  params.ProfileName,
-			MatchFunction: mmfName,
-			Ticket:        tickets,
-			Roster:        []*pb.Roster{roster},
-		})
-	}
-
-	return result
 }
