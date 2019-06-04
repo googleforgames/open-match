@@ -24,13 +24,13 @@ keywords:
   - matchmaking
   - go
   - golang
-home: https://github.com/GoogleCloudPlatform/open-match
+home: https://github.com/googleforgames/open-match
 sources:
-  - https://github.com/GoogleCloudPlatform/open-match
+  - https://github.com/googleforgames/open-match
 maintainers:
  - name: open-match
    email: open-match-discuss@googlegroups.com
    url: https://groups.google.com/forum/#!forum/open-match-discuss
 engine: gotpl
-icon: https://raw.githubusercontent.com/GoogleCloudPlatform/open-match/master/site/static/images/logo.svg
+icon: https://raw.githubusercontent.com/googleforgames/open-match/master/site/static/images/logo.svg
 tillerVersion: ">2.10.0"
