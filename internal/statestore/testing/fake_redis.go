@@ -34,6 +34,7 @@ func New(t *testing.T, cfg config.Mutable) (statestore.Service, func()) {
 	cfg.Set("redis.pool.maxIdle", 10)
 	cfg.Set("redis.pool.maxActive", 10)
 	cfg.Set("redis.pool.idleTimeout", "10s")
+	cfg.Set("redis.pool.healthCheckTimeout", "100ms")
 
 	redisURL := fmt.Sprintf("redis://%s:%s", mredis.Host(), mredis.Port())
 
