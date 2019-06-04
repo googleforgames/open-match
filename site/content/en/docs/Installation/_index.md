@@ -34,7 +34,7 @@ kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-ad
 kubectl create namespace open-match
 
 # Install the core Open Match and monitoring services.
-kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/v0.5.0/install.yaml --namespace open-match
+kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v0.5.0/install.yaml --namespace open-match
 ```
 
 ### Install Example Components
@@ -43,7 +43,7 @@ Open Match framework requires the user to author a custom match function and an 
 
 ```bash
 # Install the example MMF and Evaluator.
-kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/v0.5.0/install-example.yaml --namespace open-match
+kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v0.5.0/install-example.yaml --namespace open-match
 ```
 
 This command also deploys a component that continuously generates players with different properties and adds them to Open Match state storage. This is because a populated player pool is required to generate matches.
