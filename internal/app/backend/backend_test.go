@@ -35,5 +35,5 @@ func TestServerBinding(t *testing.T) {
 
 func TestAssignTickets(t *testing.T) {
 	// TODO: add test when test helper #462 is checked in
-	// https://github.com/GoogleCloudPlatform/open-match/pull/462
+	// https://github.com/googleforgames/open-match/pull/462
 }

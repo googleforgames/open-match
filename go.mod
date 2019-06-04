@@ -40,6 +40,5 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036 // indirect
 	go.opencensus.io v0.21.0
-	google.golang.org/genproto v0.0.0-20190404172233-64821d5d2107
 	google.golang.org/grpc v1.20.0
 )
