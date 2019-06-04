@@ -16,22 +16,7 @@ package backend
 
 import (
 	"testing"
-
-	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/pb"
-	"open-match.dev/open-match/internal/rpc"
-	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 )
-
-func TestServerBinding(t *testing.T) {
-	bs := func(p *rpc.ServerParams) {
-		p.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterBackendServer(s, &backendService{})
-		}, pb.RegisterBackendHandlerFromEndpoint)
-	}
-
-	rpcTesting.TestServerBinding(t, bs)
-}
 
 func TestAssignTickets(t *testing.T) {
 	// TODO: add test when test helper #462 is checked in

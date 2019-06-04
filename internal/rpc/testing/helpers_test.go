@@ -26,15 +26,6 @@ import (
 	shellTesting "open-match.dev/open-match/internal/testing"
 )
 
-func TestTestServerBinding(t *testing.T) {
-	ff := &shellTesting.FakeFrontend{}
-	TestServerBinding(t, func(spf *rpc.ServerParams) {
-		spf.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterFrontendServer(s, ff)
-		}, pb.RegisterFrontendHandlerFromEndpoint)
-	})
-}
-
 // TestMustServerParamsForTesting verifies that a server can stand up in (insecure or TLS) mode.
 func TestMustServe(t *testing.T) {
 	runMustServeTest(t, MustServe)
