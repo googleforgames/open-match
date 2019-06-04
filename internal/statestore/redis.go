@@ -470,7 +470,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 				return err
 			}
 
-			ticket.Assignment = assignment
+			ticket.Assignment = proto.Clone(assignment).(*pb.Assignment)
 
 			err = rb.CreateTicket(ctx, ticket)
 			if err != nil {
@@ -513,7 +513,7 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 		return status.Error(codes.Unavailable, "listening on assignment updates, waiting for the next backoff")
 	}
 
-	err = backoff.Retry(backoffOperation, rb.createConstantBackoffStrat())
+	err = backoff.Retry(backoffOperation, backoff.BackOff(backoff.NewConstantBackOff(rb.cfg.GetDuration("backoff.initialInterval"))))
 	if err != nil {
 		return err
 	}
@@ -546,14 +546,8 @@ func handleConnectionClose(conn *redis.Conn) {
 }
 
 // TODO: add cache the backoff object
-func (rb *redisBackend) createConstantBackoffStrat() backoff.BackOff {
-	backoffStrat := backoff.NewConstantBackOff(rb.cfg.GetDuration("backoff.initialInterval"))
-	return backoff.BackOff(backoffStrat)
-}
-
-// TODO: add cache the backoff object
 // nolint: unused
-func (rb *redisBackend) createExponentialBackoffStrat() backoff.BackOff {
+func (rb *redisBackend) newExponentialBackoffStrategy() backoff.BackOff {
 	backoffStrat := backoff.NewExponentialBackOff()
 	backoffStrat.InitialInterval = rb.cfg.GetDuration("backoff.initialInterval")
 	backoffStrat.RandomizationFactor = rb.cfg.GetFloat64("backoff.randFactor")

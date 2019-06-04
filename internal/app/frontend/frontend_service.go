@@ -159,7 +159,7 @@ func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream p
 					currAssignment.Connection != assignment.Connection ||
 					currAssignment.Properties != assignment.Properties ||
 					currAssignment.Error != assignment.Error {
-					currAssignment = assignment
+					currAssignment = proto.Clone(assignment).(*pb.Assignment)
 					err := stream.Send(&pb.GetAssignmentsResponse{Assignment: assignment})
 					if err != nil {
 						logger.WithError(err).Error("Failed to send Redis response to grpc server")
