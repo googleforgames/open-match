@@ -2,7 +2,7 @@
 
 Open Match is currently at release 0.4.0. Open Match 0.5.0 currently has a Release Candidate and we are targeting to cut the release on 04/25/2019.
 
-Releases can be found on the [releases page](https://github.com/GoogleCloudPlatform/open-match/releases).
+Releases can be found on the [releases page](https://github.com/googleforgames/open-match/releases).
 
 Below sections detail the themes and the roadmap for the future releases. The tasks listed for the 0.6.0 release have been finalized and are well understood. As for the 0.7.0 and beyond, the tasks currently identified are listed. These are subject to change as we make our way through 0.6.0 release and get more feedback from the community.
 
@@ -25,7 +25,7 @@ In 0.6.0 release, we are revisiting the Data Model and the API surface exposed b
 
 Here are the tasks planned for 0.6.0 release:
 
-- [ ] Implement the new Data model and the API changes for the Frontend, Backend and MMLogic API [Change Proposal](https://github.com/GoogleCloudPlatform/open-match/issues/279)
+- [ ] Implement the new Data model and the API changes for the Frontend, Backend and MMLogic API [Change Proposal](https://github.com/googleforgames/open-match/issues/279)
 - [ ] Accept multiple proposals per MMF execution.
 - [ ] Remove persistance of matches and proposals from Open Match state storage.
 - [ ] Implement synchronized evaluation to eliminate use of state storage during evaluation.

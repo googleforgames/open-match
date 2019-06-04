@@ -720,7 +720,7 @@ build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
 	cp $(BUILD_DIR)/site/app.yaml $(BUILD_DIR)/site/.app.yaml
 
 md-test: docker
-	docker run -t --rm -v $(CURDIR):/mnt:ro dkhamsing/awesome_bot --white-list "localhost,github.com/GoogleCloudPlatform/open-match/tree/release-,github.com/GoogleCloudPlatform/open-match/blob/release-,github.com/GoogleCloudPlatform/open-match/releases/download/v" --allow-dupe --allow-redirect --skip-save-results `find . -type f -name '*.md' -not -path './build/*' -not -path './node_modules/*' -not -path './site*' -not -path './.git*'`
+	docker run -t --rm -v $(CURDIR):/mnt:ro dkhamsing/awesome_bot --white-list "localhost,github.com/googleforgames/open-match/tree/release-,github.com/googleforgames/open-match/blob/release-,github.com/googleforgames/open-match/releases/download/v" --allow-dupe --allow-redirect --skip-save-results `find . -type f -name '*.md' -not -path './build/*' -not -path './node_modules/*' -not -path './site*' -not -path './.git*'`
 
 site-test: TEMP_SITE_DIR := /tmp/open-match-site
 site-test: build/site/ build/toolchain/bin/htmltest$(EXE_EXTENSION)
