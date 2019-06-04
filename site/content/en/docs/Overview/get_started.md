@@ -25,7 +25,7 @@ description: Follow these steps to get familiar with using Open Match.
 - _Mmlogic_: a gateway service that supports data querying in open-match.
 - _Matchfunction_: a service where your custom match making logic lives in.
 
-See deatailed explanation in [Core Concepts](https://github.com/GoogleCloudPlatform/open-match/blob/master/docs/concepts.md) and our [Protobuf Definitions](https://github.com/GoogleCloudPlatform/open-match/blob/master/api/messages.proto).
+See deatailed explanation in [Core Concepts](https://github.com/googleforgames/open-match/blob/master/docs/concepts.md) and our [Protobuf Definitions](https://github.com/googleforgames/open-match/blob/master/api/messages.proto).
 
 
 ## Match Making Lifecycle

@@ -45,7 +45,7 @@ managers tend to lag behind the latest Go releases.*
 mkdir -p $HOME/workspace
 cd $HOME/workspace
 # Download the source code.
-git clone https://github.com/GoogleCloudPlatform/open-match.git
+git clone https://github.com/googleforgames/open-match.git
 cd open-match
 # Print the help for the Makefile commands.
 make
@@ -123,7 +123,7 @@ If your IDE is too old you can create a
 mkdir -p $HOME/workspace/src/open-match.dev/
 cd $HOME/workspace/src/open-match.dev/
 # Download the source code.
-git clone https://github.com/GoogleCloudPlatform/open-match.git
+git clone https://github.com/googleforgames/open-match.git
 cd open-match
 export GOPATH=$HOME/workspace/
 ```
