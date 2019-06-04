@@ -20,7 +20,7 @@
 package main
 
 import (
-	matchfunction "open-match.dev/open-match/pkg/functions/golang/singleduel"
+	matchfunction "open-match.dev/open-match/pkg/functions/golang/pool"
 	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
 )
 
