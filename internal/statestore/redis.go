@@ -470,7 +470,11 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 				return err
 			}
 
-			ticket.Assignment = proto.Clone(assignment).(*pb.Assignment)
+			assignmentCopy, ok := proto.Clone(assignment).(*pb.Assignment)
+			if !ok {
+				redisLogger.Error("failed to cast assignment object")
+			}
+			ticket.Assignment = assignmentCopy
 
 			err = rb.CreateTicket(ctx, ticket)
 			if err != nil {
