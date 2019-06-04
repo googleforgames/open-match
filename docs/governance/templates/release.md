@@ -56,6 +56,6 @@ kubectl create clusterrolebinding myname-cluster-admin-binding --clusterrole=clu
 kubectl create namespace open-match
 # Install Open Match and monitoring services.
 kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/install.yaml --namespace open-match
-# Install the example MMF and Evaluator.
-kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/install-example.yaml --namespace open-match
+# Install the demo.
+kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/install-demo.yaml --namespace open-match
 ```
