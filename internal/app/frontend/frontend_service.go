@@ -162,6 +162,7 @@ func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream p
 					currAssignment, ok := proto.Clone(assignment).(*pb.Assignment)
 					if !ok {
 						logger.Error("failed to cast assignment object")
+						return status.Error(codes.Internal, "failed to cast the assignment object")
 					}
 
 					err := stream.Send(&pb.GetAssignmentsResponse{Assignment: currAssignment})

@@ -473,6 +473,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 			assignmentCopy, ok := proto.Clone(assignment).(*pb.Assignment)
 			if !ok {
 				redisLogger.Error("failed to cast assignment object")
+				return status.Error(codes.Internal, "failed to cast to the assignment object")
 			}
 			ticket.Assignment = assignmentCopy
 
@@ -517,7 +518,7 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 		return status.Error(codes.Unavailable, "listening on assignment updates, waiting for the next backoff")
 	}
 
-	err = backoff.Retry(backoffOperation, backoff.BackOff(backoff.NewConstantBackOff(rb.cfg.GetDuration("backoff.initialInterval"))))
+	err = backoff.Retry(backoffOperation, rb.newConstantBackoffStrategy())
 	if err != nil {
 		return err
 	}
@@ -547,6 +548,11 @@ func handleConnectionClose(conn *redis.Conn) {
 			"error": err,
 		}).Debug("failed to close redis client connection.")
 	}
+}
+
+func (rb *redisBackend) newConstantBackoffStrategy() backoff.BackOff {
+	backoffStrat := backoff.NewConstantBackOff(rb.cfg.GetDuration("backoff.initialInterval"))
+	return backoff.BackOff(backoffStrat)
 }
 
 // TODO: add cache the backoff object
