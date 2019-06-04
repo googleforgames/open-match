@@ -17,7 +17,6 @@ package statestore
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/proto"
@@ -39,8 +38,9 @@ var (
 )
 
 type redisBackend struct {
-	redisPool *redis.Pool
-	cfg       config.View
+	healthCheckPool *redis.Pool
+	redisPool       *redis.Pool
+	cfg             config.View
 }
 
 func (rb *redisBackend) Close() error {
@@ -72,14 +72,38 @@ func NewRedis(cfg config.View, redisURL string, maskedURL string) Service {
 	pool := &redis.Pool{
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
-		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout") * time.Second,
+		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout"),
 		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
+	}
+	healthCheckPool := &redis.Pool{
+		MaxIdle:     1,
+		MaxActive:   2,
+		IdleTimeout: cfg.GetDuration("redis.pool.healthCheckTimeout"),
+		Dial: func() (redis.Conn, error) {
+			return redis.DialURL(redisURL, redis.DialConnectTimeout(cfg.GetDuration("redis.pool.healthCheckTimeout")), redis.DialReadTimeout(cfg.GetDuration("redis.pool.healthCheckTimeout")))
+		},
 	}
 
 	return &redisBackend{
-		redisPool: pool,
-		cfg:       cfg,
+		healthCheckPool: healthCheckPool,
+		redisPool:       pool,
+		cfg:             cfg,
 	}
+}
+
+// HealthCheck indicates if the database is reachable.
+func (rb *redisBackend) HealthCheck(ctx context.Context) error {
+	redisConn, err := rb.healthCheckPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "%v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+	_, err = redisConn.Do("SELECT", "0")
+	// Encountered an issue getting a connection from the pool.
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "%v", err)
+	}
+	return nil
 }
 
 func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {

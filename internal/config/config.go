@@ -45,15 +45,16 @@ var (
 	// of reading the config file.  So, config parameters that are required
 	// by MMFs should be populated to env vars.
 	envMappings = map[string]string{
-		"redis.user":             "REDIS_USER",
-		"redis.password":         "REDIS_PASSWORD",
-		"redis.hostname":         "REDIS_SERVICE_HOST",
-		"redis.port":             "REDIS_SERVICE_PORT",
-		"redis.pool.maxIdle":     "REDIS_POOL_MAXIDLE",
-		"redis.pool.maxActive":   "REDIS_POOL_MAXACTIVE",
-		"redis.pool.idleTimeout": "REDIS_POOL_IDLETIMEOUT",
-		"api.mmlogic.hostname":   "OM_MMLOGICAPI_SERVICE_HOST",
-		"api.mmlogic.port":       "OM_MMLOGICAPI_SERVICE_PORT",
+		"redis.user":                    "REDIS_USER",
+		"redis.password":                "REDIS_PASSWORD",
+		"redis.hostname":                "REDIS_SERVICE_HOST",
+		"redis.port":                    "REDIS_SERVICE_PORT",
+		"redis.pool.maxIdle":            "REDIS_POOL_MAXIDLE",
+		"redis.pool.maxActive":          "REDIS_POOL_MAXACTIVE",
+		"redis.pool.idleTimeout":        "REDIS_POOL_IDLETIMEOUT",
+		"redis.pool.healthCheckTimeout": "REDIS_POOL_HEALTHCHECKTIMEOUT",
+		"api.mmlogic.hostname":          "OM_MMLOGICAPI_SERVICE_HOST",
+		"api.mmlogic.port":              "OM_MMLOGICAPI_SERVICE_PORT",
 	}
 
 	// OpenCensus
