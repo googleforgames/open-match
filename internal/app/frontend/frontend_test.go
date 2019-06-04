@@ -23,25 +23,17 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
+<<<<<<< HEAD
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	"open-match.dev/open-match/internal/statestore"
+=======
+>>>>>>> 6cd521abf7c9b0a0cfb0fc95214b119b61f06a1f
 )
-
-func TestServerBinding(t *testing.T) {
-	bs := func(p *rpc.ServerParams) {
-		p.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterFrontendServer(s, &frontendService{})
-		}, pb.RegisterFrontendHandlerFromEndpoint)
-	}
-
-	rpcTesting.TestServerBinding(t, bs)
-}
 
 // validateTicket validates that the fetched ticket is identical to the expected ticket.
 func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
