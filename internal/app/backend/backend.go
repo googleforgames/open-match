@@ -60,6 +60,8 @@ func BindService(p *rpc.ServerParams, cfg config.View) error {
 		return err
 	}
 
+	p.AddHealthCheckFunc(service.store.HealthCheck)
+
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterBackendServer(s, service)
 	}, pb.RegisterBackendHandlerFromEndpoint)

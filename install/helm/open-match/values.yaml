@@ -154,7 +154,8 @@ openmatch:
           pool:
             maxIdle: 3
             maxActive: 0
-            idleTimeout: 60
+            idleTimeout: 60s
+            healthCheckTimeout: 100ms
           queryArgs:
             count: 10000
           # TODO: remove unused config
