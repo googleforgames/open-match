@@ -31,7 +31,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
     }
     license: {
       name: "Apache 2.0 License"
-      url: "https://github.com/GoogleCloudPlatform/open-match/blob/master/LICENSE"
+      url: "https://github.com/googleforgames/open-match/blob/master/LICENSE"
     }
   }
   external_docs: {

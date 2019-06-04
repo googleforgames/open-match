@@ -35,7 +35,7 @@ LABEL \
     org.opencontainers.image.authors="Google LLC <open-match-discuss@googlegroups.com>" \
     org.opencontainers.image.url="https://open-match.dev/" \
     org.opencontainers.image.documentation="https://open-match.dev/site/docs/" \
-    org.opencontainers.image.source="https://github.com/GoogleCloudPlatform/open-match" \
+    org.opencontainers.image.source="https://github.com/googleforgames/open-match" \
     org.opencontainers.image.version="${BUILD_VERSION}" \
     org.opencontainers.image.revision="1" \
     org.opencontainers.image.vendor="Google LLC" \
@@ -46,7 +46,7 @@ LABEL \
     org.label-schema.schema-version="1.0" \
     org.label-schema.build-date=$BUILD_DATE \
     org.label-schema.url="http://open-match.dev/" \
-    org.label-schema.vcs-url="https://github.com/GoogleCloudPlatform/open-match" \
+    org.label-schema.vcs-url="https://github.com/googleforgames/open-match" \
     org.label-schema.version=$BUILD_VERSION \
     org.label-schema.vcs-ref=$VCS_REF \
     org.label-schema.vendor="Google LLC" \
