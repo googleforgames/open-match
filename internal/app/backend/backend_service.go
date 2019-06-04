@@ -42,8 +42,7 @@ type backendService struct {
 }
 
 type mmfClients struct {
-	addrMap    sync.Map
-	evalClient pb.EvaluatorClient
+	addrMap sync.Map
 }
 
 var (

@@ -669,11 +669,10 @@ fmt:
 vet:
 	$(GO) vet ./...
 
-# Blocked on https://github.com/golangci/golangci-lint/issues/500 to be added to `make lint`
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
-	build/toolchain/bin/golangci-lint$(EXE_EXTENSION) run -v --config=.golangci.yaml
+	build/toolchain/bin/golangci-lint$(EXE_EXTENSION) run --config=.golangci.yaml
 
-lint: fmt vet lint-chart
+lint: golangci lint-chart
 
 all: service-binaries example-binaries tools-binaries
 
