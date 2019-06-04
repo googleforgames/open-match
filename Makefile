@@ -774,7 +774,7 @@ else
 endif
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: update-deps update-third-party clean-protos clean-secrets all-protos lint build test clean-site site-test md-test
+presubmit: update-deps third_party clean-protos clean-secrets all-protos lint build test clean-site site-test md-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -879,20 +879,22 @@ update-deps:
 	$(GO) mod tidy
 	cd site && $(GO) mod tidy
 
-update-third-party: update-googleapis update-protoc-gen-swagger-options
+third_party: third_party/google/api third_party/protoc-gen-swagger/options
 
-update-googleapis:
+third_party/google/api:
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
+	mkdir -p $(REPOSITORY_ROOT)/third_party/google/api
 	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L https://github.com/googleapis/googleapis/archive/master.zip
 	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
 	cp -f $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/annotations.proto \
 		$(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/http.proto \
 		$(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/httpbody.proto \
-		$(REPOSITORY_ROOT)/third_party/google/api/
+		$(REPOSITORY_ROOT)/third_party/google/api
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
 
-update-protoc-gen-swagger-options:
+third_party/protoc-gen-swagger/options:
 	mkdir -p $(TOOLCHAIN_DIR)/grpc-gateway-temp/
+	mkdir -p $(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options
 	curl -o $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway.zip -L https://github.com/grpc-ecosystem/grpc-gateway/archive/master.zip
 	(cd $(TOOLCHAIN_DIR)/grpc-gateway-temp/; unzip -q -o grpc-gateway.zip)
 	cp -f $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/annotations.proto \
