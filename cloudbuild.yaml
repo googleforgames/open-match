@@ -154,7 +154,7 @@ artifacts:
             - cmd/evaluator/evaluator
             - cmd/minimatch/minimatch
             - install/yaml/install.yaml
-            - install/yaml/install-example.yaml
+            - install/yaml/install-demo.yaml
             - install/yaml/01-redis-chart.yaml
             - install/yaml/02-open-match.yaml
             - install/yaml/03-prometheus-chart.yaml
