@@ -27,12 +27,7 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
-<<<<<<< HEAD
-	"open-match.dev/open-match/internal/rpc"
-	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	"open-match.dev/open-match/internal/statestore"
-=======
->>>>>>> 6cd521abf7c9b0a0cfb0fc95214b119b61f06a1f
 )
 
 // validateTicket validates that the fetched ticket is identical to the expected ticket.
