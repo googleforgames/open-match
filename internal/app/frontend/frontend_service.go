@@ -41,22 +41,6 @@ var (
 	})
 )
 
-// newFrontend creates and initializes the frontend service.
-func newFrontend(cfg config.View) (*frontendService, error) {
-	fs := &frontendService{
-		cfg: cfg,
-	}
-
-	// Initialize the state storage interface.
-	var err error
-	fs.store, err = statestore.New(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return fs, nil
-}
-
 // CreateTicket will create a new ticket, assign an id to it and put it in state
 // storage. It will index the Ticket attributes based on the indexing configuration.
 // Indexing a Ticket adds the it to the pool of Tickets considered for matchmaking.

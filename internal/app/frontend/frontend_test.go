@@ -30,6 +30,7 @@ import (
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
+	"open-match.dev/open-match/internal/statestore"
 )
 
 func TestServerBinding(t *testing.T) {
@@ -78,8 +79,10 @@ func validateDelete(t *testing.T, fe *frontendService, id string) {
 func TestFrontendService(t *testing.T) {
 	assert := assert.New(t)
 	cfg := createStore(t)
-	fe, err := newFrontend(cfg)
-	assert.Nil(err)
+	fe := &frontendService{
+		cfg:   cfg,
+		store: statestore.New(cfg),
+	}
 	assert.NotNil(fe)
 
 	ticket := &pb.Ticket{

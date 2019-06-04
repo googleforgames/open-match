@@ -48,7 +48,7 @@ func (rb *redisBackend) Close() error {
 }
 
 // newRedis creates a statestore.Service backed by Redis database.
-func newRedis(cfg config.View) (Service, error) {
+func newRedis(cfg config.View) Service {
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
 
@@ -68,7 +68,7 @@ func newRedis(cfg config.View) (Service, error) {
 
 // NewRedis creates a Redis backed statestore.
 // Do not call this method directly, exposed for testing.
-func NewRedis(cfg config.View, redisURL string, maskedURL string) (Service, error) {
+func NewRedis(cfg config.View, redisURL string, maskedURL string) Service {
 	pool := &redis.Pool{
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
@@ -76,26 +76,10 @@ func NewRedis(cfg config.View, redisURL string, maskedURL string) (Service, erro
 		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
 	}
 
-	// Sanity check that connection works before passing it back.  Redigo
-	// always returns a valid connection, and will just fail on the first
-	// query: https://godoc.org/github.com/gomodule/redigo/redis#Pool.Get
-	redisConn := pool.Get()
-	defer handleConnectionClose(&redisConn)
-
-	_, err := redisConn.Do("SELECT", "0")
-	// Encountered an issue getting a connection from the pool.
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "SELECT 0",
-			"error": err.Error()}).Error("state storage connection error")
-		return nil, fmt.Errorf("cannot connect to Redis at %s, %s", maskedURL, err)
-	}
-
-	redisLogger.Info("Connected to Redis")
 	return &redisBackend{
 		redisPool: pool,
 		cfg:       cfg,
-	}, nil
+	}
 }
 
 func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {

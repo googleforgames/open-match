@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"fmt"
+
 	"github.com/alicebob/miniredis"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
@@ -37,10 +38,8 @@ func New(t *testing.T, cfg config.Mutable) (statestore.Service, func()) {
 
 	redisURL := fmt.Sprintf("redis://%s:%s", mredis.Host(), mredis.Port())
 
-	redis, err := statestore.NewRedis(cfg, redisURL, redisURL)
-	if err != nil {
-		t.Fatalf("error connecting to fake redis, %s, %v", redisURL, err)
-	}
+	redis := statestore.NewRedis(cfg, redisURL, redisURL)
+
 	return redis, func() {
 		mredis.Close()
 	}
