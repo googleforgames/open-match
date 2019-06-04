@@ -248,7 +248,7 @@ build-example-images: build-mmf-example-images
 build-mmf-example-images: build-mmf-go-pool-image
 
 build-mmf-go-pool-image: docker build-base-build-image
-	docker build -f pkg/functions/golang/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG) .
+	docker build -f examples/functions/golang/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG) .
 
 clean-images: docker
 	-docker rmi -f open-match-base-build
@@ -680,10 +680,10 @@ all: service-binaries example-binaries tools-binaries
 service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION) cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/evaluator/evaluator$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries
-example-mmf-binaries: pkg/functions/golang/golang$(EXE_EXTENSION)
+example-mmf-binaries: examples/functions/golang/golang$(EXE_EXTENSION)
 
-pkg/functions/golang/golang$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
-	cd pkg/functions/golang; $(GO_BUILD_COMMAND)
+examples/functions/golang/golang$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+	cd examples/functions/golang; $(GO_BUILD_COMMAND)
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
@@ -704,6 +704,7 @@ cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/b
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/frontend.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/evaluator.pb.go internal/pb/evaluator.pb.gw.go api/evaluator.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd cmd/minimatch; $(GO_BUILD_COMMAND)
 
@@ -825,7 +826,7 @@ clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/cmd/frontend/frontend
 	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic
 	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch
-	rm -rf $(REPOSITORY_ROOT)/pkg/functions/golang/golang
+	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/golang
 
 clean-build: clean-toolchain clean-archives clean-release
 	rm -rf $(REPOSITORY_ROOT)/build/

@@ -16,8 +16,8 @@ package minimatch
 
 import (
 	"github.com/spf13/viper"
+	matchfunction "open-match.dev/open-match/examples/functions/golang/pool"
 	"open-match.dev/open-match/internal/rpc"
-	matchfunction "open-match.dev/open-match/pkg/functions/golang/pool"
 	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
 )
 
