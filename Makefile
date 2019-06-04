@@ -49,7 +49,8 @@
 # http://makefiletutorial.com/
 
 BASE_VERSION = 0.0.0-dev
-VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
+SHORT_SHA = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
+VERSION_SUFFIX = $(SHORT_SHA)
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
 BUILD_DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
@@ -669,9 +670,8 @@ fmt:
 vet:
 	$(GO) vet ./...
 
-# Blocked on https://github.com/golangci/golangci-lint/issues/500 to be added to `make lint`
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
-	build/toolchain/bin/golangci-lint$(EXE_EXTENSION) run -v --config=.golangci.yaml
+	build/toolchain/bin/golangci-lint$(EXE_EXTENSION) run --config=.golangci.yaml
 
 lint: fmt vet lint-chart
 
