@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis"
-	"github.com/cenkalti/backoff"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
@@ -184,12 +183,12 @@ func TestGetAssignmentBeforeSet(t *testing.T) {
 		assignmentResp = assignment
 		return nil
 	})
-	// GetAssignment used up all retries yet the assignment is still empty
-	assert.EqualError(err, status.Error(codes.NotFound, "assignment not found for the given ticket").Error())
+	// GetAssignment failed because the ticket does not exists
+	assert.Equal(status.Convert(err).Code(), codes.NotFound)
 	assert.Nil(assignmentResp)
 }
 
-func TestGetAssignmentNormalSet(t *testing.T) {
+func TestUpdateAssignmentFatal(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
@@ -198,24 +197,73 @@ func TestGetAssignmentNormalSet(t *testing.T) {
 	assert.NotNil(service)
 	defer service.Close()
 
-	err = service.UpdateAssignments(context.Background(), []string{"id"}, &pb.Assignment{
-		Connection: "test-tbd",
+	var assignmentResp *pb.Assignment
+
+	err = service.UpdateAssignments(context.Background(), []string{"id"}, &pb.Assignment{})
+	// UpdateAssignment failed because the ticket does not exists
+	assert.Equal(status.Convert(err).Code(), codes.NotFound)
+	assert.Nil(assignmentResp)
+
+	// Now create a ticket and the state store service
+	err = service.CreateTicket(context.Background(), &pb.Ticket{
+		Id:         "1",
+		Assignment: &pb.Assignment{Connection: "2"},
+	})
+	assert.Nil(err)
+
+	// Try to update the assignmets with the ticket created and some non-existed tickets
+	err = service.UpdateAssignments(context.Background(), []string{"1", "2", "3"}, &pb.Assignment{})
+	// UpdateAssignment failed because the ticket does not exists
+	assert.Equal(status.Convert(err).Code(), codes.NotFound)
+	assert.Nil(assignmentResp)
+
+	// Verify the transaction behavior of the UpdateAssignment.
+	ticket, err := service.GetTicket(context.Background(), "1")
+	assert.Equal(&pb.Assignment{}, ticket.Assignment)
+	assert.Nil(err)
+}
+
+func TestGetAssignmentNormal(t *testing.T) {
+	// Create State Store
+	assert := assert.New(t)
+	cfg := createRedis(t)
+	service, err := New(cfg)
+	assert.Nil(err)
+	assert.NotNil(service)
+	defer service.Close()
+
+	err = service.CreateTicket(context.Background(), &pb.Ticket{
+		Id:         "1",
+		Assignment: &pb.Assignment{Connection: "2"},
 	})
 	assert.Nil(err)
 
 	var assignmentResp *pb.Assignment
+	ctx, cancel := context.WithCancel(context.Background())
+	callbackCount := 0
+	returnedErr := errors.New("some errors")
 
-	err = service.GetAssignments(context.Background(), "id", func(assignment *pb.Assignment) error {
+	err = service.GetAssignments(ctx, "1", func(assignment *pb.Assignment) error {
 		assignmentResp = assignment
+
+		if callbackCount == 5 {
+			cancel()
+			return returnedErr
+		} else if callbackCount > 0 {
+			// Test the assignment returned was successfully passed in to the callback function
+			assert.Equal(assignmentResp.Connection, "2")
+		}
+
+		callbackCount++
 		return nil
 	})
 
-	// GetAssignment get the assignment with expected connection string
-	assert.Nil(err)
-	assert.Equal(assignmentResp.Connection, "test-tbd")
+	// Test GetAssignments was retried for 5 times and returned with expected error
+	assert.Equal(5, callbackCount)
+	assert.Equal(returnedErr, err)
 }
 
-func TestGetAssignmentFatalCallback(t *testing.T) {
+func TestUpdateAssignmentNormal(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
@@ -224,22 +272,30 @@ func TestGetAssignmentFatalCallback(t *testing.T) {
 	assert.NotNil(service)
 	defer service.Close()
 
-	err = service.UpdateAssignments(context.Background(), []string{"id"}, &pb.Assignment{
-		Connection: "test-tbd",
+	// Create a ticket without assignment
+	err = service.CreateTicket(context.Background(), &pb.Ticket{
+		Id: "1",
+	})
+	assert.Nil(err)
+	// Create a ticket already with an assignment
+	err = service.CreateTicket(context.Background(), &pb.Ticket{
+		Id:         "3",
+		Assignment: &pb.Assignment{Connection: "4"},
 	})
 	assert.Nil(err)
 
-	retry := 0
-	permanentError := backoff.Permanent(errors.New("some error"))
+	fakeAssignment := &pb.Assignment{Connection: "Halo"}
+	err = service.UpdateAssignments(context.Background(), []string{"1", "3"}, fakeAssignment)
+	assert.Nil(err)
+	// Verify the transaction behavior of the UpdateAssignment.
+	ticket, err := service.GetTicket(context.Background(), "1")
+	assert.Equal(fakeAssignment.Connection, ticket.Assignment.Connection)
+	assert.Nil(err)
+	// Verify the transaction behavior of the UpdateAssignment.
+	ticket, err = service.GetTicket(context.Background(), "3")
+	assert.Equal(fakeAssignment.Connection, ticket.Assignment.Connection)
+	assert.Nil(err)
 
-	err = service.GetAssignments(context.Background(), "id", func(assignment *pb.Assignment) error {
-		retry++
-		return permanentError
-	})
-
-	// GetAssignment encountered permanent error in callback. No more retries.
-	assert.Equal(permanentError, err)
-	assert.Equal(1, retry)
 }
 
 func createRedis(t *testing.T) config.View {
