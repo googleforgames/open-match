@@ -22,11 +22,8 @@ import (
 	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
-	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
 const (
@@ -49,9 +46,8 @@ type testProfile struct {
 func TestMinimatchStartup(t *testing.T) {
 	assert := assert.New(t)
 
-	cfg := createServerConfig()
-	_, closer := statestoreTesting.New(t, cfg)
-	defer closer()
+	cfg, err := createServerConfig()
+	assert.Nil(err)
 
 	mm, err := NewMiniMatch(cfg)
 	if err != nil {
@@ -251,24 +247,4 @@ func validateFetchMatchesResult(assert *assert.Assertions, poolTickets map[strin
 			assert.Equal(gotTickets, poolTickets[br.Match.Roster[0].Name])
 		}
 	}
-}
-
-func createServerConfig() config.Mutable {
-	cfg := viper.New()
-
-	cfg.Set("storage.page.size", 10)
-
-	// Set up the attributes that a ticket will be indexed for.
-	cfg.Set("playerIndices", []string{
-		skillattribute,
-		map1attribute,
-		map2attribute,
-	})
-
-	// Set up the configuration for hosting the minimatch service.
-	cfg.Set("minimatch.hostname", minimatchHost)
-	cfg.Set("minimatch.grpcport", minimatchGRPCPort)
-	cfg.Set("minimatch.httpport", minimatchHTTPPort)
-
-	return cfg
 }
