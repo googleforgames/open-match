@@ -38,13 +38,13 @@ func TestAssignTicketsEmptyRequest(t *testing.T) {
 	tc := createBackendForTest(t)
 	defer tc.Close()
 
-	assignTicketsLoop(t, tc, &pb.AssignTicketsRequest{}, func(_ *pb.AssignTicketsResponse, err error) {
+	assignTicketsLoop(tc, &pb.AssignTicketsRequest{}, func(_ *pb.AssignTicketsResponse, err error) {
 		assert.Equal(codes.InvalidArgument, status.Convert(err).Code())
 	})
-	assignTicketsLoop(t, tc, &pb.AssignTicketsRequest{Assignment: &pb.Assignment{}}, func(_ *pb.AssignTicketsResponse, err error) {
+	assignTicketsLoop(tc, &pb.AssignTicketsRequest{Assignment: &pb.Assignment{}}, func(_ *pb.AssignTicketsResponse, err error) {
 		assert.Equal(codes.InvalidArgument, status.Convert(err).Code())
 	})
-	assignTicketsLoop(t, tc, &pb.AssignTicketsRequest{TicketId: []string{xid.New().String(), xid.New().String()}}, func(_ *pb.AssignTicketsResponse, err error) {
+	assignTicketsLoop(tc, &pb.AssignTicketsRequest{TicketId: []string{xid.New().String(), xid.New().String()}}, func(_ *pb.AssignTicketsResponse, err error) {
 		assert.Equal(codes.InvalidArgument, status.Convert(err).Code())
 	})
 
@@ -54,7 +54,7 @@ func TestAssignTicketsEmptyRequest(t *testing.T) {
 			Connection: "localhost",
 		},
 	}
-	assignTicketsLoop(t, tc, req, func(resp *pb.AssignTicketsResponse, err error) {
+	assignTicketsLoop(tc, req, func(resp *pb.AssignTicketsResponse, err error) {
 		assert.Equal(codes.NotFound, status.Convert(err).Code())
 	})
 }
@@ -75,7 +75,7 @@ func TestAssignTicketsNormalRequest(t *testing.T) {
 			Connection: "localhost",
 		},
 	}
-	assignTicketsLoop(t, tc, req, func(resp *pb.AssignTicketsResponse, err error) {
+	assignTicketsLoop(tc, req, func(resp *pb.AssignTicketsResponse, err error) {
 		assert.Equal(&pb.AssignTicketsResponse{}, resp)
 	})
 
@@ -114,7 +114,7 @@ func fetchMatchesLoop(t *testing.T, tc *rpcTesting.TestContext, req *pb.FetchMat
 	}
 }
 
-func assignTicketsLoop(t *testing.T, tc *rpcTesting.TestContext, req *pb.AssignTicketsRequest, handleResponse func(*pb.AssignTicketsResponse, error)) {
+func assignTicketsLoop(tc *rpcTesting.TestContext, req *pb.AssignTicketsRequest, handleResponse func(*pb.AssignTicketsResponse, error)) {
 	c := pb.NewBackendClient(tc.MustGRPC())
 	resp, err := c.AssignTickets(tc.Context(), req)
 	handleResponse(resp, err)
