@@ -48,6 +48,6 @@ func CreateDerivedCertificateAndPrivateKeyForTesting(rootPublicCertificateData [
 		ValidityDuration:          time.Hour * 1,
 		Hostnames:                 hostnameList,
 		RSAKeyLength:              2048,
-		CertificateAuthority:      true,
+		CertificateAuthority:      false,
 	})
 }

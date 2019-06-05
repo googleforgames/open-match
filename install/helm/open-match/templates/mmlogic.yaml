@@ -72,7 +72,7 @@ spec:
           containerPort: {{ .Values.openmatch.mmlogic.grpc.port }}
         - name: http
           containerPort: {{ .Values.openmatch.mmlogic.http.port }}
-        {{- include "probe.readiness" (dict "port" .Values.openmatch.mmlogic.http.port) | nindent 8 }}
+        {{- include "kubernetes.probe" (dict "port" .Values.openmatch.mmlogic.http.port) | nindent 8 }}
         resources:
           requests:
             memory: 100Mi

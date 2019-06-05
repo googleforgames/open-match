@@ -17,8 +17,8 @@ package statestore
 import (
 	"context"
 	"fmt"
-	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/proto"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/gomodule/redigo/redis"
@@ -38,8 +38,9 @@ var (
 )
 
 type redisBackend struct {
-	redisPool *redis.Pool
-	cfg       config.View
+	healthCheckPool *redis.Pool
+	redisPool       *redis.Pool
+	cfg             config.View
 }
 
 func (rb *redisBackend) Close() error {
@@ -47,7 +48,7 @@ func (rb *redisBackend) Close() error {
 }
 
 // newRedis creates a statestore.Service backed by Redis database.
-func newRedis(cfg config.View) (Service, error) {
+func newRedis(cfg config.View) Service {
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
 
@@ -62,33 +63,47 @@ func newRedis(cfg config.View) (Service, error) {
 	maskedURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
 
 	redisLogger.WithField("redisURL", maskedURL).Debug("Attempting to connect to Redis")
+	return NewRedis(cfg, redisURL, maskedURL)
+}
+
+// NewRedis creates a Redis backed statestore.
+// Do not call this method directly, exposed for testing.
+func NewRedis(cfg config.View, redisURL string, maskedURL string) Service {
 	pool := &redis.Pool{
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
-		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout") * time.Second,
+		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout"),
 		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
 	}
-
-	// Sanity check that connection works before passing it back.  Redigo
-	// always returns a valid connection, and will just fail on the first
-	// query: https://godoc.org/github.com/gomodule/redigo/redis#Pool.Get
-	redisConn := pool.Get()
-	defer handleConnectionClose(&redisConn)
-
-	_, err := redisConn.Do("SELECT", "0")
-	// Encountered an issue getting a connection from the pool.
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "SELECT 0",
-			"error": err.Error()}).Error("state storage connection error")
-		return nil, fmt.Errorf("cannot connect to Redis at %s, %s", maskedURL, err)
+	healthCheckPool := &redis.Pool{
+		MaxIdle:     1,
+		MaxActive:   2,
+		IdleTimeout: cfg.GetDuration("redis.pool.healthCheckTimeout"),
+		Dial: func() (redis.Conn, error) {
+			return redis.DialURL(redisURL, redis.DialConnectTimeout(cfg.GetDuration("redis.pool.healthCheckTimeout")), redis.DialReadTimeout(cfg.GetDuration("redis.pool.healthCheckTimeout")))
+		},
 	}
 
-	redisLogger.Info("Connected to Redis")
 	return &redisBackend{
-		redisPool: pool,
-		cfg:       cfg,
-	}, nil
+		healthCheckPool: healthCheckPool,
+		redisPool:       pool,
+		cfg:             cfg,
+	}
+}
+
+// HealthCheck indicates if the database is reachable.
+func (rb *redisBackend) HealthCheck(ctx context.Context) error {
+	redisConn, err := rb.healthCheckPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "%v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+	_, err = redisConn.Do("SELECT", "0")
+	// Encountered an issue getting a connection from the pool.
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "%v", err)
+	}
+	return nil
 }
 
 func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
@@ -370,9 +385,9 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
 func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error {
-	redisConn, err := rb.redisPool.GetContext(ctx)
+	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		redisLogger.WithError(err).Error("Failed to get redis connection with context.")
+		return err
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -439,6 +454,85 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 	return nil
 }
 
+// UpdateAssignments update the match assignments for the input ticket ids
+func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error {
+	redisConn, err := rb.connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer handleConnectionClose(&redisConn)
+
+	err = redisConn.Send("MULTI")
+	if err != nil {
+		return err
+	}
+
+	for _, id := range ids {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			ticket, err := rb.GetTicket(ctx, id)
+			if err != nil {
+				redisLogger.WithError(err).Errorf("failed to get ticket %s from redis when updating assignments", id)
+				return err
+			}
+
+			assignmentCopy, ok := proto.Clone(assignment).(*pb.Assignment)
+			if !ok {
+				redisLogger.Error("failed to cast assignment object")
+				return status.Error(codes.Internal, "failed to cast to the assignment object")
+			}
+			ticket.Assignment = assignmentCopy
+
+			err = rb.CreateTicket(ctx, ticket)
+			if err != nil {
+				redisLogger.WithError(err).Errorf("failed to recreate ticket %#v with new assignment when updating assignments", ticket)
+				return err
+			}
+		}
+	}
+
+	// Run pipelined Redis commands.
+	_, err = redisConn.Do("EXEC")
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to execute update assignments transaction")
+		return err
+	}
+
+	return nil
+}
+
+// GetAssignments returns the assignment associated with the input ticket id
+func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error {
+	redisConn, err := rb.connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer handleConnectionClose(&redisConn)
+
+	backoffOperation := func() error {
+		ticket, err := rb.GetTicket(ctx, id)
+		if err != nil {
+			redisLogger.WithError(err).Errorf("failed to get ticket %s when executing get assignments", id)
+			return backoff.Permanent(err)
+		}
+
+		err = callback(ticket.Assignment)
+		if err != nil {
+			return backoff.Permanent(err)
+		}
+
+		return status.Error(codes.Unavailable, "listening on assignment updates, waiting for the next backoff")
+	}
+
+	err = backoff.Retry(backoffOperation, rb.newConstantBackoffStrategy())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func idsToPages(ids []string, pageSize int) [][]interface{} {
 	result := make([][]interface{}, 0, len(ids)/pageSize+1)
 	for i := 0; i < len(ids); i += pageSize {
@@ -462,4 +556,21 @@ func handleConnectionClose(conn *redis.Conn) {
 			"error": err,
 		}).Debug("failed to close redis client connection.")
 	}
+}
+
+func (rb *redisBackend) newConstantBackoffStrategy() backoff.BackOff {
+	backoffStrat := backoff.NewConstantBackOff(rb.cfg.GetDuration("backoff.initialInterval"))
+	return backoff.BackOff(backoffStrat)
+}
+
+// TODO: add cache the backoff object
+// nolint: unused
+func (rb *redisBackend) newExponentialBackoffStrategy() backoff.BackOff {
+	backoffStrat := backoff.NewExponentialBackOff()
+	backoffStrat.InitialInterval = rb.cfg.GetDuration("backoff.initialInterval")
+	backoffStrat.RandomizationFactor = rb.cfg.GetFloat64("backoff.randFactor")
+	backoffStrat.Multiplier = rb.cfg.GetFloat64("backoff.multiplier")
+	backoffStrat.MaxInterval = rb.cfg.GetDuration("backoff.maxInterval")
+	backoffStrat.MaxElapsedTime = rb.cfg.GetDuration("backoff.maxElapsedTime")
+	return backoff.BackOff(backoffStrat)
 }

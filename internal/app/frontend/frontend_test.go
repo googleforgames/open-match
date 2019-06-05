@@ -23,24 +23,12 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
-	"open-match.dev/open-match/internal/rpc"
-	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
+	"open-match.dev/open-match/internal/statestore"
 )
-
-func TestServerBinding(t *testing.T) {
-	bs := func(p *rpc.ServerParams) {
-		p.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterFrontendServer(s, &frontendService{})
-		}, pb.RegisterFrontendHandlerFromEndpoint)
-	}
-
-	rpcTesting.TestServerBinding(t, bs)
-}
 
 // validateTicket validates that the fetched ticket is identical to the expected ticket.
 func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
@@ -78,8 +66,10 @@ func validateDelete(t *testing.T, fe *frontendService, id string) {
 func TestFrontendService(t *testing.T) {
 	assert := assert.New(t)
 	cfg := createStore(t)
-	fe, err := newFrontend(cfg)
-	assert.Nil(err)
+	fe := &frontendService{
+		cfg:   cfg,
+		store: statestore.New(cfg),
+	}
 	assert.NotNil(fe)
 
 	ticket := &pb.Ticket{
@@ -126,6 +116,7 @@ func createStore(t *testing.T) config.View {
 	cfg.Set("redis.port", mredis.Port())
 	cfg.Set("redis.pool.maxIdle", 1000)
 	cfg.Set("redis.pool.idleTimeout", time.Second)
+	cfg.Set("redis.pool.healthCheckTimeout", 100*time.Millisecond)
 	cfg.Set("redis.pool.maxActive", 1000)
 	cfg.Set("redis.expiration", 42000)
 	cfg.Set("playerIndices", []string{"testindex1", "testindex2"})

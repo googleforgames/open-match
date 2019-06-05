@@ -87,8 +87,10 @@ func createServerConfig() (config.View, error) {
 	cfg.Set("redis.port", mredis.Port())
 	cfg.Set("redis.pool.maxIdle", 1000)
 	cfg.Set("redis.pool.idleTimeout", time.Second)
+	cfg.Set("redis.pool.healthCheckTimeout", 100*time.Millisecond)
 	cfg.Set("redis.pool.maxActive", 1000)
 	cfg.Set("redis.expiration", 42000)
+	cfg.Set("storage.page.size", 10)
 
 	// Set up the attributes that a ticket will be indexed for.
 	cfg.Set("playerIndices", []string{

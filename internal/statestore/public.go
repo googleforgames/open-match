@@ -17,20 +17,15 @@ package statestore
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 )
 
-var (
-	publicLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "statestore.public",
-	})
-)
-
 // Service is a generic interface for talking to a storage backend.
 type Service interface {
+	// HealthCheck indicates if the database is reachable.
+	HealthCheck(ctx context.Context) error
+
 	// CreateTicket creates a new Ticket in the state storage. This method fails if the Ticket already exists.
 	CreateTicket(ctx context.Context, ticket *pb.Ticket) error
 
@@ -49,11 +44,17 @@ type Service interface {
 	// FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria.
 	FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error
 
+	// UpdateAssignments update the match assignments for the input ticket ids
+	UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error
+
+	// GetAssignments returns the assignment associated with the input ticket id
+	GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error
+
 	// Closes the connection to the underlying storage.
 	Close() error
 }
 
 // New creates a Service based on the configuration.
-func New(cfg config.View) (Service, error) {
+func New(cfg config.View) Service {
 	return newRedis(cfg)
 }

@@ -39,6 +39,11 @@ const (
 	map2attribute  = "map2"
 )
 
+type testProfile struct {
+	name  string
+	pools []*pb.Pool
+}
+
 func TestMinimatchStartup(t *testing.T) {
 	assert := assert.New(t)
 
@@ -110,10 +115,7 @@ func TestMinimatchStartup(t *testing.T) {
 	// Test profiles being tested for. Note that each profile embeds two pools - and
 	// the current MMF returns a match per pool in the profile - so each profile should
 	// output two matches that are comprised of tickets belonging to that pool.
-	testProfiles := []struct {
-		name  string
-		pools []*pb.Pool
-	}{
+	testProfiles := []testProfile{
 		{name: "", pools: []*pb.Pool{testPools[map1BeginnerPool], testPools[map1AdvancedPool]}},
 		{name: "", pools: []*pb.Pool{testPools[map2BeginnerPool], testPools[map2AdvancedPool]}},
 	}
@@ -177,9 +179,42 @@ func TestMinimatchStartup(t *testing.T) {
 		assert.Equal(poolTickets[pool.Name], want)
 	}
 
+<<<<<<< HEAD
 	be := pb.NewBackendClient(conn)
+=======
+	cfgs := []*pb.FunctionConfig{
+		{
+			Name: mmfName,
+			Type: &pb.FunctionConfig_Grpc{
+				Grpc: &pb.GrpcFunctionConfig{
+					Host: mmfHost,
+					Port: mmfGRPCPortInt,
+				},
+			},
+		},
+		{
+			Name: mmfName,
+			Type: &pb.FunctionConfig_Rest{
+				Rest: &pb.RestFunctionConfig{
+					Host: mmfHost,
+					Port: mmfHTTPPortInt,
+				},
+			},
+		},
+	}
 
-	mf, mfclose, err := matchFunctionConfig()
+	for _, cfg := range cfgs {
+		validateFetchMatchesResult(assert, poolTickets, testProfiles, mm, cfg)
+	}
+}
+
+func validateFetchMatchesResult(assert *assert.Assertions, poolTickets map[string][]string, testProfiles []testProfile, mm *Server, mf *pb.FunctionConfig) {
+	be, err := mm.GetBackendClient()
+	assert.Nil(err)
+	assert.NotNil(be)
+>>>>>>> 269dd9bc2f4b21944257c5f54d8d481b0c636e54
+
+	mfclose, err := serveMatchFunction()
 	defer mfclose()
 	assert.Nil(err)
 

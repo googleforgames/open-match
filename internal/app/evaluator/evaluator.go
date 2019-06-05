@@ -20,6 +20,7 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/statestore"
 )
 
 var (
@@ -29,8 +30,13 @@ var (
 	})
 )
 
+// FunctionSettings is a collection of parameters used to define the evaluator service.
+type FunctionSettings struct {
+	Func evaluatorFunction
+}
+
 // RunApplication creates a server.
-func RunApplication() {
+func RunApplication(settings *FunctionSettings) {
 	cfg, err := config.Read()
 	if err != nil {
 		evaluatorLogger.WithFields(logrus.Fields{
@@ -45,7 +51,7 @@ func RunApplication() {
 		}).Fatalf("cannot construct server.")
 	}
 
-	if err := BindService(p, cfg); err != nil {
+	if err := BindService(p, cfg, settings); err != nil {
 		evaluatorLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("failed to bind evaluator service.")
@@ -55,11 +61,14 @@ func RunApplication() {
 }
 
 // BindService creates the evaluator service and binds it to the serving harness.
-func BindService(p *rpc.ServerParams, cfg config.View) error {
-	service, err := newEvaluator(cfg)
-	if err != nil {
-		return err
+func BindService(p *rpc.ServerParams, cfg config.View, fs *FunctionSettings) error {
+	service := &evaluatorService{
+		cfg:      cfg,
+		store:    statestore.New(cfg),
+		function: fs.Func,
 	}
+
+	p.AddHealthCheckFunc(service.store.HealthCheck)
 
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterEvaluatorServer(s, service)

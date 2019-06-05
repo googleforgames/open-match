@@ -7,7 +7,7 @@ description: >
 ---
 
 Open Match is an open source project where anyone can contribute to it.
-If there's some thing you see that can be [improved](https://github.com/GoogleCloudPlatform/open-match/issues/new) we'd be happy to help you make those changes.
+If there's some thing you see that can be [improved](https://github.com/googleforgames/open-match/issues/new) we'd be happy to help you make those changes.
 
 ## Get involved
 
@@ -22,4 +22,4 @@ Participation in this project comes under the Contributor Covenant Code of Condu
 
 ## Development and Contribution
 
-Please read the [CONTRIBUTING.md](https://github.com/GoogleCloudPlatform/open-match/blob/master/CONTRIBUTING.md) guide for directions on submitting Pull Requests to Open Match.
+Please read the [CONTRIBUTING.md](https://github.com/googleforgames/open-match/blob/master/CONTRIBUTING.md) guide for directions on submitting Pull Requests to Open Match.
