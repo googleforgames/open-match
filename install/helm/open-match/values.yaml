@@ -60,6 +60,10 @@ openmatch:
       port: 50502
     http:
       port: 51502
+  swaggerui:
+    install: true
+    http:
+      port: 50500
 
   config:
     install: true
@@ -200,6 +204,9 @@ openmatch:
       pullPolicy: Always
     evaluator:
       name: openmatch-evaluator
+      pullPolicy: Always
+    swaggerui:
+      name: openmatch-swaggerui
       pullPolicy: Always
 
 # https://hub.helm.sh/charts/stable/redis

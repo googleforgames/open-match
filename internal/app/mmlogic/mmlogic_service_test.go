@@ -20,7 +20,6 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/pb"
@@ -79,17 +78,10 @@ func createMmlogicForTest(t *testing.T) *rpcTesting.TestContext {
 	var closerFunc func()
 	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
-		store, closer := statestoreTesting.New(t, cfg)
-		closerFunc = closer
+		closerFunc = statestoreTesting.New(t, cfg)
 		cfg.Set("storage.page.size", 10)
 
-		mmlogic := &mmlogicService{
-			cfg:   cfg,
-			store: store,
-		}
-		p.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterMmLogicServer(s, mmlogic)
-		}, pb.RegisterMmLogicHandlerFromEndpoint)
+		BindService(p, cfg)
 	})
 	// TODO: This is very ugly. Need a better story around closing resources.
 	tc.AddCloseFunc(closerFunc)
