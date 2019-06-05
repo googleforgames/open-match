@@ -215,7 +215,11 @@ push-evaluator-image: docker build-evaluator-image
 
 push-example-images: push-demo-images push-mmf-example-images
 
-push-demo-images: push-mmf-go-simple-image
+push-demo-images: push-mmf-go-simple-image push-demo-image
+
+push-demo-image: dock build-demo-image
+	docker push $(REGISTRY)/openmatch-demo:$(TAG)
+	docker push $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG)
 
 push-mmf-example-images: push-mmf-go-simple-image
 
@@ -247,7 +251,10 @@ build-evaluator-image: docker build-base-build-image
 
 build-example-images: build-demo-images build-mmf-example-images
 
-build-demo-images: build-mmf-go-simple-image
+build-demo-images: build-mmf-go-simple-image build-demo-image
+
+build-demo-image: docker build-base-build-image
+  docker build -f examples/demo/Dockerfile -t $(REGISTRY)/openmatch-demo:$(TAG) -t $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG) .
 
 build-mmf-example-images: build-mmf-go-simple-image
 

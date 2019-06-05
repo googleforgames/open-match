@@ -108,6 +108,7 @@ cmd/mmlogic/mmlogic
 cmd/evaluator/evaluator
 cmd/minimatch/minimatch
 tools/certgen/certgen
+examples/demo/demo
 examples/functions/golang/simple/simple
 
 # Open Match Build Directory
