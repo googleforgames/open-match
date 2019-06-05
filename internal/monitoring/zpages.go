@@ -15,7 +15,6 @@
 package monitoring
 
 import (
-	"fmt"
 	"go.opencensus.io/zpages"
 	"net/http"
 	"open-match.dev/open-match/internal/config"
@@ -26,8 +25,4 @@ func bindZpages(mux *http.ServeMux, cfg config.View) {
 		return
 	}
 	zpages.Handle(mux, "/debug")
-
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "ok")
-	})
 }

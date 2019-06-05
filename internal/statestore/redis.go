@@ -17,7 +17,6 @@ package statestore
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/proto"
@@ -39,8 +38,9 @@ var (
 )
 
 type redisBackend struct {
-	redisPool *redis.Pool
-	cfg       config.View
+	healthCheckPool *redis.Pool
+	redisPool       *redis.Pool
+	cfg             config.View
 }
 
 func (rb *redisBackend) Close() error {
@@ -48,7 +48,7 @@ func (rb *redisBackend) Close() error {
 }
 
 // newRedis creates a statestore.Service backed by Redis database.
-func newRedis(cfg config.View) (Service, error) {
+func newRedis(cfg config.View) Service {
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
 
@@ -68,34 +68,42 @@ func newRedis(cfg config.View) (Service, error) {
 
 // NewRedis creates a Redis backed statestore.
 // Do not call this method directly, exposed for testing.
-func NewRedis(cfg config.View, redisURL string, maskedURL string) (Service, error) {
+func NewRedis(cfg config.View, redisURL string, maskedURL string) Service {
 	pool := &redis.Pool{
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
-		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout") * time.Second,
+		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout"),
 		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
 	}
-
-	// Sanity check that connection works before passing it back.  Redigo
-	// always returns a valid connection, and will just fail on the first
-	// query: https://godoc.org/github.com/gomodule/redigo/redis#Pool.Get
-	redisConn := pool.Get()
-	defer handleConnectionClose(&redisConn)
-
-	_, err := redisConn.Do("SELECT", "0")
-	// Encountered an issue getting a connection from the pool.
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "SELECT 0",
-			"error": err.Error()}).Error("state storage connection error")
-		return nil, fmt.Errorf("cannot connect to Redis at %s, %s", maskedURL, err)
+	healthCheckPool := &redis.Pool{
+		MaxIdle:     1,
+		MaxActive:   2,
+		IdleTimeout: cfg.GetDuration("redis.pool.healthCheckTimeout"),
+		Dial: func() (redis.Conn, error) {
+			return redis.DialURL(redisURL, redis.DialConnectTimeout(cfg.GetDuration("redis.pool.healthCheckTimeout")), redis.DialReadTimeout(cfg.GetDuration("redis.pool.healthCheckTimeout")))
+		},
 	}
 
-	redisLogger.Info("Connected to Redis")
 	return &redisBackend{
-		redisPool: pool,
-		cfg:       cfg,
-	}, nil
+		healthCheckPool: healthCheckPool,
+		redisPool:       pool,
+		cfg:             cfg,
+	}
+}
+
+// HealthCheck indicates if the database is reachable.
+func (rb *redisBackend) HealthCheck(ctx context.Context) error {
+	redisConn, err := rb.healthCheckPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "%v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+	_, err = redisConn.Do("SELECT", "0")
+	// Encountered an issue getting a connection from the pool.
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "%v", err)
+	}
+	return nil
 }
 
 func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
@@ -454,41 +462,42 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 	}
 	defer handleConnectionClose(&redisConn)
 
-	connectionTable := "assignment_connection"
-	propertiesTable := "assignment_properties"
-	errorsTable := "assignment_errors"
+	err = redisConn.Send("MULTI")
+	if err != nil {
+		return err
+	}
 
 	for _, id := range ids {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			err = redisConn.Send("MULTI")
+			ticket, err := rb.GetTicket(ctx, id)
 			if err != nil {
-				return status.Errorf(codes.Internal, "%v", err)
+				redisLogger.WithError(err).Errorf("failed to get ticket %s from redis when updating assignments", id)
+				return err
 			}
 
-			// Store assignment data by fields
-			err = redisConn.Send("HSET", connectionTable, id, assignment.Connection)
-			if err != nil {
-				return status.Errorf(codes.Internal, "%v", err)
+			assignmentCopy, ok := proto.Clone(assignment).(*pb.Assignment)
+			if !ok {
+				redisLogger.Error("failed to cast assignment object")
+				return status.Error(codes.Internal, "failed to cast to the assignment object")
 			}
-			err = redisConn.Send("HSET", propertiesTable, id, assignment.Properties)
-			if err != nil {
-				return status.Errorf(codes.Internal, "%v", err)
-			}
-			err = redisConn.Send("HSET", errorsTable, id, assignment.Error)
-			if err != nil {
-				return status.Errorf(codes.Internal, "%v", err)
-			}
+			ticket.Assignment = assignmentCopy
 
-			// Run pipelined Redis commands.
-			_, err = redisConn.Do("EXEC")
+			err = rb.CreateTicket(ctx, ticket)
 			if err != nil {
-				redisLogger.WithError(err).Errorf("failed to set assignment for ticket %#v", id)
-				return status.Errorf(codes.Internal, "%v", err)
+				redisLogger.WithError(err).Errorf("failed to recreate ticket %#v with new assignment when updating assignments", ticket)
+				return err
 			}
 		}
+	}
+
+	// Run pipelined Redis commands.
+	_, err = redisConn.Do("EXEC")
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to execute update assignments transaction")
+		return err
 	}
 
 	return nil
@@ -502,56 +511,22 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 	}
 	defer handleConnectionClose(&redisConn)
 
-	connectionTable := "assignment_connection"
-	propertiesTable := "assignment_properties"
-	errorsTable := "assignment_errors"
-
-	err = redisConn.Send("MULTI")
-	if err != nil {
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	err = redisConn.Send("HGET", connectionTable, id)
-	if err != nil {
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	err = redisConn.Send("HGET", propertiesTable, id)
-	if err != nil {
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	err = redisConn.Send("HGET", errorsTable, id)
-	if err != nil {
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	// Run pipelined Redis commands.
-	resp, err := redis.ByteSlices(redisConn.Do("EXEC"))
-	if err != nil {
-		redisLogger.WithError(err).Errorf("failed to get assignment for ticket %#v", id)
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	assignment := &pb.Assignment{
-		Connection: string(resp[0]),
-		Properties: string(resp[1]),
-		Error:      string(resp[2]),
-	}
-
 	backoffOperation := func() error {
-		if len(assignment.Connection) == 0 {
-			return status.Errorf(codes.NotFound, "assignment not found for the given ticket")
+		ticket, err := rb.GetTicket(ctx, id)
+		if err != nil {
+			redisLogger.WithError(err).Errorf("failed to get ticket %s when executing get assignments", id)
+			return backoff.Permanent(err)
 		}
 
-		err := callback(assignment)
+		err = callback(ticket.Assignment)
 		if err != nil {
 			return backoff.Permanent(err)
 		}
-		return nil
+
+		return status.Error(codes.Unavailable, "listening on assignment updates, waiting for the next backoff")
 	}
 
-	err = backoff.Retry(backoffOperation, rb.createBackoffStrat())
+	err = backoff.Retry(backoffOperation, rb.newConstantBackoffStrategy())
 	if err != nil {
 		return err
 	}
@@ -583,8 +558,14 @@ func handleConnectionClose(conn *redis.Conn) {
 	}
 }
 
+func (rb *redisBackend) newConstantBackoffStrategy() backoff.BackOff {
+	backoffStrat := backoff.NewConstantBackOff(rb.cfg.GetDuration("backoff.initialInterval"))
+	return backoff.BackOff(backoffStrat)
+}
+
 // TODO: add cache the backoff object
-func (rb *redisBackend) createBackoffStrat() backoff.BackOff {
+// nolint: unused
+func (rb *redisBackend) newExponentialBackoffStrategy() backoff.BackOff {
 	backoffStrat := backoff.NewExponentialBackOff()
 	backoffStrat.InitialInterval = rb.cfg.GetDuration("backoff.initialInterval")
 	backoffStrat.RandomizationFactor = rb.cfg.GetFloat64("backoff.randFactor")

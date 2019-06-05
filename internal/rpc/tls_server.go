@@ -27,9 +27,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"
-	"go.opencensus.io/zpages"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"open-match.dev/open-match/internal/monitoring"
 	"open-match.dev/open-match/internal/util/netlistener"
 )
 
@@ -119,11 +119,8 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	}
 
 	// Bind HTTPS handlers
-	s.httpMux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "ok")
-	})
+	s.httpMux.HandleFunc("/healthz", monitoring.NewHealthProbe(params.handlersForHealthCheck))
 	s.httpMux.Handle("/", s.proxyMux)
-	zpages.Handle(s.httpMux, "/debug")
 	s.httpServer = &http.Server{
 		Addr:    s.httpListener.Addr().String(),
 		Handler: s.httpMux,

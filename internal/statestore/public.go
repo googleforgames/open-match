@@ -23,6 +23,9 @@ import (
 
 // Service is a generic interface for talking to a storage backend.
 type Service interface {
+	// HealthCheck indicates if the database is reachable.
+	HealthCheck(ctx context.Context) error
+
 	// CreateTicket creates a new Ticket in the state storage. This method fails if the Ticket already exists.
 	CreateTicket(ctx context.Context, ticket *pb.Ticket) error
 
@@ -52,6 +55,6 @@ type Service interface {
 }
 
 // New creates a Service based on the configuration.
-func New(cfg config.View) (Service, error) {
+func New(cfg config.View) Service {
 	return newRedis(cfg)
 }

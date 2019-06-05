@@ -76,12 +76,19 @@ prometheus.io/path: {{ .prometheus.endpoint }}
 {{- end -}}
 
 
-{{- define "probe.readiness" -}}
-readinessProbe:
+{{- define "kubernetes.probe" -}}
+livenessProbe:
   httpGet:
     path: /healthz
     port: {{ .port }}
   initialDelaySeconds: 5
   periodSeconds: 5
   failureThreshold: 3
+readinessProbe:
+  httpGet:
+    path: /healthz?readiness=true
+    port: {{ .port }}
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 2
 {{- end -}}

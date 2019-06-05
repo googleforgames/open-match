@@ -176,6 +176,7 @@ linters:
     - scopelint
     - prealloc
     - gofmt
+    - interfacer # deprecated - "A tool that suggests interfaces is prone to bad suggestions"
 
 #linters:
 #  enable-all: true
