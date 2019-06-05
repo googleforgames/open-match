@@ -74,6 +74,8 @@ func NewMiniMatch(cfg config.View) (*Server, error) {
 	return mmServer, nil
 }
 
+// TODO: will replace it using TestContext in #473
+// https://github.com/googleforgames/open-match/pull/473
 func createServerConfig() (config.View, error) {
 	mredis, err := miniredis.Run()
 	if err != nil {
