@@ -17,15 +17,14 @@ package golang
 
 import (
 	"context"
-	"fmt"
 	"io"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/rpc"
 
 	"github.com/sirupsen/logrus"
 )
@@ -51,7 +50,6 @@ type matchFunction func(*MatchFunctionParams) []*pb.Match
 // by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
 type matchFunctionService struct {
 	cfg           config.View
-	functionName  string
 	function      matchFunction
 	mmlogicClient pb.MmLogicClient
 }
@@ -100,13 +98,13 @@ func (s *matchFunctionService) Run(ctx context.Context, req *pb.RunRequest) (*pb
 }
 
 func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunctionService, error) {
-	mmlogicClient, err := getMMLogicClient(cfg)
+	conn, err := rpc.GRPCClientFromConfig(cfg, "api.mmlogic")
 	if err != nil {
-		harnessLogger.Errorf("Failed to get MMLogic client, %v.", err)
+		harnessLogger.Errorf("Failed to get MMLogic connection, %v.", err)
 		return nil, err
 	}
 
-	mmfService := &matchFunctionService{cfg: cfg, functionName: fs.FunctionName, function: fs.Func, mmlogicClient: mmlogicClient}
+	mmfService := &matchFunctionService{cfg: cfg, function: fs.Func, mmlogicClient: pb.NewMmLogicClient(conn)}
 	return mmfService, nil
 }
 
@@ -142,22 +140,4 @@ func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.Run
 	}
 
 	return poolNameToTickets, nil
-}
-
-// TODO: replace this method once the client side wrapper is done.
-func getMMLogicClient(cfg config.View) (pb.MmLogicClient, error) {
-	// Retrieve host name and port. It is ok to not specify host name as there are scenarios
-	// where the mmlogic service will be running on the same host.
-	host := cfg.GetString("api.mmlogic.hostname")
-	port := cfg.GetString("api.mmlogic.grpcport")
-	if len(port) == 0 {
-		return nil, fmt.Errorf("Failed to get port for MMLogicAPI from the configuration")
-	}
-
-	conn, err := grpc.Dial(fmt.Sprintf("%v:%v", host, port), grpc.WithInsecure())
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to %v, %v", fmt.Sprintf("%v:%v", host, port), err)
-	}
-
-	return pb.NewMmLogicClient(conn), nil
 }

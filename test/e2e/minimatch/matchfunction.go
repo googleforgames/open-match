@@ -51,8 +51,7 @@ func serveMatchFunction() (func(), error) {
 	}
 
 	if err := harness.BindService(p, cfg, &harness.FunctionSettings{
-		FunctionName: mmfName,
-		Func:         makeMatches,
+		Func: makeMatches,
 	}); err != nil {
 		return nil, err
 	}
