@@ -252,7 +252,7 @@ build-demo-images: build-mmf-go-soloduel-image
 build-mmf-example-images: build-mmf-go-soloduel-image
 
 build-mmf-go-soloduel-image: docker build-base-build-image
-	docker build -f examples/functions/golang/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
+	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
 
 clean-images: docker
 	-docker rmi -f open-match-base-build
