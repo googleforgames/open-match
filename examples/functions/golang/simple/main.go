@@ -33,8 +33,7 @@ func main() {
 	// the specified request and passes the pools to the match function to generate
 	// proposals.
 	goHarness.RunMatchFunction(&goHarness.FunctionSettings{
-		FunctionName: "simple-matchfunction",
-		Func:         makeMatches,
+		Func: makeMatches,
 	})
 }
 
