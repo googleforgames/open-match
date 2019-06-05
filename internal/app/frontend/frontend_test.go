@@ -108,7 +108,7 @@ func createStore(t *testing.T) *rpcTesting.TestContext {
 	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
 		cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
-		_, closer = statestoreTesting.New(t, cfg)
+		closer = statestoreTesting.New(t, cfg)
 		err := BindService(p, cfg)
 		assert.Nil(t, err)
 	})
