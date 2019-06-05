@@ -153,6 +153,7 @@ artifacts:
             - cmd/mmlogic/mmlogic
             - cmd/evaluator/evaluator
             - cmd/minimatch/minimatch
+            - cmd/swaggerui/swaggerui
             - install/yaml/install.yaml
             - install/yaml/install-demo.yaml
             - install/yaml/01-redis-chart.yaml
@@ -167,6 +168,7 @@ images:
 - 'gcr.io/$PROJECT_ID/openmatch-mmlogic:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-evaluator:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-minimatch:${_OM_VERSION}-${SHORT_SHA}'
+- 'gcr.io/$PROJECT_ID/openmatch-swaggerui:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-go-simple:${_OM_VERSION}-${SHORT_SHA}'
 substitutions:
     _OM_VERSION: "0.0.0-dev"

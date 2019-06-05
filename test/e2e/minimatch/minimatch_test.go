@@ -22,8 +22,9 @@ import (
 	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/rpc"
 )
 
 const (
@@ -44,7 +45,7 @@ type testProfile struct {
 }
 
 func TestMinimatchStartup(t *testing.T) {
-	assert := assert.New(t)
+	assert := require.New(t)
 
 	cfg, err := createServerConfig()
 	assert.Nil(err)
@@ -54,6 +55,14 @@ func TestMinimatchStartup(t *testing.T) {
 		t.Fatalf("cannot create mini match server, %s", err)
 	}
 	defer mm.Stop()
+
+	conn, err := rpc.GRPCClientFromConfig(cfg, minimatchPrefix)
+	assert.Nil(err)
+	assert.NotNil(conn)
+
+	fe := pb.NewFrontendClient(conn)
+	mml := pb.NewMmLogicClient(conn)
+	be := pb.NewBackendClient(conn)
 
 	// TODO: Currently, the E2E test uses globally defined test data. Consider
 	// improving this in future iterations to test data scoped to sepcific test cases
@@ -115,10 +124,6 @@ func TestMinimatchStartup(t *testing.T) {
 		{name: "", pools: []*pb.Pool{testPools[map2BeginnerPool], testPools[map2AdvancedPool]}},
 	}
 
-	fe, err := mm.GetFrontendClient()
-	assert.Nil(err)
-	assert.NotNil(fe)
-
 	// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids
 	// to expected player pools.
 	for i, td := range testTickets {
@@ -135,10 +140,6 @@ func TestMinimatchStartup(t *testing.T) {
 		assert.Nil(err)
 		testTickets[i].id = resp.Ticket.Id
 	}
-
-	mml, err := mm.GetMMLogicClient()
-	assert.Nil(err)
-	assert.NotNil(mml)
 
 	// poolTickets represents a map of the pool name to all the ticket ids in the pool.
 	poolTickets := make(map[string][]string)
@@ -200,15 +201,11 @@ func TestMinimatchStartup(t *testing.T) {
 	}
 
 	for _, cfg := range cfgs {
-		validateFetchMatchesResult(assert, poolTickets, testProfiles, mm, cfg)
+		validateFetchMatchesResult(assert, poolTickets, testProfiles, be, cfg)
 	}
 }
 
-func validateFetchMatchesResult(assert *assert.Assertions, poolTickets map[string][]string, testProfiles []testProfile, mm *Server, mf *pb.FunctionConfig) {
-	be, err := mm.GetBackendClient()
-	assert.Nil(err)
-	assert.NotNil(be)
-
+func validateFetchMatchesResult(assert *require.Assertions, poolTickets map[string][]string, testProfiles []testProfile, be pb.BackendClient, mf *pb.FunctionConfig) {
 	mfclose, err := serveMatchFunction()
 	defer mfclose()
 	assert.Nil(err)
