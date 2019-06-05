@@ -20,6 +20,7 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/statestore"
 )
 
 var (
@@ -61,9 +62,10 @@ func RunApplication(settings *FunctionSettings) {
 
 // BindService creates the evaluator service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View, fs *FunctionSettings) error {
-	service, err := newEvaluator(cfg, fs)
-	if err != nil {
-		return err
+	service := &evaluatorService{
+		cfg:      cfg,
+		store:    statestore.New(cfg),
+		function: fs.Func,
 	}
 
 	p.AddHealthCheckFunc(service.store.HealthCheck)
