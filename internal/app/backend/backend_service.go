@@ -52,22 +52,6 @@ var (
 	})
 )
 
-// newBackend creates and initializes the backend service.
-func newBackend(cfg config.View) (*backendService, error) {
-	bs := &backendService{
-		cfg: cfg,
-	}
-
-	// Initialize the state storage interface.
-	var err error
-	bs.store, err = statestore.New(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return bs, nil
-}
-
 // FetchMatches triggers execution of the specfied MatchFunction for each of the
 // specified MatchProfiles. Each MatchFunction execution returns a set of
 // proposals which are then evaluated to generate results. FetchMatches method

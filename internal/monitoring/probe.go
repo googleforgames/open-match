@@ -15,14 +15,25 @@
 package monitoring
 
 import (
-	"go.opencensus.io/zpages"
+	"context"
+	"fmt"
 	"net/http"
-	"open-match.dev/open-match/internal/config"
 )
 
-func bindZpages(mux *http.ServeMux, cfg config.View) {
-	if !cfg.GetBool("monitoring.zpages.enable") {
-		return
+// NewHealthProbe creates an HTTP handler for Kubernetes liveness and readiness checks.
+func NewHealthProbe(probes []func(context.Context) error) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if len(req.URL.Query()) > 0 {
+			// Readiness probe are triggered if there's a query (ie "?" in the url).
+			// If so then scan all the probes.
+			for _, probe := range probes {
+				err := probe(req.Context())
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusServiceUnavailable)
+					return
+				}
+			}
+		}
+		fmt.Fprintf(w, "ok")
 	}
-	zpages.Handle(mux, "/debug")
 }

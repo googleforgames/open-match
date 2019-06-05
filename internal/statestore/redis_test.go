@@ -35,8 +35,7 @@ import (
 func TestStatestoreSetup(t *testing.T) {
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 }
@@ -45,8 +44,7 @@ func TestTicketLifecycle(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 
@@ -65,7 +63,7 @@ func TestTicketLifecycle(t *testing.T) {
 	}
 
 	// Validate that GetTicket fails for a Ticket that does not exist.
-	_, err = service.GetTicket(context.Background(), id)
+	_, err := service.GetTicket(context.Background(), id)
 	assert.NotNil(err)
 	assert.Equal(status.Code(err), codes.NotFound)
 
@@ -101,8 +99,7 @@ func TestTicketIndexing(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 
@@ -122,7 +119,7 @@ func TestTicketIndexing(t *testing.T) {
 			},
 		}
 
-		err = service.CreateTicket(context.Background(), ticket)
+		err := service.CreateTicket(context.Background(), ticket)
 		assert.Nil(err)
 
 		err = service.IndexTicket(context.Background(), ticket)
@@ -130,7 +127,7 @@ func TestTicketIndexing(t *testing.T) {
 	}
 
 	// Remove one ticket, to test that it doesn't fall over.
-	err = service.DeleteTicket(context.Background(), "ticket.no.5")
+	err := service.DeleteTicket(context.Background(), "ticket.no.5")
 	assert.Nil(err)
 
 	// Remove ticket from index, should not show up.
@@ -172,14 +169,13 @@ func TestGetAssignmentBeforeSet(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 
 	var assignmentResp *pb.Assignment
 
-	err = service.GetAssignments(context.Background(), "id", func(assignment *pb.Assignment) error {
+	err := service.GetAssignments(context.Background(), "id", func(assignment *pb.Assignment) error {
 		assignmentResp = assignment
 		return nil
 	})
@@ -192,14 +188,13 @@ func TestUpdateAssignmentFatal(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 
 	var assignmentResp *pb.Assignment
 
-	err = service.UpdateAssignments(context.Background(), []string{"id"}, &pb.Assignment{})
+	err := service.UpdateAssignments(context.Background(), []string{"id"}, &pb.Assignment{})
 	// UpdateAssignment failed because the ticket does not exists
 	assert.Equal(status.Convert(err).Code(), codes.NotFound)
 	assert.Nil(assignmentResp)
@@ -227,12 +222,11 @@ func TestGetAssignmentNormal(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 
-	err = service.CreateTicket(context.Background(), &pb.Ticket{
+	err := service.CreateTicket(context.Background(), &pb.Ticket{
 		Id:         "1",
 		Assignment: &pb.Assignment{Connection: "2"},
 	})
@@ -267,13 +261,12 @@ func TestUpdateAssignmentNormal(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 
 	// Create a ticket without assignment
-	err = service.CreateTicket(context.Background(), &pb.Ticket{
+	err := service.CreateTicket(context.Background(), &pb.Ticket{
 		Id: "1",
 	})
 	assert.Nil(err)
@@ -309,6 +302,7 @@ func createRedis(t *testing.T) config.View {
 	cfg.Set("redis.port", mredis.Port())
 	cfg.Set("redis.pool.maxIdle", 1000)
 	cfg.Set("redis.pool.idleTimeout", time.Second)
+	cfg.Set("redis.pool.healthCheckTimeout", 100*time.Millisecond)
 	cfg.Set("redis.pool.maxActive", 1000)
 	cfg.Set("redis.expiration", 42000)
 	cfg.Set("backoff.initialInterval", 100*time.Millisecond)

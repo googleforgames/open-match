@@ -17,7 +17,6 @@ package statestore
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/proto"
@@ -39,8 +38,9 @@ var (
 )
 
 type redisBackend struct {
-	redisPool *redis.Pool
-	cfg       config.View
+	healthCheckPool *redis.Pool
+	redisPool       *redis.Pool
+	cfg             config.View
 }
 
 func (rb *redisBackend) Close() error {
@@ -48,7 +48,7 @@ func (rb *redisBackend) Close() error {
 }
 
 // newRedis creates a statestore.Service backed by Redis database.
-func newRedis(cfg config.View) (Service, error) {
+func newRedis(cfg config.View) Service {
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
 
@@ -68,34 +68,42 @@ func newRedis(cfg config.View) (Service, error) {
 
 // NewRedis creates a Redis backed statestore.
 // Do not call this method directly, exposed for testing.
-func NewRedis(cfg config.View, redisURL string, maskedURL string) (Service, error) {
+func NewRedis(cfg config.View, redisURL string, maskedURL string) Service {
 	pool := &redis.Pool{
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
-		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout") * time.Second,
+		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout"),
 		Dial:        func() (redis.Conn, error) { return redis.DialURL(redisURL) },
 	}
-
-	// Sanity check that connection works before passing it back.  Redigo
-	// always returns a valid connection, and will just fail on the first
-	// query: https://godoc.org/github.com/gomodule/redigo/redis#Pool.Get
-	redisConn := pool.Get()
-	defer handleConnectionClose(&redisConn)
-
-	_, err := redisConn.Do("SELECT", "0")
-	// Encountered an issue getting a connection from the pool.
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "SELECT 0",
-			"error": err.Error()}).Error("state storage connection error")
-		return nil, fmt.Errorf("cannot connect to Redis at %s, %s", maskedURL, err)
+	healthCheckPool := &redis.Pool{
+		MaxIdle:     1,
+		MaxActive:   2,
+		IdleTimeout: cfg.GetDuration("redis.pool.healthCheckTimeout"),
+		Dial: func() (redis.Conn, error) {
+			return redis.DialURL(redisURL, redis.DialConnectTimeout(cfg.GetDuration("redis.pool.healthCheckTimeout")), redis.DialReadTimeout(cfg.GetDuration("redis.pool.healthCheckTimeout")))
+		},
 	}
 
-	redisLogger.Info("Connected to Redis")
 	return &redisBackend{
-		redisPool: pool,
-		cfg:       cfg,
-	}, nil
+		healthCheckPool: healthCheckPool,
+		redisPool:       pool,
+		cfg:             cfg,
+	}
+}
+
+// HealthCheck indicates if the database is reachable.
+func (rb *redisBackend) HealthCheck(ctx context.Context) error {
+	redisConn, err := rb.healthCheckPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "%v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+	_, err = redisConn.Do("SELECT", "0")
+	// Encountered an issue getting a connection from the pool.
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "%v", err)
+	}
+	return nil
 }
 
 func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {

@@ -138,8 +138,8 @@ TODO: Add guidelines for labeling issues.
 - [ ] Run `./docs/governance/templates/release.sh {source version tag} {version}` to copy the images to open-match-public-images.
 - [ ] If this is a new minor version in the newest major version then run `./docs/governance/templates/release.sh {source version tag} latest`.
 - [ ] Copy the files from `build/release/` generated from `make release` to the release draft you created.  You can drag and drop the files using the Github UI.
-- [ ] Run `make REGISTRY=gcr.io/open-match-public-images TAG={version} delete-gke-cluster create-gke-cluster push-helm sleep-10 install-chart install-example-chart` and verify that the pods are all healthy.
-- [ ] Run `make delete-gke-cluster create-gke-cluster` and run through the instructions under the [README](readme-deploy), verify the pods are healthy. You'll need to adjust the path to the `build/release/install.yaml` and `build/release/install-example.yaml` in your local clone since you haven't published them yet.
+- [ ] Run `make REGISTRY=gcr.io/open-match-public-images TAG={version} delete-gke-cluster create-gke-cluster push-helm sleep-10 install-chart install-demo-chart` and verify that the demo runs correctly.
+- [ ] Run `make delete-gke-cluster create-gke-cluster` and run through the instructions under the [README](readme-deploy), verify the pods are healthy. You'll need to adjust the path to the `build/release/install.yaml` and `build/release/install-demo.yaml` in your local clone since you haven't published them yet.
 - [ ] Open the [`README.md`](readme-deploy) update the version references and submit. (Release candidates can ignore this step.)
 - [ ] Publish the [Release](om-release) in Github.
 

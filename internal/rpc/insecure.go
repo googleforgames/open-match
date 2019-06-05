@@ -16,7 +16,6 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -26,8 +25,8 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
 	"go.opencensus.io/plugin/ocgrpc"
-	"go.opencensus.io/zpages"
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/monitoring"
 	"open-match.dev/open-match/internal/util/netlistener"
 )
 
@@ -87,11 +86,8 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 		}
 	}
 
-	s.httpMux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "ok")
-	})
+	s.httpMux.HandleFunc("/healthz", monitoring.NewHealthProbe(params.handlersForHealthCheck))
 	s.httpMux.Handle("/", s.proxyMux)
-	zpages.Handle(s.httpMux, "/debug")
 	s.httpServer = &http.Server{
 		Addr:    s.httpListener.Addr().String(),
 		Handler: s.httpMux,
