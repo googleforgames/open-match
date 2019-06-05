@@ -55,6 +55,6 @@ type Service interface {
 }
 
 // New creates a Service based on the configuration.
-func New(cfg config.View) (Service, error) {
+func New(cfg config.View) Service {
 	return newRedis(cfg)
 }
