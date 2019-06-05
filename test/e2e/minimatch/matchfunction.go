@@ -62,7 +62,7 @@ func makeMatches(params *harness.MatchFunctionParams) []*pb.Match {
 		result = append(result, &pb.Match{
 			MatchId:       xid.New().String(),
 			MatchProfile:  params.ProfileName,
-			MatchFunction: params.FunctionName,
+			MatchFunction: "pool-matchfunction",
 			Ticket:        tickets,
 			Roster:        []*pb.Roster{roster},
 		})

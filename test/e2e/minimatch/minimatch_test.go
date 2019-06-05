@@ -183,19 +183,19 @@ func TestMinimatchStartup(t *testing.T) {
 			Name: mmfName,
 			Type: &pb.FunctionConfig_Rest{
 				Rest: &pb.RestFunctionConfig{
-					Host: mmfHost,
-					Port: mmfHTTPPortInt,
+					Host: mmfTc.GetHostname(),
+					Port: int32(mmfTc.GetHTTPPort()),
 				},
 			},
 		},
 	}
 
 	for _, fc := range fcs {
-		validateFetchMatchesResult(assert, poolTickets, testProfiles, minimatchTc, fc)
+		testFetchMatches(assert, poolTickets, testProfiles, minimatchTc, fc)
 	}
 }
 
-func validateFetchMatchesResult(assert *assert.Assertions, poolTickets map[string][]string, testProfiles []testProfile, tc *rpcTesting.TestContext, fc *pb.FunctionConfig) {
+func testFetchMatches(assert *assert.Assertions, poolTickets map[string][]string, testProfiles []testProfile, tc *rpcTesting.TestContext, fc *pb.FunctionConfig) {
 	be := pb.NewBackendClient(tc.MustGRPC())
 
 	// Fetch Matches for each test profile.

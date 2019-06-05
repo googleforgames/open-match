@@ -73,7 +73,6 @@ type MatchFunctionParams struct {
 	Properties        *structpb.Struct
 	Rosters           []*pb.Roster
 	PoolNameToTickets map[string][]*pb.Ticket
-	FunctionName      string
 }
 
 // Run is this harness's implementation of the gRPC call defined in api/matchfunction.proto.
@@ -90,7 +89,6 @@ func (s *matchFunctionService) Run(ctx context.Context, req *pb.RunRequest) (*pb
 		Properties:        req.Profile.Properties,
 		Rosters:           req.Profile.Roster,
 		PoolNameToTickets: poolNameToTickets,
-		FunctionName:      s.functionName,
 	}
 	// Run the customize match function!
 	proposals := s.function(mfView)
