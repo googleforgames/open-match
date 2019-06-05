@@ -67,6 +67,7 @@ MINIKUBE_VERSION = latest
 HTMLTEST_VERSION = 0.10.3
 GOLANGCI_VERSION = 1.16.0
 KIND_VERSION = 0.3.0
+SWAGGERUI_VERSION = 3.22.2
 
 ENABLE_SECURITY_HARDENING = 0
 GO = GO111MODULE=on go
@@ -714,7 +715,7 @@ node_modules/: build/toolchain/nodejs/
 	echo "{}" > package.json
 	$(TOOLCHAIN_DIR)/nodejs/bin/npm install postcss-cli autoprefixer
 
-build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
+build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) site/static/swaggerui/ node_modules/
 	rm -rf build/site/
 	mkdir -p build/site/
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) --config=config.toml --source . --destination $(BUILD_DIR)/site/public/
@@ -722,6 +723,19 @@ build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
 	-cp -f site/* $(BUILD_DIR)/site
 	-cp -f site/.gcloudignore $(BUILD_DIR)/site/.gcloudignore
 	cp $(BUILD_DIR)/site/app.yaml $(BUILD_DIR)/site/.app.yaml
+
+site/static/swaggerui/:
+	mkdir -p $(TOOLCHAIN_DIR)/swaggerui-temp/
+	mkdir -p $(TOOLCHAIN_BIN)
+	curl -o $(TOOLCHAIN_DIR)/swaggerui-temp/swaggerui.zip -L \
+		https://github.com/swagger-api/swagger-ui/archive/v$(SWAGGERUI_VERSION).zip
+	(cd $(TOOLCHAIN_DIR)/swaggerui-temp/; unzip -q -o swaggerui.zip)
+	cp -rf $(TOOLCHAIN_DIR)/swaggerui-temp/swagger-ui-$(SWAGGERUI_VERSION)/dist/ \
+		$(REPOSITORY_ROOT)/site/static/swaggerui
+	# Update the URL in the main page to point to a known good endpoint.
+	# TODO This does not work on macOS you need to add '' after -i. This isn't build critical.
+	sed -i 's/url:.*/url: \"https:\/\/open-match.dev\/api\/v0.0.0-dev\/frontend.swagger.json\",/g' $(REPOSITORY_ROOT)/site/static/swaggerui/index.html
+	rm -rf $(TOOLCHAIN_DIR)/swaggerui-temp
 
 md-test: docker
 	docker run -t --rm -v $(CURDIR):/mnt:ro dkhamsing/awesome_bot --white-list "localhost,github.com/googleforgames/open-match/tree/release-,github.com/googleforgames/open-match/blob/release-,github.com/googleforgames/open-match/releases/download/v" --allow-dupe --allow-redirect --skip-save-results `find . -type f -name '*.md' -not -path './build/*' -not -path './node_modules/*' -not -path './site*' -not -path './.git*'`
@@ -764,7 +778,7 @@ endif
 deploy-redirect-site: gcloud
 	cd $(REPOSITORY_ROOT)/site/redirect/ && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy app.yaml --promote --quiet
 
-run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
+run-site: build/toolchain/bin/hugo$(EXE_EXTENSION) site/static/swaggerui/
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) server --debug --watch --enableGitInfo . --baseURL=http://localhost:$(SITE_PORT)/ --bind 0.0.0.0 --port $(SITE_PORT) --disableFastRender
 
 ci-deploy-artifacts: install/yaml/ swagger-json-docs gcloud
@@ -833,7 +847,10 @@ clean-stress-test-tools:
 	rm -rf $(TOOLCHAIN_DIR)/python
 	rm -f $(REPOSITORY_ROOT)/test/stress/*.csv
 
-clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools clean-secrets
+clean-swaggerui:
+	rm -rf $(REPOSITORY_ROOT)/site/static/swaggerui/
+
+clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools clean-secrets clean-swaggerui
 
 proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Health: http://localhost:$(FRONTEND_PORT)/healthz"
