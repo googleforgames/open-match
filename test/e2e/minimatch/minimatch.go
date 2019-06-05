@@ -16,7 +16,10 @@ package minimatch
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/alicebob/miniredis"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/config"
@@ -105,4 +108,37 @@ func NewMiniMatch(cfg config.View) (*Server, error) {
 	}()
 
 	return mmServer, nil
+}
+
+func createServerConfig() (config.View, error) {
+	mredis, err := miniredis.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	// Set up the configuration for the state store that the core Open Match
+	// components will use.
+	cfg := viper.New()
+	cfg.Set("redis.hostname", mredis.Host())
+	cfg.Set("redis.port", mredis.Port())
+	cfg.Set("redis.pool.maxIdle", 1000)
+	cfg.Set("redis.pool.idleTimeout", time.Second)
+	cfg.Set("redis.pool.healthCheckTimeout", 100*time.Millisecond)
+	cfg.Set("redis.pool.maxActive", 1000)
+	cfg.Set("redis.expiration", 42000)
+	cfg.Set("storage.page.size", 10)
+
+	// Set up the attributes that a ticket will be indexed for.
+	cfg.Set("playerIndices", []string{
+		skillattribute,
+		map1attribute,
+		map2attribute,
+	})
+
+	// Set up the configuration for hosting the minimatch service.
+	cfg.Set("minimatch.hostname", minimatchHost)
+	cfg.Set("minimatch.grpcport", minimatchGRPCPort)
+	cfg.Set("minimatch.httpport", minimatchHTTPPort)
+
+	return cfg, nil
 }

@@ -37,23 +37,6 @@ type evaluatorService struct {
 	function evaluatorFunction
 }
 
-// newEvaluator creates and initializes the evaluator service.
-func newEvaluator(cfg config.View, fs *FunctionSettings) (*evaluatorService, error) {
-	es := &evaluatorService{
-		cfg:      cfg,
-		function: fs.Func,
-	}
-
-	// Initialize the state storage interface.
-	var err error
-	es.store, err = statestore.New(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return es, nil
-}
-
 // Evaluate accepts a list of matches, triggers the user configured evaluation
 // function with these and other matches in the evaluation window and returns
 // matches that are accepted by the Evaluator as valid results.

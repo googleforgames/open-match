@@ -2,7 +2,7 @@
 
 This is the {version} release of Open Match.
 
-Check the [README](https://github.com/GoogleCloudPlatform/open-match/tree/release-{version}) for details on features, installation and usage.
+Check the [README](https://github.com/googleforgames/open-match/tree/release-{version}) for details on features, installation and usage.
 
 Release Notes
 -------------
@@ -18,7 +18,7 @@ Release Notes
 **Security Fixes**
  * Reduced privileges required for MMF. #PR
 
-See [CHANGELOG](https://github.com/GoogleCloudPlatform/open-match/blob/release-{version}/CHANGELOG.md) for more details on changes.
+See [CHANGELOG](https://github.com/googleforgames/open-match/blob/release-{version}/CHANGELOG.md) for more details on changes.
 
 Images
 ------
@@ -55,7 +55,7 @@ kubectl create clusterrolebinding myname-cluster-admin-binding --clusterrole=clu
 # Place all Open Match components in their own namespace.
 kubectl create namespace open-match
 # Install Open Match and monitoring services.
-kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/v{version}/install.yaml --namespace open-match
-# Install the example MMF and Evaluator.
-kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/v{version}/install-example.yaml --namespace open-match
+kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/install.yaml --namespace open-match
+# Install the demo.
+kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/install-demo.yaml --namespace open-match
 ```
