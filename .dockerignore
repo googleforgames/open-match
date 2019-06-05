@@ -107,6 +107,7 @@ cmd/frontend/frontend
 cmd/mmlogic/mmlogic
 cmd/evaluator/evaluator
 cmd/minimatch/minimatch
+cmd/swaggerui/swaggerui
 tools/certgen/certgen
 examples/functions/golang/simple/simple
 

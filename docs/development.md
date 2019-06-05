@@ -107,6 +107,22 @@ make proxy
 make delete-chart
 ```
 
+## Interaction
+
+Before integrating with Open Match you can manually interact with it to get a feel for how it works.
+
+`make proxy-ui` exposes the Swagger UI for Open Match locally on your computer.
+You can then go to http://localhost:51500 and view the API as well as interactively call Open Match.
+
+By default you will be talking to the frontend server but you can change the target API url to any of the following:
+
+ * api/frontend.swagger.json
+ * api/backend.swagger.json
+ * api/evaluator.swagger.json
+ * api/mmlogic.swagger.json
+
+For a more current list refer to the api/ directory of this repository. Also matchfunction.swagger.json is not supported.
+
 ## IDE Support
 
 Open Match is a standard Go project so any IDE that understands that should

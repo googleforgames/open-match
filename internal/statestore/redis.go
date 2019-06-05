@@ -48,7 +48,7 @@ func (rb *redisBackend) Close() error {
 }
 
 // newRedis creates a statestore.Service backed by Redis database.
-func newRedis(cfg config.View) (Service, error) {
+func newRedis(cfg config.View) Service {
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
 
@@ -68,7 +68,7 @@ func newRedis(cfg config.View) (Service, error) {
 
 // NewRedis creates a Redis backed statestore.
 // Do not call this method directly, exposed for testing.
-func NewRedis(cfg config.View, redisURL string, maskedURL string) (Service, error) {
+func NewRedis(cfg config.View, redisURL string, maskedURL string) Service {
 	pool := &redis.Pool{
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
@@ -88,7 +88,7 @@ func NewRedis(cfg config.View, redisURL string, maskedURL string) (Service, erro
 		healthCheckPool: healthCheckPool,
 		redisPool:       pool,
 		cfg:             cfg,
-	}, nil
+	}
 }
 
 // HealthCheck indicates if the database is reachable.
