@@ -77,7 +77,7 @@ BUILD_DIR = $(REPOSITORY_ROOT)/build
 TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
 TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
 PROTOC := $(TOOLCHAIN_BIN)/protoc
-PROTOC_INCLUDES := $(TOOLCHAIN_DIR)/include/
+PROTOC_INCLUDES := $(REPOSITORY_ROOT)/third_party
 GCP_PROJECT_ID ?=
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
 OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID = open-match-public-images
@@ -107,8 +107,8 @@ HTMLTEST = $(TOOLCHAIN_BIN)/htmltest
 KIND = $(TOOLCHAIN_BIN)/kind
 OPEN_MATCH_CHART_NAME = open-match
 OPEN_MATCH_KUBERNETES_NAMESPACE = open-match
-OPEN_MATCH_EXAMPLE_CHART_NAME = open-match-example
-OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE = open-match
+OPEN_MATCH_DEMO_CHART_NAME = open-match-demo
+OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE = open-match
 OPEN_MATCH_SECRETS_DIR = $(REPOSITORY_ROOT)/install/helm/open-match/secrets
 REDIS_NAME = om-redis
 GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | cut -c 10-)
@@ -213,7 +213,9 @@ push-evaluator-image: docker build-evaluator-image
 	docker push $(REGISTRY)/openmatch-evaluator:$(TAG)
 	docker push $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG)
 
-push-example-images: push-mmf-example-images
+push-example-images: push-demo-images push-mmf-example-images
+
+push-demo-images: push-mmf-go-simple-image
 
 push-mmf-example-images: push-mmf-go-pool-image
 
@@ -243,7 +245,9 @@ build-minimatch-image: docker build-base-build-image
 build-evaluator-image: docker build-base-build-image
 	docker build -f cmd/evaluator/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-evaluator:$(TAG) -t $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG) .
 
-build-example-images: build-mmf-example-images
+build-example-images: build-demo-images build-mmf-example-images
+
+build-demo-images: build-mmf-go-simple-image
 
 build-mmf-example-images: build-mmf-go-pool-image
 
@@ -266,10 +270,10 @@ update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd install/helm/open-match; $(HELM) repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com; $(HELM) dependency update)
 
 lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd install/helm; $(HELM) lint $(OPEN_MATCH_CHART_NAME); $(HELM) lint $(OPEN_MATCH_EXAMPLE_CHART_NAME))
+	(cd install/helm; $(HELM) lint $(OPEN_MATCH_CHART_NAME); $(HELM) lint $(OPEN_MATCH_DEMO_CHART_NAME))
 
 print-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd install/helm; $(HELM) install --name $(OPEN_MATCH_CHART_NAME) --dry-run --debug $(OPEN_MATCH_CHART_NAME); $(HELM) install --name $(OPEN_MATCH_EXAMPLE_CHART_NAME) --dry-run --debug $(OPEN_MATCH_EXAMPLE_CHART_NAME))
+	(cd install/helm; $(HELM) install --name $(OPEN_MATCH_CHART_NAME) --dry-run --debug $(OPEN_MATCH_CHART_NAME); $(HELM) install --name $(OPEN_MATCH_DEMO_CHART_NAME) --dry-run --debug $(OPEN_MATCH_DEMO_CHART_NAME))
 
 install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
@@ -284,14 +288,14 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade $(OPEN_MATCH_EXAMPLE_CHART_NAME) --install --wait --debug $(OPEN_MATCH_EXAMPLE_CHART_NAME) install/helm/open-match-example \
+install-demo-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+	$(HELM) upgrade $(OPEN_MATCH_DEMO_CHART_NAME) --install --wait --debug install/helm/open-match-demo \
 	  --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 	  --set openmatch.image.registry=$(REGISTRY) \
 	  --set openmatch.image.tag=$(TAG)
 
-delete-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	-$(HELM) delete --purge $(OPEN_MATCH_EXAMPLE_CHART_NAME)
+delete-demo-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+	-$(HELM) delete --purge $(OPEN_MATCH_DEMO_CHART_NAME)
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
@@ -305,7 +309,7 @@ delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubec
 	-$(KUBECTL) --ignore-not-found=true delete crd servicemonitors.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
 
-install/yaml/: install/yaml/install.yaml install/yaml/install-example.yaml install/yaml/01-redis-chart.yaml install/yaml/02-open-match.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml
+install/yaml/: install/yaml/install.yaml install/yaml/install-demo.yaml install/yaml/01-redis-chart.yaml install/yaml/02-open-match.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml
 
 install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
@@ -390,12 +394,12 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set jaeger.enabled=true \
 		install/helm/open-match > install/yaml/install.yaml
 
-install/yaml/install-example.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+install/yaml/install-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_EXAMPLE_CHART_NAME) --namespace $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_DEMO_CHART_NAME) --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
-		install/helm/open-match-example > install/yaml/install-example.yaml
+		install/helm/open-match-demo > install/yaml/install-demo.yaml
 
 set-redis-password:
 	@stty -echo; \
@@ -403,7 +407,7 @@ set-redis-password:
 		read REDIS_PASSWORD; \
 		stty echo; \
 		printf "\n"; \
-		$(KUBECTL) create secret generic $(REDIS_NAME) -n $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
+		$(KUBECTL) create secret generic $(REDIS_NAME) -n $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
 
 install-toolchain: install-kubernetes-tools install-web-tools install-protoc-tools install-openmatch-tools
 install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)
@@ -485,41 +489,20 @@ build/toolchain/python/:
 	cd build/toolchain/python/bin && ln -s python3 pytho
 	cd build/toolchain/python/ && . bin/activate && pip install locustio && deactivate
 
-build/toolchain/include/google/api/:
-	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
-	mkdir -p $(TOOLCHAIN_BIN)
-	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L \
-		https://github.com/googleapis/googleapis/archive/master.zip
-	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
-	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
-		$(PROTOC_INCLUDES)/google/api
-	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
-
-build/toolchain/include/protoc-gen-swagger/:
-	mkdir -p $(TOOLCHAIN_DIR)/grpc-gateway-temp/
-	mkdir -p $(TOOLCHAIN_BIN)
-	mkdir -p $(PROTOC_INCLUDES)/protoc-gen-swagger/options/
-	curl -o $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway.zip -L \
-		https://github.com/grpc-ecosystem/grpc-gateway/archive/master.zip
-	(cd $(TOOLCHAIN_DIR)/grpc-gateway-temp/; unzip -q -o grpc-gateway.zip)
-	cp -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/*.proto \
-		$(PROTOC_INCLUDES)/protoc-gen-swagger/options/
-	rm -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp
-
 build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -o $(TOOLCHAIN_DIR)/protoc-temp.zip -L $(PROTOC_PACKAGE)
 	(cd $(TOOLCHAIN_DIR); unzip -q -o protoc-temp.zip)
 	rm $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
 
-build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
+build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
-build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
+build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
-build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
+build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
@@ -795,7 +778,7 @@ else
 endif
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: update-deps clean-protos clean-secrets all-protos lint build test clean-site site-test md-test
+presubmit: update-deps third_party clean-protos clean-secrets all-protos lint build test clean-site site-test md-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -899,6 +882,29 @@ proxy:
 update-deps:
 	$(GO) mod tidy
 	cd site && $(GO) mod tidy
+
+third_party: third_party/google/api third_party/protoc-gen-swagger/options
+
+third_party/google/api:
+	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
+	mkdir -p $(REPOSITORY_ROOT)/third_party/google/api
+	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L https://github.com/googleapis/googleapis/archive/master.zip
+	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
+	cp -f $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/annotations.proto \
+		$(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/http.proto \
+		$(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/httpbody.proto \
+		$(REPOSITORY_ROOT)/third_party/google/api
+	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
+
+third_party/protoc-gen-swagger/options:
+	mkdir -p $(TOOLCHAIN_DIR)/grpc-gateway-temp/
+	mkdir -p $(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options
+	curl -o $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway.zip -L https://github.com/grpc-ecosystem/grpc-gateway/archive/master.zip
+	(cd $(TOOLCHAIN_DIR)/grpc-gateway-temp/; unzip -q -o grpc-gateway.zip)
+	cp -f $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/annotations.proto \
+		$(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/openapiv2.proto \
+		$(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options
+	rm -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp
 
 sync-deps:
 	$(GO) mod download

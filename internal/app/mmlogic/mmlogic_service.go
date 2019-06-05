@@ -46,22 +46,6 @@ type mmlogicService struct {
 	store statestore.Service
 }
 
-// newMmlogic creates and initializes the mmlogic service.
-func newMmlogic(cfg config.View) (*mmlogicService, error) {
-	ms := &mmlogicService{
-		cfg: cfg,
-	}
-
-	// Initialize the state storage interface.
-	var err error
-	ms.store, err = statestore.New(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return ms, nil
-}
-
 // GetPoolTickets gets the list of Tickets that match every Filter in the
 // specified Pool.
 func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.MmLogic_QueryTicketsServer) error {
