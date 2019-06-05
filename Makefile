@@ -77,7 +77,7 @@ BUILD_DIR = $(REPOSITORY_ROOT)/build
 TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
 TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
 PROTOC := $(TOOLCHAIN_BIN)/protoc
-PROTOC_INCLUDES := $(TOOLCHAIN_DIR)/include/
+PROTOC_INCLUDES := $(REPOSITORY_ROOT)/third_party
 GCP_PROJECT_ID ?=
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
 OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID = open-match-public-images
@@ -489,41 +489,20 @@ build/toolchain/python/:
 	cd build/toolchain/python/bin && ln -s python3 pytho
 	cd build/toolchain/python/ && . bin/activate && pip install locustio && deactivate
 
-build/toolchain/include/google/api/:
-	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
-	mkdir -p $(TOOLCHAIN_BIN)
-	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L \
-		https://github.com/googleapis/googleapis/archive/master.zip
-	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
-	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
-		$(PROTOC_INCLUDES)/google/api
-	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
-
-build/toolchain/include/protoc-gen-swagger/:
-	mkdir -p $(TOOLCHAIN_DIR)/grpc-gateway-temp/
-	mkdir -p $(TOOLCHAIN_BIN)
-	mkdir -p $(PROTOC_INCLUDES)/protoc-gen-swagger/options/
-	curl -o $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway.zip -L \
-		https://github.com/grpc-ecosystem/grpc-gateway/archive/master.zip
-	(cd $(TOOLCHAIN_DIR)/grpc-gateway-temp/; unzip -q -o grpc-gateway.zip)
-	cp -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/*.proto \
-		$(PROTOC_INCLUDES)/protoc-gen-swagger/options/
-	rm -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp
-
 build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -o $(TOOLCHAIN_DIR)/protoc-temp.zip -L $(PROTOC_PACKAGE)
 	(cd $(TOOLCHAIN_DIR); unzip -q -o protoc-temp.zip)
 	rm $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
 
-build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
+build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
-build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
+build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
-build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
+build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
@@ -708,6 +687,7 @@ cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/b
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/frontend.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/evaluator.pb.go internal/pb/evaluator.pb.gw.go api/evaluator.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd cmd/minimatch; $(GO_BUILD_COMMAND)
 
@@ -798,7 +778,7 @@ else
 endif
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: update-deps clean-protos clean-secrets all-protos lint build test clean-site site-test md-test
+presubmit: update-deps third_party clean-protos clean-secrets all-protos lint build test clean-site site-test md-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -902,6 +882,29 @@ proxy:
 update-deps:
 	$(GO) mod tidy
 	cd site && $(GO) mod tidy
+
+third_party: third_party/google/api third_party/protoc-gen-swagger/options
+
+third_party/google/api:
+	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
+	mkdir -p $(REPOSITORY_ROOT)/third_party/google/api
+	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L https://github.com/googleapis/googleapis/archive/master.zip
+	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
+	cp -f $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/annotations.proto \
+		$(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/http.proto \
+		$(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/httpbody.proto \
+		$(REPOSITORY_ROOT)/third_party/google/api
+	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
+
+third_party/protoc-gen-swagger/options:
+	mkdir -p $(TOOLCHAIN_DIR)/grpc-gateway-temp/
+	mkdir -p $(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options
+	curl -o $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway.zip -L https://github.com/grpc-ecosystem/grpc-gateway/archive/master.zip
+	(cd $(TOOLCHAIN_DIR)/grpc-gateway-temp/; unzip -q -o grpc-gateway.zip)
+	cp -f $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/annotations.proto \
+		$(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/openapiv2.proto \
+		$(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options
+	rm -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp
 
 sync-deps:
 	$(GO) mod download
