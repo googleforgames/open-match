@@ -50,8 +50,7 @@ func serveMatchFunction() (func(), error) {
 	}
 
 	if err := mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
-		FunctionName: mmfName,
-		Func:         matchfunction.MakeMatches,
+		Func: matchfunction.MakeMatches,
 	}); err != nil {
 		return nil, err
 	}

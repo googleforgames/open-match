@@ -29,7 +29,6 @@ func main() {
 	// the specified request and passes the pools to the match function to generate
 	// proposals.
 	mmfHarness.RunMatchFunction(&mmfHarness.FunctionSettings{
-		FunctionName: "soloduel-matchfunction",
-		Func:         MakeMatches,
+		Func: MakeMatches,
 	})
 }
