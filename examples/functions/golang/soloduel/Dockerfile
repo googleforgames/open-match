@@ -14,10 +14,10 @@
 
 FROM open-match-base-build as builder
 
-WORKDIR /go/src/open-match.dev/open-match/examples/functions/golang
+WORKDIR /go/src/open-match.dev/open-match/examples/functions/golang/soloduel
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o matchfunction .
 
 FROM gcr.io/distroless/static
-COPY --from=builder /go/src/open-match.dev/open-match/examples/functions/golang/matchfunction .
+COPY --from=builder /go/src/open-match.dev/open-match/examples/functions/golang/soloduel/matchfunction .
 
 ENTRYPOINT ["/matchfunction"]

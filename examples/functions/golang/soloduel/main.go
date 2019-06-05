@@ -20,7 +20,6 @@
 package main
 
 import (
-	matchfunction "open-match.dev/open-match/examples/functions/golang/pool"
 	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
 )
 
@@ -30,7 +29,7 @@ func main() {
 	// the specified request and passes the pools to the match function to generate
 	// proposals.
 	mmfHarness.RunMatchFunction(&mmfHarness.FunctionSettings{
-		FunctionName: "pool-matchfunction",
-		Func:         matchfunction.MakeMatches,
+		FunctionName: "soloduel-matchfunction",
+		Func:         MakeMatches,
 	})
 }
