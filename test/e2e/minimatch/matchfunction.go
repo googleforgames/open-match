@@ -24,9 +24,7 @@ import (
 	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
 )
 
-func createMatchFunctionForTest(t *testing.T, depTc *rpcTesting.TestContext) (*rpcTesting.TestContext, string) {
-	mmfName := "test-matchfunction"
-
+func createMatchFunctionForTest(t *testing.T, depTc *rpcTesting.TestContext) *rpcTesting.TestContext {
 	// TODO: Use insecure for now since minimatch and mmf only works with the same secure mode
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
@@ -42,5 +40,5 @@ func createMatchFunctionForTest(t *testing.T, depTc *rpcTesting.TestContext) (*r
 			t.Error(err)
 		}
 	})
-	return tc, mmfName
+	return tc
 }

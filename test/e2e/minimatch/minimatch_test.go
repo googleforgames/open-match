@@ -43,16 +43,14 @@ type testProfile struct {
 	pools []*pb.Pool
 }
 
-func TestMinimatchStartup(t *testing.T) {
+func TestMinimatchNormalMatchGeneration(t *testing.T) {
 	assert := require.New(t)
 	minimatchTc := createMinimatchForTest(t)
 	defer minimatchTc.Close()
-	mmfTc, mmfName := createMatchFunctionForTest(t, minimatchTc)
+	mmfTc := createMatchFunctionForTest(t, minimatchTc)
 	defer mmfTc.Close()
 
 	minimatchConn := minimatchTc.MustGRPC()
-	assert.NotNil(minimatchConn)
-
 	fe := pb.NewFrontendClient(minimatchConn)
 	mml := pb.NewMmLogicClient(minimatchConn)
 	be := pb.NewBackendClient(minimatchConn)
@@ -174,7 +172,6 @@ func TestMinimatchStartup(t *testing.T) {
 
 	fcs := []*pb.FunctionConfig{
 		{
-			Name: mmfName,
 			Type: &pb.FunctionConfig_Grpc{
 				Grpc: &pb.GrpcFunctionConfig{
 					Host: mmfTc.GetHostname(),
@@ -183,7 +180,6 @@ func TestMinimatchStartup(t *testing.T) {
 			},
 		},
 		{
-			Name: mmfName,
 			Type: &pb.FunctionConfig_Rest{
 				Rest: &pb.RestFunctionConfig{
 					Host: mmfTc.GetHostname(),
