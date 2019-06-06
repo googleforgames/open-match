@@ -456,8 +456,8 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 
 // UpdateAssignments update the match assignments for the input ticket ids
 func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error {
-	if assignment == nil || (assignment.Connection == "" && assignment.Error == "" && assignment.Properties == "") {
-		return status.Error(codes.InvalidArgument, "assignment is empty")
+	if assignment == nil {
+		return status.Error(codes.InvalidArgument, "assignment is nil")
 	}
 
 	redisConn, err := rb.connect(ctx)
