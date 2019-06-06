@@ -194,13 +194,8 @@ func TestUpdateAssignmentFatal(t *testing.T) {
 
 	var assignmentResp *pb.Assignment
 
-	err := service.UpdateAssignments(context.Background(), []string{"id"}, &pb.Assignment{})
-	// UpdateAssignment failed because the ticket does not exists
-	assert.Equal(codes.InvalidArgument, status.Convert(err).Code())
-	assert.Nil(assignmentResp)
-
-	// Now create a ticket and the state store service
-	err = service.CreateTicket(context.Background(), &pb.Ticket{
+	// Now create a ticket in the state store service
+	err := service.CreateTicket(context.Background(), &pb.Ticket{
 		Id:         "1",
 		Assignment: &pb.Assignment{Connection: "2"},
 	})
