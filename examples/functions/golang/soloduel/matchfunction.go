@@ -54,7 +54,7 @@ func MakeMatches(p *mmfHarness.MatchFunctionParams) []*pb.Match {
 			matches = append(matches, &pb.Match{
 				MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", p.ProfileName, t, matchNum),
 				MatchProfile:  p.ProfileName,
-				MatchFunction: "a-simple-matchfunction",
+				MatchFunction: "a-simple-1v1-matchfunction",
 				Ticket:        thisMatch,
 			})
 
