@@ -36,7 +36,7 @@ var (
 	})
 )
 
-// matchFunction is the function signature for the Match Making Function (MMF) to be implemented by the user.
+// MatchFunction is the function signature for the Match Making Function (MMF) to be implemented by the user.
 // The harness will pass the Rosters and PlayerPool for the match profile to this
 // function and it will return the Rosters to be populated in the proposal.
 // Input:
@@ -44,13 +44,13 @@ var (
 //			A structure that defines the resources that are available to the match function.
 //			Developers can choose to add context to the structure such that match function has the ability
 //			to cancel a stream response/request or to limit match function by sharing a static and protected view.
-type matchFunction func(*MatchFunctionParams) []*pb.Match
+type MatchFunction func(*MatchFunctionParams) []*pb.Match
 
 // matchFunctionService implements pb.MatchFunctionServer, the server generated
 // by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
 type matchFunctionService struct {
 	cfg           config.View
-	function      matchFunction
+	function      MatchFunction
 	mmlogicClient pb.MmLogicClient
 }
 

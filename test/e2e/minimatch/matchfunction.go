@@ -17,13 +17,11 @@ package minimatch
 import (
 	"testing"
 
-	"github.com/rs/xid"
 	"github.com/spf13/viper"
-	harness "open-match.dev/open-match/internal/harness/golang"
-	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/examples/functions/golang/pool"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
-	"open-match.dev/open-match/examples/functions/golang/pool"
+	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
 )
 
 func createMatchFunctionForTest(t *testing.T, depTc *rpcTesting.TestContext) (*rpcTesting.TestContext, string) {
@@ -38,8 +36,8 @@ func createMatchFunctionForTest(t *testing.T, depTc *rpcTesting.TestContext) (*r
 		cfg.Set("api.mmlogic.grpcport", depTc.GetGRPCPort())
 		cfg.Set("api.mmlogic.httpport", depTc.GetHTTPPort())
 
-		if err := harness.BindService(p, cfg, &harness.FunctionSettings{
-			Func:         pool.MakeMatches,
+		if err := mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
+			Func: pool.MakeMatches,
 		}); err != nil {
 			t.Error(err)
 		}

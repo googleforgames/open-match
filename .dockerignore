@@ -109,7 +109,7 @@ cmd/evaluator/evaluator
 cmd/minimatch/minimatch
 cmd/swaggerui/swaggerui
 tools/certgen/certgen
-examples/functions/golang/simple/simple
+examples/functions/golang/soloduel/soloduel
 
 # Open Match Build Directory
 build/
