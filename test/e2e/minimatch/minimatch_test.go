@@ -50,13 +50,12 @@ func TestMinimatchStartup(t *testing.T) {
 	mmfTc, mmfName := createMatchFunctionForTest(t, minimatchTc)
 	defer mmfTc.Close()
 
-	conn, err := rpc.GRPCClientFromConfig(cfg, minimatchPrefix)
-	assert.Nil(err)
-	assert.NotNil(conn)
+	minimatchConn := minimatchTc.MustGRPC()
+	assert.NotNil(minimatchConn)
 
-	fe := pb.NewFrontendClient(conn)
-	mml := pb.NewMmLogicClient(conn)
-	be := pb.NewBackendClient(conn)
+	fe := pb.NewFrontendClient(minimatchConn)
+	mml := pb.NewMmLogicClient(minimatchConn)
+	be := pb.NewBackendClient(minimatchConn)
 
 	// TODO: Currently, the E2E test uses globally defined test data. Consider
 	// improving this in future iterations to test data scoped to sepcific test cases
@@ -187,23 +186,19 @@ func TestMinimatchStartup(t *testing.T) {
 			Name: mmfName,
 			Type: &pb.FunctionConfig_Rest{
 				Rest: &pb.RestFunctionConfig{
-					Host: mmfHost,
-					Port: mmfHTTPPortInt,
+					Host: mmfTc.GetHostname(),
+					Port: int32(mmfTc.GetHTTPPort()),
 				},
 			},
 		},
 	}
 
-	for _, cfg := range cfgs {
-		validateFetchMatchesResult(assert, poolTickets, testProfiles, be, cfg)
+	for _, fc := range fcs {
+		testFetchMatches(assert, poolTickets, testProfiles, minimatchTc, be, fc)
 	}
 }
 
-func validateFetchMatchesResult(assert *require.Assertions, poolTickets map[string][]string, testProfiles []testProfile, be pb.BackendClient, mf *pb.FunctionConfig) {
-	mfclose, err := serveMatchFunction()
-	defer mfclose()
-	assert.Nil(err)
-
+func testFetchMatches(assert *require.Assertions, poolTickets map[string][]string, testProfiles []testProfile, tc *rpcTesting.TestContext, be pb.BackendClient, fc *pb.FunctionConfig) {
 	// Fetch Matches for each test profile.
 	for _, profile := range testProfiles {
 		brs, err := be.FetchMatches(tc.Context(), &pb.FetchMatchesRequest{

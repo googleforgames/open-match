@@ -39,7 +39,7 @@ func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
 			map2attribute,
 		})
 
-		_, closer := statestoreTesting.New(t, cfg)
+		closer := statestoreTesting.New(t, cfg)
 		closerFunc = closer
 
 		err := minimatch.BindService(p, cfg)
