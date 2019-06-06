@@ -151,15 +151,18 @@ func (tc *TestContext) newClientParams(address string) *rpc.ClientParams {
 	}
 }
 
+// GetHostname returns the hostname of current text context
 func (tc *TestContext) GetHostname() string {
 	return "localhost"
 }
 
+// GetHTTPPort returns the http proxy port of current text context
 func (tc *TestContext) GetHTTPPort() int {
 	_, port := hostnameAndPort(tc.t, tc.proxyAddress)
 	return port
 }
 
+// GetGRPCPort returns the grpc service port of current text context
 func (tc *TestContext) GetGRPCPort() int {
 	_, port := hostnameAndPort(tc.t, tc.grpcAddress)
 	return port
