@@ -47,11 +47,13 @@ type GrpcProxyHandler func(context.Context, *runtime.ServeMux, string, []grpc.Di
 type ServerParams struct {
 	// ServeMux is the router for the HTTP server. You can use this to serve pages in addition to the HTTP proxy.
 	// Do NOT register "/" handler because it's reserved for the proxy.
-	ServeMux             *http.ServeMux
-	handlersForGrpc      []GrpcHandler
-	handlersForGrpcProxy []GrpcProxyHandler
-	grpcListener         *netlistener.ListenerHolder
-	grpcProxyListener    *netlistener.ListenerHolder
+	ServeMux               *http.ServeMux
+	handlersForGrpc        []GrpcHandler
+	handlersForGrpcProxy   []GrpcProxyHandler
+	handlersForHealthCheck []func(context.Context) error
+
+	grpcListener      *netlistener.ListenerHolder
+	grpcProxyListener *netlistener.ListenerHolder
 
 	// Root CA public certificate in PEM format.
 	rootCaPublicCertificateFileData []byte
@@ -111,6 +113,8 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 		p.SetTLSConfiguration(rootPublicCertData, publicCertData, privateKeyData)
 	}
 
+	// TODO: This isn't ideal since monitoring requires config for it to be initialized.
+	// This forces us to initialize readiness probes earlier than necessary.
 	monitoring.Setup(p.ServeMux, cfg)
 	return p, nil
 }
@@ -149,6 +153,13 @@ func (p *ServerParams) AddHandleFunc(handlerFunc GrpcHandler, grpcProxyHandler G
 	}
 	if grpcProxyHandler != nil {
 		p.handlersForGrpcProxy = append(p.handlersForGrpcProxy, grpcProxyHandler)
+	}
+}
+
+// AddHealthCheckFunc adds a readiness probe to tell Kubernetes the service is able to handle traffic.
+func (p *ServerParams) AddHealthCheckFunc(handlerFunc func(context.Context) error) {
+	if handlerFunc != nil {
+		p.handlersForHealthCheck = append(p.handlersForHealthCheck, handlerFunc)
 	}
 }
 

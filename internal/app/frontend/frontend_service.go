@@ -41,22 +41,6 @@ var (
 	})
 )
 
-// newFrontend creates and initializes the frontend service.
-func newFrontend(cfg config.View) (*frontendService, error) {
-	fs := &frontendService{
-		cfg: cfg,
-	}
-
-	// Initialize the state storage interface.
-	var err error
-	fs.store, err = statestore.New(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return fs, nil
-}
-
 // CreateTicket will create a new ticket, assign an id to it and put it in state
 // storage. It will index the Ticket attributes based on the indexing configuration.
 // Indexing a Ticket adds the it to the pool of Tickets considered for matchmaking.
@@ -153,11 +137,23 @@ func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream p
 		case <-ctx.Done():
 			return nil
 		default:
+			var currAssignment *pb.Assignment
 			callback := func(assignment *pb.Assignment) error {
-				err := stream.Send(&pb.GetAssignmentsResponse{Assignment: assignment})
-				if err != nil {
-					logger.WithError(err).Error("Failed to send Redis response to grpc server")
-					return status.Errorf(codes.Aborted, err.Error())
+				if currAssignment == nil ||
+					currAssignment.Connection != assignment.Connection ||
+					currAssignment.Properties != assignment.Properties ||
+					currAssignment.Error != assignment.Error {
+					currAssignment, ok := proto.Clone(assignment).(*pb.Assignment)
+					if !ok {
+						logger.Error("failed to cast assignment object")
+						return status.Error(codes.Internal, "failed to cast the assignment object")
+					}
+
+					err := stream.Send(&pb.GetAssignmentsResponse{Assignment: currAssignment})
+					if err != nil {
+						logger.WithError(err).Error("failed to send Redis response to grpc server")
+						return status.Errorf(codes.Aborted, err.Error())
+					}
 				}
 				return nil
 			}

@@ -71,7 +71,7 @@ spec:
           containerPort: {{ .Values.openmatch.evaluator.grpc.port }}
         - name: http
           containerPort: {{ .Values.openmatch.evaluator.http.port }}
-        {{- include "probe.readiness" (dict "port" .Values.openmatch.evaluator.http.port) | nindent 8 }}
+        {{- include "kubernetes.probe" (dict "port" .Values.openmatch.evaluator.http.port) | nindent 8 }}
         resources:
           requests:
             memory: 100Mi

@@ -60,6 +60,10 @@ openmatch:
       port: 50502
     http:
       port: 51502
+  swaggerui:
+    install: true
+    http:
+      port: 50500
 
   config:
     install: true
@@ -72,18 +76,30 @@ openmatch:
           level: debug
           format: text
           source: false
+        # Open Match applies the exponential backoff strategy for its retryable gRPC calls.
+        # The settings below are the default backoff configuration used in Open Match.
+        # See https://github.com/cenkalti/backoff/blob/v3/exponential.go for detailed explanations
+        backoff:
+          # The initial retry interval (in milliseconds)
+          initialInterval: 100ms
+          # maxInterval caps the maximum time elapsed for a retry interval
+          maxInterval: 500ms
+          # The next retry interval is multiplied by this multiplier
+          multiplier: 1.5
+          # Randomize the retry interval
+          randFactor: 0.5
+          # maxElapsedTime caps the retry time (in milliseconds)
+          maxElapsedTime: 3000ms
 
         api:
           backend:
             hostname: om-backend
             grpcport: "{{.Values.openmatch.backend.grpc.port}}"
             httpport: "{{.Values.openmatch.backend.http.port}}"
-            backoff: "[2 32] *2 ~0.33 <30"
           frontend:
             hostname: om-frontend
             grpcport: "{{.Values.openmatch.frontend.grpc.port}}"
             httpport: "{{.Values.openmatch.frontend.http.port}}"
-            backoff: "[2 32] *2 ~0.33 <300"
           mmlogic:
             hostname: om-mmlogic
             grpcport: "{{.Values.openmatch.mmlogic.grpc.port}}"
@@ -142,7 +158,8 @@ openmatch:
           pool:
             maxIdle: 3
             maxActive: 0
-            idleTimeout: 60
+            idleTimeout: 60s
+            healthCheckTimeout: 100ms
           queryArgs:
             count: 10000
           # TODO: remove unused config
@@ -187,6 +204,9 @@ openmatch:
       pullPolicy: Always
     evaluator:
       name: openmatch-evaluator
+      pullPolicy: Always
+    swaggerui:
+      name: openmatch-swaggerui
       pullPolicy: Always
 
 # https://hub.helm.sh/charts/stable/redis

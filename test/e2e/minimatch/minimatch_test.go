@@ -22,8 +22,9 @@ import (
 	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/rpc"
 )
 
 const (
@@ -38,8 +39,13 @@ const (
 	map2attribute  = "map2"
 )
 
+type testProfile struct {
+	name  string
+	pools []*pb.Pool
+}
+
 func TestMinimatchStartup(t *testing.T) {
-	assert := assert.New(t)
+	assert := require.New(t)
 
 	cfg, err := createServerConfig()
 	assert.Nil(err)
@@ -49,6 +55,14 @@ func TestMinimatchStartup(t *testing.T) {
 		t.Fatalf("cannot create mini match server, %s", err)
 	}
 	defer mm.Stop()
+
+	conn, err := rpc.GRPCClientFromConfig(cfg, minimatchPrefix)
+	assert.Nil(err)
+	assert.NotNil(conn)
+
+	fe := pb.NewFrontendClient(conn)
+	mml := pb.NewMmLogicClient(conn)
+	be := pb.NewBackendClient(conn)
 
 	// TODO: Currently, the E2E test uses globally defined test data. Consider
 	// improving this in future iterations to test data scoped to sepcific test cases
@@ -105,17 +119,10 @@ func TestMinimatchStartup(t *testing.T) {
 	// Test profiles being tested for. Note that each profile embeds two pools - and
 	// the current MMF returns a match per pool in the profile - so each profile should
 	// output two matches that are comprised of tickets belonging to that pool.
-	testProfiles := []struct {
-		name  string
-		pools []*pb.Pool
-	}{
+	testProfiles := []testProfile{
 		{name: "", pools: []*pb.Pool{testPools[map1BeginnerPool], testPools[map1AdvancedPool]}},
 		{name: "", pools: []*pb.Pool{testPools[map2BeginnerPool], testPools[map2AdvancedPool]}},
 	}
-
-	fe, err := mm.GetFrontendClient()
-	assert.Nil(err)
-	assert.NotNil(fe)
 
 	// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids
 	// to expected player pools.
@@ -133,10 +140,6 @@ func TestMinimatchStartup(t *testing.T) {
 		assert.Nil(err)
 		testTickets[i].id = resp.Ticket.Id
 	}
-
-	mml, err := mm.GetMMLogicClient()
-	assert.Nil(err)
-	assert.NotNil(mml)
 
 	// poolTickets represents a map of the pool name to all the ticket ids in the pool.
 	poolTickets := make(map[string][]string)
@@ -176,11 +179,34 @@ func TestMinimatchStartup(t *testing.T) {
 		assert.Equal(poolTickets[pool.Name], want)
 	}
 
-	be, err := mm.GetBackendClient()
-	assert.Nil(err)
-	assert.NotNil(be)
+	cfgs := []*pb.FunctionConfig{
+		{
+			Name: mmfName,
+			Type: &pb.FunctionConfig_Grpc{
+				Grpc: &pb.GrpcFunctionConfig{
+					Host: mmfHost,
+					Port: mmfGRPCPortInt,
+				},
+			},
+		},
+		{
+			Name: mmfName,
+			Type: &pb.FunctionConfig_Rest{
+				Rest: &pb.RestFunctionConfig{
+					Host: mmfHost,
+					Port: mmfHTTPPortInt,
+				},
+			},
+		},
+	}
 
-	mf, mfclose, err := matchFunctionConfig()
+	for _, cfg := range cfgs {
+		validateFetchMatchesResult(assert, poolTickets, testProfiles, be, cfg)
+	}
+}
+
+func validateFetchMatchesResult(assert *require.Assertions, poolTickets map[string][]string, testProfiles []testProfile, be pb.BackendClient, mf *pb.FunctionConfig) {
+	mfclose, err := serveMatchFunction()
 	defer mfclose()
 	assert.Nil(err)
 

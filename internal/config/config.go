@@ -16,8 +16,6 @@
 package config
 
 import (
-	"time"
-
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -46,15 +44,16 @@ var (
 	// of reading the config file.  So, config parameters that are required
 	// by MMFs should be populated to env vars.
 	envMappings = map[string]string{
-		"redis.user":             "REDIS_USER",
-		"redis.password":         "REDIS_PASSWORD",
-		"redis.hostname":         "REDIS_SERVICE_HOST",
-		"redis.port":             "REDIS_SERVICE_PORT",
-		"redis.pool.maxIdle":     "REDIS_POOL_MAXIDLE",
-		"redis.pool.maxActive":   "REDIS_POOL_MAXACTIVE",
-		"redis.pool.idleTimeout": "REDIS_POOL_IDLETIMEOUT",
-		"api.mmlogic.hostname":   "OM_MMLOGICAPI_SERVICE_HOST",
-		"api.mmlogic.port":       "OM_MMLOGICAPI_SERVICE_PORT",
+		"redis.user":                    "REDIS_USER",
+		"redis.password":                "REDIS_PASSWORD",
+		"redis.hostname":                "REDIS_SERVICE_HOST",
+		"redis.port":                    "REDIS_SERVICE_PORT",
+		"redis.pool.maxIdle":            "REDIS_POOL_MAXIDLE",
+		"redis.pool.maxActive":          "REDIS_POOL_MAXACTIVE",
+		"redis.pool.idleTimeout":        "REDIS_POOL_IDLETIMEOUT",
+		"redis.pool.healthCheckTimeout": "REDIS_POOL_HEALTHCHECKTIMEOUT",
+		"api.mmlogic.hostname":          "OM_MMLOGICAPI_SERVICE_HOST",
+		"api.mmlogic.port":              "OM_MMLOGICAPI_SERVICE_PORT",
 	}
 
 	// OpenCensus
@@ -67,25 +66,6 @@ var (
 		Aggregation: view.Count(),
 	}
 )
-
-// View is a read-only view of the Open Match configuration.
-// New accessors from Viper should be added here.
-type View interface {
-	IsSet(string) bool
-	GetString(string) string
-	GetInt(string) int
-	GetInt64(string) int64
-	GetStringSlice(string) []string
-	GetBool(string) bool
-	GetDuration(string) time.Duration
-	GetStringMap(string) map[string]interface{}
-}
-
-// Mutable is a read-write view of the Open Match configuration.
-type Mutable interface {
-	Set(string, interface{})
-	View
-}
 
 // Read reads a config file into a viper.Viper instance and associates environment vars defined in
 // config.envMappings

@@ -96,7 +96,7 @@ The Evaluator resolves conflicts when multiple MMFs select the same player(s). E
 
 The Evaluator runs forever, looping over a configured interval, checking if MMFs have completed execution or if certain time interval has passed. Upon reaching those conditions, the Evaluator calls the Evaluation Function (to be modified by the user) with the proposals to choose from. The sample Evaluation function looks at all the proposals, and if multiple proposals contain the same player(s), it breaks the tie. In many simple matchmaking setups with only a few game modes and well-tuned matchmaking functions, the Evaluator may functionally be a no-op or first-in-first-out algorithm. In complex matchmaking setups where, for example, a player can queue for multiple types of matches, the Evaluator provides the critical customizability to evaluate all available proposals and approve those that will passed to your game servers.
 
-Large-scale concurrent matchmaking functions is a complex topic, and users who wish to do this are encouraged to engage with the [Open Match community](https://github.com/GoogleCloudPlatform/open-match#get-involved) about patterns and best practices.
+Large-scale concurrent matchmaking functions is a complex topic, and users who wish to do this are encouraged to engage with the [Open Match community](https://github.com/googleforgames/open-match#get-involved) about patterns and best practices.
 
 ### Matchmaking Functions (MMFs)
 

@@ -15,15 +15,12 @@
 package minimatch
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/alicebob/miniredis"
 	"github.com/spf13/viper"
-	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 )
 
@@ -38,39 +35,6 @@ const (
 type Server struct {
 	cfg       config.View
 	rpcserver *rpc.Server
-}
-
-// GetFrontendClient returns a grpc client for Open Match frontned.
-func (s *Server) GetFrontendClient() (pb.FrontendClient, error) {
-	port := s.cfg.GetInt("minimatch.grpcport")
-	conn, err := grpc.Dial(fmt.Sprintf(":%d", port), grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-
-	return pb.NewFrontendClient(conn), nil
-}
-
-// GetBackendClient returns a grpc client for Open Match backend.
-func (s *Server) GetBackendClient() (pb.BackendClient, error) {
-	port := s.cfg.GetInt("minimatch.grpcport")
-	conn, err := grpc.Dial(fmt.Sprintf(":%d", port), grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-
-	return pb.NewBackendClient(conn), nil
-}
-
-// GetMMLogicClient returns a grpc client for Open Match mmlogic api.
-func (s *Server) GetMMLogicClient() (pb.MmLogicClient, error) {
-	port := s.cfg.GetInt("minimatch.grpcport")
-	conn, err := grpc.Dial(fmt.Sprintf(":%d", port), grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-
-	return pb.NewMmLogicClient(conn), nil
 }
 
 // Stop stops the rpc server.
@@ -110,6 +74,8 @@ func NewMiniMatch(cfg config.View) (*Server, error) {
 	return mmServer, nil
 }
 
+// TODO: will replace it using TestContext in #473
+// https://github.com/googleforgames/open-match/pull/473
 func createServerConfig() (config.View, error) {
 	mredis, err := miniredis.Run()
 	if err != nil {
@@ -123,6 +89,7 @@ func createServerConfig() (config.View, error) {
 	cfg.Set("redis.port", mredis.Port())
 	cfg.Set("redis.pool.maxIdle", 1000)
 	cfg.Set("redis.pool.idleTimeout", time.Second)
+	cfg.Set("redis.pool.healthCheckTimeout", 100*time.Millisecond)
 	cfg.Set("redis.pool.maxActive", 1000)
 	cfg.Set("redis.expiration", 42000)
 	cfg.Set("storage.page.size", 10)

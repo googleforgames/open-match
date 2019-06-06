@@ -2,8 +2,8 @@
 
 [![GoDoc](https://godoc.org/open-match.dev/open-match?status.svg)](https://godoc.org/open-match.dev/open-match)
 [![Go Report Card](https://goreportcard.com/badge/open-match.dev/open-match)](https://goreportcard.com/report/open-match.dev/open-match)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/GoogleCloudPlatform/open-match/blob/master/LICENSE)
-[![GitHub release](https://img.shields.io/github/release-pre/GoogleCloudPlatform/open-match.svg)](https://github.com/GoogleCloudPlatform/open-match/releases)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/googleforgames/open-match/blob/master/LICENSE)
+[![GitHub release](https://img.shields.io/github/release-pre/googleforgames/open-match.svg)](https://github.com/googleforgames/open-match/releases)
 [![Follow on Twitter](https://img.shields.io/twitter/follow/Open_Match.svg?style=social&logo=twitter)](https://twitter.com/intent/follow?screen_name=Open_Match)
 
 Open Match is a flexible, extensible, and scalable game matchmaking framework.
@@ -23,7 +23,7 @@ Documentation can be found on the [Open Match website](https://open-match.dev/si
 ## Support
 
 * [Slack Channel](https://open-match.slack.com/) ([Signup](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLWQzMzE1MGY5YmYyYWY3ZjE2MjNjZTdmYmQ1ZTQzMmNiNGViYmQyN2M4ZmVkMDY2YzZlOTUwMTYwMzI1Y2I2MjU))
-* [File an Issue](https://github.com/GoogleCloudPlatform/open-match/issues/new)
+* [File an Issue](https://github.com/googleforgames/open-match/issues/new)
 * [Mailing list](https://groups.google.com/forum/#!forum/open-match-discuss)
 
 ## Code of Conduct

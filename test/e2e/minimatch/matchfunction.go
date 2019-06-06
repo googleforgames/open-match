@@ -15,11 +15,10 @@
 package minimatch
 
 import (
-	"github.com/rs/xid"
 	"github.com/spf13/viper"
-	harness "open-match.dev/open-match/internal/harness/golang"
-	"open-match.dev/open-match/internal/pb"
+	matchfunction "open-match.dev/open-match/examples/functions/golang/pool"
 	"open-match.dev/open-match/internal/rpc"
+	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
 )
 
 const (
@@ -29,28 +28,8 @@ const (
 	mmfGRPCPort    = "50511"
 	mmfHTTPPort    = "51511"
 	mmfGRPCPortInt = 50511
+	mmfHTTPPortInt = 51511
 )
-
-// matchFunctionConfig returns a function config for a basic match function that
-// can be used for testing E2E scenarios for Open Match.
-func matchFunctionConfig() (*pb.FunctionConfig, func(), error) {
-	mfclose, err := serveMatchFunction()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	mf := &pb.FunctionConfig{
-		Name: mmfName,
-		Type: &pb.FunctionConfig_Grpc{
-			Grpc: &pb.GrpcFunctionConfig{
-				Host: mmfHost,
-				Port: mmfGRPCPortInt,
-			},
-		},
-	}
-
-	return mf, mfclose, nil
-}
 
 // serveMatchFunction creates a GRPC server and starts it to server the match function forever.
 func serveMatchFunction() (func(), error) {
@@ -70,9 +49,8 @@ func serveMatchFunction() (func(), error) {
 		return nil, err
 	}
 
-	if err := harness.BindService(p, cfg, &harness.FunctionSettings{
-		FunctionName: mmfName,
-		Func:         makeMatches,
+	if err := mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
+		Func: matchfunction.MakeMatches,
 	}); err != nil {
 		return nil, err
 	}
@@ -87,28 +65,4 @@ func serveMatchFunction() (func(), error) {
 	}()
 
 	return func() { s.Stop() }, nil
-}
-
-// This is the core match making function that will be triggered by Open Match to generate matches.
-// The goal of this function is to generate predictable matches that can be validated without flakyness.
-// This match function loops through all the pools and generates one match per pool aggregating all players
-// in that pool in the generated match.
-func makeMatches(params *harness.MatchFunctionParams) []*pb.Match {
-	var result []*pb.Match
-	for pool, tickets := range params.PoolNameToTickets {
-		roster := &pb.Roster{Name: pool}
-		for _, ticket := range tickets {
-			roster.TicketId = append(roster.TicketId, ticket.Id)
-		}
-
-		result = append(result, &pb.Match{
-			MatchId:       xid.New().String(),
-			MatchProfile:  params.ProfileName,
-			MatchFunction: mmfName,
-			Ticket:        tickets,
-			Roster:        []*pb.Roster{roster},
-		})
-	}
-
-	return result
 }

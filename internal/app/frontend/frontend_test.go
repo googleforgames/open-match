@@ -19,28 +19,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
+	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
-
-func TestServerBinding(t *testing.T) {
-	bs := func(p *rpc.ServerParams) {
-		p.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterFrontendServer(s, &frontendService{})
-		}, pb.RegisterFrontendHandlerFromEndpoint)
-	}
-
-	rpcTesting.TestServerBinding(t, bs)
-}
 
 // validateTicket validates that the fetched ticket is identical to the expected ticket.
 func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
@@ -53,7 +41,7 @@ func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
 
 // validateDelete validates that the ticket is actually deleted from the state storage.
 // Given that delete is async, this method retries fetch every 100ms up to 5 seconds.
-func validateDelete(t *testing.T, fe *frontendService, id string) {
+func validateDelete(t *testing.T, fe pb.FrontendClient, id string) {
 	start := time.Now()
 	for {
 		if time.Since(start) > 5*time.Second {
@@ -77,9 +65,9 @@ func validateDelete(t *testing.T, fe *frontendService, id string) {
 // TestFrontendService tests creating, getting and deleting a ticket using Frontend service.
 func TestFrontendService(t *testing.T) {
 	assert := assert.New(t)
-	cfg := createStore(t)
-	fe, err := newFrontend(cfg)
-	assert.Nil(err)
+
+	tc := createStore(t)
+	fe := pb.NewFrontendClient(tc.MustGRPC())
 	assert.NotNil(fe)
 
 	ticket := &pb.Ticket{
@@ -115,20 +103,15 @@ func TestFrontendService(t *testing.T) {
 	validateDelete(t, fe, ticket.Id)
 }
 
-func createStore(t *testing.T) config.View {
-	cfg := viper.New()
-	mredis, err := miniredis.Run()
-	if err != nil {
-		t.Fatalf("cannot create redis %s", err)
-	}
-
-	cfg.Set("redis.hostname", mredis.Host())
-	cfg.Set("redis.port", mredis.Port())
-	cfg.Set("redis.pool.maxIdle", 1000)
-	cfg.Set("redis.pool.idleTimeout", time.Second)
-	cfg.Set("redis.pool.maxActive", 1000)
-	cfg.Set("redis.expiration", 42000)
-	cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
-
-	return cfg
+func createStore(t *testing.T) *rpcTesting.TestContext {
+	var closer func()
+	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
+		cfg := viper.New()
+		cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
+		closer = statestoreTesting.New(t, cfg)
+		err := BindService(p, cfg)
+		assert.Nil(t, err)
+	})
+	tc.AddCloseFunc(closer)
+	return tc
 }

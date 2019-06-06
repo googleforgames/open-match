@@ -20,6 +20,7 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/statestore"
 )
 
 var (
@@ -55,11 +56,12 @@ func RunApplication() {
 
 // BindService creates the frontend service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View) error {
-	service, err := newFrontend(cfg)
-	if err != nil {
-		return err
+	service := &frontendService{
+		cfg:   cfg,
+		store: statestore.New(cfg),
 	}
 
+	p.AddHealthCheckFunc(service.store.HealthCheck)
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServer(s, service)
 	}, pb.RegisterFrontendHandlerFromEndpoint)
