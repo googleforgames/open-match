@@ -23,6 +23,7 @@ import (
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
+	"open-match.dev/open-match/examples/functions/golang/pool"
 )
 
 func createMatchFunctionForTest(t *testing.T, depTc *rpcTesting.TestContext) (*rpcTesting.TestContext, string) {
@@ -38,35 +39,10 @@ func createMatchFunctionForTest(t *testing.T, depTc *rpcTesting.TestContext) (*r
 		cfg.Set("api.mmlogic.httpport", depTc.GetHTTPPort())
 
 		if err := harness.BindService(p, cfg, &harness.FunctionSettings{
-			FunctionName: mmfName,
-			Func:         makeMatches,
+			Func:         pool.MakeMatches,
 		}); err != nil {
 			t.Error(err)
 		}
 	})
 	return tc, mmfName
-}
-
-// This is the core match making function that will be triggered by Open Match to generate matches.
-// The goal of this function is to generate predictable matches that can be validated without flakyness.
-// This match function loops through all the pools and generates one match per pool aggregating all players
-// in that pool in the generated match.
-func makeMatches(params *harness.MatchFunctionParams) []*pb.Match {
-	var result []*pb.Match
-	for pool, tickets := range params.PoolNameToTickets {
-		roster := &pb.Roster{Name: pool}
-		for _, ticket := range tickets {
-			roster.TicketId = append(roster.TicketId, ticket.Id)
-		}
-
-		result = append(result, &pb.Match{
-			MatchId:       xid.New().String(),
-			MatchProfile:  params.ProfileName,
-			MatchFunction: params.FunctionName,
-			Ticket:        tickets,
-			Roster:        []*pb.Roster{roster},
-		})
-	}
-
-	return result
 }

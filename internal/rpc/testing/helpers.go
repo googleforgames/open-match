@@ -95,12 +95,6 @@ func bindAndStart(t *testing.T, p *rpc.ServerParams, binder func(*rpc.ServerPara
 	return s
 }
 
-// TestServerBinding verifies that a server can start and shutdown.
-func TestServerBinding(t *testing.T, binder func(*rpc.ServerParams)) {
-	tc := MustServe(t, binder)
-	tc.Close()
-}
-
 // TestContext provides methods to interact with the Open Match server.
 type TestContext struct {
 	t                  *testing.T

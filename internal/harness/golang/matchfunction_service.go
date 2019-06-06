@@ -50,7 +50,6 @@ type matchFunction func(*MatchFunctionParams) []*pb.Match
 // by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
 type matchFunctionService struct {
 	cfg           config.View
-	functionName  string
 	function      matchFunction
 	mmlogicClient pb.MmLogicClient
 }
@@ -73,7 +72,6 @@ type MatchFunctionParams struct {
 	Properties        *structpb.Struct
 	Rosters           []*pb.Roster
 	PoolNameToTickets map[string][]*pb.Ticket
-	FunctionName      string
 }
 
 // Run is this harness's implementation of the gRPC call defined in api/matchfunction.proto.
@@ -90,7 +88,6 @@ func (s *matchFunctionService) Run(ctx context.Context, req *pb.RunRequest) (*pb
 		Properties:        req.Profile.Properties,
 		Rosters:           req.Profile.Roster,
 		PoolNameToTickets: poolNameToTickets,
-		FunctionName:      s.functionName,
 	}
 	// Run the customize match function!
 	proposals := s.function(mfView)
@@ -101,14 +98,13 @@ func (s *matchFunctionService) Run(ctx context.Context, req *pb.RunRequest) (*pb
 }
 
 func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunctionService, error) {
-	mmlogicClientConn, err := rpc.GRPCClientFromConfig(cfg, "api.mmlogic")
+	conn, err := rpc.GRPCClientFromConfig(cfg, "api.mmlogic")
 	if err != nil {
-		harnessLogger.Errorf("Failed to get MMLogic client, %v.", err)
+		harnessLogger.Errorf("Failed to get MMLogic connection, %v.", err)
 		return nil, err
 	}
-	mmlogicClient := pb.NewMmLogicClient(mmlogicClientConn)
 
-	mmfService := &matchFunctionService{cfg: cfg, functionName: fs.FunctionName, function: fs.Func, mmlogicClient: mmlogicClient}
+	mmfService := &matchFunctionService{cfg: cfg, function: fs.Func, mmlogicClient: pb.NewMmLogicClient(conn)}
 	return mmfService, nil
 }
 

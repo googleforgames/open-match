@@ -36,6 +36,7 @@
 ## Access monitoring
 ## make proxy-prometheus
 ## make proxy-grafana
+## make proxy-ui
 ##
 ## Teardown
 ## make delete-mini-cluster
@@ -49,7 +50,8 @@
 # http://makefiletutorial.com/
 
 BASE_VERSION = 0.0.0-dev
-VERSION_SUFFIX = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
+SHORT_SHA = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
+VERSION_SUFFIX = $(SHORT_SHA)
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
 BUILD_DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
@@ -57,7 +59,7 @@ YEAR_MONTH = $(shell date -u +'%Y%m')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
 
 PROTOC_VERSION = 3.7.1
-HELM_VERSION = 3.0.0-alpha.1
+HELM_VERSION = 2.14.0
 HUGO_VERSION = 0.55.5
 KUBECTL_VERSION = 1.14.2
 NODEJS_VERSION = 10.15.3
@@ -66,6 +68,7 @@ MINIKUBE_VERSION = latest
 HTMLTEST_VERSION = 0.10.3
 GOLANGCI_VERSION = 1.16.0
 KIND_VERSION = 0.3.0
+SWAGGERUI_VERSION = 3.22.2
 
 ENABLE_SECURITY_HARDENING = 0
 GO = GO111MODULE=on go
@@ -76,7 +79,7 @@ BUILD_DIR = $(REPOSITORY_ROOT)/build
 TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
 TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
 PROTOC := $(TOOLCHAIN_BIN)/protoc
-PROTOC_INCLUDES := $(TOOLCHAIN_DIR)/include/
+PROTOC_INCLUDES := $(REPOSITORY_ROOT)/third_party
 GCP_PROJECT_ID ?=
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
 OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID = open-match-public-images
@@ -91,6 +94,7 @@ GCP_ZONE = us-west1-a
 EXE_EXTENSION =
 GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
 GO111MODULE = on
+SWAGGERUI_PORT = 51500
 PROMETHEUS_PORT = 9090
 GRAFANA_PORT = 3000
 SITE_PORT = 8080
@@ -106,8 +110,8 @@ HTMLTEST = $(TOOLCHAIN_BIN)/htmltest
 KIND = $(TOOLCHAIN_BIN)/kind
 OPEN_MATCH_CHART_NAME = open-match
 OPEN_MATCH_KUBERNETES_NAMESPACE = open-match
-OPEN_MATCH_EXAMPLE_CHART_NAME = open-match-example
-OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE = open-match
+OPEN_MATCH_DEMO_CHART_NAME = open-match-demo
+OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE = open-match
 OPEN_MATCH_SECRETS_DIR = $(REPOSITORY_ROOT)/install/helm/open-match/secrets
 REDIS_NAME = om-redis
 GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | cut -c 10-)
@@ -139,7 +143,7 @@ endif
 
 ifeq ($(OS),Windows_NT)
 	# TODO: Windows packages are here but things are broken since many paths are Linux based and zip vs tar.gz.
-	HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-windows-amd64.zip
+	HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-windows-amd64.zip
 	MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-windows-amd64.exe
 	SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-windows-amd64.exe
 	EXE_EXTENSION = .exe
@@ -154,7 +158,7 @@ ifeq ($(OS),Windows_NT)
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
-		HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz
+		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-linux-amd64.tar.gz
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
 		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-linux-amd64
 		PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
@@ -167,7 +171,7 @@ else
 		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/kind-linux-amd64
 	endif
 	ifeq ($(UNAME_S),Darwin)
-		HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
+		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-darwin-amd64
 		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-darwin-amd64
 		PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-osx-x86_64.zip
@@ -190,7 +194,7 @@ local-cloud-build: gcloud
 
 push-images: push-service-images push-example-images
 
-push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-evaluator-image
+push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-evaluator-image push-swaggerui-image
 
 push-backend-image: docker build-backend-image
 	docker push $(REGISTRY)/openmatch-backend:$(TAG)
@@ -212,7 +216,13 @@ push-evaluator-image: docker build-evaluator-image
 	docker push $(REGISTRY)/openmatch-evaluator:$(TAG)
 	docker push $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG)
 
-push-example-images: push-mmf-example-images
+push-swaggerui-image: docker build-swaggerui-image
+	docker push $(REGISTRY)/openmatch-swaggerui:$(TAG)
+	docker push $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG)
+
+push-example-images: push-demo-images push-mmf-example-images
+
+push-demo-images: push-mmf-go-simple-image
 
 push-mmf-example-images: push-mmf-go-simple-image
 
@@ -222,9 +232,11 @@ push-mmf-go-simple-image: docker build-mmf-go-simple-image
 
 build-images: build-service-images build-example-images
 
-build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-evaluator-image
+build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-evaluator-image build-swaggerui-image
 
-build-base-build-image: docker
+# Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
+# This is important so that the repository does not have any mutations while building individual images.
+build-base-build-image: docker all-protos
 	docker build -f Dockerfile.base-build -t open-match-base-build .
 
 build-backend-image: docker build-base-build-image
@@ -242,7 +254,12 @@ build-minimatch-image: docker build-base-build-image
 build-evaluator-image: docker build-base-build-image
 	docker build -f cmd/evaluator/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-evaluator:$(TAG) -t $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG) .
 
-build-example-images: build-mmf-example-images
+build-swaggerui-image: docker build-base-build-image site/static/swaggerui/
+	docker build -f cmd/swaggerui/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-swaggerui:$(TAG) -t $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG) .
+
+build-example-images: build-demo-images build-mmf-example-images
+
+build-demo-images: build-mmf-go-simple-image
 
 build-mmf-example-images: build-mmf-go-simple-image
 
@@ -257,6 +274,7 @@ clean-images: docker
 	-docker rmi -f $(REGISTRY)/openmatch-mmlogic:$(TAG) $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator:$(TAG) $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-swaggerui:$(TAG) $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG)
 
 install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug $(REDIS_NAME) stable/redis --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
@@ -265,16 +283,14 @@ update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd install/helm/open-match; $(HELM) repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com; $(HELM) dependency update)
 
 lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd install/helm; $(HELM) lint $(OPEN_MATCH_CHART_NAME); $(HELM) lint $(OPEN_MATCH_EXAMPLE_CHART_NAME))
+	(cd install/helm; $(HELM) lint $(OPEN_MATCH_CHART_NAME); $(HELM) lint $(OPEN_MATCH_DEMO_CHART_NAME))
 
 print-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd install/helm; $(HELM) install $(OPEN_MATCH_CHART_NAME) --dry-run --debug $(OPEN_MATCH_CHART_NAME); $(HELM) install $(OPEN_MATCH_EXAMPLE_CHART_NAME) --dry-run --debug $(OPEN_MATCH_EXAMPLE_CHART_NAME))
+	(cd install/helm; $(HELM) install --name $(OPEN_MATCH_CHART_NAME) --dry-run --debug $(OPEN_MATCH_CHART_NAME); $(HELM) install --name $(OPEN_MATCH_DEMO_CHART_NAME) --dry-run --debug $(OPEN_MATCH_DEMO_CHART_NAME))
 
 install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	# https://github.com/helm/helm/issues/5814
-	# --wait isn't implemented yet.
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
-		--timeout=10m \
+		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
@@ -285,38 +301,39 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade $(OPEN_MATCH_EXAMPLE_CHART_NAME) --install --wait --debug $(OPEN_MATCH_EXAMPLE_CHART_NAME) install/helm/open-match-example \
+install-demo-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+	$(HELM) upgrade $(OPEN_MATCH_DEMO_CHART_NAME) --install --wait --debug install/helm/open-match-demo \
 	  --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 	  --set openmatch.image.registry=$(REGISTRY) \
 	  --set openmatch.image.tag=$(TAG)
 
-delete-example-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	-$(HELM) delete --purge $(OPEN_MATCH_EXAMPLE_CHART_NAME)
+delete-demo-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+	-$(HELM) delete --purge $(OPEN_MATCH_DEMO_CHART_NAME)
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug --dry-run  install/helm/open-match \
+	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG)
 
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	-$(HELM) delete $(OPEN_MATCH_CHART_NAME)
+	-$(HELM) delete --purge $(OPEN_MATCH_CHART_NAME)
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheuses.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd servicemonitors.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
 
-install/yaml/: install/yaml/install.yaml install/yaml/install-example.yaml install/yaml/01-redis-chart.yaml install/yaml/02-open-match.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml
+install/yaml/: install/yaml/install.yaml install/yaml/install-demo.yaml install/yaml/01-redis-chart.yaml install/yaml/02-open-match.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml
 
 install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.fullnameOverride='$(REDIS_NAME)' \
 		--set openmatch.config.install=false \
 		--set openmatch.backend.install=false \
 		--set openmatch.frontend.install=false \
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.evaluator.install=false \
+		--set openmatch.swaggerui.install=false \
 		--set redis.enabled=true \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=false \
@@ -325,7 +342,7 @@ install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/02-open-match.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.fullnameOverride='$(REDIS_NAME)' \
 		--set redis.enabled=false \
 		--set prometheus.enabled=false \
@@ -337,13 +354,14 @@ install/yaml/02-open-match.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
 		--set openmatch.backend.install=false \
 		--set openmatch.frontend.install=false \
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.evaluator.install=false \
+		--set openmatch.swaggerui.install=false \
 		--set redis.enabled=false \
 		--set prometheus.enabled=true \
 		--set grafana.enabled=false \
@@ -352,13 +370,14 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.enabled=false \
 		--set openmatch.config.install=false \
 		--set openmatch.backend.install=false \
 		--set openmatch.frontend.install=false \
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.evaluator.install=false \
+		--set openmatch.swaggerui.install=false \
 		--set redis.enabled=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=true \
@@ -367,12 +386,14 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set redis.fullnameOverride='$(REDIS_NAME)' \
 		--set openmatch.config.install=false \
 		--set openmatch.backend.install=false \
 		--set openmatch.frontend.install=false \
 		--set openmatch.mmlogic.install=false \
+		--set openmatch.evaluator.install=false \
+		--set openmatch.swaggerui.install=false \
 		--set redis.enabled=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=false \
@@ -381,7 +402,7 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
 		--set redis.enabled=true \
@@ -390,12 +411,12 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set jaeger.enabled=true \
 		install/helm/open-match > install/yaml/install.yaml
 
-install/yaml/install-example.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+install/yaml/install-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template $(OPEN_MATCH_EXAMPLE_CHART_NAME) --namespace $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_DEMO_CHART_NAME) --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
-		install/helm/open-match-example > install/yaml/install-example.yaml
+		install/helm/open-match-demo > install/yaml/install-demo.yaml
 
 set-redis-password:
 	@stty -echo; \
@@ -403,7 +424,7 @@ set-redis-password:
 		read REDIS_PASSWORD; \
 		stty echo; \
 		printf "\n"; \
-		$(KUBECTL) create secret generic $(REDIS_NAME) -n $(OPEN_MATCH_EXAMPLE_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
+		$(KUBECTL) create secret generic $(REDIS_NAME) -n $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
 
 install-toolchain: install-kubernetes-tools install-web-tools install-protoc-tools install-openmatch-tools
 install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)
@@ -420,6 +441,7 @@ else
 	cd $(TOOLCHAIN_DIR)/temp-helm && curl -Lo helm.tar.gz $(HELM_PACKAGE) && tar xzf helm.tar.gz --strip-components 1
 endif
 	mv $(TOOLCHAIN_DIR)/temp-helm/helm$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/helm$(EXE_EXTENSION)
+	mv $(TOOLCHAIN_DIR)/temp-helm/tiller$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/tiller$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-helm/
 
 build/toolchain/bin/hugo$(EXE_EXTENSION):
@@ -484,41 +506,20 @@ build/toolchain/python/:
 	cd build/toolchain/python/bin && ln -s python3 pytho
 	cd build/toolchain/python/ && . bin/activate && pip install locustio && deactivate
 
-build/toolchain/include/google/api/:
-	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
-	mkdir -p $(TOOLCHAIN_BIN)
-	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L \
-		https://github.com/googleapis/googleapis/archive/master.zip
-	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
-	cp -rf $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/ \
-		$(PROTOC_INCLUDES)/google/api
-	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
-
-build/toolchain/include/protoc-gen-swagger/:
-	mkdir -p $(TOOLCHAIN_DIR)/grpc-gateway-temp/
-	mkdir -p $(TOOLCHAIN_BIN)
-	mkdir -p $(PROTOC_INCLUDES)/protoc-gen-swagger/options/
-	curl -o $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway.zip -L \
-		https://github.com/grpc-ecosystem/grpc-gateway/archive/master.zip
-	(cd $(TOOLCHAIN_DIR)/grpc-gateway-temp/; unzip -q -o grpc-gateway.zip)
-	cp -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/*.proto \
-		$(PROTOC_INCLUDES)/protoc-gen-swagger/options/
-	rm -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp
-
 build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -o $(TOOLCHAIN_DIR)/protoc-temp.zip -L $(PROTOC_PACKAGE)
 	(cd $(TOOLCHAIN_DIR); unzip -q -o protoc-temp.zip)
 	rm $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
 
-build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
+build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
-build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
+build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
-build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION): build/toolchain/include/google/api/ build/toolchain/include/protoc-gen-swagger/
+build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
@@ -540,8 +541,15 @@ build/toolchain/bin/certgen$(EXE_EXTENSION): tools/certgen/certgen$(EXE_EXTENSIO
 	mkdir -p $(TOOLCHAIN_BIN)
 	cp -f $(REPOSITORY_ROOT)/tools/certgen/certgen$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION)
 
-push-helm: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) init
+push-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	$(KUBECTL) create serviceaccount --namespace kube-system tiller
+	$(HELM) init --service-account tiller --force-upgrade
+	$(KUBECTL) create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+ifneq ($(strip $($(KUBECTL) get clusterroles | grep -i rbac)),)
+	$(KUBECTL) patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
+endif
+	@echo "Waiting for Tiller to become ready..."
+	$(KUBECTL) wait deployment --timeout=60s --for condition=available -l app=helm,name=tiller --namespace kube-system
 
 delete-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) reset
@@ -590,10 +598,10 @@ delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bi
 	-$(KIND) delete cluster
 
 create-gke-cluster: GKE_VERSION = 1.13.6-gke.0 # gcloud beta container get-server-config --zone us-central1-a
-create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-2 --enable-autoscaling --min-nodes 1 --num-nodes 3 --max-nodes 10 --disk-size 50
+create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
-	gcloud beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --cluster-version $(GKE_VERSION) --tags open-match $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS)
+	gcloud beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --cluster-version $(GKE_VERSION) --image-type cos_containerd --tags open-match $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS)
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
 delete-gke-cluster: gcloud
@@ -662,15 +670,16 @@ fmt:
 vet:
 	$(GO) vet ./...
 
-# Blocked on https://github.com/golangci/golangci-lint/issues/500 to be added to `make lint`
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
-	build/toolchain/bin/golangci-lint$(EXE_EXTENSION) run -v --config=.golangci.yaml
+	build/toolchain/bin/golangci-lint$(EXE_EXTENSION) run --config=.golangci.yaml
 
 lint: fmt vet lint-chart
 
 all: service-binaries example-binaries tools-binaries
 
-service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION) cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/evaluator/evaluator$(EXE_EXTENSION)
+service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/swaggerui/swaggerui$(EXE_EXTENSION)
+service-binaries: cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION)
+service-binaries: cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/evaluator/evaluator$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries
 example-mmf-binaries: examples/functions/golang/simple/simple$(EXE_EXTENSION)
@@ -697,8 +706,12 @@ cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/b
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/frontend.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/evaluator.pb.go internal/pb/evaluator.pb.gw.go api/evaluator.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd cmd/minimatch; $(GO_BUILD_COMMAND)
+
+cmd/swaggerui/swaggerui$(EXE_EXTENSION): site/static/swaggerui/
+	cd cmd/swaggerui; $(GO_BUILD_COMMAND)
 
 tools/certgen/certgen$(EXE_EXTENSION):
 	cd tools/certgen/ && $(GO_BUILD_COMMAND)
@@ -723,7 +736,7 @@ node_modules/: build/toolchain/nodejs/
 	echo "{}" > package.json
 	$(TOOLCHAIN_DIR)/nodejs/bin/npm install postcss-cli autoprefixer
 
-build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
+build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) site/static/swaggerui/ node_modules/
 	rm -rf build/site/
 	mkdir -p build/site/
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) --config=config.toml --source . --destination $(BUILD_DIR)/site/public/
@@ -732,8 +745,21 @@ build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
 	-cp -f site/.gcloudignore $(BUILD_DIR)/site/.gcloudignore
 	cp $(BUILD_DIR)/site/app.yaml $(BUILD_DIR)/site/.app.yaml
 
+site/static/swaggerui/:
+	mkdir -p $(TOOLCHAIN_DIR)/swaggerui-temp/
+	mkdir -p $(TOOLCHAIN_BIN)
+	curl -o $(TOOLCHAIN_DIR)/swaggerui-temp/swaggerui.zip -L \
+		https://github.com/swagger-api/swagger-ui/archive/v$(SWAGGERUI_VERSION).zip
+	(cd $(TOOLCHAIN_DIR)/swaggerui-temp/; unzip -q -o swaggerui.zip)
+	cp -rf $(TOOLCHAIN_DIR)/swaggerui-temp/swagger-ui-$(SWAGGERUI_VERSION)/dist/ \
+		$(REPOSITORY_ROOT)/site/static/swaggerui
+	# Update the URL in the main page to point to a known good endpoint.
+	# TODO This does not work on macOS you need to add '' after -i. This isn't build critical.
+	sed -i 's/url:.*/url: \"https:\/\/open-match.dev\/api\/v0.0.0-dev\/frontend.swagger.json\",/g' $(REPOSITORY_ROOT)/site/static/swaggerui/index.html
+	rm -rf $(TOOLCHAIN_DIR)/swaggerui-temp
+
 md-test: docker
-	docker run -t --rm -v $(CURDIR):/mnt:ro dkhamsing/awesome_bot --white-list "localhost,github.com/GoogleCloudPlatform/open-match/tree/release-,github.com/GoogleCloudPlatform/open-match/blob/release-,github.com/GoogleCloudPlatform/open-match/releases/download/v" --allow-dupe --allow-redirect --skip-save-results `find . -type f -name '*.md' -not -path './build/*' -not -path './node_modules/*' -not -path './site*' -not -path './.git*'`
+	docker run -t --rm -v $(CURDIR):/mnt:ro dkhamsing/awesome_bot --white-list "localhost,github.com/googleforgames/open-match/tree/release-,github.com/googleforgames/open-match/blob/release-,github.com/googleforgames/open-match/releases/download/v" --allow-dupe --allow-redirect --skip-save-results `find . -type f -name '*.md' -not -path './build/*' -not -path './node_modules/*' -not -path './site*' -not -path './.git*'`
 
 site-test: TEMP_SITE_DIR := /tmp/open-match-site
 site-test: build/site/ build/toolchain/bin/htmltest$(EXE_EXTENSION)
@@ -773,7 +799,7 @@ endif
 deploy-redirect-site: gcloud
 	cd $(REPOSITORY_ROOT)/site/redirect/ && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy app.yaml --promote --quiet
 
-run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
+run-site: build/toolchain/bin/hugo$(EXE_EXTENSION) site/static/swaggerui/
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) server --debug --watch --enableGitInfo . --baseURL=http://localhost:$(SITE_PORT)/ --bind 0.0.0.0 --port $(SITE_PORT) --disableFastRender
 
 ci-deploy-artifacts: install/yaml/ swagger-json-docs gcloud
@@ -787,7 +813,7 @@ else
 endif
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: update-deps clean-protos clean-secrets all-protos lint build test clean-site site-test md-test
+presubmit: update-deps third_party clean-protos clean-secrets all-protos lint build test clean-site site-test md-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -818,6 +844,7 @@ clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/cmd/frontend/frontend
 	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic
 	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch
+	rm -rf $(REPOSITORY_ROOT)/cmd/swaggerui/swaggerui
 	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/simple/simple
 
 clean-build: clean-toolchain clean-archives clean-release
@@ -842,30 +869,33 @@ clean-stress-test-tools:
 	rm -rf $(TOOLCHAIN_DIR)/python
 	rm -f $(REPOSITORY_ROOT)/test/stress/*.csv
 
-clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools clean-secrets
+clean-swaggerui:
+	rm -rf $(REPOSITORY_ROOT)/site/static/swaggerui/
+
+clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools clean-secrets clean-swaggerui
 
 proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	@echo "Health: http://localhost:$(FRONTEND_PORT)/healthz"
-	@echo "RPC: http://localhost:$(FRONTEND_PORT)/debug/rpcz"
-	@echo "Trace: http://localhost:$(FRONTEND_PORT)/debug/tracez"
+	@echo "Frontend Health: http://localhost:$(FRONTEND_PORT)/healthz"
+	@echo "Frontend RPC: http://localhost:$(FRONTEND_PORT)/debug/rpcz"
+	@echo "Frontend Trace: http://localhost:$(FRONTEND_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=frontend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(FRONTEND_PORT):51504 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-backend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	@echo "Health: http://localhost:$(BACKEND_PORT)/healthz"
-	@echo "RPC: http://localhost:$(BACKEND_PORT)/debug/rpcz"
-	@echo "Trace: http://localhost:$(BACKEND_PORT)/debug/tracez"
+	@echo "Backend Health: http://localhost:$(BACKEND_PORT)/healthz"
+	@echo "Backend RPC: http://localhost:$(BACKEND_PORT)/debug/rpcz"
+	@echo "Backend Trace: http://localhost:$(BACKEND_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=backend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(BACKEND_PORT):51505 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-mmlogic: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	@echo "Health: http://localhost:$(MMLOGIC_PORT)/healthz"
-	@echo "RPC: http://localhost:$(MMLOGIC_PORT)/debug/rpcz"
-	@echo "Trace: http://localhost:$(MMLOGIC_PORT)/debug/tracez"
+	@echo "MmLogic Health: http://localhost:$(MMLOGIC_PORT)/healthz"
+	@echo "MmLogic RPC: http://localhost:$(MMLOGIC_PORT)/debug/rpcz"
+	@echo "MmLogic Trace: http://localhost:$(MMLOGIC_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=mmlogic,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(MMLOGIC_PORT):51503 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-evaluator: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	@echo "Health: http://localhost:$(EVALUATOR_PORT)/healthz"
-	@echo "RPC: http://localhost:$(EVALUATOR_PORT)/debug/rpcz"
-	@echo "Trace: http://localhost:$(EVALUATOR_PORT)/debug/tracez"
+	@echo "Evaluator Health: http://localhost:$(EVALUATOR_PORT)/healthz"
+	@echo "Evaluator RPC: http://localhost:$(EVALUATOR_PORT)/debug/rpcz"
+	@echo "Evaluator Trace: http://localhost:$(EVALUATOR_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=evaluator,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(EVALUATOR_PORT):51506 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-grafana: build/toolchain/bin/kubectl$(EXE_EXTENSION)
@@ -879,9 +909,13 @@ proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
+proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	@echo "SwaggerUI Health: http://localhost:$(SWAGGERUI_PORT)/"
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=swaggerui,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(SWAGGERUI_PORT):51500 $(PORT_FORWARD_ADDRESS_FLAG)
+
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
-proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-dashboard proxy-evaluator
+proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-evaluator proxy-ui proxy-dashboard
 
 proxy:
 	# This is an exception case where we'll call recursive make.
@@ -891,6 +925,29 @@ proxy:
 update-deps:
 	$(GO) mod tidy
 	cd site && $(GO) mod tidy
+
+third_party: third_party/google/api third_party/protoc-gen-swagger/options
+
+third_party/google/api:
+	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
+	mkdir -p $(REPOSITORY_ROOT)/third_party/google/api
+	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L https://github.com/googleapis/googleapis/archive/master.zip
+	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
+	cp -f $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/annotations.proto \
+		$(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/http.proto \
+		$(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/httpbody.proto \
+		$(REPOSITORY_ROOT)/third_party/google/api
+	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
+
+third_party/protoc-gen-swagger/options:
+	mkdir -p $(TOOLCHAIN_DIR)/grpc-gateway-temp/
+	mkdir -p $(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options
+	curl -o $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway.zip -L https://github.com/grpc-ecosystem/grpc-gateway/archive/master.zip
+	(cd $(TOOLCHAIN_DIR)/grpc-gateway-temp/; unzip -q -o grpc-gateway.zip)
+	cp -f $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/annotations.proto \
+		$(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/openapiv2.proto \
+		$(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options
+	rm -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp
 
 sync-deps:
 	$(GO) mod download

@@ -15,8 +15,11 @@
 package backend
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"sync"
 
@@ -39,8 +42,7 @@ type backendService struct {
 }
 
 type mmfClients struct {
-	addrMap    sync.Map
-	evalClient pb.EvaluatorClient
+	addrMap sync.Map
 }
 
 var (
@@ -49,22 +51,6 @@ var (
 		"component": "app.backend.backend_service",
 	})
 )
-
-// newBackend creates and initializes the backend service.
-func newBackend(cfg config.View) (*backendService, error) {
-	bs := &backendService{
-		cfg: cfg,
-	}
-
-	// Initialize the state storage interface.
-	var err error
-	bs.store, err = statestore.New(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return bs, nil
-}
 
 // FetchMatches triggers execution of the specfied MatchFunction for each of the
 // specified MatchProfiles. Each MatchFunction execution returns a set of
@@ -78,9 +64,8 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	}
 
 	var grpcClient pb.MatchFunctionClient
-	// TODO: Uncomment when rest config is implemented
-	// var httpClient *http.Client
-	// var baseURL string
+	var httpClient *http.Client
+	var baseURL string
 	var err error
 
 	switch (req.Config.Type).(type) {
@@ -96,7 +81,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		}
 	// MatchFunction Hosted as a REST service
 	case *pb.FunctionConfig_Rest:
-		_, _, err := s.getHTTPClient((req.Config.Type).(*pb.FunctionConfig_Rest))
+		httpClient, baseURL, err = s.getHTTPClient((req.Config.Type).(*pb.FunctionConfig_Rest))
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
@@ -104,7 +89,6 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 			}).Error("failed to establish rest client connection to match function")
 			return status.Error(codes.InvalidArgument, "failed to connect to match function")
 		}
-		return status.Error(codes.Unimplemented, "not implemented")
 	default:
 		logger.Error("unsupported function type provided")
 		return status.Error(codes.InvalidArgument, "provided match function type is not supported")
@@ -128,14 +112,12 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 			go func(profile *pb.MatchProfile) {
 				defer wg.Done()
 
+				// Get the channel over which the generated match results will be sent.
 				switch (req.Config.Type).(type) {
 				case *pb.FunctionConfig_Grpc:
-					// Get the channel over which the generated match results will be sent.
-					matchesFromGrpcMMF(ctx, profile, grpcClient, matchChan, errChan)
+					matchesFromGRPCMMF(ctx, profile, grpcClient, matchChan, errChan)
 				case *pb.FunctionConfig_Rest:
-					// TODO: implement matchesFromHttpMMF function
-					// s.matchesFromHttpMMF(ctx, profile, httpClient, baseURL, matchChan, errChan)
-					errChan <- status.Error(codes.Unimplemented, "rest function config is unimplemented")
+					matchesFromHTTPMMF(ctx, profile, httpClient, baseURL, matchChan, errChan)
 				}
 			}(profile)
 		}
@@ -168,6 +150,14 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	}
 }
 
+func (s *backendService) getHTTPClient(config *pb.FunctionConfig_Rest) (*http.Client, string, error) {
+	client, baseURL, err := rpc.HTTPClientFromEndpoint(s.cfg, config.Rest.Host, int(config.Rest.Port))
+	if err != nil {
+		return nil, "", err
+	}
+	return client, baseURL, err
+}
+
 func (s *backendService) getGRPCClient(config *pb.FunctionConfig_Grpc) (pb.MatchFunctionClient, error) {
 	addr := fmt.Sprintf("%s:%d", config.Grpc.Host, config.Grpc.Port)
 	client, ok := s.mmfClients.addrMap.Load(addr)
@@ -187,18 +177,64 @@ func (s *backendService) getGRPCClient(config *pb.FunctionConfig_Grpc) (pb.Match
 	return client.(pb.MatchFunctionClient), nil
 }
 
-func (s *backendService) getHTTPClient(config *pb.FunctionConfig_Rest) (*http.Client, string, error) {
-	client, baseURL, err := rpc.HTTPClientFromEndpoint(s.cfg, config.Rest.Host, int(config.Rest.Port))
+func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *http.Client, baseURL string, matchChan chan<- *pb.Match, errChan chan<- error) {
+	jsonProfile, err := json.Marshal(profile)
 	if err != nil {
-		return nil, "", err
+		errChan <- status.Error(codes.FailedPrecondition, err.Error())
+		logger.WithError(err).Error("failed to marshal profile pb to string")
+		return
 	}
-	return client, baseURL, err
+
+	reqBody, err := json.Marshal(map[string]json.RawMessage{"profile": jsonProfile})
+	if err != nil {
+		errChan <- status.Error(codes.FailedPrecondition, err.Error())
+		logger.WithError(err).Error("failed to marshal request body")
+		return
+	}
+
+	req, err := http.NewRequest("POST", baseURL+"/v1/matchfunction:run", bytes.NewBuffer(reqBody))
+	if err != nil {
+		errChan <- status.Error(codes.FailedPrecondition, err.Error())
+		logger.WithError(err).Error("failed to create mmf http request")
+		return
+	}
+
+	resp, err := client.Do(req.WithContext(ctx))
+	if err != nil {
+		errChan <- status.Errorf(codes.Internal, "failed to get response from mmf run: %s", err.Error())
+		return
+	}
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			logger.WithError(err).Error("failed to close response body read closer")
+		}
+	}()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		errChan <- status.Error(codes.FailedPrecondition, err.Error())
+		logger.WithError(err).Error("failed to read from response body")
+		return
+	}
+
+	pbResp := &pb.RunResponse{}
+	err = json.Unmarshal(body, pbResp)
+	if err != nil {
+		errChan <- status.Error(codes.FailedPrecondition, err.Error())
+		logger.WithError(err).Error("failed to unmarshal response body to response pb")
+		return
+	}
+
+	for _, match := range pbResp.Proposal {
+		matchChan <- match
+	}
 }
 
-// matchesFromGrpcMMF triggers execution of MMFs to fetch match results for each profile.
+// matchesFromGRPCMMF triggers execution of MMFs to fetch match results for each profile.
 // These proposals are then sent to evaluator and the results are streamed back on the channel
 // that this function returns to the caller.
-func matchesFromGrpcMMF(ctx context.Context, profile *pb.MatchProfile, client pb.MatchFunctionClient, matchChan chan<- *pb.Match, errChan chan<- error) {
+func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb.MatchFunctionClient, matchChan chan<- *pb.Match, errChan chan<- error) {
 	// TODO: This code calls user code and could hang. We need to add a deadline here
 	// and timeout gracefully to ensure that the ListMatches completes.
 	// TODO: Currently, a failure in running the MMF is silently ignored and does not

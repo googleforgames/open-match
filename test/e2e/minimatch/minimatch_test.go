@@ -21,7 +21,7 @@ import (
 	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"open-match.dev/open-match/internal/pb"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 )
@@ -44,11 +44,19 @@ type testProfile struct {
 }
 
 func TestMinimatchStartup(t *testing.T) {
-	assert := assert.New(t)
+	assert := require.New(t)
 	minimatchTc := createMinimatchForTest(t)
 	defer minimatchTc.Close()
 	mmfTc, mmfName := createMatchFunctionForTest(t, minimatchTc)
 	defer mmfTc.Close()
+
+	conn, err := rpc.GRPCClientFromConfig(cfg, minimatchPrefix)
+	assert.Nil(err)
+	assert.NotNil(conn)
+
+	fe := pb.NewFrontendClient(conn)
+	mml := pb.NewMmLogicClient(conn)
+	be := pb.NewBackendClient(conn)
 
 	// TODO: Currently, the E2E test uses globally defined test data. Consider
 	// improving this in future iterations to test data scoped to sepcific test cases
@@ -110,8 +118,6 @@ func TestMinimatchStartup(t *testing.T) {
 		{name: "", pools: []*pb.Pool{testPools[map2BeginnerPool], testPools[map2AdvancedPool]}},
 	}
 
-	fe := pb.NewFrontendClient(minimatchTc.MustGRPC())
-
 	// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids
 	// to expected player pools.
 	for i, td := range testTickets {
@@ -128,8 +134,6 @@ func TestMinimatchStartup(t *testing.T) {
 		assert.Nil(err)
 		testTickets[i].id = resp.Ticket.Id
 	}
-
-	mml := pb.NewMmLogicClient(minimatchTc.MustGRPC())
 
 	// poolTickets represents a map of the pool name to all the ticket ids in the pool.
 	poolTickets := make(map[string][]string)
@@ -179,25 +183,26 @@ func TestMinimatchStartup(t *testing.T) {
 				},
 			},
 		},
-		// TODO: Uncomment when rest config logic is implemented
-		// &pb.FunctionConfig{
-		// 	Name: mmfName,
-		// 	Type: &pb.FunctionConfig_Rest{
-		// 		Rest: &pb.RestFunctionConfig{
-		// 			Host: mmfHost,
-		// 			Port: mmfHTTPPortInt,
-		// 		},
-		// 	},
-		// },
+		{
+			Name: mmfName,
+			Type: &pb.FunctionConfig_Rest{
+				Rest: &pb.RestFunctionConfig{
+					Host: mmfHost,
+					Port: mmfHTTPPortInt,
+				},
+			},
+		},
 	}
 
-	for _, fc := range fcs {
-		validateFetchMatchesResult(assert, poolTickets, testProfiles, minimatchTc, fc)
+	for _, cfg := range cfgs {
+		validateFetchMatchesResult(assert, poolTickets, testProfiles, be, cfg)
 	}
 }
 
-func validateFetchMatchesResult(assert *assert.Assertions, poolTickets map[string][]string, testProfiles []testProfile, tc *rpcTesting.TestContext, fc *pb.FunctionConfig) {
-	be := pb.NewBackendClient(tc.MustGRPC())
+func validateFetchMatchesResult(assert *require.Assertions, poolTickets map[string][]string, testProfiles []testProfile, be pb.BackendClient, mf *pb.FunctionConfig) {
+	mfclose, err := serveMatchFunction()
+	defer mfclose()
+	assert.Nil(err)
 
 	// Fetch Matches for each test profile.
 	for _, profile := range testProfiles {
