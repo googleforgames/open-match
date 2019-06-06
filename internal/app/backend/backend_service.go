@@ -60,6 +60,8 @@ var (
 // specified MatchProfiles. Each MatchFunction execution returns a set of
 // proposals which are then evaluated to generate results. FetchMatches method
 // streams these results back to the caller.
+// FetchMatches returns nil unless the context is canceled. FetchMatches moves to the next response candidate if it encounters
+// any internal execution failures.
 func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Backend_FetchMatchesServer) error {
 	// Validate that the function configuration and match profiles are provided.
 	if req.Config == nil {
