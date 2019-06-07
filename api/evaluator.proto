@@ -14,9 +14,9 @@
 
 syntax = "proto3";
 package api;
-option go_package = "internal/pb";
+option go_package = "pb";
 
-import "api/messages.proto";
+import "messages.proto";
 import "google/api/annotations.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 

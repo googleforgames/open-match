@@ -18,8 +18,8 @@ import (
 	"context"
 
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 // evaluatorFunction is the function signature for the Evaluator Function (optionally) implemented by the user.

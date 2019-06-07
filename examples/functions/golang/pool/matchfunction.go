@@ -21,8 +21,8 @@ package pool
 
 import (
 	"github.com/rs/xid"
-	"open-match.dev/open-match/internal/pb"
 	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 // MakeMatches is where your custom matchmaking logic lives.

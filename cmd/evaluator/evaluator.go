@@ -17,7 +17,7 @@ package main
 
 import (
 	"open-match.dev/open-match/internal/app/evaluator"
-	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 func main() {
