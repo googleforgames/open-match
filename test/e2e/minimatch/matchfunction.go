@@ -15,54 +15,32 @@
 package minimatch
 
 import (
+	"testing"
+
 	"github.com/spf13/viper"
-	matchfunction "open-match.dev/open-match/examples/functions/golang/pool"
+	"open-match.dev/open-match/examples/functions/golang/pool"
 	"open-match.dev/open-match/internal/rpc"
+	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
 )
 
-const (
-	mmfName        = "test-matchfunction"
-	mmfPrefix      = "testmmf"
-	mmfHost        = "localhost"
-	mmfGRPCPort    = "50511"
-	mmfHTTPPort    = "51511"
-	mmfGRPCPortInt = 50511
-	mmfHTTPPortInt = 51511
-)
+// Create a mmf service using a started test server.
+// Inject the port config of mmlogic using that the passed in test server
+func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTesting.TestContext {
+	// TODO: Use insecure for now since minimatch and mmf only works with the same secure mode
+	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
+		cfg := viper.New()
 
-// serveMatchFunction creates a GRPC server and starts it to server the match function forever.
-func serveMatchFunction() (func(), error) {
-	cfg := viper.New()
-	// Set match function configuration.
-	cfg.Set("testmmf.hostname", mmfHost)
-	cfg.Set("testmmf.grpcport", mmfGRPCPort)
-	cfg.Set("testmmf.httpport", mmfHTTPPort)
+		// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
+		cfg.Set("api.mmlogic.hostname", c.GetHostname())
+		cfg.Set("api.mmlogic.grpcport", c.GetGRPCPort())
+		cfg.Set("api.mmlogic.httpport", c.GetHTTPPort())
 
-	// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
-	cfg.Set("api.mmlogic.hostname", minimatchHost)
-	cfg.Set("api.mmlogic.grpcport", minimatchGRPCPort)
-	cfg.Set("api.mmlogic.httpport", minimatchHTTPPort)
-
-	p, err := rpc.NewServerParamsFromConfig(cfg, mmfPrefix)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
-		Func: matchfunction.MakeMatches,
-	}); err != nil {
-		return nil, err
-	}
-
-	s := &rpc.Server{}
-	waitForStart, err := s.Start(p)
-	if err != nil {
-		return nil, err
-	}
-	go func() {
-		waitForStart()
-	}()
-
-	return func() { s.Stop() }, nil
+		if err := mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
+			Func: pool.MakeMatches,
+		}); err != nil {
+			t.Error(err)
+		}
+	})
+	return tc
 }
