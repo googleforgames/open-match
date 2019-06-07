@@ -32,7 +32,7 @@ import (
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
-func TestAssignTicketsRequest(t *testing.T) {
+func TestAssignTickets(t *testing.T) {
 	assert := assert.New(t)
 	tc := createBackendForTest(t)
 	defer tc.Close()
@@ -95,7 +95,7 @@ func TestAssignTicketsRequest(t *testing.T) {
 	}
 }
 
-func TestFetchMatchesEmptyRequest(t *testing.T) {
+func TestFetchMatches(t *testing.T) {
 	assert := assert.New(t)
 	tc := createBackendForTest(t)
 	defer tc.Close()
