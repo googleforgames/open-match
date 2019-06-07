@@ -462,12 +462,13 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 		return err
 	}
 
+	var ticket *pb.Ticket
 	for _, id := range ids {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			ticket, err := rb.GetTicket(ctx, id)
+			ticket, err = rb.GetTicket(ctx, id)
 			if err != nil {
 				redisLogger.WithError(err).Errorf("failed to get ticket %s from redis when updating assignments", id)
 				return err
@@ -507,7 +508,8 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 	defer handleConnectionClose(&redisConn)
 
 	backoffOperation := func() error {
-		ticket, err := rb.GetTicket(ctx, id)
+		var ticket *pb.Ticket
+		ticket, err = rb.GetTicket(ctx, id)
 		if err != nil {
 			redisLogger.WithError(err).Errorf("failed to get ticket %s when executing get assignments", id)
 			return backoff.Permanent(err)
