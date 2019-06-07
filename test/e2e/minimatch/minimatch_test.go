@@ -43,7 +43,7 @@ type testProfile struct {
 	pools []*pb.Pool
 }
 
-func TestMinimatchNormalMatchGeneration(t *testing.T) {
+func TestMinimatch(t *testing.T) {
 	assert := require.New(t)
 	minimatchTc := createMinimatchForTest(t)
 	defer minimatchTc.Close()
