@@ -628,26 +628,40 @@ ifeq ($(ENABLE_SECURITY_HARDENING),1)
 endif
 
 all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
-golang-protos: pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/messages.pb.go pkg/pb/mmlogic.pb.go pkg/pb/evaluator.pb.go pkg/pb/messages.pb.go
+golang-protos: pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/messages.pb.go pkg/pb/mmlogic.pb.go pkg/pb/messages.pb.go internal/pb/evaluator.pb.go
 
-http-proxy-golang-protos: pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/messages.pb.gw.go pkg/pb/mmlogic.pb.gw.go pkg/pb/evaluator.pb.gw.go
+http-proxy-golang-protos: pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/messages.pb.gw.go pkg/pb/mmlogic.pb.gw.go internal/pb/evaluator.pb.gw.go
 
 swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/evaluator.swagger.json
 
 pkg/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	mkdir -p $(REPOSITORY_ROOT)/pkg/pb
-	$(PROTOC) $(REPOSITORY_ROOT)/$< \
-		-I $(REPOSITORY_ROOT)/api -I $(PROTOC_INCLUDES) \
-		--go_out=plugins=grpc:$(REPOSITORY_ROOT)/pkg/pb
+	$(PROTOC) $(abspath $<) \
+		-I $(abspath $(REPOSITORY_ROOT)/../..) -I $(PROTOC_INCLUDES) \
+		--go_out=plugins=grpc:$(abspath $(REPOSITORY_ROOT)/../..)
+
+internal/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	mkdir -p $(REPOSITORY_ROOT)/internal/pb
+	$(PROTOC) $(abspath $<) \
+		-I $(abspath $(REPOSITORY_ROOT)/../..) -I $(PROTOC_INCLUDES) \
+		--go_out=plugins=grpc:$(abspath $(REPOSITORY_ROOT)/../..)
 
 pkg/pb/%.pb.gw.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
-	$(PROTOC) $(REPOSITORY_ROOT)/$< \
-		-I $(REPOSITORY_ROOT)/api -I $(PROTOC_INCLUDES) \
-   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)/pkg/pb
+	mkdir -p $(REPOSITORY_ROOT)/pkg/pb
+	$(PROTOC) $(abspath $<) \
+		-I $(abspath $(REPOSITORY_ROOT)/../..) -I $(PROTOC_INCLUDES) \
+   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(abspath $(REPOSITORY_ROOT)/../..)
+
+internal/pb/%.pb.gw.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	mkdir -p $(REPOSITORY_ROOT)/internal/pb
+	$(PROTOC) $(abspath $<) \
+		-I $(abspath $(REPOSITORY_ROOT)/../..) -I $(PROTOC_INCLUDES) \
+   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(abspath $(REPOSITORY_ROOT)/../..)
 
 api/%.swagger.json: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
-	$(PROTOC) $(REPOSITORY_ROOT)/$< \
-		-I $(REPOSITORY_ROOT)/api -I $(PROTOC_INCLUDES) --swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)/api
+	$(PROTOC) $(abspath $<) \
+		-I $(abspath $(REPOSITORY_ROOT)/../..) -I $(PROTOC_INCLUDES) \
+		--swagger_out=logtostderr=true,allow_delete_body=true:$(abspath $(REPOSITORY_ROOT)/../..)
 
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
 pkg/pb/backend.pb.go: pkg/pb/messages.pb.go
@@ -847,6 +861,7 @@ clean-swagger-docs:
 
 clean-protos:
 	rm -rf $(REPOSITORY_ROOT)/pkg/pb/
+	rm -rf $(REPOSITORY_ROOT)/internal/pb/
 
 clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/cmd/backend/backend

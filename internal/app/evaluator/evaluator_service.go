@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"open-match.dev/open-match/internal/config"
+	inPb "open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -40,7 +41,7 @@ type evaluatorService struct {
 // Evaluate accepts a list of matches, triggers the user configured evaluation
 // function with these and other matches in the evaluation window and returns
 // matches that are accepted by the Evaluator as valid results.
-func (s *evaluatorService) Evaluate(ctx context.Context, req *pb.EvaluateRequest) (*pb.EvaluateResponse, error) {
+func (s *evaluatorService) Evaluate(ctx context.Context, req *inPb.EvaluateRequest) (*inPb.EvaluateResponse, error) {
 	evaluatorResult := s.function(req.Match)
-	return &pb.EvaluateResponse{Match: evaluatorResult}, nil
+	return &inPb.EvaluateResponse{Match: evaluatorResult}, nil
 }

@@ -13,10 +13,10 @@
 // limitations under the License.
 
 syntax = "proto3";
-package api;
-option go_package = "pb";
+package internal;
+option go_package = "open-match.dev/open-match/internal/pb";
 
-import "messages.proto";
+import "open-match.dev/open-match/api/messages.proto";
 import "google/api/annotations.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
@@ -56,12 +56,12 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 
 message EvaluateRequest {
   // List of Matches to evaluate.
-  repeated Match match = 1;
+  repeated api.Match match = 1;
 }
 
 message EvaluateResponse {
   // Accepted list of Matches.
-  repeated Match match = 1;
+  repeated api.Match match = 1;
 }
 
 // The service implementing the Evaluator API that is called to evaluate
