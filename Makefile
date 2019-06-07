@@ -22,8 +22,10 @@
 ## Create a Minikube Cluster (requires VirtualBox)
 ## make create-mini-cluster push-helm
 ##
-## Create a KinD Cluster
-## make create-kind-cluster push-helm
+## Create a KinD Cluster (Follow instructions to run command before pushing helm.)
+## make create-kind-cluster get-kind-kubeconfig
+## Finish KinD setup by installing helm:
+## make push-helm
 ##
 ## Deploy Open Match
 ## make push-images -j$(nproc)
@@ -41,7 +43,7 @@
 ## Teardown
 ## make delete-mini-cluster
 ## make delete-gke-cluster
-## make delete-kind-cluster
+## make delete-kind-cluster && export KUBECONFIG=""
 ##
 ## Prepare a Pull Request
 ## make presubmit
@@ -154,7 +156,7 @@ ifeq ($(OS),Windows_NT)
 	NODEJS_PACKAGE_NAME = nodejs.zip
 	HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_windows_amd64.zip
 	GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-windows-amd64.zip
-	KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/kind-windows-amd64
+	KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-windows-amd64
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
@@ -168,7 +170,7 @@ else
 		NODEJS_PACKAGE_NAME = nodejs.tar.gz
 		HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_linux_amd64.tar.gz
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64.tar.gz
-		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/kind-linux-amd64
+		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-linux-amd64
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
@@ -181,7 +183,7 @@ else
 		NODEJS_PACKAGE_NAME = nodejs.tar.gz
 		HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_osx_amd64.tar.gz
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-darwin-amd64.tar.gz
-		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/kind-darwin-amd64
+		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-darwin-amd64
 	endif
 endif
 
@@ -593,6 +595,13 @@ activate-gcp-apis: gcloud
 
 create-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KIND) create cluster
+
+get-kind-kubeconfig: build/toolchain/bin/kind$(EXE_EXTENSION)
+	@echo "============================================="
+	@echo "= Run this command"
+	@echo "============================================="
+	@echo "export KUBECONFIG=\"$(shell $(KIND) get kubeconfig-path)\""
+	@echo "============================================="
 
 delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(KIND) delete cluster

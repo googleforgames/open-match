@@ -24,6 +24,8 @@ import (
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
+// Create a minimatch test service with function bindings from frontend, backend, and mmlogic.
+// Instruct this service to start and connect to a fake storage service.
 func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
 	var closerFunc func()
 
