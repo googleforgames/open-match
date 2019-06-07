@@ -133,32 +133,38 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		}
 	}(resultChan)
 
-	var done bool
+	proposals := make(*pb.Match)
 
+	// Query if mmf encounters any errors in any of the profiles
 	for result := range resultChan {
 		select {
 		case <-ctx.Done():
-			done = true
 			continue
 		default:
 			// Log and continue with the results from next profile if the current ones fail
-			if result.err != nil {
-				logger.Error(result.err.Error())
+			if err != nil {
+				continue
 			}
-			for _, match := range result.matches {
-				err = stream.Send(&pb.FetchMatchesResponse{Match: match})
-				if err != nil {
-					logger.WithError(err).Error("failed to stream back the response")
-				}
-			}
+
+			proposals = append(proposals, result.matches...)
+			err = result.err
 		}
 	}
 
-	if done {
-		return ctx.Err()
+	if err != nil {
+		logger.WithError(err).Error("failed to execute fetchmatches.")
+		return err
 	}
 
-	return nil
+	for _, proposal := range proposals {
+		err = stream.Send(&pb.FetchMatchesResponse{Match: match})
+		if err != nil {
+			logger.WithError(err).Error("failed to stream back the response")
+			return err
+		}
+	}
+
+	return ctx.Err()
 }
 
 func (s *backendService) getHTTPClient(config *pb.FunctionConfig_Rest) (*http.Client, string, error) {
