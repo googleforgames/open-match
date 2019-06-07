@@ -16,7 +16,7 @@
 ## ====================
 ##
 ## Create a GKE Cluster (requires gcloud installed and initialized, https://cloud.google.com/sdk/docs/quickstarts)
-## make enable-gcp-apis
+## make activate-gcp-apis
 ## make create-gke-cluster push-helm
 ##
 ## Create a Minikube Cluster (requires VirtualBox)
@@ -70,6 +70,7 @@ HTMLTEST_VERSION = 0.10.3
 GOLANGCI_VERSION = 1.17.1
 KIND_VERSION = 0.3.0
 SWAGGERUI_VERSION = 3.22.3
+TERRAFORM_VERSION = 0.12.1
 
 ENABLE_SECURITY_HARDENING = 0
 GO = GO111MODULE=on go
@@ -110,10 +111,11 @@ KUBECTL = $(TOOLCHAIN_BIN)/kubectl$(EXE_EXTENSION)
 HTMLTEST = $(TOOLCHAIN_BIN)/htmltest$(EXE_EXTENSION)
 KIND = $(TOOLCHAIN_BIN)/kind$(EXE_EXTENSION)
 HUGO = $(TOOLCHAIN_BIN)/hugo$(EXE_EXTENSION)
+TERRAFORM = $(TOOLCHAIN_BIN)/terraform$(EXE_EXTENSION)
 SKAFFOLD = $(TOOLCHAIN_BIN)/skaffold$(EXE_EXTENSION)
 CERTGEN = $(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION)
 GOLANGCI = $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
-GCLOUD = gcloud
+GCLOUD = gcloud --quiet
 OPEN_MATCH_CHART_NAME = open-match
 OPEN_MATCH_KUBERNETES_NAMESPACE = open-match
 OPEN_MATCH_DEMO_CHART_NAME = open-match-demo
@@ -171,6 +173,7 @@ ifeq ($(OS),Windows_NT)
 	HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_windows_amd64.zip
 	GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-windows-amd64.zip
 	KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-windows-amd64
+	TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_windows_amd64.zip
 	SED_REPLACE = sed -i
 else
 	UNAME_S := $(shell uname -s)
@@ -184,6 +187,7 @@ else
 		HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_linux_amd64.tar.gz
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64.tar.gz
 		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-linux-amd64
+		TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_linux_amd64.zip
 		SED_REPLACE = sed -i
 	endif
 	ifeq ($(UNAME_S),Darwin)
@@ -196,6 +200,7 @@ else
 		HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_osx_amd64.tar.gz
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-darwin-amd64.tar.gz
 		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-darwin-amd64
+		TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_darwin_amd64.zip
 		SED_REPLACE = sed -i ''
 	endif
 endif
@@ -208,7 +213,6 @@ local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
 push-images: push-service-images push-example-images push-tool-images
-
 
 push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-synchronizer-image push-swaggerui-image
 push-example-images: push-demo-images push-mmf-example-images
@@ -469,7 +473,7 @@ set-redis-password:
 		$(KUBECTL) create secret generic $(REDIS_NAME) -n $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
 
 install-toolchain: install-kubernetes-tools install-protoc-tools install-openmatch-tools
-install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)
+install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION) build/toolchain/bin/terraform$(EXE_EXTENSION)
 install-protoc-tools: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 install-openmatch-tools: build/toolchain/bin/certgen$(EXE_EXTENSION) build/toolchain/bin/reaper$(EXE_EXTENSION)
 
@@ -515,6 +519,13 @@ build/toolchain/bin/kind$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -Lo $(KIND) $(KIND_PACKAGE)
 	chmod +x $(KIND)
+
+build/toolchain/bin/terraform$(EXE_EXTENSION):
+	mkdir -p $(TOOLCHAIN_BIN)
+	mkdir -p $(TOOLCHAIN_DIR)/temp-terraform
+	cd $(TOOLCHAIN_DIR)/temp-terraform && curl -Lo terraform.zip $(TERRAFORM_PACKAGE) && unzip -j -q -o terraform.zip
+	mv $(TOOLCHAIN_DIR)/temp-terraform/terraform$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/terraform$(EXE_EXTENSION)
+	rm -rf $(TOOLCHAIN_DIR)/temp-terraform/
 
 build/toolchain/python/:
 	virtualenv --python=python3 $(TOOLCHAIN_DIR)/python/
@@ -596,6 +607,11 @@ activate-gcp-apis: gcloud
 	$(GCLOUD) services enable container.googleapis.com
 	$(GCLOUD) services enable containeranalysis.googleapis.com
 	$(GCLOUD) services enable binaryauthorization.googleapis.com
+
+create-gcp-service-account: gcloud
+	gcloud $(GCP_PROJECT_FLAG) iam service-accounts create open-match --display-name="Open Match Service Account"
+	gcloud $(GCP_PROJECT_FLAG) iam service-accounts add-iam-policy-binding --member=open-match@$(GCP_PROJECT_ID).iam.gserviceaccount.com --role=roles/container.clusterAdmin
+	gcloud $(GCP_PROJECT_FLAG) iam service-accounts keys create ~/key.json --iam-account open-match@$(GCP_PROJECT_ID).iam.gserviceaccount.com
 
 create-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KIND) create cluster
@@ -738,6 +754,15 @@ else
 	$(SED_REPLACE) 's/$$EVALUATION_MODE/ALWAYS_ALLOW/g' $(BUILD_DIR)/policies/binauthz.yaml
 endif
 
+terraform-plan: install/terraform/open-match/.terraform/
+	(cd $(REPOSITORY_ROOT)/install/terraform/open-match/ && $(TERRAFORM) plan -var gcp_project_id=$(GCP_PROJECT_ID) -var gcp_location=$(GCP_LOCATION))
+
+terraform-apply: install/terraform/open-match/.terraform/
+	(cd $(REPOSITORY_ROOT)/install/terraform/open-match/ && $(TERRAFORM) apply -var gcp_project_id=$(GCP_PROJECT_ID) -var gcp_location=$(GCP_LOCATION))
+
+install/terraform/open-match/.terraform/: build/toolchain/bin/terraform$(EXE_EXTENSION)
+	(cd $(REPOSITORY_ROOT)/install/terraform/open-match/ && $(TERRAFORM) init)
+
 build/certificates/: build/toolchain/bin/certgen$(EXE_EXTENSION)
 	mkdir -p $(BUILD_DIR)/certificates/
 	cd $(BUILD_DIR)/certificates/ && $(CERTGEN)
@@ -790,6 +815,9 @@ clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/tools/certgen/certgen$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/tools/reaper/reaper$(EXE_EXTENSION)
 
+clean-terraform:
+	rm -rf $(REPOSITORY_ROOT)/install/terraform/.terraform/
+
 clean-build: clean-toolchain clean-archives clean-release
 	rm -rf $(BUILD_DIR)/
 
@@ -812,7 +840,7 @@ clean-swagger-docs:
 clean-swaggerui:
 	rm -rf $(REPOSITORY_ROOT)/third_party/swaggerui/
 
-clean: clean-images clean-binaries clean-release clean-build clean-protos clean-swagger-docs clean-install-yaml clean-stress-test-tools clean-secrets clean-swaggerui
+clean: clean-images clean-binaries clean-release clean-build clean-protos clean-swagger-docs clean-install-yaml clean-stress-test-tools clean-secrets clean-swaggerui clean-terraform
 
 proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Frontend Health: http://localhost:$(FRONTEND_PORT)/healthz"
