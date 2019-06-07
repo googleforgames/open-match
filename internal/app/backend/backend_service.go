@@ -133,7 +133,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		}
 	}(resultChan)
 
-	proposals := make(*pb.Match)
+	proposals := []*pb.Match{}
 
 	// Query if mmf encounters any errors in any of the profiles
 	for result := range resultChan {
@@ -157,7 +157,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	}
 
 	for _, proposal := range proposals {
-		err = stream.Send(&pb.FetchMatchesResponse{Match: match})
+		err = stream.Send(&pb.FetchMatchesResponse{Match: proposal})
 		if err != nil {
 			logger.WithError(err).Error("failed to stream back the response")
 			return err
