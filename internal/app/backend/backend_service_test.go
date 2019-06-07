@@ -144,8 +144,7 @@ func createBackendForTest(t *testing.T) *rpcTesting.TestContext {
 	var closerFunc func()
 	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
-		_, closer := statestoreTesting.New(t, cfg)
-		closerFunc = closer
+		closerFunc = statestoreTesting.New(t, cfg)
 
 		cfg.Set("storage.page.size", 10)
 		BindService(p, cfg)

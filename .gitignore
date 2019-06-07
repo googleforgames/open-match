@@ -107,8 +107,9 @@ cmd/frontend/frontend
 cmd/mmlogic/mmlogic
 cmd/evaluator/evaluator
 cmd/minimatch/minimatch
+cmd/swaggerui/swaggerui
 tools/certgen/certgen
-examples/functions/golang/simple/simple
+examples/functions/golang/soloduel/soloduel
 
 # Secrets Directories
 install/helm/open-match/secrets/
