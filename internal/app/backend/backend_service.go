@@ -215,7 +215,7 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 		return nil, status.Errorf(codes.Internal, "failed to get response from mmf run for proile %s: %s", profile.Name, err.Error())
 	}
 	defer func() {
-		err := resp.Body.Close()
+		err = resp.Body.Close()
 		if err != nil {
 			logger.WithError(err).Error("failed to close response body read closer")
 		}
