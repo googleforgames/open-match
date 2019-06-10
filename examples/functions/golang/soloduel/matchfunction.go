@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main a sample match function that uses the GRPC harness to set up
-// the match making function as a service. This sample is a reference
-// to demonstrate the usage of the GRPC harness and should only be used as
+// Package main provides a sample match function that uses the GRPC harness to set up 1v1 matches.
+// This sample is a reference to demonstrate the usage of the GRPC harness and should only be used as
 // a starting point for your match function. You will need to modify the
 // matchmaking logic in this function based on your game's requirements.
 package main
@@ -23,23 +22,12 @@ import (
 	"fmt"
 	"time"
 
-	goHarness "open-match.dev/open-match/internal/harness/golang"
 	"open-match.dev/open-match/internal/pb"
+	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
 )
 
-func main() {
-	// Invoke the harness to setup a GRPC service that handles requests to run the
-	// match function. The harness itself queries open match for player pools for
-	// the specified request and passes the pools to the match function to generate
-	// proposals.
-	goHarness.RunMatchFunction(&goHarness.FunctionSettings{
-		FunctionName: "simple-matchfunction",
-		Func:         makeMatches,
-	})
-}
-
-// makeMatches is where your custom matchmaking logic lives.
-func makeMatches(p *goHarness.MatchFunctionParams) []*pb.Match {
+// MakeMatches is where your custom matchmaking logic lives.
+func MakeMatches(p *mmfHarness.MatchFunctionParams) []*pb.Match {
 	// This simple match function does the following things
 	// 1. Deduplicates the tickets from the pools into a single list.
 	// 2. Groups players into 1v1 matches.

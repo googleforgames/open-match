@@ -63,12 +63,7 @@ func newRedis(cfg config.View) Service {
 	maskedURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
 
 	redisLogger.WithField("redisURL", maskedURL).Debug("Attempting to connect to Redis")
-	return NewRedis(cfg, redisURL, maskedURL)
-}
 
-// NewRedis creates a Redis backed statestore.
-// Do not call this method directly, exposed for testing.
-func NewRedis(cfg config.View, redisURL string, maskedURL string) Service {
 	pool := &redis.Pool{
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
@@ -456,6 +451,10 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 
 // UpdateAssignments update the match assignments for the input ticket ids
 func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error {
+	if assignment == nil {
+		return status.Error(codes.InvalidArgument, "assignment is nil")
+	}
+
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
@@ -467,12 +466,15 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 		return err
 	}
 
+	// Redis does not support roll backs See https://redis.io/topics/transactions
+	// TODO: fake the batch update rollback behavior
+	var ticket *pb.Ticket
 	for _, id := range ids {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			ticket, err := rb.GetTicket(ctx, id)
+			ticket, err = rb.GetTicket(ctx, id)
 			if err != nil {
 				redisLogger.WithError(err).Errorf("failed to get ticket %s from redis when updating assignments", id)
 				return err
@@ -512,7 +514,8 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 	defer handleConnectionClose(&redisConn)
 
 	backoffOperation := func() error {
-		ticket, err := rb.GetTicket(ctx, id)
+		var ticket *pb.Ticket
+		ticket, err = rb.GetTicket(ctx, id)
 		if err != nil {
 			redisLogger.WithError(err).Errorf("failed to get ticket %s when executing get assignments", id)
 			return backoff.Permanent(err)

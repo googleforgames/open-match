@@ -22,8 +22,10 @@
 ## Create a Minikube Cluster (requires VirtualBox)
 ## make create-mini-cluster push-helm
 ##
-## Create a KinD Cluster
-## make create-kind-cluster push-helm
+## Create a KinD Cluster (Follow instructions to run command before pushing helm.)
+## make create-kind-cluster get-kind-kubeconfig
+## Finish KinD setup by installing helm:
+## make push-helm
 ##
 ## Deploy Open Match
 ## make push-images -j$(nproc)
@@ -36,11 +38,12 @@
 ## Access monitoring
 ## make proxy-prometheus
 ## make proxy-grafana
+## make proxy-ui
 ##
 ## Teardown
 ## make delete-mini-cluster
 ## make delete-gke-cluster
-## make delete-kind-cluster
+## make delete-kind-cluster && export KUBECONFIG=""
 ##
 ## Prepare a Pull Request
 ## make presubmit
@@ -67,6 +70,7 @@ MINIKUBE_VERSION = latest
 HTMLTEST_VERSION = 0.10.3
 GOLANGCI_VERSION = 1.16.0
 KIND_VERSION = 0.3.0
+SWAGGERUI_VERSION = 3.22.2
 
 ENABLE_SECURITY_HARDENING = 0
 GO = GO111MODULE=on go
@@ -92,6 +96,7 @@ GCP_ZONE = us-west1-a
 EXE_EXTENSION =
 GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
 GO111MODULE = on
+SWAGGERUI_PORT = 51500
 PROMETHEUS_PORT = 9090
 GRAFANA_PORT = 3000
 SITE_PORT = 8080
@@ -151,7 +156,7 @@ ifeq ($(OS),Windows_NT)
 	NODEJS_PACKAGE_NAME = nodejs.zip
 	HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_windows_amd64.zip
 	GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-windows-amd64.zip
-	KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/kind-windows-amd64
+	KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-windows-amd64
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
@@ -165,7 +170,7 @@ else
 		NODEJS_PACKAGE_NAME = nodejs.tar.gz
 		HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_linux_amd64.tar.gz
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64.tar.gz
-		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/kind-linux-amd64
+		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-linux-amd64
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
@@ -178,7 +183,7 @@ else
 		NODEJS_PACKAGE_NAME = nodejs.tar.gz
 		HTMLTEST_PACKAGE = https://github.com/wjdp/htmltest/releases/download/v$(HTMLTEST_VERSION)/htmltest_$(HTMLTEST_VERSION)_osx_amd64.tar.gz
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-darwin-amd64.tar.gz
-		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/kind-darwin-amd64
+		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-darwin-amd64
 	endif
 endif
 
@@ -191,7 +196,7 @@ local-cloud-build: gcloud
 
 push-images: push-service-images push-example-images
 
-push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-evaluator-image
+push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-evaluator-image push-swaggerui-image
 
 push-backend-image: docker build-backend-image
 	docker push $(REGISTRY)/openmatch-backend:$(TAG)
@@ -213,21 +218,27 @@ push-evaluator-image: docker build-evaluator-image
 	docker push $(REGISTRY)/openmatch-evaluator:$(TAG)
 	docker push $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG)
 
+push-swaggerui-image: docker build-swaggerui-image
+	docker push $(REGISTRY)/openmatch-swaggerui:$(TAG)
+	docker push $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG)
+
 push-example-images: push-demo-images push-mmf-example-images
 
-push-demo-images: push-mmf-go-simple-image
+push-demo-images: push-mmf-go-soloduel-image
 
-push-mmf-example-images: push-mmf-go-simple-image
+push-mmf-example-images: push-mmf-go-soloduel-image
 
-push-mmf-go-simple-image: docker build-mmf-go-simple-image
-	docker push $(REGISTRY)/openmatch-mmf-go-simple:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmf-go-simple:$(ALTERNATE_TAG)
+push-mmf-go-soloduel-image: docker build-mmf-go-soloduel-image
+	docker push $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG)
+	docker push $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG)
 
 build-images: build-service-images build-example-images
 
-build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-evaluator-image
+build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-evaluator-image build-swaggerui-image
 
-build-base-build-image: docker
+# Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
+# This is important so that the repository does not have any mutations while building individual images.
+build-base-build-image: docker all-protos
 	docker build -f Dockerfile.base-build -t open-match-base-build .
 
 build-backend-image: docker build-base-build-image
@@ -245,23 +256,27 @@ build-minimatch-image: docker build-base-build-image
 build-evaluator-image: docker build-base-build-image
 	docker build -f cmd/evaluator/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-evaluator:$(TAG) -t $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG) .
 
+build-swaggerui-image: docker build-base-build-image site/static/swaggerui/
+	docker build -f cmd/swaggerui/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-swaggerui:$(TAG) -t $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG) .
+
 build-example-images: build-demo-images build-mmf-example-images
 
-build-demo-images: build-mmf-go-simple-image
+build-demo-images: build-mmf-go-soloduel-image
 
-build-mmf-example-images: build-mmf-go-simple-image
+build-mmf-example-images: build-mmf-go-soloduel-image
 
-build-mmf-go-simple-image: docker build-base-build-image
-	docker build -f examples/functions/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-simple:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-simple:$(ALTERNATE_TAG) .
+build-mmf-go-soloduel-image: docker build-base-build-image
+	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
 
 clean-images: docker
 	-docker rmi -f open-match-base-build
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-simple:$(TAG) $(REGISTRY)/openmatch-mmf-go-simple:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontend:$(TAG) $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-mmlogic:$(TAG) $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator:$(TAG) $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-swaggerui:$(TAG) $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG)
 
 install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug $(REDIS_NAME) stable/redis --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
@@ -320,6 +335,7 @@ install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.frontend.install=false \
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.evaluator.install=false \
+		--set openmatch.swaggerui.install=false \
 		--set redis.enabled=true \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=false \
@@ -347,6 +363,7 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.frontend.install=false \
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.evaluator.install=false \
+		--set openmatch.swaggerui.install=false \
 		--set redis.enabled=false \
 		--set prometheus.enabled=true \
 		--set grafana.enabled=false \
@@ -362,6 +379,7 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.frontend.install=false \
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.evaluator.install=false \
+		--set openmatch.swaggerui.install=false \
 		--set redis.enabled=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=true \
@@ -377,6 +395,7 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.frontend.install=false \
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.evaluator.install=false \
+		--set openmatch.swaggerui.install=false \
 		--set redis.enabled=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=false \
@@ -577,6 +596,13 @@ activate-gcp-apis: gcloud
 create-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KIND) create cluster
 
+get-kind-kubeconfig: build/toolchain/bin/kind$(EXE_EXTENSION)
+	@echo "============================================="
+	@echo "= Run this command"
+	@echo "============================================="
+	@echo "export KUBECONFIG=\"$(shell $(KIND) get kubeconfig-path)\""
+	@echo "============================================="
+
 delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(KIND) delete cluster
 
@@ -660,13 +686,15 @@ lint: fmt vet lint-chart
 
 all: service-binaries example-binaries tools-binaries
 
-service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION) cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/evaluator/evaluator$(EXE_EXTENSION)
+service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/swaggerui/swaggerui$(EXE_EXTENSION)
+service-binaries: cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION)
+service-binaries: cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/evaluator/evaluator$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries
-example-mmf-binaries: examples/functions/golang/simple/simple$(EXE_EXTENSION)
+example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
 
-examples/functions/golang/simple/simple$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
-	cd examples/functions/golang/simple; $(GO_BUILD_COMMAND)
+examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+	cd examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
 
@@ -691,6 +719,9 @@ cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/matchfunction.pb.go interna
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd cmd/minimatch; $(GO_BUILD_COMMAND)
 
+cmd/swaggerui/swaggerui$(EXE_EXTENSION): site/static/swaggerui/
+	cd cmd/swaggerui; $(GO_BUILD_COMMAND)
+
 tools/certgen/certgen$(EXE_EXTENSION):
 	cd tools/certgen/ && $(GO_BUILD_COMMAND)
 
@@ -714,7 +745,7 @@ node_modules/: build/toolchain/nodejs/
 	echo "{}" > package.json
 	$(TOOLCHAIN_DIR)/nodejs/bin/npm install postcss-cli autoprefixer
 
-build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
+build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) site/static/swaggerui/ node_modules/
 	rm -rf build/site/
 	mkdir -p build/site/
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) --config=config.toml --source . --destination $(BUILD_DIR)/site/public/
@@ -722,6 +753,19 @@ build/site/: build/toolchain/bin/hugo$(EXE_EXTENSION) node_modules/
 	-cp -f site/* $(BUILD_DIR)/site
 	-cp -f site/.gcloudignore $(BUILD_DIR)/site/.gcloudignore
 	cp $(BUILD_DIR)/site/app.yaml $(BUILD_DIR)/site/.app.yaml
+
+site/static/swaggerui/:
+	mkdir -p $(TOOLCHAIN_DIR)/swaggerui-temp/
+	mkdir -p $(TOOLCHAIN_BIN)
+	curl -o $(TOOLCHAIN_DIR)/swaggerui-temp/swaggerui.zip -L \
+		https://github.com/swagger-api/swagger-ui/archive/v$(SWAGGERUI_VERSION).zip
+	(cd $(TOOLCHAIN_DIR)/swaggerui-temp/; unzip -q -o swaggerui.zip)
+	cp -rf $(TOOLCHAIN_DIR)/swaggerui-temp/swagger-ui-$(SWAGGERUI_VERSION)/dist/ \
+		$(REPOSITORY_ROOT)/site/static/swaggerui
+	# Update the URL in the main page to point to a known good endpoint.
+	# TODO This does not work on macOS you need to add '' after -i. This isn't build critical.
+	sed -i 's/url:.*/url: \"https:\/\/open-match.dev\/api\/v0.0.0-dev\/frontend.swagger.json\",/g' $(REPOSITORY_ROOT)/site/static/swaggerui/index.html
+	rm -rf $(TOOLCHAIN_DIR)/swaggerui-temp
 
 md-test: docker
 	docker run -t --rm -v $(CURDIR):/mnt:ro dkhamsing/awesome_bot --white-list "localhost,github.com/googleforgames/open-match/tree/release-,github.com/googleforgames/open-match/blob/release-,github.com/googleforgames/open-match/releases/download/v" --allow-dupe --allow-redirect --skip-save-results `find . -type f -name '*.md' -not -path './build/*' -not -path './node_modules/*' -not -path './site*' -not -path './.git*'`
@@ -764,7 +808,7 @@ endif
 deploy-redirect-site: gcloud
 	cd $(REPOSITORY_ROOT)/site/redirect/ && gcloud $(OM_SITE_GCP_PROJECT_FLAG) app deploy app.yaml --promote --quiet
 
-run-site: build/toolchain/bin/hugo$(EXE_EXTENSION)
+run-site: build/toolchain/bin/hugo$(EXE_EXTENSION) site/static/swaggerui/
 	cd site/ && ../build/toolchain/bin/hugo$(EXE_EXTENSION) server --debug --watch --enableGitInfo . --baseURL=http://localhost:$(SITE_PORT)/ --bind 0.0.0.0 --port $(SITE_PORT) --disableFastRender
 
 ci-deploy-artifacts: install/yaml/ swagger-json-docs gcloud
@@ -809,7 +853,8 @@ clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/cmd/frontend/frontend
 	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic
 	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch
-	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/simple/simple
+	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/soloduel/soloduel
+	rm -rf $(REPOSITORY_ROOT)/cmd/swaggerui/swaggerui
 
 clean-build: clean-toolchain clean-archives clean-release
 	rm -rf $(REPOSITORY_ROOT)/build/
@@ -833,30 +878,33 @@ clean-stress-test-tools:
 	rm -rf $(TOOLCHAIN_DIR)/python
 	rm -f $(REPOSITORY_ROOT)/test/stress/*.csv
 
-clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools clean-secrets
+clean-swaggerui:
+	rm -rf $(REPOSITORY_ROOT)/site/static/swaggerui/
+
+clean: clean-images clean-binaries clean-site clean-release clean-build clean-protos clean-swagger-docs clean-nodejs clean-install-yaml clean-stress-test-tools clean-secrets clean-swaggerui
 
 proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	@echo "Health: http://localhost:$(FRONTEND_PORT)/healthz"
-	@echo "RPC: http://localhost:$(FRONTEND_PORT)/debug/rpcz"
-	@echo "Trace: http://localhost:$(FRONTEND_PORT)/debug/tracez"
+	@echo "Frontend Health: http://localhost:$(FRONTEND_PORT)/healthz"
+	@echo "Frontend RPC: http://localhost:$(FRONTEND_PORT)/debug/rpcz"
+	@echo "Frontend Trace: http://localhost:$(FRONTEND_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=frontend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(FRONTEND_PORT):51504 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-backend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	@echo "Health: http://localhost:$(BACKEND_PORT)/healthz"
-	@echo "RPC: http://localhost:$(BACKEND_PORT)/debug/rpcz"
-	@echo "Trace: http://localhost:$(BACKEND_PORT)/debug/tracez"
+	@echo "Backend Health: http://localhost:$(BACKEND_PORT)/healthz"
+	@echo "Backend RPC: http://localhost:$(BACKEND_PORT)/debug/rpcz"
+	@echo "Backend Trace: http://localhost:$(BACKEND_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=backend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(BACKEND_PORT):51505 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-mmlogic: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	@echo "Health: http://localhost:$(MMLOGIC_PORT)/healthz"
-	@echo "RPC: http://localhost:$(MMLOGIC_PORT)/debug/rpcz"
-	@echo "Trace: http://localhost:$(MMLOGIC_PORT)/debug/tracez"
+	@echo "MmLogic Health: http://localhost:$(MMLOGIC_PORT)/healthz"
+	@echo "MmLogic RPC: http://localhost:$(MMLOGIC_PORT)/debug/rpcz"
+	@echo "MmLogic Trace: http://localhost:$(MMLOGIC_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=mmlogic,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(MMLOGIC_PORT):51503 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-evaluator: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	@echo "Health: http://localhost:$(EVALUATOR_PORT)/healthz"
-	@echo "RPC: http://localhost:$(EVALUATOR_PORT)/debug/rpcz"
-	@echo "Trace: http://localhost:$(EVALUATOR_PORT)/debug/tracez"
+	@echo "Evaluator Health: http://localhost:$(EVALUATOR_PORT)/healthz"
+	@echo "Evaluator RPC: http://localhost:$(EVALUATOR_PORT)/debug/rpcz"
+	@echo "Evaluator Trace: http://localhost:$(EVALUATOR_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=evaluator,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(EVALUATOR_PORT):51506 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-grafana: build/toolchain/bin/kubectl$(EXE_EXTENSION)
@@ -870,9 +918,13 @@ proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
+proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	@echo "SwaggerUI Health: http://localhost:$(SWAGGERUI_PORT)/"
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=swaggerui,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(SWAGGERUI_PORT):51500 $(PORT_FORWARD_ADDRESS_FLAG)
+
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
-proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-dashboard proxy-evaluator
+proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-evaluator proxy-ui proxy-dashboard
 
 proxy:
 	# This is an exception case where we'll call recursive make.
