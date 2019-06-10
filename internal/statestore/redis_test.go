@@ -35,8 +35,7 @@ import (
 func TestStatestoreSetup(t *testing.T) {
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 }
@@ -45,8 +44,7 @@ func TestTicketLifecycle(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 
@@ -65,7 +63,7 @@ func TestTicketLifecycle(t *testing.T) {
 	}
 
 	// Validate that GetTicket fails for a Ticket that does not exist.
-	_, err = service.GetTicket(context.Background(), id)
+	_, err := service.GetTicket(context.Background(), id)
 	assert.NotNil(err)
 	assert.Equal(status.Code(err), codes.NotFound)
 
@@ -101,8 +99,7 @@ func TestTicketIndexing(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 
@@ -122,7 +119,7 @@ func TestTicketIndexing(t *testing.T) {
 			},
 		}
 
-		err = service.CreateTicket(context.Background(), ticket)
+		err := service.CreateTicket(context.Background(), ticket)
 		assert.Nil(err)
 
 		err = service.IndexTicket(context.Background(), ticket)
@@ -130,7 +127,7 @@ func TestTicketIndexing(t *testing.T) {
 	}
 
 	// Remove one ticket, to test that it doesn't fall over.
-	err = service.DeleteTicket(context.Background(), "ticket.no.5")
+	err := service.DeleteTicket(context.Background(), "ticket.no.5")
 	assert.Nil(err)
 
 	// Remove ticket from index, should not show up.
@@ -172,14 +169,13 @@ func TestGetAssignmentBeforeSet(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 
 	var assignmentResp *pb.Assignment
 
-	err = service.GetAssignments(context.Background(), "id", func(assignment *pb.Assignment) error {
+	err := service.GetAssignments(context.Background(), "id", func(assignment *pb.Assignment) error {
 		assignmentResp = assignment
 		return nil
 	})
@@ -192,47 +188,35 @@ func TestUpdateAssignmentFatal(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 
 	var assignmentResp *pb.Assignment
 
-	err = service.UpdateAssignments(context.Background(), []string{"id"}, &pb.Assignment{})
-	// UpdateAssignment failed because the ticket does not exists
-	assert.Equal(status.Convert(err).Code(), codes.NotFound)
-	assert.Nil(assignmentResp)
-
-	// Now create a ticket and the state store service
-	err = service.CreateTicket(context.Background(), &pb.Ticket{
+	// Now create a ticket in the state store service
+	err := service.CreateTicket(context.Background(), &pb.Ticket{
 		Id:         "1",
 		Assignment: &pb.Assignment{Connection: "2"},
 	})
 	assert.Nil(err)
 
 	// Try to update the assignmets with the ticket created and some non-existed tickets
-	err = service.UpdateAssignments(context.Background(), []string{"1", "2", "3"}, &pb.Assignment{})
+	err = service.UpdateAssignments(context.Background(), []string{"1", "2", "3"}, &pb.Assignment{Connection: "localhost"})
 	// UpdateAssignment failed because the ticket does not exists
-	assert.Equal(status.Convert(err).Code(), codes.NotFound)
+	assert.Equal(codes.NotFound, status.Convert(err).Code())
 	assert.Nil(assignmentResp)
-
-	// Verify the transaction behavior of the UpdateAssignment.
-	ticket, err := service.GetTicket(context.Background(), "1")
-	assert.Equal(&pb.Assignment{}, ticket.Assignment)
-	assert.Nil(err)
 }
 
 func TestGetAssignmentNormal(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 
-	err = service.CreateTicket(context.Background(), &pb.Ticket{
+	err := service.CreateTicket(context.Background(), &pb.Ticket{
 		Id:         "1",
 		Assignment: &pb.Assignment{Connection: "2"},
 	})
@@ -267,13 +251,12 @@ func TestUpdateAssignmentNormal(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg := createRedis(t)
-	service, err := New(cfg)
-	assert.Nil(err)
+	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
 
 	// Create a ticket without assignment
-	err = service.CreateTicket(context.Background(), &pb.Ticket{
+	err := service.CreateTicket(context.Background(), &pb.Ticket{
 		Id: "1",
 	})
 	assert.Nil(err)
