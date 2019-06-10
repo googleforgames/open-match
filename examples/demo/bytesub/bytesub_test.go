@@ -16,53 +16,116 @@
 // latest value of a byte array.
 package bytesub
 
-import "testing"
+import (
+	"context"
+	"errors"
+	"testing"
+)
 
-func TestCollapseByteChan(t *testing.T) {
-	in := make(chan []byte)
-	out := collapseByteChan(in)
+// TestFastAndSlow ensures that if a slow subscriber is blocked, faster subscribers
+// nor publishers aren't blocked.  It also ensures that values published while slow
+// wasn't listening are skipped.
+func TestFastAndSlow(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	fast := make(chan string)
+	slow := make(chan string)
 
-	select {
-	case <-out:
-		t.Fatal("Out recieved without any input")
-	default:
-	}
+	s := New()
 
-	in <- []byte("0")
-	if v := string(<-out); v != "0" {
-		t.Fatal("Single value in did not produce expected out.")
-	}
+	go func() {
+		s.Subscribe(ctx, chanWriter{fast})
+		close(fast)
+	}()
+	go func() {
+		s.Subscribe(ctx, chanWriter{slow})
+		close(slow)
+	}()
 
-	in <- []byte("1")
-	in <- []byte("2")
-	in <- []byte("3")
-	in <- []byte("4")
-	in <- []byte("5")
-
-	if v := <-out; string(v) != "5" {
-		t.Fatal("Multi value in did not produce expected out.")
-	}
-
-	in <- []byte("bad")
-	in <- []byte("bad")
-	in <- []byte("bad")
-	close(in)
-
-	if _, ok := <-out; ok {
-		// May recieve 1 bad due to timing, but shouldn't recieve 2.
-		if _, ok := <-out; ok {
-			t.Fatal("Expected closed channel")
+	for _, i := range []string{"0", "1", "2", "3"} {
+		s.AnnounceLatest([]byte(i))
+		if v := <-fast; v != i {
+			t.Errorf("Espected \"%s\", got \"%s\"", i, v)
 		}
+	}
+
+	for count := 0; true; count++ {
+		if v := <-slow; v == "3" {
+			if count > 1 {
+				t.Error("Expected to recieve at most 1 other value on slow before recieving the latest value.")
+			}
+			break
+		}
+	}
+
+	cancel()
+	_, ok := <-fast
+	if ok {
+		t.Error("Expected subscribe to return and fast to be closed")
+	}
+	_, ok = <-slow
+	if ok {
+		t.Error("Expected subscribe to return and slow to be closed")
 	}
 }
 
-func TestCollapseByteChanNoWaitingClose(t *testing.T) {
-	in := make(chan []byte)
-	out := collapseByteChan(in)
+func TestBadWriter(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	close(in)
+	s := New()
+	s.AnnounceLatest([]byte{0, 1, 2})
+	err := s.Subscribe(ctx, writerFunc(func(b []byte) (int, error) {
+		return 1, nil
+	}))
 
-	if _, ok := <-out; ok {
-		t.Fatal("Expected closed channel")
+	if err != partialWriteError {
+		t.Errorf("Expected partialWriteError, got %s", err)
 	}
+}
+
+func TestErrorReturned(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	expected := errors.New("Hello there.")
+
+	s := New()
+	s.AnnounceLatest([]byte{0, 1, 2})
+	err := s.Subscribe(ctx, writerFunc(func(b []byte) (int, error) {
+		return 0, expected
+	}))
+
+	if err != expected {
+		t.Errorf("Expected returned error, got %s", err)
+	}
+}
+
+func TestContextError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	s := New()
+	s.AnnounceLatest([]byte{0, 1, 2})
+	err := s.Subscribe(ctx, writerFunc(func(b []byte) (int, error) {
+		return len(b), nil
+	}))
+
+	if err != context.Canceled {
+		t.Errorf("Expected context canceled error, got %s", err)
+	}
+}
+
+type chanWriter struct {
+	c chan string
+}
+
+func (cw chanWriter) Write(b []byte) (int, error) {
+	cw.c <- string(b)
+	return len(b), nil
+}
+
+type writerFunc func(b []byte) (int, error)
+
+func (w writerFunc) Write(b []byte) (int, error) {
+	return w(b)
 }

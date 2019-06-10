@@ -18,143 +18,63 @@ package bytesub
 
 import (
 	"context"
+	"errors"
 	"io"
-	"time"
-
-	"golang.org/x/net/websocket"
+	"sync"
 )
 
 type ByteSub struct {
-	subscribe chan *chanContext
-	latest    chan []byte
+	nextReady chan struct{}
+	b         []byte
+	r         sync.RWMutex
 }
 
 func New() *ByteSub {
-	l := &ByteSub{
-		subscribe: make(chan *chanContext),
-		latest:    make(chan []byte),
-	}
-
-	go multiplexByteChan(collapseByteChan(l.latest), l.subscribe)
-
-	return l
-}
-
-func (l *ByteSub) AnnounceLatest(b []byte) {
-	l.latest <- b
-}
-
-func (l *ByteSub) HandleSubscriber(ws *websocket.Conn) {
-	ctx, cancel := context.WithCancel(ws.Request().Context())
-
-	go l.handleSubscriber(ctx, cancel, ws)
-
-	<-ctx.Done()
-}
-
-func (l *ByteSub) handleSubscriber(ctx context.Context, cancel context.CancelFunc, w io.Writer) {
-	updates := make(chan []byte)
-
-	l.subscribe <- &chanContext{
-		c:   updates,
-		ctx: ctx,
-	}
-	collapsed := collapseByteChan(updates)
-
-	for b := range collapsed {
-		_, err := w.Write(b)
-		if err != nil {
-			cancel()
-			for range collapsed {
-			}
-			return
-		}
+	return &ByteSub{
+		nextReady: make(chan struct{}),
 	}
 }
 
-// Relays from the input channel to the returned channel.  If multiple inputs
-// are sent before the output channel accepts the input, only the most recent
-// input is sent.  Closing the input channel closes the output channel, dropping
-// any unsent inputs.
-func collapseByteChan(in <-chan []byte) <-chan []byte {
-	out := make(chan []byte)
-	go func() {
-		for {
-			recent, ok := <-in
-			if !ok {
-				close(out)
-				return
-			}
-
-		tryToSend:
-			for {
-				select {
-				case recent, ok = <-in:
-					if !ok {
-						close(out)
-						return
-					}
-				case out <- recent:
-					break tryToSend
-				}
-			}
-		}
-	}()
-	return out
+// AnnounceLatest writes b to all of the subscribers, with caviets listed in Subscribe.
+func (s *ByteSub) AnnounceLatest(b []byte) {
+	s.r.Lock()
+	defer s.r.Unlock()
+	close(s.nextReady)
+	s.nextReady = make(chan struct{})
+	s.b = b
 }
 
-type chanContext struct {
-	c   chan<- []byte
-	ctx context.Context
+func (s *ByteSub) get() (b []byte, nextReady chan struct{}) {
+	s.r.RLock()
+	defer s.r.RUnlock()
+	return s.b, s.nextReady
 }
 
-// Sends inputs to all subscribers.  When the subsciber's context is canceled,
-// the subscribers channel will be closed.  If in is closed, the subscribers are
-// closed.  A new subscriber gets the most recent value.
-func multiplexByteChan(in <-chan []byte, subscribe chan *chanContext) {
-	s := make(map[*chanContext]struct{})
+var partialWriteError = errors.New("ByteSub subscriber didn't consume the whole message.")
 
-	var latest []byte
+// Subscribe writes the latest value in a single call to w.Write.  It does not
+// guarantee that all values published to AnnounceLatest will be written.
+// However once things catch up, it will write the latest value.  If no values
+// have been announced, waits for a value before writing.
+func (s *ByteSub) Subscribe(ctx context.Context, w io.Writer) error {
+	nextReady := make(chan struct{})
+	close(nextReady)
 
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
 	for {
 		select {
-
-		case <-ticker.C:
-			for cc := range s {
-				select {
-				case <-cc.ctx.Done():
-					delete(s, cc)
-					close(cc.c)
-				default:
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-nextReady:
+			var b []byte
+			b, nextReady = s.get()
+			if b != nil {
+				l, err := w.Write(b)
+				if err != nil {
+					return err
 				}
-			}
-
-		case v, ok := <-in:
-			latest = v
-			if !ok {
-				for cc := range s {
-					close(cc.c)
+				if l != len(b) {
+					return partialWriteError
 				}
-			}
-
-			for cc := range s {
-				select {
-				case <-cc.ctx.Done():
-					delete(s, cc)
-					close(cc.c)
-				case cc.c <- v:
-				}
-			}
-
-		case cc := <-subscribe:
-			s[cc] = struct{}{}
-			select {
-			case <-cc.ctx.Done():
-				delete(s, cc)
-				close(cc.c)
-			case cc.c <- latest:
 			}
 		}
 	}
