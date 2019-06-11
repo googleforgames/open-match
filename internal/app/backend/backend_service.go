@@ -101,55 +101,37 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	}
 
 	ctx := stream.Context()
-	resultChan := make(chan mmfResult)
+	resultChan := make(chan mmfResult, len(req.Profile))
 
-	go func(resultChan chan<- mmfResult) {
-		var wg sync.WaitGroup
-		var matches []*pb.Match
-
-		defer func() {
-			wg.Wait()
-			close(resultChan)
-		}()
-
-		for _, profile := range req.Profile {
-			wg.Add(1)
-			go func(profile *pb.MatchProfile) {
-				defer wg.Done()
-
-				// Get the match results that will be sent.
-				// TODO: The matches returned by the MatchFunction will be sent to the
-				// Evaluator to select results. Until the evaluator is implemented,
-				// we channel all matches as accepted results.
-				switch (req.Config.Type).(type) {
-				case *pb.FunctionConfig_Grpc:
-					matches, err = matchesFromGRPCMMF(ctx, profile, grpcClient)
-				case *pb.FunctionConfig_Rest:
-					matches, err = matchesFromHTTPMMF(ctx, profile, httpClient, baseURL)
-				}
-
-				resultChan <- mmfResult{matches, err}
-			}(profile)
-		}
-	}(resultChan)
+	for _, profile := range req.Profile {
+		go func(profile *pb.MatchProfile) {
+			var matches []*pb.Match
+			// Get the match results that will be sent.
+			// TODO: The matches returned by the MatchFunction will be sent to the
+			// Evaluator to select results. Until the evaluator is implemented,
+			// we channel all matches as accepted results.
+			switch (req.Config.Type).(type) {
+			case *pb.FunctionConfig_Grpc:
+				matches, err = matchesFromGRPCMMF(ctx, profile, grpcClient)
+			case *pb.FunctionConfig_Rest:
+				matches, err = matchesFromHTTPMMF(ctx, profile, httpClient, baseURL)
+			}
+			resultChan <- mmfResult{matches, err}
+		}(profile)
+	}
 
 	proposals := []*pb.Match{}
 
-	// Always drain out the channel to make sure we dont have any channel leaks
-	for result := range resultChan {
-		// Set the return error on the first erroneous result
-		if result.err != nil && err == nil {
-			err = result.err
-		}
-		// Only append if we have not encountered any errors yet
-		if err == nil {
+	for i := 0; i < len(req.Profile); i++ {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case result := <-resultChan:
+			if result.err != nil {
+				return result.err
+			}
 			proposals = append(proposals, result.matches...)
 		}
-	}
-
-	if err != nil {
-		logger.WithError(err).Error("failed to execute fetchmatches.")
-		return err
 	}
 
 	for _, proposal := range proposals {
