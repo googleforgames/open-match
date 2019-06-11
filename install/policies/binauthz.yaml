@@ -21,6 +21,17 @@ admissionWhitelistPatterns:
 - namePattern: gcr.io/stackdriver-agents/*
 - namePattern: gcr.io/$PROJECT_ID/*
 - namePattern: gcr.io/open-match-public-images/*
+- namePattern: registry.hub.docker.com/busybox:*
+- namePattern: registry.hub.docker.com/cassandra:*
+- namePattern: docker.elastic.co/elasticsearch/elasticsearch-oss:*
+- namePattern: docker.io/bitnami/redis:*
+- namePattern: docker.io/oliver006/redis_exporter:*
+- namePattern: registry.hub.docker.com/grafana/*
+- namePattern: registry.hub.docker.com/jaegertracing/*
+- namePattern: registry.hub.docker.com/jimmidyson/configmap-reload:*
+- namePattern: registry.hub.docker.com/kiwigrid/k8s-sidecar:*
+- namePattern: registry.hub.docker.com/prom/*
+- namePattern: quay.io/coreos/*
 defaultAdmissionRule:
   # EVALUATION_MODE is either ALWAYS_DENY or ALWAYS_ALLOW based on ENABLE_SECURITY_HARDENING 
   evaluationMode: $EVALUATION_MODE

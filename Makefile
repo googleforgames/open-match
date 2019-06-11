@@ -93,6 +93,7 @@ ALTERNATE_TAG := dev
 GKE_CLUSTER_NAME = om-cluster
 GCP_REGION = us-west1
 GCP_ZONE = us-west1-a
+GCP_LOCATION = $(GCP_ZONE)
 EXE_EXTENSION =
 GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
 GO111MODULE = on
@@ -623,9 +624,7 @@ delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	-$(MINIKUBE) delete
 
 gcp-apply-binauthz-policy: build/policies/binauthz.yaml
-ifeq ($(ENABLE_SECURITY_HARDENING),1)
 	gcloud beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
-endif
 
 all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go internal/pb/evaluator.pb.go
@@ -729,6 +728,8 @@ build/policies/binauthz.yaml: install/policies/binauthz.yaml
 	mkdir -p $(BUILD_DIR)/policies
 	cp -f $(REPOSITORY_ROOT)/install/policies/binauthz.yaml $(BUILD_DIR)/policies/binauthz.yaml
 	sed -i 's/$$PROJECT_ID/$(GCP_PROJECT_ID)/g' $(BUILD_DIR)/policies/binauthz.yaml
+	sed -i 's/$$GKE_CLUSTER_NAME/$(GKE_CLUSTER_NAME)/g' $(BUILD_DIR)/policies/binauthz.yaml
+	sed -i 's/$$GCP_LOCATION/$(GCP_LOCATION)/g' $(BUILD_DIR)/policies/binauthz.yaml
 ifeq ($(ENABLE_SECURITY_HARDENING),1)
 	sed -i 's/$$EVALUATION_MODE/ALWAYS_DENY/g' $(BUILD_DIR)/policies/binauthz.yaml
 else
