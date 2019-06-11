@@ -15,18 +15,17 @@
 package main
 
 import (
-	"flag"
-	"fmt"
 	"log"
 	"net/http"
 )
 
-var (
-	port = flag.Int("port", 51500, "HTTP port number")
-)
+// var (
+// 	port = flag.Int("port", 51507, "HTTP port number")
+// )
 
 func main() {
-	addr := fmt.Sprintf(":%d", port)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	// addr := fmt.Sprintf(":%d", port)
+	// log.Fatal(http.ListenAndServe(addr, nil))
+	log.Fatal(http.ListenAndServe(":51507", nil))
 
 }

@@ -104,6 +104,7 @@ FRONTEND_PORT = 51504
 BACKEND_PORT = 51505
 MMLOGIC_PORT = 51503
 EVALUATOR_PORT = 51506
+DEMO_PORT = 51507
 HELM = $(TOOLCHAIN_BIN)/helm
 TILLER = $(TOOLCHAIN_BIN)/tiller
 MINIKUBE = $(TOOLCHAIN_BIN)/minikube
@@ -268,7 +269,7 @@ build-example-images: build-demo-images build-mmf-example-images
 build-demo-images: build-mmf-go-soloduel-image build-demo-image
 
 build-demo-image: docker build-base-build-image
-  docker build -f examples/demo/Dockerfile -t $(REGISTRY)/openmatch-demo:$(TAG) -t $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG) .
+	docker build -f examples/demo/Dockerfile -t $(REGISTRY)/openmatch-demo:$(TAG) -t $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG) .
 
 build-mmf-example-images: build-mmf-go-soloduel-image
 
@@ -929,9 +930,13 @@ proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "SwaggerUI Health: http://localhost:$(SWAGGERUI_PORT)/"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=swaggerui,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(SWAGGERUI_PORT):51500 $(PORT_FORWARD_ADDRESS_FLAG)
 
+proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	@echo "View Demo: http://localhost:$(DEMO_PORT)"
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) --selector="app=open-match-demo,component=demo,release=$(OPEN_MATCH_DEMO_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(DEMO_PORT):51507 $(PORT_FORWARD_ADDRESS_FLAG)
+
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
-proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-evaluator proxy-ui proxy-dashboard
+proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-evaluator proxy-ui proxy-dashboard proxy-demo
 
 proxy:
 	# This is an exception case where we'll call recursive make.

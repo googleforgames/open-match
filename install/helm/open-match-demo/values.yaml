@@ -26,6 +26,10 @@ openmatch:
       port: 50502
     proxy:
       port: 51502
+  demo:
+    install: true
+    http:
+      port: 51507
   config:
     matchmaker: /config
     testprofile: /profiles
@@ -33,5 +37,8 @@ openmatch:
     registry: gcr.io/open-match-public-images
     tag: 0.0.0-dev
     function:
-      name: openmatch-mmf-go-simple
+      name: openmatch-mmf-go-soloduel
+      pullPolicy: Always
+    demo:
+      name: openmatch-demo
       pullPolicy: Always
