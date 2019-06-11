@@ -22,6 +22,7 @@ import (
 	"open-match.dev/open-match/internal/pb"
 )
 
+// TestCase defines a single filtering test case to run.
 type TestCase struct {
 	Name   string
 	Ticket *pb.Ticket
