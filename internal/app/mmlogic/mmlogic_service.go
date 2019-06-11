@@ -69,18 +69,21 @@ func getPageSize(cfg config.View) int {
 	const (
 		name = "storage.page.size"
 		// Minimum number of tickets to be returned in a streamed response for QueryTickets. This value
-		// will be used if page size if not configured or is configured lower than the minimum value.
+		// will be used if page size is configured lower than the minimum value.
 		minPageSize int = 10
+		// Default number of tickets to be returned in a streamed response for QueryTickets.  This value
+		// will be used if page size is not configured.
+		defaultPageSize int = 1000
 		// Maximum number of tickets to be returned in a streamed response for QueryTickets. This value
 		// will be used if page size is configured higher than the maximum value.
 		maxPageSize int = 10000
 	)
 
 	if !cfg.IsSet(name) {
-		return minPageSize
+		return defaultPageSize
 	}
 
-	pSize := s.cfg.GetInt("storage.page.size")
+	pSize := cfg.GetInt("storage.page.size")
 	if pSize < minPageSize {
 		logger.Warningf("page size %v is lower than the minimum limit of %v", pSize, maxPageSize)
 		pSize = minPageSize
