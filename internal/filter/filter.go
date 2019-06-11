@@ -47,7 +47,7 @@ func InFilters(ticket *pb.Ticket, filters []*pb.Filter) bool {
 
 // InFilter returns if the given ticket is included in the given filter.
 func InFilter(ticket *pb.Ticket, filter *pb.Filter) bool {
-	if ticket.Properties == nil || ticket.Properties.Fields == nil {
+	if ticket.GetProperties().GetFields() == nil {
 		return false
 	}
 
