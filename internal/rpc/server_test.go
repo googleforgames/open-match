@@ -95,8 +95,11 @@ func runGrpcWithProxyTests(assert *assert.Assertions, s grpcServerWithProxy, con
 	httpResp, err := httpClient.Do(httpReq)
 	assert.Nil(err)
 	assert.NotNil(httpResp)
-	defer httpResp.Body.Close()
-
+	defer func() {
+		if httpResp != nil {
+			httpResp.Body.Close()
+		}
+	}()
 	body, err := ioutil.ReadAll(httpResp.Body)
 	assert.Nil(err)
 	assert.Equal(200, httpResp.StatusCode)
@@ -108,7 +111,11 @@ func runGrpcWithProxyTests(assert *assert.Assertions, s grpcServerWithProxy, con
 	httpResp, err = httpClient.Do(httpReq)
 	assert.Nil(err)
 	assert.NotNil(httpResp)
-	defer httpResp.Body.Close()
+	defer func() {
+		if httpResp != nil {
+			httpResp.Body.Close()
+		}
+	}()
 	body, err = ioutil.ReadAll(httpResp.Body)
 	assert.Nil(err)
 	assert.Equal(200, httpResp.StatusCode)
