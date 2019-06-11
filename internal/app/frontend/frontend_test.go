@@ -62,6 +62,56 @@ func validateDelete(t *testing.T, fe pb.FrontendClient, id string) {
 	assert.Failf(t, "ticket %v not deleted after 5 seconds", id)
 }
 
+func TestCreateTicketFailures(t *testing.T) {
+	assert := assert.New(t)
+
+	tc := createStore(t)
+	fe := pb.NewFrontendClient(tc.MustGRPC())
+	assert.NotNil(fe)
+
+	tests := []struct {
+		req          *pb.CreateTicketRequest
+		action       func(*pb.CreateTicketRequest) (*pb.CreateTicketResponse, error)
+		expectedRes  *pb.CreateTicketResponse
+		expectedCode codes.Code
+	}{
+		{
+			req: &pb.CreateTicketRequest{},
+			action: func(req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
+				return fe.CreateTicket(context.Background(), req)
+			},
+			expectedRes:  nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			req: &pb.CreateTicketRequest{Ticket: &pb.Ticket{}},
+			action: func(req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
+				return fe.CreateTicket(context.Background(), req)
+			},
+			expectedRes:  nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			req: &pb.CreateTicketRequest{Ticket: &pb.Ticket{Properties: &structpb.Struct{}}},
+			action: func(req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
+				ctx := context.Background()
+				ctx, cancel := context.WithCancel(ctx)
+				cancel()
+				return fe.CreateTicket(ctx, req)
+			},
+			expectedRes:  nil,
+			expectedCode: codes.Canceled,
+		},
+	}
+
+	for _, test := range tests {
+		res, err := test.action(test.req)
+		assert.Equal(test.expectedRes, res)
+		assert.Equal(test.expectedCode, status.Convert(err).Code())
+	}
+
+}
+
 // TestFrontendService tests creating, getting and deleting a ticket using Frontend service.
 func TestFrontendService(t *testing.T) {
 	assert := assert.New(t)
