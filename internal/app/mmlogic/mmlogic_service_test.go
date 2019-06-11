@@ -87,3 +87,22 @@ func createMmlogicForTest(t *testing.T) *rpcTesting.TestContext {
 	tc.AddCloseFunc(closerFunc)
 	return tc
 }
+
+func TestGetPageSize(t *testing.T) {
+	testCases := []struct {
+		name     string
+		flag     string
+		expected int
+	}{}
+
+	for _, tt := range testCases {
+		if actual != expected {
+			t.Run(tt.name, func(t *testing.T) {
+				actual := getPageSize(tt.cfg)
+				if actual != tt.expected {
+					t.Errorf("got %q, want %q", actual, tt.expected)
+				}
+			})
+		}
+	}
+}
