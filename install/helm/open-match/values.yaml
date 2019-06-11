@@ -330,6 +330,7 @@ prometheus:
               target_label: kubernetes_pod_name
 
 grafana:
+  enabled: true
   persistence:
     enabled: true
   server:
