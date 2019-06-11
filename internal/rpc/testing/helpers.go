@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/rpc"
@@ -33,7 +34,8 @@ import (
 // MustServe creates a test server and returns TestContext that can be used to create clients.
 // This method pseudorandomly selects insecure and TLS mode to ensure both paths work.
 func MustServe(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
-	if rand.Intn(2) == 0 {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	if r.Intn(2) == 0 {
 		return MustServeInsecure(t, binder)
 	}
 	return MustServeTLS(t, binder)
@@ -147,6 +149,23 @@ func (tc *TestContext) newClientParams(address string) *rpc.ClientParams {
 		Port:               port,
 		TrustedCertificate: tc.trustedCertificate,
 	}
+}
+
+// GetHostname returns the hostname of current text context
+func (tc *TestContext) GetHostname() string {
+	return "localhost"
+}
+
+// GetHTTPPort returns the http proxy port of current text context
+func (tc *TestContext) GetHTTPPort() int {
+	_, port := hostnameAndPort(tc.t, tc.proxyAddress)
+	return port
+}
+
+// GetGRPCPort returns the grpc service port of current text context
+func (tc *TestContext) GetGRPCPort() int {
+	_, port := hostnameAndPort(tc.t, tc.grpcAddress)
+	return port
 }
 
 func hostnameAndPort(t *testing.T, address string) (string, int) {
