@@ -118,6 +118,7 @@ func runHTTPClientTests(assert *assert.Assertions, cfg config.View, rpcParams *S
 	httpResp, err := httpClient.Do(httpReq)
 	assert.Nil(err)
 	assert.NotNil(httpResp)
+	defer httpResp.Body.Close()
 
 	body, err := ioutil.ReadAll(httpResp.Body)
 	assert.Nil(err)
