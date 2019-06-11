@@ -15,10 +15,10 @@
 package filter
 
 import (
-	"math"
 	"testing"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	"open-match.dev/open-match/internal/filter/testcases"
 	"open-match.dev/open-match/internal/pb"
 )
 
@@ -108,97 +108,19 @@ func TestInFilters(t *testing.T) {
 }
 
 func TestInFilter(t *testing.T) {
-	for _, tt := range includedTestCases {
-		t.Run(tt.ticket.Id, func(t *testing.T) {
-			if !InFilter(tt.ticket, tt.filter) {
+	for _, tt := range testcases.IncludedTestCases() {
+		t.Run(tt.Name, func(t *testing.T) {
+			if !InFilter(tt.Ticket, tt.Filter) {
 				t.Error("Ticket should be included in filter.")
 			}
 		})
 	}
 
-	for _, tt := range excludedTestCases {
-		t.Run(tt.ticket.Id, func(t *testing.T) {
-			if InFilter(tt.ticket, tt.filter) {
+	for _, tt := range testcases.ExcludedTestCases() {
+		t.Run(tt.Name, func(t *testing.T) {
+			if InFilter(tt.Ticket, tt.Filter) {
 				t.Error("Ticket should be excluded from filter.")
 			}
 		})
-	}
-}
-
-type testCase struct {
-	ticket *pb.Ticket
-	filter *pb.Filter
-}
-
-var includedTestCases = []testCase{
-	simpleRangeTest("simpleInRange", 5, 0, 10),
-	simpleRangeTest("exactMatch", 5, 5, 5),
-	simpleRangeTest("infinityMax", math.Inf(1), 0, math.Inf(1)),
-	simpleRangeTest("infinityMin", math.Inf(-1), math.Inf(-1), 0),
-}
-
-var excludedTestCases = []testCase{
-	{
-		&pb.Ticket{
-			Id: "missingField",
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{},
-			},
-		},
-		&pb.Filter{
-			Attribute: "field",
-			Min:       5,
-			Max:       5,
-		},
-	},
-
-	{
-		&pb.Ticket{
-			Id: "missingFieldsMap",
-			Properties: &structpb.Struct{
-				Fields: nil,
-			},
-		},
-		&pb.Filter{
-			Attribute: "field",
-			Min:       5,
-			Max:       5,
-		},
-	},
-
-	{
-		&pb.Ticket{
-			Id:         "missingProperties",
-			Properties: nil,
-		},
-		&pb.Filter{
-			Attribute: "field",
-			Min:       5,
-			Max:       5,
-		},
-	},
-
-	simpleRangeTest("valueTooLow", -1, 0, 10),
-	simpleRangeTest("valueTooHigh", 11, 0, 10),
-	simpleRangeTest("minIsNan", 5, math.NaN(), 10),
-	simpleRangeTest("maxIsNan", 5, 0, math.NaN()),
-	simpleRangeTest("valueIsNan", math.NaN(), 0, 10),
-}
-
-func simpleRangeTest(name string, value, min, max float64) testCase {
-	return testCase{
-		&pb.Ticket{
-			Id: name,
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"field": {Kind: &structpb.Value_NumberValue{NumberValue: value}},
-				},
-			},
-		},
-		&pb.Filter{
-			Attribute: "field",
-			Min:       min,
-			Max:       max,
-		},
 	}
 }
