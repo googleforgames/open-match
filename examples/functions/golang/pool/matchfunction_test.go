@@ -11,12 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-// Package pool provides a sample match function that uses the GRPC harness to set up
-// the match making function as a service. This sample is a reference
-// to demonstrate the usage of the GRPC harness and should only be used as
-// a starting point for your match function. You will need to modify the
-// matchmaking logic in this function based on your game's requirements.
 package pool
 
 import (
@@ -59,13 +53,13 @@ func TestMakeMatches(t *testing.T) {
 
 	assert.Contains(actual, &pb.Match{
 		MatchProfile:  p.ProfileName,
-		MatchFunction: "pool-based-match",
+		MatchFunction: matchName,
 		Ticket:        []*pb.Ticket{{Id: "1"}, {Id: "2"}},
 		Roster:        []*pb.Roster{&pb.Roster{Name: "pool1", TicketId: []string{"1", "2"}}},
 	})
 	assert.Contains(actual, &pb.Match{
 		MatchProfile:  p.ProfileName,
-		MatchFunction: "pool-based-match",
+		MatchFunction: matchName,
 		Ticket:        []*pb.Ticket{{Id: "3"}, {Id: "4"}},
 		Roster:        []*pb.Roster{&pb.Roster{Name: "pool2", TicketId: []string{"3", "4"}}},
 	})

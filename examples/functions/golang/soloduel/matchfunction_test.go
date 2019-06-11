@@ -11,12 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-// Package pool provides a sample match function that uses the GRPC harness to set up
-// the match making function as a service. This sample is a reference
-// to demonstrate the usage of the GRPC harness and should only be used as
-// a starting point for your match function. You will need to modify the
-// matchmaking logic in this function based on your game's requirements.
 package main
 
 import (
@@ -28,6 +22,25 @@ import (
 	"github.com/stretchr/testify/assert"
 	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
 )
+
+func TestMakeMatchesDeduplicate(t *testing.T) {
+	assert := assert.New(t)
+
+	poolNameToTickets := map[string][]*pb.Ticket{
+		"pool1": []*pb.Ticket{{Id: "1"}},
+		"pool2": []*pb.Ticket{{Id: "1"}},
+	}
+
+	p := &mmfHarness.MatchFunctionParams{
+		Logger:            &logrus.Entry{},
+		ProfileName:       "test-profile",
+		Rosters:           []*pb.Roster{},
+		PoolNameToTickets: poolNameToTickets,
+	}
+
+	matches := MakeMatches(p)
+	assert.Equal(len(matches), 0)
+}
 
 func TestMakeMatches(t *testing.T) {
 	assert := assert.New(t)
@@ -50,7 +63,7 @@ func TestMakeMatches(t *testing.T) {
 
 	for _, match := range matches {
 		assert.Equal(2, len(match.Ticket))
-		assert.Equal("a-simple-1v1-matchfunction", match.MatchFunction)
+		assert.Equal(matchName, match.MatchFunction)
 		assert.Equal(p.ProfileName, match.MatchProfile)
 		assert.Nil(match.Roster)
 	}
