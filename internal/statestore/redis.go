@@ -275,7 +275,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 		// Alternatives for populating this information in proto fields are being considered.
 		// Also, we need to add Ticket creation time to either the ticket or index.
 		// Meta characters bein specified in JSON property keys is currently not supported.
-		v, ok := ticket.Properties.Fields[attribute]
+		v, ok := ticket.GetProperties().GetFields()[attribute]
 
 		// If this attribute wasn't provided, continue to the next attribute to index.
 		if !ok {

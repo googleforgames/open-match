@@ -30,39 +30,7 @@ import (
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
-// validateTicket validates that the fetched ticket is identical to the expected ticket.
-func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
-	assert.Equal(t, got.Id, want.Id)
-	assert.Equal(t, got.Properties.Fields["test-property"].GetNumberValue(), want.Properties.Fields["test-property"].GetNumberValue())
-	assert.Equal(t, got.Assignment.Connection, want.Assignment.Connection)
-	assert.Equal(t, got.Assignment.Properties, want.Assignment.Properties)
-	assert.Equal(t, got.Assignment.Error, want.Assignment.Error)
-}
-
-// validateDelete validates that the ticket is actually deleted from the state storage.
-// Given that delete is async, this method retries fetch every 100ms up to 5 seconds.
-func validateDelete(t *testing.T, fe pb.FrontendClient, id string) {
-	start := time.Now()
-	for {
-		if time.Since(start) > 5*time.Second {
-			break
-		}
-
-		// Attempt to fetch the ticket every 100ms
-		_, err := fe.GetTicket(context.Background(), &pb.GetTicketRequest{TicketId: id})
-		if err != nil {
-			// Only failure to fetch with NotFound should be considered as success.
-			assert.Equal(t, status.Code(err), codes.NotFound)
-			return
-		}
-
-		time.Sleep(100 * time.Millisecond)
-	}
-
-	assert.Failf(t, "ticket %v not deleted after 5 seconds", id)
-}
-
-func TestCreateTicketFailures(t *testing.T) {
+func TestCreateTicket(t *testing.T) {
 	assert := assert.New(t)
 
 	tc := createStore(t)
@@ -72,7 +40,6 @@ func TestCreateTicketFailures(t *testing.T) {
 	tests := []struct {
 		req          *pb.CreateTicketRequest
 		action       func(*pb.CreateTicketRequest) (*pb.CreateTicketResponse, error)
-		expectedRes  *pb.CreateTicketResponse
 		expectedCode codes.Code
 	}{
 		{
@@ -80,33 +47,29 @@ func TestCreateTicketFailures(t *testing.T) {
 			action: func(req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
 				return fe.CreateTicket(context.Background(), req)
 			},
-			expectedRes:  nil,
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			req: &pb.CreateTicketRequest{Ticket: &pb.Ticket{}},
-			action: func(req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
-				return fe.CreateTicket(context.Background(), req)
-			},
-			expectedRes:  nil,
-			expectedCode: codes.InvalidArgument,
-		},
-		{
-			req: &pb.CreateTicketRequest{Ticket: &pb.Ticket{Properties: &structpb.Struct{}}},
 			action: func(req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
 				ctx := context.Background()
 				ctx, cancel := context.WithCancel(ctx)
 				cancel()
 				return fe.CreateTicket(ctx, req)
 			},
-			expectedRes:  nil,
 			expectedCode: codes.Canceled,
+		},
+		{
+			req: &pb.CreateTicketRequest{Ticket: &pb.Ticket{}},
+			action: func(req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
+				return fe.CreateTicket(context.Background(), req)
+			},
+			expectedCode: codes.OK,
 		},
 	}
 
 	for _, test := range tests {
-		res, err := test.action(test.req)
-		assert.Equal(test.expectedRes, res)
+		_, err := test.action(test.req)
 		assert.Equal(test.expectedCode, status.Convert(err).Code())
 	}
 
@@ -164,4 +127,36 @@ func createStore(t *testing.T) *rpcTesting.TestContext {
 	})
 	tc.AddCloseFunc(closer)
 	return tc
+}
+
+// validateTicket validates that the fetched ticket is identical to the expected ticket.
+func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
+	assert.Equal(t, got.Id, want.Id)
+	assert.Equal(t, got.Properties.Fields["test-property"].GetNumberValue(), want.Properties.Fields["test-property"].GetNumberValue())
+	assert.Equal(t, got.Assignment.Connection, want.Assignment.Connection)
+	assert.Equal(t, got.Assignment.Properties, want.Assignment.Properties)
+	assert.Equal(t, got.Assignment.Error, want.Assignment.Error)
+}
+
+// validateDelete validates that the ticket is actually deleted from the state storage.
+// Given that delete is async, this method retries fetch every 100ms up to 5 seconds.
+func validateDelete(t *testing.T, fe pb.FrontendClient, id string) {
+	start := time.Now()
+	for {
+		if time.Since(start) > 5*time.Second {
+			break
+		}
+
+		// Attempt to fetch the ticket every 100ms
+		_, err := fe.GetTicket(context.Background(), &pb.GetTicketRequest{TicketId: id})
+		if err != nil {
+			// Only failure to fetch with NotFound should be considered as success.
+			assert.Equal(t, status.Code(err), codes.NotFound)
+			return
+		}
+
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	assert.Failf(t, "ticket %v not deleted after 5 seconds", id)
 }
