@@ -22,7 +22,7 @@ import (
 	"open-match.dev/open-match/internal/pb"
 )
 
-// Fitler returns all of the passed tickets which are included by all the passed filters.
+// Filter returns all of the passed tickets which are included by all the passed filters.
 func Filter(tickets []*pb.Ticket, filters []*pb.Filter) []*pb.Ticket {
 	var result []*pb.Ticket
 
