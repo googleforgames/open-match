@@ -63,10 +63,9 @@ var (
 // FetchMatches returns nil unless the context is canceled. FetchMatches moves to the next response candidate if it encounters
 // any internal execution failures.
 func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Backend_FetchMatchesServer) error {
-	// Validate that the function configuration and match profiles are provided.
-	if req.Config == nil {
-		logger.Error("invalid argument, match function config is nil")
-		return status.Errorf(codes.InvalidArgument, "match function configuration needs to be provided")
+	if req.GetConfig() == nil || req.GetProfile() == nil {
+		logger.Error("invalid argument, function config or input profiles is nil")
+		return status.Errorf(codes.InvalidArgument, "invalid argument, function config or input profiles is nil")
 	}
 
 	var grpcClient pb.MatchFunctionClient
@@ -74,24 +73,26 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	var baseURL string
 	var err error
 
-	switch (req.Config.Type).(type) {
+	configType := req.GetConfig().GetType()
+
+	switch configType.(type) {
 	// MatchFunction Hosted as a GRPC service
 	case *pb.FunctionConfig_Grpc:
-		grpcClient, err = s.getGRPCClient((req.Config.Type).(*pb.FunctionConfig_Grpc))
+		grpcClient, err = s.getGRPCClient(configType.(*pb.FunctionConfig_Grpc))
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
-				"function": req.Config,
+				"function": req.GetConfig(),
 			}).Error("failed to establish grpc client connection to match function")
 			return status.Error(codes.InvalidArgument, "failed to connect to match function")
 		}
 	// MatchFunction Hosted as a REST service
 	case *pb.FunctionConfig_Rest:
-		httpClient, baseURL, err = s.getHTTPClient((req.Config.Type).(*pb.FunctionConfig_Rest))
+		httpClient, baseURL, err = s.getHTTPClient(configType.(*pb.FunctionConfig_Rest))
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
-				"function": req.Config,
+				"function": req.GetConfig(),
 			}).Error("failed to establish rest client connection to match function")
 			return status.Error(codes.InvalidArgument, "failed to connect to match function")
 		}
@@ -101,16 +102,16 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	}
 
 	ctx := stream.Context()
-	resultChan := make(chan mmfResult, len(req.Profile))
+	resultChan := make(chan mmfResult, len(req.GetProfile()))
 
-	for _, profile := range req.Profile {
+	for _, profile := range req.GetProfile() {
 		go func(profile *pb.MatchProfile) {
 			var matches []*pb.Match
 			// Get the match results that will be sent.
 			// TODO: The matches returned by the MatchFunction will be sent to the
 			// Evaluator to select results. Until the evaluator is implemented,
 			// we channel all matches as accepted results.
-			switch (req.Config.Type).(type) {
+			switch configType.(type) {
 			case *pb.FunctionConfig_Grpc:
 				matches, err = matchesFromGRPCMMF(ctx, profile, grpcClient)
 			case *pb.FunctionConfig_Rest:
@@ -215,7 +216,7 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 		return nil, status.Errorf(codes.FailedPrecondition, "failed to unmarshal response body to response pb for profile %s: %s", profile.Name, err.Error())
 	}
 
-	return pbResp.Proposal, nil
+	return pbResp.GetProposal(), nil
 }
 
 // matchesFromGRPCMMF triggers execution of MMFs to fetch match results for each profile.
@@ -231,16 +232,16 @@ func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb
 	}
 	logger.WithFields(logrus.Fields{
 		"profile":   profile,
-		"proposals": resp.Proposal,
+		"proposals": resp.GetProposal(),
 	}).Trace("proposals generated for match profile")
 
-	return resp.Proposal, nil
+	return resp.GetProposal(), nil
 }
 
 // AssignTickets sets the specified Assignment on the Tickets for the Ticket
 // ids passed.
 func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
-	err := s.store.UpdateAssignments(ctx, req.TicketId, req.Assignment)
+	err := s.store.UpdateAssignments(ctx, req.GetTicketId(), req.GetAssignment())
 	if err != nil {
 		logger.WithError(err).Error("failed to update assignments for requested tickets")
 		return nil, err
