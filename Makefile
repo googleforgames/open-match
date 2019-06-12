@@ -68,7 +68,7 @@ NODEJS_VERSION = 10.15.3
 SKAFFOLD_VERSION = latest
 MINIKUBE_VERSION = latest
 HTMLTEST_VERSION = 0.10.3
-GOLANGCI_VERSION = 1.16.0
+GOLANGCI_VERSION = 1.17.1
 KIND_VERSION = 0.3.0
 SWAGGERUI_VERSION = 3.22.2
 
@@ -681,7 +681,7 @@ vet:
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 	build/toolchain/bin/golangci-lint$(EXE_EXTENSION) run --config=.golangci.yaml
 
-lint: fmt vet lint-chart
+lint: golangci lint-chart
 
 all: service-binaries example-binaries tools-binaries
 
