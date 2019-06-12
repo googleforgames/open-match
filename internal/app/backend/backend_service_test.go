@@ -18,6 +18,7 @@ import (
 	"io"
 	"testing"
 
+	"open-match.dev/open-match/examples/functions/golang/pool"
 	"open-match.dev/open-match/internal/app/frontend"
 
 	"github.com/spf13/viper"
@@ -27,6 +28,7 @@ import (
 	"open-match.dev/open-match/internal/app/mmlogic"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
+	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
 
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
@@ -95,47 +97,72 @@ func TestAssignTickets(t *testing.T) {
 	}
 }
 
+func TestMmfHTTPConfig(t *testing.T) {
+	assert := assert.New(t)
+	beTc := createBackendForTest(t)
+	mmfTc := createMatchFunctionForTest(t, beTc)
+	defer beTc.Close()
+	defer mmfTc.Close()
+
+	mmfClient, mmfURL := mmfTc.MustHTTP()
+
+	matches, err := matchesFromHTTPMMF(beTc.Context(), &pb.MatchProfile{}, mmfClient, mmfURL)
+	assert.Equal(0, len(matches))
+	assert.Nil(err)
+}
+
+func TestMmfGRPCConfig(t *testing.T) {
+	assert := assert.New(t)
+	beTc := createBackendForTest(t)
+	mmfTc := createMatchFunctionForTest(t, beTc)
+	defer beTc.Close()
+	defer mmfTc.Close()
+
+	mmfConn := mmfTc.MustGRPC()
+
+	matches, err := matchesFromGRPCMMF(beTc.Context(), &pb.MatchProfile{}, pb.NewMatchFunctionClient(mmfConn))
+	assert.Equal(0, len(matches))
+	assert.Nil(err)
+}
+
 func TestFetchMatches(t *testing.T) {
 	assert := assert.New(t)
-	tc := createBackendForTest(t)
-	defer tc.Close()
+	beTc := createBackendForTest(t)
+	defer beTc.Close()
 
-	be := pb.NewBackendClient(tc.MustGRPC())
+	be := pb.NewBackendClient(beTc.MustGRPC())
 
 	var tt = []struct {
-		req  *pb.FetchMatchesRequest
-		resp *pb.FetchMatchesResponse
-		code codes.Code
+		req    *pb.FetchMatchesRequest
+		resp   *pb.FetchMatchesResponse
+		action func(*pb.FetchMatchesRequest) (pb.Backend_FetchMatchesClient, error)
+		code   codes.Code
 	}{
 		{
 			&pb.FetchMatchesRequest{},
 			nil,
+			func(req *pb.FetchMatchesRequest) (pb.Backend_FetchMatchesClient, error) {
+				return be.FetchMatches(beTc.Context(), req)
+			},
 			codes.InvalidArgument,
 		},
 	}
 
 	for _, test := range tt {
-		fetchMatchesLoop(t, tc, be, test.req, func(_ *pb.FetchMatchesResponse, err error) {
-			assert.Equal(test.code, status.Convert(err).Code())
-		})
-	}
-}
-
-// TODO: Add FetchMatchesNormalTest when Hostname getter used to initialize mmf service is in
-// https://github.com/GoogleCloudPlatform/open-match/pull/473
-func fetchMatchesLoop(t *testing.T, tc *rpcTesting.TestContext, be pb.BackendClient, req *pb.FetchMatchesRequest, handleResponse func(*pb.FetchMatchesResponse, error)) {
-	stream, err := be.FetchMatches(tc.Context(), req)
-	if err != nil {
-		t.Fatalf("error querying tickets, %v", err)
-	}
-	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		handleResponse(resp, err)
+		stream, err := test.action(test.req)
 		if err != nil {
-			return
+			t.Fatalf("error querying tickets, %v", err)
+		}
+		for {
+			_, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+
+			assert.Equal(test.code, status.Convert(err).Code())
+			if err != nil {
+				return
+			}
 		}
 	}
 }
@@ -153,5 +180,25 @@ func createBackendForTest(t *testing.T) *rpcTesting.TestContext {
 	})
 	// TODO: This is very ugly. Need a better story around closing resources.
 	tc.AddCloseFunc(closerFunc)
+	return tc
+}
+
+// Create a mmf service using a started test server.
+// Inject the port config of mmlogic using that the passed in test server
+func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTesting.TestContext {
+	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
+		cfg := viper.New()
+
+		// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
+		cfg.Set("api.mmlogic.hostname", c.GetHostname())
+		cfg.Set("api.mmlogic.grpcport", c.GetGRPCPort())
+		cfg.Set("api.mmlogic.httpport", c.GetHTTPPort())
+
+		if err := mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
+			Func: pool.MakeMatches,
+		}); err != nil {
+			t.Error(err)
+		}
+	})
 	return tc
 }
