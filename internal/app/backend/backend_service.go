@@ -37,7 +37,7 @@ import (
 type backendService struct {
 	cfg        config.View
 	store      statestore.Service
-	mmfClients sync.Map
+	mmfClients *sync.Map
 }
 
 type grpcData struct {
@@ -103,7 +103,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	return nil
 }
 
-func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients sync.Map, req *pb.FetchMatchesRequest, resultChan chan mmfResult) error {
+func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *sync.Map, req *pb.FetchMatchesRequest, resultChan chan mmfResult) error {
 	var grpcClient pb.MatchFunctionClient
 	var httpClient *http.Client
 	var baseURL string
@@ -171,7 +171,7 @@ func doFetchMatchesFilterChannel(ctx context.Context, resultChan chan mmfResult,
 	return proposals, nil
 }
 
-func getHTTPClient(cfg config.View, mmfClients sync.Map, funcConfig *pb.FunctionConfig_Rest) (*http.Client, string, error) {
+func getHTTPClient(cfg config.View, mmfClients *sync.Map, funcConfig *pb.FunctionConfig_Rest) (*http.Client, string, error) {
 	addr := fmt.Sprintf("%s:%d", funcConfig.Rest.Host, funcConfig.Rest.Port)
 	val, exists := mmfClients.Load(addr)
 	data, ok := val.(httpData)
@@ -189,7 +189,7 @@ func getHTTPClient(cfg config.View, mmfClients sync.Map, funcConfig *pb.Function
 	return data.client, data.baseURL, nil
 }
 
-func getGRPCClient(cfg config.View, mmfClients sync.Map, funcConfig *pb.FunctionConfig_Grpc) (pb.MatchFunctionClient, error) {
+func getGRPCClient(cfg config.View, mmfClients *sync.Map, funcConfig *pb.FunctionConfig_Grpc) (pb.MatchFunctionClient, error) {
 	addr := fmt.Sprintf("%s:%d", funcConfig.Grpc.Host, funcConfig.Grpc.Port)
 	val, exists := mmfClients.Load(addr)
 	data, ok := val.(grpcData)
