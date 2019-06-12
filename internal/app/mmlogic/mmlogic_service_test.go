@@ -42,10 +42,15 @@ type propertyManifest struct {
 func TestDoQueryTickets(t *testing.T) {
 	assert := assert.New(t)
 
+	const (
+		attribute1 = "level"
+		attribute2 = "spd"
+	)
+
 	ctx := context.Background()
 	cfg := viper.New()
 	cfg.Set("storage.page.size", 1000)
-	cfg.Set("playerIndices", []string{"level", "spd"})
+	cfg.Set("playerIndices", []string{attribute1, attribute2})
 	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()
 
@@ -56,7 +61,7 @@ func TestDoQueryTickets(t *testing.T) {
 		return nil
 	}
 
-	testTickets := generateTickets(propertyManifest{"level", 0, 20, 5}, propertyManifest{"spd", 0, 20, 5})
+	testTickets := generateTickets(propertyManifest{attribute1, 0, 20, 5}, propertyManifest{attribute2, 0, 20, 5})
 
 	tests := []struct {
 		filters       []*pb.Filter
@@ -68,12 +73,12 @@ func TestDoQueryTickets(t *testing.T) {
 		{
 			[]*pb.Filter{
 				{
-					Attribute: "level",
+					Attribute: attribute1,
 					Min:       0,
 					Max:       10,
 				},
 			},
-			10,
+			100,
 			func() error { return nil },
 			nil,
 			nil,
@@ -81,12 +86,12 @@ func TestDoQueryTickets(t *testing.T) {
 		{
 			[]*pb.Filter{
 				{
-					Attribute: "level",
+					Attribute: attribute1,
 					Min:       0,
 					Max:       10,
 				},
 			},
-			10,
+			100,
 			func() error {
 				for _, testTicket := range testTickets {
 					assert.Nil(store.CreateTicket(ctx, testTicket))
@@ -95,13 +100,13 @@ func TestDoQueryTickets(t *testing.T) {
 				return nil
 			},
 			nil,
-			generateTickets(propertyManifest{"level", 0, 10.1, 5}, propertyManifest{"spd", 0, 20, 5}),
+			generateTickets(propertyManifest{attribute1, 0, 10.1, 5}, propertyManifest{attribute2, 0, 20, 5}),
 		},
 	}
 
 	for _, test := range tests {
 		assert.Nil(test.action())
-		assert.Equal(test.shouldErr, doQueryTickets(ctx, cfg, test.filters, test.pageSize, sender, store))
+		assert.Equal(test.shouldErr, doQueryTickets(ctx, test.filters, test.pageSize, sender, store))
 		for _, shouldTicket := range test.shouldTickets {
 			assert.Contains(actualTickets, shouldTicket)
 		}

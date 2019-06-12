@@ -48,7 +48,7 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 
 	ctx := responseServer.Context()
 	poolFilters := req.GetPool().GetFilter()
-	pSize := s.cfg.GetInt("storage.page.size")
+	pSize := getPageSize(s.cfg)
 
 	callback := func(tickets []*pb.Ticket) error {
 		err := responseServer.Send(&pb.QueryTicketsResponse{Ticket: tickets})
@@ -59,13 +59,13 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 		return nil
 	}
 
-	return doQueryTickets(ctx, s.cfg, poolFilters, pSize, callback, s.store)
+	return doQueryTickets(ctx, poolFilters, pSize, callback, s.store)
 }
 
-func doQueryTickets(ctx context.Context, cfg config.View, filters []*pb.Filter, pageSize int, sender func(tickets []*pb.Ticket) error, store statestore.Service) error {
+func doQueryTickets(ctx context.Context, filters []*pb.Filter, pageSize int, sender func(tickets []*pb.Ticket) error, store statestore.Service) error {
 
 	// Send requests to the storage service
-	err := store.FilterTickets(ctx, filters, getPageSize(cfg), sender)
+	err := store.FilterTickets(ctx, filters, pageSize, sender)
 
 	if err != nil {
 		logger.WithError(err).Error("Failed to retrieve result from storage service.")
