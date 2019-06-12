@@ -1,6 +1,5 @@
 module github.com/googleforgames/open-match
 
-
 go 1.12
 
 require (
