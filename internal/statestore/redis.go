@@ -330,7 +330,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 
 	// This isn't ideal.  What we would want to do is have the cache stream tickets
 	// as soon as they are available.  So all of the tickets which are already locally
-	// in the cache should be immediately avaiable.  However that's complex, so for
+	// in the cache should be immediately available.  However that's complex, so for
 	// v0.6, let's just fudge it a little and then refine the latencies once we know
 	// what we're doing more.
 	for i := 0; i < len(filtered); i += pageSize {
@@ -348,47 +348,44 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 	return nil
 }
 
-// Start cache keeps a in memory cache of all indexed tickets.  When a request
-// comes in, it will start a request to get all tickets ids in the index, and then
-// will request unknown tickets.  If a new request comes in while another is being
-// processed, the later requests will piggyback off of the first.  To preserve strict
-// ordering, once the result has been returned to all waiting callers, any future
-// callers will start a new request for all ticket ids from Redis.  That way a read,
-// modify, read call order will return expected (not stale) results.
+// Start cache keeps a in memory cache of all indexed tickets.  We want to preserve
+// modify and then read producing the expected result.  So we must not return a value
+// for a query that started before the request came in.  We also don't really want multiple
+// requests happening at once.  So we handle all waiting requests at once, then ignore new
+// waiting requests until our current cache fill has completed and we can make a new call.
 func (rb *redisBackend) startCache() {
-	var waiting []chan *cacheResponse
-
 	allTickets := make(map[string]*pb.Ticket)
-	result := make(chan *cacheResponse, 1)
 
 	for {
 		select {
 		case <-rb.ctx.Done():
-			resp := &cacheResponse{
-				err: rb.ctx.Err(),
-			}
-			for _, cr := range waiting {
-				cr <- resp
-			}
+			// Requestors also check this channel, so won't be blocked by not responding.
 			return
-		case resp := <-result:
-			for _, cr := range waiting {
-				cr <- resp
-			}
-			waiting = nil
 		case req := <-rb.indexCache:
-			if len(waiting) <= 0 {
-				go rb.refillCache(allTickets, result)
+			waiting := []chan *cacheResponse{req}
+
+		getAllWaiting:
+			for {
+				select {
+				case req2 := <-rb.indexCache:
+					waiting = append(waiting, req2)
+				default:
+					break getAllWaiting
+				}
 			}
-			waiting = append(waiting, req)
+
+			resp := rb.refillCache(allTickets)
+			for _, req3 := range waiting {
+				req3 <- resp
+			}
 		}
 	}
 }
 
-func (rb *redisBackend) refillCache(allTickets map[string]*pb.Ticket, result chan *cacheResponse) {
+func (rb *redisBackend) refillCache(allTickets map[string]*pb.Ticket) *cacheResponse {
 	redisConn, err := rb.connect(rb.ctx)
 	if err != nil {
-		result <- &cacheResponse{
+		return &cacheResponse{
 			err: status.Errorf(codes.Internal, "%v", err),
 		}
 	}
@@ -399,7 +396,7 @@ func (rb *redisBackend) refillCache(allTickets map[string]*pb.Ticket, result cha
 		redisLogger.WithFields(logrus.Fields{
 			"Command": "SMEMBERS all-tickets",
 		}).WithError(err).Error("Failed to lookup all ticket ids")
-		result <- &cacheResponse{
+		return &cacheResponse{
 			err: status.Errorf(codes.Internal, "%v", err),
 		}
 	}
@@ -419,35 +416,37 @@ func (rb *redisBackend) refillCache(allTickets map[string]*pb.Ticket, result cha
 		}
 	}
 
-	req := make([]interface{}, 0, len(idsToRequest))
-	for id := range idsToRequest {
-		req = append(req, id)
-	}
-
-	ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", req...))
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"Command": fmt.Sprintf("MGET %v", req),
-		}).WithError(err).Error("Failed to lookup tickets.")
-		result <- &cacheResponse{
-			err: status.Errorf(codes.Internal, "%v", err),
+	if len(idsToRequest) > 0 {
+		req := make([]interface{}, 0, len(idsToRequest))
+		for id := range idsToRequest {
+			req = append(req, id)
 		}
-	}
 
-	for i, b := range ticketBytes {
-		// Tickets may be deleted by the time we read it from redis.
-		if b != nil {
-			t := &pb.Ticket{}
-			err = proto.Unmarshal(b, t)
-			if err != nil {
-				redisLogger.WithFields(logrus.Fields{
-					"key": req[i],
-				}).WithError(err).Error("Failed to unmarshal ticket from redis.")
-				result <- &cacheResponse{
-					err: status.Errorf(codes.Internal, "%v", err),
-				}
+		ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", req...))
+		if err != nil {
+			redisLogger.WithFields(logrus.Fields{
+				"Command": fmt.Sprintf("MGET %v", req),
+			}).WithError(err).Error("Failed to lookup tickets.")
+			return &cacheResponse{
+				err: status.Errorf(codes.Internal, "%v", err),
 			}
-			allTickets[t.Id] = t
+		}
+
+		for i, b := range ticketBytes {
+			// Tickets may be deleted by the time we read it from redis.
+			if b != nil {
+				t := &pb.Ticket{}
+				err = proto.Unmarshal(b, t)
+				if err != nil {
+					redisLogger.WithFields(logrus.Fields{
+						"key": req[i],
+					}).WithError(err).Error("Failed to unmarshal ticket from redis.")
+					return &cacheResponse{
+						err: status.Errorf(codes.Internal, "%v", err),
+					}
+				}
+				allTickets[t.Id] = t
+			}
 		}
 	}
 
@@ -456,7 +455,7 @@ func (rb *redisBackend) refillCache(allTickets map[string]*pb.Ticket, result cha
 		tickets = append(tickets, t)
 	}
 
-	result <- &cacheResponse{
+	return &cacheResponse{
 		tickets: tickets,
 	}
 }
@@ -546,22 +545,6 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 		return err
 	}
 	return nil
-}
-
-func idsToPages(ids []string, pageSize int) [][]interface{} {
-	result := make([][]interface{}, 0, len(ids)/pageSize+1)
-	for i := 0; i < len(ids); i += pageSize {
-		end := i + pageSize
-		if end > len(ids) {
-			end = len(ids)
-		}
-		page := make([]interface{}, end-i)
-		for i, id := range ids[i:end] {
-			page[i] = id
-		}
-		result = append(result, page)
-	}
-	return result
 }
 
 func handleConnectionClose(conn *redis.Conn) {

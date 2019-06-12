@@ -167,7 +167,7 @@ func TestMinimatch(t *testing.T) {
 		}
 
 		// Validate that all the pools have the expected tickets.
-		assert.Equal(poolTickets[pool.Name], want)
+		assert.ElementsMatch(poolTickets[pool.Name], want)
 	}
 
 	fcs := []*pb.FunctionConfig{
@@ -217,7 +217,7 @@ func testFetchMatches(assert *require.Assertions, poolTickets map[string][]strin
 			// the roster with the pool name. Thus validate that for the roster populated in the match
 			// result has all the tickets expected in that pool.
 			assert.Equal(len(br.Match.Roster), 1)
-			assert.Equal(br.Match.Roster[0].TicketId, poolTickets[br.Match.Roster[0].Name])
+			assert.ElementsMatch(br.Match.Roster[0].TicketId, poolTickets[br.Match.Roster[0].Name])
 
 			var gotTickets []string
 			for _, ticket := range br.Match.Ticket {
@@ -226,7 +226,7 @@ func testFetchMatches(assert *require.Assertions, poolTickets map[string][]strin
 
 			// Given that currently we only populate all tickets in a match in a Roster, validate that
 			// all the tickets present in the result match are equal to the tickets in the pool for that match.
-			assert.Equal(gotTickets, poolTickets[br.Match.Roster[0].Name])
+			assert.ElementsMatch(gotTickets, poolTickets[br.Match.Roster[0].Name])
 		}
 	}
 }
