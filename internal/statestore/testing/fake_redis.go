@@ -19,6 +19,7 @@ import (
 
 	"github.com/alicebob/miniredis"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/statestore"
 )
 
 // New creates a new in memory Redis instance for testing.
@@ -37,4 +38,12 @@ func New(t *testing.T, cfg config.Mutable) func() {
 	return func() {
 		mredis.Close()
 	}
+}
+
+// NewStoreServiceForTesting creates a new statestore service for testing
+func NewStoreServiceForTesting(t *testing.T, cfg config.Mutable) (statestore.Service, func()) {
+	closer := New(t, cfg)
+	s := statestore.New(cfg)
+
+	return s, closer
 }

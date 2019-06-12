@@ -15,9 +15,12 @@
 package mmlogic
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"testing"
 
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -29,36 +32,103 @@ import (
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
+type propertyManifest struct {
+	name     string
+	min      float64
+	max      float64
+	interval float64
+}
+
 func TestDoQueryTickets(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx := context.Background()
 	cfg := viper.New()
-	closer := statestoreTesting.New(t, cfg)
+	cfg.Set("storage.page.size", 1000)
+	cfg.Set("playerIndices", []string{"level", "spd"})
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()
-	store := statestore.New(cfg)
 
-	var result []*pb.Ticket
-	
+	var actualTickets []*pb.Ticket
+
 	sender := func(tickets []*pb.Ticket) error {
-		result = tickets
+		actualTickets = tickets
 		return nil
 	}
 
-	tests := []struct{
-		filters []*pb.Filter
-		pageSize int
-		action func() error
-	}{
+	testTickets := generateTickets(propertyManifest{"level", 0, 20, 5}, propertyManifest{"spd", 0, 20, 5})
 
+	tests := []struct {
+		filters       []*pb.Filter
+		pageSize      int
+		action        func() error
+		shouldErr     error
+		shouldTickets []*pb.Ticket
+	}{
+		{
+			[]*pb.Filter{
+				{
+					Attribute: "level",
+					Min:       0,
+					Max:       10,
+				},
+			},
+			10,
+			func() error { return nil },
+			nil,
+			nil,
+		},
+		{
+			[]*pb.Filter{
+				{
+					Attribute: "level",
+					Min:       0,
+					Max:       10,
+				},
+			},
+			10,
+			func() error {
+				for _, testTicket := range testTickets {
+					assert.Nil(store.CreateTicket(ctx, testTicket))
+					assert.Nil(store.IndexTicket(ctx, testTicket))
+				}
+				return nil
+			},
+			nil,
+			generateTickets(propertyManifest{"level", 0, 10.1, 5}, propertyManifest{"spd", 0, 20, 5}),
+		},
 	}
 
 	for _, test := range tests {
-		err := test.action()
-		assert.Nil(err)
-		doQueryTickets(ctx, test.filters, test.pageSize, sender func(tickets []*pb.Ticket) error, store) error
+		assert.Nil(test.action())
+		assert.Equal(test.shouldErr, doQueryTickets(ctx, cfg, test.filters, test.pageSize, sender, store))
+		for _, shouldTicket := range test.shouldTickets {
+			assert.Contains(actualTickets, shouldTicket)
+		}
 	}
 }
+
+func generateTickets(manifest1, manifest2 propertyManifest) []*pb.Ticket {
+	testTickets := make([]*pb.Ticket, 0)
+
+	for i := manifest1.min; i < manifest1.max; i += manifest1.interval {
+		for j := manifest2.min; j < manifest2.max; j += manifest2.interval {
+			testTickets = append(testTickets, &pb.Ticket{
+				Id: fmt.Sprintf("%s%f-%s%f", manifest1.name, i, manifest2.name, j),
+				Properties: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						manifest1.name: {Kind: &structpb.Value_NumberValue{NumberValue: float64(i)}},
+						manifest2.name: {Kind: &structpb.Value_NumberValue{NumberValue: float64(j)}},
+					},
+				},
+			})
+		}
+	}
+
+	return testTickets
+}
+
+// TODO: move below test cases to e2e
 func TestQueryTicketsEmptyRequest(t *testing.T) {
 	assert := assert.New(t)
 	tc := createMmlogicForTest(t)
