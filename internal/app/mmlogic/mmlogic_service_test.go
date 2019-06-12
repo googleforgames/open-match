@@ -28,6 +28,36 @@ import (
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
+func TestDoQueryTickets(t *testing.T) {
+	assert := assert.New(t)
+
+	ctx := context.Background()
+	cfg := viper.New()
+	closer := statestoreTesting.New(t, cfg)
+	defer closer()
+	store := statestore.New(cfg)
+
+	var result []*pb.Ticket
+	
+	sender := func(tickets []*pb.Ticket) error {
+		result = tickets
+		return nil
+	}
+
+	tests := []struct{
+		filters []*pb.Filter
+		pageSize int
+		action func() error
+	}{
+
+	}
+
+	for _, test := range tests {
+		err := test.action()
+		assert.Nil(err)
+		doQueryTickets(ctx, test.filters, test.pageSize, sender func(tickets []*pb.Ticket) error, store) error
+	}
+}
 func TestQueryTicketsEmptyRequest(t *testing.T) {
 	assert := assert.New(t)
 	tc := createMmlogicForTest(t)

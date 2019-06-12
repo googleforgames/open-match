@@ -58,13 +58,7 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 	ctx := responseServer.Context()
 	poolFilters := req.GetPool().GetFilter()
 	pSize := s.cfg.GetInt("storage.page.size")
-	if pSize < minPageSize {
-		return status.Errorf(codes.FailedPrecondition, "page size %v is lower than minimum limit of %v", pSize, minPageSize)
-	}
 
-	if pSize > maxPageSize {
-		return status.Errorf(codes.FailedPrecondition, "page size %v is higher than maximum limit of %v", pSize, maxPageSize)
-	}
 	callback := func(tickets []*pb.Ticket) error {
 		err := responseServer.Send(&pb.QueryTicketsResponse{Ticket: tickets})
 		if err != nil {
@@ -78,6 +72,14 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 }
 
 func doQueryTickets(ctx context.Context, filters []*pb.Filter, pageSize int, sender func(tickets []*pb.Ticket) error, store statestore.Service) error {
+
+	if pageSize < minPageSize {
+		return status.Errorf(codes.FailedPrecondition, "page size %v is lower than minimum limit of %v", pageSize, minPageSize)
+	}
+
+	if pageSize > maxPageSize {
+		return status.Errorf(codes.FailedPrecondition, "page size %v is higher than maximum limit of %v", pageSize, maxPageSize)
+	}
 	// Send requests to the storage service
 	err := store.FilterTickets(ctx, filters, pageSize, sender)
 	if err != nil {
