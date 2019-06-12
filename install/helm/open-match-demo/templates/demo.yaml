@@ -74,11 +74,6 @@ spec:
           containerPort: {{ .Values.openmatch.demo.http.port }}
         - name: metrics
           containerPort: {{ .Values.openmatch.metrics.port }}
-        env:
-        - name: REDIS_SERVICE_HOST
-          value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
-        - name: REDIS_SERVICE_PORT
-          value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
       volumes:
       - name: om-config-volume
         configMap:
