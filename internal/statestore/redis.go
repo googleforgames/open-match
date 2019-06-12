@@ -20,14 +20,13 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/proto"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/filter"
 	"open-match.dev/open-match/internal/pb"
-	"open-match.dev/open-match/internal/set"
 )
 
 var (
@@ -41,9 +40,18 @@ type redisBackend struct {
 	healthCheckPool *redis.Pool
 	redisPool       *redis.Pool
 	cfg             config.View
+	ctx             context.Context
+	cancelFunc      context.CancelFunc
+	indexCache      chan chan *cacheResponse
+}
+
+type cacheResponse struct {
+	tickets []*pb.Ticket
+	err     error
 }
 
 func (rb *redisBackend) Close() error {
+	rb.cancelFunc()
 	return rb.redisPool.Close()
 }
 
@@ -79,11 +87,19 @@ func newRedis(cfg config.View) Service {
 		},
 	}
 
-	return &redisBackend{
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
+	rb := &redisBackend{
 		healthCheckPool: healthCheckPool,
 		redisPool:       pool,
 		cfg:             cfg,
+		ctx:             ctx,
+		cancelFunc:      cancelFunc,
+		indexCache:      make(chan chan *cacheResponse),
 	}
+
+	go rb.startCache()
+	return rb
 }
 
 // HealthCheck indicates if the database is reachable.
@@ -253,70 +269,13 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("MULTI")
+	err = redisConn.Send("SADD", "all-tickets", ticket.Id)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "MULTI",
-			"error": err.Error(),
-		}).Error("state storage operation failed")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	// Fetch the indices from the configuration.
-	// TODO: Consider adding Open Match specific custom indices in future.
-	var indices []string
-	if rb.cfg.IsSet("playerIndices") {
-		indices = rb.cfg.GetStringSlice("playerIndices")
-	}
-
-	// Loop through all attributes we want to index.
-	for _, attribute := range indices {
-		// TODO: Currently, Open Match supports specifying attributes as JSON properties on Tickets.
-		// Alternatives for populating this information in proto fields are being considered.
-		// Also, we need to add Ticket creation time to either the ticket or index.
-		// Meta characters bein specified in JSON property keys is currently not supported.
-		v, ok := ticket.Properties.Fields[attribute]
-
-		// If this attribute wasn't provided, continue to the next attribute to index.
-		if !ok {
-			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute}).Warning("Couldn't find index in Ticket Properties")
-			continue
-		}
-
-		var d float64
-
-		switch v.Kind.(type) {
-		case *structpb.Value_NumberValue:
-			d = v.GetNumberValue()
-		default:
-			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute,
-			}).Warning("Attribute not a number.")
-		}
-
-		// Index the attribute by value.
-		err = redisConn.Send("ZADD", attribute, d, ticket.Id)
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"cmd":       "ZADD",
-				"attribute": attribute,
-				"value":     d,
-				"ticket":    ticket.Id,
-				"error":     err.Error(),
-			}).Error("failed to index ticket attribute")
-			return status.Errorf(codes.Internal, "%v", err)
-		}
-	}
-
-	// Run pipelined Redis commands.
-	_, err = redisConn.Do("EXEC")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "EXEC",
-			"id":    ticket.Id,
-			"error": err.Error(),
-		}).Error("failed to index the ticket")
+			"cmd":    "SADD all-tickets",
+			"ticket": ticket.Id,
+			"error":  err.Error(),
+		}).Error("failed to index ticket")
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
@@ -331,42 +290,13 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("MULTI")
+	err = redisConn.Send("SREM", "all-tickets", id)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "MULTI",
-			"error": err.Error(),
-		}).Error("state storage operation failed")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	// Fetch the indices from the configuration.
-	// TODO: Consider adding Open Match specific custom indices in future.
-	var indices []string
-	if rb.cfg.IsSet("playerIndices") {
-		indices = rb.cfg.GetStringSlice("playerIndices")
-	}
-
-	for _, attribute := range indices {
-		err = redisConn.Send("ZREM", attribute, id)
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"cmd":       "ZREM",
-				"attribute": attribute,
-				"id":        id,
-				"error":     err.Error(),
-			}).Error("failed to deindex attribute")
-			return status.Errorf(codes.Internal, "%v", err)
-		}
-	}
-
-	_, err = redisConn.Do("EXEC")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "EXEC",
-			"id":    id,
-			"error": err.Error(),
-		}).Error("failed to deindex the ticket")
+			"cmd":    "SREM all-tickets",
+			"ticket": id,
+			"error":  err.Error(),
+		}).Error("failed to deindex ticket")
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
@@ -380,73 +310,155 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
 func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error {
-	redisConn, err := rb.connect(ctx)
-	if err != nil {
-		return err
-	}
-	defer handleConnectionClose(&redisConn)
+	cr := make(chan *cacheResponse, 1)
 
-	// A set of playerIds that satisfies all filters
-	idSet := make([]string, 0)
+	var allTickets []*pb.Ticket
 
-	// For each filter, do a range query to Redis on Filter.Attribute
-	for i, filter := range filters {
-		// Time Complexity O(logN + M), where N is the number of elements in the attribute set
-		// and M is the number of entries being returned.
-		// TODO: discuss if we need a LIMIT for # of queries being returned
-		idsInFilter, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.Attribute, filter.Min, filter.Max))
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f", filter.Attribute, filter.Min, filter.Max),
-			}).WithError(err).Error("Failed to lookup index.")
-			return status.Errorf(codes.Internal, "%v", err)
+	rb.indexCache <- cr
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case c := <-cr:
+		if c.err != nil {
+			return status.Errorf(codes.Internal, "%v", c.err)
 		}
-
-		if i == 0 {
-			idSet = idsInFilter
-		} else {
-			idSet = set.Intersection(idSet, idsInFilter)
-		}
+		allTickets = c.tickets
 	}
 
-	// TODO: finish reworking this after the proto changes.
-	for _, page := range idsToPages(idSet, pageSize) {
-		ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", page...))
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"Command": fmt.Sprintf("MGET %v", page),
-			}).WithError(err).Error("Failed to lookup tickets.")
-			return status.Errorf(codes.Internal, "%v", err)
+	filtered := filter.Filter(allTickets, filters)
+
+	// This isn't ideal.  What we would want to do is have the cache stream tickets
+	// as soon as they are available.  So all of the tickets which are already locally
+	// in the cache should be immediately avaiable.  However that's complex, so for
+	// v0.6, let's just fudge it a little and then refine the latencies once we know
+	// what we're doing more.
+	for i := 0; i < len(filtered); i += pageSize {
+		pageEnd := i + pageSize
+		if pageEnd > len(filtered) {
+			pageEnd = len(filtered)
 		}
 
-		tickets := make([]*pb.Ticket, 0, len(page))
-		for i, b := range ticketBytes {
-			// Tickets may be deleted by the time we read it from redis.
-			if b != nil {
-				t := &pb.Ticket{}
-				err = proto.Unmarshal(b, t)
-				if err != nil {
-					redisLogger.WithFields(logrus.Fields{
-						"key": page[i],
-					}).WithError(err).Error("Failed to unmarshal ticket from redis.")
-					return status.Errorf(codes.Internal, "%v", err)
-				}
-				tickets = append(tickets, t)
-			}
-		}
-
-		err = callback(tickets)
+		err := callback(filtered[i:pageEnd])
 		if err != nil {
 			return status.Errorf(codes.Internal, "%v", err)
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
 		}
 	}
 
 	return nil
+}
+
+// Start cache keeps a in memory cache of all indexed tickets.  When a request
+// comes in, it will start a request to get all tickets ids in the index, and then
+// will request unknown tickets.  If a new request comes in while another is being
+// processed, the later requests will piggyback off of the first.  To preserve strict
+// ordering, once the result has been returned to all waiting callers, any future
+// callers will start a new request for all ticket ids from Redis.  That way a read,
+// modify, read call order will return expected (not stale) results.
+func (rb *redisBackend) startCache() {
+	var waiting []chan *cacheResponse
+
+	allTickets := make(map[string]*pb.Ticket)
+	result := make(chan *cacheResponse, 1)
+
+	for {
+		select {
+		case <-rb.ctx.Done():
+			resp := &cacheResponse{
+				err: rb.ctx.Err(),
+			}
+			for _, cr := range waiting {
+				cr <- resp
+			}
+			return
+		case resp := <-result:
+			for _, cr := range waiting {
+				cr <- resp
+			}
+			waiting = nil
+		case req := <-rb.indexCache:
+			if len(waiting) <= 0 {
+				go rb.refillCache(allTickets, result)
+			}
+			waiting = append(waiting, req)
+		}
+	}
+}
+
+func (rb *redisBackend) refillCache(allTickets map[string]*pb.Ticket, result chan *cacheResponse) {
+	redisConn, err := rb.connect(rb.ctx)
+	if err != nil {
+		result <- &cacheResponse{
+			err: status.Errorf(codes.Internal, "%v", err),
+		}
+	}
+	defer handleConnectionClose(&redisConn)
+
+	allIds, err := redis.Strings(redisConn.Do("SMEMBERS", "all-tickets"))
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"Command": "SMEMBERS all-tickets",
+		}).WithError(err).Error("Failed to lookup all ticket ids")
+		result <- &cacheResponse{
+			err: status.Errorf(codes.Internal, "%v", err),
+		}
+	}
+
+	idsToRequest := make(map[string]struct{})
+	for _, id := range allIds {
+		idsToRequest[id] = struct{}{}
+	}
+
+	for id := range allTickets {
+		if _, ok := idsToRequest[id]; ok {
+			// Don't request known tickets.
+			delete(idsToRequest, id)
+		} else {
+			// Forget deindexed tickets.
+			delete(allTickets, id)
+		}
+	}
+
+	req := make([]interface{}, 0, len(idsToRequest))
+	for id := range idsToRequest {
+		req = append(req, id)
+	}
+
+	ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", req...))
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"Command": fmt.Sprintf("MGET %v", req),
+		}).WithError(err).Error("Failed to lookup tickets.")
+		result <- &cacheResponse{
+			err: status.Errorf(codes.Internal, "%v", err),
+		}
+	}
+
+	for i, b := range ticketBytes {
+		// Tickets may be deleted by the time we read it from redis.
+		if b != nil {
+			t := &pb.Ticket{}
+			err = proto.Unmarshal(b, t)
+			if err != nil {
+				redisLogger.WithFields(logrus.Fields{
+					"key": req[i],
+				}).WithError(err).Error("Failed to unmarshal ticket from redis.")
+				result <- &cacheResponse{
+					err: status.Errorf(codes.Internal, "%v", err),
+				}
+			}
+			allTickets[t.Id] = t
+		}
+	}
+
+	tickets := make([]*pb.Ticket, 0, len(allTickets))
+	for _, t := range allTickets {
+		tickets = append(tickets, t)
+	}
+
+	result <- &cacheResponse{
+		tickets: tickets,
+	}
 }
 
 // UpdateAssignments update the match assignments for the input ticket ids
