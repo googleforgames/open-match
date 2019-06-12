@@ -27,11 +27,11 @@ import (
 	"fmt"
 	"time"
 
-	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
-	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/playerindices"
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gomodule/redigo/redis"
+	om_messages "github.com/googleforgames/open-match/internal/pb"
+	"github.com/googleforgames/open-match/internal/statestorage/redis/playerindices"
 	log "github.com/sirupsen/logrus"
 )
 

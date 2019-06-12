@@ -1,11 +1,11 @@
 package serving
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/logging"
-	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
+	"github.com/googleforgames/open-match/config"
+	"github.com/googleforgames/open-match/internal/logging"
+	"github.com/googleforgames/open-match/internal/metrics"
+	redishelpers "github.com/googleforgames/open-match/internal/statestorage/redis"
+	"github.com/googleforgames/open-match/internal/util/netlistener"
 	"github.com/opencensus-integrations/redigo/redis"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"

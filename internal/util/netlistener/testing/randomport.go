@@ -1,7 +1,7 @@
 package testing
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
+	"github.com/googleforgames/open-match/internal/util/netlistener"
 )
 
 // MustListen finds the next available port to open for TCP connections, used in tests to make them isolated.

@@ -22,9 +22,9 @@ limitations under the License.
 package mmlogicapi
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi/apisrv"
-	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
+	"github.com/googleforgames/open-match/internal/app/mmlogicapi/apisrv"
+	"github.com/googleforgames/open-match/internal/metrics"
+	"github.com/googleforgames/open-match/internal/serving"
 
 	log "github.com/sirupsen/logrus"
 )

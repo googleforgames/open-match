@@ -20,10 +20,10 @@ limitations under the License.
 package minimatch
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/backendapi"
-	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi"
-	"github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi"
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
+	"github.com/googleforgames/open-match/internal/app/backendapi"
+	"github.com/googleforgames/open-match/internal/app/frontendapi"
+	"github.com/googleforgames/open-match/internal/app/mmlogicapi"
+	"github.com/googleforgames/open-match/internal/serving"
 )
 
 // CreateServerParams creates the configuration and prepares the binding for serving handler.

@@ -25,8 +25,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
 	"github.com/gomodule/redigo/redis"
+	"github.com/googleforgames/open-match/config"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -26,9 +26,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/gogo/protobuf/proto"
+	"github.com/googleforgames/open-match/config"
+	"github.com/googleforgames/open-match/internal/pb"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
 

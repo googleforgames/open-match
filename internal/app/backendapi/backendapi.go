@@ -23,10 +23,10 @@ limitations under the License.
 package backendapi
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/backendapi/apisrv"
-	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
+	"github.com/googleforgames/open-match/internal/app/backendapi/apisrv"
+	"github.com/googleforgames/open-match/internal/metrics"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
+	"github.com/googleforgames/open-match/internal/serving"
 
 	log "github.com/sirupsen/logrus"
 )

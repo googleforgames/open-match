@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	pb "github.com/GoogleCloudPlatform/open-match/internal/pb"
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
-	servingTesting "github.com/GoogleCloudPlatform/open-match/internal/serving/testing"
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
-	netlistenerTesting "github.com/GoogleCloudPlatform/open-match/internal/util/netlistener/testing"
+	pb "github.com/googleforgames/open-match/internal/pb"
+	"github.com/googleforgames/open-match/internal/serving"
+	servingTesting "github.com/googleforgames/open-match/internal/serving/testing"
+	"github.com/googleforgames/open-match/internal/util/netlistener"
+	netlistenerTesting "github.com/googleforgames/open-match/internal/util/netlistener/testing"
 	log "github.com/sirupsen/logrus"
 
 	"net"

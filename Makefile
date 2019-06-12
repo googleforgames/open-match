@@ -654,7 +654,7 @@ ifeq ($(_GCB_POST_SUBMIT),1)
 	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/v$(BASE_VERSION)/yaml/
 	gsutil cp -a public-read $(REPOSITORY_ROOT)/api/protobuf-spec/*.json gs://open-match-chart/api/v$(BASE_VERSION)/
 	# TODO Add Helm Artifacts later.
-	# Example: https://github.com/GoogleCloudPlatform/agones/blob/3b324a74e5e8f7049c2169ec589e627d4c8cab79/build/Makefile#L211
+	# Example: https://github.com/googleforgames/agones/blob/3b324a74e5e8f7049c2169ec589e627d4c8cab79/build/Makefile#L211
 else
 	@echo "Not deploying build artifacts to open-match.dev because this is not a post commit change."
 endif

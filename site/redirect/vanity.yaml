@@ -16,6 +16,6 @@ host: open-match.dev
 cache_max_age: 3600
 paths:
   /open-match:
-    repo: https://github.com/GoogleCloudPlatform/open-match.git
-    display: "https://github.com/GoogleCloudPlatform/open-match https://github.com/GoogleCloudPlatform/open-match/tree/master{/dir} https://github.com/GoogleCloudPlatform/open-match/blob/master{/dir}/{file}#L{line}"
+    repo: https://github.com/googleforgames/open-match.git
+    display: "https://github.com/googleforgames/open-match https://github.com/googleforgames/open-match/tree/master{/dir} https://github.com/googleforgames/open-match/blob/master{/dir}/{file}#L{line}"
     vcs: git

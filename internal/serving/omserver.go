@@ -1,9 +1,9 @@
 package serving
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/signal"
 	"github.com/gomodule/redigo/redis"
+	"github.com/googleforgames/open-match/config"
+	"github.com/googleforgames/open-match/internal/signal"
 	log "github.com/sirupsen/logrus"
 )
 

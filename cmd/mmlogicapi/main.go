@@ -22,7 +22,7 @@ limitations under the License.
 package main
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/mmlogicapi"
+	"github.com/googleforgames/open-match/internal/app/mmlogicapi"
 )
 
 func main() {

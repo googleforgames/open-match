@@ -27,13 +27,13 @@ package harness
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/harness/evaluator/golang/apisrv"
-	"github.com/GoogleCloudPlatform/open-match/internal/logging"
-	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
-	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
+	"github.com/googleforgames/open-match/config"
+	"github.com/googleforgames/open-match/internal/harness/evaluator/golang/apisrv"
+	"github.com/googleforgames/open-match/internal/logging"
+	"github.com/googleforgames/open-match/internal/metrics"
+	"github.com/googleforgames/open-match/internal/pb"
+	redishelpers "github.com/googleforgames/open-match/internal/statestorage/redis"
+	"github.com/googleforgames/open-match/internal/util/netlistener"
 	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
 

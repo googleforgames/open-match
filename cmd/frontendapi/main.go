@@ -23,7 +23,7 @@ limitations under the License.
 package main
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi"
+	"github.com/googleforgames/open-match/internal/app/frontendapi"
 )
 
 func main() {

@@ -31,9 +31,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
-	"github.com/GoogleCloudPlatform/open-match/test/cmd/frontendclient/player"
 	"github.com/gobs/pretty"
+	"github.com/googleforgames/open-match/internal/pb"
+	"github.com/googleforgames/open-match/test/cmd/frontendclient/player"
 	"google.golang.org/grpc"
 )
 

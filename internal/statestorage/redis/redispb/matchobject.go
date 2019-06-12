@@ -28,10 +28,10 @@ import (
 	"fmt"
 	"time"
 
-	om_messages "github.com/GoogleCloudPlatform/open-match/internal/pb"
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gomodule/redigo/redis"
+	om_messages "github.com/googleforgames/open-match/internal/pb"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -23,8 +23,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
+	"github.com/googleforgames/open-match/config"
+	"github.com/googleforgames/open-match/internal/util/netlistener"
 	log "github.com/sirupsen/logrus"
 
 	"go.opencensus.io/exporter/prometheus"

@@ -3,10 +3,10 @@ package frontend
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi"
+	"github.com/googleforgames/open-match/internal/app/frontendapi"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
-	omTesting "github.com/GoogleCloudPlatform/open-match/internal/serving/testing"
+	"github.com/googleforgames/open-match/internal/serving"
+	omTesting "github.com/googleforgames/open-match/internal/serving/testing"
 )
 
 func TestFrontendStartup(t *testing.T) {

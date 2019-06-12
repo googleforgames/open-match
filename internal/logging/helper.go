@@ -1,8 +1,8 @@
 package logging
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/config"
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
+	"github.com/googleforgames/open-match/config"
 	"github.com/sirupsen/logrus"
 )
 

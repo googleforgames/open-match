@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/open-match/internal/util/netlistener"
+	"github.com/googleforgames/open-match/internal/util/netlistener"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"

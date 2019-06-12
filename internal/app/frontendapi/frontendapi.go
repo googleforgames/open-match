@@ -22,9 +22,9 @@ limitations under the License.
 package frontendapi
 
 import (
-	"github.com/GoogleCloudPlatform/open-match/internal/app/frontendapi/apisrv"
-	"github.com/GoogleCloudPlatform/open-match/internal/metrics"
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
+	"github.com/googleforgames/open-match/internal/app/frontendapi/apisrv"
+	"github.com/googleforgames/open-match/internal/metrics"
+	"github.com/googleforgames/open-match/internal/serving"
 
 	log "github.com/sirupsen/logrus"
 )

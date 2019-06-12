@@ -14,7 +14,7 @@ Here are the instructions to set up a local repository for Open Match.
 sudo apt-get update; sudo apt-get install -y -q python3 python3-virtualenv virtualenv make google-cloud-sdk git unzip tar
 mkdir -p $HOME/<workspace>
 cd $HOME/<workspace>
-git clone https://github.com/GoogleCloudPlatform/open-match.git
+git clone https://github.com/googleforgames/open-match.git
 cd open-match
 ```
 

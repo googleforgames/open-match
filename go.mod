@@ -1,4 +1,4 @@
-module github.com/GoogleCloudPlatform/open-match
+module github.com/googleforgames/open-match
 
 go 1.12
 

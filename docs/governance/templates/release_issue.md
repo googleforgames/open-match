@@ -29,17 +29,17 @@ There are 3 types of releases:
 Complete Milestone
 ------------------
 - [ ] Create the next version milestone, use [semantic versioning](https://semver.org/) when naming it to be consistent with the [Go community](https://blog.golang.org/versioning-proposal).
-- [ ] Visit the [milestone](https://github.com/GoogleCloudPlatform/open-match/milestone).
+- [ ] Visit the [milestone](https://github.com/googleforgames/open-match/milestone).
   - [ ] Open a document for a draft [release notes](release.md).
-  - [ ] Add the milestone tag to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/GoogleCloudPlatform/open-match/releases) and look for the "X commits to master since this release" for the diff. The link resolves to, https://github.com/GoogleCloudPlatform/open-match/compare/v{version}...master.
-  - [ ] Review all [milestone-less closed issues](https://github.com/GoogleCloudPlatform/open-match/issues?q=is%3Aissue+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
-  - [ ] Review all [issues in milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) for proper [labels](https://github.com/GoogleCloudPlatform/open-match/labels) (ex: area/build).
-  - [ ] Review all [milestone-less closed PRs](https://github.com/GoogleCloudPlatform/open-match/pulls?q=is%3Apr+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
-  - [ ] Review all [PRs in milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) for proper [labels](https://github.com/GoogleCloudPlatform/open-match/labels) (ex: area/build).
-  - [ ] View all open entries in milestone and move them to a future milestone if they aren't getting closed in time. https://github.com/GoogleCloudPlatform/open-match/milestones/v{version}
-  - [ ] Review all closed PRs against the milestone. Put the user visible changes into the release notes using the suggested format. https://github.com/GoogleCloudPlatform/open-match/pulls?q=is%3Apr+is%3Aclosed+milestone%3Av{version}
-  - [ ] Review all closed issues against the milestone. Put the user visible changes into the release notes using the suggested format. https://github.com/GoogleCloudPlatform/open-match/issues?utf8=%E2%9C%93&q=is%3Aissue+is%3Aclosed+milestone%3Av{version}
-  - [ ] Verify the [milestone](https://github.com/GoogleCloudPlatform/open-match/milestones) is effectively 100% at this point with the exception of the release issue itself.
+  - [ ] Add the milestone tag to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/googleforgames/open-match/releases) and look for the "X commits to master since this release" for the diff. The link resolves to, https://github.com/googleforgames/open-match/compare/v{version}...master.
+  - [ ] Review all [milestone-less closed issues](https://github.com/googleforgames/open-match/issues?q=is%3Aissue+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
+  - [ ] Review all [issues in milestone](https://github.com/googleforgames/open-match/milestones) for proper [labels](https://github.com/googleforgames/open-match/labels) (ex: area/build).
+  - [ ] Review all [milestone-less closed PRs](https://github.com/googleforgames/open-match/pulls?q=is%3Apr+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
+  - [ ] Review all [PRs in milestone](https://github.com/googleforgames/open-match/milestones) for proper [labels](https://github.com/googleforgames/open-match/labels) (ex: area/build).
+  - [ ] View all open entries in milestone and move them to a future milestone if they aren't getting closed in time. https://github.com/googleforgames/open-match/milestones/v{version}
+  - [ ] Review all closed PRs against the milestone. Put the user visible changes into the release notes using the suggested format. https://github.com/googleforgames/open-match/pulls?q=is%3Apr+is%3Aclosed+milestone%3Av{version}
+  - [ ] Review all closed issues against the milestone. Put the user visible changes into the release notes using the suggested format. https://github.com/googleforgames/open-match/issues?utf8=%E2%9C%93&q=is%3Aissue+is%3Aclosed+milestone%3Av{version}
+  - [ ] Verify the [milestone](https://github.com/googleforgames/open-match/milestones) is effectively 100% at this point with the exception of the release issue itself.
 
 TODO: Add details for appropriate tagging for issues.
 
@@ -72,11 +72,11 @@ Announce
 
 [om-slack]: https://open-match.slack.com/
 [mailing-list-post]: https://groups.google.com/forum/#!newtopic/open-match-discuss
-[release-template]: https://github.com/GoogleCloudPlatform/open-match/blob/master/docs/governance/templates/release.md
-[makefile-version]: https://github.com/GoogleCloudPlatform/open-match/blob/master/Makefile#L53
-[om-example-chart-yaml-version]: https://github.com/GoogleCloudPlatform/open-match/blob/master/install/helm/open-match/Chart.yaml#L16
-[om-example-values-yaml-version]: https://github.com/GoogleCloudPlatform/open-match/blob/master/install/helm/open-match/values.yaml#L16
-[om-example-chart-yaml-version]: https://github.com/GoogleCloudPlatform/open-match/blob/master/install/helm/open-match-example/Chart.yaml#L16
-[om-example-values-yaml-version]: https://github.com/GoogleCloudPlatform/open-match/blob/master/install/helm/open-match-example/values.yaml#L16
-[om-release]: https://github.com/GoogleCloudPlatform/open-match/releases/new
-[readme-deploy]: https://github.com/GoogleCloudPlatform/open-match/blob/master/README.md#deploy-to-kubernetes
+[release-template]: https://github.com/googleforgames/open-match/blob/master/docs/governance/templates/release.md
+[makefile-version]: https://github.com/googleforgames/open-match/blob/master/Makefile#L53
+[om-example-chart-yaml-version]: https://github.com/googleforgames/open-match/blob/master/install/helm/open-match/Chart.yaml#L16
+[om-example-values-yaml-version]: https://github.com/googleforgames/open-match/blob/master/install/helm/open-match/values.yaml#L16
+[om-example-chart-yaml-version]: https://github.com/googleforgames/open-match/blob/master/install/helm/open-match-example/Chart.yaml#L16
+[om-example-values-yaml-version]: https://github.com/googleforgames/open-match/blob/master/install/helm/open-match-example/values.yaml#L16
+[om-release]: https://github.com/googleforgames/open-match/releases/new
+[readme-deploy]: https://github.com/googleforgames/open-match/blob/master/README.md#deploy-to-kubernetes

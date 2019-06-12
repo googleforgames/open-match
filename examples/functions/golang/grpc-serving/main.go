@@ -28,8 +28,8 @@ import (
 	"math/rand"
 	"time"
 
-	harness "github.com/GoogleCloudPlatform/open-match/internal/harness/matchfunction/golang"
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
+	harness "github.com/googleforgames/open-match/internal/harness/matchfunction/golang"
+	"github.com/googleforgames/open-match/internal/pb"
 
 	log "github.com/sirupsen/logrus"
 )

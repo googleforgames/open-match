@@ -31,12 +31,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/open-match/config"
-	"github.com/GoogleCloudPlatform/open-match/internal/pb"
-	"github.com/GoogleCloudPlatform/open-match/internal/set"
-	redishelpers "github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis"
-	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/ignorelist"
-	"github.com/GoogleCloudPlatform/open-match/internal/statestorage/redis/redispb"
+	"github.com/googleforgames/open-match/config"
+	"github.com/googleforgames/open-match/internal/pb"
+	"github.com/googleforgames/open-match/internal/set"
+	redishelpers "github.com/googleforgames/open-match/internal/statestorage/redis"
+	"github.com/googleforgames/open-match/internal/statestorage/redis/ignorelist"
+	"github.com/googleforgames/open-match/internal/statestorage/redis/redispb"
 
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"

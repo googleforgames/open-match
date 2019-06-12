@@ -8,8 +8,8 @@ import (
 	"net/http"
 	goTesting "testing"
 
-	pb "github.com/GoogleCloudPlatform/open-match/internal/pb"
-	"github.com/GoogleCloudPlatform/open-match/internal/serving"
+	pb "github.com/googleforgames/open-match/internal/pb"
+	"github.com/googleforgames/open-match/internal/serving"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )

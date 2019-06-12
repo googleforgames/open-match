@@ -1,8 +1,8 @@
 ![Open Match](site/static/images/logo-with-name.png)
 
-[![GoDoc](https://godoc.org/github.com/GoogleCloudPlatform/open-match?status.svg)](https://godoc.org/github.com/GoogleCloudPlatform/open-match)
-[![Go Report Card](https://goreportcard.com/badge/github.com/GoogleCloudPlatform/open-match)](https://goreportcard.com/report/github.com/GoogleCloudPlatform/open-match)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/GoogleCloudPlatform/open-match/blob/master/LICENSE)
+[![GoDoc](https://godoc.org/github.com/googleforgames/open-match?status.svg)](https://godoc.org/github.com/googleforgames/open-match)
+[![Go Report Card](https://goreportcard.com/badge/github.com/googleforgames/open-match)](https://goreportcard.com/report/github.com/googleforgames/open-match)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/googleforgames/open-match/blob/master/LICENSE)
 
 Open Match is an open source game matchmaking framework designed to allow game creators to build matchmakers of any size easily and with as much possibility for sharing and code re-use as possible. It’s designed to be flexible, extensible, and scalable.
 
@@ -40,7 +40,7 @@ kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-ad
 kubectl create namespace open-match
 
 # Install the core Open Match and monitoring services.
-kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.1/install.yaml --namespace open-match
+kubectl apply -f https://github.com/googleforgames/open-match/releases/download/0.5.1/install.yaml --namespace open-match
 ```
 
 ### Deploy demo components
@@ -48,7 +48,7 @@ kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/down
 Open Match framework requires the user to author a custom match function and an evaluator that are invoked to create matches. For demo purposes, we will use an example MMF and Evaluator. The following command deploys these in the kubernetes cluster:
 
 ```bash
-kubectl apply -f https://github.com/GoogleCloudPlatform/open-match/releases/download/0.5.1/install-example.yaml --namespace open-match
+kubectl apply -f https://github.com/googleforgames/open-match/releases/download/0.5.1/install-example.yaml --namespace open-match
 ```
 
 This command also deploys a component that continuously generates players with different properties and adds them to Open Match state storage. This is because a populated player pool is required to generate matches.
@@ -94,7 +94,7 @@ Open Match is in active development - we would love your help in shaping its fut
 ## Support
 
 * [Slack Channel](https://open-match.slack.com/) ([Signup](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLWQzMzE1MGY5YmYyYWY3ZjE2MjNjZTdmYmQ1ZTQzMmNiNGViYmQyN2M4ZmVkMDY2YzZlOTUwMTYwMzI1Y2I2MjU))
-* [File an Issue](https://github.com/GoogleCloudPlatform/open-match/issues/new)
+* [File an Issue](https://github.com/googleforgames/open-match/issues/new)
 * [Mailing list](https://groups.google.com/forum/#!forum/open-match-discuss)
 * [Managed Service Survey](https://goo.gl/forms/cbrFTNCmy9rItSv72)
 
