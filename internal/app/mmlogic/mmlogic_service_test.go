@@ -122,8 +122,8 @@ func generateTickets(manifest1, manifest2 propertyManifest) []*pb.Ticket {
 				Id: fmt.Sprintf("%s%f-%s%f", manifest1.name, i, manifest2.name, j),
 				Properties: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
-						manifest1.name: {Kind: &structpb.Value_NumberValue{NumberValue: float64(i)}},
-						manifest2.name: {Kind: &structpb.Value_NumberValue{NumberValue: float64(j)}},
+						manifest1.name: {Kind: &structpb.Value_NumberValue{NumberValue: i}},
+						manifest2.name: {Kind: &structpb.Value_NumberValue{NumberValue: j}},
 					},
 				},
 			})
