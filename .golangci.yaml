@@ -198,6 +198,7 @@ issues:
     - path: _test\.go
       linters:
         - errcheck
+        - bodyclose
     # The following are allowed global variable patterns.
     # Generally it's ok to have constants or variables that effectively act as constants such as a static logger or flag values.
     # The filters below specify the source code pattern that's allowed when declaring a global
