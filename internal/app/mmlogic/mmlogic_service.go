@@ -32,15 +32,6 @@ var (
 	})
 )
 
-const (
-	// Minimum number of tickets to be returned in a streamed response for QueryTickets. This value
-	// will be used if page size if not configured or is configured lower than the minimum value.
-	minPageSize int = 10
-	// Maximum number of tickets to be returned in a streamed response for QueryTickets. This value
-	// will be used if page size is configured higher than the minimum value.
-	maxPageSize int = 1000
-)
-
 // The MMLogic API provides utility functions for common MMF functionality such
 // as retreiving Tickets from state storage.
 type mmlogicService struct {
@@ -68,24 +59,50 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 		return nil
 	}
 
-	return doQueryTickets(ctx, poolFilters, pSize, callback, s.store)
+	return doQueryTickets(ctx, s.cfg, poolFilters, pSize, callback, s.store)
 }
 
-func doQueryTickets(ctx context.Context, filters []*pb.Filter, pageSize int, sender func(tickets []*pb.Ticket) error, store statestore.Service) error {
+func doQueryTickets(ctx context.Context, cfg config.View, filters []*pb.Filter, pageSize int, sender func(tickets []*pb.Ticket) error, store statestore.Service) error {
 
-	if pageSize < minPageSize {
-		return status.Errorf(codes.FailedPrecondition, "page size %v is lower than minimum limit of %v", pageSize, minPageSize)
-	}
-
-	if pageSize > maxPageSize {
-		return status.Errorf(codes.FailedPrecondition, "page size %v is higher than maximum limit of %v", pageSize, maxPageSize)
-	}
 	// Send requests to the storage service
-	err := store.FilterTickets(ctx, filters, pageSize, sender)
+	err := store.FilterTickets(ctx, filters, getPageSize(cfg), sender)
+
 	if err != nil {
 		logger.WithError(err).Error("Failed to retrieve result from storage service.")
 		return err
 	}
 
 	return nil
+}
+
+func getPageSize(cfg config.View) int {
+	const (
+		name = "storage.page.size"
+		// Minimum number of tickets to be returned in a streamed response for QueryTickets. This value
+		// will be used if page size is configured lower than the minimum value.
+		minPageSize int = 10
+		// Default number of tickets to be returned in a streamed response for QueryTickets.  This value
+		// will be used if page size is not configured.
+		defaultPageSize int = 1000
+		// Maximum number of tickets to be returned in a streamed response for QueryTickets. This value
+		// will be used if page size is configured higher than the maximum value.
+		maxPageSize int = 10000
+	)
+
+	if !cfg.IsSet(name) {
+		return defaultPageSize
+	}
+
+	pSize := cfg.GetInt("storage.page.size")
+	if pSize < minPageSize {
+		logger.Warningf("page size %v is lower than the minimum limit of %v", pSize, maxPageSize)
+		pSize = minPageSize
+	}
+
+	if pSize > maxPageSize {
+		logger.Warningf("page size %v is higher than the maximum limit of %v", pSize, maxPageSize)
+		return maxPageSize
+	}
+
+	return pSize
 }

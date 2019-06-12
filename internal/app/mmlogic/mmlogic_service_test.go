@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
@@ -116,4 +117,50 @@ func createMmlogicForTest(t *testing.T) *rpcTesting.TestContext {
 	// TODO: This is very ugly. Need a better story around closing resources.
 	tc.AddCloseFunc(closerFunc)
 	return tc
+}
+
+func TestGetPageSize(t *testing.T) {
+	testCases := []struct {
+		name      string
+		configure func(config.Mutable)
+		expected  int
+	}{
+		{
+			"notSet",
+			func(cfg config.Mutable) {},
+			1000,
+		},
+		{
+			"set",
+			func(cfg config.Mutable) {
+				cfg.Set("storage.page.size", "2156")
+			},
+			2156,
+		},
+		{
+			"low",
+			func(cfg config.Mutable) {
+				cfg.Set("storage.page.size", "9")
+			},
+			10,
+		},
+		{
+			"high",
+			func(cfg config.Mutable) {
+				cfg.Set("storage.page.size", "10001")
+			},
+			10000,
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := viper.New()
+			tt.configure(cfg)
+			actual := getPageSize(cfg)
+			if actual != tt.expected {
+				t.Errorf("got %d, want %d", actual, tt.expected)
+			}
+		})
+	}
 }
