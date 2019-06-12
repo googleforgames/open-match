@@ -311,11 +311,9 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 // }
 func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error {
 	cr := make(chan *cacheResponse, 1)
-
-	var allTickets []*pb.Ticket
-
 	rb.indexCache <- cr
 
+	var allTickets []*pb.Ticket
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -386,7 +384,7 @@ func (rb *redisBackend) refillCache(allTickets map[string]*pb.Ticket) *cacheResp
 	redisConn, err := rb.connect(rb.ctx)
 	if err != nil {
 		return &cacheResponse{
-			err: status.Errorf(codes.Internal, "%v", err),
+			err: err,
 		}
 	}
 	defer handleConnectionClose(&redisConn)
@@ -397,7 +395,7 @@ func (rb *redisBackend) refillCache(allTickets map[string]*pb.Ticket) *cacheResp
 			"Command": "SMEMBERS all-tickets",
 		}).WithError(err).Error("Failed to lookup all ticket ids")
 		return &cacheResponse{
-			err: status.Errorf(codes.Internal, "%v", err),
+			err: err,
 		}
 	}
 
@@ -428,7 +426,7 @@ func (rb *redisBackend) refillCache(allTickets map[string]*pb.Ticket) *cacheResp
 				"Command": fmt.Sprintf("MGET %v", req),
 			}).WithError(err).Error("Failed to lookup tickets.")
 			return &cacheResponse{
-				err: status.Errorf(codes.Internal, "%v", err),
+				err: err,
 			}
 		}
 
@@ -442,7 +440,7 @@ func (rb *redisBackend) refillCache(allTickets map[string]*pb.Ticket) *cacheResp
 						"key": req[i],
 					}).WithError(err).Error("Failed to unmarshal ticket from redis.")
 					return &cacheResponse{
-						err: status.Errorf(codes.Internal, "%v", err),
+						err: err,
 					}
 				}
 				allTickets[t.Id] = t
