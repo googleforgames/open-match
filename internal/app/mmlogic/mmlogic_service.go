@@ -15,6 +15,8 @@
 package mmlogic
 
 import (
+	"context"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -49,12 +51,20 @@ type mmlogicService struct {
 // GetPoolTickets gets the list of Tickets that match every Filter in the
 // specified Pool.
 func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.MmLogic_QueryTicketsServer) error {
-	ctx := responseServer.Context()
-	if req.Pool == nil {
+	if req.GetPool() == nil {
 		return status.Error(codes.InvalidArgument, "pool is empty")
 	}
-	poolFilters := req.Pool.Filter
 
+	ctx := responseServer.Context()
+	poolFilters := req.GetPool().GetFilter()
+	pSize := s.cfg.GetInt("storage.page.size")
+	if pSize < minPageSize {
+		return status.Errorf(codes.FailedPrecondition, "page size %v is lower than minimum limit of %v", pSize, minPageSize)
+	}
+
+	if pSize > maxPageSize {
+		return status.Errorf(codes.FailedPrecondition, "page size %v is higher than maximum limit of %v", pSize, maxPageSize)
+	}
 	callback := func(tickets []*pb.Ticket) error {
 		err := responseServer.Send(&pb.QueryTicketsResponse{Ticket: tickets})
 		if err != nil {
@@ -64,17 +74,12 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 		return nil
 	}
 
-	pSize := s.cfg.GetInt("storage.page.size")
-	if pSize < minPageSize {
-		return status.Errorf(codes.FailedPrecondition, "page size %v is lower than minimum limit of %v", pSize, minPageSize)
-	}
+	return doQueryTickets(ctx, poolFilters, pSize, callback, s.store)
+}
 
-	if pSize > maxPageSize {
-		return status.Errorf(codes.FailedPrecondition, "page size %v is higher than maximum limit of %v", pSize, maxPageSize)
-	}
-
+func doQueryTickets(ctx context.Context, filters []*pb.Filter, pageSize int, sender func(tickets []*pb.Ticket) error, store statestore.Service) error {
 	// Send requests to the storage service
-	err := s.store.FilterTickets(ctx, poolFilters, pSize, callback)
+	err := store.FilterTickets(ctx, filters, pageSize, sender)
 	if err != nil {
 		logger.WithError(err).Error("Failed to retrieve result from storage service.")
 		return err
