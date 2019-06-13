@@ -109,6 +109,7 @@ cmd/evaluator/evaluator
 cmd/minimatch/minimatch
 cmd/swaggerui/swaggerui
 tools/certgen/certgen
+examples/demo/demo
 examples/functions/golang/soloduel/soloduel
 
 # Secrets Directories

@@ -30,15 +30,6 @@ var (
 	})
 )
 
-const (
-	// Minimum number of tickets to be returned in a streamed response for QueryTickets. This value
-	// will be used if page size if not configured or is configured lower than the minimum value.
-	minPageSize int = 10
-	// Maximum number of tickets to be returned in a streamed response for QueryTickets. This value
-	// will be used if page size is configured higher than the minimum value.
-	maxPageSize int = 1000
-)
-
 // The MMLogic API provides utility functions for common MMF functionality such
 // as retreiving Tickets from state storage.
 type mmlogicService struct {
@@ -64,21 +55,44 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 		return nil
 	}
 
-	pSize := s.cfg.GetInt("storage.page.size")
-	if pSize < minPageSize {
-		return status.Errorf(codes.FailedPrecondition, "page size %v is lower than minimum limit of %v", pSize, minPageSize)
-	}
-
-	if pSize > maxPageSize {
-		return status.Errorf(codes.FailedPrecondition, "page size %v is higher than maximum limit of %v", pSize, maxPageSize)
-	}
-
 	// Send requests to the storage service
-	err := s.store.FilterTickets(ctx, poolFilters, pSize, callback)
+	err := s.store.FilterTickets(ctx, poolFilters, getPageSize(s.cfg), callback)
 	if err != nil {
 		logger.WithError(err).Error("Failed to retrieve result from storage service.")
 		return err
 	}
 
 	return nil
+}
+
+func getPageSize(cfg config.View) int {
+	const (
+		name = "storage.page.size"
+		// Minimum number of tickets to be returned in a streamed response for QueryTickets. This value
+		// will be used if page size is configured lower than the minimum value.
+		minPageSize int = 10
+		// Default number of tickets to be returned in a streamed response for QueryTickets.  This value
+		// will be used if page size is not configured.
+		defaultPageSize int = 1000
+		// Maximum number of tickets to be returned in a streamed response for QueryTickets. This value
+		// will be used if page size is configured higher than the maximum value.
+		maxPageSize int = 10000
+	)
+
+	if !cfg.IsSet(name) {
+		return defaultPageSize
+	}
+
+	pSize := cfg.GetInt("storage.page.size")
+	if pSize < minPageSize {
+		logger.Warningf("page size %v is lower than the minimum limit of %v", pSize, maxPageSize)
+		pSize = minPageSize
+	}
+
+	if pSize > maxPageSize {
+		logger.Warningf("page size %v is higher than the maximum limit of %v", pSize, maxPageSize)
+		return maxPageSize
+	}
+
+	return pSize
 }
