@@ -281,6 +281,21 @@ func TestUpdateAssignmentNormal(t *testing.T) {
 
 }
 
+func TestConnect(t *testing.T) {
+	assert := assert.New(t)
+	store := newRedis(createRedis(t))
+	defer store.Close()
+
+	rb, ok := store.(*redisBackend)
+	assert.True(ok)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	conn, err := rb.connect(ctx)
+	assert.NotNil(err)
+	assert.Nil(conn)
+}
+
 func createRedis(t *testing.T) config.View {
 	cfg := viper.New()
 	mredis, err := miniredis.Run()
