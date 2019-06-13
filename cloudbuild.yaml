@@ -80,7 +80,7 @@ steps:
 
 - id: 'Build: Assets'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'all-protos', 'tls-certs', '-j8']
+  args: ['make', 'assets', '-j8']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -117,24 +117,6 @@ steps:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Assets', 'Build: Deployment Configs']
-
-- id: 'Build: Website'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'build/site/']
-  waitFor: ['Build: Install Toolchain']
-
-- id: 'Test: Website'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'site-test']
-  waitFor: ['Build: Website']
-
-- id: 'Deploy: Website'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', VERSION_SUFFIX=$SHORT_SHA', 'BRANCH_NAME=$BRANCH_NAME', 'ci-deploy-site']
-  waitFor: ['Test: Website', 'Build: Binaries']
-  volumes:
-  - name: 'go-vol'
-    path: '/go'
 
 - id: 'Deploy: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
