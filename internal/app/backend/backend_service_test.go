@@ -101,7 +101,75 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 }
 
 func TestDoFetchMatchesSendResponse(t *testing.T) {
-	// TODO: Add more test
+	// The following test suites generate sender functions that will increment test.count for each call
+	// to make sure the send response loop can exit gracefully under different circumstances.
+	totalProposals := 10
+	failAtProposals := 5
+	fakeProposals := make([]*pb.Match, totalProposals)
+
+	tests := []struct {
+		description     string
+		count           int
+		senderGenerator func(cancel context.CancelFunc, p *int) func(*pb.Match) error
+		shouldErr       bool
+		shouldCount     int
+	}{
+		{
+			description: "expect test.count to be 10 without intervening the context",
+			senderGenerator: func(cancel context.CancelFunc, p *int) func(*pb.Match) error {
+				return func(matches *pb.Match) error {
+					*p++
+					return nil
+				}
+			},
+			shouldErr:   false,
+			shouldCount: totalProposals,
+		},
+		{
+			description: "expect doFetchMatchesSendResponse returns with an error because of sender failures",
+			senderGenerator: func(cancel context.CancelFunc, p *int) func(*pb.Match) error {
+				return func(matches *pb.Match) error {
+					if *p == failAtProposals {
+						return errors.New("some err")
+					}
+					*p++
+					return nil
+				}
+			},
+			shouldErr:   true,
+			shouldCount: failAtProposals,
+		},
+		{
+			description: "expect an context error as context is canceled halfway",
+			senderGenerator: func(cancel context.CancelFunc, p *int) func(*pb.Match) error {
+				return func(matches *pb.Match) error {
+					*p++
+					if *p == failAtProposals {
+						cancel()
+					}
+					return nil
+				}
+			},
+			shouldErr:   true,
+			shouldCount: failAtProposals,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			err := doFetchMatchesSendResponse(ctx, fakeProposals, test.senderGenerator(cancel, &test.count))
+
+			if test.count != test.shouldCount {
+				t.Errorf("expect count: %d, but was %d", test.shouldCount, test.count)
+			}
+			if test.shouldErr != (err != nil) {
+				t.Errorf("expect shouldErr %v, but was %s", test.shouldErr, err)
+			}
+		})
+	}
 }
 
 func TestDoFetchMatchesFilterChannel(t *testing.T) {

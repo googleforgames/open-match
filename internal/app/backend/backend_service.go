@@ -93,22 +93,6 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	return doFetchMatchesSendResponse(ctx, proposals, sender)
 }
 
-func doFetchMatchesSendResponse(ctx context.Context, proposals []*pb.Match, sender func(*pb.Match) error) error {
-	for _, proposal := range proposals {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			err := sender(proposal)
-			if err != nil {
-				logger.WithError(err).Error("failed to stream back the response")
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *sync.Map, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
 	var grpcClient pb.MatchFunctionClient
 	var httpClient *http.Client
@@ -177,6 +161,22 @@ func doFetchMatchesFilterChannel(ctx context.Context, resultChan <-chan mmfResul
 		}
 	}
 	return proposals, nil
+}
+
+func doFetchMatchesSendResponse(ctx context.Context, proposals []*pb.Match, sender func(*pb.Match) error) error {
+	for _, proposal := range proposals {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			err := sender(proposal)
+			if err != nil {
+				logger.WithError(err).Error("failed to stream back the response")
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func getHTTPClient(cfg config.View, mmfClients *sync.Map, funcConfig *pb.FunctionConfig_Rest) (*http.Client, string, error) {
