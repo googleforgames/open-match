@@ -34,7 +34,8 @@ import (
 
 func TestStatestoreSetup(t *testing.T) {
 	assert := assert.New(t)
-	cfg := createRedis(t)
+	cfg, closer := createRedis(t)
+	defer closer()
 	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
@@ -43,7 +44,8 @@ func TestStatestoreSetup(t *testing.T) {
 func TestTicketLifecycle(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg := createRedis(t)
+	cfg, closer := createRedis(t)
+	defer closer()
 	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
@@ -98,7 +100,8 @@ func TestTicketLifecycle(t *testing.T) {
 func TestTicketIndexing(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg := createRedis(t)
+	cfg, closer := createRedis(t)
+	defer closer()
 	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
@@ -168,7 +171,8 @@ func TestTicketIndexing(t *testing.T) {
 func TestGetAssignmentBeforeSet(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg := createRedis(t)
+	cfg, closer := createRedis(t)
+	defer closer()
 	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
@@ -187,7 +191,8 @@ func TestGetAssignmentBeforeSet(t *testing.T) {
 func TestUpdateAssignmentFatal(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg := createRedis(t)
+	cfg, closer := createRedis(t)
+	defer closer()
 	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
@@ -211,7 +216,8 @@ func TestUpdateAssignmentFatal(t *testing.T) {
 func TestGetAssignmentNormal(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg := createRedis(t)
+	cfg, closer := createRedis(t)
+	defer closer()
 	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
@@ -250,7 +256,8 @@ func TestGetAssignmentNormal(t *testing.T) {
 func TestUpdateAssignmentNormal(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg := createRedis(t)
+	cfg, closer := createRedis(t)
+	defer closer()
 	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
@@ -281,7 +288,24 @@ func TestUpdateAssignmentNormal(t *testing.T) {
 
 }
 
-func createRedis(t *testing.T) config.View {
+func TestConnect(t *testing.T) {
+	assert := assert.New(t)
+	cfg, closer := createRedis(t)
+	defer closer()
+	store := New(cfg)
+	defer store.Close()
+
+	rb, ok := store.(*redisBackend)
+	assert.True(ok)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	conn, err := rb.connect(ctx)
+	assert.NotNil(err)
+	assert.Nil(conn)
+}
+
+func createRedis(t *testing.T) (config.View, func()) {
 	cfg := viper.New()
 	mredis, err := miniredis.Run()
 	if err != nil {
@@ -302,5 +326,5 @@ func createRedis(t *testing.T) config.View {
 	cfg.Set("backoff.maxElapsedTime", 100*time.Millisecond)
 	cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
 
-	return cfg
+	return cfg, func() {mredis.Close()}
 }
