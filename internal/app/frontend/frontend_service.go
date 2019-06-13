@@ -51,10 +51,6 @@ func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicket
 		return nil, status.Errorf(codes.InvalidArgument, "ticket cannot be nil")
 	}
 
-	return doCreateTicket(ctx, req, s.store)
-}
-
-func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store statestore.Service) (*pb.CreateTicketResponse, error) {
 	// Generate a ticket id and create a Ticket in state storage
 	ticket, ok := proto.Clone(req.Ticket).(*pb.Ticket)
 	if !ok {
@@ -63,7 +59,7 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 	}
 
 	ticket.Id = xid.New().String()
-	err := store.CreateTicket(ctx, ticket)
+	err := s.store.CreateTicket(ctx, ticket)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error":  err.Error(),
@@ -72,7 +68,7 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 		return nil, err
 	}
 
-	err = store.IndexTicket(ctx, ticket)
+	err = s.store.IndexTicket(ctx, ticket)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error":  err.Error(),
@@ -87,52 +83,44 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 // DeleteTicket removes the Ticket from the configured indexes, thereby removing
 // it from matchmaking pool. It also lazily removes the ticket from state storage.
 func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*pb.DeleteTicketResponse, error) {
-	err := doDeleteTicket(ctx, req.GetTicketId(), s.store)
+	// Deindex this Ticket to remove it from matchmaking pool.
+	err := s.store.DeindexTicket(ctx, req.TicketId)
 	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+			"id":    req.TicketId,
+		}).Error("failed to deindex the ticket")
 		return nil, err
 	}
+
+	// Kick off delete but don't wait for it to complete.
+	go s.deleteTicket(req.TicketId)
 	return &pb.DeleteTicketResponse{}, nil
 }
 
-func doDeleteTicket(ctx context.Context, id string, store statestore.Service) error {
-	// Deindex this Ticket to remove it from matchmaking pool.
-	err := store.DeindexTicket(ctx, id)
+// deleteTicket is a 'lazy' ticket delete that should be called after a ticket
+// has been deindexed.
+func (s *frontendService) deleteTicket(id string) {
+	err := s.store.DeleteTicket(context.Background(), id)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 			"id":    id,
-		}).Error("failed to deindex the ticket")
-		return err
+		}).Error("failed to delete the ticket")
+		return
 	}
 
-	//'lazy' ticket delete that should be called after a ticket
-	// has been deindexed.
-	go func() {
-		err := store.DeleteTicket(context.Background(), id)
-		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"error": err.Error(),
-				"id":    id,
-			}).Error("failed to delete the ticket")
-			return
-		}
-		// TODO: If other redis queues are implemented or we have custom index fields
-		// created by Open Match, those need to be cleaned up here.
-	}()
-	return nil
+	// TODO: If other redis queues are implemented or we have custom index fields
+	// created by Open Match, those need to be cleaned up here.
 }
 
 // GetTicket returns the Ticket associated with the specified Ticket id.
 func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketRequest) (*pb.Ticket, error) {
-	return doGetTickets(ctx, req.GetTicketId(), s.store)
-}
-
-func doGetTickets(ctx context.Context, id string, store statestore.Service) (*pb.Ticket, error) {
-	ticket, err := store.GetTicket(ctx, id)
+	ticket, err := s.store.GetTicket(ctx, req.TicketId)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
-			"id":    id,
+			"id":    req.TicketId,
 		}).Error("failed to get the ticket")
 		return nil, err
 	}
@@ -147,42 +135,35 @@ func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream p
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return nil
 		default:
-			sender := func(assignment *pb.Assignment) error {
-				return stream.Send(&pb.GetAssignmentsResponse{Assignment: assignment})
-			}
-			return doGetAssignments(ctx, req.GetTicketId(), sender, s.store)
-		}
-	}
-}
+			var currAssignment *pb.Assignment
+			callback := func(assignment *pb.Assignment) error {
+				if currAssignment == nil ||
+					currAssignment.Connection != assignment.Connection ||
+					currAssignment.Properties != assignment.Properties ||
+					currAssignment.Error != assignment.Error {
+					currAssignment, ok := proto.Clone(assignment).(*pb.Assignment)
+					if !ok {
+						logger.Error("failed to cast assignment object")
+						return status.Error(codes.Internal, "failed to cast the assignment object")
+					}
 
-func doGetAssignments(ctx context.Context, id string, sender func(assignment *pb.Assignment) error, store statestore.Service) error {
-	var currAssignment *pb.Assignment
-	callback := func(assignment *pb.Assignment) error {
-		if currAssignment == nil ||
-			currAssignment.Connection != assignment.Connection ||
-			currAssignment.Properties != assignment.Properties ||
-			currAssignment.Error != assignment.Error {
-			currAssignment, ok := proto.Clone(assignment).(*pb.Assignment)
-			if !ok {
-				logger.Error("failed to cast assignment object")
-				return status.Error(codes.Internal, "failed to cast the assignment object")
+					err := stream.Send(&pb.GetAssignmentsResponse{Assignment: currAssignment})
+					if err != nil {
+						logger.WithError(err).Error("failed to send Redis response to grpc server")
+						return status.Errorf(codes.Aborted, err.Error())
+					}
+				}
+				return nil
 			}
 
-			err := sender(currAssignment)
+			err := s.store.GetAssignments(ctx, req.TicketId, callback)
 			if err != nil {
-				logger.WithError(err).Error("failed to send Redis response to grpc server")
-				return status.Errorf(codes.Aborted, err.Error())
+				return err
 			}
+
+			return nil
 		}
-		return nil
 	}
-
-	err := store.GetAssignments(ctx, id, callback)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
