@@ -15,6 +15,8 @@
 package mmlogic
 
 import (
+	"context"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -40,11 +42,13 @@ type mmlogicService struct {
 // GetPoolTickets gets the list of Tickets that match every Filter in the
 // specified Pool.
 func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.MmLogic_QueryTicketsServer) error {
-	ctx := responseServer.Context()
-	if req.Pool == nil {
+	if req.GetPool() == nil {
 		return status.Error(codes.InvalidArgument, "pool is empty")
 	}
-	poolFilters := req.Pool.Filter
+
+	ctx := responseServer.Context()
+	poolFilters := req.GetPool().GetFilter()
+	pSize := getPageSize(s.cfg)
 
 	callback := func(tickets []*pb.Ticket) error {
 		err := responseServer.Send(&pb.QueryTicketsResponse{Ticket: tickets})
@@ -55,8 +59,14 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 		return nil
 	}
 
+	return doQueryTickets(ctx, poolFilters, pSize, callback, s.store)
+}
+
+func doQueryTickets(ctx context.Context, filters []*pb.Filter, pageSize int, sender func(tickets []*pb.Ticket) error, store statestore.Service) error {
+
 	// Send requests to the storage service
-	err := s.store.FilterTickets(ctx, poolFilters, getPageSize(s.cfg), callback)
+	err := store.FilterTickets(ctx, filters, pageSize, sender)
+
 	if err != nil {
 		logger.WithError(err).Error("Failed to retrieve result from storage service.")
 		return err
