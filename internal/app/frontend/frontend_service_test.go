@@ -32,7 +32,6 @@ import (
 )
 
 func TestDoCreateTickets(t *testing.T) {
-	assert := assert.New(t)
 	store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
 	defer closer()
 
@@ -49,29 +48,34 @@ func TestDoCreateTickets(t *testing.T) {
 	}
 
 	tests := []struct {
-		ctx       context.Context
-		shouldErr bool
+		description string
+		ctx         context.Context
+		shouldErr   bool
 	}{
 		{
-			ctx:       cancelledCtx,
-			shouldErr: true,
+			description: "expect error with canceled context",
+			ctx:         cancelledCtx,
+			shouldErr:   true,
 		},
 		{
-			ctx:       normalCtx,
-			shouldErr: false,
+			description: "expect normal return with default context",
+			ctx:         normalCtx,
+			shouldErr:   false,
 		},
 	}
 
 	for _, test := range tests {
-		res, err := doCreateTicket(test.ctx, &pb.CreateTicketRequest{Ticket: testTicket}, store)
+		t.Run(test.description, func(t *testing.T) {
+			res, err := doCreateTicket(test.ctx, &pb.CreateTicketRequest{Ticket: testTicket}, store)
 
-		assert.Equal(test.shouldErr, err != nil)
-		if err == nil {
-			matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetTicket().GetId())
-			assert.True(matched)
-			assert.Nil(err)
-			assert.Equal(testTicket.GetProperties().GetFields()["test-property"].GetNumberValue(), res.GetTicket().GetProperties().GetFields()["test-property"].GetNumberValue())
-		}
+			assert.Equal(t, test.shouldErr, err != nil)
+			if err == nil {
+				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetTicket().GetId())
+				assert.True(t, matched)
+				assert.Nil(t, err)
+				assert.Equal(t, testTicket.GetProperties().GetFields()["test-property"].GetNumberValue(), res.GetTicket().GetProperties().GetFields()["test-property"].GetNumberValue())
+			}
+		})
 	}
 }
 

@@ -157,7 +157,7 @@ func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream p
 	}
 }
 
-func doGetAssignments(ctx context.Context, id string, sender func(assignment *pb.Assignment) error, store statestore.Service) error {
+func doGetAssignments(ctx context.Context, id string, sender func(*pb.Assignment) error, store statestore.Service) error {
 	var currAssignment *pb.Assignment
 	callback := func(assignment *pb.Assignment) error {
 		if currAssignment == nil ||
