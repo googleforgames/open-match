@@ -70,13 +70,13 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 			secureCfg,
 		},
 		{
-			"the mmfResult channel received data succesfully under the insecure mode with rest config",
+			"the mmfResult channel received data successfully under the insecure mode with rest config",
 			restFuncCfg,
 			nil,
 			insecureCfg,
 		},
 		{
-			"the mmfResult channel received data succesfully under the insecure mode with grpc config",
+			"the mmfResult channel received data successfully under the insecure mode with grpc config",
 			grpcFuncCfg,
 			nil,
 			insecureCfg,
@@ -112,7 +112,7 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 		shouldErr     bool
 	}{
 		{
-			description: "test the filter can exit the for loop when context was cancelled",
+			description: "test the filter can exit the for loop when context was canceled",
 			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
 				go func() {
 					time.Sleep(100 * time.Millisecond)
