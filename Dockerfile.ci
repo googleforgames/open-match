@@ -39,7 +39,7 @@ RUN export CLOUD_SDK_REPO="cloud-sdk-stretch" && \
 RUN mkdir -p /toolchain/golang
 WORKDIR /toolchain/golang
 RUN sudo rm -rf /usr/local/go/
-RUN curl -L https://storage.googleapis.com/golang/go1.12.1.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
+RUN curl -L https://storage.googleapis.com/golang/go1.12.6.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
 
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
