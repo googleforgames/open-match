@@ -111,6 +111,7 @@ cmd/swaggerui/swaggerui
 tools/certgen/certgen
 examples/demo/demo
 examples/functions/golang/soloduel/soloduel
+tools/reaper/reaper
 
 # Secrets Directories
 install/helm/open-match/secrets/
