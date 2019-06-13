@@ -144,6 +144,11 @@ steps:
   - name: 'go-vol'
     path: '/go'
 
+- id: 'Test: Delete Old Clusters'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'ci-reap-clusters']
+  waitFor: ['Build: Install Toolchain']
+
 artifacts:
     objects:
         location: gs://open-match-build-artifacts/output/

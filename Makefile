@@ -135,6 +135,9 @@ DASHBOARD_PORT = 9092
 # AppEngine variables
 GAE_SITE_VERSION = om$(YEAR_MONTH)
 
+# Open Match Cluster E2E Test Variables
+OPEN_MATCH_CI_LABEL = open-match-ci
+
 # If the version is 0.0* then the service name is "development" as in development.open-match.dev.
 ifeq ($(MAJOR_MINOR_VERSION),0.0)
 	GAE_SERVICE_NAME = development
@@ -447,7 +450,7 @@ set-redis-password:
 install-toolchain: install-kubernetes-tools install-web-tools install-protoc-tools install-openmatch-tools
 install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION)
 install-protoc-tools: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
-install-openmatch-tools: build/toolchain/bin/certgen$(EXE_EXTENSION)
+install-openmatch-tools: build/toolchain/bin/certgen$(EXE_EXTENSION) build/toolchain/bin/reaper$(EXE_EXTENSION)
 
 build/toolchain/bin/helm$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -518,6 +521,10 @@ build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION):
 build/toolchain/bin/certgen$(EXE_EXTENSION): tools/certgen/certgen$(EXE_EXTENSION)
 	mkdir -p $(TOOLCHAIN_BIN)
 	cp -f $(REPOSITORY_ROOT)/tools/certgen/certgen$(EXE_EXTENSION) $(CERTGEN)
+
+build/toolchain/bin/reaper$(EXE_EXTENSION): tools/reaper/reaper$(EXE_EXTENSION)
+	mkdir -p $(TOOLCHAIN_BIN)
+	cp -f $(REPOSITORY_ROOT)/tools/reaper/reaper$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/reaper$(EXE_EXTENSION)
 
 push-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) create serviceaccount --namespace kube-system tiller
@@ -699,6 +706,9 @@ cmd/swaggerui/swaggerui$(EXE_EXTENSION): site/static/swaggerui/
 tools/certgen/certgen$(EXE_EXTENSION):
 	cd $(REPOSITORY_ROOT)/tools/certgen/ && $(GO_BUILD_COMMAND)
 
+tools/reaper/reaper$(EXE_EXTENSION):
+	cd tools/reaper/ && $(GO_BUILD_COMMAND)
+
 build/policies/binauthz.yaml: install/policies/binauthz.yaml
 	mkdir -p $(BUILD_DIR)/policies
 	cp -f $(REPOSITORY_ROOT)/install/policies/binauthz.yaml $(BUILD_DIR)/policies/binauthz.yaml
@@ -728,6 +738,9 @@ else
 	@echo "Not deploying build artifacts to open-match.dev because this is not a post commit change."
 endif
 
+ci-reap-clusters: build/toolchain/bin/reaper$(EXE_EXTENSION)
+	$(TOOLCHAIN_BIN)/reaper -project=$(GCP_PROJECT_ID) -age=30m -location=$(GCP_ZONE) -label=$(OPEN_MATCH_CI_LABEL)
+
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: update-deps third_party clean-protos clean-secrets all-protos lint build test clean-site site-test md-test
 
@@ -749,13 +762,15 @@ clean-protos:
 	rm -rf $(REPOSITORY_ROOT)/internal/pb/
 
 clean-binaries:
-	rm -rf $(REPOSITORY_ROOT)/cmd/backend/backend
-	rm -rf $(REPOSITORY_ROOT)/cmd/evaluator/evaluator
-	rm -rf $(REPOSITORY_ROOT)/cmd/frontend/frontend
-	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic
-	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch
-	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/soloduel/soloduel
-	rm -rf $(REPOSITORY_ROOT)/cmd/swaggerui/swaggerui
+	rm -rf $(REPOSITORY_ROOT)/cmd/backend/backend$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/cmd/evaluator/evaluator$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/cmd/frontend/frontend$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/cmd/swaggerui/swaggerui$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/tools/certgen/certgen$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/tools/reaper/reaper$(EXE_EXTENSION)
 
 clean-build: clean-toolchain clean-archives clean-release
 	rm -rf $(BUILD_DIR)/
@@ -873,7 +888,7 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
-.PHONY: docker gcloud deploy-redirect-site update-deps sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-test site-test md-test vet
+.PHONY: docker gcloud deploy-redirect-site update-deps sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-reap-clusters ci-test site-test md-test vet
 
 
 ##########################################################################
