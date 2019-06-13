@@ -68,10 +68,8 @@ func newRedis(cfg config.View) Service {
 		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
 		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout"),
-		DialContext: func(ctx context.Context) (redis.Conn, error) {
-			if ctx.Err() != nil {
-				return nil, ctx.Err()
-			}
+		Wait:        true,
+		Dial: func() (redis.Conn, error) {
 			return redis.DialURL(redisURL)
 		},
 	}
@@ -79,10 +77,8 @@ func newRedis(cfg config.View) Service {
 		MaxIdle:     1,
 		MaxActive:   2,
 		IdleTimeout: cfg.GetDuration("redis.pool.healthCheckTimeout"),
-		DialContext: func(ctx context.Context) (redis.Conn, error) {
-			if ctx.Err() != nil {
-				return nil, ctx.Err()
-			}
+		Wait:        true,
+		Dial: func() (redis.Conn, error) {
 			return redis.DialURL(redisURL, redis.DialConnectTimeout(cfg.GetDuration("redis.pool.healthCheckTimeout")), redis.DialReadTimeout(cfg.GetDuration("redis.pool.healthCheckTimeout")))
 		},
 	}
