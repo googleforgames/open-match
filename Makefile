@@ -665,6 +665,8 @@ golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 
 lint: golangci lint-chart
 
+assets: all-protos tls-certs site/static/swaggerui/
+
 all: service-binaries example-binaries tools-binaries
 
 service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/swaggerui/swaggerui$(EXE_EXTENSION)
