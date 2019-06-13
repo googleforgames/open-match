@@ -60,6 +60,7 @@ spec:
         component: frontend
         {{- include "openmatch.chartmeta" (set . "indent" 8) }}
     spec:
+      serviceAccountName: open-match-unprivileged-service
       containers:
       - name: om-frontend
         image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.frontend.name}}:{{ .Values.openmatch.image.tag }}"
