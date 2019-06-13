@@ -25,6 +25,10 @@ import (
 	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
 )
 
+var (
+	matchName = "pool-based-match"
+)
+
 // MakeMatches is where your custom matchmaking logic lives.
 // This is the core match making function that will be triggered by Open Match to generate matches.
 // The goal of this function is to generate predictable matches that can be validated without flakyness.
