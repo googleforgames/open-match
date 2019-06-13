@@ -15,9 +15,13 @@
 package mmlogic
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"io"
 	"testing"
 
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -26,9 +30,142 @@ import (
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
+	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
+type propertyManifest struct {
+	name     string
+	min      float64
+	max      float64
+	interval float64
+}
+
+func TestDoQueryTickets(t *testing.T) {
+	const (
+		attribute1 = "level"
+		attribute2 = "spd"
+	)
+
+	var actualTickets []*pb.Ticket
+	fakeErr := errors.New("some error")
+
+	senderGenerator := func(err error) func(tickets []*pb.Ticket) error {
+		return func(tickets []*pb.Ticket) error {
+			if err != nil {
+				return err
+			}
+			actualTickets = tickets
+			return err
+		}
+	}
+
+	testTickets := generateTickets(propertyManifest{attribute1, 0, 20, 5}, propertyManifest{attribute2, 0, 20, 5})
+
+	tests := []struct {
+		description   string
+		sender        func(tickets []*pb.Ticket) error
+		filters       []*pb.Filter
+		pageSize      int
+		action        func(*testing.T, statestore.Service)
+		shouldErr     error
+		shouldTickets []*pb.Ticket
+	}{
+		{
+			"expect empty response from an empty store",
+			senderGenerator(nil),
+			[]*pb.Filter{
+				{
+					Attribute: attribute1,
+					Min:       0,
+					Max:       10,
+				},
+			},
+			100,
+			func(_ *testing.T, _ statestore.Service) {},
+			nil,
+			nil,
+		},
+		{
+			"expect tickets with attribute1 value in range of [0, 10] (inclusively)",
+			senderGenerator(nil),
+			[]*pb.Filter{
+				{
+					Attribute: attribute1,
+					Min:       0,
+					Max:       10,
+				},
+			},
+			100,
+			func(t *testing.T, store statestore.Service) {
+				for _, testTicket := range testTickets {
+					assert.Nil(t, store.CreateTicket(context.Background(), testTicket))
+					assert.Nil(t, store.IndexTicket(context.Background(), testTicket))
+				}
+			},
+			nil,
+			generateTickets(propertyManifest{attribute1, 0, 10.1, 5}, propertyManifest{attribute2, 0, 20, 5}),
+		},
+		{
+			"expect error from canceled context",
+			senderGenerator(fakeErr),
+			[]*pb.Filter{
+				{
+					Attribute: attribute1,
+					Min:       0,
+					Max:       10,
+				},
+			},
+			100,
+			func(t *testing.T, store statestore.Service) {
+				for _, testTicket := range testTickets {
+					assert.Nil(t, store.CreateTicket(context.Background(), testTicket))
+					assert.Nil(t, store.IndexTicket(context.Background(), testTicket))
+				}
+			},
+			status.Errorf(codes.Internal, "%v", fakeErr),
+			nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			cfg := viper.New()
+			cfg.Set("storage.page.size", 1000)
+			cfg.Set("playerIndices", []string{attribute1, attribute2})
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+			defer closer()
+
+			test.action(t, store)
+			assert.Equal(t, test.shouldErr, doQueryTickets(context.Background(), test.filters, test.pageSize, test.sender, store))
+			for _, shouldTicket := range test.shouldTickets {
+				assert.Contains(t, actualTickets, shouldTicket)
+			}
+		})
+	}
+}
+
+func generateTickets(manifest1, manifest2 propertyManifest) []*pb.Ticket {
+	testTickets := make([]*pb.Ticket, 0)
+
+	for i := manifest1.min; i < manifest1.max; i += manifest1.interval {
+		for j := manifest2.min; j < manifest2.max; j += manifest2.interval {
+			testTickets = append(testTickets, &pb.Ticket{
+				Id: fmt.Sprintf("%s%f-%s%f", manifest1.name, i, manifest2.name, j),
+				Properties: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						manifest1.name: {Kind: &structpb.Value_NumberValue{NumberValue: i}},
+						manifest2.name: {Kind: &structpb.Value_NumberValue{NumberValue: j}},
+					},
+				},
+			})
+		}
+	}
+
+	return testTickets
+}
+
+// TODO: move below test cases to e2e
 func TestQueryTicketsEmptyRequest(t *testing.T) {
 	assert := assert.New(t)
 	tc := createMmlogicForTest(t)
