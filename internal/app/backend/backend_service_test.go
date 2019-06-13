@@ -25,6 +25,7 @@ import (
 	"open-match.dev/open-match/internal/app/frontend"
 	"open-match.dev/open-match/internal/config"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -38,46 +39,50 @@ import (
 )
 
 func TestDoFetchMatchesInChannel(t *testing.T) {
-	assert := assert.New(t)
-
 	insecureCfg := viper.New()
 	secureCfg := viper.New()
 	secureCfg.Set("tls.enabled", true)
 	restFuncCfg := &pb.FetchMatchesRequest{
-		Config:  &pb.FunctionConfig{Name: "test", Type: &pb.FunctionConfig_Rest{Rest: &pb.RestFunctionConfig{Host: "om-test", Port: int32(666)}}},
+		Config:  &pb.FunctionConfig{Name: "test", Type: &pb.FunctionConfig_Rest{Rest: &pb.RestFunctionConfig{Host: "om-test", Port: int32(54321)}}},
 		Profile: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
 	}
 	grpcFuncCfg := &pb.FetchMatchesRequest{
-		Config:  &pb.FunctionConfig{Name: "test", Type: &pb.FunctionConfig_Grpc{Grpc: &pb.GrpcFunctionConfig{Host: "om-test", Port: int32(666)}}},
+		Config:  &pb.FunctionConfig{Name: "test", Type: &pb.FunctionConfig_Grpc{Grpc: &pb.GrpcFunctionConfig{Host: "om-test", Port: int32(54321)}}},
 		Profile: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
 	}
 
 	tests := []struct {
-		req       *pb.FetchMatchesRequest
-		shouldErr error
-		cfg       config.View
+		description string
+		req         *pb.FetchMatchesRequest
+		shouldErr   error
+		cfg         config.View
 	}{
 		{
+			"trusted certificate is required when requesting a secure http client",
 			restFuncCfg,
 			status.Error(codes.InvalidArgument, "failed to connect to match function"),
 			secureCfg,
 		},
 		{
+			"trusted certificate is required when requesting a secure grpc client",
 			grpcFuncCfg,
 			status.Error(codes.InvalidArgument, "failed to connect to match function"),
 			secureCfg,
 		},
 		{
+			"the mmfResult channel received data succesfully under the insecure mode with rest config",
 			restFuncCfg,
 			nil,
 			insecureCfg,
 		},
 		{
+			"the mmfResult channel received data succesfully under the insecure mode with grpc config",
 			grpcFuncCfg,
 			nil,
 			insecureCfg,
 		},
 		{
+			"one of the rest/grpc config is required to process the request",
 			nil,
 			status.Error(codes.InvalidArgument, "provided match function type is not supported"),
 			insecureCfg,
@@ -85,9 +90,13 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		resultChan := make(chan mmfResult, len(test.req.GetProfile()))
-		err := doFetchMatchesInChannel(context.Background(), test.cfg, &sync.Map{}, test.req, resultChan)
-		assert.Equal(test.shouldErr, err)
+		t.Run(test.description, func(t *testing.T) {
+			resultChan := make(chan mmfResult, len(test.req.GetProfile()))
+			err := doFetchMatchesInChannel(context.Background(), test.cfg, &sync.Map{}, test.req, resultChan)
+			if !cmp.Equal(test.shouldErr, err) {
+				t.Errorf("Expected an error: %s, but was %s\n", test.shouldErr, err)
+			}
+		})
 	}
 }
 
@@ -96,14 +105,14 @@ func TestDoFetchMatchesSendResponse(t *testing.T) {
 }
 
 func TestDoFetchMatchesFilterChannel(t *testing.T) {
-	assert := assert.New(t)
-
 	tests := []struct {
+		description   string
 		preAction     func(chan mmfResult, context.CancelFunc)
 		shouldMatches []*pb.Match
 		shouldErr     bool
 	}{
 		{
+			description: "test the filter can exit the for loop when context was cancelled",
 			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
 				go func() {
 					time.Sleep(100 * time.Millisecond)
@@ -114,6 +123,7 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 			shouldErr:     true,
 		},
 		{
+			description: "test the filter can return an error when one of the mmfResult contains an error",
 			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
 				mmfChan <- mmfResult{matches: []*pb.Match{&pb.Match{MatchId: "1"}}, err: nil}
 				mmfChan <- mmfResult{matches: nil, err: errors.New("some error")}
@@ -122,6 +132,7 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 			shouldErr:     true,
 		},
 		{
+			description: "test the filter can return proposals when all mmfResults are valid",
 			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
 				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1"}}, err: nil}
 				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "2"}}, err: nil}
@@ -132,18 +143,23 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		resultChan := make(chan mmfResult, 2)
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		t.Run(test.description, func(t *testing.T) {
+			resultChan := make(chan mmfResult, 2)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 
-		test.preAction(resultChan, cancel)
+			test.preAction(resultChan, cancel)
 
-		matches, err := doFetchMatchesFilterChannel(ctx, resultChan, 2)
+			matches, err := doFetchMatchesFilterChannel(ctx, resultChan, 2)
 
-		for _, match := range matches {
-			assert.Contains(test.shouldMatches, match)
-		}
-		assert.Equal(test.shouldErr, err != nil)
+			for _, match := range matches {
+				assert.Contains(t, test.shouldMatches, match)
+			}
+			assert.Equal(t, test.shouldErr, err != nil)
+			if test.shouldErr != (err != nil) {
+				t.Errorf("expect error: %v, but was %s", test.shouldErr, err.Error())
+			}
+		})
 	}
 }
 
