@@ -166,11 +166,11 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 func TestGetHTTPClient(t *testing.T) {
 	assert := assert.New(t)
 	cache := &sync.Map{}
-	client, url, err := getHTTPClient(viper.New(), cache, &pb.FunctionConfig_Rest{Rest: &pb.RestFunctionConfig{Host: "om-test", Port: int32(666)}})
+	client, url, err := getHTTPClient(viper.New(), cache, &pb.FunctionConfig_Rest{Rest: &pb.RestFunctionConfig{Host: "om-test", Port: int32(50321)}})
 	assert.Nil(err)
 	assert.NotNil(client)
 	assert.NotNil(url)
-	cachedClient, url, err := getHTTPClient(viper.New(), cache, &pb.FunctionConfig_Rest{Rest: &pb.RestFunctionConfig{Host: "om-test", Port: int32(666)}})
+	cachedClient, url, err := getHTTPClient(viper.New(), cache, &pb.FunctionConfig_Rest{Rest: &pb.RestFunctionConfig{Host: "om-test", Port: int32(50321)}})
 	assert.Nil(err)
 	assert.NotNil(client)
 	assert.NotNil(url)
@@ -182,10 +182,10 @@ func TestGetHTTPClient(t *testing.T) {
 func TestGetGRPCClient(t *testing.T) {
 	assert := assert.New(t)
 	cache := &sync.Map{}
-	client, err := getGRPCClient(viper.New(), cache, &pb.FunctionConfig_Grpc{Grpc: &pb.GrpcFunctionConfig{Host: "om-test", Port: int32(666)}})
+	client, err := getGRPCClient(viper.New(), cache, &pb.FunctionConfig_Grpc{Grpc: &pb.GrpcFunctionConfig{Host: "om-test", Port: int32(50321)}})
 	assert.Nil(err)
 	assert.NotNil(client)
-	cachedClient, err := getGRPCClient(viper.New(), cache, &pb.FunctionConfig_Grpc{Grpc: &pb.GrpcFunctionConfig{Host: "om-test", Port: int32(666)}})
+	cachedClient, err := getGRPCClient(viper.New(), cache, &pb.FunctionConfig_Grpc{Grpc: &pb.GrpcFunctionConfig{Host: "om-test", Port: int32(50321)}})
 	assert.Nil(err)
 	assert.NotNil(client)
 
