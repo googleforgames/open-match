@@ -12,58 +12,70 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{{- if .Values.openmatch.swaggerui.install }}
+ {{- if .Values.openmatch.demo.install }}
 kind: Service
 apiVersion: v1
 metadata:
-  name: om-swaggerui
+  name: om-demo
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
-    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
 spec:
   selector:
     app: {{ template "openmatch.name" . }}
-    component: swaggerui
+    component: demo
   ports:
   - name: http
     protocol: TCP
-    port: {{ .Values.openmatch.swaggerui.http.port }}
+    port: {{ .Values.openmatch.demo.http.port }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: om-swaggerui
+  name: om-demo
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
-    component: swaggerui
-    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
+    component: demo
+    chart: {{ template "openmatch.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: {{ template "openmatch.name" . }}
-      component: swaggerui
-      {{- include "openmatch.chartmeta" (set . "indent" 6) }}
+      component: demo
+      chart: {{ template "openmatch.chart" . }}
+      release: {{ .Release.Name }}
+      heritage: {{ .Release.Service }}
   template:
     metadata:
-      namespace: {{ .Release.Namespace }}
       labels:
         app: {{ template "openmatch.name" . }}
-        component: swaggerui
-        {{- include "openmatch.chartmeta" (set . "indent" 8) }}
+        component: demo
+        chart: {{ template "openmatch.chart" . }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
     spec:
-      serviceAccountName: open-match-unprivileged-service
       containers:
-      - name: om-swaggerui
-        image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.swaggerui.name}}:{{ .Values.openmatch.image.tag }}"
-        imagePullPolicy: {{ .Values.openmatch.image.swaggerui.pullPolicy }}
-        ports:
-        - name: http
-          containerPort: {{ .Values.openmatch.swaggerui.http.port }}
+      - name: om-demo
+        image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.demo.name}}:{{ .Values.openmatch.image.tag }}"
+        imagePullPolicy: {{ .Values.openmatch.image.demo.pullPolicy }}
+        volumeMounts:
+        - name: om-config-volume
+          mountPath: {{ .Values.openmatch.config.matchmaker }}
         resources:
           requests:
             memory: 100Mi
             cpu: 100m
+        ports:
+        - name: http
+          containerPort: {{ .Values.openmatch.demo.http.port }}
+        - name: metrics
+          containerPort: {{ .Values.openmatch.metrics.port }}
+      volumes:
+      - name: om-config-volume
+        configMap:
+          name: om-configmap
 {{- end }}
