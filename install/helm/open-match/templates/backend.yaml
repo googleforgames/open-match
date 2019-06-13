@@ -59,6 +59,7 @@ spec:
         component: backend
         {{- include "openmatch.chartmeta" (set . "indent" 8) }}
     spec:
+      serviceAccountName: open-match-unprivileged-service
       containers:
       - name: om-backend
         image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.backend.name}}:{{ .Values.openmatch.image.tag }}"
