@@ -93,9 +93,9 @@ steps:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Assets']
-- id: 'Test: Core'
+- id: 'Test: Services'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'ci-test']
+  args: ['make', 'GOPROXY=off', 'GOLANG_TEST_COUNT=25', 'test']
   volumes:
   - name: 'go-vol'
     path: '/go'
