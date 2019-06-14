@@ -16,6 +16,7 @@ package frontend
 
 import (
 	"context"
+	"regexp"
 	"testing"
 	"time"
 
@@ -29,6 +30,54 @@ import (
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
+
+func TestDoCreateTickets(t *testing.T) {
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+	defer closer()
+
+	normalCtx := context.Background()
+	cancelledCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	testTicket := &pb.Ticket{
+		Properties: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+			},
+		},
+	}
+
+	tests := []struct {
+		description string
+		ctx         context.Context
+		shouldErr   bool
+	}{
+		{
+			description: "expect error with canceled context",
+			ctx:         cancelledCtx,
+			shouldErr:   true,
+		},
+		{
+			description: "expect normal return with default context",
+			ctx:         normalCtx,
+			shouldErr:   false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			res, err := doCreateTicket(test.ctx, &pb.CreateTicketRequest{Ticket: testTicket}, store)
+
+			assert.Equal(t, test.shouldErr, err != nil)
+			if err == nil {
+				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetTicket().GetId())
+				assert.True(t, matched)
+				assert.Nil(t, err)
+				assert.Equal(t, testTicket.GetProperties().GetFields()["test-property"].GetNumberValue(), res.GetTicket().GetProperties().GetFields()["test-property"].GetNumberValue())
+			}
+		})
+	}
+}
 
 // validateTicket validates that the fetched ticket is identical to the expected ticket.
 func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
