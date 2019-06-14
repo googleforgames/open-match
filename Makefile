@@ -631,6 +631,9 @@ test:
 	$(GO) test ./... -cover -test.count $(GOLANG_TEST_COUNT) -race
 	$(GO) test ./... -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$
 
+test-k8s:
+	$(KUBECTL) apply -f $(REPOSITORY_ROOT)/test/e2e/k8s/job.yaml
+
 stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
 		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
