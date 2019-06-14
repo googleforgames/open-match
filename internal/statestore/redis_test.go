@@ -326,5 +326,5 @@ func createRedis(t *testing.T) (config.View, func()) {
 	cfg.Set("backoff.maxElapsedTime", 100*time.Millisecond)
 	cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
 
-	return cfg, func() {mredis.Close()}
+	return cfg, func() { mredis.Close() }
 }

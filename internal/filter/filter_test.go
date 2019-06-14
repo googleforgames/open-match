@@ -28,7 +28,7 @@ import (
 
 func TestFilter(t *testing.T) {
 	tickets := []*pb.Ticket{
-		&pb.Ticket{
+		{
 			Id: "good",
 			Properties: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
@@ -38,7 +38,7 @@ func TestFilter(t *testing.T) {
 			},
 		},
 
-		&pb.Ticket{
+		{
 			Id: "first_bad",
 			Properties: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
@@ -48,7 +48,7 @@ func TestFilter(t *testing.T) {
 			},
 		},
 
-		&pb.Ticket{
+		{
 			Id: "second_bad",
 			Properties: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
@@ -58,7 +58,7 @@ func TestFilter(t *testing.T) {
 			},
 		},
 
-		&pb.Ticket{
+		{
 			Id: "both_bad",
 			Properties: &structpb.Struct{
 				Fields: map[string]*structpb.Value{

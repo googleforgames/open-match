@@ -193,7 +193,7 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 		{
 			description: "test the filter can return an error when one of the mmfResult contains an error",
 			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
-				mmfChan <- mmfResult{matches: []*pb.Match{&pb.Match{MatchId: "1"}}, err: nil}
+				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1"}}, err: nil}
 				mmfChan <- mmfResult{matches: nil, err: errors.New("some error")}
 			},
 			shouldMatches: nil,
