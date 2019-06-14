@@ -84,8 +84,8 @@ GCP_PROJECT_ID ?=
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
 OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID = open-match-public-images
 REGISTRY ?= gcr.io/$(GCP_PROJECT_ID)
-TAG := $(VERSION)
-ALTERNATE_TAG := dev
+TAG = $(VERSION)
+ALTERNATE_TAG = dev
 GKE_CLUSTER_NAME = om-cluster
 GCP_REGION = us-west1
 GCP_ZONE = us-west1-a
@@ -113,6 +113,7 @@ HUGO = $(TOOLCHAIN_BIN)/hugo$(EXE_EXTENSION)
 SKAFFOLD = $(TOOLCHAIN_BIN)/skaffold$(EXE_EXTENSION)
 CERTGEN = $(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION)
 GOLANGCI = $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
+GCLOUD = gcloud
 OPEN_MATCH_CHART_NAME = open-match
 OPEN_MATCH_KUBERNETES_NAMESPACE = open-match
 OPEN_MATCH_DEMO_CHART_NAME = open-match-demo
@@ -123,7 +124,7 @@ GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | 
 _GCB_POST_SUBMIT ?= 0
 # Latest version triggers builds of :latest images.
 _GCB_LATEST_VERSION ?= undefined
-IMAGE_BUILD_ARGS=--build-arg BUILD_DATE=$(BUILD_DATE) --build-arg=VCS_REF=$(SHORT_SHA) --build-arg BUILD_VERSION=$(BASE_VERSION)
+IMAGE_BUILD_ARGS = --build-arg BUILD_DATE=$(BUILD_DATE) --build-arg=VCS_REF=$(SHORT_SHA) --build-arg BUILD_VERSION=$(BASE_VERSION)
 
 # Make port forwards accessible outside of the proxy machine.
 PORT_FORWARD_ADDRESS_FLAG = --address 0.0.0.0
@@ -131,6 +132,18 @@ DASHBOARD_PORT = 9092
 
 # Open Match Cluster E2E Test Variables
 OPEN_MATCH_CI_LABEL = open-match-ci
+
+# Indicate that :canary images are the latest submitted code that's tested.
+ifeq ($(_GCB_POST_SUBMIT),1)
+	ALTERNATE_TAG = canary
+endif
+
+# This flag is set when running in Continuous Integration.
+ifdef ALLOW_BUILD_WITH_SUDO
+	GCLOUD = gcloud --quiet --no-user-output-enabled
+	GKE_CLUSTER_NAME = om-cluster-$(SHORT_SHA)
+	GKE_CLUSTER_FLAGS = --labels open-match-ci=1 --node-labels=open-match-ci=1
+endif
 
 # If the version is 0.0* then the service name is "development" as in development.open-match.dev.
 ifeq ($(MAJOR_MINOR_VERSION),0.0)
@@ -194,9 +207,13 @@ local-cloud-build: LOCAL_CLOUD_BUILD_PUSH = # --push
 local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
-push-images: push-service-images push-example-images
+push-images: push-service-images push-example-images push-tool-images
 
 push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-evaluator-image push-swaggerui-image
+push-example-images: push-demo-images push-mmf-example-images
+push-demo-images: push-mmf-go-soloduel-image push-demo-image
+push-mmf-example-images: push-mmf-go-soloduel-image
+push-tool-images: push-reaper-image
 
 push-backend-image: docker build-backend-image
 	docker push $(REGISTRY)/openmatch-backend:$(TAG)
@@ -222,23 +239,25 @@ push-swaggerui-image: docker build-swaggerui-image
 	docker push $(REGISTRY)/openmatch-swaggerui:$(TAG)
 	docker push $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG)
 
-push-example-images: push-demo-images push-mmf-example-images
-
-push-demo-images: push-mmf-go-soloduel-image push-demo-image
-
 push-demo-image: docker build-demo-image
 	docker push $(REGISTRY)/openmatch-demo:$(TAG)
 	docker push $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG)
-
-push-mmf-example-images: push-mmf-go-soloduel-image
 
 push-mmf-go-soloduel-image: docker build-mmf-go-soloduel-image
 	docker push $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG)
 
-build-images: build-service-images build-example-images
+push-reaper-image: docker build-reaper-image
+	docker push $(REGISTRY)/openmatch-reaper:$(TAG)
+	docker push $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG)
+
+build-images: build-service-images build-example-images build-tool-images
 
 build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-evaluator-image build-swaggerui-image
+build-example-images: build-demo-images build-mmf-example-images
+build-demo-images: build-mmf-go-soloduel-image build-demo-image
+build-mmf-example-images: build-mmf-go-soloduel-image
+build-tool-images: build-reaper-image
 
 # Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
 # This is important so that the repository does not have any mutations while building individual images.
@@ -263,27 +282,27 @@ build-evaluator-image: docker build-base-build-image
 build-swaggerui-image: docker build-base-build-image third_party/swaggerui/
 	docker build -f cmd/swaggerui/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-swaggerui:$(TAG) -t $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG) .
 
-build-example-images: build-demo-images build-mmf-example-images
-
-build-demo-images: build-mmf-go-soloduel-image build-demo-image
-
 build-demo-image: docker build-base-build-image
 	docker build -f examples/demo/Dockerfile -t $(REGISTRY)/openmatch-demo:$(TAG) -t $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG) .
-
-build-mmf-example-images: build-mmf-go-soloduel-image
 
 build-mmf-go-soloduel-image: docker build-base-build-image
 	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
 
+build-reaper-image: docker build-base-build-image
+	docker build -f tools/reaper/Dockerfile -t $(REGISTRY)/openmatch-reaper:$(TAG) -t $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG) .
+
 clean-images: docker
 	-docker rmi -f open-match-base-build
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontend:$(TAG) $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-mmlogic:$(TAG) $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator:$(TAG) $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-swaggerui:$(TAG) $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG)
+
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-demo:$(TAG) $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-reaper:$(TAG) $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG)
 
 install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug $(REDIS_NAME) stable/redis --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
@@ -553,16 +572,16 @@ install/helm/open-match/secrets/tls/server/: build/toolchain/bin/certgen$(EXE_EX
 	$(CERTGEN) -publiccertificate=$(OPEN_MATCH_SECRETS_DIR)/tls/server/public.cert -privatekey=$(OPEN_MATCH_SECRETS_DIR)/tls/server/private.key -rootpubliccertificate=$(OPEN_MATCH_SECRETS_DIR)/tls/root-ca/public.cert -rootprivatekey=$(OPEN_MATCH_SECRETS_DIR)/tls/root-ca/private.key
 
 auth-docker: gcloud docker
-	gcloud $(GCP_PROJECT_FLAG) auth configure-docker
+	$(GCLOUD) $(GCP_PROJECT_FLAG) auth configure-docker
 
 auth-gke-cluster: gcloud
-	gcloud $(GCP_PROJECT_FLAG) container clusters get-credentials $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG)
+	$(GCLOUD) $(GCP_PROJECT_FLAG) container clusters get-credentials $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG)
 
 activate-gcp-apis: gcloud
-	gcloud services enable containerregistry.googleapis.com
-	gcloud services enable container.googleapis.com
-	gcloud services enable containeranalysis.googleapis.com
-	gcloud services enable binaryauthorization.googleapis.com
+	$(GCLOUD) services enable containerregistry.googleapis.com
+	$(GCLOUD) services enable container.googleapis.com
+	$(GCLOUD) services enable containeranalysis.googleapis.com
+	$(GCLOUD) services enable binaryauthorization.googleapis.com
 
 create-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KIND) create cluster
@@ -577,15 +596,15 @@ get-kind-kubeconfig: build/toolchain/bin/kind$(EXE_EXTENSION)
 delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(KIND) delete cluster
 
-create-gke-cluster: GKE_VERSION = 1.13.6-gke.0 # gcloud beta container get-server-config --zone us-central1-a
+create-gke-cluster: GKE_VERSION = 1.13.6-gke.6 # gcloud beta container get-server-config --zone us-central1-a
 create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
-	gcloud beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --enable-pod-security-policy --cluster-version $(GKE_VERSION) --image-type cos_containerd --tags open-match $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS)
+	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --enable-pod-security-policy --cluster-version $(GKE_VERSION) --image-type cos_containerd --tags open-match $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS) $(GKE_CLUSTER_FLAGS)
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
 delete-gke-cluster: gcloud
-	-gcloud $(GCP_PROJECT_FLAG) container clusters delete $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --quiet
+	-$(GCLOUD) $(GCP_PROJECT_FLAG) container clusters delete $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG)
 
 create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	$(MINIKUBE) start --memory 6144 --cpus 4 --disk-size 50g
@@ -594,7 +613,7 @@ delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	-$(MINIKUBE) delete
 
 gcp-apply-binauthz-policy: build/policies/binauthz.yaml
-	gcloud beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
+	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
 
 all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
 golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go internal/pb/evaluator.pb.go
@@ -645,9 +664,9 @@ vet:
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 	$(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
 
-lint: golangci lint-chart
+lint: fmt vet golangci lint-chart
 
-assets: all-protos tls-certs third_party
+assets: all-protos tls-certs third_party/
 
 all: service-binaries example-binaries tools-binaries
 
@@ -661,7 +680,7 @@ example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION
 examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
 
-tools-binaries: tools/certgen/certgen$(EXE_EXTENSION)
+tools-binaries: tools/certgen/certgen$(EXE_EXTENSION) tools/reaper/reaper$(EXE_EXTENSION)
 
 cmd/backend/backend$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/backend.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/backend; $(GO_BUILD_COMMAND)
@@ -691,7 +710,7 @@ tools/certgen/certgen$(EXE_EXTENSION):
 	cd $(REPOSITORY_ROOT)/tools/certgen/ && $(GO_BUILD_COMMAND)
 
 tools/reaper/reaper$(EXE_EXTENSION):
-	cd tools/reaper/ && $(GO_BUILD_COMMAND)
+	cd $(REPOSITORY_ROOT)/tools/reaper/ && $(GO_BUILD_COMMAND)
 
 build/policies/binauthz.yaml: install/policies/binauthz.yaml
 	mkdir -p $(BUILD_DIR)/policies
@@ -727,7 +746,7 @@ ci-reap-clusters: build/toolchain/bin/reaper$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: GOLANG_TEST_COUNT = 5
-presubmit: clean update-deps third_party assets lint build install-toolchain test md-test
+presubmit: clean update-deps third_party/ assets lint build install-toolchain test md-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -836,7 +855,7 @@ proxy:
 update-deps:
 	$(GO) mod tidy
 
-third_party: third_party/google/api third_party/protoc-gen-swagger/options
+third_party/: third_party/google/api third_party/protoc-gen-swagger/options third_party/swaggerui/
 
 third_party/google/api:
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
@@ -877,6 +896,9 @@ sync-deps:
 sleep-10:
 	sleep 10
 
+sleep-30:
+	sleep 30
+
 # Prevents users from running with sudo.
 # There's an exception for Google Cloud Build because it runs as root.
 no-sudo:
@@ -889,4 +911,4 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
-.PHONY: docker gcloud update-deps sync-deps sleep-10 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-reap-clusters ci-test md-test vet
+.PHONY: docker gcloud update-deps sync-deps sleep-10 sleep-30 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-reap-clusters md-test vet

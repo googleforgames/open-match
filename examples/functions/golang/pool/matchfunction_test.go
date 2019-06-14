@@ -28,8 +28,8 @@ func TestMakeMatches(t *testing.T) {
 	assert := assert.New(t)
 
 	poolNameToTickets := map[string][]*pb.Ticket{
-		"pool1": []*pb.Ticket{{Id: "1"}, {Id: "2"}},
-		"pool2": []*pb.Ticket{{Id: "3"}, {Id: "4"}},
+		"pool1": {{Id: "1"}, {Id: "2"}},
+		"pool2": {{Id: "3"}, {Id: "4"}},
 	}
 
 	p := &mmfHarness.MatchFunctionParams{
@@ -56,12 +56,12 @@ func TestMakeMatches(t *testing.T) {
 		MatchProfile:  p.ProfileName,
 		MatchFunction: matchName,
 		Ticket:        []*pb.Ticket{{Id: "1"}, {Id: "2"}},
-		Roster:        []*pb.Roster{&pb.Roster{Name: "pool1", TicketId: []string{"1", "2"}}},
+		Roster:        []*pb.Roster{{Name: "pool1", TicketId: []string{"1", "2"}}},
 	})
 	assert.Contains(actual, &pb.Match{
 		MatchProfile:  p.ProfileName,
 		MatchFunction: matchName,
 		Ticket:        []*pb.Ticket{{Id: "3"}, {Id: "4"}},
-		Roster:        []*pb.Roster{&pb.Roster{Name: "pool2", TicketId: []string{"3", "4"}}},
+		Roster:        []*pb.Roster{{Name: "pool2", TicketId: []string{"3", "4"}}},
 	})
 }

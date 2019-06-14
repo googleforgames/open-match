@@ -16,14 +16,15 @@
 package internal
 
 import (
+	container "cloud.google.com/go/container/apiv1"
 	"context"
 	"fmt"
+	containerpb "google.golang.org/genproto/googleapis/container/v1"
 	"log"
+	"net"
+	"net/http"
 	"strings"
 	"time"
-
-	container "cloud.google.com/go/container/apiv1"
-	containerpb "google.golang.org/genproto/googleapis/container/v1"
 )
 
 // Params for deleting a cluster.
@@ -34,29 +35,79 @@ type Params struct {
 	Location  string
 }
 
+func portFromListener(conn net.Listener) int {
+	tcpConn, ok := conn.Addr().(*net.TCPAddr)
+	if !ok || tcpConn == nil {
+		log.Fatalf("net.Listen(\"tcp\", %+v) did not return a *net.TCPAddr", conn.Addr())
+	}
+	return tcpConn.Port
+}
+
+// Serve brings up an HTTP server and waits for a request.
+// It serves 3 endpoints:
+// /livenessz - for liveness/readiness check
+// /reap      - to delete the clusters
+// /close     - to shutdown the application.
+// The intention of this serving mode is so that this tool can run from Google Cloud Run.
+func Serve(conn net.Listener, params *Params) error {
+	port := portFromListener(conn)
+	addr := fmt.Sprintf(":%d", port)
+
+	server := &http.Server{
+		Addr: addr,
+	}
+
+	mux := &http.ServeMux{}
+	mux.HandleFunc("/livenessz", func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprint(w, "OK")
+	})
+	mux.HandleFunc("/close", func(w http.ResponseWriter, req *http.Request) {
+		defer func() {
+			if err := server.Close(); err != nil {
+				log.Printf("Unclean shutdown, %s", err)
+			}
+		}()
+		fmt.Fprint(w, "OK")
+	})
+
+	mux.HandleFunc("/reap", func(w http.ResponseWriter, req *http.Request) {
+		resp, err := ReapCluster(params)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "ERROR: %s", err.Error())
+		} else {
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, "OK: %s", resp)
+		}
+	})
+
+	server.Handler = mux
+	log.Printf("Serving on %s", addr)
+	return server.Serve(conn)
+}
+
 // ReapCluster scans for orphaned clusters and deletes them.
-func ReapCluster(params *Params) {
+func ReapCluster(params *Params) (string, error) {
 	log.Printf("Scanning for orphaned clusters in projects/%s/locations/%s that are older than %s with label %s.", params.ProjectID, params.Location, params.Age.String(), params.Label)
 	ctx := context.Background()
 	c, err := container.NewClusterManagerClient(ctx)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	clusters, err := listOrphanedClusters(ctx, c, params)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	err = deleteClusters(ctx, c, clusters)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	if len(clusters) > 0 {
-		log.Printf("Deleted %d GKE clusters", len(clusters))
-	} else {
-		log.Printf("There were no orphaned clusters. :)")
+		return fmt.Sprintf("Deleted %d GKE clusters", len(clusters)), nil
 	}
+	return fmt.Sprintf("There were no orphaned clusters. :)"), nil
 }
 
 func listOrphanedClusters(ctx context.Context, c *container.ClusterManagerClient, params *Params) ([]*containerpb.Cluster, error) {
