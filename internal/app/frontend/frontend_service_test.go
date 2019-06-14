@@ -17,7 +17,6 @@ package frontend
 import (
 	"context"
 	"errors"
-	"fmt"
 	"regexp"
 	"testing"
 	"time"
@@ -118,6 +117,7 @@ func TestDoGetAssignments(t *testing.T) {
 			shouldCount:      0,
 		},
 		{
+			description: "expect two assignment reads from preAction writes and fail in grpc aborted code",
 			preAction: func(t *testing.T, store statestore.Service) {
 				assert.Nil(t, store.CreateTicket(context.Background(), testTicket))
 				go func() {
@@ -150,7 +150,6 @@ func TestDoGetAssignments(t *testing.T) {
 
 			test.preAction(t, store)
 			err := doGetAssignments(context.Background(), testTicket.GetId(), test.senderGenerator(test.shouldAssignment, &test.count), store)
-			fmt.Printf("%#v\n", err)
 			assert.Equal(t, test.shouldCode, status.Convert(err).Code())
 			assert.Equal(t, test.shouldCount, test.count)
 
