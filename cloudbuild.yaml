@@ -52,10 +52,10 @@ steps:
   args: ['--destination=gcr.io/$PROJECT_ID/open-match-build', '--cache=true', '--cache-ttl=48h', '--dockerfile=Dockerfile.ci', '.']
   waitFor: ['-']
 
-# - id: 'Test: Markdown'
-#   name: 'gcr.io/$PROJECT_ID/open-match-build'
-#   args: ['make', 'md-test']
-#   waitFor: ['Docker Image: open-match-build']
+- id: 'Test: Markdown'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'md-test']
+  waitFor: ['Docker Image: open-match-build']
 
 - id: 'Build: Clean'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -120,7 +120,7 @@ steps:
 
 - id: 'Deploy: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', VERSION_SUFFIX=$SHORT_SHA', 'BRANCH_NAME=$BRANCH_NAME', 'ci-deploy-artifacts']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'VERSION_SUFFIX=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
   waitFor: ['Lint: Format, Vet, Charts', 'Build: Binaries']
   volumes:
   - name: 'go-vol'
@@ -128,8 +128,23 @@ steps:
 
 - id: 'Test: Delete Old Clusters'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'ci-reap-clusters']
+  args: ['make', 'GCP_PROJECT_ID=${PROJECT_ID}', 'ci-reap-clusters']
   waitFor: ['Build: Install Toolchain']
+
+- id: 'Test: Create Cluster'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'delete-gke-cluster', 'create-gke-cluster', 'push-helm']
+  waitFor: ['Test: Delete Old Clusters']
+
+- id: 'Test: Deploy Open Match'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'sleep-30', 'install-chart-slim', 'install-demo-chart']
+  waitFor: ['Test: Create Cluster', 'Build: Docker Images']
+
+- id: 'Test: Delete Cluster'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'delete-gke-cluster']
+  waitFor: ['Test: Deploy Open Match']
 
 artifacts:
     objects:
@@ -141,6 +156,9 @@ artifacts:
             - cmd/evaluator/evaluator
             - cmd/minimatch/minimatch
             - cmd/swaggerui/swaggerui
+            - examples/functions/golang/soloduel/soloduel
+            - tools/certgen/certgen
+            - tools/reaper/reaper
             - install/yaml/install.yaml
             - install/yaml/install-demo.yaml
             - install/yaml/01-redis-chart.yaml
@@ -148,7 +166,6 @@ artifacts:
             - install/yaml/03-prometheus-chart.yaml
             - install/yaml/04-grafana-chart.yaml
             - install/yaml/05-jaeger-chart.yaml
-            - examples/functions/golang/soloduel/soloduel
 images:
 - 'gcr.io/$PROJECT_ID/openmatch-backend:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-frontend:${_OM_VERSION}-${SHORT_SHA}'
@@ -158,6 +175,7 @@ images:
 - 'gcr.io/$PROJECT_ID/openmatch-demo:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-go-soloduel:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-swaggerui:${_OM_VERSION}-${SHORT_SHA}'
+- 'gcr.io/$PROJECT_ID/openmatch-reaper:${_OM_VERSION}-${SHORT_SHA}'
 substitutions:
     _OM_VERSION: "0.0.0-dev"
     _GCB_POST_SUBMIT: "0"
@@ -166,4 +184,4 @@ logsBucket: 'gs://open-match-build-logs/'
 options:
   sourceProvenanceHash: ['SHA256']
   machineType: 'N1_HIGHCPU_32'
-timeout: 1200s
+timeout: 2500s
