@@ -105,7 +105,7 @@ tmp/
 cmd/backend/backend
 cmd/frontend/frontend
 cmd/mmlogic/mmlogic
-cmd/evaluator/evaluator
+cmd/synchronizer/synchronizer
 cmd/minimatch/minimatch
 cmd/swaggerui/swaggerui
 tools/certgen/certgen
