@@ -87,20 +87,18 @@ func TestDoGetAssignments(t *testing.T) {
 	}
 
 	totalAssignments := 2
-	var testAssignments []*pb.Assignment
+	var wantAssignments []*pb.Assignment
 
 	for i := 0; i < totalAssignments; i++ {
-		testAssignments = append(testAssignments, &pb.Assignment{Connection: string(i)})
+		wantAssignments = append(wantAssignments, &pb.Assignment{Connection: string(i)})
 	}
 
 	tests := []struct {
-		description      string
-		count            int
-		preAction        func(*testing.T, statestore.Service)
-		senderGenerator  func(chan *pb.Assignment, *int) func(*pb.Assignment) error
-		shouldCode       codes.Code
-		shouldAssignment chan *pb.Assignment
-		shouldCount      int
+		description        string
+		preAction          func(*testing.T, statestore.Service)
+		senderGenerator    func(chan *pb.Assignment, *int) func(*pb.Assignment) error
+		wantCode           codes.Code
+		wantAssignmentChan chan *pb.Assignment
 	}{
 		{
 			description: "expect error because ticket id does not exist",
@@ -112,9 +110,8 @@ func TestDoGetAssignments(t *testing.T) {
 					return nil
 				}
 			},
-			shouldCode:       codes.NotFound,
-			shouldAssignment: make(chan *pb.Assignment, totalAssignments),
-			shouldCount:      0,
+			wantCode:           codes.NotFound,
+			wantAssignmentChan: make(chan *pb.Assignment, totalAssignments),
 		},
 		{
 			description: "expect two assignment reads from preAction writes and fail in grpc aborted code",
@@ -123,7 +120,7 @@ func TestDoGetAssignments(t *testing.T) {
 				go func() {
 					for i := 0; i < totalAssignments; i++ {
 						time.Sleep(200 * time.Millisecond)
-						assert.Nil(t, store.UpdateAssignments(context.Background(), []string{testTicket.GetId()}, testAssignments[i]))
+						assert.Nil(t, store.UpdateAssignments(context.Background(), []string{testTicket.GetId()}, wantAssignments[i]))
 					}
 				}()
 			},
@@ -137,9 +134,8 @@ func TestDoGetAssignments(t *testing.T) {
 					return nil
 				}
 			},
-			shouldCode:       codes.Aborted,
-			shouldAssignment: make(chan *pb.Assignment, totalAssignments),
-			shouldCount:      2,
+			wantCode:           codes.Aborted,
+			wantAssignmentChan: make(chan *pb.Assignment, totalAssignments),
 		},
 	}
 
@@ -148,14 +144,14 @@ func TestDoGetAssignments(t *testing.T) {
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
 			defer closer()
 
+			senderTriggerCount := 0
 			test.preAction(t, store)
-			err := doGetAssignments(context.Background(), testTicket.GetId(), test.senderGenerator(test.shouldAssignment, &test.count), store)
-			assert.Equal(t, test.shouldCode, status.Convert(err).Code())
-			assert.Equal(t, test.shouldCount, test.count)
+			err := doGetAssignments(context.Background(), testTicket.GetId(), test.senderGenerator(test.wantAssignmentChan, &senderTriggerCount), store)
+			assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
 			if err == nil {
 				for i := 0; i < totalAssignments; i++ {
-					assert.Equal(t, <-test.shouldAssignment, testAssignments[i])
+					assert.Equal(t, <-test.wantAssignmentChan, wantAssignments[i])
 				}
 			}
 		})
