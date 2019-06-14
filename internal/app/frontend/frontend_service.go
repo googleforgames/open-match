@@ -181,10 +181,5 @@ func doGetAssignments(ctx context.Context, id string, sender func(*pb.Assignment
 		return nil
 	}
 
-	err := store.GetAssignments(ctx, id, callback)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return store.GetAssignments(ctx, id, callback)
 }
