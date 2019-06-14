@@ -16,14 +16,14 @@ FROM open-match-base-build as builder
 
 WORKDIR /go/src/open-match.dev/open-match/cmd/swaggerui/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
-COPY api/*.json /go/src/open-match.dev/open-match/site/static/swaggerui/api/
+COPY api/*.json /go/src/open-match.dev/open-match/third_party/swaggerui/api/
 
 # We need to change the location of the frontend.swagger.json so that we point to this server.
-RUN sed -i 's/url:.*/url: \"api\/frontend.swagger.json\",/g' /go/src/open-match.dev/open-match/site/static/swaggerui/index.html
+RUN sed -i 's/url:.*/url: \"api\/frontend.swagger.json\",/g' /go/src/open-match.dev/open-match/third_party/swaggerui/index.html
 
 FROM gcr.io/distroless/static
 COPY --from=builder /go/src/open-match.dev/open-match/cmd/swaggerui/swaggerui .
-COPY --from=builder /go/src/open-match.dev/open-match/site/static/swaggerui/ /static
+COPY --from=builder /go/src/open-match.dev/open-match/third_party/swaggerui/ /static
 
 ENTRYPOINT ["/swaggerui"]
 
