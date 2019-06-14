@@ -17,11 +17,63 @@ package internal
 import (
 	"fmt"
 	containerpb "google.golang.org/genproto/googleapis/container/v1"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestServeAndClose(t *testing.T) {
+	conn, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatalf("cannot open TCP port, %s", err)
+	}
+	serve(conn)
+	port := portFromListener(conn)
+	killLater(port)
+
+	if resp, err := http.Get(fmt.Sprintf("http://localhost:%d/livenessz", port)); err != nil {
+		t.Errorf("/livenessz error %s", err)
+	} else {
+		if text, err := ioutil.ReadAll(resp.Body); err != nil {
+			t.Errorf("/livenessz read body error %s", err)
+		} else if string(text) != "OK" {
+			t.Errorf("/livenessz expected 'OK' got %s", text)
+		}
+	}
+}
+
+func serve(conn net.Listener) func() {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		wg.Done()
+		err := Serve(conn, &Params{
+			Age:       time.Minute * 30,
+			Label:     "open-match-ci",
+			ProjectID: "open-match-build",
+			Location:  "us-west1-a",
+		})
+		if err != nil {
+			fmt.Printf("http server did not shutdown cleanly, %s", err)
+		}
+	}()
+	return wg.Wait
+}
+
+func killLater(port int) {
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		_, err := http.Get(fmt.Sprintf("http://localhost:%d/close", port))
+		if err != nil {
+			fmt.Printf("Got error closing server: %s", err)
+		}
+	}()
+}
 
 func TestIsOrphaned(t *testing.T) {
 	testCases := []struct {

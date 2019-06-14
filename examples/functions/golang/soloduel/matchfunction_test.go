@@ -28,8 +28,8 @@ func TestMakeMatchesDeduplicate(t *testing.T) {
 	assert := assert.New(t)
 
 	poolNameToTickets := map[string][]*pb.Ticket{
-		"pool1": []*pb.Ticket{{Id: "1"}},
-		"pool2": []*pb.Ticket{{Id: "1"}},
+		"pool1": {{Id: "1"}},
+		"pool2": {{Id: "1"}},
 	}
 
 	p := &mmfHarness.MatchFunctionParams{
@@ -47,9 +47,9 @@ func TestMakeMatches(t *testing.T) {
 	assert := assert.New(t)
 
 	poolNameToTickets := map[string][]*pb.Ticket{
-		"pool1": []*pb.Ticket{{Id: "1"}, {Id: "2"}, {Id: "3"}},
-		"pool2": []*pb.Ticket{{Id: "4"}},
-		"pool3": []*pb.Ticket{{Id: "5"}, {Id: "6"}, {Id: "7"}},
+		"pool1": {{Id: "1"}, {Id: "2"}, {Id: "3"}},
+		"pool2": {{Id: "4"}},
+		"pool3": {{Id: "5"}, {Id: "6"}, {Id: "7"}},
 	}
 
 	p := &mmfHarness.MatchFunctionParams{
