@@ -16,11 +16,14 @@ package minimatch
 
 import (
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"open-match.dev/open-match/internal/app/backend"
 	"open-match.dev/open-match/internal/app/frontend"
 	"open-match.dev/open-match/internal/app/mmlogic"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
+	minimatchUtil "open-match.dev/open-match/internal/util/minimatch"
 )
 
 var (
@@ -28,6 +31,8 @@ var (
 		"app":       "openmatch",
 		"component": "minimatch",
 	})
+	shouldGenerateTickets bool
+	shouldAttributes      []string
 )
 
 // RunApplication creates a server.
@@ -51,7 +56,37 @@ func RunApplication() {
 		}).Fatalf("cannot bind server.")
 	}
 
+	if err := newMinimatchCmd(cfg).Execute(); err != nil {
+		minimatchLogger.Fatal(err)
+		return
+	}
+
 	rpc.MustServeForever(p)
+}
+
+func newMinimatchCmd(cfg config.View) *cobra.Command {
+	rootCmd := &cobra.Command{
+		Use:           "minimatch",
+		Short:         "A binary that host open-match components in one single port to facilitate development cycle.",
+		SilenceErrors: false,
+		Args:          cobra.NoArgs,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			if shouldGenerateTickets {
+				err := minimatchUtil.TicketGenerator(cfg, shouldAttributes, minimatchLogger)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	}
+	addFlags(rootCmd.Flags())
+	return rootCmd
+}
+
+func addFlags(flags *pflag.FlagSet) {
+	flags.BoolVarP(&shouldGenerateTickets, "gen", "g", false, "Turn on/off ticket generator.")
+	flags.StringSliceVarP(&shouldAttributes, "attributes", "a", []string{"attribute1", "attribute2"}, "Customized ticket index.")
 }
 
 // BindService creates the minimatch service to the server Params.
