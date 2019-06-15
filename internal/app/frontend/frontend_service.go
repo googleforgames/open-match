@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
@@ -159,12 +160,13 @@ func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream p
 
 func doGetAssignments(ctx context.Context, id string, sender func(*pb.Assignment) error, store statestore.Service) error {
 	var currAssignment *pb.Assignment
+	var ok bool
 	callback := func(assignment *pb.Assignment) error {
-		if currAssignment == nil ||
-			currAssignment.Connection != assignment.Connection ||
-			currAssignment.Properties != assignment.Properties ||
-			currAssignment.Error != assignment.Error {
-			currAssignment, ok := proto.Clone(assignment).(*pb.Assignment)
+		if (currAssignment == nil && assignment != nil) ||
+			!cmp.Equal(currAssignment.GetConnection(), assignment.GetConnection()) ||
+			!cmp.Equal(currAssignment.GetProperties(), assignment.GetProperties()) ||
+			!cmp.Equal(currAssignment.GetError(), assignment.GetError()) {
+			currAssignment, ok = proto.Clone(assignment).(*pb.Assignment)
 			if !ok {
 				logger.Error("failed to cast assignment object")
 				return status.Error(codes.Internal, "failed to cast the assignment object")
@@ -179,10 +181,5 @@ func doGetAssignments(ctx context.Context, id string, sender func(*pb.Assignment
 		return nil
 	}
 
-	err := store.GetAssignments(ctx, id, callback)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return store.GetAssignments(ctx, id, callback)
 }
