@@ -131,6 +131,21 @@ steps:
   args: ['make', 'GCP_PROJECT_ID=${PROJECT_ID}', 'ci-reap-clusters']
   waitFor: ['Build: Install Toolchain']
 
+- id: 'Test: Create Cluster'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'delete-gke-cluster', 'create-gke-cluster', 'push-helm']
+  waitFor: ['Test: Delete Old Clusters']
+
+- id: 'Test: Deploy Open Match'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'sleep-30', 'install-chart-slim', 'install-demo-chart']
+  waitFor: ['Test: Create Cluster', 'Build: Docker Images']
+
+- id: 'Test: Delete Cluster'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'delete-gke-cluster']
+  waitFor: ['Test: Deploy Open Match']
+
 artifacts:
     objects:
         location: gs://open-match-build-artifacts/output/
@@ -169,4 +184,4 @@ logsBucket: 'gs://open-match-build-logs/'
 options:
   sourceProvenanceHash: ['SHA256']
   machineType: 'N1_HIGHCPU_32'
-timeout: 1200s
+timeout: 2500s

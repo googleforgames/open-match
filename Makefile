@@ -125,7 +125,7 @@ _GCB_POST_SUBMIT ?= 0
 # Latest version triggers builds of :latest images.
 _GCB_LATEST_VERSION ?= undefined
 IMAGE_BUILD_ARGS = --build-arg BUILD_DATE=$(BUILD_DATE) --build-arg=VCS_REF=$(SHORT_SHA) --build-arg BUILD_VERSION=$(BASE_VERSION)
-
+GCLOUD_EXTRA_FLAGS =
 # Make port forwards accessible outside of the proxy machine.
 PORT_FORWARD_ADDRESS_FLAG = --address 0.0.0.0
 DASHBOARD_PORT = 9092
@@ -326,6 +326,19 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set grafana.enabled=true \
 		--set jaeger.enabled=true \
 		--set prometheus.enabled=true \
+		--set redis.enabled=true \
+		--set openmatch.monitoring.stackdriver.enabled=true \
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+
+install-chart-slim: build/toolchain/bin/helm$(EXE_EXTENSION)
+	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
+		--timeout=400 \
+		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+		--set openmatch.image.registry=$(REGISTRY) \
+		--set openmatch.image.tag=$(TAG) \
+		--set grafana.enabled=false \
+		--set jaeger.enabled=false \
+		--set prometheus.enabled=false \
 		--set redis.enabled=true \
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
@@ -605,7 +618,7 @@ create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
 delete-gke-cluster: gcloud
-	-$(GCLOUD) $(GCP_PROJECT_FLAG) container clusters delete $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG)
+	-$(GCLOUD) $(GCP_PROJECT_FLAG) container clusters delete $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) $(GCLOUD_EXTRA_FLAGS)
 
 create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	$(MINIKUBE) start --memory 6144 --cpus 4 --disk-size 50g
