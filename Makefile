@@ -660,11 +660,15 @@ build:
 	$(GO) build ./...
 
 test:
-	$(GO) test ./... -cover -test.count $(GOLANG_TEST_COUNT) -race
-	$(GO) test ./... -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$
+	$(GO) test $(shell go list ./... | grep -v /test/e2e/k8s) -cover -test.count $(GOLANG_TEST_COUNT) -race
+	$(GO) test $(shell go list ./... | grep -v /test/e2e/k8s) -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$
 
 test-k8s:
 	$(KUBECTL) apply -f $(REPOSITORY_ROOT)/test/e2e/k8s/job.yaml
+	$(KUBECTL) wait --for=condition=complete job/countdown --timeout=20s
+
+ls-k8s:
+	$(KUBECTL) get jobs
 
 stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
