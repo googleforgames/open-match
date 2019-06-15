@@ -664,8 +664,23 @@ test:
 	$(GO) test $(shell go list ./... | grep -v /test/e2e/k8s) -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$
 
 test-k8s:
+	# docker build -f $(REPOSITORY_ROOT)/Dockerfile.base-build -t test-k8s .
 	$(KUBECTL) apply -f $(REPOSITORY_ROOT)/test/e2e/k8s/job.yaml
-	$(KUBECTL) wait --for=condition=complete job/countdown --timeout=20s
+	isFailed=""
+	isComplete=""
+	while [ "$$isFailed" != "True" ] && [ "$$isComplete" != "True" ]; do \
+		isFailed=$$($(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}'); \
+		isComplete=$$($(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}'); \
+		echo $$isFailed; \
+		sleep 1 ;\
+	done
+ifeq ($(shell $(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}'), True)
+	$(KUBECTL) logs pods/$(shell $(KUBECTL) get pods --selector=job-name=countdown -o jsonpath='{.items[0].metadata.name}')
+	exit 1
+else
+	@echo "TEST SUCCEED"
+	exit 0
+endif
 
 ls-k8s:
 	$(KUBECTL) get jobs
