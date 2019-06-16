@@ -667,10 +667,7 @@ test:
 isFailed = $(shell $(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}')
 
 test-k8s:
-	docker build -f $(REPOSITORY_ROOT)/Dockerfile.base-build -t test-k8s .
 	$(KUBECTL) apply -f $(REPOSITORY_ROOT)/test/e2e/k8s/job.yaml
-	isFailed=""
-	isComplete=""
 	while [ "$$($(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}')" != "True" ] && [ "$$($(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}')" != "True" ]; do \
 		sleep 2 ;\
 	done;

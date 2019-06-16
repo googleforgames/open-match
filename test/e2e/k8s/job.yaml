@@ -24,8 +24,6 @@ spec:
     spec:
       containers:
       - name: counter
-        image: test-k8s
-        imagePullPolicy: Never
+        image: gcr.io/open-match-build/open-match-build
         command: ["go", "test", "-v", "./test/e2e/k8s"]
-           # - "go test -v ./test/e2e/k8s"
       restartPolicy: Never
