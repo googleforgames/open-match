@@ -663,27 +663,24 @@ test:
 	$(GO) test $(shell go list ./... | grep -v /test/e2e/k8s) -cover -test.count $(GOLANG_TEST_COUNT) -race
 	$(GO) test $(shell go list ./... | grep -v /test/e2e/k8s) -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$
 
+
+isFailed = $(shell $(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}')
+
 test-k8s:
-	# docker build -f $(REPOSITORY_ROOT)/Dockerfile.base-build -t test-k8s .
+	docker build -f $(REPOSITORY_ROOT)/Dockerfile.base-build -t test-k8s .
 	$(KUBECTL) apply -f $(REPOSITORY_ROOT)/test/e2e/k8s/job.yaml
 	isFailed=""
 	isComplete=""
-	while [ "$$isFailed" != "True" ] && [ "$$isComplete" != "True" ]; do \
-		isFailed=$$($(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}'); \
-		isComplete=$$($(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}'); \
-		echo $$isFailed; \
-		sleep 1 ;\
-	done
-ifeq ($(shell $(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}'), True)
-	$(KUBECTL) logs pods/$(shell $(KUBECTL) get pods --selector=job-name=countdown -o jsonpath='{.items[0].metadata.name}')
-	exit 1
-else
-	@echo "TEST SUCCEED"
-	exit 0
-endif
-
-ls-k8s:
-	$(KUBECTL) get jobs
+	while [ "$$($(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}')" != "True" ] && [ "$$($(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}')" != "True" ]; do \
+		sleep 2 ;\
+	done;
+	if [ "$$($(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}')" = "True" ]; then \
+		$(KUBECTL) logs pods/$$($(KUBECTL) get pods --selector=job-name=countdown -o jsonpath='{.items[0].metadata.name}'); \
+		exit 1; \
+	else \
+		echo "TEST SUCCEED"; \
+		exit 0; \
+	fi
 
 stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
