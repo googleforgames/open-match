@@ -100,7 +100,7 @@ GRAFANA_PORT = 3000
 FRONTEND_PORT = 51504
 BACKEND_PORT = 51505
 MMLOGIC_PORT = 51503
-EVALUATOR_PORT = 51506
+SYNCHRONIZER_PORT = 51506
 DEMO_PORT = 51507
 PROTOC := $(TOOLCHAIN_BIN)/protoc$(EXE_EXTENSION)
 HELM = $(TOOLCHAIN_BIN)/helm$(EXE_EXTENSION)
@@ -209,7 +209,8 @@ local-cloud-build: gcloud
 
 push-images: push-service-images push-example-images push-tool-images
 
-push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-evaluator-image push-swaggerui-image
+
+push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-synchronizer-image push-swaggerui-image
 push-example-images: push-demo-images push-mmf-example-images
 push-demo-images: push-mmf-go-soloduel-image push-demo-image
 push-mmf-example-images: push-mmf-go-soloduel-image
@@ -231,9 +232,9 @@ push-minimatch-image: docker build-minimatch-image
 	docker push $(REGISTRY)/openmatch-minimatch:$(TAG)
 	docker push $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 
-push-evaluator-image: docker build-evaluator-image
-	docker push $(REGISTRY)/openmatch-evaluator:$(TAG)
-	docker push $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG)
+push-synchronizer-image: docker build-synchronizer-image
+	docker push $(REGISTRY)/openmatch-synchronizer:$(TAG)
+	docker push $(REGISTRY)/openmatch-synchronizer:$(ALTERNATE_TAG)
 
 push-swaggerui-image: docker build-swaggerui-image
 	docker push $(REGISTRY)/openmatch-swaggerui:$(TAG)
@@ -253,7 +254,7 @@ push-reaper-image: docker build-reaper-image
 
 build-images: build-service-images build-example-images build-tool-images
 
-build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-evaluator-image build-swaggerui-image
+build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-synchronizer-image build-swaggerui-image
 build-example-images: build-demo-images build-mmf-example-images
 build-demo-images: build-mmf-go-soloduel-image build-demo-image
 build-mmf-example-images: build-mmf-go-soloduel-image
@@ -276,8 +277,8 @@ build-mmlogic-image: docker build-base-build-image
 build-minimatch-image: docker build-base-build-image
 	docker build -f cmd/minimatch/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
 
-build-evaluator-image: docker build-base-build-image
-	docker build -f cmd/evaluator/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-evaluator:$(TAG) -t $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG) .
+build-synchronizer-image: docker build-base-build-image
+	docker build -f cmd/synchronizer/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-synchronizer:$(TAG) -t $(REGISTRY)/openmatch-synchronizer:$(ALTERNATE_TAG) .
 
 build-swaggerui-image: docker build-base-build-image third_party/swaggerui/
 	docker build -f cmd/swaggerui/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-swaggerui:$(TAG) -t $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG) .
@@ -296,7 +297,7 @@ clean-images: docker
 	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-frontend:$(TAG) $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-mmlogic:$(TAG) $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-evaluator:$(TAG) $(REGISTRY)/openmatch-evaluator:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-synchronizer:$(TAG) $(REGISTRY)/openmatch-synchronizer:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-swaggerui:$(TAG) $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG)
 
@@ -373,7 +374,7 @@ install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backend.install=false \
 		--set openmatch.frontend.install=false \
 		--set openmatch.mmlogic.install=false \
-		--set openmatch.evaluator.install=false \
+		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
 		--set redis.enabled=true \
 		--set prometheus.enabled=false \
@@ -401,7 +402,7 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backend.install=false \
 		--set openmatch.frontend.install=false \
 		--set openmatch.mmlogic.install=false \
-		--set openmatch.evaluator.install=false \
+		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
 		--set redis.enabled=false \
 		--set prometheus.enabled=true \
@@ -417,7 +418,7 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backend.install=false \
 		--set openmatch.frontend.install=false \
 		--set openmatch.mmlogic.install=false \
-		--set openmatch.evaluator.install=false \
+		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
 		--set redis.enabled=false \
 		--set prometheus.enabled=false \
@@ -433,7 +434,7 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.backend.install=false \
 		--set openmatch.frontend.install=false \
 		--set openmatch.mmlogic.install=false \
-		--set openmatch.evaluator.install=false \
+		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
 		--set redis.enabled=false \
 		--set prometheus.enabled=false \
@@ -629,11 +630,11 @@ gcp-apply-binauthz-policy: build/policies/binauthz.yaml
 	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
 
 all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
-golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go internal/pb/evaluator.pb.go
+golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go internal/pb/synchronizer.pb.go
 
-http-proxy-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go internal/pb/evaluator.pb.gw.go
+http-proxy-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go internal/pb/synchronizer.pb.gw.go
 
-swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/evaluator.swagger.json
+swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/synchronizer.swagger.json
 
 internal/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
@@ -653,7 +654,7 @@ api/%.swagger.json: api/%.proto internal/pb/%.pb.gw.go build/toolchain/bin/proto
 internal/pb/backend.pb.go: internal/pb/messages.pb.go
 internal/pb/frontend.pb.go: internal/pb/messages.pb.go
 internal/pb/mmlogic.pb.go: internal/pb/messages.pb.go
-internal/pb/evaluator.pb.go: internal/pb/messages.pb.go
+internal/pb/synchronizer.pb.go: internal/pb/messages.pb.go
 internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
 
 build:
@@ -701,7 +702,7 @@ all: service-binaries example-binaries tools-binaries
 
 service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/swaggerui/swaggerui$(EXE_EXTENSION)
 service-binaries: cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION)
-service-binaries: cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/evaluator/evaluator$(EXE_EXTENSION)
+service-binaries: cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/synchronizer/synchronizer$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries
 example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
@@ -720,14 +721,14 @@ cmd/frontend/frontend$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/fr
 cmd/mmlogic/mmlogic$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/mmlogic; $(GO_BUILD_COMMAND)
 
-cmd/evaluator/evaluator$(EXE_EXTENSION): internal/pb/evaluator.pb.go internal/pb/evaluator.pb.gw.go api/evaluator.swagger.json
-	cd $(REPOSITORY_ROOT)/cmd/evaluator; $(GO_BUILD_COMMAND)
+cmd/synchronizer/synchronizer$(EXE_EXTENSION): internal/pb/synchronizer.pb.go internal/pb/synchronizer.pb.gw.go api/synchronizer.swagger.json
+	cd $(REPOSITORY_ROOT)/cmd/synchronizer; $(GO_BUILD_COMMAND)
 
 # Note: This list of dependencies is long but only add file references here. If you add a .PHONY dependency make will always rebuild it.
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/backend.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/frontend.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/evaluator.pb.go internal/pb/evaluator.pb.gw.go api/evaluator.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/synchronizer.pb.go internal/pb/synchronizer.pb.gw.go api/synchronizer.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd $(REPOSITORY_ROOT)/cmd/minimatch; $(GO_BUILD_COMMAND)
@@ -796,7 +797,7 @@ clean-protos:
 
 clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/cmd/backend/backend$(EXE_EXTENSION)
-	rm -rf $(REPOSITORY_ROOT)/cmd/evaluator/evaluator$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/cmd/synchronizer/synchronizer$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/frontend/frontend$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch$(EXE_EXTENSION)
@@ -847,11 +848,11 @@ proxy-mmlogic: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "MmLogic Trace: http://localhost:$(MMLOGIC_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=mmlogic,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(MMLOGIC_PORT):51503 $(PORT_FORWARD_ADDRESS_FLAG)
 
-proxy-evaluator: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	@echo "Evaluator Health: http://localhost:$(EVALUATOR_PORT)/healthz"
-	@echo "Evaluator RPC: http://localhost:$(EVALUATOR_PORT)/debug/rpcz"
-	@echo "Evaluator Trace: http://localhost:$(EVALUATOR_PORT)/debug/tracez"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=evaluator,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(EVALUATOR_PORT):51506 $(PORT_FORWARD_ADDRESS_FLAG)
+proxy-synchronizer: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	@echo "Synchronizer Health: http://localhost:$(SYNCHRONIZER_PORT)/healthz"
+	@echo "Synchronizer RPC: http://localhost:$(SYNCHRONIZER_PORT)/debug/rpcz"
+	@echo "Synchronizer Trace: http://localhost:$(SYNCHRONIZER_PORT)/debug/tracez"
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=synchronizer,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(SYNCHRONIZER_PORT):51506 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-grafana: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "User: admin"
@@ -874,7 +875,7 @@ proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
-proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-evaluator proxy-ui proxy-dashboard proxy-demo
+proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-synchronizer proxy-ui proxy-dashboard proxy-demo
 
 proxy:
 	# This is an exception case where we'll call recursive make.

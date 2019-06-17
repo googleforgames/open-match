@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Evaluator",
+    "title": "Synchronizer",
     "version": "1.0",
     "contact": {
       "name": "Open Match",
@@ -24,7 +24,30 @@
     "application/json"
   ],
   "paths": {
-    "/v1/evaluator/matches:evaluate": {
+    "/v1/synchronizer/context": {
+      "get": {
+        "summary": "GetContext returns the context for the synchronization window. The caller\nrequests for a context and then sends the context back in the evaluation\nrequest. This enables identify stale evaluation requests belonging to a\nprior window when synchronizing evaluation requests for a window.",
+        "operationId": "GetContext",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiGetContextResponse"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "format": "string"
+            }
+          }
+        },
+        "tags": [
+          "Synchronizer"
+        ]
+      }
+    },
+    "/v1/synchronizer/matches:evaluate": {
       "post": {
         "summary": "Evaluate accepts a list of matches, triggers the user configured evaluation\nfunction with these and other matches in the evaluation window and returns\nmatches that are accepted by the Evaluator as valid results.",
         "operationId": "Evaluate",
@@ -53,7 +76,7 @@
           }
         ],
         "tags": [
-          "Evaluator"
+          "Synchronizer"
         ]
       }
     }
@@ -98,6 +121,15 @@
             "$ref": "#/definitions/apiMatch"
           },
           "description": "Accepted list of Matches."
+        }
+      }
+    },
+    "apiGetContextResponse": {
+      "type": "object",
+      "properties": {
+        "context_id": {
+          "type": "string",
+          "description": "Context identifier for the current synchronization window."
         }
       }
     },

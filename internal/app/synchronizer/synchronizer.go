@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package evaluator
+package synchronizer
 
 import (
 	"github.com/sirupsen/logrus"
@@ -24,55 +24,49 @@ import (
 )
 
 var (
-	evaluatorLogger = logrus.WithFields(logrus.Fields{
+	synchronizerLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "evaluator",
+		"component": "synchronizer",
 	})
 )
 
-// FunctionSettings is a collection of parameters used to define the evaluator service.
-type FunctionSettings struct {
-	Func evaluatorFunction
-}
-
 // RunApplication creates a server.
-func RunApplication(settings *FunctionSettings) {
+func RunApplication() {
 	cfg, err := config.Read()
 	if err != nil {
-		evaluatorLogger.WithFields(logrus.Fields{
+		synchronizerLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
 
-	p, err := rpc.NewServerParamsFromConfig(cfg, "api.evaluator")
+	p, err := rpc.NewServerParamsFromConfig(cfg, "api.synchronizer")
 	if err != nil {
-		evaluatorLogger.WithFields(logrus.Fields{
+		synchronizerLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("cannot construct server.")
 	}
 
-	if err := BindService(p, cfg, settings); err != nil {
-		evaluatorLogger.WithFields(logrus.Fields{
+	if err := BindService(p, cfg); err != nil {
+		synchronizerLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
-		}).Fatalf("failed to bind evaluator service.")
+		}).Fatalf("failed to bind synchronizer service.")
 	}
 
 	rpc.MustServeForever(p)
 }
 
-// BindService creates the evaluator service and binds it to the serving harness.
-func BindService(p *rpc.ServerParams, cfg config.View, fs *FunctionSettings) error {
-	service := &evaluatorService{
-		cfg:      cfg,
-		store:    statestore.New(cfg),
-		function: fs.Func,
+// BindService creates the synchronizer service and binds it to the serving harness.
+func BindService(p *rpc.ServerParams, cfg config.View) error {
+	service := &synchronizerService{
+		cfg:   cfg,
+		store: statestore.New(cfg),
 	}
 
 	p.AddHealthCheckFunc(service.store.HealthCheck)
 
 	p.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterEvaluatorServer(s, service)
-	}, pb.RegisterEvaluatorHandlerFromEndpoint)
+		pb.RegisterSynchronizerServer(s, service)
+	}, pb.RegisterSynchronizerHandlerFromEndpoint)
 
 	return nil
 }

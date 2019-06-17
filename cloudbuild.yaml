@@ -158,7 +158,7 @@ artifacts:
             - cmd/backend/backend
             - cmd/frontend/frontend
             - cmd/mmlogic/mmlogic
-            - cmd/evaluator/evaluator
+            - cmd/synchronizer/synchronizer
             - cmd/minimatch/minimatch
             - cmd/swaggerui/swaggerui
             - examples/functions/golang/soloduel/soloduel
@@ -175,7 +175,7 @@ images:
 - 'gcr.io/$PROJECT_ID/openmatch-backend:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-frontend:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmlogic:${_OM_VERSION}-${SHORT_SHA}'
-- 'gcr.io/$PROJECT_ID/openmatch-evaluator:${_OM_VERSION}-${SHORT_SHA}'
+- 'gcr.io/$PROJECT_ID/openmatch-synchronizer:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-minimatch:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-demo:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-go-soloduel:${_OM_VERSION}-${SHORT_SHA}'
