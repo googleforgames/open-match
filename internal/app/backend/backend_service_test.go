@@ -286,7 +286,7 @@ func TestDoAssignTickets(t *testing.T) {
 		wantAssignment *pb.Assignment
 	}{
 		{
-			description: "expect context canceled code since context is cancelled before being called",
+			description: "expect unavailable code since context is canceled before being called",
 			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
 				cancel()
 			},
