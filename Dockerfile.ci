@@ -52,4 +52,5 @@ RUN mkdir -p /toolchain
 RUN mkdir -p /workspace
 
 WORKDIR /workspace
+COPY . .
 ENV ALLOW_BUILD_WITH_SUDO=1

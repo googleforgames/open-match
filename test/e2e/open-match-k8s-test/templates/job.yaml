@@ -15,15 +15,16 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: countdown
+  name: {{.Values.name}}
 spec:
-  backoffLimit: 0
+  backoffLimit: {{.Values.backoffLimit}}
   template:
     metadata:
-      name: countdown
+      name: {{.Values.name}}
     spec:
       containers:
-      - name: counter
-        image: gcr.io/open-match-build/open-match-build
-        command: ["go", "test", "-v", "./test/e2e/k8s"]
+      - name: {{.Values.name}}
+        image: gcr.io/{{.Values.image.registry}}/open-match-build:{{.Values.image.tag}}
+        command: ["go", "test", "-v", "./test/e2e/open-match-k8s-test"]
+        imagePullPolicy: {{.Values.image.imagePullPolicy}}
       restartPolicy: Never

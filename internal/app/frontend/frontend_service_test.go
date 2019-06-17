@@ -128,7 +128,7 @@ func TestDoGetAssignments(t *testing.T) {
 				}
 			},
 			wantCode:        codes.Aborted,
-			wantAssignments: []*pb.Assignment{&pb.Assignment{Connection: "1"}, &pb.Assignment{Connection: "2"}},
+			wantAssignments: []*pb.Assignment{{Connection: "1"}, {Connection: "2"}},
 		},
 	}
 

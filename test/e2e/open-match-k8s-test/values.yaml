@@ -1,0 +1,10 @@
+# Default values for open-match-test.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+backoffLimit: 0
+name: open-match-k8s-test
+image:
+  registry: open-match-build
+  tag: latest
+  pullPolicy: Always

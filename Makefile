@@ -661,14 +661,11 @@ build:
 	$(GO) build ./...
 
 test:
-	$(GO) test $(shell go list ./... | grep -v /test/e2e/k8s) -cover -test.count $(GOLANG_TEST_COUNT) -race
-	$(GO) test $(shell go list ./... | grep -v /test/e2e/k8s) -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$
-
-
-isFailed = $(shell $(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}')
+	$(GO) test $(shell go list ./... | grep -v /test/e2e/open-match-k8s-test) -cover -test.count $(GOLANG_TEST_COUNT) -race
+	$(GO) test $(shell go list ./... | grep -v /test/e2e/open-match-k8s-test) -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$
 
 test-k8s:
-	$(KUBECTL) apply -f $(REPOSITORY_ROOT)/test/e2e/k8s/job.yaml
+	$(HELM) template --set image.registry=$(REGISTRY) $(REPOSITORY_ROOT)/test/e2e/open-match-k8s-test/ -f $(REPOSITORY_ROOT)/test/e2e/open-match-k8s-test/values.yaml | $(KUBECTL) apply -f -
 	while [ "$$($(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}')" != "True" ] && [ "$$($(KUBECTL) get jobs countdown -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}')" != "True" ]; do \
 		sleep 2 ;\
 	done;
