@@ -50,17 +50,17 @@ func TestDoCreateTickets(t *testing.T) {
 	tests := []struct {
 		description string
 		ctx         context.Context
-		shouldErr   bool
+		wantErr   bool
 	}{
 		{
 			description: "expect error with canceled context",
 			ctx:         cancelledCtx,
-			shouldErr:   true,
+			wantErr:   true,
 		},
 		{
 			description: "expect normal return with default context",
 			ctx:         normalCtx,
-			shouldErr:   false,
+			wantErr:   false,
 		},
 	}
 
@@ -68,7 +68,7 @@ func TestDoCreateTickets(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			res, err := doCreateTicket(test.ctx, &pb.CreateTicketRequest{Ticket: testTicket}, store)
 
-			assert.Equal(t, test.shouldErr, err != nil)
+			assert.Equal(t, test.wantErr, err != nil)
 			if err == nil {
 				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetTicket().GetId())
 				assert.True(t, matched)
@@ -145,6 +145,119 @@ func TestDoGetAssignments(t *testing.T) {
 			if err == nil {
 				for i := 0; i < cap(gotAssignmentChan); i++ {
 					assert.Equal(t, <-gotAssignmentChan, test.wantAssignments[i])
+				}
+			}
+		})
+	}
+}
+
+func TestDoDeleteTicket(t *testing.T) {
+	fakeTicket := &pb.Ticket{
+		Id: "1",
+		Properties: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+			},
+		},
+	}
+
+	tests := []struct {
+		description string
+		preAction   func(context.Context, context.CancelFunc, statestore.Service)
+		wantCode    codes.Code
+	}{
+		{
+			description: "expect unavailable code since context is canceled before being called",
+			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
+				cancel()
+			},
+			wantCode: codes.Unavailable,
+		},
+		{
+			description: "expect ok code since delete ticket does not care about if ticket exists or not",
+			preAction:   func(_ context.Context, _ context.CancelFunc, _ statestore.Service) {},
+			wantCode:    codes.OK,
+		},
+		{
+			description: "expect ok code",
+			preAction: func(ctx context.Context, _ context.CancelFunc, store statestore.Service) {
+				store.CreateTicket(ctx, fakeTicket)
+				store.IndexTicket(ctx, fakeTicket)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+			defer closer()
+
+			test.preAction(ctx, cancel, store)
+
+			err := doDeleteTicket(ctx, fakeTicket.GetId(), store)
+			assert.Equal(t, test.wantCode, status.Convert(err).Code())
+		})
+	}
+}
+
+func TestDoGetTicket(t *testing.T) {
+	fakeTicket := &pb.Ticket{
+		Id: "1",
+		Properties: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+			},
+		},
+	}
+
+	tests := []struct {
+		description string
+		preAction   func(context.Context, context.CancelFunc, statestore.Service)
+		wantTicket  *pb.Ticket
+		wantCode    codes.Code
+	}{
+		{
+			description: "expect unavailable code since context is canceled before being called",
+			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
+				cancel()
+			},
+			wantCode: codes.Unavailable,
+		},
+		{
+			description: "expect not found code since ticket does not exist",
+			preAction:   func(_ context.Context, _ context.CancelFunc, _ statestore.Service) {},
+			wantCode:    codes.NotFound,
+		},
+		{
+			description: "expect ok code with output ticket equivalent to fakeTicket",
+			preAction: func(ctx context.Context, _ context.CancelFunc, store statestore.Service) {
+				store.CreateTicket(ctx, fakeTicket)
+				store.IndexTicket(ctx, fakeTicket)
+			},
+			wantCode:   codes.OK,
+			wantTicket: fakeTicket,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+			defer closer()
+
+			test.preAction(ctx, cancel, store)
+
+			ticket, err := doGetTickets(ctx, fakeTicket.GetId(), store)
+			assert.Equal(t, test.wantCode, status.Convert(err).Code())
+
+			if err == nil {
+				assert.Equal(t, test.wantTicket.GetId(), ticket.GetId())
+
+				for wantK, wantV := range test.wantTicket.GetProperties().GetFields() {
+					actualV, ok := ticket.GetProperties().GetFields()[wantK]
+					assert.True(t, ok)
+					assert.Equal(t, wantV.GetKind(), actualV.GetKind())
 				}
 			}
 		})
