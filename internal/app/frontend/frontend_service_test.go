@@ -16,6 +16,7 @@ package frontend
 
 import (
 	"context"
+	"errors"
 	"regexp"
 	"testing"
 	"time"
@@ -28,6 +29,7 @@ import (
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
+	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
@@ -74,6 +76,78 @@ func TestDoCreateTickets(t *testing.T) {
 				assert.True(t, matched)
 				assert.Nil(t, err)
 				assert.Equal(t, testTicket.GetProperties().GetFields()["test-property"].GetNumberValue(), res.GetTicket().GetProperties().GetFields()["test-property"].GetNumberValue())
+			}
+		})
+	}
+}
+
+func TestDoGetAssignments(t *testing.T) {
+	testTicket := &pb.Ticket{
+		Id: "test-id",
+	}
+
+	tests := []struct {
+		description     string
+		preAction       func(*testing.T, statestore.Service, []*pb.Assignment)
+		senderGenerator func(chan *pb.Assignment, *int) func(*pb.Assignment) error
+		wantCode        codes.Code
+		wantAssignments []*pb.Assignment
+	}{
+		{
+			description: "expect error because ticket id does not exist",
+			preAction:   func(_ *testing.T, _ statestore.Service, _ []*pb.Assignment) {},
+			senderGenerator: func(tmp chan *pb.Assignment, p *int) func(*pb.Assignment) error {
+				return func(assignment *pb.Assignment) error {
+					*p++
+					tmp <- assignment
+					return nil
+				}
+			},
+			wantCode:        codes.NotFound,
+			wantAssignments: []*pb.Assignment{},
+		},
+		{
+			description: "expect two assignment reads from preAction writes and fail in grpc aborted code",
+			preAction: func(t *testing.T, store statestore.Service, wantAssignments []*pb.Assignment) {
+				assert.Nil(t, store.CreateTicket(context.Background(), testTicket))
+				go func() {
+					for i := 0; i < len(wantAssignments); i++ {
+						time.Sleep(200 * time.Millisecond)
+						assert.Nil(t, store.UpdateAssignments(context.Background(), []string{testTicket.GetId()}, wantAssignments[i]))
+					}
+				}()
+			},
+			senderGenerator: func(tmp chan *pb.Assignment, p *int) func(*pb.Assignment) error {
+				return func(assignment *pb.Assignment) error {
+					*p++
+					tmp <- assignment
+					if len(tmp) == cap(tmp) {
+						return errors.New("some error")
+					}
+					return nil
+				}
+			},
+			wantCode:        codes.Aborted,
+			wantAssignments: []*pb.Assignment{&pb.Assignment{Connection: "1"}, &pb.Assignment{Connection: "2"}},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+			defer closer()
+
+			senderTriggerCount := 0
+			gotAssignmentChan := make(chan *pb.Assignment, len(test.wantAssignments))
+
+			test.preAction(t, store, test.wantAssignments)
+			err := doGetAssignments(context.Background(), testTicket.GetId(), test.senderGenerator(gotAssignmentChan, &senderTriggerCount), store)
+			assert.Equal(t, test.wantCode, status.Convert(err).Code())
+
+			if err == nil {
+				for i := 0; i < cap(gotAssignmentChan); i++ {
+					assert.Equal(t, <-gotAssignmentChan, test.wantAssignments[i])
+				}
 			}
 		})
 	}
