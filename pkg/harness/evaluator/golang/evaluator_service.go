@@ -45,7 +45,7 @@ type evaluatorService struct {
 	evaluate Evaluator
 }
 
-// EvaluatorParams is the paramters to be passed by the harness to the evaluator.
+// EvaluatorParams is the parameters to be passed by the harness to the evaluator.
 //  - logger:
 //			A logger used to generate error/debug logs
 //  - Matches
@@ -75,9 +75,4 @@ func (s *evaluatorService) Evaluate(ctx context.Context, req *pb.EvaluateRequest
 		"results": results,
 	}).Debug("matches accepted by the evaluator")
 	return &pb.EvaluateResponse{Match: results}, nil
-}
-
-func newEvaluatorService(cfg config.View, eval Evaluator) (*evaluatorService, error) {
-	evaluator := &evaluatorService{cfg: cfg, evaluate: eval}
-	return evaluator, nil
 }

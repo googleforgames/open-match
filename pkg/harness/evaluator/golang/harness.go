@@ -58,13 +58,8 @@ func RunEvaluator(eval Evaluator) {
 
 // BindService creates the evaluator service to the server Params.
 func BindService(p *rpc.ServerParams, cfg config.View, eval Evaluator) error {
-	service, err := newEvaluatorService(cfg, eval)
-	if err != nil {
-		return err
-	}
-
 	p.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterEvaluatorServer(s, service)
+		pb.RegisterEvaluatorServer(s, &evaluatorService{cfg: cfg, evaluate: eval})
 	}, pb.RegisterEvaluatorHandlerFromEndpoint)
 
 	return nil
