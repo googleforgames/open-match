@@ -49,7 +49,7 @@ openmatch:
       port: 50503
     http:
       port: 51503
-  evaluator:
+  synchronizer:
     install: true
     grpc:
       port: 50506
@@ -104,15 +104,15 @@ openmatch:
             hostname: om-mmlogic
             grpcport: "{{.Values.openmatch.mmlogic.grpc.port}}"
             httpport: "{{.Values.openmatch.mmlogic.http.port}}"
-          evaluator:
-            hostname: om-evaluator
-            grpcport: "{{.Values.openmatch.evaluator.grpc.port}}"
-            httpport: "{{.Values.openmatch.evaluator.http.port}}"
+          synchronizer:
+            hostname: om-synchronizer
+            grpcport: "{{.Values.openmatch.synchronizer.grpc.port}}"
+            httpport: "{{.Values.openmatch.synchronizer.http.port}}"
           functions:
             grpcport: "{{.Values.openmatch.functions.grpc.port}}"
             httpport: "{{.Values.openmatch.functions.http.port}}"
 
-        evalutor:
+        synchronizer:
           pollIntervalMs: 1000
           maxWaitMs: 10000
 
@@ -202,8 +202,8 @@ openmatch:
     mmlogic:
       name: openmatch-mmlogic
       pullPolicy: Always
-    evaluator:
-      name: openmatch-evaluator
+    synchronizer:
+      name: openmatch-synchronizer
       pullPolicy: Always
     swaggerui:
       name: openmatch-swaggerui

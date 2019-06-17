@@ -47,7 +47,7 @@ func serve(directory string, port int) {
 	bindHandler(mux, "/v1/frontend/", "http://om-frontend:51504")
 	bindHandler(mux, "/v1/backend/", "http://om-backend:51505")
 	bindHandler(mux, "/v1/mmlogic/", "http://om-mmlogic:51503")
-	bindHandler(mux, "/v1/evaluator/", "http://om-evaluator:51506")
+	bindHandler(mux, "/v1/synchronizer/", "http://om-synchronizer:51506")
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
