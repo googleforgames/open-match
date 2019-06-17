@@ -39,9 +39,12 @@ func (s *synchronizerService) GetContext(ctx context.Context, req *pb.GetContext
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
-// Evaluate accepts a list of matches, triggers the user configured evaluation
-// function with these and other matches in the evaluation window and returns
-// matches that are accepted by the Evaluator as valid results.
-func (s *synchronizerService) Evaluate(ctx context.Context, req *pb.EvaluateRequest) (*pb.EvaluateResponse, error) {
+// EvaluateInContext accepts a list of matches and a context in which these
+// matches should be evaluated. If the context has expired (not present in
+// the current evaluation window) this method fails otherwise the matches are
+// added to the list of matches to be evaluated in the current evaluation
+// window. At the end of the window, the user defined evaluation method is
+// triggered and the matches accepted by it are returned as results.
+func (s *synchronizerService) EvaluateInContext(ctx context.Context, req *pb.EvaluateInContextRequest) (*pb.EvaluateInContextResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
