@@ -44,7 +44,7 @@ func TestFastAndSlow(t *testing.T) {
 	for _, i := range []string{"0", "1", "2", "3"} {
 		s.AnnounceLatest([]byte(i))
 		if v := <-fast; v != i {
-			t.Errorf("Espected \"%s\", got \"%s\"", i, v)
+			t.Errorf("Expected \"%s\", got \"%s\"", i, v)
 		}
 	}
 

@@ -23,6 +23,8 @@ import (
 	"sync"
 )
 
+var partialWriteError = errors.New("ByteSub subscriber didn't consume the whole message.")
+
 type ByteSub struct {
 	nextReady chan struct{}
 	b         []byte
@@ -49,8 +51,6 @@ func (s *ByteSub) get() (b []byte, nextReady chan struct{}) {
 	defer s.r.RUnlock()
 	return s.b, s.nextReady
 }
-
-var partialWriteError = errors.New("ByteSub subscriber didn't consume the whole message.")
 
 // Subscribe writes the latest value in a single call to w.Write.  It does not
 // guarantee that all values published to AnnounceLatest will be written.
