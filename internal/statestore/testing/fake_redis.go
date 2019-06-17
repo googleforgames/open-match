@@ -16,9 +16,11 @@ package testing
 
 import (
 	"testing"
+	"time"
 
 	"github.com/alicebob/miniredis"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/statestore"
 )
 
 // New creates a new in memory Redis instance for testing.
@@ -33,8 +35,21 @@ func New(t *testing.T, cfg config.Mutable) func() {
 	cfg.Set("redis.pool.maxActive", 10)
 	cfg.Set("redis.pool.idleTimeout", "10s")
 	cfg.Set("redis.pool.healthCheckTimeout", "100ms")
+	cfg.Set("backoff.initialInterval", 30*time.Millisecond)
+	cfg.Set("backoff.randFactor", 0.5)
+	cfg.Set("backoff.multiplier", 0.5)
+	cfg.Set("backoff.maxInterval", 300*time.Millisecond)
+	cfg.Set("backoff.maxElapsedTime", 1000*time.Millisecond)
 
 	return func() {
 		mredis.Close()
 	}
+}
+
+// NewStoreServiceForTesting creates a new statestore service for testing
+func NewStoreServiceForTesting(t *testing.T, cfg config.Mutable) (statestore.Service, func()) {
+	closer := New(t, cfg)
+	s := statestore.New(cfg)
+
+	return s, closer
 }

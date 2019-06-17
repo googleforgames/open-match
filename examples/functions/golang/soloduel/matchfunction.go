@@ -26,6 +26,10 @@ import (
 	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
 )
 
+var (
+	matchName = "a-simple-1v1-matchfunction"
+)
+
 // MakeMatches is where your custom matchmaking logic lives.
 func MakeMatches(p *mmfHarness.MatchFunctionParams) []*pb.Match {
 	// This simple match function does the following things
@@ -54,7 +58,7 @@ func MakeMatches(p *mmfHarness.MatchFunctionParams) []*pb.Match {
 			matches = append(matches, &pb.Match{
 				MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", p.ProfileName, t, matchNum),
 				MatchProfile:  p.ProfileName,
-				MatchFunction: "a-simple-matchfunction",
+				MatchFunction: matchName,
 				Ticket:        thisMatch,
 			})
 

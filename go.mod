@@ -17,6 +17,7 @@ module open-match.dev/open-match
 go 1.12
 
 require (
+	cloud.google.com/go v0.37.4
 	contrib.go.opencensus.io/exporter/jaeger v0.1.0
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
 	contrib.go.opencensus.io/exporter/stackdriver v0.11.0
@@ -29,7 +30,8 @@ require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.1
-	github.com/gomodule/redigo v1.7.0
+	github.com/gomodule/redigo v1.7.1-0.20190322064113-39e2c31b7ca3
+	github.com/google/go-cmp v0.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.8.5
 	github.com/openzipkin/zipkin-go v0.1.6
 	github.com/pkg/errors v0.8.0
