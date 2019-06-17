@@ -21,7 +21,10 @@ import (
 	"testing"
 	"time"
 
+	structpb "github.com/golang/protobuf/ptypes/struct"
+
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/statestore"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/viper"
@@ -29,6 +32,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/pb"
+	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
 func TestDoFetchMatchesInChannel(t *testing.T) {
@@ -104,8 +108,8 @@ func TestDoFetchMatchesSendResponse(t *testing.T) {
 		description     string
 		count           int
 		senderGenerator func(cancel context.CancelFunc, p *int) func(*pb.Match) error
-		shouldErr       bool
-		shouldCount     int
+		wantErr         bool
+		wantCount       int
 	}{
 		{
 			description: "expect test.count to be 10 without intervening the context",
@@ -115,8 +119,8 @@ func TestDoFetchMatchesSendResponse(t *testing.T) {
 					return nil
 				}
 			},
-			shouldErr:   false,
-			shouldCount: totalProposals,
+			wantErr:   false,
+			wantCount: totalProposals,
 		},
 		{
 			description: "expect doFetchMatchesSendResponse returns with an error because of sender failures",
@@ -129,8 +133,8 @@ func TestDoFetchMatchesSendResponse(t *testing.T) {
 					return nil
 				}
 			},
-			shouldErr:   true,
-			shouldCount: failAtProposals,
+			wantErr:   true,
+			wantCount: failAtProposals,
 		},
 		{
 			description: "expect an context error as context is canceled halfway",
@@ -143,8 +147,8 @@ func TestDoFetchMatchesSendResponse(t *testing.T) {
 					return nil
 				}
 			},
-			shouldErr:   true,
-			shouldCount: failAtProposals,
+			wantErr:   true,
+			wantCount: failAtProposals,
 		},
 	}
 
@@ -155,11 +159,11 @@ func TestDoFetchMatchesSendResponse(t *testing.T) {
 
 			err := doFetchMatchesSendResponse(ctx, fakeProposals, test.senderGenerator(cancel, &test.count))
 
-			if test.count != test.shouldCount {
-				t.Errorf("expect count: %d, but was %d", test.shouldCount, test.count)
+			if test.count != test.wantCount {
+				t.Errorf("expect count: %d, but was %d", test.wantCount, test.count)
 			}
-			if test.shouldErr != (err != nil) {
-				t.Errorf("expect shouldErr %v, but was %s", test.shouldErr, err)
+			if test.wantErr != (err != nil) {
+				t.Errorf("expect shouldErr %v, but was %s", test.wantErr, err)
 			}
 		})
 	}
@@ -252,4 +256,104 @@ func TestGetGRPCClient(t *testing.T) {
 
 	// Test caching by comparing pointer value
 	assert.EqualValues(client, cachedClient)
+}
+
+func TestDoAssignTickets(t *testing.T) {
+	fakeTickets := []*pb.Ticket{
+		{
+			Id: "1",
+			Properties: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+				},
+			},
+		},
+		{
+			Id: "2",
+			Properties: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 2}},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		description    string
+		preAction      func(context.Context, context.CancelFunc, statestore.Service)
+		req            *pb.AssignTicketsRequest
+		wantCode       codes.Code
+		wantAssignment *pb.Assignment
+	}{
+		{
+			description: "expect context cancelled code since context is cancelled before being called",
+			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
+				cancel()
+			},
+			req: &pb.AssignTicketsRequest{
+				TicketId:   []string{"1"},
+				Assignment: &pb.Assignment{},
+			},
+			wantCode: codes.Unavailable,
+		},
+		{
+			description: "expect invalid argument code since assignment is nil",
+			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
+				cancel()
+			},
+			req:      &pb.AssignTicketsRequest{},
+			wantCode: codes.InvalidArgument,
+		},
+		{
+			description: "expect not found code since ticket does not exist",
+			preAction:   func(_ context.Context, _ context.CancelFunc, _ statestore.Service) {},
+			req: &pb.AssignTicketsRequest{
+				TicketId: []string{"1", "2"},
+				Assignment: &pb.Assignment{
+					Connection: "123",
+				},
+			},
+			wantCode: codes.NotFound,
+		},
+		{
+			description: "expect ok code",
+			preAction: func(ctx context.Context, cancel context.CancelFunc, store statestore.Service) {
+				for _, fakeTicket := range fakeTickets {
+					store.CreateTicket(ctx, fakeTicket)
+					store.IndexTicket(ctx, fakeTicket)
+				}
+			},
+			req: &pb.AssignTicketsRequest{
+				TicketId: []string{"1", "2"},
+				Assignment: &pb.Assignment{
+					Connection: "123",
+				},
+			},
+			wantCode: codes.OK,
+			wantAssignment: &pb.Assignment{
+				Connection: "123",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+			defer closer()
+
+			test.preAction(ctx, cancel, store)
+			err := doAssignTickets(ctx, test.req, store)
+
+			assert.Equal(t, test.wantCode, status.Convert(err).Code())
+
+			if err == nil {
+				for _, id := range test.req.GetTicketId() {
+					ticket, err := store.GetTicket(ctx, id)
+					assert.Nil(t, err)
+					assert.Equal(t, test.wantAssignment, ticket.GetAssignment())
+				}
+			}
+		})
+	}
 }
