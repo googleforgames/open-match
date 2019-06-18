@@ -152,9 +152,9 @@ func RegisterBackendHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 }
 
 var (
-	pattern_Backend_FetchMatches_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "backend", "matches"}, "fetch"))
+	pattern_Backend_FetchMatches_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "backend", "matches"}, "fetch", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_Backend_AssignTickets_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "backend", "tickets"}, "assign"))
+	pattern_Backend_AssignTickets_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "backend", "tickets"}, "assign", runtime.AssumeColonVerbOpt(true)))
 )
 
 var (
