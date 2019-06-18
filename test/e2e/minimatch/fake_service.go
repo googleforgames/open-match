@@ -42,11 +42,9 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 		cfg.Set("api.mmlogic.grpcport", c.GetGRPCPort())
 		cfg.Set("api.mmlogic.httpport", c.GetHTTPPort())
 
-		if err := mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
+		assert.Nil(t, mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
 			Func: pool.MakeMatches,
-		}); err != nil {
-			t.Error(err)
-		}
+		}))
 	})
 	return tc
 }
@@ -54,12 +52,14 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 // Create a minimatch test service with function bindings from frontend, backend, and mmlogic.
 // Instruct this service to start and connect to a fake storage service.
 func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
-	var closerFunc func()
+	var closer func()
 
 	// TODO: Use insecure for now since minimatch and mmf only works with the same secure mode
 	// Server a minimatch for testing using random port at tc.grpcAddress & tc.proxyAddress
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
+		closer = statestoreTesting.New(t, cfg)
+
 		cfg.Set("storage.page.size", 10)
 		// Set up the attributes that a ticket will be indexed for.
 		cfg.Set("playerIndices", []string{
@@ -67,47 +67,40 @@ func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
 			map1attribute,
 			map2attribute,
 		})
-
-		closer := statestoreTesting.New(t, cfg)
-		closerFunc = closer
-
-		err := minimatch.BindService(p, cfg)
-		if err != nil {
-			t.Fatal("failed to bind handlers to minimatch service")
-		}
+		assert.Nil(t, minimatch.BindService(p, cfg))
 	})
 	// TODO: This is very ugly. Need a better story around closing resources.
-	tc.AddCloseFunc(closerFunc)
+	tc.AddCloseFunc(closer)
 	return tc
 }
 
 func createMmlogicForTest(t *testing.T) *rpcTesting.TestContext {
-	var closerFunc func()
+	var closer func()
 	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
-		closerFunc = statestoreTesting.New(t, cfg)
-		cfg.Set("storage.page.size", 10)
+		closer = statestoreTesting.New(t, cfg)
 
-		mmlogic.BindService(p, cfg)
+		cfg.Set("storage.page.size", 10)
+		assert.Nil(t, mmlogic.BindService(p, cfg))
 	})
 	// TODO: This is very ugly. Need a better story around closing resources.
-	tc.AddCloseFunc(closerFunc)
+	tc.AddCloseFunc(closer)
 	return tc
 }
 
 func createBackendForTest(t *testing.T) *rpcTesting.TestContext {
-	var closerFunc func()
+	var closer func()
 	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
-		closerFunc = statestoreTesting.New(t, cfg)
+		closer = statestoreTesting.New(t, cfg)
 
 		cfg.Set("storage.page.size", 10)
-		backend.BindService(p, cfg)
-		frontend.BindService(p, cfg)
-		mmlogic.BindService(p, cfg)
+		assert.Nil(t, backend.BindService(p, cfg))
+		assert.Nil(t, frontend.BindService(p, cfg))
+		assert.Nil(t, mmlogic.BindService(p, cfg))
 	})
 	// TODO: This is very ugly. Need a better story around closing resources.
-	tc.AddCloseFunc(closerFunc)
+	tc.AddCloseFunc(closer)
 	return tc
 }
 
@@ -115,10 +108,10 @@ func createStore(t *testing.T) *rpcTesting.TestContext {
 	var closer func()
 	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
-		cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
 		closer = statestoreTesting.New(t, cfg)
-		err := frontend.BindService(p, cfg)
-		assert.Nil(t, err)
+
+		cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
+		assert.Nil(t, frontend.BindService(p, cfg))
 	})
 	tc.AddCloseFunc(closer)
 	return tc

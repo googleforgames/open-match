@@ -19,11 +19,11 @@ import (
 	"io"
 	"testing"
 
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/pb"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 )
@@ -54,7 +54,7 @@ func TestAssignTickets(t *testing.T) {
 		{
 			&pb.AssignTicketsRequest{
 				TicketId: []string{"1"},
-			}, 
+			},
 			nil,
 			codes.InvalidArgument,
 		},

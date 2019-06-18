@@ -60,11 +60,11 @@ func TestDoQueryTickets(t *testing.T) {
 	testTickets := generateTickets(propertyManifest{attribute1, 0, 20, 5}, propertyManifest{attribute2, 0, 20, 5})
 
 	tests := []struct {
-		description   string
-		sender        func(tickets []*pb.Ticket) error
-		filters       []*pb.Filter
-		pageSize      int
-		action        func(*testing.T, statestore.Service)
+		description string
+		sender      func(tickets []*pb.Ticket) error
+		filters     []*pb.Filter
+		pageSize    int
+		action      func(*testing.T, statestore.Service)
 		wantErr     error
 		wantTickets []*pb.Ticket
 	}{

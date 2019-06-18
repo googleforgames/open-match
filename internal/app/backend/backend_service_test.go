@@ -50,7 +50,7 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 	tests := []struct {
 		description string
 		req         *pb.FetchMatchesRequest
-		wantErr   error
+		wantErr     error
 		cfg         config.View
 	}{
 		{
@@ -164,8 +164,8 @@ func TestDoFetchMatchesSendResponse(t *testing.T) {
 
 func TestDoFetchMatchesFilterChannel(t *testing.T) {
 	tests := []struct {
-		description   string
-		preAction     func(chan mmfResult, context.CancelFunc)
+		description string
+		preAction   func(chan mmfResult, context.CancelFunc)
 		wantMatches []*pb.Match
 		wantErr     bool
 	}{
