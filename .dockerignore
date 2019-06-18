@@ -101,6 +101,14 @@ install/yaml/
 # Temp Directories
 tmp/
 
+# Terraform context
+.terraform
+*.tfstate
+*.tfstate.backup
+
+# Credential Files
+creds.json
+
 # Open Match Binaries
 cmd/backend/backend
 cmd/frontend/frontend
