@@ -256,13 +256,13 @@ func RegisterFrontendHandlerClient(ctx context.Context, mux *runtime.ServeMux, c
 }
 
 var (
-	pattern_Frontend_CreateTicket_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "frontend", "tickets"}, ""))
+	pattern_Frontend_CreateTicket_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "frontend", "tickets"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_Frontend_DeleteTicket_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "frontend", "tickets", "ticket_id"}, ""))
+	pattern_Frontend_DeleteTicket_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "frontend", "tickets", "ticket_id"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_Frontend_GetTicket_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "frontend", "tickets", "ticket_id"}, ""))
+	pattern_Frontend_GetTicket_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "frontend", "tickets", "ticket_id"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_Frontend_GetAssignments_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "frontend", "tickets", "ticket_id", "assignments"}, ""))
+	pattern_Frontend_GetAssignments_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "frontend", "tickets", "ticket_id", "assignments"}, "", runtime.AssumeColonVerbOpt(true)))
 )
 
 var (
