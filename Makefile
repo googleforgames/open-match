@@ -114,7 +114,7 @@ HUGO = $(TOOLCHAIN_BIN)/hugo$(EXE_EXTENSION)
 TERRAFORM = $(TOOLCHAIN_BIN)/terraform$(EXE_EXTENSION)
 SKAFFOLD = $(TOOLCHAIN_BIN)/skaffold$(EXE_EXTENSION)
 CERTGEN = $(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION)
-GOLANGCI = GO111MODULE=on $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
+GOLANGCI = $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
 GCLOUD = gcloud --quiet
 OPEN_MATCH_CHART_NAME = open-match
 OPEN_MATCH_KUBERNETES_NAMESPACE = open-match
@@ -703,7 +703,7 @@ vet:
 	$(GO) vet ./...
 
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
-	$(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
+	GO111MODULE=on $(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
 
 lint: fmt vet golangci lint-chart
 
