@@ -65,8 +65,8 @@ func TestDoQueryTickets(t *testing.T) {
 		filters       []*pb.Filter
 		pageSize      int
 		action        func(*testing.T, statestore.Service)
-		shouldErr     error
-		shouldTickets []*pb.Ticket
+		wantErr     error
+		wantTickets []*pb.Ticket
 	}{
 		{
 			"expect empty response from an empty store",
@@ -134,9 +134,9 @@ func TestDoQueryTickets(t *testing.T) {
 			defer closer()
 
 			test.action(t, store)
-			assert.Equal(t, test.shouldErr, doQueryTickets(context.Background(), test.filters, test.pageSize, test.sender, store))
-			for _, shouldTicket := range test.shouldTickets {
-				assert.Contains(t, actualTickets, shouldTicket)
+			assert.Equal(t, test.wantErr, doQueryTickets(context.Background(), test.filters, test.pageSize, test.sender, store))
+			for _, wantTicket := range test.wantTickets {
+				assert.Contains(t, actualTickets, wantTicket)
 			}
 		})
 	}
