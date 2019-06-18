@@ -138,7 +138,7 @@ steps:
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'sleep-30', 'install-chart-slim', 'install-demo-chart']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'sleep-30', 'install-chart', 'install-demo-chart']
   waitFor: ['Test: Create Cluster', 'Build: Docker Images']
 
 - id: 'Test: Delete Cluster'
