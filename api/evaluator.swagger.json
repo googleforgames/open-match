@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Synchronizer",
+    "title": "Evaluator",
     "version": "1.0",
     "contact": {
       "name": "Open Match",
@@ -24,38 +24,15 @@
     "application/json"
   ],
   "paths": {
-    "/v1/synchronizer/context": {
-      "get": {
-        "summary": "GetContext returns the context for the synchronization window. The caller\nrequests for a context and then sends the context back in the evaluation\nrequest. This enables identify stale evaluation requests belonging to a\nprior window when synchronizing evaluation requests for a window.",
-        "operationId": "GetContext",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiGetContextResponse"
-            }
-          },
-          "404": {
-            "description": "Returned when the resource does not exist.",
-            "schema": {
-              "format": "string"
-            }
-          }
-        },
-        "tags": [
-          "Synchronizer"
-        ]
-      }
-    },
-    "/v1/synchronizer/matches:evaluate": {
+    "/v1/evaluator/matches:evaluate": {
       "post": {
-        "summary": "EvaluateInContext accepts a list of matches and a context in which these\nmatches should be evaluated. If the context has expired (not present in\nthe current evaluation window) this method fails otherwise the matches are\nadded to the list of matches to be evaluated in the current evaluation\nwindow. At the end of the window, the user defined evaluation method is\ntriggered and the matches accepted by it are returned as results.",
-        "operationId": "EvaluateInContext",
+        "summary": "Evaluate accepts a list of proposed matches, evaluates them for quality,\ncollisions etc. and returns matches that should be accepted as results.",
+        "operationId": "Evaluate",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiEvaluateInContextResponse"
+              "$ref": "#/definitions/apiEvaluateResponse"
             }
           },
           "404": {
@@ -71,12 +48,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiEvaluateInContextRequest"
+              "$ref": "#/definitions/apiEvaluateRequest"
             }
           }
         ],
         "tags": [
-          "Synchronizer"
+          "Evaluator"
         ]
       }
     }
@@ -100,7 +77,7 @@
       },
       "description": "An Assignment object represents the assignment associated with a Ticket."
     },
-    "apiEvaluateInContextRequest": {
+    "apiEvaluateRequest": {
       "type": "object",
       "properties": {
         "match": {
@@ -108,15 +85,11 @@
           "items": {
             "$ref": "#/definitions/apiMatch"
           },
-          "description": "List of Matches to evaluate in the given context."
-        },
-        "context_id": {
-          "type": "string",
-          "description": "Context in which these matches should be evaluated."
+          "description": "List of Matches to evaluate."
         }
       }
     },
-    "apiEvaluateInContextResponse": {
+    "apiEvaluateResponse": {
       "type": "object",
       "properties": {
         "match": {
@@ -125,15 +98,6 @@
             "$ref": "#/definitions/apiMatch"
           },
           "description": "Accepted list of Matches."
-        }
-      }
-    },
-    "apiGetContextResponse": {
-      "type": "object",
-      "properties": {
-        "context_id": {
-          "type": "string",
-          "description": "Context identifier for the current synchronization window."
         }
       }
     },

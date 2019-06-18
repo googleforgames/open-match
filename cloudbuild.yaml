@@ -157,6 +157,7 @@ artifacts:
             - cmd/minimatch/minimatch
             - cmd/swaggerui/swaggerui
             - examples/functions/golang/soloduel/soloduel
+            - examples/evaluator/golang/simple/simple
             - tools/certgen/certgen
             - tools/reaper/reaper
             - install/yaml/install.yaml
@@ -174,6 +175,7 @@ images:
 - 'gcr.io/$PROJECT_ID/openmatch-minimatch:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-demo:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-go-soloduel:${_OM_VERSION}-${SHORT_SHA}'
+- 'gcr.io/$PROJECT_ID/openmatch-evaluator-go-simple:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-swaggerui:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-reaper:${_OM_VERSION}-${SHORT_SHA}'
 substitutions:

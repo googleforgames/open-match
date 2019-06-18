@@ -21,7 +21,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
+	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
 )
 
 func TestMakeMatchesDeduplicate(t *testing.T) {

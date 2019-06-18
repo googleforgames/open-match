@@ -215,9 +215,10 @@ local-cloud-build: gcloud
 push-images: push-service-images push-example-images push-tool-images
 
 push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-synchronizer-image push-swaggerui-image
-push-example-images: push-demo-images push-mmf-example-images
+push-example-images: push-demo-images push-mmf-example-images push-evaluator-example-images
 push-demo-images: push-mmf-go-soloduel-image push-demo-image
 push-mmf-example-images: push-mmf-go-soloduel-image
+push-evaluator-example-images: push-evaluator-go-simple-image
 push-tool-images: push-reaper-image
 
 push-backend-image: docker build-backend-image
@@ -252,6 +253,10 @@ push-mmf-go-soloduel-image: docker build-mmf-go-soloduel-image
 	docker push $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG)
 	docker push $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG)
 
+push-evaluator-go-simple-image: docker build-evaluator-go-simple-image
+	docker push $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG)
+	docker push $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG)
+
 push-reaper-image: docker build-reaper-image
 	docker push $(REGISTRY)/openmatch-reaper:$(TAG)
 	docker push $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG)
@@ -259,9 +264,10 @@ push-reaper-image: docker build-reaper-image
 build-images: build-service-images build-example-images build-tool-images
 
 build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-synchronizer-image build-swaggerui-image
-build-example-images: build-demo-images build-mmf-example-images
+build-example-images: build-demo-images build-mmf-example-images build-evaluator-example-images
 build-demo-images: build-mmf-go-soloduel-image build-demo-image
 build-mmf-example-images: build-mmf-go-soloduel-image
+build-evaluator-example-images: build-evaluator-go-simple-image
 build-tool-images: build-reaper-image
 
 # Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
@@ -293,6 +299,9 @@ build-demo-image: docker build-base-build-image
 build-mmf-go-soloduel-image: docker build-base-build-image
 	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
 
+build-evaluator-go-simple-image: docker build-base-build-image
+	docker build -f examples/evaluator/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG) .
+
 build-reaper-image: docker build-base-build-image
 	docker build -f tools/reaper/Dockerfile -t $(REGISTRY)/openmatch-reaper:$(TAG) -t $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG) .
 
@@ -306,6 +315,7 @@ clean-images: docker
 	-docker rmi -f $(REGISTRY)/openmatch-swaggerui:$(TAG) $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG)
 
 	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-demo:$(TAG) $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-reaper:$(TAG) $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG)
 
@@ -646,11 +656,11 @@ gcp-apply-binauthz-policy: build/policies/binauthz.yaml
 	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
 
 all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
-golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go internal/pb/synchronizer.pb.go
+golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go internal/pb/synchronizer.pb.go  internal/pb/evaluator.pb.go
 
-http-proxy-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go internal/pb/synchronizer.pb.gw.go
+http-proxy-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go internal/pb/synchronizer.pb.gw.go  internal/pb/evaluator.pb.gw.go
 
-swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/synchronizer.swagger.json
+swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/synchronizer.swagger.json api/evaluator.swagger.json
 
 internal/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	$(PROTOC) $< \
@@ -672,6 +682,7 @@ internal/pb/frontend.pb.go: internal/pb/messages.pb.go
 internal/pb/mmlogic.pb.go: internal/pb/messages.pb.go
 internal/pb/synchronizer.pb.go: internal/pb/messages.pb.go
 internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
+internal/pb/evaluator.pb.go: internal/pb/messages.pb.go
 
 build:
 	$(GO) build ./...
@@ -704,11 +715,15 @@ service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/swaggerui/swaggeru
 service-binaries: cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION)
 service-binaries: cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/synchronizer/synchronizer$(EXE_EXTENSION)
 
-example-binaries: example-mmf-binaries
+example-binaries: example-mmf-binaries example-evaluator-binaries
 example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
+example-evaluator-binaries: examples/evaluator/golang/simple/simple$(EXE_EXTENSION)
 
 examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
+
+examples/evaluator/golang/simple/simple$(EXE_EXTENSION): internal/pb/evaluator.pb.go internal/pb/evaluator.pb.gw.go api/evaluator.swagger.json
+	cd $(REPOSITORY_ROOT)/examples/evaluator/golang/simple; $(GO_BUILD_COMMAND)
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION) tools/reaper/reaper$(EXE_EXTENSION)
 
@@ -811,6 +826,7 @@ clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/simple/evaluator$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/swaggerui/swaggerui$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/tools/certgen/certgen$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/tools/reaper/reaper$(EXE_EXTENSION)
