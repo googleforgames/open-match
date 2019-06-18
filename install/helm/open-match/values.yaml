@@ -33,35 +33,41 @@ openmatch:
     reportingPeriod: "5s"
   backend:
     install: true
+    replicas: 3
     grpc:
       port: 50505
     http:
       port: 51505
   frontend:
     install: true
+    replicas: 3
     grpc:
       port: 50504
     http:
       port: 51504
   mmlogic:
     install: true
+    replicas: 3
     grpc:
       port: 50503
     http:
       port: 51503
   synchronizer:
     install: true
+    replicas: 1
     grpc:
       port: 50506
     http:
       port: 51506
   functions:
+    replicas: 3
     grpc:
       port: 50502
     http:
       port: 51502
   swaggerui:
     install: true
+    replicas: 3
     http:
       port: 50500
 

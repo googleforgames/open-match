@@ -44,7 +44,7 @@ metadata:
     component: frontend
     {{- include "openmatch.chartmeta" (set . "indent" 4) }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.openmatch.frontend.replicas }}
   selector:
     matchLabels:
       app: {{ template "openmatch.name" . }}
