@@ -54,17 +54,17 @@ steps:
 
 - id: 'Test: Markdown'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['ls']
+  args: ['make', 'md-test']
   waitFor: ['Docker Image: open-match-build']
 
 - id: 'Build: Clean'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'clean']
+  waitFor: ['Docker Image: open-match-build']
 
 - id: 'Setup: Download Dependencies'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'sync-deps']
-  dir: 'open-match.dev/open-match'
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -167,6 +167,8 @@ artifacts:
             - install/yaml/05-jaeger-chart.yaml
             - examples/functions/golang/soloduel/soloduel
             - examples/evaluator/golang/simple/simple
+            - tools/certgen/certgen
+            - tools/reaper/reaper
 
 images:
 - 'gcr.io/$PROJECT_ID/openmatch-backend:${_OM_VERSION}-${SHORT_SHA}'

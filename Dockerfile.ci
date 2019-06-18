@@ -48,6 +48,6 @@ RUN sudo mkdir -p "$GOPATH/src" "$GOPATH/bin" \
 
 # Prepare toolchain and workspace
 RUN mkdir -p /toolchain
-ADD . /workspace/open-match.dev/open-match
-WORKDIR /workspace/open-match.dev/open-match
+
+WORKDIR /workspace
 ENV ALLOW_BUILD_WITH_SUDO=1
