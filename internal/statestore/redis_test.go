@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis"
+	miniredis "github.com/alicebob/miniredis/v2"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/rs/xid"
 	"github.com/spf13/viper"

@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis"
+	miniredis "github.com/alicebob/miniredis/v2"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
 )
