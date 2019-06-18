@@ -26,7 +26,7 @@
   "paths": {
     "/v1/evaluator/matches:evaluate": {
       "post": {
-        "summary": "Evaluate accepts a list of matches, triggers the user configured evaluation\nfunction with these and other matches in the evaluation window and returns\nmatches that are accepted by the Evaluator as valid results.",
+        "summary": "Evaluate accepts a list of proposed matches, evaluates them for quality,\ncollisions etc. and returns matches that should be accepted as results.",
         "operationId": "Evaluate",
         "responses": {
           "200": {

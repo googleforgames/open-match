@@ -159,9 +159,8 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type EvaluatorClient interface {
-	// Evaluate accepts a list of matches, triggers the user configured evaluation
-	// function with these and other matches in the evaluation window and returns
-	// matches that are accepted by the Evaluator as valid results.
+	// Evaluate accepts a list of proposed matches, evaluates them for quality,
+	// collisions etc. and returns matches that should be accepted as results.
 	Evaluate(ctx context.Context, in *EvaluateRequest, opts ...grpc.CallOption) (*EvaluateResponse, error)
 }
 
@@ -184,9 +183,8 @@ func (c *evaluatorClient) Evaluate(ctx context.Context, in *EvaluateRequest, opt
 
 // EvaluatorServer is the server API for Evaluator service.
 type EvaluatorServer interface {
-	// Evaluate accepts a list of matches, triggers the user configured evaluation
-	// function with these and other matches in the evaluation window and returns
-	// matches that are accepted by the Evaluator as valid results.
+	// Evaluate accepts a list of proposed matches, evaluates them for quality,
+	// collisions etc. and returns matches that should be accepted as results.
 	Evaluate(context.Context, *EvaluateRequest) (*EvaluateResponse, error)
 }
 

@@ -1,0 +1,103 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package api;
+option go_package = "internal/pb";
+
+import "api/messages.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  info: {
+    title: "Synchronizer"
+    version: "1.0"
+    contact: {
+      name: "Open Match"
+      url: "https://open-match.dev"
+      email: "open-match-discuss@googlegroups.com"
+    }
+    license: {
+      name: "Apache 2.0 License"
+      url: "https://github.com/googleforgames/open-match/blob/master/LICENSE"
+    }
+  }
+  external_docs: {
+    url: "https://open-match.dev/site/docs/"
+    description: "Open Match Documentation"
+  }
+  schemes: HTTP
+  schemes: HTTPS
+  consumes: "application/json"
+  produces: "application/json"
+  responses: {
+    key: "404"
+    value: {
+      description: "Returned when the resource does not exist."
+      schema: { json_schema: { type: STRING } }
+    }
+  }
+  // TODO Add annotations for security_defintiions.
+  // See
+  // https://github.com/grpc-ecosystem/grpc-gateway/blob/master/examples/proto/examplepb/a_bit_of_everything.proto
+};
+
+message GetContextRequest {
+}
+
+message GetContextResponse {
+  // Context identifier for the current synchronization window.
+  string context_id = 1;
+}
+
+message EvaluateInContextRequest {
+  // List of Matches to evaluate in the given context.
+  repeated Match match = 1;
+
+  // Context in which these matches should be evaluated.
+  string context_id = 2;
+}
+
+message EvaluateInContextResponse {
+  // Accepted list of Matches.
+  repeated Match match = 1;
+}
+
+// The service implementing the Synchronizer API that synchronizes the evaluation
+// of results from Match functions.
+service Synchronizer {
+  // GetContext returns the context for the synchronization window. The caller
+  // requests for a context and then sends the context back in the evaluation
+  // request. This enables identify stale evaluation requests belonging to a
+  // prior window when synchronizing evaluation requests for a window.
+  rpc GetContext(GetContextRequest) returns (GetContextResponse) {
+    option (google.api.http) = {
+      get: "/v1/synchronizer/context"
+    };
+  }
+
+  // EvaluateInContext accepts a list of matches and a context in which these
+  // matches should be evaluated. If the context has expired (not present in
+  // the current evaluation window) this method fails otherwise the matches are
+  // added to the list of matches to be evaluated in the current evaluation
+  // window. At the end of the window, the user defined evaluation method is
+  // triggered and the matches accepted by it are returned as results.
+  rpc EvaluateInContext(EvaluateInContextRequest) returns (EvaluateInContextResponse) {
+    option (google.api.http) = {
+      post: "/v1/synchronizer/matches:evaluate"
+      body: "*"
+    };
+  }
+}

@@ -21,8 +21,12 @@ package pool
 
 import (
 	"github.com/rs/xid"
-	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
+	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
 	"open-match.dev/open-match/pkg/pb"
+)
+
+var (
+	matchName = "pool-based-match"
 )
 
 // MakeMatches is where your custom matchmaking logic lives.
@@ -41,7 +45,7 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) []*pb.Match {
 		result = append(result, &pb.Match{
 			MatchId:       xid.New().String(),
 			MatchProfile:  params.ProfileName,
-			MatchFunction: "pool-based-match",
+			MatchFunction: matchName,
 			Ticket:        tickets,
 			Roster:        []*pb.Roster{roster},
 		})

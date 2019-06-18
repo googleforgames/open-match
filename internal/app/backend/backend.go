@@ -15,6 +15,8 @@
 package backend
 
 import (
+	"sync"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
@@ -57,8 +59,9 @@ func RunApplication() {
 // BindService creates the backend service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View) error {
 	service := &backendService{
-		cfg:   cfg,
-		store: statestore.New(cfg),
+		cfg:        cfg,
+		store:      statestore.New(cfg),
+		mmfClients: &sync.Map{},
 	}
 
 	p.AddHealthCheckFunc(service.store.HealthCheck)

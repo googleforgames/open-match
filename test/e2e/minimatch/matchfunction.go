@@ -21,7 +21,7 @@ import (
 	"open-match.dev/open-match/examples/functions/golang/pool"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
-	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
+	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
 )
 
 // Create a mmf service using a started test server.

@@ -101,15 +101,26 @@ install/yaml/
 # Temp Directories
 tmp/
 
+# Terraform context
+.terraform
+*.tfstate
+*.tfstate.backup
+
+# Credential Files
+creds.json
+
 # Open Match Binaries
 cmd/backend/backend
 cmd/frontend/frontend
 cmd/mmlogic/mmlogic
-cmd/evaluator/evaluator
+cmd/synchronizer/synchronizer
 cmd/minimatch/minimatch
 cmd/swaggerui/swaggerui
 tools/certgen/certgen
+examples/demo/demo
 examples/functions/golang/soloduel/soloduel
+examples/evaluator/golang/simple/simple
+tools/reaper/reaper
 
 # Open Match Build Directory
 build/
