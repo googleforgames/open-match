@@ -50,17 +50,17 @@ func TestDoCreateTickets(t *testing.T) {
 	tests := []struct {
 		description string
 		ctx         context.Context
-		wantErr   bool
+		wantErr     bool
 	}{
 		{
 			description: "expect error with canceled context",
 			ctx:         cancelledCtx,
-			wantErr:   true,
+			wantErr:     true,
 		},
 		{
 			description: "expect normal return with default context",
 			ctx:         normalCtx,
-			wantErr:   false,
+			wantErr:     false,
 		},
 	}
 

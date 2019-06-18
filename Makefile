@@ -703,7 +703,7 @@ vet:
 	$(GO) vet ./...
 
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
-	$(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
+	GO111MODULE=on $(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
 
 lint: fmt vet golangci lint-chart
 
@@ -949,6 +949,7 @@ third_party/swaggerui/:
 	rm -rf $(TOOLCHAIN_DIR)/swaggerui-temp
 
 sync-deps:
+	$(GO) clean -modcache
 	$(GO) mod download
 
 sleep-10:
