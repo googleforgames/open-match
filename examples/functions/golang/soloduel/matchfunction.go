@@ -22,17 +22,12 @@ import (
 	"fmt"
 	"time"
 
-<<<<<<< HEAD
-	mmfHarness "open-match.dev/open-match/pkg/harness/golang"
-	"open-match.dev/open-match/pkg/pb"
-=======
-	"open-match.dev/open-match/internal/pb"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 var (
 	matchName = "a-simple-1v1-matchfunction"
->>>>>>> b2bf00631a9620d055c55d2c2da3ce5047451e6a
 )
 
 // MakeMatches is where your custom matchmaking logic lives.

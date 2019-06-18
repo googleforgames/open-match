@@ -30,8 +30,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/pkg/pb"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 func TestDoFetchMatchesInChannel(t *testing.T) {
@@ -50,7 +50,7 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 	tests := []struct {
 		description string
 		req         *pb.FetchMatchesRequest
-		wantErr   error
+		wantErr     error
 		cfg         config.View
 	}{
 		{
@@ -164,8 +164,8 @@ func TestDoFetchMatchesSendResponse(t *testing.T) {
 
 func TestDoFetchMatchesFilterChannel(t *testing.T) {
 	tests := []struct {
-		description   string
-		preAction     func(chan mmfResult, context.CancelFunc)
+		description string
+		preAction   func(chan mmfResult, context.CancelFunc)
 		wantMatches []*pb.Match
 		wantErr     bool
 	}{

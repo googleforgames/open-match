@@ -26,9 +26,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 func TestDoCreateTickets(t *testing.T) {
@@ -50,17 +50,17 @@ func TestDoCreateTickets(t *testing.T) {
 	tests := []struct {
 		description string
 		ctx         context.Context
-		wantErr   bool
+		wantErr     bool
 	}{
 		{
 			description: "expect error with canceled context",
 			ctx:         cancelledCtx,
-			wantErr:   true,
+			wantErr:     true,
 		},
 		{
 			description: "expect normal return with default context",
 			ctx:         normalCtx,
-			wantErr:   false,
+			wantErr:     false,
 		},
 	}
 

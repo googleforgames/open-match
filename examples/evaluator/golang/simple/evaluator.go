@@ -16,8 +16,8 @@ package main
 import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/pkg/pb"
 	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 // Evaluate is where your custom evaluation logic lives.

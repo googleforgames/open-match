@@ -665,32 +665,33 @@ swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogi
 
 pkg/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	mkdir -p $(REPOSITORY_ROOT)/pkg/pb
-	$(PROTOC) $(abspath $<) \
-		-I $(abspath $(REPOSITORY_ROOT)/../..) -I $(PROTOC_INCLUDES) \
-		--go_out=plugins=grpc:$(abspath $(REPOSITORY_ROOT)/../..)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
 internal/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	mkdir -p $(REPOSITORY_ROOT)/internal/pb
-	$(PROTOC) $(abspath $<) \
-		-I $(abspath $(REPOSITORY_ROOT)/../..) -I $(PROTOC_INCLUDES) \
-		--go_out=plugins=grpc:$(abspath $(REPOSITORY_ROOT)/../..)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
+	$(SED_REPLACE) 's|pkg/pb|open-match.dev/open-match/pkg/pb|' $@
 
 pkg/pb/%.pb.gw.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	mkdir -p $(REPOSITORY_ROOT)/pkg/pb
-	$(PROTOC) $(abspath $<) \
-		-I $(abspath $(REPOSITORY_ROOT)/../..) -I $(PROTOC_INCLUDES) \
-   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(abspath $(REPOSITORY_ROOT)/../..)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
 internal/pb/%.pb.gw.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	mkdir -p $(REPOSITORY_ROOT)/internal/pb
-	$(PROTOC) $(abspath $<) \
-		-I $(abspath $(REPOSITORY_ROOT)/../..) -I $(PROTOC_INCLUDES) \
-   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(abspath $(REPOSITORY_ROOT)/../..)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
 api/%.swagger.json: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
-	$(PROTOC) $(abspath $<) \
-		-I $(abspath $(REPOSITORY_ROOT)/../..) -I $(PROTOC_INCLUDES) \
-		--swagger_out=logtostderr=true,allow_delete_body=true:$(abspath $(REPOSITORY_ROOT)/../..)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
 pkg/pb/backend.pb.go: pkg/pb/messages.pb.go

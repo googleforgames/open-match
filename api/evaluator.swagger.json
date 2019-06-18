@@ -32,7 +32,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/internalEvaluateResponse"
+              "$ref": "#/definitions/apiEvaluateResponse"
             }
           },
           "404": {
@@ -48,7 +48,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/internalEvaluateRequest"
+              "$ref": "#/definitions/apiEvaluateRequest"
             }
           }
         ],
@@ -76,6 +76,30 @@
         }
       },
       "description": "An Assignment object represents the assignment associated with a Ticket."
+    },
+    "apiEvaluateRequest": {
+      "type": "object",
+      "properties": {
+        "match": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiMatch"
+          },
+          "description": "List of Matches to evaluate."
+        }
+      }
+    },
+    "apiEvaluateResponse": {
+      "type": "object",
+      "properties": {
+        "match": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiMatch"
+          },
+          "description": "Accepted list of Matches."
+        }
+      }
     },
     "apiMatch": {
       "type": "object",
@@ -147,30 +171,6 @@
         }
       },
       "description": "A Ticket is a basic matchmaking entity in Open Match. In order to enter\nmatchmaking using Open Match, the client should generate a Ticket, passing in\nthe properties to be associated with this Ticket. Open Match will generate an\nID for a Ticket during creation. A Ticket could be used to represent an\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\nof properties. Open Match stores the Ticket in state storage and enables an\nAssignment to be associated with this Ticket."
-    },
-    "internalEvaluateRequest": {
-      "type": "object",
-      "properties": {
-        "match": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/apiMatch"
-          },
-          "description": "List of Matches to evaluate."
-        }
-      }
-    },
-    "internalEvaluateResponse": {
-      "type": "object",
-      "properties": {
-        "match": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/apiMatch"
-          },
-          "description": "Accepted list of Matches."
-        }
-      }
     },
     "protobufListValue": {
       "type": "object",

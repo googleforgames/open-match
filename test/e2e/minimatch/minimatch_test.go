@@ -30,10 +30,10 @@ import (
 	"open-match.dev/open-match/internal/app/backend"
 	"open-match.dev/open-match/internal/app/frontend"
 	"open-match.dev/open-match/internal/app/mmlogic"
-	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 const (

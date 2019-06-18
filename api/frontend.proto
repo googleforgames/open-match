@@ -14,9 +14,9 @@
 
 syntax = "proto3";
 package api;
-option go_package = "open-match.dev/open-match/pkg/pb";
+option go_package = "pkg/pb";
 
-import "open-match.dev/open-match/api/messages.proto";
+import "api/messages.proto";
 import "google/api/annotations.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
