@@ -111,6 +111,7 @@ cmd/swaggerui/swaggerui
 tools/certgen/certgen
 examples/demo/demo
 examples/functions/golang/soloduel/soloduel
+examples/evaluator/golang/simple/simple
 tools/reaper/reaper
 
 # Secrets Directories
