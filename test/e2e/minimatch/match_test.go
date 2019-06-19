@@ -34,11 +34,13 @@ func TestFetchMatches(t *testing.T) {
 	be := pb.NewBackendClient(tc.MustGRPC())
 
 	var tt = []struct {
-		req  *pb.FetchMatchesRequest
-		resp *pb.FetchMatchesResponse
-		code codes.Code
+		description string
+		req         *pb.FetchMatchesRequest
+		resp        *pb.FetchMatchesResponse
+		code        codes.Code
 	}{
 		{
+			"",
 			&pb.FetchMatchesRequest{},
 			nil,
 			codes.InvalidArgument,

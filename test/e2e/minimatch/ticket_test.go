@@ -28,7 +28,6 @@ import (
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 )
 
-// TODO: refactor the tests below this line
 func TestAssignTickets(t *testing.T) {
 	assert := assert.New(t)
 	tc := createBackendForTest(t)
@@ -41,17 +40,19 @@ func TestAssignTickets(t *testing.T) {
 	assert.Nil(err)
 
 	var tt = []struct {
-		// description string
-		req  *pb.AssignTicketsRequest
-		resp *pb.AssignTicketsResponse
-		code codes.Code
+		description string
+		req         *pb.AssignTicketsRequest
+		resp        *pb.AssignTicketsResponse
+		code        codes.Code
 	}{
 		{
+			"expects invalid argument code since request is empty",
 			&pb.AssignTicketsRequest{},
 			nil,
 			codes.InvalidArgument,
 		},
 		{
+			"expects invalid argument code since assignment is nil",
 			&pb.AssignTicketsRequest{
 				TicketId: []string{"1"},
 			},
@@ -59,6 +60,7 @@ func TestAssignTickets(t *testing.T) {
 			codes.InvalidArgument,
 		},
 		{
+			"expects not found code since ticket id does not exist in the statestore",
 			&pb.AssignTicketsRequest{
 				TicketId: []string{"2"},
 				Assignment: &pb.Assignment{
@@ -69,6 +71,7 @@ func TestAssignTickets(t *testing.T) {
 			codes.NotFound,
 		},
 		{
+			"expects ok code",
 			&pb.AssignTicketsRequest{
 				TicketId: []string{ctResp.Ticket.Id},
 				Assignment: &pb.Assignment{
@@ -81,18 +84,21 @@ func TestAssignTickets(t *testing.T) {
 	}
 
 	for _, test := range tt {
-		resp, err := be.AssignTickets(tc.Context(), test.req)
-		assert.Equal(test.resp, resp)
-		if err != nil {
-			assert.Equal(test.code, status.Convert(err).Code())
-		} else {
-			gtResp, err := fe.GetTicket(tc.Context(), &pb.GetTicketRequest{TicketId: ctResp.Ticket.Id})
-			assert.Nil(err)
-			assert.Equal(test.req.Assignment.Connection, gtResp.Assignment.Connection)
-		}
+		t.Run(test.description, func(t *testing.T) {
+			resp, err := be.AssignTickets(tc.Context(), test.req)
+			assert.Equal(test.resp, resp)
+			if err != nil {
+				assert.Equal(test.code, status.Convert(err).Code())
+			} else {
+				gtResp, err := fe.GetTicket(tc.Context(), &pb.GetTicketRequest{TicketId: ctResp.Ticket.Id})
+				assert.Nil(err)
+				assert.Equal(test.req.Assignment.Connection, gtResp.Assignment.Connection)
+			}
+		})
 	}
 }
 
+// TODO: rewrite with table testing format and add more corner test cases
 // TestFrontendService tests creating, getting and deleting a ticket using Frontend service.
 func TestFrontendService(t *testing.T) {
 	assert := assert.New(t)
