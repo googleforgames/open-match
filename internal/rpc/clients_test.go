@@ -27,9 +27,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/pb"
 	shellTesting "open-match.dev/open-match/internal/testing"
 	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
+	"open-match.dev/open-match/pkg/pb"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 

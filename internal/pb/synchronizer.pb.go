@@ -11,6 +11,7 @@ import (
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
 	math "math"
+	pb "open-match.dev/open-match/pkg/pb"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -97,7 +98,7 @@ func (m *GetContextResponse) GetContextId() string {
 
 type EvaluateInContextRequest struct {
 	// List of Matches to evaluate in the given context.
-	Match []*Match `protobuf:"bytes,1,rep,name=match,proto3" json:"match,omitempty"`
+	Match []*pb.Match `protobuf:"bytes,1,rep,name=match,proto3" json:"match,omitempty"`
 	// Context in which these matches should be evaluated.
 	ContextId            string   `protobuf:"bytes,2,opt,name=context_id,json=contextId,proto3" json:"context_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -130,7 +131,7 @@ func (m *EvaluateInContextRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_EvaluateInContextRequest proto.InternalMessageInfo
 
-func (m *EvaluateInContextRequest) GetMatch() []*Match {
+func (m *EvaluateInContextRequest) GetMatch() []*pb.Match {
 	if m != nil {
 		return m.Match
 	}
@@ -146,10 +147,10 @@ func (m *EvaluateInContextRequest) GetContextId() string {
 
 type EvaluateInContextResponse struct {
 	// Accepted list of Matches.
-	Match                []*Match `protobuf:"bytes,1,rep,name=match,proto3" json:"match,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Match                []*pb.Match `protobuf:"bytes,1,rep,name=match,proto3" json:"match,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
 }
 
 func (m *EvaluateInContextResponse) Reset()         { *m = EvaluateInContextResponse{} }
@@ -177,7 +178,7 @@ func (m *EvaluateInContextResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_EvaluateInContextResponse proto.InternalMessageInfo
 
-func (m *EvaluateInContextResponse) GetMatch() []*Match {
+func (m *EvaluateInContextResponse) GetMatch() []*pb.Match {
 	if m != nil {
 		return m.Match
 	}

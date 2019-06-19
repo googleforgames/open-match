@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"time"
 
-	"open-match.dev/open-match/internal/pb"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 var (

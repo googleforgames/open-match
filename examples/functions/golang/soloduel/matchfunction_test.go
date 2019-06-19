@@ -17,7 +17,7 @@ package main
 import (
 	"testing"
 
-	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/pkg/pb"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
