@@ -40,7 +40,7 @@ func TestFetchMatches(t *testing.T) {
 		code        codes.Code
 	}{
 		{
-			"",
+			"expects invalid argument code since request is empty",
 			&pb.FetchMatchesRequest{},
 			nil,
 			codes.InvalidArgument,
@@ -48,8 +48,10 @@ func TestFetchMatches(t *testing.T) {
 	}
 
 	for _, test := range tt {
-		fetchMatchesLoop(t, tc, be, test.req, func(_ *pb.FetchMatchesResponse, err error) {
-			assert.Equal(test.code, status.Convert(err).Code())
+		t.Run(test.description, func(t *testing.T) {
+			fetchMatchesLoop(t, tc, be, test.req, func(_ *pb.FetchMatchesResponse, err error) {
+				assert.Equal(test.code, status.Convert(err).Code())
+			})
 		})
 	}
 }
