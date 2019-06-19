@@ -39,7 +39,7 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) []*pb.Match {
 	for pool, tickets := range params.PoolNameToTickets {
 		roster := &pb.Roster{Name: pool}
 		for _, ticket := range tickets {
-			roster.TicketId = append(roster.TicketId, ticket.Id)
+			roster.TicketId = append(roster.GetTicketId(), ticket.GetId())
 		}
 
 		result = append(result, &pb.Match{
