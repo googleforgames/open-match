@@ -58,6 +58,7 @@ BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
 BUILD_DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 YEAR_MONTH = $(shell date -u +'%Y%m')
+YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
 
 PROTOC_VERSION = 3.8.0
@@ -87,6 +88,9 @@ OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID = open-match-public-images
 REGISTRY ?= gcr.io/$(GCP_PROJECT_ID)
 TAG = $(VERSION)
 ALTERNATE_TAG = dev
+VERSIONED_CANARY_TAG = $(BASE_VERSION)-canary
+DATED_CANARY_TAG = $(YEAR_MONTH_DAY)-canary
+CANARY_TAG = canary
 GKE_CLUSTER_NAME = om-cluster
 GCP_REGION = us-west1
 GCP_ZONE = us-west1-a
@@ -134,11 +138,6 @@ DASHBOARD_PORT = 9092
 
 # Open Match Cluster E2E Test Variables
 OPEN_MATCH_CI_LABEL = open-match-ci
-
-# Indicate that :canary images are the latest submitted code that's tested.
-ifeq ($(_GCB_POST_SUBMIT),1)
-	ALTERNATE_TAG = canary
-endif
 
 # This flag is set when running in Continuous Integration.
 ifdef ALLOW_BUILD_WITH_SUDO
@@ -221,45 +220,19 @@ push-mmf-example-images: push-mmf-go-soloduel-image
 push-evaluator-example-images: push-evaluator-go-simple-image
 push-tool-images: push-reaper-image
 
-push-backend-image: docker build-backend-image
-	docker push $(REGISTRY)/openmatch-backend:$(TAG)
-	docker push $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
-
-push-frontend-image: docker build-frontend-image
-	docker push $(REGISTRY)/openmatch-frontend:$(TAG)
-	docker push $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
-
-push-mmlogic-image: docker build-mmlogic-image
-	docker push $(REGISTRY)/openmatch-mmlogic:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
-
-push-minimatch-image: docker build-minimatch-image
-	docker push $(REGISTRY)/openmatch-minimatch:$(TAG)
-	docker push $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
-
-push-synchronizer-image: docker build-synchronizer-image
-	docker push $(REGISTRY)/openmatch-synchronizer:$(TAG)
-	docker push $(REGISTRY)/openmatch-synchronizer:$(ALTERNATE_TAG)
-
-push-swaggerui-image: docker build-swaggerui-image
-	docker push $(REGISTRY)/openmatch-swaggerui:$(TAG)
-	docker push $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG)
-
-push-demo-image: docker build-demo-image
-	docker push $(REGISTRY)/openmatch-demo:$(TAG)
-	docker push $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG)
-
-push-mmf-go-soloduel-image: docker build-mmf-go-soloduel-image
-	docker push $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG)
-
-push-evaluator-go-simple-image: docker build-evaluator-go-simple-image
-	docker push $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG)
-	docker push $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG)
-
-push-reaper-image: docker build-reaper-image
-	docker push $(REGISTRY)/openmatch-reaper:$(TAG)
-	docker push $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG)
+push-%-image: build-%-image docker
+	docker push $(REGISTRY)/openmatch-$*:$(TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG)
+ifeq ($(_GCB_POST_SUBMIT),1)
+	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(VERSIONED_CANARY_TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(VERSIONED_CANARY_TAG)
+ifeq ($(BASE_VERSION),0.0.0-dev)
+	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(DATED_CANARY_TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(DATED_CANARY_TAG)
+	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
+endif
+endif
 
 build-images: build-service-images build-example-images build-tool-images
 
