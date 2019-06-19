@@ -29,7 +29,6 @@ import (
 )
 
 func TestAssignTickets(t *testing.T) {
-	assert := assert.New(t)
 	tc := createBackendForTest(t)
 	defer tc.Close()
 
@@ -37,17 +36,20 @@ func TestAssignTickets(t *testing.T) {
 	be := pb.NewBackendClient(tc.MustGRPC())
 
 	ctResp, err := fe.CreateTicket(tc.Context(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	assert.Nil(err)
+	assert.Nil(t, err)
+	fakeAssignment := &pb.Assignment{Connection: "localhost"}
 
 	var tt = []struct {
-		description string
-		req         *pb.AssignTicketsRequest
-		resp        *pb.AssignTicketsResponse
-		code        codes.Code
+		description    string
+		req            *pb.AssignTicketsRequest
+		wantResp       *pb.AssignTicketsResponse
+		wantAssignment *pb.Assignment
+		wantCode       codes.Code
 	}{
 		{
 			"expects invalid argument code since request is empty",
 			&pb.AssignTicketsRequest{},
+			nil,
 			nil,
 			codes.InvalidArgument,
 		},
@@ -57,28 +59,37 @@ func TestAssignTickets(t *testing.T) {
 				TicketId: []string{"1"},
 			},
 			nil,
+			nil,
 			codes.InvalidArgument,
 		},
 		{
 			"expects not found code since ticket id does not exist in the statestore",
 			&pb.AssignTicketsRequest{
-				TicketId: []string{"2"},
-				Assignment: &pb.Assignment{
-					Connection: "localhost",
-				},
+				TicketId:   []string{"2"},
+				Assignment: fakeAssignment,
 			},
+			nil,
+			nil,
+			codes.NotFound,
+		},
+		{
+			"expects not found code since ticket id 'unknown id' does not exist in the statestore",
+			&pb.AssignTicketsRequest{
+				TicketId:   []string{ctResp.GetTicket().GetId(), "unknown id"},
+				Assignment: fakeAssignment,
+			},
+			nil,
 			nil,
 			codes.NotFound,
 		},
 		{
 			"expects ok code",
 			&pb.AssignTicketsRequest{
-				TicketId: []string{ctResp.Ticket.Id},
-				Assignment: &pb.Assignment{
-					Connection: "localhost",
-				},
+				TicketId:   []string{ctResp.GetTicket().GetId()},
+				Assignment: fakeAssignment,
 			},
 			&pb.AssignTicketsResponse{},
+			fakeAssignment,
 			codes.OK,
 		},
 	}
@@ -86,21 +97,23 @@ func TestAssignTickets(t *testing.T) {
 	for _, test := range tt {
 		t.Run(test.description, func(t *testing.T) {
 			resp, err := be.AssignTickets(tc.Context(), test.req)
-			assert.Equal(test.resp, resp)
-			if err != nil {
-				assert.Equal(test.code, status.Convert(err).Code())
-			} else {
-				gtResp, err := fe.GetTicket(tc.Context(), &pb.GetTicketRequest{TicketId: ctResp.Ticket.Id})
-				assert.Nil(err)
-				assert.Equal(test.req.Assignment.Connection, gtResp.Assignment.Connection)
-			}
+			assert.Equal(t, test.wantResp, resp)
+			assert.Equal(t, test.wantCode, status.Convert(err).Code())
+			gtResp, err := fe.GetTicket(tc.Context(), &pb.GetTicketRequest{TicketId: ctResp.GetTicket().GetId()})
+			assert.Nil(t, err)
+
+			// grpc will write something to the reserved fields of this protobuf object, so we have to do comparisions fields by fields.
+			assert.Equal(t, test.wantAssignment.GetConnection(), gtResp.GetAssignment().GetConnection())
+			assert.Equal(t, test.wantAssignment.GetProperties(), gtResp.GetAssignment().GetProperties())
+			assert.Equal(t, test.wantAssignment.GetError(), gtResp.GetAssignment().GetError())
+
 		})
 	}
 }
 
 // TODO: rewrite with table testing format and add more corner test cases
 // TestFrontendService tests creating, getting and deleting a ticket using Frontend service.
-func TestFrontendService(t *testing.T) {
+func TestTicketLifeCycle(t *testing.T) {
 	assert := assert.New(t)
 
 	tc := createStore(t)
@@ -140,8 +153,7 @@ func TestFrontendService(t *testing.T) {
 	validateDelete(t, fe, ticket.Id)
 }
 
-// TODO: move below test cases to e2e
-func TestQueryTicketsEmptyRequest(t *testing.T) {
+func TestQueryTickets(t *testing.T) {
 	assert := assert.New(t)
 	tc := createMmlogicForTest(t)
 	defer tc.Close()
