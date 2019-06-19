@@ -96,7 +96,7 @@ steps:
 
 - id: 'Test: Services'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'GOLANG_TEST_COUNT=25', 'test']
+  args: ['make', 'GOPROXY=off', 'GOLANG_TEST_COUNT=50', 'test']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -104,7 +104,7 @@ steps:
 
 - id: 'Build: Docker Images'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'push-images', '-j8']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'VERSION_SUFFIX=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'push-images', '-j8']
   waitFor: ['Build: Assets']
 
 - id: 'Build: Deployment Configs'
