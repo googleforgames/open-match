@@ -102,7 +102,7 @@ func TestAssignTickets(t *testing.T) {
 			gtResp, err := fe.GetTicket(tc.Context(), &pb.GetTicketRequest{TicketId: ctResp.GetTicket().GetId()})
 			assert.Nil(t, err)
 
-			// grpc will write something to the reserved fields of this protobuf object, so we have to do comparisions fields by fields.
+			// grpc will write something to the reserved fields of this protobuf object, so we have to do comparisons fields by fields.
 			assert.Equal(t, test.wantAssignment.GetConnection(), gtResp.GetAssignment().GetConnection())
 			assert.Equal(t, test.wantAssignment.GetProperties(), gtResp.GetAssignment().GetProperties())
 			assert.Equal(t, test.wantAssignment.GetError(), gtResp.GetAssignment().GetError())
@@ -111,8 +111,7 @@ func TestAssignTickets(t *testing.T) {
 	}
 }
 
-// TODO: rewrite with table testing format and add more corner test cases
-// TestFrontendService tests creating, getting and deleting a ticket using Frontend service.
+// TestTicketLifeCycle tests creating, getting and deleting a ticket using Frontend service.
 func TestTicketLifeCycle(t *testing.T) {
 	assert := assert.New(t)
 

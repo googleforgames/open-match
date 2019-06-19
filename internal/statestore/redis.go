@@ -487,7 +487,8 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			ticket, err := rb.GetTicket(ctx, id)
+			var ticket *pb.Ticket
+			ticket, err = rb.GetTicket(ctx, id)
 			if err != nil {
 				redisLogger.WithError(err).Errorf("failed to get ticket %s from redis when updating assignments", id)
 				return err
