@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/examples/functions/golang/pool"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
@@ -36,11 +37,9 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 		cfg.Set("api.mmlogic.grpcport", c.GetGRPCPort())
 		cfg.Set("api.mmlogic.httpport", c.GetHTTPPort())
 
-		if err := mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
+		assert.Nil(t, mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
 			Func: pool.MakeMatches,
-		}); err != nil {
-			t.Error(err)
-		}
+		}))
 	})
 	return tc
 }

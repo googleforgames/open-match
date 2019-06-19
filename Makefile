@@ -58,6 +58,7 @@ BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
 BUILD_DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 YEAR_MONTH = $(shell date -u +'%Y%m')
+YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
 
 PROTOC_VERSION = 3.8.0
@@ -87,6 +88,9 @@ OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID = open-match-public-images
 REGISTRY ?= gcr.io/$(GCP_PROJECT_ID)
 TAG = $(VERSION)
 ALTERNATE_TAG = dev
+VERSIONED_CANARY_TAG = $(BASE_VERSION)-canary
+DATED_CANARY_TAG = $(YEAR_MONTH_DAY)-canary
+CANARY_TAG = canary
 GKE_CLUSTER_NAME = om-cluster
 GCP_REGION = us-west1
 GCP_ZONE = us-west1-a
@@ -221,45 +225,20 @@ push-mmf-example-images: push-mmf-go-soloduel-image
 push-evaluator-example-images: push-evaluator-go-simple-image
 push-tool-images: push-reaper-image
 
-push-backend-image: docker build-backend-image
-	docker push $(REGISTRY)/openmatch-backend:$(TAG)
-	docker push $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
-
-push-frontend-image: docker build-frontend-image
-	docker push $(REGISTRY)/openmatch-frontend:$(TAG)
-	docker push $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
-
-push-mmlogic-image: docker build-mmlogic-image
-	docker push $(REGISTRY)/openmatch-mmlogic:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
-
-push-minimatch-image: docker build-minimatch-image
-	docker push $(REGISTRY)/openmatch-minimatch:$(TAG)
-	docker push $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
-
-push-synchronizer-image: docker build-synchronizer-image
-	docker push $(REGISTRY)/openmatch-synchronizer:$(TAG)
-	docker push $(REGISTRY)/openmatch-synchronizer:$(ALTERNATE_TAG)
-
-push-swaggerui-image: docker build-swaggerui-image
-	docker push $(REGISTRY)/openmatch-swaggerui:$(TAG)
-	docker push $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG)
-
-push-demo-image: docker build-demo-image
-	docker push $(REGISTRY)/openmatch-demo:$(TAG)
-	docker push $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG)
-
-push-mmf-go-soloduel-image: docker build-mmf-go-soloduel-image
-	docker push $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG)
-	docker push $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG)
-
-push-evaluator-go-simple-image: docker build-evaluator-go-simple-image
-	docker push $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG)
-	docker push $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG)
-
-push-reaper-image: docker build-reaper-image
-	docker push $(REGISTRY)/openmatch-reaper:$(TAG)
-	docker push $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG)
+push-%-image: build-%-image docker
+	docker push $(REGISTRY)/openmatch-$*:$(TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG)
+ifeq ($(_GCB_POST_SUBMIT),1)
+	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(VERSIONED_CANARY_TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(VERSIONED_CANARY_TAG)
+ifeq ($(BASE_VERSION),0.0.0-dev)
+	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(DATED_CANARY_TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(DATED_CANARY_TAG)
+	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
+	
+endif
+endif
 
 build-images: build-service-images build-example-images build-tool-images
 
@@ -656,33 +635,50 @@ gcp-apply-binauthz-policy: build/policies/binauthz.yaml
 	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
 
 all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
-golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go internal/pb/synchronizer.pb.go  internal/pb/evaluator.pb.go
 
-http-proxy-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go internal/pb/synchronizer.pb.gw.go  internal/pb/evaluator.pb.gw.go
+golang-protos: pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/messages.pb.go pkg/pb/mmlogic.pb.go pkg/pb/messages.pb.go pkg/pb/evaluator.pb.go internal/pb/synchronizer.pb.go
+
+http-proxy-golang-protos: pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/messages.pb.gw.go pkg/pb/mmlogic.pb.gw.go pkg/pb/evaluator.pb.gw.go internal/pb/synchronizer.pb.gw.go
 
 swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/synchronizer.swagger.json api/evaluator.swagger.json
 
-internal/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+pkg/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	mkdir -p $(REPOSITORY_ROOT)/pkg/pb
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
-internal/pb/%.pb.gw.go: api/%.proto internal/pb/%.pb.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+internal/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	mkdir -p $(REPOSITORY_ROOT)/internal/pb
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
+	$(SED_REPLACE) 's|pkg/pb|open-match.dev/open-match/pkg/pb|' $@
+
+pkg/pb/%.pb.gw.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	mkdir -p $(REPOSITORY_ROOT)/pkg/pb
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
    		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
-api/%.swagger.json: api/%.proto internal/pb/%.pb.gw.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
+internal/pb/%.pb.gw.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	mkdir -p $(REPOSITORY_ROOT)/internal/pb
 	$(PROTOC) $< \
-		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) --swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
+
+api/%.swagger.json: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
-internal/pb/backend.pb.go: internal/pb/messages.pb.go
-internal/pb/frontend.pb.go: internal/pb/messages.pb.go
-internal/pb/mmlogic.pb.go: internal/pb/messages.pb.go
-internal/pb/synchronizer.pb.go: internal/pb/messages.pb.go
-internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
-internal/pb/evaluator.pb.go: internal/pb/messages.pb.go
+pkg/pb/backend.pb.go: pkg/pb/messages.pb.go
+pkg/pb/frontend.pb.go: pkg/pb/messages.pb.go
+pkg/pb/matchfunction.pb.go: pkg/pb/messages.pb.go
+pkg/pb/mmlogic.pb.go: pkg/pb/messages.pb.go
+pkg/pb/evaluator.pb.go: pkg/pb/messages.pb.go
+internal/pb/synchronizer.pb.go: pkg/pb/messages.pb.go
 
 build:
 	$(GO) build ./...
@@ -703,7 +699,7 @@ vet:
 	$(GO) vet ./...
 
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
-	$(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
+	GO111MODULE=on $(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
 
 lint: fmt vet golangci lint-chart
 
@@ -719,33 +715,34 @@ example-binaries: example-mmf-binaries example-evaluator-binaries
 example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
 example-evaluator-binaries: examples/evaluator/golang/simple/simple$(EXE_EXTENSION)
 
-examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
 
-examples/evaluator/golang/simple/simple$(EXE_EXTENSION): internal/pb/evaluator.pb.go internal/pb/evaluator.pb.gw.go api/evaluator.swagger.json
+examples/evaluator/golang/simple/simple$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/evaluator/golang/simple; $(GO_BUILD_COMMAND)
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION) tools/reaper/reaper$(EXE_EXTENSION)
 
-cmd/backend/backend$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/backend.swagger.json
+cmd/backend/backend$(EXE_EXTENSION): pkg/pb/backend.pb.go pkg/pb/backend.pb.gw.go api/backend.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/backend; $(GO_BUILD_COMMAND)
 
-cmd/frontend/frontend$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/frontend.swagger.json
+cmd/frontend/frontend$(EXE_EXTENSION): pkg/pb/frontend.pb.go pkg/pb/frontend.pb.gw.go api/frontend.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/frontend; $(GO_BUILD_COMMAND)
 
-cmd/mmlogic/mmlogic$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+cmd/mmlogic/mmlogic$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/mmlogic; $(GO_BUILD_COMMAND)
 
 cmd/synchronizer/synchronizer$(EXE_EXTENSION): internal/pb/synchronizer.pb.go internal/pb/synchronizer.pb.gw.go api/synchronizer.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/synchronizer; $(GO_BUILD_COMMAND)
 
 # Note: This list of dependencies is long but only add file references here. If you add a .PHONY dependency make will always rebuild it.
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/backend.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/frontend.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/backend.pb.go pkg/pb/backend.pb.gw.go api/backend.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/frontend.pb.go pkg/pb/frontend.pb.gw.go api/frontend.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/messages.pb.go
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/synchronizer.pb.go internal/pb/synchronizer.pb.gw.go api/synchronizer.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd $(REPOSITORY_ROOT)/cmd/minimatch; $(GO_BUILD_COMMAND)
 
 cmd/swaggerui/swaggerui$(EXE_EXTENSION): third_party/swaggerui/
@@ -817,6 +814,7 @@ clean-release:
 	rm -rf $(BUILD_DIR)/release/
 
 clean-protos:
+	rm -rf $(REPOSITORY_ROOT)/pkg/pb/
 	rm -rf $(REPOSITORY_ROOT)/internal/pb/
 
 clean-binaries:
@@ -949,6 +947,7 @@ third_party/swaggerui/:
 	rm -rf $(TOOLCHAIN_DIR)/swaggerui-temp
 
 sync-deps:
+	$(GO) clean -modcache
 	$(GO) mod download
 
 sleep-10:

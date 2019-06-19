@@ -17,31 +17,29 @@ module open-match.dev/open-match
 go 1.12
 
 require (
-	cloud.google.com/go v0.37.4
+	cloud.google.com/go v0.40.0
 	contrib.go.opencensus.io/exporter/jaeger v0.1.0
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
-	contrib.go.opencensus.io/exporter/stackdriver v0.11.0
+	contrib.go.opencensus.io/exporter/stackdriver v0.12.2
 	contrib.go.opencensus.io/exporter/zipkin v0.1.1
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
-	github.com/alicebob/gopher-json v0.0.0-20180125190556-5a6b3ba71ee6 // indirect
-	github.com/alicebob/miniredis v2.5.0+incompatible
-	github.com/aws/aws-sdk-go v1.19.25 // indirect
+	github.com/alicebob/miniredis/v2 v2.8.1-0.20190618082157-e29950035715
 	github.com/cenkalti/backoff v2.1.1+incompatible
 	github.com/fsnotify/fsnotify v1.4.7
+	github.com/go-logfmt/logfmt v0.4.0 // indirect
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.1
 	github.com/gomodule/redigo v1.7.1-0.20190322064113-39e2c31b7ca3
-	github.com/google/go-cmp v0.2.0
-	github.com/grpc-ecosystem/grpc-gateway v1.8.5
+	github.com/google/go-cmp v0.3.0
+	github.com/grpc-ecosystem/grpc-gateway v1.9.2
 	github.com/openzipkin/zipkin-go v0.1.6
-	github.com/pkg/errors v0.8.0
-	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
+	github.com/pkg/errors v0.8.1
+	github.com/prometheus/client_golang v1.0.0
 	github.com/rs/xid v1.2.1
-	github.com/sirupsen/logrus v1.4.1
-	github.com/spf13/viper v1.3.2
+	github.com/sirupsen/logrus v1.4.2
+	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.3.0
-	github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036 // indirect
-	go.opencensus.io v0.21.0
-	google.golang.org/genproto v0.0.0-20190404172233-64821d5d2107
-	google.golang.org/grpc v1.20.0
+	go.opencensus.io v0.22.0
+	google.golang.org/genproto v0.0.0-20190611190212-a7e196e89fd3
+	google.golang.org/grpc v1.21.1
 )

@@ -24,8 +24,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 // frontendService implements the Frontend service that is used to create
@@ -47,7 +47,7 @@ var (
 // Indexing a Ticket adds the it to the pool of Tickets considered for matchmaking.
 func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
 	// Perform input validation.
-	if req.Ticket == nil {
+	if req.GetTicket() == nil {
 		logger.Error("invalid argument - ticket cannot be nil")
 		return nil, status.Errorf(codes.InvalidArgument, "ticket cannot be nil")
 	}

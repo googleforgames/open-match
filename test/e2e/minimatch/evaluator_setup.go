@@ -11,16 +11,5 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package main
 
-import (
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
-	"open-match.dev/open-match/pkg/pb"
-)
-
-// Evaluate is where your custom evaluation logic lives.
-func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
-}
+package minimatch

@@ -1,6 +1,6 @@
 package testing
 
-import "open-match.dev/open-match/internal/pb"
+import "open-match.dev/open-match/pkg/pb"
 
 // NewPbFilter is a wrapper to create protobuf filter objects
 func NewPbFilter(attributeName string, min, max float64) *pb.Filter {

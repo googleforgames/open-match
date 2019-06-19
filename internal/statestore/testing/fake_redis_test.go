@@ -20,8 +20,8 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 func TestFakeStatestore(t *testing.T) {

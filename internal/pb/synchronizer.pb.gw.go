@@ -136,9 +136,9 @@ func RegisterSynchronizerHandlerClient(ctx context.Context, mux *runtime.ServeMu
 }
 
 var (
-	pattern_Synchronizer_GetContext_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "synchronizer", "context"}, ""))
+	pattern_Synchronizer_GetContext_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "synchronizer", "context"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_Synchronizer_EvaluateInContext_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "synchronizer", "matches"}, "evaluate"))
+	pattern_Synchronizer_EvaluateInContext_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "synchronizer", "matches"}, "evaluate", runtime.AssumeColonVerbOpt(true)))
 )
 
 var (

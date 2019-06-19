@@ -26,13 +26,12 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/pb"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 func TestDoFetchMatchesInChannel(t *testing.T) {
@@ -51,7 +50,7 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 	tests := []struct {
 		description string
 		req         *pb.FetchMatchesRequest
-		shouldErr   error
+		wantErr     error
 		cfg         config.View
 	}{
 		{
@@ -90,9 +89,7 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			resultChan := make(chan mmfResult, len(test.req.GetProfile()))
 			err := doFetchMatchesInChannel(context.Background(), test.cfg, &sync.Map{}, test.req, resultChan)
-			if !cmp.Equal(test.shouldErr, err) {
-				t.Errorf("Expected an error: %s, but was %s\n", test.shouldErr, err)
-			}
+			assert.Equal(t, test.wantErr, err)
 		})
 	}
 }
@@ -159,22 +156,18 @@ func TestDoFetchMatchesSendResponse(t *testing.T) {
 
 			err := doFetchMatchesSendResponse(ctx, fakeProposals, test.senderGenerator(cancel, &test.count))
 
-			if test.count != test.wantCount {
-				t.Errorf("expect count: %d, but was %d", test.wantCount, test.count)
-			}
-			if test.wantErr != (err != nil) {
-				t.Errorf("expect shouldErr %v, but was %s", test.wantErr, err)
-			}
+			assert.Equal(t, test.wantCount, test.count)
+			assert.Equal(t, test.wantErr, err != nil)
 		})
 	}
 }
 
 func TestDoFetchMatchesFilterChannel(t *testing.T) {
 	tests := []struct {
-		description   string
-		preAction     func(chan mmfResult, context.CancelFunc)
-		shouldMatches []*pb.Match
-		shouldErr     bool
+		description string
+		preAction   func(chan mmfResult, context.CancelFunc)
+		wantMatches []*pb.Match
+		wantErr     bool
 	}{
 		{
 			description: "test the filter can exit the for loop when context was canceled",
@@ -184,8 +177,8 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 					cancel()
 				}()
 			},
-			shouldMatches: nil,
-			shouldErr:     true,
+			wantMatches: nil,
+			wantErr:     true,
 		},
 		{
 			description: "test the filter can return an error when one of the mmfResult contains an error",
@@ -193,8 +186,8 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1"}}, err: nil}
 				mmfChan <- mmfResult{matches: nil, err: errors.New("some error")}
 			},
-			shouldMatches: nil,
-			shouldErr:     true,
+			wantMatches: nil,
+			wantErr:     true,
 		},
 		{
 			description: "test the filter can return proposals when all mmfResults are valid",
@@ -202,8 +195,8 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1"}}, err: nil}
 				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "2"}}, err: nil}
 			},
-			shouldMatches: []*pb.Match{{MatchId: "1"}, {MatchId: "2"}},
-			shouldErr:     false,
+			wantMatches: []*pb.Match{{MatchId: "1"}, {MatchId: "2"}},
+			wantErr:     false,
 		},
 	}
 
@@ -218,12 +211,9 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 			matches, err := doFetchMatchesFilterChannel(ctx, resultChan, 2)
 
 			for _, match := range matches {
-				assert.Contains(t, test.shouldMatches, match)
+				assert.Contains(t, test.wantMatches, match)
 			}
-			assert.Equal(t, test.shouldErr, err != nil)
-			if test.shouldErr != (err != nil) {
-				t.Errorf("expect error: %v, but was %s", test.shouldErr, err.Error())
-			}
+			assert.Equal(t, test.wantErr, err != nil)
 		})
 	}
 }

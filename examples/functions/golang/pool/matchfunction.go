@@ -21,8 +21,8 @@ package pool
 
 import (
 	"github.com/rs/xid"
-	"open-match.dev/open-match/internal/pb"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 var (
@@ -39,13 +39,13 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) []*pb.Match {
 	for pool, tickets := range params.PoolNameToTickets {
 		roster := &pb.Roster{Name: pool}
 		for _, ticket := range tickets {
-			roster.TicketId = append(roster.TicketId, ticket.Id)
+			roster.TicketId = append(roster.GetTicketId(), ticket.GetId())
 		}
 
 		result = append(result, &pb.Match{
 			MatchId:       xid.New().String(),
 			MatchProfile:  params.ProfileName,
-			MatchFunction: "pool-based-match",
+			MatchFunction: matchName,
 			Ticket:        tickets,
 			Roster:        []*pb.Roster{roster},
 		})

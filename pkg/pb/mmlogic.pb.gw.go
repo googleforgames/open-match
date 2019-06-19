@@ -115,7 +115,7 @@ func RegisterMmLogicHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 }
 
 var (
-	pattern_MmLogic_QueryTickets_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "mmlogic", "tickets"}, "query"))
+	pattern_MmLogic_QueryTickets_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "mmlogic", "tickets"}, "query", runtime.AssumeColonVerbOpt(true)))
 )
 
 var (

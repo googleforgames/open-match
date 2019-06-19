@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"time"
 
-	"open-match.dev/open-match/internal/pb"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 var (
@@ -40,7 +40,7 @@ func MakeMatches(p *mmfHarness.MatchFunctionParams) []*pb.Match {
 
 	for _, pool := range p.PoolNameToTickets {
 		for _, ticket := range pool {
-			tickets[ticket.Id] = ticket
+			tickets[ticket.GetId()] = ticket
 		}
 	}
 

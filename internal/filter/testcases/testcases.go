@@ -19,7 +19,7 @@ import (
 	"math"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 // TestCase defines a single filtering test case to run.

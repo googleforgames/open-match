@@ -26,9 +26,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 type propertyManifest struct {
@@ -60,13 +60,13 @@ func TestDoQueryTickets(t *testing.T) {
 	testTickets := generateTickets(propertyManifest{attribute1, 0, 20, 5}, propertyManifest{attribute2, 0, 20, 5})
 
 	tests := []struct {
-		description   string
-		sender        func(tickets []*pb.Ticket) error
-		filters       []*pb.Filter
-		pageSize      int
-		action        func(*testing.T, statestore.Service)
-		shouldErr     error
-		shouldTickets []*pb.Ticket
+		description string
+		sender      func(tickets []*pb.Ticket) error
+		filters     []*pb.Filter
+		pageSize    int
+		action      func(*testing.T, statestore.Service)
+		wantErr     error
+		wantTickets []*pb.Ticket
 	}{
 		{
 			"expect empty response from an empty store",
@@ -134,9 +134,9 @@ func TestDoQueryTickets(t *testing.T) {
 			defer closer()
 
 			test.action(t, store)
-			assert.Equal(t, test.shouldErr, doQueryTickets(context.Background(), test.filters, test.pageSize, test.sender, store))
-			for _, shouldTicket := range test.shouldTickets {
-				assert.Contains(t, actualTickets, shouldTicket)
+			assert.Equal(t, test.wantErr, doQueryTickets(context.Background(), test.filters, test.pageSize, test.sender, store))
+			for _, wantTicket := range test.wantTickets {
+				assert.Contains(t, actualTickets, wantTicket)
 			}
 		})
 	}

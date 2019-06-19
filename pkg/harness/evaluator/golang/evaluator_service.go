@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/pkg/pb"
 
 	"github.com/sirupsen/logrus"
 )
@@ -59,13 +59,13 @@ type EvaluatorParams struct {
 // api/evaluator.proto.
 func (s *evaluatorService) Evaluate(ctx context.Context, req *pb.EvaluateRequest) (*pb.EvaluateResponse, error) {
 	evaluatorLogger.WithFields(logrus.Fields{
-		"proposals": req.Match,
+		"proposals": req.GetMatch(),
 	}).Debug("matches sent to the evaluator")
 
 	// Run the customized evaluator!
 	results, err := s.evaluate(&EvaluatorParams{
 		Logger:  evaluatorLogger,
-		Matches: req.Match,
+		Matches: req.GetMatch(),
 	})
 	if err != nil {
 		return nil, status.Error(codes.Aborted, err.Error())

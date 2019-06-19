@@ -19,7 +19,7 @@ package filter
 
 import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 // Filter returns all of the passed tickets which are included by all the passed filters.
