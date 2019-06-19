@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 package api;
-option go_package = "internal/pb";
+option go_package = "pkg/pb";
 
 import "google/protobuf/struct.proto";
 

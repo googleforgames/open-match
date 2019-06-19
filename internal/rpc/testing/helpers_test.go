@@ -18,8 +18,8 @@ import (
 	"strings"
 	"testing"
 
-	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/pkg/pb"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"

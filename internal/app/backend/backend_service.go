@@ -27,9 +27,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 // The service implementing the Backend API that is called to generate matches

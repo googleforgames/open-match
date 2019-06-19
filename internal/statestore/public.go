@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 // Service is a generic interface for talking to a storage backend.
