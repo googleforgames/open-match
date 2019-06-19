@@ -47,7 +47,7 @@ var (
 // Indexing a Ticket adds the it to the pool of Tickets considered for matchmaking.
 func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
 	// Perform input validation.
-	if req.Ticket == nil {
+	if req.GetTicket() == nil {
 		logger.Error("invalid argument - ticket cannot be nil")
 		return nil, status.Errorf(codes.InvalidArgument, "ticket cannot be nil")
 	}

@@ -40,7 +40,7 @@ func MakeMatches(p *mmfHarness.MatchFunctionParams) []*pb.Match {
 
 	for _, pool := range p.PoolNameToTickets {
 		for _, ticket := range pool {
-			tickets[ticket.Id] = ticket
+			tickets[ticket.GetId()] = ticket
 		}
 	}
 
