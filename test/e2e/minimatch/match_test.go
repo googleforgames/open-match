@@ -28,7 +28,7 @@ import (
 
 func TestFetchMatches(t *testing.T) {
 	assert := assert.New(t)
-	tc := createBackendForTest(t)
+	tc := createMinimatchForTest(t)
 	defer tc.Close()
 
 	be := pb.NewBackendClient(tc.MustGRPC())

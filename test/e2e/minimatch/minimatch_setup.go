@@ -19,10 +19,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"open-match.dev/open-match/internal/app/backend"
-	"open-match.dev/open-match/internal/app/frontend"
 	"open-match.dev/open-match/internal/app/minimatch"
-	"open-match.dev/open-match/internal/app/mmlogic"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
@@ -49,49 +46,6 @@ func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
 		assert.Nil(t, minimatch.BindService(p, cfg))
 	})
 	// TODO: This is very ugly. Need a better story around closing resources.
-	tc.AddCloseFunc(closer)
-	return tc
-}
-
-func createMmlogicForTest(t *testing.T) *rpcTesting.TestContext {
-	var closer func()
-	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
-		cfg := viper.New()
-		closer = statestoreTesting.New(t, cfg)
-
-		cfg.Set("storage.page.size", 10)
-		assert.Nil(t, mmlogic.BindService(p, cfg))
-	})
-	// TODO: This is very ugly. Need a better story around closing resources.
-	tc.AddCloseFunc(closer)
-	return tc
-}
-
-func createBackendForTest(t *testing.T) *rpcTesting.TestContext {
-	var closer func()
-	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
-		cfg := viper.New()
-		closer = statestoreTesting.New(t, cfg)
-
-		cfg.Set("storage.page.size", 10)
-		assert.Nil(t, backend.BindService(p, cfg))
-		assert.Nil(t, frontend.BindService(p, cfg))
-		assert.Nil(t, mmlogic.BindService(p, cfg))
-	})
-	// TODO: This is very ugly. Need a better story around closing resources.
-	tc.AddCloseFunc(closer)
-	return tc
-}
-
-func createStore(t *testing.T) *rpcTesting.TestContext {
-	var closer func()
-	tc := rpcTesting.MustServe(t, func(p *rpc.ServerParams) {
-		cfg := viper.New()
-		closer = statestoreTesting.New(t, cfg)
-
-		cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
-		assert.Nil(t, frontend.BindService(p, cfg))
-	})
 	tc.AddCloseFunc(closer)
 	return tc
 }
