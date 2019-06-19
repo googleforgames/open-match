@@ -32,14 +32,16 @@ import (
 )
 
 func TestDoCreateTickets(t *testing.T) {
-	store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+	cfg := viper.New()
+	cfg.Set("playerIndices", []string{"test-property"})
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()
 
 	normalCtx := context.Background()
 	cancelledCtx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	testTicket := &pb.Ticket{
+	numTicket := &pb.Ticket{
 		Properties: &structpb.Struct{
 			Fields: map[string]*structpb.Value{
 				"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
@@ -47,33 +49,50 @@ func TestDoCreateTickets(t *testing.T) {
 		},
 	}
 
+	stringTicket := &pb.Ticket{
+		Properties: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"test-property": {Kind: &structpb.Value_StringValue{StringValue: "string"}},
+			},
+		},
+	}
+
 	tests := []struct {
 		description string
+		ticket      *pb.Ticket
 		ctx         context.Context
 		wantErr     bool
 	}{
 		{
+			description: "expect precondition error since open-match does not support properties other than number",
+			ctx:         normalCtx,
+			ticket:      stringTicket,
+			wantErr:     true,
+		},
+		{
 			description: "expect error with canceled context",
 			ctx:         cancelledCtx,
+			ticket:      numTicket,
 			wantErr:     true,
 		},
 		{
 			description: "expect normal return with default context",
 			ctx:         normalCtx,
+			ticket:      numTicket,
 			wantErr:     false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			res, err := doCreateTicket(test.ctx, &pb.CreateTicketRequest{Ticket: testTicket}, store)
+			res, err := doCreateTicket(test.ctx, &pb.CreateTicketRequest{Ticket: test.ticket}, store)
 
 			assert.Equal(t, test.wantErr, err != nil)
 			if err == nil {
 				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetTicket().GetId())
 				assert.True(t, matched)
 				assert.Nil(t, err)
-				assert.Equal(t, testTicket.GetProperties().GetFields()["test-property"].GetNumberValue(), res.GetTicket().GetProperties().GetFields()["test-property"].GetNumberValue())
+				assert.Equal(t, test.ticket.GetProperties().GetFields()["test-property"].GetNumberValue(), res.GetTicket().GetProperties().GetFields()["test-property"].GetNumberValue())
 			}
 		})
 	}
