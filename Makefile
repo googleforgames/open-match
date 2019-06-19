@@ -656,33 +656,50 @@ gcp-apply-binauthz-policy: build/policies/binauthz.yaml
 	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
 
 all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
-golang-protos: internal/pb/backend.pb.go internal/pb/frontend.pb.go internal/pb/matchfunction.pb.go internal/pb/messages.pb.go internal/pb/mmlogic.pb.go internal/pb/synchronizer.pb.go  internal/pb/evaluator.pb.go
 
-http-proxy-golang-protos: internal/pb/backend.pb.gw.go internal/pb/frontend.pb.gw.go internal/pb/matchfunction.pb.gw.go internal/pb/messages.pb.gw.go internal/pb/mmlogic.pb.gw.go internal/pb/synchronizer.pb.gw.go  internal/pb/evaluator.pb.gw.go
+golang-protos: pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/messages.pb.go pkg/pb/mmlogic.pb.go pkg/pb/messages.pb.go pkg/pb/evaluator.pb.go internal/pb/synchronizer.pb.go
+
+http-proxy-golang-protos: pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/messages.pb.gw.go pkg/pb/mmlogic.pb.gw.go pkg/pb/evaluator.pb.gw.go internal/pb/synchronizer.pb.gw.go
 
 swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/synchronizer.swagger.json api/evaluator.swagger.json
 
-internal/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+pkg/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	mkdir -p $(REPOSITORY_ROOT)/pkg/pb
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
-internal/pb/%.pb.gw.go: api/%.proto internal/pb/%.pb.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+internal/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	mkdir -p $(REPOSITORY_ROOT)/internal/pb
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
+	$(SED_REPLACE) 's|pkg/pb|open-match.dev/open-match/pkg/pb|' $@
+
+pkg/pb/%.pb.gw.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	mkdir -p $(REPOSITORY_ROOT)/pkg/pb
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
    		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
-api/%.swagger.json: api/%.proto internal/pb/%.pb.gw.go build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
+internal/pb/%.pb.gw.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	mkdir -p $(REPOSITORY_ROOT)/internal/pb
 	$(PROTOC) $< \
-		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) --swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
+
+api/%.swagger.json: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
+	$(PROTOC) $< \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
-internal/pb/backend.pb.go: internal/pb/messages.pb.go
-internal/pb/frontend.pb.go: internal/pb/messages.pb.go
-internal/pb/mmlogic.pb.go: internal/pb/messages.pb.go
-internal/pb/synchronizer.pb.go: internal/pb/messages.pb.go
-internal/pb/matchfunction.pb.go: internal/pb/messages.pb.go
-internal/pb/evaluator.pb.go: internal/pb/messages.pb.go
+pkg/pb/backend.pb.go: pkg/pb/messages.pb.go
+pkg/pb/frontend.pb.go: pkg/pb/messages.pb.go
+pkg/pb/matchfunction.pb.go: pkg/pb/messages.pb.go
+pkg/pb/mmlogic.pb.go: pkg/pb/messages.pb.go
+pkg/pb/evaluator.pb.go: pkg/pb/messages.pb.go
+internal/pb/synchronizer.pb.go: pkg/pb/messages.pb.go
 
 build:
 	$(GO) build ./...
@@ -719,33 +736,34 @@ example-binaries: example-mmf-binaries example-evaluator-binaries
 example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
 example-evaluator-binaries: examples/evaluator/golang/simple/simple$(EXE_EXTENSION)
 
-examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
 
-examples/evaluator/golang/simple/simple$(EXE_EXTENSION): internal/pb/evaluator.pb.go internal/pb/evaluator.pb.gw.go api/evaluator.swagger.json
+examples/evaluator/golang/simple/simple$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/evaluator/golang/simple; $(GO_BUILD_COMMAND)
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION) tools/reaper/reaper$(EXE_EXTENSION)
 
-cmd/backend/backend$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/backend.swagger.json
+cmd/backend/backend$(EXE_EXTENSION): pkg/pb/backend.pb.go pkg/pb/backend.pb.gw.go api/backend.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/backend; $(GO_BUILD_COMMAND)
 
-cmd/frontend/frontend$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/frontend.swagger.json
+cmd/frontend/frontend$(EXE_EXTENSION): pkg/pb/frontend.pb.go pkg/pb/frontend.pb.gw.go api/frontend.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/frontend; $(GO_BUILD_COMMAND)
 
-cmd/mmlogic/mmlogic$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+cmd/mmlogic/mmlogic$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/mmlogic; $(GO_BUILD_COMMAND)
 
 cmd/synchronizer/synchronizer$(EXE_EXTENSION): internal/pb/synchronizer.pb.go internal/pb/synchronizer.pb.gw.go api/synchronizer.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/synchronizer; $(GO_BUILD_COMMAND)
 
 # Note: This list of dependencies is long but only add file references here. If you add a .PHONY dependency make will always rebuild it.
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/backend.pb.go internal/pb/backend.pb.gw.go api/backend.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/frontend.pb.go internal/pb/frontend.pb.gw.go api/frontend.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/mmlogic.pb.go internal/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/backend.pb.go pkg/pb/backend.pb.gw.go api/backend.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/frontend.pb.go pkg/pb/frontend.pb.gw.go api/frontend.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/messages.pb.go
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/synchronizer.pb.go internal/pb/synchronizer.pb.gw.go api/synchronizer.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/matchfunction.pb.go internal/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/pb/messages.pb.go
 	cd $(REPOSITORY_ROOT)/cmd/minimatch; $(GO_BUILD_COMMAND)
 
 cmd/swaggerui/swaggerui$(EXE_EXTENSION): third_party/swaggerui/
@@ -817,6 +835,7 @@ clean-release:
 	rm -rf $(BUILD_DIR)/release/
 
 clean-protos:
+	rm -rf $(REPOSITORY_ROOT)/pkg/pb/
 	rm -rf $(REPOSITORY_ROOT)/internal/pb/
 
 clean-binaries:

@@ -19,10 +19,10 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"open-match.dev/open-match/examples/functions/golang/pool"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
-	"open-match.dev/open-match/examples/functions/golang/pool"
 )
 
 // Create a mmf service using a started test server.

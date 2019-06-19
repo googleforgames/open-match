@@ -26,8 +26,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/set"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 var (
@@ -143,17 +143,17 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 	value, err := proto.Marshal(ticket)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
-			"key":   ticket.Id,
+			"key":   ticket.GetId(),
 			"error": err.Error(),
 		}).Error("failed to marshal the ticket proto")
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	err = redisConn.Send("SET", ticket.Id, value)
+	err = redisConn.Send("SET", ticket.GetId(), value)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
 			"cmd":   "SET",
-			"key":   ticket.Id,
+			"key":   ticket.GetId(),
 			"error": err.Error(),
 		}).Error("failed to set the value for ticket")
 		return status.Errorf(codes.Internal, "%v", err)
@@ -162,11 +162,11 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 	if rb.cfg.IsSet("redis.expiration") {
 		redisTTL := rb.cfg.GetInt("redis.expiration")
 		if redisTTL > 0 {
-			err = redisConn.Send("EXPIRE", ticket.Id, redisTTL)
+			err = redisConn.Send("EXPIRE", ticket.GetId(), redisTTL)
 			if err != nil {
 				redisLogger.WithFields(logrus.Fields{
 					"cmd":   "EXPIRE",
-					"key":   ticket.Id,
+					"key":   ticket.GetId(),
 					"ttl":   redisTTL,
 					"error": err.Error(),
 				}).Error("failed to set ticket expiration in state storage")
@@ -179,7 +179,7 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
 			"cmd":   "EXEC",
-			"key":   ticket.Id,
+			"key":   ticket.GetId(),
 			"error": err.Error(),
 		}).Error("failed to create ticket in state storage")
 		return status.Errorf(codes.Internal, "%v", err)
@@ -300,19 +300,20 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 		case *structpb.Value_NumberValue:
 			d = v.GetNumberValue()
 		default:
+			// TODO: investigate if we need to throw out an exception if attribute is not a value
 			redisLogger.WithFields(logrus.Fields{
 				"attribute": attribute,
 			}).Warning("Attribute not a number.")
 		}
 
 		// Index the attribute by value.
-		err = redisConn.Send("ZADD", attribute, d, ticket.Id)
+		err = redisConn.Send("ZADD", attribute, d, ticket.GetId())
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
 				"cmd":       "ZADD",
 				"attribute": attribute,
 				"value":     d,
-				"ticket":    ticket.Id,
+				"ticket":    ticket.GetId(),
 				"error":     err.Error(),
 			}).Error("failed to index ticket attribute")
 			return status.Errorf(codes.Internal, "%v", err)
@@ -324,7 +325,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
 			"cmd":   "EXEC",
-			"id":    ticket.Id,
+			"id":    ticket.GetId(),
 			"error": err.Error(),
 		}).Error("failed to index the ticket")
 		return status.Errorf(codes.Internal, "%v", err)
@@ -531,7 +532,7 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 			return backoff.Permanent(err)
 		}
 
-		err = callback(ticket.Assignment)
+		err = callback(ticket.GetAssignment())
 		if err != nil {
 			return backoff.Permanent(err)
 		}

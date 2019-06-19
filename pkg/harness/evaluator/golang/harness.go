@@ -18,8 +18,8 @@ package golang
 import (
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/pkg/pb"
 
 	"github.com/sirupsen/logrus"
 )

@@ -23,8 +23,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/pkg/pb"
 
 	"github.com/sirupsen/logrus"
 )
@@ -84,9 +84,9 @@ func (s *matchFunctionService) Run(ctx context.Context, req *pb.RunRequest) (*pb
 	// The matchfunction takes in some half-filled/empty rosters, a property bag, and a map[poolNames]tickets to generate match proposals
 	mfView := &MatchFunctionParams{
 		Logger:            matchfunctionLogger,
-		ProfileName:       req.Profile.Name,
-		Properties:        req.Profile.Properties,
-		Rosters:           req.Profile.Roster,
+		ProfileName:       req.GetProfile().GetName(),
+		Properties:        req.GetProfile().GetProperties(),
+		Rosters:           req.GetProfile().GetRoster(),
 		PoolNameToTickets: poolNameToTickets,
 	}
 	// Run the customize match function!
@@ -111,7 +111,7 @@ func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunct
 // getMatchManifest fetches all the data needed from the mmlogic API.
 func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.RunRequest) (map[string][]*pb.Ticket, error) {
 	poolNameToTickets := make(map[string][]*pb.Ticket)
-	filterPools := req.Profile.Pool
+	filterPools := req.GetProfile().GetPool()
 
 	for _, pool := range filterPools {
 		qtClient, err := s.mmlogicClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
@@ -136,7 +136,7 @@ func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.Run
 			}
 			poolTickets = append(poolTickets, qtResponse.Ticket...)
 		}
-		poolNameToTickets[pool.Name] = poolTickets
+		poolNameToTickets[pool.GetName()] = poolTickets
 	}
 
 	return poolNameToTickets, nil

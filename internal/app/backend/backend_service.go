@@ -27,9 +27,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 // The service implementing the Backend API that is called to generate matches
@@ -74,7 +74,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	}
 
 	ctx := stream.Context()
-	resultChan := make(chan mmfResult, len(req.Profile))
+	resultChan := make(chan mmfResult, len(req.GetProfile()))
 
 	err := doFetchMatchesInChannel(ctx, s.cfg, s.mmfClients, req, resultChan)
 	if err != nil {
@@ -180,11 +180,11 @@ func doFetchMatchesSendResponse(ctx context.Context, proposals []*pb.Match, send
 }
 
 func getHTTPClient(cfg config.View, mmfClients *sync.Map, funcConfig *pb.FunctionConfig_Rest) (*http.Client, string, error) {
-	addr := fmt.Sprintf("%s:%d", funcConfig.Rest.Host, funcConfig.Rest.Port)
+	addr := fmt.Sprintf("%s:%d", funcConfig.Rest.GetHost(), funcConfig.Rest.GetPort())
 	val, exists := mmfClients.Load(addr)
 	data, ok := val.(httpData)
 	if !ok || !exists {
-		client, baseURL, err := rpc.HTTPClientFromEndpoint(cfg, funcConfig.Rest.Host, int(funcConfig.Rest.Port))
+		client, baseURL, err := rpc.HTTPClientFromEndpoint(cfg, funcConfig.Rest.GetHost(), int(funcConfig.Rest.GetPort()))
 		if err != nil {
 			return nil, "", err
 		}
@@ -198,11 +198,11 @@ func getHTTPClient(cfg config.View, mmfClients *sync.Map, funcConfig *pb.Functio
 }
 
 func getGRPCClient(cfg config.View, mmfClients *sync.Map, funcConfig *pb.FunctionConfig_Grpc) (pb.MatchFunctionClient, error) {
-	addr := fmt.Sprintf("%s:%d", funcConfig.Grpc.Host, funcConfig.Grpc.Port)
+	addr := fmt.Sprintf("%s:%d", funcConfig.Grpc.GetHost(), funcConfig.Grpc.GetPort())
 	val, exists := mmfClients.Load(addr)
 	data, ok := val.(grpcData)
 	if !ok || !exists {
-		conn, err := rpc.GRPCClientFromEndpoint(cfg, funcConfig.Grpc.Host, int(funcConfig.Grpc.Port))
+		conn, err := rpc.GRPCClientFromEndpoint(cfg, funcConfig.Grpc.GetHost(), int(funcConfig.Grpc.GetPort()))
 		if err != nil {
 			return nil, err
 		}
@@ -219,17 +219,17 @@ func getGRPCClient(cfg config.View, mmfClients *sync.Map, funcConfig *pb.Functio
 func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *http.Client, baseURL string) ([]*pb.Match, error) {
 	jsonProfile, err := json.Marshal(profile)
 	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal profile pb to string for profile %s: %s", profile.Name, err.Error())
+		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal profile pb to string for profile %s: %s", profile.GetName(), err.Error())
 	}
 
 	reqBody, err := json.Marshal(map[string]json.RawMessage{"profile": jsonProfile})
 	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal request body for profile %s: %s", profile.Name, err.Error())
+		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal request body for profile %s: %s", profile.GetName(), err.Error())
 	}
 
 	req, err := http.NewRequest("POST", baseURL+"/v1/matchfunction:run", bytes.NewBuffer(reqBody))
 	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to create mmf http request for profile %s: %s", profile.Name, err.Error())
+		return nil, status.Errorf(codes.FailedPrecondition, "failed to create mmf http request for profile %s: %s", profile.GetName(), err.Error())
 	}
 
 	resp, err := client.Do(req.WithContext(ctx))

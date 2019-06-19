@@ -19,7 +19,7 @@ import (
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"open-match.dev/open-match/internal/filter/testcases"
-	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 // Only test Filter and InFilters for general use cases, not specific scenearios
