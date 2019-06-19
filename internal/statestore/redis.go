@@ -290,6 +290,8 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 		case *structpb.Value_NumberValue:
 			attributesToValue[attribute] = v.GetNumberValue()
 		default:
+			// TODO: we currently dont support anything but numeric values,
+			// yet we are investigating whether it is possible to have generic typed value supports in the future.
 			redisLogger.WithFields(logrus.Fields{
 				"attribute": attribute,
 			}).Warning("Attribute not a number.")

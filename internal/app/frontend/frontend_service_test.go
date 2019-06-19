@@ -34,60 +34,61 @@ import (
 func TestDoCreateTickets(t *testing.T) {
 	cfg := viper.New()
 	cfg.Set("playerIndices", []string{"test-property"})
-	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
-	defer closer()
-
-	normalCtx := context.Background()
-	cancelledCtx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	numTicket := &pb.Ticket{
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-			},
-		},
-	}
-
-	stringTicket := &pb.Ticket{
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				"test-property": {Kind: &structpb.Value_StringValue{StringValue: "string"}},
-			},
-		},
-	}
 
 	tests := []struct {
 		description string
+		preAction   func(cancel context.CancelFunc)
 		ticket      *pb.Ticket
-		ctx         context.Context
-		wantErr     bool
+		wantCode    codes.Code
 	}{
 		{
 			description: "expect precondition error since open-match does not support properties other than number",
-			ctx:         normalCtx,
-			ticket:      stringTicket,
-			wantErr:     true,
+			preAction:   func(_ context.CancelFunc) {},
+			ticket: &pb.Ticket{
+				Properties: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"test-property": {Kind: &structpb.Value_StringValue{StringValue: "string"}},
+					},
+				},
+			},
+			wantCode: codes.FailedPrecondition,
 		},
 		{
 			description: "expect error with canceled context",
-			ctx:         cancelledCtx,
-			ticket:      numTicket,
-			wantErr:     true,
+			preAction:   func(cancel context.CancelFunc) { cancel() },
+			ticket: &pb.Ticket{
+				Properties: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+					},
+				},
+			},
+			wantCode: codes.Unavailable,
 		},
 		{
 			description: "expect normal return with default context",
-			ctx:         normalCtx,
-			ticket:      numTicket,
-			wantErr:     false,
+			preAction:   func(_ context.CancelFunc) {},
+			ticket: &pb.Ticket{
+				Properties: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+					},
+				},
+			},
+			wantCode: codes.OK,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			res, err := doCreateTicket(test.ctx, &pb.CreateTicketRequest{Ticket: test.ticket}, store)
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+			defer closer()
 
-			assert.Equal(t, test.wantErr, err != nil)
+			ctx, cancel := context.WithCancel(context.Background())
+			test.preAction(cancel)
+
+			res, err := doCreateTicket(ctx, &pb.CreateTicketRequest{Ticket: test.ticket}, store)
+			assert.Equal(t, test.wantCode, status.Convert(err).Code())
 			if err == nil {
 				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetTicket().GetId())
 				assert.True(t, matched)
