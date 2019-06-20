@@ -94,7 +94,10 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
-		s.grpcServer.Serve(s.grpcListener)
+		err = s.grpcServer.Serve(s.grpcListener)
+		if err != nil {
+			return
+		}
 	}()
 
 	// Start HTTP server
@@ -110,6 +113,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
 		if err = handlerFunc(ctx, s.proxyMux, grpcAddress, httpsToGrpcProxyOptions); err != nil {
+			cancel()
 			return func() {}, errors.WithStack(err)
 		}
 	}
@@ -132,8 +136,11 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	go func() {
 		serverStartWaiter.Done()
 		tlsListener := tls.NewListener(s.httpListener, s.httpServer.TLSConfig)
-		s.httpServer.Serve(tlsListener)
-		cancel()
+		err = s.httpServer.Serve(tlsListener)
+		defer cancel()
+		if err != nil {
+			return
+		}
 	}()
 
 	// Wait for the servers to come up.

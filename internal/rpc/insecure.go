@@ -63,7 +63,10 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
-		s.grpcServer.Serve(s.grpcListener)
+		err = s.grpcServer.Serve(s.grpcListener)
+		if err != nil {
+			return
+		}
 	}()
 
 	// Configure the HTTP proxy server.
@@ -78,6 +81,7 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
 		if err = handlerFunc(ctx, s.proxyMux, grpcListener.Addr().String(), []grpc.DialOption{grpc.WithInsecure()}); err != nil {
+			cancel()
 			return func() {}, errors.WithStack(err)
 		}
 	}
@@ -91,8 +95,11 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
-		s.httpServer.Serve(s.httpListener)
-		cancel()
+		err = s.httpServer.Serve(s.httpListener)
+		defer cancel()
+		if err != nil {
+			return
+		}
 	}()
 
 	return serverStartWaiter.Wait, nil
