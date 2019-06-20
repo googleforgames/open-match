@@ -35,25 +35,31 @@ func TestFetchMatches(t *testing.T) {
 
 	var tt = []struct {
 		description string
-		req         *pb.FetchMatchesRequest
-		resp        *pb.FetchMatchesResponse
+		fc          *pb.FunctionConfig
+		profile     []*pb.MatchProfile
+		wantMatch   *pb.Match
 		code        codes.Code
 	}{
 		{
 			"expects invalid argument code since request is empty",
-			&pb.FetchMatchesRequest{},
+			nil,
+			nil,
 			nil,
 			codes.InvalidArgument,
 		},
 	}
 
-	for _, test := range tt {
-		t.Run(test.description, func(t *testing.T) {
-			fetchMatchesLoop(t, tc, be, test.req, func(_ *pb.FetchMatchesResponse, err error) {
-				assert.Equal(test.code, status.Convert(err).Code())
+	t.Run("TestFetchMatches", func(t *testing.T) {
+		for _, test := range tt {
+			test := test
+			t.Run(test.description, func(t *testing.T) {
+				t.Parallel()
+				fetchMatchesLoop(t, tc, be, &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile}, func(_ *pb.FetchMatchesResponse, err error) {
+					assert.Equal(test.code, status.Convert(err).Code())
+				})
 			})
-		})
-	}
+		}
+	})
 }
 
 // TODO: Add FetchMatchesNormalTest when Hostname getter used to initialize mmf service is in
