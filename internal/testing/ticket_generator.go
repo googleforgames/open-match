@@ -22,8 +22,8 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// PropertyManifest defines the required fields that we need to generate tickets for testing.
-type PropertyManifest struct {
+// Property defines the required fields that we need to generate tickets for testing.
+type Property struct {
 	Name     string
 	Min      float64
 	Max      float64
@@ -31,7 +31,7 @@ type PropertyManifest struct {
 }
 
 // GenerateTickets takes in two property manifests to generate tickets with two fake properties for testing.
-func GenerateTickets(manifest1, manifest2 PropertyManifest) []*pb.Ticket {
+func GenerateTickets(manifest1, manifest2 Property) []*pb.Ticket {
 	testTickets := make([]*pb.Ticket, 0)
 
 	for i := manifest1.Min; i < manifest1.Max; i += manifest1.Interval {

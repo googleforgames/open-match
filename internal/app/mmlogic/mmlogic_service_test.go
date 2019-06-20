@@ -50,8 +50,8 @@ func TestDoQueryTickets(t *testing.T) {
 	}
 
 	testTickets := internalTesting.GenerateTickets(
-		internalTesting.PropertyManifest{Name: attribute1, Min: 0, Max: 20, Interval: 5},
-		internalTesting.PropertyManifest{Name: attribute2, Min: 0, Max: 20, Interval: 5},
+		internalTesting.Property{Name: attribute1, Min: 0, Max: 20, Interval: 5},
+		internalTesting.Property{Name: attribute2, Min: 0, Max: 20, Interval: 5},
 	)
 
 	tests := []struct {
@@ -97,8 +97,8 @@ func TestDoQueryTickets(t *testing.T) {
 			},
 			nil,
 			internalTesting.GenerateTickets(
-				internalTesting.PropertyManifest{Name: attribute1, Min: 0, Max: 10.1, Interval: 5},
-				internalTesting.PropertyManifest{Name: attribute2, Min: 0, Max: 20, Interval: 5},
+				internalTesting.Property{Name: attribute1, Min: 0, Max: 10.1, Interval: 5},
+				internalTesting.Property{Name: attribute2, Min: 0, Max: 20, Interval: 5},
 			),
 		},
 		{

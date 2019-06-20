@@ -136,7 +136,7 @@ func TestFrontendService(t *testing.T) {
 func TestQueryTickets(t *testing.T) {
 	tests := []struct {
 		description   string
-		req           *pb.QueryTicketsRequest
+		pool          *pb.Pool
 		preAction     func(fe pb.FrontendClient, t *testing.T)
 		wantCode      codes.Code
 		wantTickets   []*pb.Ticket
@@ -145,7 +145,7 @@ func TestQueryTickets(t *testing.T) {
 		{
 			description:   "expects invalid argument code since pool is empty",
 			preAction:     func(_ pb.FrontendClient, _ *testing.T) {},
-			req:           &pb.QueryTicketsRequest{},
+			pool:          nil,
 			wantCode:      codes.InvalidArgument,
 			wantTickets:   nil,
 			wantPageCount: 0,
@@ -153,12 +153,10 @@ func TestQueryTickets(t *testing.T) {
 		{
 			description: "expects response with no tickets since the store is empty",
 			preAction:   func(_ pb.FrontendClient, _ *testing.T) {},
-			req: &pb.QueryTicketsRequest{
-				Pool: &pb.Pool{
-					Filter: []*pb.Filter{{
-						Attribute: "ok",
-					}},
-				},
+			pool: &pb.Pool{
+				Filter: []*pb.Filter{{
+					Attribute: "ok",
+				}},
 			},
 			wantCode:      codes.OK,
 			wantTickets:   nil,
@@ -168,8 +166,8 @@ func TestQueryTickets(t *testing.T) {
 			description: "expects response with no tickets since all tickets in the store are filtered out",
 			preAction: func(fe pb.FrontendClient, t *testing.T) {
 				tickets := internalTesting.GenerateTickets(
-					internalTesting.PropertyManifest{Name: map1attribute, Min: 0, Max: 10, Interval: 2},
-					internalTesting.PropertyManifest{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
+					internalTesting.Property{Name: map1attribute, Min: 0, Max: 10, Interval: 2},
+					internalTesting.Property{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
 				)
 
 				for _, ticket := range tickets {
@@ -178,12 +176,10 @@ func TestQueryTickets(t *testing.T) {
 					assert.Nil(t, err)
 				}
 			},
-			req: &pb.QueryTicketsRequest{
-				Pool: &pb.Pool{
-					Filter: []*pb.Filter{{
-						Attribute: skillattribute,
-					}},
-				},
+			pool: &pb.Pool{
+				Filter: []*pb.Filter{{
+					Attribute: skillattribute,
+				}},
 			},
 			wantCode:      codes.OK,
 			wantTickets:   nil,
@@ -193,8 +189,8 @@ func TestQueryTickets(t *testing.T) {
 			description: "expects response with 5 tickets with map1attribute=2 and map2attribute in range of [0,10)",
 			preAction: func(fe pb.FrontendClient, t *testing.T) {
 				tickets := internalTesting.GenerateTickets(
-					internalTesting.PropertyManifest{Name: map1attribute, Min: 0, Max: 10, Interval: 2},
-					internalTesting.PropertyManifest{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
+					internalTesting.Property{Name: map1attribute, Min: 0, Max: 10, Interval: 2},
+					internalTesting.Property{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
 				)
 
 				for _, ticket := range tickets {
@@ -203,19 +199,17 @@ func TestQueryTickets(t *testing.T) {
 					assert.Nil(t, err)
 				}
 			},
-			req: &pb.QueryTicketsRequest{
-				Pool: &pb.Pool{
-					Filter: []*pb.Filter{{
-						Attribute: map1attribute,
-						Min:       1,
-						Max:       3,
-					}},
-				},
+			pool: &pb.Pool{
+				Filter: []*pb.Filter{{
+					Attribute: map1attribute,
+					Min:       1,
+					Max:       3,
+				}},
 			},
 			wantCode: codes.OK,
 			wantTickets: internalTesting.GenerateTickets(
-				internalTesting.PropertyManifest{Name: map1attribute, Min: 2, Max: 3, Interval: 2},
-				internalTesting.PropertyManifest{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: map1attribute, Min: 2, Max: 3, Interval: 2},
+				internalTesting.Property{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
 			),
 			wantPageCount: 1,
 		},
@@ -224,8 +218,8 @@ func TestQueryTickets(t *testing.T) {
 			description: "expects response with 15 tickets with map1attribute=2,4,6 and map2attribute=[0,10)",
 			preAction: func(fe pb.FrontendClient, t *testing.T) {
 				tickets := internalTesting.GenerateTickets(
-					internalTesting.PropertyManifest{Name: map1attribute, Min: 0, Max: 10, Interval: 2},
-					internalTesting.PropertyManifest{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
+					internalTesting.Property{Name: map1attribute, Min: 0, Max: 10, Interval: 2},
+					internalTesting.Property{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
 				)
 
 				for _, ticket := range tickets {
@@ -234,64 +228,67 @@ func TestQueryTickets(t *testing.T) {
 					assert.Nil(t, err)
 				}
 			},
-			req: &pb.QueryTicketsRequest{
-				Pool: &pb.Pool{
-					Filter: []*pb.Filter{{
-						Attribute: map1attribute,
-						Min:       2,
-						Max:       6,
-					}},
-				},
+
+			pool: &pb.Pool{
+				Filter: []*pb.Filter{{
+					Attribute: map1attribute,
+					Min:       2,
+					Max:       6,
+				}},
 			},
 			wantCode: codes.OK,
 			wantTickets: internalTesting.GenerateTickets(
-				internalTesting.PropertyManifest{Name: map1attribute, Min: 2, Max: 7, Interval: 2},
-				internalTesting.PropertyManifest{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: map1attribute, Min: 2, Max: 7, Interval: 2},
+				internalTesting.Property{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
 			),
 			wantPageCount: 2,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			tc := createMinimatchForTest(t)
-			defer tc.Close()
+	t.Run("TestQueryTickets", func(t *testing.T) {
+		for _, test := range tests {
+			test := test
+			t.Run(test.description, func(t *testing.T) {
+				t.Parallel()
+				tc := createMinimatchForTest(t)
+				defer tc.Close()
 
-			mml := pb.NewMmLogicClient(tc.MustGRPC())
-			fe := pb.NewFrontendClient(tc.MustGRPC())
-			pageCounts := 0
+				mml := pb.NewMmLogicClient(tc.MustGRPC())
+				fe := pb.NewFrontendClient(tc.MustGRPC())
+				pageCounts := 0
 
-			test.preAction(fe, t)
+				test.preAction(fe, t)
 
-			stream, err := mml.QueryTickets(tc.Context(), test.req)
-			assert.Nil(t, err)
+				stream, err := mml.QueryTickets(tc.Context(), &pb.QueryTicketsRequest{Pool: test.pool})
+				assert.Nil(t, err)
 
-			var actualTickets []*pb.Ticket
+				var actualTickets []*pb.Ticket
 
-			for {
-				resp, err := stream.Recv()
-				if err == io.EOF {
-					break
+				for {
+					resp, err := stream.Recv()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						assert.Equal(t, test.wantCode, status.Convert(err).Code())
+						break
+					}
+
+					actualTickets = append(actualTickets, resp.Ticket...)
+					pageCounts++
 				}
-				if err != nil {
-					assert.Equal(t, test.wantCode, status.Convert(err).Code())
-					break
+
+				require.Equal(t, len(test.wantTickets), len(actualTickets))
+				// Test fields by fields because of the randomness of the ticket ids...
+				// TODO: this makes testing overcomplicated. Should figure out a way to avoid the randomness
+				// This for loop also relies on the fact that redis range query and the ticket generator both returns tickets in sorted order.
+				// If this fact changes, we might need an ugly nested for loop to do the validness checks.
+				for i := 0; i < len(actualTickets); i++ {
+					assert.Equal(t, test.wantTickets[i].GetAssignment(), actualTickets[i].GetAssignment())
+					assert.Equal(t, test.wantTickets[i].GetProperties(), actualTickets[i].GetProperties())
 				}
-
-				actualTickets = append(actualTickets, resp.Ticket...)
-				pageCounts++
-			}
-
-			require.Equal(t, len(test.wantTickets), len(actualTickets))
-			// Test fields by fields because of the randomness of the ticket ids...
-			// TODO: this makes testing overcomplicated. Should figure out a way to avoid the randomness
-			// This for loop also relies on the fact that redis range query and the ticket generator both returns tickets in sorted order.
-			// If this fact changes, we might need an ugly nested for loop to do the validness checks.
-			for i := 0; i < len(actualTickets); i++ {
-				assert.Equal(t, test.wantTickets[i].GetAssignment(), actualTickets[i].GetAssignment())
-				assert.Equal(t, test.wantTickets[i].GetProperties(), actualTickets[i].GetProperties())
-			}
-			assert.Equal(t, test.wantPageCount, pageCounts)
-		})
-	}
+				assert.Equal(t, test.wantPageCount, pageCounts)
+			})
+		}
+	})
 }
