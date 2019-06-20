@@ -29,9 +29,7 @@ import (
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 )
 
-// TODO: refactor the tests below this line
 func TestAssignTickets(t *testing.T) {
-	assert := assert.New(t)
 	tc := createMinimatchForTest(t)
 	defer tc.Close()
 
@@ -39,63 +37,78 @@ func TestAssignTickets(t *testing.T) {
 	be := pb.NewBackendClient(tc.MustGRPC())
 
 	ctResp, err := fe.CreateTicket(tc.Context(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	assert.Nil(err)
+	assert.Nil(t, err)
 
 	var tt = []struct {
-		// description string
-		req  *pb.AssignTicketsRequest
-		resp *pb.AssignTicketsResponse
-		code codes.Code
+		description    string
+		ticketIds      []string
+		assignment     *pb.Assignment
+		wantAssignment *pb.Assignment
+		wantCode       codes.Code
 	}{
 		{
-			&pb.AssignTicketsRequest{},
+			"expects invalid argument code since request is empty",
+			nil,
+			nil,
 			nil,
 			codes.InvalidArgument,
 		},
 		{
-			&pb.AssignTicketsRequest{
-				TicketId: []string{"1"},
-			},
+			"expects invalid argument code since assignment is nil",
+			[]string{"1"},
+			nil,
 			nil,
 			codes.InvalidArgument,
 		},
 		{
-			&pb.AssignTicketsRequest{
-				TicketId: []string{"2"},
-				Assignment: &pb.Assignment{
-					Connection: "localhost",
-				},
-			},
+			"expects not found code since ticket id does not exist in the statestore",
+			[]string{"2"},
+			&pb.Assignment{Connection: "localhost"},
 			nil,
 			codes.NotFound,
 		},
 		{
-			&pb.AssignTicketsRequest{
-				TicketId: []string{ctResp.Ticket.Id},
-				Assignment: &pb.Assignment{
-					Connection: "localhost",
-				},
-			},
-			&pb.AssignTicketsResponse{},
+			"expects not found code since ticket id 'unknown id' does not exist in the statestore",
+			[]string{ctResp.GetTicket().GetId(), "unknown id"},
+			&pb.Assignment{Connection: "localhost"},
+			nil,
+			codes.NotFound,
+		},
+		{
+			"expects ok code",
+			[]string{ctResp.GetTicket().GetId()},
+			&pb.Assignment{Connection: "localhost"},
+			&pb.Assignment{Connection: "localhost"},
 			codes.OK,
 		},
 	}
 
-	for _, test := range tt {
-		resp, err := be.AssignTickets(tc.Context(), test.req)
-		assert.Equal(test.resp, resp)
-		if err != nil {
-			assert.Equal(test.code, status.Convert(err).Code())
-		} else {
-			gtResp, err := fe.GetTicket(tc.Context(), &pb.GetTicketRequest{TicketId: ctResp.Ticket.Id})
-			assert.Nil(err)
-			assert.Equal(test.req.Assignment.Connection, gtResp.Assignment.Connection)
+	t.Run("TestAssignTickets", func(t *testing.T) {
+		for _, test := range tt {
+			test := test
+			t.Run(test.description, func(t *testing.T) {
+				t.Parallel()
+				_, err := be.AssignTickets(tc.Context(), &pb.AssignTicketsRequest{TicketId: test.ticketIds, Assignment: test.assignment})
+				assert.Equal(t, test.wantCode, status.Convert(err).Code())
+
+				// If assign ticket succeeds, validate the assignment
+				if err == nil {
+					for _, id := range test.ticketIds {
+						gtResp, err := fe.GetTicket(tc.Context(), &pb.GetTicketRequest{TicketId: id})
+						assert.Nil(t, err)
+						// grpc will write something to the reserved fields of this protobuf object, so we have to do comparisons fields by fields.
+						assert.Equal(t, test.wantAssignment.GetConnection(), gtResp.GetAssignment().GetConnection())
+						assert.Equal(t, test.wantAssignment.GetProperties(), gtResp.GetAssignment().GetProperties())
+						assert.Equal(t, test.wantAssignment.GetError(), gtResp.GetAssignment().GetError())
+					}
+				}
+			})
 		}
-	}
+	})
 }
 
-// TestFrontendService tests creating, getting and deleting a ticket using Frontend service.
-func TestFrontendService(t *testing.T) {
+// TestTicketLifeCycle tests creating, getting and deleting a ticket using Frontend service.
+func TestTicketLifeCycle(t *testing.T) {
 	assert := assert.New(t)
 
 	tc := createMinimatchForTest(t)
@@ -135,8 +148,7 @@ func TestFrontendService(t *testing.T) {
 	validateDelete(t, fe, ticket.GetId())
 }
 
-// TODO: move below test cases to e2e
-func TestQueryTicketsEmptyRequest(t *testing.T) {
+func TestQueryTickets(t *testing.T) {
 	assert := assert.New(t)
 	tc := createMinimatchForTest(t)
 	defer tc.Close()
