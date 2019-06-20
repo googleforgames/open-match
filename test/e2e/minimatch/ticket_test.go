@@ -31,7 +31,7 @@ import (
 // TODO: refactor the tests below this line
 func TestAssignTickets(t *testing.T) {
 	assert := assert.New(t)
-	tc := createBackendForTest(t)
+	tc := createMinimatchForTest(t)
 	defer tc.Close()
 
 	fe := pb.NewFrontendClient(tc.MustGRPC())
@@ -97,7 +97,7 @@ func TestAssignTickets(t *testing.T) {
 func TestFrontendService(t *testing.T) {
 	assert := assert.New(t)
 
-	tc := createStore(t)
+	tc := createMinimatchForTest(t)
 	fe := pb.NewFrontendClient(tc.MustGRPC())
 	assert.NotNil(fe)
 
@@ -137,7 +137,7 @@ func TestFrontendService(t *testing.T) {
 // TODO: move below test cases to e2e
 func TestQueryTicketsEmptyRequest(t *testing.T) {
 	assert := assert.New(t)
-	tc := createMmlogicForTest(t)
+	tc := createMinimatchForTest(t)
 	defer tc.Close()
 
 	queryTicketsLoop(t, tc, &pb.QueryTicketsRequest{}, func(_ *pb.QueryTicketsResponse, err error) {
@@ -147,7 +147,7 @@ func TestQueryTicketsEmptyRequest(t *testing.T) {
 
 func TestQueryTicketsForEmptyDatabase(t *testing.T) {
 	assert := assert.New(t)
-	tc := createMmlogicForTest(t)
+	tc := createMinimatchForTest(t)
 	defer tc.Close()
 
 	queryTicketsLoop(t, tc,
