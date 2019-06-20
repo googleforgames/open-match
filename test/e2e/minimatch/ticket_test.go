@@ -29,7 +29,7 @@ import (
 )
 
 func TestAssignTickets(t *testing.T) {
-	tc := createBackendForTest(t)
+	tc := createMinimatchForTest(t)
 	defer tc.Close()
 
 	fe := pb.NewFrontendClient(tc.MustGRPC())
@@ -115,7 +115,7 @@ func TestAssignTickets(t *testing.T) {
 func TestTicketLifeCycle(t *testing.T) {
 	assert := assert.New(t)
 
-	tc := createStore(t)
+	tc := createMinimatchForTest(t)
 	fe := pb.NewFrontendClient(tc.MustGRPC())
 	assert.NotNil(fe)
 
@@ -154,7 +154,7 @@ func TestTicketLifeCycle(t *testing.T) {
 
 func TestQueryTickets(t *testing.T) {
 	assert := assert.New(t)
-	tc := createMmlogicForTest(t)
+	tc := createMinimatchForTest(t)
 	defer tc.Close()
 
 	queryTicketsLoop(t, tc, &pb.QueryTicketsRequest{}, func(_ *pb.QueryTicketsResponse, err error) {
@@ -164,7 +164,7 @@ func TestQueryTickets(t *testing.T) {
 
 func TestQueryTicketsForEmptyDatabase(t *testing.T) {
 	assert := assert.New(t)
-	tc := createMmlogicForTest(t)
+	tc := createMinimatchForTest(t)
 	defer tc.Close()
 
 	queryTicketsLoop(t, tc,
