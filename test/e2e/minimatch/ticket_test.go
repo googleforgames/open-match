@@ -97,6 +97,7 @@ func TestFrontendService(t *testing.T) {
 	assert := assert.New(t)
 
 	tc := createMinimatchForTest(t)
+	defer tc.Close()
 	fe := pb.NewFrontendClient(tc.MustGRPC())
 	assert.NotNil(fe)
 
