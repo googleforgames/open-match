@@ -57,8 +57,9 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 // Configuration for the Match Function to be triggered by Open Match to
 // generate proposals.
 message FunctionConfig {
-  string address = 1;
-  Type type = 2;
+  string host = 1;
+  int32 port = 2;
+  Type type = 3;
   enum Type {
     GRPC = 0;
     REST = 1;

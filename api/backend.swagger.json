@@ -177,8 +177,12 @@
     "apiFunctionConfig": {
       "type": "object",
       "properties": {
-        "address": {
+        "host": {
           "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "format": "int32"
         },
         "type": {
           "$ref": "#/definitions/apiFunctionConfigType"

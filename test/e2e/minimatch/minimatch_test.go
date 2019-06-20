@@ -16,7 +16,6 @@ package minimatch
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"math"
 	"testing"
@@ -177,12 +176,14 @@ func TestMinimatch(t *testing.T) {
 
 	fcs := []*pb.FunctionConfig{
 		{
-			Type:    pb.FunctionConfig_GRPC,
-			Address: fmt.Sprintf("%s:%d", mmfTc.GetHostname(), mmfTc.GetGRPCPort()),
+			Type: pb.FunctionConfig_GRPC,
+			Host: mmfTc.GetHostname(),
+			Port: int32(mmfTc.GetGRPCPort()),
 		},
 		{
-			Type:    pb.FunctionConfig_REST,
-			Address: fmt.Sprintf("%s:%d", mmfTc.GetHostname(), mmfTc.GetHTTPPort()),
+			Type: pb.FunctionConfig_REST,
+			Host: mmfTc.GetHostname(),
+			Port: int32(mmfTc.GetHTTPPort()),
 		},
 	}
 

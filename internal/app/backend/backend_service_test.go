@@ -39,15 +39,15 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 	secureCfg := viper.New()
 	secureCfg.Set("tls.enabled", true)
 	restFuncCfg := &pb.FetchMatchesRequest{
-		Config:  &pb.FunctionConfig{Address: "om-test:54321", Type: pb.FunctionConfig_REST},
+		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_REST},
 		Profile: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
 	}
 	grpcFuncCfg := &pb.FetchMatchesRequest{
-		Config:  &pb.FunctionConfig{Address: "om-test:54321", Type: pb.FunctionConfig_GRPC},
+		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_GRPC},
 		Profile: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
 	}
 	unsupporteFuncCfg := &pb.FetchMatchesRequest{
-		Config:  &pb.FunctionConfig{Address: "om-test:54321", Type: 3},
+		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: 3},
 		Profile: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
 	}
 

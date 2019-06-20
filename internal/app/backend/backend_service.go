@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -99,7 +100,7 @@ func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *s
 	var err error
 
 	configType := req.GetConfig().GetType()
-	address := req.GetConfig().GetAddress()
+	address := fmt.Sprintf("%s:%d", req.GetConfig().GetHost(), req.GetConfig().GetPort())
 
 	switch configType {
 	// MatchFunction Hosted as a GRPC service
