@@ -295,7 +295,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 			redisLogger.WithFields(logrus.Fields{
 				"attribute": attribute,
 			}).Warning("Attribute not a number.")
-			return status.Errorf(codes.FailedPrecondition, "open-match does not support current value type.")
+			return status.Errorf(codes.FailedPrecondition, "open-match does not support given value type.")
 		}
 	}
 
