@@ -27,29 +27,92 @@ import (
 )
 
 func TestFetchMatches(t *testing.T) {
-	assert := assert.New(t)
-	tc := createMinimatchForTest(t)
-	defer tc.Close()
+	mainTc := createMinimatchForTest(t)
+	defer mainTc.Close()
+	mmfTc := createMatchFunctionForTest(t, mainTc)
+	defer mmfTc.Close()
 
-	be := pb.NewBackendClient(tc.MustGRPC())
+	be := pb.NewBackendClient(mainTc.MustGRPC())
 
 	var tt = []struct {
-		req  *pb.FetchMatchesRequest
-		resp *pb.FetchMatchesResponse
-		code codes.Code
+		description string
+		fc          *pb.FunctionConfig
+		profile     []*pb.MatchProfile
+		wantMatch   []*pb.Match
+		wantCode    codes.Code
 	}{
 		{
-			&pb.FetchMatchesRequest{},
+			"expects invalid argument code since request is empty",
+			nil,
+			nil,
 			nil,
 			codes.InvalidArgument,
 		},
+		{
+			"expects unavailable code since there is no mmf being hosted with given function config",
+			&pb.FunctionConfig{
+				Type: &pb.FunctionConfig_Grpc{
+					Grpc: &pb.GrpcFunctionConfig{
+						Host: mmfTc.GetHostname(),
+						Port: int32(54321),
+					},
+				},
+			},
+			[]*pb.MatchProfile{{Name: "some name"}},
+			[]*pb.Match{},
+			codes.Unavailable,
+		},
+		{
+			"expects empty response since the store is empty",
+			&pb.FunctionConfig{
+				Type: &pb.FunctionConfig_Grpc{
+					Grpc: &pb.GrpcFunctionConfig{
+						Host: mmfTc.GetHostname(),
+						Port: int32(mmfTc.GetGRPCPort()),
+					},
+				},
+			},
+			[]*pb.MatchProfile{{Name: "some name"}},
+			[]*pb.Match{},
+			codes.OK,
+		},
 	}
 
-	for _, test := range tt {
-		fetchMatchesLoop(t, tc, be, test.req, func(_ *pb.FetchMatchesResponse, err error) {
-			assert.Equal(test.code, status.Convert(err).Code())
-		})
-	}
+	t.Run("TestFetchMatches", func(t *testing.T) {
+		for _, test := range tt {
+			test := test
+			t.Run(test.description, func(t *testing.T) {
+				t.Parallel()
+
+				stream, err := be.FetchMatches(mainTc.Context(), &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile})
+				assert.Nil(t, err)
+
+				var gotMatches []*pb.Match
+
+				for {
+					resp, err := stream.Recv()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						assert.Equal(t, test.wantCode, status.Convert(err).Code())
+						break
+					}
+
+					gotMatches = append(gotMatches, &pb.Match{
+						MatchProfile:  resp.GetMatch().GetMatchProfile(),
+						MatchFunction: resp.GetMatch().GetMatchFunction(),
+						Ticket:        resp.GetMatch().GetTicket(),
+						Roster:        resp.GetMatch().GetRoster(),
+					})
+				}
+
+				for _, match := range gotMatches {
+					assert.Contains(t, test.wantMatch, match)
+				}
+			})
+		}
+	})
 }
 
 // TODO: Add FetchMatchesNormalTest when Hostname getter used to initialize mmf service is in
