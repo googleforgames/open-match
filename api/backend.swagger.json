@@ -177,31 +177,22 @@
     "apiFunctionConfig": {
       "type": "object",
       "properties": {
-        "name": {
-          "type": "string",
-          "description": "A developer-chosen human-readable name for this Match Function."
+        "address": {
+          "type": "string"
         },
-        "grpc": {
-          "$ref": "#/definitions/apiGrpcFunctionConfig"
-        },
-        "rest": {
-          "$ref": "#/definitions/apiRestFunctionConfig"
+        "type": {
+          "$ref": "#/definitions/apiFunctionConfigType"
         }
       },
       "description": "Configuration for the Match Function to be triggered by Open Match to\ngenerate proposals."
     },
-    "apiGrpcFunctionConfig": {
-      "type": "object",
-      "properties": {
-        "host": {
-          "type": "string"
-        },
-        "port": {
-          "type": "integer",
-          "format": "int32"
-        }
-      },
-      "title": "Configuration for a GRPC Match Function"
+    "apiFunctionConfigType": {
+      "type": "string",
+      "enum": [
+        "GRPC",
+        "REST"
+      ],
+      "default": "GRPC"
     },
     "apiMatch": {
       "type": "object",
@@ -282,19 +273,6 @@
           "description": "Set of Filters indicating the filtering criteria. Selected players must\nmatch every Filter."
         }
       }
-    },
-    "apiRestFunctionConfig": {
-      "type": "object",
-      "properties": {
-        "host": {
-          "type": "string"
-        },
-        "port": {
-          "type": "integer",
-          "format": "int32"
-        }
-      },
-      "description": "Configuration for a REST Match Function."
     },
     "apiRoster": {
       "type": "object",
