@@ -18,6 +18,7 @@ import (
 	"context"
 	"io"
 	"testing"
+	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
@@ -118,20 +119,20 @@ func TestFrontendService(t *testing.T) {
 	assert.Nil(err)
 	want := resp.Ticket
 	assert.NotNil(want)
-	assert.NotNil(want.Id)
-	ticket.Id = want.Id
-	validateTicket(t, resp.Ticket, ticket)
+	assert.NotNil(want.GetId())
+	ticket.Id = want.GetId()
+	validateTicket(t, resp.GetTicket(), ticket)
 
 	// Fetch the ticket and validate that it is identical to the expected ticket.
-	gotTicket, err := fe.GetTicket(context.Background(), &pb.GetTicketRequest{TicketId: ticket.Id})
+	gotTicket, err := fe.GetTicket(context.Background(), &pb.GetTicketRequest{TicketId: ticket.GetId()})
 	assert.NotNil(gotTicket)
 	assert.Nil(err)
 	validateTicket(t, gotTicket, ticket)
 
 	// Delete the ticket and validate that it was actually deleted.
-	_, err = fe.DeleteTicket(context.Background(), &pb.DeleteTicketRequest{TicketId: ticket.Id})
+	_, err = fe.DeleteTicket(context.Background(), &pb.DeleteTicketRequest{TicketId: ticket.GetId()})
 	assert.Nil(err)
-	validateDelete(t, fe, ticket.Id)
+	validateDelete(t, fe, ticket.GetId())
 }
 
 // TODO: move below test cases to e2e
@@ -179,4 +180,36 @@ func queryTicketsLoop(t *testing.T, tc *rpcTesting.TestContext, req *pb.QueryTic
 			return
 		}
 	}
+}
+
+// validateTicket validates that the fetched ticket is identical to the expected ticket.
+func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
+	assert.Equal(t, got.GetId(), want.GetId())
+	assert.Equal(t, got.GetProperties().GetFields()["test-property"].GetNumberValue(), want.GetProperties().GetFields()["test-property"].GetNumberValue())
+	assert.Equal(t, got.GetAssignment().GetConnection(), want.GetAssignment().GetConnection())
+	assert.Equal(t, got.GetAssignment().GetProperties(), want.GetAssignment().GetProperties())
+	assert.Equal(t, got.GetAssignment().GetError(), want.GetAssignment().GetError())
+}
+
+// validateDelete validates that the ticket is actually deleted from the state storage.
+// Given that delete is async, this method retries fetch every 100ms up to 5 seconds.
+func validateDelete(t *testing.T, fe pb.FrontendClient, id string) {
+	start := time.Now()
+	for {
+		if time.Since(start) > 5*time.Second {
+			break
+		}
+
+		// Attempt to fetch the ticket every 100ms
+		_, err := fe.GetTicket(context.Background(), &pb.GetTicketRequest{TicketId: id})
+		if err != nil {
+			// Only failure to fetch with NotFound should be considered as success.
+			assert.Equal(t, status.Code(err), codes.NotFound)
+			return
+		}
+
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	assert.Failf(t, "ticket %v not deleted after 5 seconds", id)
 }

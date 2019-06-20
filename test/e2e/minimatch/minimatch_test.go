@@ -15,17 +15,13 @@
 package minimatch
 
 import (
-	"context"
 	"io"
 	"math"
 	"testing"
 	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -233,36 +229,4 @@ func testFetchMatches(assert *require.Assertions, poolTickets map[string][]strin
 			assert.Equal(gotTickets, poolTickets[br.Match.Roster[0].Name])
 		}
 	}
-}
-
-// validateTicket validates that the fetched ticket is identical to the expected ticket.
-func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
-	assert.Equal(t, got.Id, want.Id)
-	assert.Equal(t, got.Properties.Fields["test-property"].GetNumberValue(), want.Properties.Fields["test-property"].GetNumberValue())
-	assert.Equal(t, got.Assignment.Connection, want.Assignment.Connection)
-	assert.Equal(t, got.Assignment.Properties, want.Assignment.Properties)
-	assert.Equal(t, got.Assignment.Error, want.Assignment.Error)
-}
-
-// validateDelete validates that the ticket is actually deleted from the state storage.
-// Given that delete is async, this method retries fetch every 100ms up to 5 seconds.
-func validateDelete(t *testing.T, fe pb.FrontendClient, id string) {
-	start := time.Now()
-	for {
-		if time.Since(start) > 5*time.Second {
-			break
-		}
-
-		// Attempt to fetch the ticket every 100ms
-		_, err := fe.GetTicket(context.Background(), &pb.GetTicketRequest{TicketId: id})
-		if err != nil {
-			// Only failure to fetch with NotFound should be considered as success.
-			assert.Equal(t, status.Code(err), codes.NotFound)
-			return
-		}
-
-		time.Sleep(100 * time.Millisecond)
-	}
-
-	assert.Failf(t, "ticket %v not deleted after 5 seconds", id)
 }
