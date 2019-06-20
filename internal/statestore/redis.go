@@ -263,15 +263,6 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("MULTI")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "MULTI",
-			"error": err.Error(),
-		}).Error("state storage operation failed")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
 	// Fetch the indices from the configuration.
 	// TODO: Consider adding Open Match specific custom indices in future.
 	var indices []string
@@ -279,6 +270,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 		indices = rb.cfg.GetStringSlice("playerIndices")
 	}
 
+	attributesToValue := map[string]float64{}
 	// Loop through all attributes we want to index.
 	for _, attribute := range indices {
 		// TODO: Currently, Open Match supports specifying attributes as JSON properties on Tickets.
@@ -294,25 +286,36 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 			continue
 		}
 
-		var d float64
-
 		switch v.Kind.(type) {
 		case *structpb.Value_NumberValue:
-			d = v.GetNumberValue()
+			attributesToValue[attribute] = v.GetNumberValue()
 		default:
-			// TODO: investigate if we need to throw out an exception if attribute is not a value
+			// TODO: we currently dont support anything but numeric values,
+			// yet we are investigating whether it is possible to have generic typed value supports in the future.
 			redisLogger.WithFields(logrus.Fields{
 				"attribute": attribute,
 			}).Warning("Attribute not a number.")
+			return status.Errorf(codes.FailedPrecondition, "open-match does not support given value type.")
 		}
+	}
 
+	err = redisConn.Send("MULTI")
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"cmd":   "MULTI",
+			"error": err.Error(),
+		}).Error("state storage operation failed")
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	for k, v := range attributesToValue {
 		// Index the attribute by value.
-		err = redisConn.Send("ZADD", attribute, d, ticket.GetId())
+		err = redisConn.Send("ZADD", k, v, ticket.GetId())
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
 				"cmd":       "ZADD",
-				"attribute": attribute,
-				"value":     d,
+				"attribute": k,
+				"value":     v,
 				"ticket":    ticket.GetId(),
 				"error":     err.Error(),
 			}).Error("failed to index ticket attribute")
