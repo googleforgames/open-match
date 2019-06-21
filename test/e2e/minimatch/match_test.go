@@ -22,7 +22,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -51,12 +50,9 @@ func TestFetchMatches(t *testing.T) {
 		{
 			"expects unavailable code since there is no mmf being hosted with given function config",
 			&pb.FunctionConfig{
-				Type: &pb.FunctionConfig_Grpc{
-					Grpc: &pb.GrpcFunctionConfig{
-						Host: mmfTc.GetHostname(),
-						Port: int32(54321),
-					},
-				},
+				Host: mmfTc.GetHostname(),
+				Port: int32(mmfTc.GetGRPCPort()),
+				Type: pb.FunctionConfig_GRPC,
 			},
 			[]*pb.MatchProfile{{Name: "some name"}},
 			[]*pb.Match{},
@@ -65,12 +61,9 @@ func TestFetchMatches(t *testing.T) {
 		{
 			"expects empty response since the store is empty",
 			&pb.FunctionConfig{
-				Type: &pb.FunctionConfig_Grpc{
-					Grpc: &pb.GrpcFunctionConfig{
-						Host: mmfTc.GetHostname(),
-						Port: int32(mmfTc.GetGRPCPort()),
-					},
-				},
+				Host: mmfTc.GetHostname(),
+				Port: int32(mmfTc.GetGRPCPort()),
+				Type: pb.FunctionConfig_GRPC,
 			},
 			[]*pb.MatchProfile{{Name: "some name"}},
 			[]*pb.Match{},
@@ -113,23 +106,4 @@ func TestFetchMatches(t *testing.T) {
 			})
 		}
 	})
-}
-
-// TODO: Add FetchMatchesNormalTest when Hostname getter used to initialize mmf service is in
-// https://github.com/GoogleCloudPlatform/open-match/pull/473
-func fetchMatchesLoop(t *testing.T, tc *rpcTesting.TestContext, be pb.BackendClient, req *pb.FetchMatchesRequest, handleResponse func(*pb.FetchMatchesResponse, error)) {
-	stream, err := be.FetchMatches(tc.Context(), req)
-	if err != nil {
-		t.Fatalf("error querying tickets, %v", err)
-	}
-	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		handleResponse(resp, err)
-		if err != nil {
-			return
-		}
-	}
 }
