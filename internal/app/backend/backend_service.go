@@ -27,6 +27,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
+	internalpb "open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
@@ -35,9 +36,10 @@ import (
 // The service implementing the Backend API that is called to generate matches
 // and make assignments for Tickets.
 type backendService struct {
-	cfg        config.View
-	store      statestore.Service
-	mmfClients *sync.Map
+	cfg          config.View
+	synchronizer internalpb.SynchronizerClient
+	store        statestore.Service
+	mmfClients   *sync.Map
 }
 
 type grpcData struct {
@@ -61,6 +63,20 @@ var (
 	})
 )
 
+func newBackendService(cfg config.View) (*backendService, error) {
+	conn, err := rpc.GRPCClientFromConfig(cfg, "api.synchronizer")
+	if err != nil {
+		return nil, err
+	}
+
+	return &backendService{
+		cfg:          cfg,
+		synchronizer: internalpb.NewSynchronizerClient(conn),
+		store:        statestore.New(cfg),
+		mmfClients:   &sync.Map{},
+	}, nil
+}
+
 // FetchMatches triggers execution of the specfied MatchFunction for each of the
 // specified MatchProfiles. Each MatchFunction execution returns a set of
 // proposals which are then evaluated to generate results. FetchMatches method
@@ -75,6 +91,16 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 
 	resultChan := make(chan mmfResult, len(req.GetProfile()))
 
+	var syncID string
+	if s.synchronizerEnabled() {
+		resp, err := s.synchronizer.Register(ctx, &internalpb.RegisterRequest{})
+		if err != nil {
+			return nil, err
+		}
+
+		syncID = resp.GetId()
+	}
+
 	err := doFetchMatchesInChannel(ctx, s.cfg, s.mmfClients, req, resultChan)
 	if err != nil {
 		return nil, err
@@ -85,7 +111,19 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		return nil, err
 	}
 
-	return &pb.FetchMatchesResponse{Match: proposals}, nil
+	results := proposals
+	if s.synchronizerEnabled() {
+		resp, err := s.synchronizer.EvaluateProposals(ctx, &internalpb.EvaluateProposalsRequest{
+			Id:    syncID,
+			Match: proposals})
+		if err != nil {
+			return nil, err
+		}
+
+		results = resp.Match
+	}
+
+	return &pb.FetchMatchesResponse{Match: results}, nil
 }
 
 func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *sync.Map, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
@@ -278,4 +316,12 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 	}
 
 	return nil
+}
+
+func (s *backendService) synchronizerEnabled() bool {
+	if !s.cfg.IsSet("synchronizer.enabled") {
+		return false
+	}
+
+	return s.cfg.GetBool("synchronizer.enabled")
 }

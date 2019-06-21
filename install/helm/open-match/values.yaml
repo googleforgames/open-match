@@ -127,6 +127,7 @@ openmatch:
             httpport: "{{.Values.openmatch.demofunction.http.port}}"
 
         synchronizer:
+          enabled: false
           pollIntervalMs: 1000
           maxWaitMs: 10000
 
