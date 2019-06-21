@@ -22,11 +22,11 @@ import (
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	internalTesting "open-match.dev/open-match/internal/testing"
 	"open-match.dev/open-match/pkg/pb"
-
-	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 )
 
 func TestAssignTickets(t *testing.T) {
@@ -112,6 +112,7 @@ func TestTicketLifeCycle(t *testing.T) {
 	assert := assert.New(t)
 
 	tc := createMinimatchForTest(t)
+	defer tc.Close()
 	fe := pb.NewFrontendClient(tc.MustGRPC())
 	assert.NotNil(fe)
 
@@ -149,49 +150,163 @@ func TestTicketLifeCycle(t *testing.T) {
 }
 
 func TestQueryTickets(t *testing.T) {
-	assert := assert.New(t)
-	tc := createMinimatchForTest(t)
-	defer tc.Close()
-
-	queryTicketsLoop(t, tc, &pb.QueryTicketsRequest{}, func(_ *pb.QueryTicketsResponse, err error) {
-		assert.Equal(codes.InvalidArgument, status.Convert(err).Code())
-	})
-}
-
-func TestQueryTicketsForEmptyDatabase(t *testing.T) {
-	assert := assert.New(t)
-	tc := createMinimatchForTest(t)
-	defer tc.Close()
-
-	queryTicketsLoop(t, tc,
-		&pb.QueryTicketsRequest{
-			Pool: &pb.Pool{
+	tests := []struct {
+		description   string
+		pool          *pb.Pool
+		preAction     func(fe pb.FrontendClient, t *testing.T)
+		wantCode      codes.Code
+		wantTickets   []*pb.Ticket
+		wantPageCount int
+	}{
+		{
+			description:   "expects invalid argument code since pool is empty",
+			preAction:     func(_ pb.FrontendClient, _ *testing.T) {},
+			pool:          nil,
+			wantCode:      codes.InvalidArgument,
+			wantTickets:   nil,
+			wantPageCount: 0,
+		},
+		{
+			description: "expects response with no tickets since the store is empty",
+			preAction:   func(_ pb.FrontendClient, _ *testing.T) {},
+			pool: &pb.Pool{
 				Filter: []*pb.Filter{{
 					Attribute: "ok",
 				}},
 			},
+			wantCode:      codes.OK,
+			wantTickets:   nil,
+			wantPageCount: 0,
 		},
-		func(resp *pb.QueryTicketsResponse, err error) {
-			assert.NotNil(resp)
-		})
-}
+		{
+			description: "expects response with no tickets since all tickets in the store are filtered out",
+			preAction: func(fe pb.FrontendClient, t *testing.T) {
+				tickets := internalTesting.GenerateTickets(
+					internalTesting.Property{Name: map1attribute, Min: 0, Max: 10, Interval: 2},
+					internalTesting.Property{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
+				)
 
-func queryTicketsLoop(t *testing.T, tc *rpcTesting.TestContext, req *pb.QueryTicketsRequest, handleResponse func(*pb.QueryTicketsResponse, error)) {
-	c := pb.NewMmLogicClient(tc.MustGRPC())
-	stream, err := c.QueryTickets(tc.Context(), req)
-	if err != nil {
-		t.Fatalf("error querying tickets, %v", err)
+				for _, ticket := range tickets {
+					resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: ticket})
+					assert.NotNil(t, resp)
+					assert.Nil(t, err)
+				}
+			},
+			pool: &pb.Pool{
+				Filter: []*pb.Filter{{
+					Attribute: skillattribute,
+				}},
+			},
+			wantCode:      codes.OK,
+			wantTickets:   nil,
+			wantPageCount: 0,
+		},
+		{
+			description: "expects response with 5 tickets with map1attribute=2 and map2attribute in range of [0,10)",
+			preAction: func(fe pb.FrontendClient, t *testing.T) {
+				tickets := internalTesting.GenerateTickets(
+					internalTesting.Property{Name: map1attribute, Min: 0, Max: 10, Interval: 2},
+					internalTesting.Property{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
+				)
+
+				for _, ticket := range tickets {
+					resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: ticket})
+					assert.NotNil(t, resp)
+					assert.Nil(t, err)
+				}
+			},
+			pool: &pb.Pool{
+				Filter: []*pb.Filter{{
+					Attribute: map1attribute,
+					Min:       1,
+					Max:       3,
+				}},
+			},
+			wantCode: codes.OK,
+			wantTickets: internalTesting.GenerateTickets(
+				internalTesting.Property{Name: map1attribute, Min: 2, Max: 3, Interval: 2},
+				internalTesting.Property{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
+			),
+			wantPageCount: 1,
+		},
+		{
+			// Test inclusive filters and paging works as expected
+			description: "expects response with 15 tickets with map1attribute=2,4,6 and map2attribute=[0,10)",
+			preAction: func(fe pb.FrontendClient, t *testing.T) {
+				tickets := internalTesting.GenerateTickets(
+					internalTesting.Property{Name: map1attribute, Min: 0, Max: 10, Interval: 2},
+					internalTesting.Property{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
+				)
+
+				for _, ticket := range tickets {
+					resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: ticket})
+					assert.NotNil(t, resp)
+					assert.Nil(t, err)
+				}
+			},
+
+			pool: &pb.Pool{
+				Filter: []*pb.Filter{{
+					Attribute: map1attribute,
+					Min:       2,
+					Max:       6,
+				}},
+			},
+			wantCode: codes.OK,
+			wantTickets: internalTesting.GenerateTickets(
+				internalTesting.Property{Name: map1attribute, Min: 2, Max: 7, Interval: 2},
+				internalTesting.Property{Name: map2attribute, Min: 0, Max: 10, Interval: 2},
+			),
+			wantPageCount: 2,
+		},
 	}
-	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			break
+
+	t.Run("TestQueryTickets", func(t *testing.T) {
+		for _, test := range tests {
+			test := test
+			t.Run(test.description, func(t *testing.T) {
+				t.Parallel()
+				tc := createMinimatchForTest(t)
+				defer tc.Close()
+
+				mml := pb.NewMmLogicClient(tc.MustGRPC())
+				fe := pb.NewFrontendClient(tc.MustGRPC())
+				pageCounts := 0
+
+				test.preAction(fe, t)
+
+				stream, err := mml.QueryTickets(tc.Context(), &pb.QueryTicketsRequest{Pool: test.pool})
+				assert.Nil(t, err)
+
+				var actualTickets []*pb.Ticket
+
+				for {
+					resp, err := stream.Recv()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						assert.Equal(t, test.wantCode, status.Convert(err).Code())
+						break
+					}
+
+					actualTickets = append(actualTickets, resp.Ticket...)
+					pageCounts++
+				}
+
+				require.Equal(t, len(test.wantTickets), len(actualTickets))
+				// Test fields by fields because of the randomness of the ticket ids...
+				// TODO: this makes testing overcomplicated. Should figure out a way to avoid the randomness
+				// This for loop also relies on the fact that redis range query and the ticket generator both returns tickets in sorted order.
+				// If this fact changes, we might need an ugly nested for loop to do the validness checks.
+				for i := 0; i < len(actualTickets); i++ {
+					assert.Equal(t, test.wantTickets[i].GetAssignment(), actualTickets[i].GetAssignment())
+					assert.Equal(t, test.wantTickets[i].GetProperties(), actualTickets[i].GetProperties())
+				}
+				assert.Equal(t, test.wantPageCount, pageCounts)
+			})
 		}
-		handleResponse(resp, err)
-		if err != nil {
-			return
-		}
-	}
+	})
 }
 
 // validateTicket validates that the fetched ticket is identical to the expected ticket.

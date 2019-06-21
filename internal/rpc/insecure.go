@@ -31,22 +31,18 @@ import (
 )
 
 type insecureServer struct {
-	grpcLh          *netlistener.ListenerHolder
-	grpcListener    net.Listener
-	grpcServeWaiter chan error
-	grpcServer      *grpc.Server
+	grpcLh       *netlistener.ListenerHolder
+	grpcListener net.Listener
+	grpcServer   *grpc.Server
 
-	httpLh          *netlistener.ListenerHolder
-	httpListener    net.Listener
-	httpServeWaiter chan error
-	httpMux         *http.ServeMux
-	proxyMux        *runtime.ServeMux
-	httpServer      *http.Server
+	httpLh       *netlistener.ListenerHolder
+	httpListener net.Listener
+	httpMux      *http.ServeMux
+	proxyMux     *runtime.ServeMux
+	httpServer   *http.Server
 }
 
 func (s *insecureServer) start(params *ServerParams) (func(), error) {
-	s.grpcServeWaiter = make(chan error)
-	s.httpServeWaiter = make(chan error)
 	var serverStartWaiter sync.WaitGroup
 
 	s.httpMux = params.ServeMux
@@ -67,7 +63,10 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
-		s.grpcServeWaiter <- s.grpcServer.Serve(s.grpcListener)
+		gErr := s.grpcServer.Serve(s.grpcListener)
+		if gErr != nil {
+			return
+		}
 	}()
 
 	// Configure the HTTP proxy server.
@@ -78,10 +77,11 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	s.httpListener = httpListener
 
 	// Bind gRPC handlers
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
 		if err = handlerFunc(ctx, s.proxyMux, grpcListener.Addr().String(), []grpc.DialOption{grpc.WithInsecure()}); err != nil {
+			cancel()
 			return func() {}, errors.WithStack(err)
 		}
 	}
@@ -95,7 +95,11 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
-		s.httpServeWaiter <- s.httpServer.Serve(s.httpListener)
+		hErr := s.httpServer.Serve(s.httpListener)
+		defer cancel()
+		if hErr != nil {
+			return
+		}
 	}()
 
 	return serverStartWaiter.Wait, nil

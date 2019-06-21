@@ -17,10 +17,8 @@ package mmlogic
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -28,15 +26,9 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	internalTesting "open-match.dev/open-match/internal/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
-
-type propertyManifest struct {
-	name     string
-	min      float64
-	max      float64
-	interval float64
-}
 
 func TestDoQueryTickets(t *testing.T) {
 	const (
@@ -57,7 +49,10 @@ func TestDoQueryTickets(t *testing.T) {
 		}
 	}
 
-	testTickets := generateTickets(propertyManifest{attribute1, 0, 20, 5}, propertyManifest{attribute2, 0, 20, 5})
+	testTickets := internalTesting.GenerateTickets(
+		internalTesting.Property{Name: attribute1, Min: 0, Max: 20, Interval: 5},
+		internalTesting.Property{Name: attribute2, Min: 0, Max: 20, Interval: 5},
+	)
 
 	tests := []struct {
 		description string
@@ -101,7 +96,10 @@ func TestDoQueryTickets(t *testing.T) {
 				}
 			},
 			nil,
-			generateTickets(propertyManifest{attribute1, 0, 10.1, 5}, propertyManifest{attribute2, 0, 20, 5}),
+			internalTesting.GenerateTickets(
+				internalTesting.Property{Name: attribute1, Min: 0, Max: 10.1, Interval: 5},
+				internalTesting.Property{Name: attribute2, Min: 0, Max: 20, Interval: 5},
+			),
 		},
 		{
 			"expect error from canceled context",
@@ -140,26 +138,6 @@ func TestDoQueryTickets(t *testing.T) {
 			}
 		})
 	}
-}
-
-func generateTickets(manifest1, manifest2 propertyManifest) []*pb.Ticket {
-	testTickets := make([]*pb.Ticket, 0)
-
-	for i := manifest1.min; i < manifest1.max; i += manifest1.interval {
-		for j := manifest2.min; j < manifest2.max; j += manifest2.interval {
-			testTickets = append(testTickets, &pb.Ticket{
-				Id: fmt.Sprintf("%s%f-%s%f", manifest1.name, i, manifest2.name, j),
-				Properties: &structpb.Struct{
-					Fields: map[string]*structpb.Value{
-						manifest1.name: {Kind: &structpb.Value_NumberValue{NumberValue: i}},
-						manifest2.name: {Kind: &structpb.Value_NumberValue{NumberValue: j}},
-					},
-				},
-			})
-		}
-	}
-
-	return testTickets
 }
 
 func TestGetPageSize(t *testing.T) {
