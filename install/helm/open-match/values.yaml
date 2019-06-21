@@ -81,7 +81,7 @@ openmatch:
 
   config:
     install: true
-    mountPath: /config
+    mountPath: /app/config
     files:
       matchmaker_config.yaml:
         debug: true

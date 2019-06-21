@@ -28,7 +28,7 @@ import (
 
 var (
 	port      = flag.Int("port", 51500, "HTTP port number")
-	directory = flag.String("directory", "/static", "Directory to serve.")
+	directory = flag.String("directory", "/app/static", "Directory to serve.")
 )
 
 func main() {
