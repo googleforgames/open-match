@@ -28,28 +28,38 @@ import (
 
 func TestFetchMatches(t *testing.T) {
 	assert := assert.New(t)
-	tc := createBackendForTest(t)
+	tc := createMinimatchForTest(t)
 	defer tc.Close()
 
 	be := pb.NewBackendClient(tc.MustGRPC())
 
 	var tt = []struct {
-		req  *pb.FetchMatchesRequest
-		resp *pb.FetchMatchesResponse
-		code codes.Code
+		description string
+		fc          *pb.FunctionConfig
+		profile     []*pb.MatchProfile
+		wantMatch   *pb.Match
+		code        codes.Code
 	}{
 		{
-			&pb.FetchMatchesRequest{},
+			"expects invalid argument code since request is empty",
+			nil,
+			nil,
 			nil,
 			codes.InvalidArgument,
 		},
 	}
 
-	for _, test := range tt {
-		fetchMatchesLoop(t, tc, be, test.req, func(_ *pb.FetchMatchesResponse, err error) {
-			assert.Equal(test.code, status.Convert(err).Code())
-		})
-	}
+	t.Run("TestFetchMatches", func(t *testing.T) {
+		for _, test := range tt {
+			test := test
+			t.Run(test.description, func(t *testing.T) {
+				t.Parallel()
+				fetchMatchesLoop(t, tc, be, &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile}, func(_ *pb.FetchMatchesResponse, err error) {
+					assert.Equal(test.code, status.Convert(err).Code())
+				})
+			})
+		}
+	})
 }
 
 // TODO: Add FetchMatchesNormalTest when Hostname getter used to initialize mmf service is in

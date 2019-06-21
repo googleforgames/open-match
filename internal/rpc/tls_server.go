@@ -46,22 +46,18 @@ var (
 )
 
 type tlsServer struct {
-	grpcLh          *netlistener.ListenerHolder
-	grpcListener    net.Listener
-	grpcServeWaiter chan error
-	grpcServer      *grpc.Server
+	grpcLh       *netlistener.ListenerHolder
+	grpcListener net.Listener
+	grpcServer   *grpc.Server
 
-	httpLh          *netlistener.ListenerHolder
-	httpListener    net.Listener
-	httpServeWaiter chan error
-	httpMux         *http.ServeMux
-	proxyMux        *runtime.ServeMux
-	httpServer      *http.Server
+	httpLh       *netlistener.ListenerHolder
+	httpListener net.Listener
+	httpMux      *http.ServeMux
+	proxyMux     *runtime.ServeMux
+	httpServer   *http.Server
 }
 
 func (s *tlsServer) start(params *ServerParams) (func(), error) {
-	s.grpcServeWaiter = make(chan error)
-	s.httpServeWaiter = make(chan error)
 	var serverStartWaiter sync.WaitGroup
 
 	s.httpMux = params.ServeMux
@@ -98,7 +94,10 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
-		s.grpcServeWaiter <- s.grpcServer.Serve(s.grpcListener)
+		gErr := s.grpcServer.Serve(s.grpcListener)
+		if gErr != nil {
+			return
+		}
 	}()
 
 	// Start HTTP server
@@ -108,12 +107,13 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	}
 	s.httpListener = httpListener
 	// Bind gRPC handlers
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 
 	httpsToGrpcProxyOptions := []grpc.DialOption{grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(certPoolForGrpcEndpoint, ""))}
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
 		if err = handlerFunc(ctx, s.proxyMux, grpcAddress, httpsToGrpcProxyOptions); err != nil {
+			cancel()
 			return func() {}, errors.WithStack(err)
 		}
 	}
@@ -136,7 +136,11 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	go func() {
 		serverStartWaiter.Done()
 		tlsListener := tls.NewListener(s.httpListener, s.httpServer.TLSConfig)
-		s.httpServeWaiter <- s.httpServer.Serve(tlsListener)
+		hErr := s.httpServer.Serve(tlsListener)
+		defer cancel()
+		if hErr != nil {
+			return
+		}
 	}()
 
 	// Wait for the servers to come up.

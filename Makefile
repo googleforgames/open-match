@@ -139,11 +139,6 @@ DASHBOARD_PORT = 9092
 # Open Match Cluster E2E Test Variables
 OPEN_MATCH_CI_LABEL = open-match-ci
 
-# Indicate that :canary images are the latest submitted code that's tested.
-ifeq ($(_GCB_POST_SUBMIT),1)
-	ALTERNATE_TAG = canary
-endif
-
 # This flag is set when running in Continuous Integration.
 ifdef ALLOW_BUILD_WITH_SUDO
 	GCLOUD = gcloud --quiet --no-user-output-enabled
@@ -236,7 +231,6 @@ ifeq ($(BASE_VERSION),0.0.0-dev)
 	docker push $(REGISTRY)/openmatch-$*:$(DATED_CANARY_TAG)
 	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
 	docker push $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
-	
 endif
 endif
 

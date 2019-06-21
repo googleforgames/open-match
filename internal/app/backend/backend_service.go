@@ -100,11 +100,12 @@ func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *s
 	var err error
 
 	configType := req.GetConfig().GetType()
+	address := fmt.Sprintf("%s:%d", req.GetConfig().GetHost(), req.GetConfig().GetPort())
 
-	switch configType.(type) {
+	switch configType {
 	// MatchFunction Hosted as a GRPC service
-	case *pb.FunctionConfig_Grpc:
-		grpcClient, err = getGRPCClient(cfg, mmfClients, configType.(*pb.FunctionConfig_Grpc))
+	case pb.FunctionConfig_GRPC:
+		grpcClient, err = getGRPCClient(cfg, mmfClients, address)
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
@@ -113,8 +114,8 @@ func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *s
 			return status.Error(codes.InvalidArgument, "failed to connect to match function")
 		}
 	// MatchFunction Hosted as a REST service
-	case *pb.FunctionConfig_Rest:
-		httpClient, baseURL, err = getHTTPClient(cfg, mmfClients, configType.(*pb.FunctionConfig_Rest))
+	case pb.FunctionConfig_REST:
+		httpClient, baseURL, err = getHTTPClient(cfg, mmfClients, address)
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
@@ -133,11 +134,11 @@ func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *s
 			// TODO: The matches returned by the MatchFunction will be sent to the
 			// Evaluator to select results. Until the evaluator is implemented,
 			// we channel all matches as accepted results.
-			switch configType.(type) {
-			case *pb.FunctionConfig_Grpc:
+			switch configType {
+			case pb.FunctionConfig_GRPC:
 				matches, err := matchesFromGRPCMMF(ctx, profile, grpcClient)
 				resultChan <- mmfResult{matches, err}
-			case *pb.FunctionConfig_Rest:
+			case pb.FunctionConfig_REST:
 				matches, err := matchesFromHTTPMMF(ctx, profile, httpClient, baseURL)
 				resultChan <- mmfResult{matches, err}
 			}
@@ -179,37 +180,35 @@ func doFetchMatchesSendResponse(ctx context.Context, proposals []*pb.Match, send
 	return nil
 }
 
-func getHTTPClient(cfg config.View, mmfClients *sync.Map, funcConfig *pb.FunctionConfig_Rest) (*http.Client, string, error) {
-	addr := fmt.Sprintf("%s:%d", funcConfig.Rest.GetHost(), funcConfig.Rest.GetPort())
+func getHTTPClient(cfg config.View, mmfClients *sync.Map, addr string) (*http.Client, string, error) {
 	val, exists := mmfClients.Load(addr)
 	data, ok := val.(httpData)
 	if !ok || !exists {
-		client, baseURL, err := rpc.HTTPClientFromEndpoint(cfg, funcConfig.Rest.GetHost(), int(funcConfig.Rest.GetPort()))
+		client, baseURL, err := rpc.HTTPClientFromEndpoint(cfg, addr)
 		if err != nil {
 			return nil, "", err
 		}
 		data = httpData{client, baseURL}
 		mmfClients.Store(addr, data)
 		logger.WithFields(logrus.Fields{
-			"address": funcConfig,
+			"address": addr,
 		}).Info("successfully connected to the HTTP match function service")
 	}
 	return data.client, data.baseURL, nil
 }
 
-func getGRPCClient(cfg config.View, mmfClients *sync.Map, funcConfig *pb.FunctionConfig_Grpc) (pb.MatchFunctionClient, error) {
-	addr := fmt.Sprintf("%s:%d", funcConfig.Grpc.GetHost(), funcConfig.Grpc.GetPort())
+func getGRPCClient(cfg config.View, mmfClients *sync.Map, addr string) (pb.MatchFunctionClient, error) {
 	val, exists := mmfClients.Load(addr)
 	data, ok := val.(grpcData)
 	if !ok || !exists {
-		conn, err := rpc.GRPCClientFromEndpoint(cfg, funcConfig.Grpc.GetHost(), int(funcConfig.Grpc.GetPort()))
+		conn, err := rpc.GRPCClientFromEndpoint(cfg, addr)
 		if err != nil {
 			return nil, err
 		}
 		data = grpcData{pb.NewMatchFunctionClient(conn)}
 		mmfClients.Store(addr, data)
 		logger.WithFields(logrus.Fields{
-			"address": funcConfig,
+			"address": addr,
 		}).Info("successfully connected to the GRPC match function service")
 	}
 
