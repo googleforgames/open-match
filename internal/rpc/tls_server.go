@@ -94,8 +94,8 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
-		err = s.grpcServer.Serve(s.grpcListener)
-		if err != nil {
+		gErr := s.grpcServer.Serve(s.grpcListener)
+		if gErr != nil {
 			return
 		}
 	}()
@@ -136,9 +136,9 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	go func() {
 		serverStartWaiter.Done()
 		tlsListener := tls.NewListener(s.httpListener, s.httpServer.TLSConfig)
-		err = s.httpServer.Serve(tlsListener)
+		hErr := s.httpServer.Serve(tlsListener)
 		defer cancel()
-		if err != nil {
+		if hErr != nil {
 			return
 		}
 	}()
