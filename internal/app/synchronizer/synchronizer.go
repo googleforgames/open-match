@@ -20,7 +20,6 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/internal/statestore"
 )
 
 var (
@@ -57,13 +56,8 @@ func RunApplication() {
 
 // BindService creates the synchronizer service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View) error {
-	service := &synchronizerService{
-		cfg:   cfg,
-		store: statestore.New(cfg),
-	}
-
-	p.AddHealthCheckFunc(service.store.HealthCheck)
-
+	evalFunction := getEvaluator()
+	service := newSynchronizerService(cfg, evalFunction)
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterSynchronizerServer(s, service)
 	}, pb.RegisterSynchronizerHandlerFromEndpoint)
