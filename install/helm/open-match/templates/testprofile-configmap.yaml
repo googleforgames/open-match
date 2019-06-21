@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if .Values.openmatch.demofunction.install }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -25,3 +26,4 @@ metadata:
     heritage: {{ .Release.Service }}
 data:
   {{- (.Files.Glob "config/backendclient/testprofile.json").AsConfig | nindent 2 }}
+{{- end }}
