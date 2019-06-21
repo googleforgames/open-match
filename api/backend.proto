@@ -76,7 +76,7 @@ message FetchMatchesRequest {
 
 message FetchMatchesResponse {
   // Result Match for the requested MatchProfile.
-  Match match = 1;
+  repeated Match match = 1;
 }
 
 message AssignTicketsRequest {
@@ -96,7 +96,7 @@ service Backend {
   // specified MatchProfiles. Each MatchFunction execution returns a set of
   // proposals which are then evaluated to generate results. FetchMatch method
   // streams these results back to the caller.
-  rpc FetchMatches(FetchMatchesRequest) returns (stream FetchMatchesResponse) {
+  rpc FetchMatches(FetchMatchesRequest) returns (FetchMatchesResponse) {
     option (google.api.http) = {
       post: "/v1/backend/matches:fetch"
       body: "*"

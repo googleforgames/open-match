@@ -15,14 +15,12 @@
 package minimatch
 
 import (
-	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -54,29 +52,9 @@ func TestFetchMatches(t *testing.T) {
 			test := test
 			t.Run(test.description, func(t *testing.T) {
 				t.Parallel()
-				fetchMatchesLoop(t, tc, be, &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile}, func(_ *pb.FetchMatchesResponse, err error) {
-					assert.Equal(test.code, status.Convert(err).Code())
-				})
+				_, err := be.FetchMatches(tc.Context(), &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile})
+				assert.Equal(test.code, status.Convert(err).Code())
 			})
 		}
 	})
-}
-
-// TODO: Add FetchMatchesNormalTest when Hostname getter used to initialize mmf service is in
-// https://github.com/GoogleCloudPlatform/open-match/pull/473
-func fetchMatchesLoop(t *testing.T, tc *rpcTesting.TestContext, be pb.BackendClient, req *pb.FetchMatchesRequest, handleResponse func(*pb.FetchMatchesResponse, error)) {
-	stream, err := be.FetchMatches(tc.Context(), req)
-	if err != nil {
-		t.Fatalf("error querying tickets, %v", err)
-	}
-	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		handleResponse(resp, err)
-		if err != nil {
-			return
-		}
-	}
 }

@@ -28,7 +28,7 @@ var _ status.Status
 var _ = runtime.String
 var _ = utilities.NewDoubleArray
 
-func request_Backend_FetchMatches_0(ctx context.Context, marshaler runtime.Marshaler, client BackendClient, req *http.Request, pathParams map[string]string) (Backend_FetchMatchesClient, runtime.ServerMetadata, error) {
+func request_Backend_FetchMatches_0(ctx context.Context, marshaler runtime.Marshaler, client BackendClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq FetchMatchesRequest
 	var metadata runtime.ServerMetadata
 
@@ -40,16 +40,8 @@ func request_Backend_FetchMatches_0(ctx context.Context, marshaler runtime.Marsh
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	stream, err := client.FetchMatches(ctx, &protoReq)
-	if err != nil {
-		return nil, metadata, err
-	}
-	header, err := stream.Header()
-	if err != nil {
-		return nil, metadata, err
-	}
-	metadata.HeaderMD = header
-	return stream, metadata, nil
+	msg, err := client.FetchMatches(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
 
 }
 
@@ -124,7 +116,7 @@ func RegisterBackendHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 			return
 		}
 
-		forward_Backend_FetchMatches_0(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
+		forward_Backend_FetchMatches_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -158,7 +150,7 @@ var (
 )
 
 var (
-	forward_Backend_FetchMatches_0 = runtime.ForwardResponseStream
+	forward_Backend_FetchMatches_0 = runtime.ForwardResponseMessage
 
 	forward_Backend_AssignTickets_0 = runtime.ForwardResponseMessage
 )
