@@ -59,17 +59,25 @@ openmatch:
       port: 50506
     http:
       port: 51506
-  functions:
-    replicas: 3
-    grpc:
-      port: 50502
-    http:
-      port: 51502
   swaggerui:
     install: true
     replicas: 3
     http:
       port: 50500
+  demofunction:
+    install: true
+    grpc:
+      port: 50502
+    http:
+      port: 51502
+    replicas: 3
+  demo:
+    # TODO: Change to true once the demo is available.
+    # It's currently missing liveness/readiness checks.
+    install: false
+    http:
+      port: 51507
+    replicas: 3
 
   config:
     install: true
@@ -115,8 +123,8 @@ openmatch:
             grpcport: "{{.Values.openmatch.synchronizer.grpc.port}}"
             httpport: "{{.Values.openmatch.synchronizer.http.port}}"
           functions:
-            grpcport: "{{.Values.openmatch.functions.grpc.port}}"
-            httpport: "{{.Values.openmatch.functions.http.port}}"
+            grpcport: "{{.Values.openmatch.demofunction.grpc.port}}"
+            httpport: "{{.Values.openmatch.demofunction.http.port}}"
 
         synchronizer:
           pollIntervalMs: 1000
@@ -213,6 +221,12 @@ openmatch:
       pullPolicy: Always
     swaggerui:
       name: openmatch-swaggerui
+      pullPolicy: Always
+    demofunction:
+      name: openmatch-mmf-go-soloduel
+      pullPolicy: Always
+    demo:
+      name: openmatch-demo
       pullPolicy: Always
 
 # https://hub.helm.sh/charts/stable/redis

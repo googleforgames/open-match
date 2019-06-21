@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
- FROM open-match-base-build as builder
+FROM open-match-base-build as builder
 
- WORKDIR /go/src/open-match.dev/open-match/examples/demo
+WORKDIR /go/src/open-match.dev/open-match/examples/demo
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o demo .
 
- FROM gcr.io/distroless/static
+FROM gcr.io/distroless/static
 COPY --from=builder /go/src/open-match.dev/open-match/examples/demo/demo .
 
- ADD ./examples/demo/static /static
+ADD ./examples/demo/static /static
 
- ENTRYPOINT ["/demo"]
+ENTRYPOINT ["/demo"]
