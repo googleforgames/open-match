@@ -96,7 +96,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 		serverStartWaiter.Done()
 		gErr := s.grpcServer.Serve(s.grpcListener)
 		if gErr != nil {
-			return
+			tlsServerLogger.Debugf("error closing gRPC server: %s", gErr)
 		}
 	}()
 
@@ -139,7 +139,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 		hErr := s.httpServer.Serve(tlsListener)
 		defer cancel()
 		if hErr != nil {
-			return
+			tlsServerLogger.Debugf("error closing server: %s", hErr)
 		}
 	}()
 
@@ -150,15 +150,15 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 func (s *tlsServer) stop() {
 	s.grpcServer.Stop()
 	if err := s.grpcListener.Close(); err != nil {
-		tlsServerLogger.Error(err)
+		tlsServerLogger.Debugf("error closing gRPC listener: %s", err)
 	}
 
 	if err := s.httpServer.Close(); err != nil {
-		tlsServerLogger.Error(err)
+		tlsServerLogger.Debugf("error closing HTTP server: %s", err)
 	}
 
 	if err := s.httpListener.Close(); err != nil {
-		tlsServerLogger.Error(err)
+		tlsServerLogger.Debugf("error closing HTTP listener: %s", err)
 	}
 }
 
