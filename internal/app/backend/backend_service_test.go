@@ -39,11 +39,15 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 	secureCfg := viper.New()
 	secureCfg.Set("tls.enabled", true)
 	restFuncCfg := &pb.FetchMatchesRequest{
-		Config:  &pb.FunctionConfig{Name: "test", Type: &pb.FunctionConfig_Rest{Rest: &pb.RestFunctionConfig{Host: "om-test", Port: int32(54321)}}},
+		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_REST},
 		Profile: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
 	}
 	grpcFuncCfg := &pb.FetchMatchesRequest{
-		Config:  &pb.FunctionConfig{Name: "test", Type: &pb.FunctionConfig_Grpc{Grpc: &pb.GrpcFunctionConfig{Host: "om-test", Port: int32(54321)}}},
+		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_GRPC},
+		Profile: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
+	}
+	unsupporteFuncCfg := &pb.FetchMatchesRequest{
+		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: 3},
 		Profile: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
 	}
 
@@ -79,7 +83,7 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 		},
 		{
 			"one of the rest/grpc config is required to process the request",
-			nil,
+			unsupporteFuncCfg,
 			status.Error(codes.InvalidArgument, "provided match function type is not supported"),
 			insecureCfg,
 		},
@@ -221,11 +225,11 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 func TestGetHTTPClient(t *testing.T) {
 	assert := assert.New(t)
 	cache := &sync.Map{}
-	client, url, err := getHTTPClient(viper.New(), cache, &pb.FunctionConfig_Rest{Rest: &pb.RestFunctionConfig{Host: "om-test", Port: int32(50321)}})
+	client, url, err := getHTTPClient(viper.New(), cache, "om-test:54321")
 	assert.Nil(err)
 	assert.NotNil(client)
 	assert.NotNil(url)
-	cachedClient, url, err := getHTTPClient(viper.New(), cache, &pb.FunctionConfig_Rest{Rest: &pb.RestFunctionConfig{Host: "om-test", Port: int32(50321)}})
+	cachedClient, url, err := getHTTPClient(viper.New(), cache, "om-test:54321")
 	assert.Nil(err)
 	assert.NotNil(client)
 	assert.NotNil(url)
@@ -237,10 +241,10 @@ func TestGetHTTPClient(t *testing.T) {
 func TestGetGRPCClient(t *testing.T) {
 	assert := assert.New(t)
 	cache := &sync.Map{}
-	client, err := getGRPCClient(viper.New(), cache, &pb.FunctionConfig_Grpc{Grpc: &pb.GrpcFunctionConfig{Host: "om-test", Port: int32(50321)}})
+	client, err := getGRPCClient(viper.New(), cache, "om-test:54321")
 	assert.Nil(err)
 	assert.NotNil(client)
-	cachedClient, err := getGRPCClient(viper.New(), cache, &pb.FunctionConfig_Grpc{Grpc: &pb.GrpcFunctionConfig{Host: "om-test", Port: int32(50321)}})
+	cachedClient, err := getGRPCClient(viper.New(), cache, "om-test:54321")
 	assert.Nil(err)
 	assert.NotNil(client)
 

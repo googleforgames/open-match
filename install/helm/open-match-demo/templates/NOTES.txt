@@ -1,3 +1,0 @@
-The Open Match demo has been installed in the namespace {{ .Release.Namespace }}.
-
-You can watch the status by running 'kubectl --namespace {{ .Release.Namespace }} get pods,svc'

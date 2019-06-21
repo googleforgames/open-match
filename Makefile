@@ -71,7 +71,8 @@ HTMLTEST_VERSION = 0.10.3
 GOLANGCI_VERSION = 1.17.1
 KIND_VERSION = 0.3.0
 SWAGGERUI_VERSION = 3.22.3
-TERRAFORM_VERSION = 0.12.1
+TERRAFORM_VERSION = 0.12.2
+CHART_TESTING_VERSION = 2.3.3
 
 ENABLE_SECURITY_HARDENING = 0
 GO = GO111MODULE=on go
@@ -119,10 +120,10 @@ TERRAFORM = $(TOOLCHAIN_BIN)/terraform$(EXE_EXTENSION)
 SKAFFOLD = $(TOOLCHAIN_BIN)/skaffold$(EXE_EXTENSION)
 CERTGEN = $(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION)
 GOLANGCI = $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
+CHART_TESTING = $(TOOLCHAIN_BIN)/ct$(EXE_EXTENSION)
 GCLOUD = gcloud --quiet
 OPEN_MATCH_CHART_NAME = open-match
 OPEN_MATCH_KUBERNETES_NAMESPACE = open-match
-OPEN_MATCH_DEMO_CHART_NAME = open-match-demo
 OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE = open-match
 OPEN_MATCH_SECRETS_DIR = $(REPOSITORY_ROOT)/install/helm/open-match/secrets
 REDIS_NAME = om-redis
@@ -173,6 +174,7 @@ ifeq ($(OS),Windows_NT)
 	GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-windows-amd64.zip
 	KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-windows-amd64
 	TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_windows_amd64.zip
+	CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_windows_amd64.zip
 	SED_REPLACE = sed -i
 else
 	UNAME_S := $(shell uname -s)
@@ -187,6 +189,7 @@ else
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64.tar.gz
 		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-linux-amd64
 		TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_linux_amd64.zip
+		CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_linux_amd64.tar.gz
 		SED_REPLACE = sed -i
 	endif
 	ifeq ($(UNAME_S),Darwin)
@@ -200,6 +203,7 @@ else
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-darwin-amd64.tar.gz
 		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-darwin-amd64
 		TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_darwin_amd64.zip
+		CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_darwin_amd64.tar.gz
 		SED_REPLACE = sed -i ''
 	endif
 endif
@@ -298,13 +302,28 @@ install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
 update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com; $(HELM) dependency update)
 
-lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd $(REPOSITORY_ROOT)/install/helm; $(HELM) lint $(OPEN_MATCH_CHART_NAME); $(HELM) lint $(OPEN_MATCH_DEMO_CHART_NAME))
+lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/ct$(EXE_EXTENSION)
+	(cd $(REPOSITORY_ROOT)/install/helm; $(HELM) lint $(OPEN_MATCH_CHART_NAME))
+	$(CHART_TESTING) lint --all --chart-yaml-schema $(TOOLCHAIN_BIN)/etc/chart_schema.yaml --lint-conf $(TOOLCHAIN_BIN)/etc/lintconf.yaml --chart-dirs $(REPOSITORY_ROOT)/install/helm/
+	$(CHART_TESTING) lint-and-install --all --chart-yaml-schema $(TOOLCHAIN_BIN)/etc/chart_schema.yaml --lint-conf $(TOOLCHAIN_BIN)/etc/lintconf.yaml --chart-dirs $(REPOSITORY_ROOT)/install/helm/
 
 print-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd $(REPOSITORY_ROOT)/install/helm; $(HELM) install --name $(OPEN_MATCH_CHART_NAME) --dry-run --debug $(OPEN_MATCH_CHART_NAME); $(HELM) install --name $(OPEN_MATCH_DEMO_CHART_NAME) --dry-run --debug $(OPEN_MATCH_DEMO_CHART_NAME))
+	(cd $(REPOSITORY_ROOT)/install/helm; $(HELM) install --name $(OPEN_MATCH_CHART_NAME) --dry-run --debug $(OPEN_MATCH_CHART_NAME))
+build/chart/open-match-$(BASE_VERSION).tgz: build/toolchain/bin/helm$(EXE_EXTENSION) lint-chart
+	mkdir -p $(BUILD_DIR)/chart/
+	$(HELM) init --client-only
+	$(HELM) package -d $(BUILD_DIR)/chart/ --version $(BASE_VERSION) $(REPOSITORY_ROOT)/install/helm/open-match
 
-install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+build/chart/index.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) gcloud build/chart/open-match-$(BASE_VERSION).tgz
+	-gsutil cp gs://open-match-chart/chart/index.yaml $(BUILD_DIR)/chart-index/
+	$(HELM) repo index --merge $(BUILD_DIR)/chart/index.yaml $(BUILD_DIR)/chart/
+
+build/chart/index.yaml.$(YEAR_MONTH_DAY): build/chart/index.yaml
+	cp $(BUILD_DIR)/chart/index.yaml $(BUILD_DIR)/chart/index.yaml.$(YEAR_MONTH_DAY)
+
+build/chart/: build/chart/index.yaml build/chart/index.yaml.$(YEAR_MONTH_DAY)
+
+install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -317,7 +336,7 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-chart-slim: build/toolchain/bin/helm$(EXE_EXTENSION)
+install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -329,15 +348,6 @@ install-chart-slim: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set redis.enabled=true \
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
-
-install-demo-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade $(OPEN_MATCH_DEMO_CHART_NAME) --install --wait --debug install/helm/open-match-demo \
-	  --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
-	  --set openmatch.image.registry=$(REGISTRY) \
-	  --set openmatch.image.tag=$(TAG)
-
-delete-demo-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	-$(HELM) delete --purge $(OPEN_MATCH_DEMO_CHART_NAME)
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
@@ -363,6 +373,8 @@ install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demo.install=false \
+		--set openmatch.demofunction.install=false \
 		--set redis.enabled=true \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=false \
@@ -391,6 +403,8 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demo.install=false \
+		--set openmatch.demofunction.install=false \
 		--set redis.enabled=false \
 		--set prometheus.enabled=true \
 		--set grafana.enabled=false \
@@ -407,6 +421,8 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demo.install=false \
+		--set openmatch.demofunction.install=false \
 		--set redis.enabled=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=true \
@@ -423,6 +439,8 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demo.install=false \
+		--set openmatch.demofunction.install=false \
 		--set redis.enabled=false \
 		--set prometheus.enabled=false \
 		--set grafana.enabled=false \
@@ -434,6 +452,8 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
+		--set openmatch.demo.install=false \
+		--set openmatch.demofunction.install=false \
 		--set redis.enabled=true \
 		--set prometheus.enabled=true \
 		--set grafana.enabled=true \
@@ -442,10 +462,22 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/install-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_DEMO_CHART_NAME) --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
-		install/helm/open-match-demo > install/yaml/install-demo.yaml
+		--set openmatch.config.install=false \
+		--set openmatch.backend.install=false \
+		--set openmatch.frontend.install=false \
+		--set openmatch.mmlogic.install=false \
+		--set openmatch.synchronizer.install=false \
+		--set openmatch.swaggerui.install=false \
+		--set openmatch.demo.install=true \
+		--set openmatch.demofunction.install=true \
+		--set redis.enabled=false \
+		--set prometheus.enabled=false \
+		--set grafana.enabled=false \
+		--set jaeger.enabled=false \
+		install/helm/open-match > install/yaml/install-demo.yaml
 
 set-redis-password:
 	@stty -echo; \
@@ -471,6 +503,17 @@ endif
 	mv $(TOOLCHAIN_DIR)/temp-helm/helm$(EXE_EXTENSION) $(HELM)
 	mv $(TOOLCHAIN_DIR)/temp-helm/tiller$(EXE_EXTENSION) $(TILLER)
 	rm -rf $(TOOLCHAIN_DIR)/temp-helm/
+
+build/toolchain/bin/ct$(EXE_EXTENSION):
+	mkdir -p $(TOOLCHAIN_BIN)
+	mkdir -p $(TOOLCHAIN_DIR)/temp-charttesting
+ifeq ($(suffix $(CHART_TESTING_PACKAGE)),.zip)
+	cd $(TOOLCHAIN_DIR)/temp-charttesting && curl -Lo charttesting.zip $(CHART_TESTING_PACKAGE) && unzip -j -q -o charttesting.zip
+else
+	cd $(TOOLCHAIN_DIR)/temp-charttesting && curl -Lo charttesting.tar.gz $(CHART_TESTING_PACKAGE) && tar xzf charttesting.tar.gz
+endif
+	mv $(TOOLCHAIN_DIR)/temp-charttesting/* $(TOOLCHAIN_BIN)
+	rm -rf $(TOOLCHAIN_DIR)/temp-charttesting/
 
 build/toolchain/bin/minikube$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -609,7 +652,7 @@ get-kind-kubeconfig: build/toolchain/bin/kind$(EXE_EXTENSION)
 delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(KIND) delete cluster
 
-create-gke-cluster: GKE_VERSION = 1.13.6-gke.6 # gcloud beta container get-server-config --zone us-central1-a
+create-gke-cluster: GKE_VERSION = 1.13.6 # gcloud beta container get-server-config --zone us-central1-a
 create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
@@ -697,7 +740,7 @@ golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 
 lint: fmt vet golangci lint-chart
 
-assets: all-protos tls-certs third_party/
+assets: all-protos tls-certs third_party/ build/chart/
 
 all: service-binaries example-binaries tools-binaries
 
@@ -776,12 +819,15 @@ build/certificates/: build/toolchain/bin/certgen$(EXE_EXTENSION)
 md-test: docker
 	docker run -t --rm -v $(CURDIR):/mnt:ro dkhamsing/awesome_bot --white-list "localhost,github.com/googleforgames/open-match/tree/release-,github.com/googleforgames/open-match/blob/release-,github.com/googleforgames/open-match/releases/download/v" --allow-dupe --allow-redirect --skip-save-results `find . -type f -name '*.md' -not -path './build/*' -not -path './.git*'`
 
-ci-deploy-artifacts: install/yaml/ swagger-json-docs gcloud
+ci-deploy-artifacts: install/yaml/ swagger-json-docs build/chart/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
 	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/v$(BASE_VERSION)/yaml/
 	gsutil cp -a public-read $(REPOSITORY_ROOT)/api/*.json gs://open-match-chart/api/v$(BASE_VERSION)/
-	# TODO Add Helm Artifacts later.
-	# Example: https://github.com/GoogleCloudPlatform/agones/blob/3b324a74e5e8f7049c2169ec589e627d4c8cab79/build/Makefile#L211
+	# Deploy Helm Chart
+	# Since each build will refresh just it's version we can allow this for every post submit.
+	# Copy the files into multiple locations to keep a backup.
+	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* gs://open-match-chart/chart/by-hash/$(VERSION)/
+	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* gs://open-match-chart/chart/
 else
 	@echo "Not deploying build artifacts to open-match.dev because this is not a post commit change."
 endif
@@ -832,6 +878,9 @@ clean-build: clean-toolchain clean-archives clean-release
 clean-toolchain:
 	rm -rf $(TOOLCHAIN_DIR)/
 
+clean-chart:
+	rm -rf $(BUILD_DIR)/chart/
+
 clean-archives:
 	rm -rf $(BUILD_DIR)/archives/
 
@@ -848,7 +897,7 @@ clean-swagger-docs:
 clean-swaggerui:
 	rm -rf $(REPOSITORY_ROOT)/third_party/swaggerui/
 
-clean: clean-images clean-binaries clean-release clean-build clean-protos clean-swagger-docs clean-install-yaml clean-stress-test-tools clean-secrets clean-swaggerui clean-terraform
+clean: clean-images clean-binaries clean-release clean-chart clean-build clean-protos clean-swagger-docs clean-install-yaml clean-stress-test-tools clean-secrets clean-swaggerui clean-terraform
 
 proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Frontend Health: http://localhost:$(FRONTEND_PORT)/healthz"
@@ -891,7 +940,7 @@ proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "View Demo: http://localhost:$(DEMO_PORT)"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) --selector="app=open-match-demo,component=demo,release=$(OPEN_MATCH_DEMO_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(DEMO_PORT):51507 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) --selector="app=open-match-demo,component=demo,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(DEMO_PORT):51507 $(PORT_FORWARD_ADDRESS_FLAG)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.

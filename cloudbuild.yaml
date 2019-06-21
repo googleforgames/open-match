@@ -120,14 +120,6 @@ steps:
     path: '/go'
   waitFor: ['Build: Assets', 'Build: Deployment Configs']
 
-- id: 'Deploy: Deployment Configs'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'VERSION_SUFFIX=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
-  waitFor: ['Lint: Format, Vet, Charts', 'Build: Binaries']
-  volumes:
-  - name: 'go-vol'
-    path: '/go'
-
 - id: 'Test: Delete Old Clusters'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'GCP_PROJECT_ID=${PROJECT_ID}', 'ci-reap-clusters']
@@ -140,13 +132,21 @@ steps:
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'sleep-30', 'install-chart-slim', 'install-demo-chart']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'sleep-30', 'install-chart']
   waitFor: ['Test: Create Cluster', 'Build: Docker Images']
 
 - id: 'Test: Delete Cluster'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'delete-gke-cluster']
   waitFor: ['Test: Deploy Open Match']
+
+- id: 'Deploy: Deployment Configs'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'VERSION_SUFFIX=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
+  waitFor: ['Lint: Format, Vet, Charts', 'Test: Deploy Open Match']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
 
 artifacts:
     objects:

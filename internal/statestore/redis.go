@@ -282,7 +282,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 		// If this attribute wasn't provided, continue to the next attribute to index.
 		if !ok {
 			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute}).Warning("Couldn't find index in Ticket Properties")
+				"attribute": attribute}).Trace("Couldn't find index in Ticket Properties")
 			continue
 		}
 
@@ -463,7 +463,10 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 	return nil
 }
 
-// UpdateAssignments update the match assignments for the input ticket ids
+// UpdateAssignments update the match assignments for the input ticket ids.
+// This function guarantees if any of the input ids does not exists, the state of the storage service won't be altered.
+// However, since Redis does not support transaction roll backs (see https://redis.io/topics/transactions), some of the
+// assignment fields might be partially updated if this function encounters an error halfway through the execution.
 func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error {
 	if assignment == nil {
 		return status.Error(codes.InvalidArgument, "assignment is nil")
@@ -480,25 +483,34 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 		return err
 	}
 
-	// Redis does not support roll backs See https://redis.io/topics/transactions
-	// TODO: fake the batch update rollback behavior
-	var ticket *pb.Ticket
+	// Sanity check to make sure all inputs ids are valid
+	tickets := []*pb.Ticket{}
 	for _, id := range ids {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
+			var ticket *pb.Ticket
 			ticket, err = rb.GetTicket(ctx, id)
 			if err != nil {
 				redisLogger.WithError(err).Errorf("failed to get ticket %s from redis when updating assignments", id)
 				return err
 			}
+			tickets = append(tickets, ticket)
+		}
+	}
 
+	for _, ticket := range tickets {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
 			assignmentCopy, ok := proto.Clone(assignment).(*pb.Assignment)
 			if !ok {
 				redisLogger.Error("failed to cast assignment object")
 				return status.Error(codes.Internal, "failed to cast to the assignment object")
 			}
+
 			ticket.Assignment = assignmentCopy
 
 			err = rb.CreateTicket(ctx, ticket)

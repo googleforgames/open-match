@@ -12,78 +12,78 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{{- if .Values.openmatch.function.install }}
+ {{- if .Values.openmatch.demo.install }}
 kind: Service
 apiVersion: v1
 metadata:
-  name: om-function
+  name: om-demo
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
+    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
 spec:
   selector:
     app: {{ template "openmatch.name" . }}
-    component: function
+    component: demo
   ports:
-  - name: grpc
+  - name: http
     protocol: TCP
-    port: {{ .Values.openmatch.function.grpc.port }}
-  - name: proxy
-    protocol: TCP
-    port: {{ .Values.openmatch.function.proxy.port }}
+    port: {{ .Values.openmatch.demo.http.port }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: om-function
+  name: om-demo
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
-    component: function
-    chart: {{ template "openmatch.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    component: demo
+    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.openmatch.demo.replicas }}
   selector:
     matchLabels:
       app: {{ template "openmatch.name" . }}
-      component: function
-      chart: {{ template "openmatch.chart" . }}
-      release: {{ .Release.Name }}
-      heritage: {{ .Release.Service }}
+      component: demo
+      {{- include "openmatch.chartmeta" (set . "indent" 6) }}
   template:
     metadata:
+      namespace: {{ .Release.Namespace }}
+      annotations:
+        {{- include "prometheus.annotations" (dict "port" .Values.openmatch.demo.http.port "prometheus" .Values.openmatch.monitoring.prometheus) | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
-        component: function
-        chart: {{ template "openmatch.chart" . }}
-        release: {{ .Release.Name }}
-        heritage: {{ .Release.Service }}
+        component: demo
+        {{- include "openmatch.chartmeta" (set . "indent" 8) }}
     spec:
+      serviceAccountName: open-match-unprivileged-service
       containers:
-      - name: om-function
-        image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.function.name}}:{{ .Values.openmatch.image.tag }}"
-        imagePullPolicy: {{ .Values.openmatch.image.function.pullPolicy }}
+      - name: om-demo
+        image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.demo.name}}:{{ .Values.openmatch.image.tag }}"
+        imagePullPolicy: {{ .Values.openmatch.image.demo.pullPolicy }}
         volumeMounts:
         - name: om-config-volume
-          mountPath: {{ .Values.openmatch.config.matchmaker }}
+          mountPath: {{ .Values.openmatch.config.mountPath }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.openmatch.demo.http.port }}
+        {{- include "kubernetes.probe" (dict "port" .Values.openmatch.demo.http.port) | nindent 8 }}
         resources:
           requests:
             memory: 100Mi
             cpu: 100m
-        ports:
-        - name: grpc
-          containerPort: {{ .Values.openmatch.function.grpc.port }}
-        - name: proxy
-          containerPort: {{ .Values.openmatch.function.proxy.port }}
-        - name: metrics
-          containerPort: {{ .Values.openmatch.metrics.port }}
         env:
         - name: REDIS_SERVICE_HOST
           value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
         - name: REDIS_SERVICE_PORT
           value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
+        {{- if .Values.redis.usePassword }}
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.redis.fullnameOverride }}
+              key: redis-password
+        {{- end}}
       volumes:
       - name: om-config-volume
         configMap:

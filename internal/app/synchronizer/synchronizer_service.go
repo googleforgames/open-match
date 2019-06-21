@@ -31,20 +31,21 @@ type synchronizerService struct {
 	store statestore.Service
 }
 
-// GetContext returns the context for the synchronization window. The caller
-// requests for a context and then sends the context back in the evaluation
+// Register associates this request with the current synchronization cycle and
+// returns an identifier for this registration. The caller returns this
+// identifier back in the evaluation
 // request. This enables identify stale evaluation requests belonging to a
 // prior window when synchronizing evaluation requests for a window.
-func (s *synchronizerService) GetContext(ctx context.Context, req *pb.GetContextRequest) (*pb.GetContextResponse, error) {
+func (s *synchronizerService) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
-// EvaluateInContext accepts a list of matches and a context in which these
-// matches should be evaluated. If the context has expired (not present in
-// the current evaluation window) this method fails otherwise the matches are
-// added to the list of matches to be evaluated in the current evaluation
-// window. At the end of the window, the user defined evaluation method is
-// triggered and the matches accepted by it are returned as results.
-func (s *synchronizerService) EvaluateInContext(ctx context.Context, req *pb.EvaluateInContextRequest) (*pb.EvaluateInContextResponse, error) {
+// EvaluateProposals accepts a list of proposals and a registration identifier
+// for this request. If the synchronization cycle to which the request was
+// registered is completed, this request fails otherwise the proposals are
+// added to the list of proposals to be evaluated in the current cycle. At the
+//  end of the cycle, the user defined evaluation method is triggered and the
+// matches accepted by it are returned as results.
+func (s *synchronizerService) EvaluateProposals(ctx context.Context, req *pb.EvaluateProposalsRequest) (*pb.EvaluateProposalsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
