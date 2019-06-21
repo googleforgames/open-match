@@ -16,7 +16,6 @@ package rpc
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"sync"
 
@@ -24,10 +23,18 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/monitoring"
 	"open-match.dev/open-match/internal/util/netlistener"
+)
+
+var (
+	insecureLogger = logrus.WithFields(logrus.Fields{
+		"app":       "openmatch",
+		"component": "insecure_server",
+	})
 )
 
 type insecureServer struct {
@@ -98,7 +105,7 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 		hErr := s.httpServer.Serve(s.httpListener)
 		defer cancel()
 		if hErr != nil {
-			return
+			insecureLogger.Debugf("error closing gRPC server: %s", hErr)
 		}
 	}()
 
@@ -108,15 +115,15 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 func (s *insecureServer) stop() {
 	s.grpcServer.Stop()
 	if err := s.grpcListener.Close(); err != nil {
-		log.Printf("%s", err)
+		insecureLogger.Debugf("error closing gRPC listener: %s", err)
 	}
 
 	if err := s.httpServer.Close(); err != nil {
-		log.Printf("%s", err)
+		insecureLogger.Debugf("error closing HTTP server: %s", err)
 	}
 
 	if err := s.httpListener.Close(); err != nil {
-		log.Printf("%s", err)
+		insecureLogger.Debugf("error closing HTTP listener: %s", err)
 	}
 }
 
