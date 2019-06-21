@@ -21,11 +21,11 @@ COPY api/*.json /go/src/open-match.dev/open-match/third_party/swaggerui/api/
 # We need to change the location of the frontend.swagger.json so that we point to this server.
 RUN sed -i 's|url:.*|url: "/api/frontend.swagger.json",|g' /go/src/open-match.dev/open-match/third_party/swaggerui/index.html
 
-FROM gcr.io/distroless/static
-COPY --from=builder /go/src/open-match.dev/open-match/cmd/swaggerui/swaggerui .
-COPY --from=builder /go/src/open-match.dev/open-match/third_party/swaggerui/ /static
-
-ENTRYPOINT ["/swaggerui"]
+FROM gcr.io/distroless/static:nonroot
+WORKDIR /app
+COPY --from=builder --chown=nonroot /go/src/open-match.dev/open-match/cmd/swaggerui/swaggerui /app/
+COPY --from=builder --chown=nonroot /go/src/open-match.dev/open-match/third_party/swaggerui/ /app/static
+ENTRYPOINT ["/app/swaggerui"]
 
 # Docker Image Arguments
 ARG BUILD_DATE

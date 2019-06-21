@@ -17,9 +17,9 @@ FROM open-match-base-build as builder
 WORKDIR /go/src/open-match.dev/open-match/examples/demo
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o demo .
 
-FROM gcr.io/distroless/static
-COPY --from=builder /go/src/open-match.dev/open-match/examples/demo/demo .
+FROM gcr.io/distroless/static:nonroot
+WORKDIR /app/
+COPY --from=builder --chown=nonroot /go/src/open-match.dev/open-match/examples/demo/demo /app/
+COPY --from=builder --chown=nonroot /go/src/open-match.dev/open-match/examples/demo/static /app/static
 
-ADD ./examples/demo/static /static
-
-ENTRYPOINT ["/demo"]
+ENTRYPOINT ["/app/demo"]
