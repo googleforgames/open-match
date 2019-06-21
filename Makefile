@@ -304,7 +304,7 @@ lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 print-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd $(REPOSITORY_ROOT)/install/helm; $(HELM) install --name $(OPEN_MATCH_CHART_NAME) --dry-run --debug $(OPEN_MATCH_CHART_NAME); $(HELM) install --name $(OPEN_MATCH_DEMO_CHART_NAME) --dry-run --debug $(OPEN_MATCH_DEMO_CHART_NAME))
 
-install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -317,7 +317,7 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-chart-slim: build/toolchain/bin/helm$(EXE_EXTENSION)
+install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
