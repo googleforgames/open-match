@@ -57,7 +57,7 @@ type mmfResult struct {
 }
 
 var (
-	logger = logrus.WithFields(logrus.Fields{
+	backendServiceLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
 		"component": "app.backend.backend_service",
 	})
@@ -84,9 +84,11 @@ func newBackendService(cfg config.View) (*backendService, error) {
 // FetchMatches returns nil unless the context is canceled. FetchMatches moves to the next response candidate if it encounters
 // any internal execution failures.
 func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesRequest) (*pb.FetchMatchesResponse, error) {
-	if req.GetConfig() == nil || req.GetProfile() == nil {
-		logger.Error("invalid argument, function config or input profiles is nil")
-		return nil, status.Errorf(codes.InvalidArgument, "invalid argument, function config or input profiles is nil")
+	if req.GetConfig() == nil {
+		return nil, status.Error(codes.InvalidArgument, ".config is required")
+	}
+	if req.GetProfile() == nil {
+		return nil, status.Error(codes.InvalidArgument, ".profile is required")
 	}
 
 	resultChan := make(chan mmfResult, len(req.GetProfile()))
@@ -140,7 +142,7 @@ func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *s
 	case pb.FunctionConfig_GRPC:
 		grpcClient, err = getGRPCClient(cfg, mmfClients, address)
 		if err != nil {
-			logger.WithFields(logrus.Fields{
+			backendServiceLogger.WithFields(logrus.Fields{
 				"error":    err.Error(),
 				"function": req.GetConfig(),
 			}).Error("failed to establish grpc client connection to match function")
@@ -150,14 +152,13 @@ func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *s
 	case pb.FunctionConfig_REST:
 		httpClient, baseURL, err = getHTTPClient(cfg, mmfClients, address)
 		if err != nil {
-			logger.WithFields(logrus.Fields{
+			backendServiceLogger.WithFields(logrus.Fields{
 				"error":    err.Error(),
 				"function": req.GetConfig(),
 			}).Error("failed to establish rest client connection to match function")
 			return status.Error(codes.InvalidArgument, "failed to connect to match function")
 		}
 	default:
-		logger.Error("unsupported function type provided")
 		return status.Error(codes.InvalidArgument, "provided match function type is not supported")
 	}
 
@@ -207,9 +208,6 @@ func getHTTPClient(cfg config.View, mmfClients *sync.Map, addr string) (*http.Cl
 		}
 		data = httpData{client, baseURL}
 		mmfClients.Store(addr, data)
-		logger.WithFields(logrus.Fields{
-			"address": addr,
-		}).Info("successfully connected to the HTTP match function service")
 	}
 	return data.client, data.baseURL, nil
 }
@@ -224,9 +222,6 @@ func getGRPCClient(cfg config.View, mmfClients *sync.Map, addr string) (pb.Match
 		}
 		data = grpcData{pb.NewMatchFunctionClient(conn)}
 		mmfClients.Store(addr, data)
-		logger.WithFields(logrus.Fields{
-			"address": addr,
-		}).Info("successfully connected to the GRPC match function service")
 	}
 
 	return data.client, nil
@@ -255,7 +250,7 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 	defer func() {
 		err = resp.Body.Close()
 		if err != nil {
-			logger.WithError(err).Error("failed to close response body read closer")
+			backendServiceLogger.WithError(err).Warning("failed to close response body read closer")
 		}
 	}()
 
@@ -281,7 +276,7 @@ func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb
 	// and timeout gracefully to ensure that the ListMatches completes.
 	resp, err := client.Run(ctx, &pb.RunRequest{Profile: profile})
 	if err != nil {
-		logger.WithError(err).Error("failed to run match function for profile")
+		backendServiceLogger.WithError(err).Error("failed to run match function for profile")
 		return nil, err
 	}
 
@@ -293,7 +288,7 @@ func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb
 func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
 	err := doAssignTickets(ctx, req, s.store)
 	if err != nil {
-		logger.WithError(err).Error("failed to update assignments for requested tickets")
+		backendServiceLogger.WithError(err).Error("failed to update assignments for requested tickets")
 		return nil, err
 	}
 
@@ -303,7 +298,7 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) error {
 	err := store.UpdateAssignments(ctx, req.GetTicketId(), req.GetAssignment())
 	if err != nil {
-		logger.WithError(err).Error("failed to update assignments")
+		backendServiceLogger.WithError(err).Error("failed to update assignments")
 		return err
 	}
 	for _, id := range req.GetTicketId() {
@@ -311,7 +306,7 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 		// Try to deindex all input tickets. Log without returning an error if the deindexing operation failed.
 		// TODO: consider retry the index operation
 		if err != nil {
-			logger.WithError(err).Errorf("failed to deindex ticket %s after updating the assignments", id)
+			backendServiceLogger.WithError(err).Errorf("failed to deindex ticket %s after updating the assignments", id)
 		}
 	}
 

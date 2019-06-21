@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	logger = logrus.WithFields(logrus.Fields{
+	mmlogicServiceLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
 		"component": "app.mmlogic.mmlogic_service",
 	})
@@ -44,7 +44,7 @@ type mmlogicService struct {
 // specified Pool.
 func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.MmLogic_QueryTicketsServer) error {
 	if req.GetPool() == nil {
-		return status.Error(codes.InvalidArgument, "pool is empty")
+		return status.Error(codes.InvalidArgument, ".pool is required")
 	}
 
 	ctx := responseServer.Context()
@@ -54,7 +54,7 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 	callback := func(tickets []*pb.Ticket) error {
 		err := responseServer.Send(&pb.QueryTicketsResponse{Ticket: tickets})
 		if err != nil {
-			logger.WithError(err).Error("Failed to send Redis response to grpc server")
+			mmlogicServiceLogger.WithError(err).Error("Failed to send Redis response to grpc server")
 			return status.Errorf(codes.Aborted, err.Error())
 		}
 		return nil
@@ -69,7 +69,7 @@ func doQueryTickets(ctx context.Context, filters []*pb.Filter, pageSize int, sen
 	err := store.FilterTickets(ctx, filters, pageSize, sender)
 
 	if err != nil {
-		logger.WithError(err).Error("Failed to retrieve result from storage service.")
+		mmlogicServiceLogger.WithError(err).Error("Failed to retrieve result from storage service.")
 		return err
 	}
 
@@ -96,12 +96,12 @@ func getPageSize(cfg config.View) int {
 
 	pSize := cfg.GetInt("storage.page.size")
 	if pSize < minPageSize {
-		logger.Warningf("page size %v is lower than the minimum limit of %v", pSize, maxPageSize)
+		mmlogicServiceLogger.Infof("page size %v is lower than the minimum limit of %v", pSize, maxPageSize)
 		pSize = minPageSize
 	}
 
 	if pSize > maxPageSize {
-		logger.Warningf("page size %v is higher than the maximum limit of %v", pSize, maxPageSize)
+		mmlogicServiceLogger.Infof("page size %v is higher than the maximum limit of %v", pSize, maxPageSize)
 		return maxPageSize
 	}
 

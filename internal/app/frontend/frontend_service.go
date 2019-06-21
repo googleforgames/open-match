@@ -36,7 +36,7 @@ type frontendService struct {
 }
 
 var (
-	logger = logrus.WithFields(logrus.Fields{
+	frontendServiceLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
 		"component": "app.frontend.frontend_service",
 	})
@@ -48,8 +48,7 @@ var (
 func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
 	// Perform input validation.
 	if req.GetTicket() == nil {
-		logger.Error("invalid argument - ticket cannot be nil")
-		return nil, status.Errorf(codes.InvalidArgument, "ticket cannot be nil")
+		return nil, status.Errorf(codes.InvalidArgument, ".ticket is required")
 	}
 
 	return doCreateTicket(ctx, req, s.store)
@@ -59,14 +58,13 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 	// Generate a ticket id and create a Ticket in state storage
 	ticket, ok := proto.Clone(req.Ticket).(*pb.Ticket)
 	if !ok {
-		logger.Error("failed to clone input ticket proto")
-		return nil, status.Error(codes.Internal, "failed processing input")
+		return nil, status.Error(codes.Internal, "failed to clone input ticket proto")
 	}
 
 	ticket.Id = xid.New().String()
 	err := store.CreateTicket(ctx, ticket)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
+		frontendServiceLogger.WithFields(logrus.Fields{
 			"error":  err.Error(),
 			"ticket": ticket,
 		}).Error("failed to create the ticket")
@@ -75,7 +73,7 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 
 	err = store.IndexTicket(ctx, ticket)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
+		frontendServiceLogger.WithFields(logrus.Fields{
 			"error":  err.Error(),
 			"ticket": ticket,
 		}).Error("failed to index the ticket")
@@ -99,7 +97,7 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 	// Deindex this Ticket to remove it from matchmaking pool.
 	err := store.DeindexTicket(ctx, id)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
+		frontendServiceLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
 			"id":    id,
 		}).Error("failed to deindex the ticket")
@@ -111,7 +109,7 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 	go func() {
 		err := store.DeleteTicket(context.Background(), id)
 		if err != nil {
-			logger.WithFields(logrus.Fields{
+			frontendServiceLogger.WithFields(logrus.Fields{
 				"error": err.Error(),
 				"id":    id,
 			}).Error("failed to delete the ticket")
@@ -131,7 +129,7 @@ func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketReques
 func doGetTickets(ctx context.Context, id string, store statestore.Service) (*pb.Ticket, error) {
 	ticket, err := store.GetTicket(ctx, id)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
+		frontendServiceLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
 			"id":    id,
 		}).Error("failed to get the ticket")
@@ -168,13 +166,12 @@ func doGetAssignments(ctx context.Context, id string, sender func(*pb.Assignment
 			!cmp.Equal(currAssignment.GetError(), assignment.GetError()) {
 			currAssignment, ok = proto.Clone(assignment).(*pb.Assignment)
 			if !ok {
-				logger.Error("failed to cast assignment object")
 				return status.Error(codes.Internal, "failed to cast the assignment object")
 			}
 
 			err := sender(currAssignment)
 			if err != nil {
-				logger.WithError(err).Error("failed to send Redis response to grpc server")
+				frontendServiceLogger.WithError(err).Error("failed to send Redis response to grpc server")
 				return status.Errorf(codes.Aborted, err.Error())
 			}
 		}
