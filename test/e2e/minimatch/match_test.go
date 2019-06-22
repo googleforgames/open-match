@@ -25,18 +25,19 @@ import (
 )
 
 func TestFetchMatches(t *testing.T) {
-	assert := assert.New(t)
-	tc := createMinimatchForTest(t)
-	defer tc.Close()
+	mainTc := createMinimatchForTest(t)
+	defer mainTc.Close()
+	mmfTc := createMatchFunctionForTest(t, mainTc)
+	defer mmfTc.Close()
 
-	be := pb.NewBackendClient(tc.MustGRPC())
+	be := pb.NewBackendClient(mainTc.MustGRPC())
 
 	var tt = []struct {
 		description string
 		fc          *pb.FunctionConfig
 		profile     []*pb.MatchProfile
-		wantMatch   *pb.Match
-		code        codes.Code
+		wantMatch   []*pb.Match
+		wantCode    codes.Code
 	}{
 		{
 			"expects invalid argument code since request is empty",
@@ -45,6 +46,28 @@ func TestFetchMatches(t *testing.T) {
 			nil,
 			codes.InvalidArgument,
 		},
+		{
+			"expects unavailable code since there is no mmf being hosted with given function config",
+			&pb.FunctionConfig{
+				Host: mmfTc.GetHostname(),
+				Port: int32(mmfTc.GetGRPCPort()),
+				Type: pb.FunctionConfig_GRPC,
+			},
+			[]*pb.MatchProfile{{Name: "some name"}},
+			[]*pb.Match{},
+			codes.Unavailable,
+		},
+		{
+			"expects empty response since the store is empty",
+			&pb.FunctionConfig{
+				Host: mmfTc.GetHostname(),
+				Port: int32(mmfTc.GetGRPCPort()),
+				Type: pb.FunctionConfig_GRPC,
+			},
+			[]*pb.MatchProfile{{Name: "some name"}},
+			[]*pb.Match{},
+			codes.OK,
+		},
 	}
 
 	t.Run("TestFetchMatches", func(t *testing.T) {
@@ -52,8 +75,18 @@ func TestFetchMatches(t *testing.T) {
 			test := test
 			t.Run(test.description, func(t *testing.T) {
 				t.Parallel()
-				_, err := be.FetchMatches(tc.Context(), &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile})
-				assert.Equal(test.code, status.Convert(err).Code())
+
+				resp, err := be.FetchMatches(mainTc.Context(), &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile})
+				assert.Equal(t, test.wantCode, status.Convert(err).Code())
+
+        for _, match := range resp.Match {
+          assert.Contains(t, test.wantMatch, &pb.Match{
+						MatchProfile:  match.GetMatchProfile(),
+						MatchFunction: match.GetMatchFunction(),
+						Ticket:        match.GetTicket(),
+						Roster:        match.GetRoster(),
+					})
+				}
 			})
 		}
 	})
