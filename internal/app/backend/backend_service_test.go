@@ -185,12 +185,13 @@ func TestGetGRPCClient(t *testing.T) {
 }
 
 func TestDoAssignTickets(t *testing.T) {
+	fakeProperty := "test-property"
 	fakeTickets := []*pb.Ticket{
 		{
 			Id: "1",
 			Properties: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
-					"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+					fakeProperty: {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
 				},
 			},
 		},
@@ -198,7 +199,7 @@ func TestDoAssignTickets(t *testing.T) {
 			Id: "2",
 			Properties: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
-					"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 2}},
+					fakeProperty: {Kind: &structpb.Value_NumberValue{NumberValue: 2}},
 				},
 			},
 		},
@@ -248,6 +249,14 @@ func TestDoAssignTickets(t *testing.T) {
 					store.CreateTicket(ctx, fakeTicket)
 					store.IndexTicket(ctx, fakeTicket)
 				}
+				// Make sure tickets are correctly indexed.
+				var wantFilteredTickets []*pb.Ticket
+				err := store.FilterTickets(ctx, []*pb.Filter{{Attribute: fakeProperty, Min: 0, Max: 3}}, 10, func(filterTickets []*pb.Ticket) error {
+					wantFilteredTickets = filterTickets
+					return nil
+				})
+				assert.Nil(t, err)
+				assert.Equal(t, len(fakeTickets), len(wantFilteredTickets))
 			},
 			req: &pb.AssignTicketsRequest{
 				TicketId: []string{"1", "2"},
@@ -265,10 +274,13 @@ func TestDoAssignTickets(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
-			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+			cfg := viper.New()
+			cfg.Set("playerIndices", []string{fakeProperty})
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 			defer closer()
 
 			test.preAction(ctx, cancel, store)
+
 			err := doAssignTickets(ctx, test.req, store)
 
 			assert.Equal(t, test.wantCode, status.Convert(err).Code())
@@ -279,6 +291,14 @@ func TestDoAssignTickets(t *testing.T) {
 					assert.Nil(t, err)
 					assert.Equal(t, test.wantAssignment, ticket.GetAssignment())
 				}
+
+				// Make sure tickets are deindexed after assignment
+				var wantFilteredTickets []*pb.Ticket
+				store.FilterTickets(ctx, []*pb.Filter{{Attribute: fakeProperty, Min: 0, Max: 2}}, 10, func(filterTickets []*pb.Ticket) error {
+					wantFilteredTickets = filterTickets
+					return nil
+				})
+				assert.Nil(t, wantFilteredTickets)
 			}
 		})
 	}

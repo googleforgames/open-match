@@ -263,5 +263,19 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 }
 
 func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) error {
-	return store.UpdateAssignments(ctx, req.GetTicketId(), req.GetAssignment())
+	err := store.UpdateAssignments(ctx, req.GetTicketId(), req.GetAssignment())
+	if err != nil {
+		logger.WithError(err).Error("failed to update assignments")
+		return err
+	}
+	for _, id := range req.GetTicketId() {
+		err = store.DeindexTicket(ctx, id)
+		// Try to deindex all input tickets. Log without returning an error if the deindexing operation failed.
+		// TODO: consider retry the index operation
+		if err != nil {
+			logger.WithError(err).Errorf("failed to deindex ticket %s after updating the assignments", id)
+		}
+	}
+
+	return nil
 }
