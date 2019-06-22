@@ -50,7 +50,7 @@ func TestFetchMatches(t *testing.T) {
 			"expects unavailable code since there is no mmf being hosted with given function config",
 			&pb.FunctionConfig{
 				Host: mmfTc.GetHostname(),
-				Port: int32(mmfTc.GetGRPCPort()),
+				Port: int32(54321),
 				Type: pb.FunctionConfig_GRPC,
 			},
 			[]*pb.MatchProfile{{Name: "some name"}},
@@ -79,13 +79,15 @@ func TestFetchMatches(t *testing.T) {
 				resp, err := be.FetchMatches(mainTc.Context(), &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile})
 				assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
-        for _, match := range resp.Match {
-          assert.Contains(t, test.wantMatch, &pb.Match{
-						MatchProfile:  match.GetMatchProfile(),
-						MatchFunction: match.GetMatchFunction(),
-						Ticket:        match.GetTicket(),
-						Roster:        match.GetRoster(),
-					})
+				if err == nil {
+					for _, match := range resp.Match {
+						assert.Contains(t, test.wantMatch, &pb.Match{
+							MatchProfile:  match.GetMatchProfile(),
+							MatchFunction: match.GetMatchFunction(),
+							Ticket:        match.GetTicket(),
+							Roster:        match.GetRoster(),
+						})
+					}
 				}
 			})
 		}
