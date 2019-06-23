@@ -191,36 +191,30 @@ func TestMinimatch(t *testing.T) {
 func testFetchMatches(assert *require.Assertions, poolTickets map[string][]string, testProfiles []testProfile, tc *rpcTesting.TestContext, be pb.BackendClient, fc *pb.FunctionConfig) {
 	// Fetch Matches for each test profile.
 	for _, profile := range testProfiles {
-		brs, err := be.FetchMatches(tc.Context(), &pb.FetchMatchesRequest{
+		br, err := be.FetchMatches(tc.Context(), &pb.FetchMatchesRequest{
 			Config:  fc,
 			Profile: []*pb.MatchProfile{{Name: profile.name, Pool: profile.pools}},
 		})
+
 		assert.Nil(err)
+		assert.NotNil(br)
+		assert.NotNil(br.Match)
 
-		for {
-			br, err := brs.Recv()
-			if err == io.EOF {
-				break
-			}
-
-			assert.Nil(err)
-			assert.NotNil(br)
-			assert.NotNil(br.Match)
-
+		for _, match := range br.GetMatch() {
 			// Currently, the MMF simply creates a match per pool in the match profile - and populates
 			// the roster with the pool name. Thus validate that for the roster populated in the match
 			// result has all the tickets expected in that pool.
-			assert.Equal(len(br.Match.Roster), 1)
-			assert.Equal(br.Match.Roster[0].TicketId, poolTickets[br.Match.Roster[0].Name])
+			assert.Equal(len(match.GetRoster()), 1)
+			assert.Equal(match.GetRoster()[0].TicketId, poolTickets[match.GetRoster()[0].GetName()])
 
 			var gotTickets []string
-			for _, ticket := range br.Match.Ticket {
+			for _, ticket := range match.GetTicket() {
 				gotTickets = append(gotTickets, ticket.Id)
 			}
 
 			// Given that currently we only populate all tickets in a match in a Roster, validate that
 			// all the tickets present in the result match are equal to the tickets in the pool for that match.
-			assert.Equal(gotTickets, poolTickets[br.Match.Roster[0].Name])
+			assert.Equal(gotTickets, poolTickets[match.GetRoster()[0].GetName()])
 		}
 	}
 }

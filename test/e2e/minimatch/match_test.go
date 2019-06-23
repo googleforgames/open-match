@@ -15,7 +15,6 @@
 package minimatch
 
 import (
-	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -51,7 +50,7 @@ func TestFetchMatches(t *testing.T) {
 			"expects unavailable code since there is no mmf being hosted with given function config",
 			&pb.FunctionConfig{
 				Host: mmfTc.GetHostname(),
-				Port: int32(mmfTc.GetGRPCPort()),
+				Port: int32(54321),
 				Type: pb.FunctionConfig_GRPC,
 			},
 			[]*pb.MatchProfile{{Name: "some name"}},
@@ -77,31 +76,18 @@ func TestFetchMatches(t *testing.T) {
 			t.Run(test.description, func(t *testing.T) {
 				t.Parallel()
 
-				stream, err := be.FetchMatches(mainTc.Context(), &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile})
-				assert.Nil(t, err)
+				resp, err := be.FetchMatches(mainTc.Context(), &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile})
+				assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
-				var gotMatches []*pb.Match
-
-				for {
-					resp, err := stream.Recv()
-					if err == io.EOF {
-						break
+				if err == nil {
+					for _, match := range resp.Match {
+						assert.Contains(t, test.wantMatch, &pb.Match{
+							MatchProfile:  match.GetMatchProfile(),
+							MatchFunction: match.GetMatchFunction(),
+							Ticket:        match.GetTicket(),
+							Roster:        match.GetRoster(),
+						})
 					}
-					if err != nil {
-						assert.Equal(t, test.wantCode, status.Convert(err).Code())
-						break
-					}
-
-					gotMatches = append(gotMatches, &pb.Match{
-						MatchProfile:  resp.GetMatch().GetMatchProfile(),
-						MatchFunction: resp.GetMatch().GetMatchFunction(),
-						Ticket:        resp.GetMatch().GetTicket(),
-						Roster:        resp.GetMatch().GetRoster(),
-					})
-				}
-
-				for _, match := range gotMatches {
-					assert.Contains(t, test.wantMatch, match)
 				}
 			})
 		}

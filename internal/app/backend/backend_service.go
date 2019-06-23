@@ -67,30 +67,25 @@ var (
 // streams these results back to the caller.
 // FetchMatches returns nil unless the context is canceled. FetchMatches moves to the next response candidate if it encounters
 // any internal execution failures.
-func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Backend_FetchMatchesServer) error {
+func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesRequest) (*pb.FetchMatchesResponse, error) {
 	if req.GetConfig() == nil || req.GetProfile() == nil {
 		logger.Error("invalid argument, function config or input profiles is nil")
-		return status.Errorf(codes.InvalidArgument, "invalid argument, function config or input profiles is nil")
+		return nil, status.Errorf(codes.InvalidArgument, "invalid argument, function config or input profiles is nil")
 	}
 
-	ctx := stream.Context()
 	resultChan := make(chan mmfResult, len(req.GetProfile()))
 
 	err := doFetchMatchesInChannel(ctx, s.cfg, s.mmfClients, req, resultChan)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	proposals, err := doFetchMatchesFilterChannel(ctx, resultChan, len(req.GetProfile()))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	sender := func(proposal *pb.Match) error {
-		return stream.Send(&pb.FetchMatchesResponse{Match: proposal})
-	}
-
-	return doFetchMatchesSendResponse(ctx, proposals, sender)
+	return &pb.FetchMatchesResponse{Match: proposals}, nil
 }
 
 func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *sync.Map, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
@@ -162,22 +157,6 @@ func doFetchMatchesFilterChannel(ctx context.Context, resultChan <-chan mmfResul
 		}
 	}
 	return proposals, nil
-}
-
-func doFetchMatchesSendResponse(ctx context.Context, proposals []*pb.Match, sender func(*pb.Match) error) error {
-	for _, proposal := range proposals {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			err := sender(proposal)
-			if err != nil {
-				logger.WithError(err).Error("failed to stream back the response")
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 func getHTTPClient(cfg config.View, mmfClients *sync.Map, addr string) (*http.Client, string, error) {
