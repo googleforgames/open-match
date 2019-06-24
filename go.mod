@@ -42,4 +42,8 @@ require (
 	go.opencensus.io v0.22.0
 	google.golang.org/genproto v0.0.0-20190611190212-a7e196e89fd3
 	google.golang.org/grpc v1.21.1
+	k8s.io/api v0.0.0-20190624085159-95846d7ef82a
+	k8s.io/apimachinery v0.0.0-20190624085041-961b39a1baa0
+	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
+	k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a // indirect
 )

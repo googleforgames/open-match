@@ -218,6 +218,12 @@ issues:
     - source: "stats."
       linters:
         - gochecknoglobals
+    - path: framework\.go
+      linters:
+        - gochecknoglobals
+    - source: "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+      linters:
+        - golint
 
     # Exclude known linters from partially hard-vendored code,
     # which is impossible to exclude via "nolint" comments.

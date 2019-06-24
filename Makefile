@@ -724,6 +724,9 @@ test:
 	$(GO) test ./... -cover -test.count $(GOLANG_TEST_COUNT) -race
 	$(GO) test ./... -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$
 
+e2e:
+	$(GO) test ./test/e2e/... -race
+
 stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
 		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
