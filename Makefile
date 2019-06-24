@@ -60,7 +60,8 @@ BUILD_DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 YEAR_MONTH = $(shell date -u +'%Y%m')
 YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
-
+NANOS = $(shell date -u +'%N')
+NANOS_MODULO_60 = $(shell echo $(NANOS)%60 | bc)
 PROTOC_VERSION = 3.8.0
 HELM_VERSION = 2.14.1
 HUGO_VERSION = 0.55.6
@@ -144,7 +145,7 @@ OPEN_MATCH_CI_LABEL = open-match-ci
 ifdef ALLOW_BUILD_WITH_SUDO
 	GCLOUD = gcloud --quiet --no-user-output-enabled
 	GKE_CLUSTER_NAME = om-cluster-$(SHORT_SHA)
-	GKE_CLUSTER_FLAGS = --labels open-match-ci=1 --node-labels=open-match-ci=1
+	GKE_CLUSTER_FLAGS = --labels open-match-ci=1 --node-labels=open-match-ci=1 --network=projects/$(GCP_PROJECT_ID)/global/networks/open-match-ci --subnetwork=projects/$(GCP_PROJECT_ID)/regions/$(GCP_REGION)/subnetworks/ci-$(GCP_REGION)-$(NANOS_MODULO_60)
 endif
 
 # If the version is 0.0* then the service name is "development" as in development.open-match.dev.
