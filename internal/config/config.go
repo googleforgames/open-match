@@ -24,12 +24,10 @@ import (
 )
 
 var (
-	// Logrus structured logging setup
-	logFields = logrus.Fields{
+	cfgLog = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
 		"component": "config",
-	}
-	cfgLog = logrus.WithFields(logFields)
+	})
 
 	// Map of the config file keys to environment variable names populated by
 	// k8s into pods. Examples of redis-related env vars as written by k8s
