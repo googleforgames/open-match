@@ -246,9 +246,8 @@ const _ = grpc.SupportPackageIsVersion4
 type SynchronizerClient interface {
 	// Register associates this request with the current synchronization cycle and
 	// returns an identifier for this registration. The caller returns this
-	// identifier back in the evaluation
-	// request. This enables identify stale evaluation requests belonging to a
-	// prior window when synchronizing evaluation requests for a window.
+	// identifier back in the evaluation request. This enables synchronizer to
+	// identify stale evaluation requests belonging to a prior window.
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
 	// EvaluateProposals accepts a list of proposals and a registration identifier
 	// for this request. If the synchronization cycle to which the request was
@@ -289,9 +288,8 @@ func (c *synchronizerClient) EvaluateProposals(ctx context.Context, in *Evaluate
 type SynchronizerServer interface {
 	// Register associates this request with the current synchronization cycle and
 	// returns an identifier for this registration. The caller returns this
-	// identifier back in the evaluation
-	// request. This enables identify stale evaluation requests belonging to a
-	// prior window when synchronizing evaluation requests for a window.
+	// identifier back in the evaluation request. This enables synchronizer to
+	// identify stale evaluation requests belonging to a prior window.
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
 	// EvaluateProposals accepts a list of proposals and a registration identifier
 	// for this request. If the synchronization cycle to which the request was

@@ -59,7 +59,7 @@
     },
     "/v1/synchronizer/register": {
       "get": {
-        "summary": "Register associates this request with the current synchronization cycle and\nreturns an identifier for this registration. The caller returns this\nidentifier back in the evaluation\nrequest. This enables identify stale evaluation requests belonging to a\nprior window when synchronizing evaluation requests for a window.",
+        "summary": "Register associates this request with the current synchronization cycle and\nreturns an identifier for this registration. The caller returns this\nidentifier back in the evaluation request. This enables synchronizer to\nidentify stale evaluation requests belonging to a prior window.",
         "operationId": "Register",
         "responses": {
           "200": {
