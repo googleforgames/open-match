@@ -93,18 +93,14 @@ openmatch:
     http:
       port: 51507
     porttype: LoadBalancer
-
   config:
     install: true
     mountPath: /app/config
     files:
       matchmaker_config.yaml:
-        debug: true
-
         logging:
           level: debug
           format: text
-          source: false
         # Open Match applies the exponential backoff strategy for its retryable gRPC calls.
         # The settings below are the default backoff configuration used in Open Match.
         # See https://github.com/cenkalti/backoff/blob/v3/exponential.go for detailed explanations
@@ -166,24 +162,6 @@ openmatch:
             endpoint: "{{.Values.openmatch.monitoring.zipkin.endpoint}}"
             reporterEndpoint: "{{.Values.openmatch.monitoring.zipkin.reporterEndpoint}}"
           reportingPeriod: "{{.Values.openmatch.monitoring.reportingPeriod}}"
-
-        queues:
-          proposals:
-            name: proposalq
-
-        ignoreLists:
-          proposed:
-            name: proposed
-            offset: 0
-            duration: 800
-          deindexed:
-            name: deindexed
-            offset: 0
-            duration: 800
-          expired:
-            name: OM_METADATA.accessed
-            offset: 800
-            duration: 0
         storage:
           page:
             size: 10000
@@ -193,17 +171,7 @@ openmatch:
             maxActive: 0
             idleTimeout: 60s
             healthCheckTimeout: 100ms
-          queryArgs:
-            count: 10000
-          # TODO: remove unused config
-          results:
-            pageSize: 10000
           expiration: 43200
-
-        jsonkeys:
-          rosters: properties.rosters
-          pools: properties.pools
-
         playerIndices:
         - char.cleric
         - char.knight
