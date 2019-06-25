@@ -15,13 +15,14 @@
 package minimatch
 
 import (
+	"fmt"
 	"io"
 	"math"
 	"testing"
 	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -44,17 +45,6 @@ type testProfile struct {
 }
 
 func TestMinimatch(t *testing.T) {
-	assert := require.New(t)
-	minimatchTc := createMinimatchForTest(t)
-	defer minimatchTc.Close()
-	mmfTc := createMatchFunctionForTest(t, minimatchTc)
-	defer mmfTc.Close()
-
-	minimatchConn := minimatchTc.MustGRPC()
-	fe := pb.NewFrontendClient(minimatchConn)
-	mml := pb.NewMmLogicClient(minimatchConn)
-	be := pb.NewBackendClient(minimatchConn)
-
 	// TODO: Currently, the E2E test uses globally defined test data. Consider
 	// improving this in future iterations to test data scoped to sepcific test cases
 
@@ -115,80 +105,100 @@ func TestMinimatch(t *testing.T) {
 		{name: "", pools: []*pb.Pool{testPools[map2BeginnerPool], testPools[map2AdvancedPool]}},
 	}
 
-	// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids
-	// to expected player pools.
-	for i, td := range testTickets {
-		resp, err := fe.CreateTicket(minimatchTc.Context(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					skillattribute: {Kind: &structpb.Value_NumberValue{NumberValue: td.skill}},
-					td.mapValue:    {Kind: &structpb.Value_NumberValue{NumberValue: float64(time.Now().Unix())}},
-				},
-			},
-		}})
-
-		assert.NotNil(resp)
-		assert.Nil(err)
-		testTickets[i].id = resp.Ticket.Id
-	}
-
-	// poolTickets represents a map of the pool name to all the ticket ids in the pool.
-	poolTickets := make(map[string][]string)
-
-	// Query tickets for each pool
-	for _, pool := range testPools {
-		qtstr, err := mml.QueryTickets(minimatchTc.Context(), &pb.QueryTicketsRequest{Pool: pool})
-		assert.Nil(err)
-		assert.NotNil(qtstr)
-
-		var tickets []*pb.Ticket
-		for {
-			qtresp, err := qtstr.Recv()
-			if err == io.EOF {
-				break
+	fcGenerator := func(mmfTc *rpcTesting.TestContext, fcType pb.FunctionConfig_Type) *pb.FunctionConfig {
+		switch fcType {
+		case pb.FunctionConfig_GRPC:
+			return &pb.FunctionConfig{
+				Type: pb.FunctionConfig_GRPC,
+				Host: mmfTc.GetHostname(),
+				Port: int32(mmfTc.GetGRPCPort()),
 			}
-			assert.Nil(err)
-			assert.NotNil(qtresp)
-			tickets = append(tickets, qtresp.Ticket...)
-		}
-
-		// Generate a map of pool name to all tickets belonging to the pool.
-		for _, ticket := range tickets {
-			poolTickets[pool.Name] = append(poolTickets[pool.Name], ticket.Id)
-		}
-
-		// Generate a map of pool name to all tickets that should belong to the pool
-		// based on test ticket data.
-		var want []string
-		for _, td := range testTickets {
-			if td.targetPool == pool.Name {
-				want = append(want, td.id)
+		case pb.FunctionConfig_REST:
+			return &pb.FunctionConfig{
+				Type: pb.FunctionConfig_GRPC,
+				Host: mmfTc.GetHostname(),
+				Port: int32(mmfTc.GetGRPCPort()),
 			}
 		}
-
-		// Validate that all the pools have the expected tickets.
-		assert.Equal(poolTickets[pool.Name], want)
+		return nil
 	}
 
-	fcs := []*pb.FunctionConfig{
-		{
-			Type: pb.FunctionConfig_GRPC,
-			Host: mmfTc.GetHostname(),
-			Port: int32(mmfTc.GetGRPCPort()),
-		},
-		{
-			Type: pb.FunctionConfig_REST,
-			Host: mmfTc.GetHostname(),
-			Port: int32(mmfTc.GetHTTPPort()),
-		},
-	}
+	fcTypes := []pb.FunctionConfig_Type{pb.FunctionConfig_GRPC, pb.FunctionConfig_REST}
 
-	for _, fc := range fcs {
-		testFetchMatches(assert, poolTickets, testProfiles, minimatchTc, be, fc)
+	for _, fcType := range fcTypes {
+		t.Run(fmt.Sprintf("TestMinimatch-%v", fcType), func(t *testing.T) {
+			minimatchTc := createMinimatchForTest(t)
+			defer minimatchTc.Close()
+			mmfTc := createMatchFunctionForTest(t, minimatchTc)
+			defer mmfTc.Close()
+			fc := fcGenerator(mmfTc, fcType)
+
+			minimatchConn := minimatchTc.MustGRPC()
+			fe := pb.NewFrontendClient(minimatchConn)
+			mml := pb.NewMmLogicClient(minimatchConn)
+			be := pb.NewBackendClient(minimatchConn)
+
+			// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids
+			// to expected player pools.
+			for i, td := range testTickets {
+				resp, err := fe.CreateTicket(minimatchTc.Context(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							skillattribute: {Kind: &structpb.Value_NumberValue{NumberValue: td.skill}},
+							td.mapValue:    {Kind: &structpb.Value_NumberValue{NumberValue: float64(time.Now().Unix())}},
+						},
+					},
+				}})
+
+				assert.NotNil(t, resp)
+				assert.Nil(t, err)
+				testTickets[i].id = resp.Ticket.Id
+			}
+
+			// poolTickets represents a map of the pool name to all the ticket ids in the pool.
+			poolTickets := make(map[string][]string)
+
+			// Query tickets for each pool
+			for _, pool := range testPools {
+				qtstr, err := mml.QueryTickets(minimatchTc.Context(), &pb.QueryTicketsRequest{Pool: pool})
+				assert.Nil(t, err)
+				assert.NotNil(t, qtstr)
+
+				var tickets []*pb.Ticket
+				for {
+					qtresp, err := qtstr.Recv()
+					if err == io.EOF {
+						break
+					}
+					assert.Nil(t, err)
+					assert.NotNil(t, qtresp)
+					tickets = append(tickets, qtresp.Ticket...)
+				}
+
+				// Generate a map of pool name to all tickets belonging to the pool.
+				for _, ticket := range tickets {
+					poolTickets[pool.Name] = append(poolTickets[pool.Name], ticket.Id)
+				}
+
+				// Generate a map of pool name to all tickets that should belong to the pool
+				// based on test ticket data.
+				var want []string
+				for _, td := range testTickets {
+					if td.targetPool == pool.Name {
+						want = append(want, td.id)
+					}
+				}
+
+				// Validate that all the pools have the expected tickets.
+				assert.Equal(t, poolTickets[pool.Name], want)
+			}
+
+			testFetchMatches(t, poolTickets, testProfiles, minimatchTc, be, fc)
+		})
 	}
 }
 
-func testFetchMatches(assert *require.Assertions, poolTickets map[string][]string, testProfiles []testProfile, tc *rpcTesting.TestContext, be pb.BackendClient, fc *pb.FunctionConfig) {
+func testFetchMatches(t *testing.T, poolTickets map[string][]string, testProfiles []testProfile, tc *rpcTesting.TestContext, be pb.BackendClient, fc *pb.FunctionConfig) {
 	// Fetch Matches for each test profile.
 	for _, profile := range testProfiles {
 		br, err := be.FetchMatches(tc.Context(), &pb.FetchMatchesRequest{
@@ -196,16 +206,16 @@ func testFetchMatches(assert *require.Assertions, poolTickets map[string][]strin
 			Profile: []*pb.MatchProfile{{Name: profile.name, Pool: profile.pools}},
 		})
 
-		assert.Nil(err)
-		assert.NotNil(br)
-		assert.NotNil(br.Match)
+		assert.Nil(t, err)
+		assert.NotNil(t, br)
+		assert.NotNil(t, br.Match)
 
 		for _, match := range br.GetMatch() {
 			// Currently, the MMF simply creates a match per pool in the match profile - and populates
 			// the roster with the pool name. Thus validate that for the roster populated in the match
 			// result has all the tickets expected in that pool.
-			assert.Equal(len(match.GetRoster()), 1)
-			assert.Equal(match.GetRoster()[0].TicketId, poolTickets[match.GetRoster()[0].GetName()])
+			assert.Equal(t, len(match.GetRoster()), 1)
+			assert.Equal(t, match.GetRoster()[0].TicketId, poolTickets[match.GetRoster()[0].GetName()])
 
 			var gotTickets []string
 			for _, ticket := range match.GetTicket() {
@@ -214,7 +224,7 @@ func testFetchMatches(assert *require.Assertions, poolTickets map[string][]strin
 
 			// Given that currently we only populate all tickets in a match in a Roster, validate that
 			// all the tickets present in the result match are equal to the tickets in the pool for that match.
-			assert.Equal(gotTickets, poolTickets[match.GetRoster()[0].GetName()])
+			assert.Equal(t, gotTickets, poolTickets[match.GetRoster()[0].GetName()])
 		}
 	}
 }

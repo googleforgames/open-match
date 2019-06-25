@@ -180,6 +180,8 @@ openmatch:
           # TODO: remove unused config
           results:
             pageSize: 10000
+          skiplist:
+            ttl: 1000ms
           expiration: 43200
 
         jsonkeys:

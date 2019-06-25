@@ -17,6 +17,7 @@ package statestore
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/proto"
@@ -559,6 +560,60 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// GetProposedTickets returns the tickets stored under the proposed sorted set withinin TTL period.
+func (rb *redisBackend) GetProposedTickets(ctx context.Context, ttl time.Duration) ([]string, error) {
+	redisConn, err := rb.connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer handleConnectionClose(&redisConn)
+
+	currentTime := time.Now()
+	startTime := currentTime.Add(-ttl)
+
+	// Get all tickets within the ttl range
+	ids, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_tickets", startTime.Unix(), currentTime.Unix()))
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to get proposed tickets")
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
+	return ids, nil
+}
+
+// AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
+func (rb *redisBackend) AddProposedTickets(ctx context.Context, ids []string) error {
+	redisConn, err := rb.connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer handleConnectionClose(&redisConn)
+
+	err = redisConn.Send("MULTI")
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to pipeline commands for AddProposedTickets")
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	currentTime := time.Now().Unix()
+	for _, id := range ids {
+		// Index the attribute by value.
+		err = redisConn.Send("ZADD", "proposed_tickets", currentTime, id)
+		if err != nil {
+			redisLogger.WithError(err).Error("failed to append proposed tickets to redis")
+			return status.Error(codes.Internal, err.Error())
+		}
+	}
+
+	// Run pipelined Redis commands.
+	_, err = redisConn.Do("EXEC")
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to execute pipelined commands for AddProposedTickets")
+		return status.Error(codes.Internal, err.Error())
+	}
+
 	return nil
 }
 

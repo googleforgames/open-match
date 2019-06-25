@@ -29,6 +29,7 @@ import (
 	"open-match.dev/open-match/internal/config"
 	internalpb "open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/set"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -94,8 +95,10 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 	resultChan := make(chan mmfResult, len(req.GetProfile()))
 
 	var syncID string
+	var err error
 	if s.synchronizerEnabled() {
-		resp, err := s.synchronizer.Register(ctx, &internalpb.RegisterRequest{})
+		var resp *internalpb.RegisterResponse
+		resp, err = s.synchronizer.Register(ctx, &internalpb.RegisterRequest{})
 		if err != nil {
 			return nil, err
 		}
@@ -103,19 +106,25 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		syncID = resp.GetId()
 	}
 
-	err := doFetchMatchesInChannel(ctx, s.cfg, s.mmfClients, req, resultChan)
+	err = doFetchMatchesReceiveMmfResult(ctx, s.cfg, s.mmfClients, req, resultChan)
 	if err != nil {
 		return nil, err
 	}
 
-	proposals, err := doFetchMatchesFilterChannel(ctx, resultChan, len(req.GetProfile()))
+	proposals, err := doFetchMatchesFilterNonErrorProposals(ctx, resultChan, len(req.GetProfile()))
+	if err != nil {
+		return nil, err
+	}
+
+	proposals, err = doFetchMatchesFilterSkiplistIds(ctx, s.cfg, s.store, proposals)
 	if err != nil {
 		return nil, err
 	}
 
 	results := proposals
 	if s.synchronizerEnabled() {
-		resp, err := s.synchronizer.EvaluateProposals(ctx, &internalpb.EvaluateProposalsRequest{
+		var resp *internalpb.EvaluateProposalsResponse
+		resp, err = s.synchronizer.EvaluateProposals(ctx, &internalpb.EvaluateProposalsRequest{
 			Id:    syncID,
 			Match: proposals})
 		if err != nil {
@@ -125,10 +134,15 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		results = resp.Match
 	}
 
+	err = doFetchMatchesAddSkiplistIds(ctx, s.store, results)
+	if err != nil {
+		return nil, err
+	}
+
 	return &pb.FetchMatchesResponse{Match: results}, nil
 }
 
-func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *sync.Map, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
+func doFetchMatchesReceiveMmfResult(ctx context.Context, cfg config.View, mmfClients *sync.Map, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
 	var grpcClient pb.MatchFunctionClient
 	var httpClient *http.Client
 	var baseURL string
@@ -182,7 +196,7 @@ func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *s
 	return nil
 }
 
-func doFetchMatchesFilterChannel(ctx context.Context, resultChan <-chan mmfResult, channelSize int) ([]*pb.Match, error) {
+func doFetchMatchesFilterNonErrorProposals(ctx context.Context, resultChan <-chan mmfResult, channelSize int) ([]*pb.Match, error) {
 	proposals := []*pb.Match{}
 	for i := 0; i < channelSize; i++ {
 		select {
@@ -196,6 +210,38 @@ func doFetchMatchesFilterChannel(ctx context.Context, resultChan <-chan mmfResul
 		}
 	}
 	return proposals, nil
+}
+
+func doFetchMatchesFilterSkiplistIds(ctx context.Context, cfg config.View, store statestore.Service, proposals []*pb.Match) ([]*pb.Match, error) {
+	// Filter out proposals with ids in the proposed_ticket table
+	skipListIds, err := store.GetProposedTickets(ctx, cfg.GetDuration("redis.skiplist.ttl"))
+	if err != nil {
+		return nil, err
+	}
+
+	// Add to the filtered list if there is no overlap between the skiplist and results
+	filteredProposals := []*pb.Match{}
+	for _, proposal := range proposals {
+		proposalIds := make([]string, len(proposal.GetTicket()))
+		for _, ticket := range proposal.GetTicket() {
+			proposalIds = append(proposalIds, ticket.GetId())
+		}
+		if len(set.Intersection(skipListIds, proposalIds)) == 0 {
+			filteredProposals = append(filteredProposals, proposal)
+		}
+	}
+
+	return filteredProposals, nil
+}
+
+func doFetchMatchesAddSkiplistIds(ctx context.Context, store statestore.Service, results []*pb.Match) error {
+	ids := []string{}
+	for _, match := range results {
+		for _, ticket := range match.GetTicket() {
+			ids = append(ids, ticket.GetId())
+		}
+	}
+	return store.AddProposedTickets(ctx, ids)
 }
 
 func getHTTPClient(cfg config.View, mmfClients *sync.Map, addr string) (*http.Client, string, error) {
