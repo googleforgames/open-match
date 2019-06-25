@@ -726,10 +726,14 @@ internal/pb/synchronizer.pb.go: pkg/pb/messages.pb.go
 
 build:
 	$(GO) build ./...
+	$(GO) build -tags e2ecluster ./... 
 
 test:
-	$(GO) test ./... -cover -test.count $(GOLANG_TEST_COUNT) -race
-	$(GO) test ./... -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$
+	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./...
+	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
+
+e2ecluster:
+	$(GO) test ./... -race -tags e2ecluster
 
 stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
@@ -797,9 +801,6 @@ tools/certgen/certgen$(EXE_EXTENSION):
 
 tools/reaper/reaper$(EXE_EXTENSION):
 	cd $(REPOSITORY_ROOT)/tools/reaper/ && $(GO_BUILD_COMMAND)
-
-compile:
-	$(GO) build ./...
 
 build/policies/binauthz.yaml: install/policies/binauthz.yaml
 	mkdir -p $(BUILD_DIR)/policies
@@ -1021,4 +1022,4 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
-.PHONY: docker gcloud update-deps sync-deps sleep-10 sleep-30 all compile proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-reap-clusters md-test vet
+.PHONY: docker gcloud update-deps sync-deps sleep-10 sleep-30 all build proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-reap-clusters md-test vet

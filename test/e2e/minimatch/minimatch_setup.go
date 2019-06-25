@@ -1,3 +1,5 @@
+// +build !e2ecluster
+
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,18 +25,7 @@ import (
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
-)
-
-const (
-	// Names of the test pools used by this test.
-	map1BeginnerPool = "map1beginner"
-	map1AdvancedPool = "map1advanced"
-	map2BeginnerPool = "map2beginner"
-	map2AdvancedPool = "map2advanced"
-	// Test specific metadata
-	skillattribute = "skill"
-	map1attribute  = "map1"
-	map2attribute  = "map2"
+	"open-match.dev/open-match/internal/testing/e2e"
 )
 
 // Create a minimatch test service with function bindings from frontend, backend, and mmlogic.
@@ -50,9 +41,9 @@ func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTe
 		cfg.Set("storage.page.size", 10)
 		// Set up the attributes that a ticket will be indexed for.
 		cfg.Set("playerIndices", []string{
-			skillattribute,
-			map1attribute,
-			map2attribute,
+			e2e.SkillAttribute,
+			e2e.Map1Attribute,
+			e2e.Map2Attribute,
 		})
 		assert.Nil(t, minimatch.BindService(p, cfg))
 	})
