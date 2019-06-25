@@ -88,7 +88,7 @@ steps:
 
 - id: 'Build: Binaries'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'all', '-j8']
+  args: ['make', 'GOPROXY=off', 'compile', 'all', '-j8']
   volumes:
   - name: 'go-vol'
     path: '/go'

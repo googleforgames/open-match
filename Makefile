@@ -791,6 +791,9 @@ tools/certgen/certgen$(EXE_EXTENSION):
 tools/reaper/reaper$(EXE_EXTENSION):
 	cd $(REPOSITORY_ROOT)/tools/reaper/ && $(GO_BUILD_COMMAND)
 
+compile:
+	$(GO) build ./...
+
 build/policies/binauthz.yaml: install/policies/binauthz.yaml
 	mkdir -p $(BUILD_DIR)/policies
 	cp -f $(REPOSITORY_ROOT)/install/policies/binauthz.yaml $(BUILD_DIR)/policies/binauthz.yaml
@@ -1011,4 +1014,4 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
-.PHONY: docker gcloud update-deps sync-deps sleep-10 sleep-30 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-reap-clusters md-test vet
+.PHONY: docker gcloud update-deps sync-deps sleep-10 sleep-30 all compile proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-reap-clusters md-test vet

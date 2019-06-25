@@ -26,18 +26,6 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-const (
-	// Names of the test pools used by this test.
-	map1BeginnerPool = "map1beginner"
-	map1AdvancedPool = "map1advanced"
-	map2BeginnerPool = "map2beginner"
-	map2AdvancedPool = "map2advanced"
-	// Test specific metadata
-	skillattribute = "skill"
-	map1attribute  = "map1"
-	map2attribute  = "map2"
-)
-
 type testProfile struct {
 	name  string
 	pools []*pb.Pool
