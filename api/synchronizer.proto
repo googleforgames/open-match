@@ -80,9 +80,8 @@ message EvaluateProposalsResponse {
 service Synchronizer {
   // Register associates this request with the current synchronization cycle and
   // returns an identifier for this registration. The caller returns this
-  // identifier back in the evaluation
-  // request. This enables identify stale evaluation requests belonging to a
-  // prior window when synchronizing evaluation requests for a window.
+  // identifier back in the evaluation request. This enables synchronizer to
+  // identify stale evaluation requests belonging to a prior window.
   rpc Register(RegisterRequest) returns (RegisterResponse) {
     option (google.api.http) = {
       get: "/v1/synchronizer/register"

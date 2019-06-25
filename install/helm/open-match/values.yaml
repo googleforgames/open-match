@@ -146,8 +146,8 @@ openmatch:
 
         synchronizer:
           enabled: false
-          pollIntervalMs: 1000
-          maxWaitMs: 10000
+          registrationIntervalMs: 3000ms
+          proposalCollectionIntervalMs: 2000ms
 
         monitoring:
           jaeger:
