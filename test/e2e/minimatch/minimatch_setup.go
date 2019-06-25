@@ -25,6 +25,18 @@ import (
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
+const (
+	// Names of the test pools used by this test.
+	map1BeginnerPool = "map1beginner"
+	map1AdvancedPool = "map1advanced"
+	map2BeginnerPool = "map2beginner"
+	map2AdvancedPool = "map2advanced"
+	// Test specific metadata
+	skillattribute = "skill"
+	map1attribute  = "map1"
+	map2attribute  = "map2"
+)
+
 // Create a minimatch test service with function bindings from frontend, backend, and mmlogic.
 // Instruct this service to start and connect to a fake storage service.
 func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
