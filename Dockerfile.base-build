@@ -18,4 +18,3 @@ ENV GO111MODULE=on
 WORKDIR /go/src/open-match.dev/open-match
 COPY . .
 RUN go mod download
-
