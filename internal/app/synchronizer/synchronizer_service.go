@@ -234,10 +234,7 @@ func (s *synchronizerService) Evaluate() {
 	if err != nil {
 		// TODO: Errors in evaluation are currently ignored. This should be handled and should lead to
 		// error being surfaced to all the pending requests to fetch matches.
-		synchronizerServiceLogger.WithFields(logrus.Fields{
-			"error":     err.Error(),
-			"proposals": getMatchIds(aggregateProposals),
-		}).Error("Evaluation for proposals failed")
+		synchronizerServiceLogger.WithError(err).Errorf("Failed to evaluate proposals: %v", getMatchIds(aggregateProposals))
 	}
 
 	synchronizerServiceLogger.WithFields(logrus.Fields{

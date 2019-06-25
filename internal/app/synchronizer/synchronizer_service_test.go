@@ -180,19 +180,21 @@ func TestSynchronizerService(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc.testEvaluator.eval = &testEvaluatorClient{
-			evalFunc: func(proposals []*pb.Match) ([]*pb.Match, error) {
-				if tc.testEvaluator.callCount >= len(tc.testEvaluator.results) {
-					assert.Fail("Evaluation triggered more than the expected count")
-				}
+		t.Run(tc.description, func(t *testing.T) {
+			tc.testEvaluator.eval = &testEvaluatorClient{
+				evalFunc: func(proposals []*pb.Match) ([]*pb.Match, error) {
+					if tc.testEvaluator.callCount >= len(tc.testEvaluator.results) {
+						assert.Fail("Evaluation triggered more than the expected count")
+					}
 
-				result := tc.testEvaluator.results[tc.testEvaluator.callCount]
-				tc.testEvaluator.callCount = tc.testEvaluator.callCount + 1
-				return result, nil
-			},
-		}
+					result := tc.testEvaluator.results[tc.testEvaluator.callCount]
+					tc.testEvaluator.callCount = tc.testEvaluator.callCount + 1
+					return result, nil
+				},
+			}
 
-		runEvaluationTest(t, tc)
+			runEvaluationTest(t, tc)
+		})
 	}
 }
 
@@ -223,7 +225,6 @@ func runEvaluationTest(t *testing.T, tc *testData) {
 			require.Equal(c.evaluationrErrCode, status.Convert(err).Code())
 			if c.evaluationrErrCode == codes.OK {
 				require.NotNil(epResp)
-				t.Logf(tc.description)
 				assert.ElementsMatch(c.wantResults, epResp.Match)
 			}
 		}()
