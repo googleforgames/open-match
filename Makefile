@@ -373,6 +373,7 @@ install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demoevaluator.install=false \
 		--set openmatch.demo.install=false \
 		--set openmatch.demofunction.install=false \
 		--set redis.enabled=true \
@@ -403,6 +404,7 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demoevaluator.install=false \
 		--set openmatch.demo.install=false \
 		--set openmatch.demofunction.install=false \
 		--set redis.enabled=false \
@@ -421,6 +423,7 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demoevaluator.install=false \
 		--set openmatch.demo.install=false \
 		--set openmatch.demofunction.install=false \
 		--set redis.enabled=false \
@@ -439,6 +442,7 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demoevaluator.install=false \
 		--set openmatch.demo.install=false \
 		--set openmatch.demofunction.install=false \
 		--set redis.enabled=false \
@@ -452,6 +456,7 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
+		--set openmatch.demoevaluator.install=false \
 		--set openmatch.demo.install=false \
 		--set openmatch.demofunction.install=false \
 		--set redis.enabled=true \
@@ -471,6 +476,7 @@ install/yaml/install-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demoevaluator.install=true \
 		--set openmatch.demo.install=true \
 		--set openmatch.demofunction.install=true \
 		--set redis.enabled=false \
