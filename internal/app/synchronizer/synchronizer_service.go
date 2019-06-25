@@ -32,10 +32,10 @@ type synchronizerState int
 
 // The Synchronizer can be in one of the following states.
 const (
-	idle synchronizerState = iota
-	requestRegistration
-	proposalCollection
-	evaluation
+	stateIdle synchronizerState = iota
+	stateRequestRegistration
+	stateProposalCollection
+	stateEvaluation
 )
 
 // The requestData holds the state of each pending request for evaluation. The
@@ -76,7 +76,7 @@ var (
 
 func newSynchronizerService(cfg config.View, eval evaluator) *synchronizerService {
 	service := &synchronizerService{
-		state: idle,
+		state: stateIdle,
 		cfg:   cfg,
 		eval:  eval,
 		cycleData: &synchronizerData{
@@ -100,17 +100,17 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 	// when the previous synchronization cycle is complete, waking up all the
 	// blocked requests to make progress in the new cycle.
 	s.stateMutex.Lock()
-	for (s.state != idle) && (s.state != requestRegistration) {
+	for (s.state != stateIdle) && (s.state != stateRequestRegistration) {
 		s.idleCond.Wait()
 	}
 
 	defer s.stateMutex.Unlock()
-	if s.state == idle {
+	if s.state == stateIdle {
 		// After waking up, the first request that encounters the idle state changes
 		// state to requestRegistration and initializes the state for this synchronization
 		// cycle. Consequent registration requests bypass this initialization.
-		synchronizerServiceLogger.Infof("Changing state from idle to requestRegistration")
-		s.state = requestRegistration
+		synchronizerServiceLogger.Debug("Changing state from idle to requestRegistration")
+		s.state = stateRequestRegistration
 		s.cycleData = &synchronizerData{
 			idToRequestData: make(map[string]*requestData),
 			resultsReady:    make(chan struct{}),
@@ -125,7 +125,9 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 	// request data for this request.
 	id := xid.New().String()
 	s.cycleData.idToRequestData[id] = &requestData{}
-	synchronizerServiceLogger.Debugf("Registered request for synchronization, id: %v", id)
+	synchronizerServiceLogger.WithFields(logrus.Fields{
+		"id": id,
+	}).Trace("Registered request for synchronization")
 	return &ipb.RegisterResponse{Id: id}, nil
 }
 
@@ -136,7 +138,10 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 //  end of the cycle, the user defined evaluation method is triggered and the
 // matches accepted by it are returned as results.
 func (s *synchronizerService) EvaluateProposals(ctx context.Context, req *ipb.EvaluateProposalsRequest) (*ipb.EvaluateProposalsResponse, error) {
-	synchronizerServiceLogger.Debugf("Request to evaluate propsals - id:%v, proposals: %v", req.Id, getMatchIds(req.Match))
+	synchronizerServiceLogger.WithFields(logrus.Fields{
+		"id":        req.GetId(),
+		"proposals": getMatchIds(req.GetMatch()),
+	}).Trace("Received request to evaluate propsals")
 	// pendingRequests keeps track of number of requests pending. This is incremented
 	// in addProposals while holding the state mutex. The count should be decremented
 	// only after this request completes.
@@ -184,7 +189,7 @@ func (s *synchronizerService) addProposals(id string, proposals []*pb.Match) err
 }
 
 func (s *synchronizerService) canAcceptProposal() bool {
-	return s.state == proposalCollection || s.state == requestRegistration
+	return s.state == stateProposalCollection || s.state == stateRequestRegistration
 }
 
 func (s *synchronizerService) fetchResults(id string) []*pb.Match {
@@ -194,10 +199,15 @@ func (s *synchronizerService) fetchResults(id string) []*pb.Match {
 	// fetchMatches will block till evaluation is in progress. The resultsReady channel
 	// is closed only when evaluation is complete. This is used to signal all waiting
 	// requests that the results are ready.
+	// TODO: Add a timeout in case results are not ready within a certain duration.
 	<-s.cycleData.resultsReady
 	results = make([]*pb.Match, len(s.cycleData.idToRequestData[id].results))
 	copy(results, s.cycleData.idToRequestData[id].results)
-	synchronizerServiceLogger.Debugf("Results ready for id: %v, results: %v, elapsed time: %v", id, getMatchIds(results), time.Since(t).String())
+	synchronizerServiceLogger.WithFields(logrus.Fields{
+		"id":      id,
+		"results": getMatchIds(results),
+		"elapsed": time.Since(t).String(),
+	}).Trace("Evaluation results ready")
 	return results
 }
 
@@ -208,7 +218,7 @@ func (s *synchronizerService) fetchResults(id string) []*pb.Match {
 // synchronizer state to idle.
 // NOTE: This method is always called while holding the synchronizer state mutex.
 func (s *synchronizerService) Evaluate() {
-	var aggregateProposals []*pb.Match
+	aggregateProposals := []*pb.Match{}
 	proposalMap := make(map[string]string)
 	for id, data := range s.cycleData.idToRequestData {
 		aggregateProposals = append(aggregateProposals, data.proposals...)
@@ -217,21 +227,30 @@ func (s *synchronizerService) Evaluate() {
 		}
 	}
 
-	synchronizerServiceLogger.Infof("Requesting evaluation of %v proposals", len(aggregateProposals))
+	synchronizerServiceLogger.WithFields(logrus.Fields{
+		"proposals": getMatchIds(aggregateProposals),
+	}).Trace("Requesting evaluation of proposals")
 	results, err := s.eval.evaluate(aggregateProposals)
 	if err != nil {
 		// TODO: Errors in evaluation are currently ignored. This should be handled and should lead to
 		// error being surfaced to all the pending requests to fetch matches.
-		synchronizerServiceLogger.Errorf("Evaluation for proposals %v failed, %v", aggregateProposals, err)
+		synchronizerServiceLogger.WithFields(logrus.Fields{
+			"error":     err.Error(),
+			"proposals": getMatchIds(aggregateProposals),
+		}).Error("Evaluation for proposals failed")
 	}
 
-	synchronizerServiceLogger.Infof("Evaluation returned %v results", len(results))
+	synchronizerServiceLogger.WithFields(logrus.Fields{
+		"results": getMatchIds(results),
+	}).Trace("Evaluation successfully returned results")
 	for _, m := range results {
 		cid, ok := proposalMap[m.MatchId]
 		if !ok {
 			// Evaluator returned a match that the synchronizer did not submit for evaluation. This
 			// could happen if the match id was modified accidentally.
-			synchronizerServiceLogger.Warningf("Result %v does not belong to any known requests.", m)
+			synchronizerServiceLogger.WithFields(logrus.Fields{
+				"match": m.GetMatchId(),
+			}).Warning("Result does not belong to any known requests")
 			continue
 		}
 
@@ -244,8 +263,8 @@ func (s *synchronizerService) Evaluate() {
 	// Wait for all fetchMatches to complete processing results and then set synchronizer
 	// to idle state and signal any blocked registration requests to proceed.
 	s.cycleData.pendingRequests.Wait()
-	synchronizerServiceLogger.Infof("Changing state from evaluating to idle")
-	s.state = idle
+	synchronizerServiceLogger.Debug("Changing state from evaluating to idle")
+	s.state = stateIdle
 	s.idleCond.Broadcast()
 }
 
@@ -253,8 +272,8 @@ func (s *synchronizerService) trackRegistrationWindow() {
 	time.Sleep(s.registrationInterval())
 	s.stateMutex.Lock()
 	defer s.stateMutex.Unlock()
-	synchronizerServiceLogger.Infof("Changing state from requestRegistration to proposalCollection")
-	s.state = proposalCollection
+	synchronizerServiceLogger.Debug("Changing state from requestRegistration to proposalCollection")
+	s.state = stateProposalCollection
 	go s.trackProposalWindow()
 }
 
@@ -262,8 +281,8 @@ func (s *synchronizerService) trackProposalWindow() {
 	time.Sleep(s.proposalCollectionInterval())
 	s.stateMutex.Lock()
 	defer s.stateMutex.Unlock()
-	synchronizerServiceLogger.Infof("Changing state from proposalCollection to evaluation")
-	s.state = evaluation
+	synchronizerServiceLogger.Debug("Changing state from proposalCollection to evaluation")
+	s.state = stateEvaluation
 	s.Evaluate()
 }
 
