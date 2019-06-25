@@ -109,7 +109,7 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 		// After waking up, the first request that encounters the idle state changes
 		// state to requestRegistration and initializes the state for this synchronization
 		// cycle. Consequent registration requests bypass this initialization.
-		synchronizerServiceLogger.Debug("Changing state from idle to requestRegistration")
+		synchronizerServiceLogger.Info("Changing state from idle to requestRegistration")
 		s.state = stateRequestRegistration
 		s.cycleData = &synchronizerData{
 			idToRequestData: make(map[string]*requestData),
@@ -127,7 +127,7 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 	s.cycleData.idToRequestData[id] = &requestData{}
 	synchronizerServiceLogger.WithFields(logrus.Fields{
 		"id": id,
-	}).Trace("Registered request for synchronization")
+	}).Info("Registered request for synchronization")
 	return &ipb.RegisterResponse{Id: id}, nil
 }
 
@@ -141,7 +141,7 @@ func (s *synchronizerService) EvaluateProposals(ctx context.Context, req *ipb.Ev
 	synchronizerServiceLogger.WithFields(logrus.Fields{
 		"id":        req.GetId(),
 		"proposals": getMatchIds(req.GetMatch()),
-	}).Trace("Received request to evaluate propsals")
+	}).Info("Received request to evaluate propsals")
 	// pendingRequests keeps track of number of requests pending. This is incremented
 	// in addProposals while holding the state mutex. The count should be decremented
 	// only after this request completes.
@@ -229,7 +229,7 @@ func (s *synchronizerService) Evaluate() {
 
 	synchronizerServiceLogger.WithFields(logrus.Fields{
 		"proposals": getMatchIds(aggregateProposals),
-	}).Trace("Requesting evaluation of proposals")
+	}).Info("Requesting evaluation of proposals")
 	results, err := s.eval.evaluate(aggregateProposals)
 	if err != nil {
 		// TODO: Errors in evaluation are currently ignored. This should be handled and should lead to
@@ -242,7 +242,7 @@ func (s *synchronizerService) Evaluate() {
 
 	synchronizerServiceLogger.WithFields(logrus.Fields{
 		"results": getMatchIds(results),
-	}).Trace("Evaluation successfully returned results")
+	}).Info("Evaluation successfully returned results")
 	for _, m := range results {
 		cid, ok := proposalMap[m.MatchId]
 		if !ok {
@@ -263,7 +263,7 @@ func (s *synchronizerService) Evaluate() {
 	// Wait for all fetchMatches to complete processing results and then set synchronizer
 	// to idle state and signal any blocked registration requests to proceed.
 	s.cycleData.pendingRequests.Wait()
-	synchronizerServiceLogger.Debug("Changing state from evaluating to idle")
+	synchronizerServiceLogger.Info("Changing state from evaluating to idle")
 	s.state = stateIdle
 	s.idleCond.Broadcast()
 }
@@ -272,7 +272,7 @@ func (s *synchronizerService) trackRegistrationWindow() {
 	time.Sleep(s.registrationInterval())
 	s.stateMutex.Lock()
 	defer s.stateMutex.Unlock()
-	synchronizerServiceLogger.Debug("Changing state from requestRegistration to proposalCollection")
+	synchronizerServiceLogger.Info("Changing state from requestRegistration to proposalCollection")
 	s.state = stateProposalCollection
 	go s.trackProposalWindow()
 }
@@ -281,7 +281,7 @@ func (s *synchronizerService) trackProposalWindow() {
 	time.Sleep(s.proposalCollectionInterval())
 	s.stateMutex.Lock()
 	defer s.stateMutex.Unlock()
-	synchronizerServiceLogger.Debug("Changing state from proposalCollection to evaluation")
+	synchronizerServiceLogger.Info("Changing state from proposalCollection to evaluation")
 	s.state = stateEvaluation
 	s.Evaluate()
 }
