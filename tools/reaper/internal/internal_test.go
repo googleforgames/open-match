@@ -132,5 +132,5 @@ func TestIsOrphaned(t *testing.T) {
 
 func TestSelfLinkToQualifiedName(t *testing.T) {
 	assert := assert.New(t)
-	assert.Equal("projects/jeremyedwards-gaming-dev/zones/us-central1-a/clusters/orphaned", selfLinkToQualifiedName("https://container.googleapis.com/v1/projects/jeremyedwards-gaming-dev/zones/us-central1-a/clusters/orphaned"))
+	assert.Equal("projects/open-match-build/zones/us-central1-a/clusters/orphaned", selfLinkToQualifiedName("https://container.googleapis.com/v1/projects/open-match-build/zones/us-central1-a/clusters/orphaned"))
 }
