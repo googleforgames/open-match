@@ -30,6 +30,7 @@ import (
 	"open-match.dev/open-match/internal/rpc"
 	pb "open-match.dev/open-match/pkg/pb"
 	"os/user"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -38,6 +39,7 @@ type clusterOM struct {
 	kubeClient kubernetes.Interface
 	namespace  string
 	t          *testing.T
+	mc         *multicloser
 }
 
 func (com *clusterOM) withT(t *testing.T) OM {
@@ -45,31 +47,35 @@ func (com *clusterOM) withT(t *testing.T) OM {
 		kubeClient: com.kubeClient,
 		namespace:  com.namespace,
 		t:          t,
+		mc:         newMulticloser(),
 	}
 }
 
-func (com *clusterOM) MustFrontendGRPC() (pb.FrontendClient, func()) {
+func (com *clusterOM) MustFrontendGRPC() pb.FrontendClient {
 	conn, err := com.getGRPCClientFromServiceName("om-frontend")
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
-	return pb.NewFrontendClient(conn), closeSilently(conn.Close)
+	com.mc.addSilent(conn.Close)
+	return pb.NewFrontendClient(conn)
 }
 
-func (com *clusterOM) MustBackendGRPC() (pb.BackendClient, func()) {
+func (com *clusterOM) MustBackendGRPC() pb.BackendClient {
 	conn, err := com.getGRPCClientFromServiceName("om-backend")
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
-	return pb.NewBackendClient(conn), closeSilently(conn.Close)
+	com.mc.addSilent(conn.Close)
+	return pb.NewBackendClient(conn)
 }
 
-func (com *clusterOM) MustMmLogicGRPC() (pb.MmLogicClient, func()) {
+func (com *clusterOM) MustMmLogicGRPC() pb.MmLogicClient {
 	conn, err := com.getGRPCClientFromServiceName("om-mmlogic")
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
-	return pb.NewMmLogicClient(conn), closeSilently(conn.Close)
+	com.mc.addSilent(conn.Close)
+	return pb.NewMmLogicClient(conn)
 }
 
 func (com *clusterOM) getGRPCClientFromServiceName(serviceName string) (*grpc.ClientConn, error) {
@@ -109,15 +115,23 @@ func (com *clusterOM) Context() context.Context {
 	return context.Background()
 }
 
-func (com *clusterOM) cleanup() error {
-	return nil
+func (com *clusterOM) cleanup() {
+	com.mc.close()
 }
 
 func (com *clusterOM) cleanupMain() error {
 	return nil
 }
 
-func newClusterOM(kubeconfig string, namespace string) (*clusterOM, error) {
+func fileExists(name string) bool {
+	_, err := os.Stat(name)
+	return err == nil
+}
+
+func newClusterOM(kubeconfig string, kubeconfigFromEnv string, namespace string) (*clusterOM, error) {
+	if !fileExists(kubeconfig) && fileExists(kubeconfigFromEnv) {
+		kubeconfig = kubeconfigFromEnv
+	}
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return nil, errors.Wrapf(err, "building Kubernetes config from flags %s failed", kubeconfig)
@@ -141,7 +155,8 @@ func createZygote(m *testing.M) (OM, error) {
 	}
 	kubeconfig := flag.String("kubeconfig", filepath.Join(u.HomeDir, ".kube", "config"), "Kubernetes configuration file")
 	namespace := flag.String("namespace", "open-match", "Open Match Namespace")
+	kubeconfigFromEnv := os.Getenv("KUBECONFIG")
 
 	flag.Parse()
-	return newClusterOM(*kubeconfig, *namespace)
+	return newClusterOM(*kubeconfig, kubeconfigFromEnv, *namespace)
 }

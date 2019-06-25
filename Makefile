@@ -142,7 +142,8 @@ DASHBOARD_PORT = 9092
 OPEN_MATCH_CI_LABEL = open-match-ci
 
 # This flag is set when running in Continuous Integration.
-ifdef ALLOW_BUILD_WITH_SUDO
+ifdef OPEN_MATCH_CI_MODE
+	export KUBECONFIG = $(HOME)/.kube/config
 	GCLOUD = gcloud --quiet --no-user-output-enabled
 	GKE_CLUSTER_NAME = om-cluster-$(SHORT_SHA)
 	GKE_CLUSTER_FLAGS = --labels open-match-ci=1 --node-labels=open-match-ci=1 --network=projects/$(GCP_PROJECT_ID)/global/networks/open-match-ci --subnetwork=projects/$(GCP_PROJECT_ID)/regions/$(GCP_REGION)/subnetworks/ci-$(GCP_REGION)-$(NANOS_MODULO_60)
@@ -1013,7 +1014,7 @@ sleep-30:
 # Prevents users from running with sudo.
 # There's an exception for Google Cloud Build because it runs as root.
 no-sudo:
-ifndef ALLOW_BUILD_WITH_SUDO
+ifndef OPEN_MATCH_CI_MODE
 ifeq ($(shell whoami),root)
 	@echo "ERROR: Running Makefile as root (or sudo)"
 	@echo "Please follow the instructions at https://docs.docker.com/install/linux/linux-postinstall/ if you are trying to sudo run the Makefile because of the 'Cannot connect to the Docker daemon' error."

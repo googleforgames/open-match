@@ -150,10 +150,8 @@ func TestQueryTickets(t *testing.T) {
 
 				om, closer := e2e.New(t)
 				defer closer()
-				fe, fec := om.MustFrontendGRPC()
-				defer fec()
-				mml, mmlc := om.MustMmLogicGRPC()
-				defer mmlc()
+				fe := om.MustFrontendGRPC()
+				mml := om.MustMmLogicGRPC()
 				pageCounts := 0
 
 				test.preAction(fe, t)
