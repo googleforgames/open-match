@@ -52,7 +52,7 @@ RUN mkdir -p /toolchain
 # Cache all the dependencies.
 WORKDIR /go-cache
 COPY go.mod .
-RUN go mod tidy
+RUN go mod download
 
 WORKDIR /workspace
 ENV ALLOW_BUILD_WITH_SUDO=1
