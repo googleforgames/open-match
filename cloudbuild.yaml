@@ -70,6 +70,14 @@ steps:
     path: '/go'
   waitFor: ['Build: Clean']
 
+- id: 'Build: Install Kubernetes Tools'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'install-kubernetes-tools']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
+  waitFor: ['Build: Clean']
+
 - id: 'Build: Install Toolchain'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'install-toolchain']
@@ -80,7 +88,7 @@ steps:
 
 - id: 'Build: Assets'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'assets', '-j8']
+  args: ['make', 'assets', '-j12']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -88,7 +96,7 @@ steps:
 
 - id: 'Build: Binaries'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'build', 'all', '-j8']
+  args: ['make', 'GOPROXY=off', 'build', 'all', '-j12']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -96,7 +104,7 @@ steps:
 
 - id: 'Test: Services'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'GOLANG_TEST_COUNT=50', 'test']
+  args: ['make', 'GOPROXY=off', 'GOLANG_TEST_COUNT=10', 'test']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -104,7 +112,7 @@ steps:
 
 - id: 'Build: Docker Images'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'VERSION_SUFFIX=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'push-images', '-j8']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'push-images', '-j8']
   waitFor: ['Build: Assets']
 
 - id: 'Build: Deployment Configs'
@@ -120,19 +128,14 @@ steps:
     path: '/go'
   waitFor: ['Build: Assets', 'Build: Deployment Configs']
 
-- id: 'Test: Delete Old Clusters'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GCP_PROJECT_ID=${PROJECT_ID}', 'ci-reap-clusters']
-  waitFor: ['Build: Install Toolchain']
-
 - id: 'Test: Create Cluster'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'delete-gke-cluster', 'create-gke-cluster', 'push-helm']
-  waitFor: ['Test: Delete Old Clusters']
+  waitFor: ['Build: Install Kubernetes Tools']
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'sleep-30', 'install-chart']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'sleep-10', 'install-chart']
   waitFor: ['Test: Create Cluster', 'Build: Docker Images']
 
 # TODO: Once the location of the cluster configs is known run the tests.
@@ -146,7 +149,7 @@ steps:
 
 - id: 'Test: Delete Cluster'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'delete-gke-cluster']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'GCP_PROJECT_ID=${PROJECT_ID}', 'ci-reap-clusters', 'delete-gke-cluster']
   waitFor: ['Test: Deploy Open Match']
 #  waitFor: ['Test: End-to-End Cluster']
 
