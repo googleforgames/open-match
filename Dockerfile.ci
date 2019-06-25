@@ -49,10 +49,5 @@ RUN sudo mkdir -p "$GOPATH/src" "$GOPATH/bin" \
 # Prepare toolchain and workspace
 RUN mkdir -p /toolchain
 
-# Cache all the dependencies.
-WORKDIR /go-cache
-COPY go.mod .
-RUN go mod download
-
 WORKDIR /workspace
 ENV ALLOW_BUILD_WITH_SUDO=1
