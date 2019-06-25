@@ -26,6 +26,7 @@ spec:
     app: {{ template "openmatch.name" . }}
     component: mmlogic
     {{- include "openmatch.chartmeta" (set . "indent" 4) }}
+  type: {{ .Values.openmatch.mmlogic.porttype }}
   ports:
   - name: grpc
     protocol: TCP

@@ -25,6 +25,7 @@ spec:
   selector:
     app: {{ template "openmatch.name" . }}
     component: synchronizer
+  type: {{ .Values.openmatch.synchronizer.porttype }}
   ports:
   - name: grpc
     protocol: TCP

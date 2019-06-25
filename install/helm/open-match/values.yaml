@@ -38,6 +38,7 @@ openmatch:
       port: 50505
     http:
       port: 51505
+    porttype: LoadBalancer
   frontend:
     install: true
     replicas: 3
@@ -45,6 +46,7 @@ openmatch:
       port: 50504
     http:
       port: 51504
+    porttype: LoadBalancer
   mmlogic:
     install: true
     replicas: 3
@@ -52,6 +54,7 @@ openmatch:
       port: 50503
     http:
       port: 51503
+    porttype: LoadBalancer
   synchronizer:
     install: true
     replicas: 1
@@ -59,25 +62,29 @@ openmatch:
       port: 50506
     http:
       port: 51506
+    porttype: LoadBalancer
   swaggerui:
     install: true
     replicas: 3
     http:
       port: 50500
+    porttype: LoadBalancer
   demofunction:
     install: true
+    replicas: 3
     grpc:
       port: 50502
     http:
       port: 51502
-    replicas: 3
+    porttype: LoadBalancer
   demo:
     # TODO: Change to true once the demo is available.
     # It's currently missing liveness/readiness checks.
     install: false
+    replicas: 3
     http:
       port: 51507
-    replicas: 3
+    porttype: LoadBalancer
 
   config:
     install: true
