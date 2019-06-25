@@ -48,9 +48,12 @@ type requestData struct {
 // synchronizerData holds the state for a synchronization cycle. This data is
 // reset on every new synchronization cycle.
 type synchronizerData struct {
-	requests        map[string]*requestData // data for all the requests in the current cycle.
-	pendingRequests sync.WaitGroup          // Tracks the completion of all pending requests
-	resultsReady    chan struct{}           // Signal completion of evaluation and availability of results.
+	// idToRequestData holds a map of the id for each evaluation request to the data
+	// associated with that request. It tracks ids issued during registration in the
+	// current synchronization cycle and mantain context for the evaluation call from them.
+	idToRequestData map[string]*requestData
+	pendingRequests sync.WaitGroup // Tracks the completion of all pending requests
+	resultsReady    chan struct{}  // Signal completion of evaluation and availability of results.
 }
 
 // The service implementing the Synchronizer API that synchronizes the evaluation
@@ -58,7 +61,7 @@ type synchronizerData struct {
 type synchronizerService struct {
 	cfg        config.View       // Open Match configuration
 	cycleData  *synchronizerData // State for the current synchronization cycle
-	evalFunc   EvaluatorFunction // Evaluation function to be triggered
+	eval       evaluator         // Evaluation function to be triggered
 	idleCond   *sync.Cond        // Signal any blocked registrations to proceed
 	state      synchronizerState // Current state of the Synchronizer
 	stateMutex sync.Mutex        // Mutex to check on current state and take specific actions.
@@ -71,14 +74,14 @@ var (
 	})
 )
 
-func newSynchronizerService(cfg config.View, f EvaluatorFunction) *synchronizerService {
+func newSynchronizerService(cfg config.View, eval evaluator) *synchronizerService {
 	service := &synchronizerService{
-		state:    idle,
-		cfg:      cfg,
-		evalFunc: f,
+		state: idle,
+		cfg:   cfg,
+		eval:  eval,
 		cycleData: &synchronizerData{
-			requests:     make(map[string]*requestData),
-			resultsReady: make(chan struct{}),
+			idToRequestData: make(map[string]*requestData),
+			resultsReady:    make(chan struct{}),
 		},
 	}
 
@@ -109,8 +112,8 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 		synchronizerServiceLogger.Infof("Changing state from idle to requestRegistration")
 		s.state = requestRegistration
 		s.cycleData = &synchronizerData{
-			requests:     make(map[string]*requestData),
-			resultsReady: make(chan struct{}),
+			idToRequestData: make(map[string]*requestData),
+			resultsReady:    make(chan struct{}),
 		}
 
 		// This method triggers the goroutine that changes the state of the synchronizer
@@ -121,7 +124,7 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 	// Now that we are in requestRegistration state, allocate an id and initialize
 	// request data for this request.
 	id := xid.New().String()
-	s.cycleData.requests[id] = &requestData{}
+	s.cycleData.idToRequestData[id] = &requestData{}
 	synchronizerServiceLogger.Debugf("Registered request for synchronization, id: %v", id)
 	return &ipb.RegisterResponse{Id: id}, nil
 }
@@ -158,15 +161,15 @@ func (s *synchronizerService) addProposals(id string, proposals []*pb.Match) err
 	s.stateMutex.Lock()
 	defer s.stateMutex.Unlock()
 
-	if !s.proposalCollection() {
+	if !s.canAcceptProposal() {
 		return status.Error(codes.DeadlineExceeded, "synchronizer currently not accepting match proposals")
 	}
 
-	if _, ok := s.cycleData.requests[id]; !ok {
+	if _, ok := s.cycleData.idToRequestData[id]; !ok {
 		return status.Error(codes.DeadlineExceeded, "request not present in the current synchronization cycle")
 	}
 
-	if len(s.cycleData.requests[id].proposals) > 0 {
+	if len(s.cycleData.idToRequestData[id].proposals) > 0 {
 		// We do not currently support submitting multiple separate proposals for a registered request.
 		return status.Error(codes.Internal, "multiple proposal addition for a request not supported")
 	}
@@ -175,12 +178,12 @@ func (s *synchronizerService) addProposals(id string, proposals []*pb.Match) err
 	s.cycleData.pendingRequests.Add(1)
 
 	// Copy the proposals being added to the request data for the specified id.
-	s.cycleData.requests[id].proposals = make([]*pb.Match, len(proposals))
-	copy(s.cycleData.requests[id].proposals, proposals)
+	s.cycleData.idToRequestData[id].proposals = make([]*pb.Match, len(proposals))
+	copy(s.cycleData.idToRequestData[id].proposals, proposals)
 	return nil
 }
 
-func (s *synchronizerService) proposalCollection() bool {
+func (s *synchronizerService) canAcceptProposal() bool {
 	return s.state == proposalCollection || s.state == requestRegistration
 }
 
@@ -192,8 +195,8 @@ func (s *synchronizerService) fetchResults(id string) []*pb.Match {
 	// is closed only when evaluation is complete. This is used to signal all waiting
 	// requests that the results are ready.
 	<-s.cycleData.resultsReady
-	results = make([]*pb.Match, len(s.cycleData.requests[id].results))
-	copy(results, s.cycleData.requests[id].results)
+	results = make([]*pb.Match, len(s.cycleData.idToRequestData[id].results))
+	copy(results, s.cycleData.idToRequestData[id].results)
 	synchronizerServiceLogger.Debugf("Results ready for id: %v, results: %v, elapsed time: %v", id, getMatchIds(results), time.Since(t).String())
 	return results
 }
@@ -207,7 +210,7 @@ func (s *synchronizerService) fetchResults(id string) []*pb.Match {
 func (s *synchronizerService) Evaluate() {
 	var aggregateProposals []*pb.Match
 	proposalMap := make(map[string]string)
-	for id, data := range s.cycleData.requests {
+	for id, data := range s.cycleData.idToRequestData {
 		aggregateProposals = append(aggregateProposals, data.proposals...)
 		for _, m := range data.proposals {
 			proposalMap[m.MatchId] = id
@@ -215,9 +218,13 @@ func (s *synchronizerService) Evaluate() {
 	}
 
 	synchronizerServiceLogger.Infof("Requesting evaluation of %v proposals", len(aggregateProposals))
-	// TODO: Errors in evaluation are currently ignored. This should be handled and should lead to
-	// error being surfaced to all the pending requests to fetch matches.
-	results := s.evalFunc(aggregateProposals)
+	results, err := s.eval.evaluate(aggregateProposals)
+	if err != nil {
+		// TODO: Errors in evaluation are currently ignored. This should be handled and should lead to
+		// error being surfaced to all the pending requests to fetch matches.
+		synchronizerServiceLogger.Errorf("Evaluation for proposals %v failed, %v", aggregateProposals, err)
+	}
+
 	synchronizerServiceLogger.Infof("Evaluation returned %v results", len(results))
 	for _, m := range results {
 		cid, ok := proposalMap[m.MatchId]
@@ -228,7 +235,7 @@ func (s *synchronizerService) Evaluate() {
 			continue
 		}
 
-		s.cycleData.requests[cid].results = append(s.cycleData.requests[cid].results, m)
+		s.cycleData.idToRequestData[cid].results = append(s.cycleData.idToRequestData[cid].results, m)
 	}
 
 	// Signal completion of evaluation to all requests waiting for results.
@@ -262,28 +269,28 @@ func (s *synchronizerService) trackProposalWindow() {
 
 func (s *synchronizerService) registrationInterval() time.Duration {
 	const (
-		name                = "synchronizer.registrationIntervalMs"
-		defaultInterval int = 3000
+		name            = "synchronizer.registrationIntervalMs"
+		defaultInterval = 3000 * time.Millisecond
 	)
 
 	if !s.cfg.IsSet(name) {
-		return time.Duration(defaultInterval)
+		return defaultInterval
 	}
 
-	return time.Duration(s.cfg.GetInt(name)) * time.Millisecond
+	return s.cfg.GetDuration(name)
 }
 
 func (s *synchronizerService) proposalCollectionInterval() time.Duration {
 	const (
-		name                = "synchronizer.proposalCollectionIntervalMs"
-		defaultInterval int = 3000
+		name            = "synchronizer.proposalCollectionIntervalMs"
+		defaultInterval = 3000 * time.Millisecond
 	)
 
 	if !s.cfg.IsSet(name) {
-		return time.Duration(defaultInterval)
+		return defaultInterval
 	}
 
-	return time.Duration(s.cfg.GetInt(name)) * time.Millisecond
+	return s.cfg.GetDuration(name)
 }
 
 func getMatchIds(matches []*pb.Match) []string {

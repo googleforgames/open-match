@@ -56,8 +56,9 @@ func RunApplication() {
 
 // BindService creates the synchronizer service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View) error {
-	evalFunction := getEvaluator()
-	service := newSynchronizerService(cfg, evalFunction)
+	service := newSynchronizerService(cfg, &evaluatorClient{
+		cfg: cfg,
+	})
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterSynchronizerServer(s, service)
 	}, pb.RegisterSynchronizerHandlerFromEndpoint)

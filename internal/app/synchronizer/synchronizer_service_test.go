@@ -30,6 +30,14 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+type testEvaluatorClient struct {
+	evalFunc func([]*pb.Match) ([]*pb.Match, error)
+}
+
+func (s *testEvaluatorClient) evaluate(proposals []*pb.Match) ([]*pb.Match, error) {
+	return s.evalFunc(proposals)
+}
+
 type testCallData struct {
 	registerDelay      int
 	evaluateDelay      int
@@ -40,7 +48,7 @@ type testCallData struct {
 
 type testEvaluatorData struct {
 	callCount int
-	evaluator func(proposals []*pb.Match) []*pb.Match
+	eval      evaluator
 	results   [][]*pb.Match
 }
 
@@ -48,8 +56,8 @@ type testData struct {
 	description   string
 	testCalls     []*testCallData
 	testEvaluator *testEvaluatorData
-	regInterval   int
-	propInterval  int
+	regInterval   string
+	propInterval  string
 }
 
 func TestSynchronizerService(t *testing.T) {
@@ -76,8 +84,8 @@ func TestSynchronizerService(t *testing.T) {
 			testEvaluator: &testEvaluatorData{
 				results: [][]*pb.Match{tm[0:10]},
 			},
-			regInterval:  500,
-			propInterval: 500,
+			regInterval:  "500ms",
+			propInterval: "500ms",
 		},
 		{
 			description: "basic evaluation sending subset of proposals in proposal acceptance window",
@@ -96,8 +104,8 @@ func TestSynchronizerService(t *testing.T) {
 			testEvaluator: &testEvaluatorData{
 				results: [][]*pb.Match{{tm[0], tm[2], tm[5], tm[8], tm[9]}},
 			},
-			regInterval:  1000,
-			propInterval: 1000,
+			regInterval:  "1000ms",
+			propInterval: "1000ms",
 		},
 		{
 			description: "Evaluation proposals miss the evaluation window",
@@ -115,8 +123,8 @@ func TestSynchronizerService(t *testing.T) {
 			testEvaluator: &testEvaluatorData{
 				results: [][]*pb.Match{tm[0:5]},
 			},
-			regInterval:  200,
-			propInterval: 200,
+			regInterval:  "200ms",
+			propInterval: "200ms",
 		},
 		{
 			description: "Blocking registration requests coming in during proposal acceptance",
@@ -134,8 +142,8 @@ func TestSynchronizerService(t *testing.T) {
 			testEvaluator: &testEvaluatorData{
 				results: [][]*pb.Match{tm[0:5], tm[5:10]},
 			},
-			regInterval:  200,
-			propInterval: 1000,
+			regInterval:  "200ms",
+			propInterval: "1000ms",
 		},
 		{
 			description: "Mix of successful requests and requests missing evaluation window",
@@ -166,20 +174,22 @@ func TestSynchronizerService(t *testing.T) {
 			testEvaluator: &testEvaluatorData{
 				results: [][]*pb.Match{[]*pb.Match{}, tm[10:20]},
 			},
-			regInterval:  2000,
-			propInterval: 100,
+			regInterval:  "2000ms",
+			propInterval: "100ms",
 		},
 	}
 
 	for _, tc := range testCases {
-		tc.testEvaluator.evaluator = func(proposals []*pb.Match) []*pb.Match {
-			if tc.testEvaluator.callCount >= len(tc.testEvaluator.results) {
-				assert.Fail("Evaluation triggered more than the expected count")
-			}
+		tc.testEvaluator.eval = &testEvaluatorClient{
+			evalFunc: func(proposals []*pb.Match) ([]*pb.Match, error) {
+				if tc.testEvaluator.callCount >= len(tc.testEvaluator.results) {
+					assert.Fail("Evaluation triggered more than the expected count")
+				}
 
-			result := tc.testEvaluator.results[tc.testEvaluator.callCount]
-			tc.testEvaluator.callCount = tc.testEvaluator.callCount + 1
-			return result
+				result := tc.testEvaluator.results[tc.testEvaluator.callCount]
+				tc.testEvaluator.callCount = tc.testEvaluator.callCount + 1
+				return result, nil
+			},
 		}
 
 		runEvaluationTest(t, tc)
@@ -196,7 +206,7 @@ func runEvaluationTest(t *testing.T, tc *testData) {
 	cfg.Set("synchronizer.proposalCollectionIntervalMs", tc.propInterval)
 	cfg.Set("synchronizer.registrationIntervalMs", tc.regInterval)
 
-	s := newSynchronizerService(cfg, tc.testEvaluator.evaluator)
+	s := newSynchronizerService(cfg, tc.testEvaluator.eval)
 	require.NotNil(s)
 	var w sync.WaitGroup
 	w.Add(len(tc.testCalls))

@@ -146,8 +146,8 @@ openmatch:
 
         synchronizer:
           enabled: false
-          registrationIntervalMs: 3000
-          proposalCollectionIntervalMs: 2000
+          registrationIntervalMs: 3000ms
+          proposalCollectionIntervalMs: 2000ms
 
         monitoring:
           jaeger:
