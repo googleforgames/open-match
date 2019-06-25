@@ -39,7 +39,7 @@ const (
 
 // Create a minimatch test service with function bindings from frontend, backend, and mmlogic.
 // Instruct this service to start and connect to a fake storage service.
-func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
+func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTesting.TestContext {
 	var closer func()
 	cfg := viper.New()
 
@@ -66,6 +66,11 @@ func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
 	cfg.Set("api.synchronizer.httpport", tc.GetHTTPPort())
 	cfg.Set("synchronizer.registrationIntervalMs", "3000ms")
 	cfg.Set("synchronizer.proposalCollectionIntervalMs", "3000ms")
+	cfg.Set("api.evaluator.hostname", evalTc.GetHostname())
+	cfg.Set("api.evaluator.grpcport", evalTc.GetGRPCPort())
+	cfg.Set("api.evaluator.httpport", evalTc.GetHTTPPort())
+	// TODO: Uncomment this when the synchronization logic is checked in to enable synchronizer.
+	// cfg.Set("synchronizer.enabled", true)
 
 	// TODO: This is very ugly. Need a better story around closing resources.
 	tc.AddCloseFunc(closer)

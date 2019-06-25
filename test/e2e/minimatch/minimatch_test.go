@@ -33,7 +33,9 @@ type testProfile struct {
 
 func TestMinimatch(t *testing.T) {
 	assert := require.New(t)
-	minimatchTc := createMinimatchForTest(t)
+	evalTc := createEvaluatorForTest(t)
+	defer evalTc.Close()
+	minimatchTc := createMinimatchForTest(t, evalTc)
 	defer minimatchTc.Close()
 	mmfTc := createMatchFunctionForTest(t, minimatchTc)
 	defer mmfTc.Close()
