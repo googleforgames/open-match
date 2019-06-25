@@ -1,3 +1,5 @@
+// +build !e2ecluster
+
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +25,7 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/require"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
+	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -55,44 +58,44 @@ func TestMinimatch(t *testing.T) {
 		targetPool string
 		id         string
 	}{
-		{skill: 1, mapValue: map1attribute, targetPool: map1BeginnerPool},
-		{skill: 5, mapValue: map1attribute, targetPool: map1BeginnerPool},
-		{skill: 8, mapValue: map1attribute, targetPool: map1AdvancedPool},
-		{skill: 0, mapValue: map2attribute, targetPool: map2BeginnerPool},
-		{skill: 6, mapValue: map2attribute, targetPool: map2AdvancedPool},
-		{skill: 10, mapValue: map2attribute, targetPool: map2AdvancedPool},
+		{skill: 1, mapValue: e2e.Map1Attribute, targetPool: e2e.Map1BeginnerPool},
+		{skill: 5, mapValue: e2e.Map1Attribute, targetPool: e2e.Map1BeginnerPool},
+		{skill: 8, mapValue: e2e.Map1Attribute, targetPool: e2e.Map1AdvancedPool},
+		{skill: 0, mapValue: e2e.Map2Attribute, targetPool: e2e.Map2BeginnerPool},
+		{skill: 6, mapValue: e2e.Map2Attribute, targetPool: e2e.Map2AdvancedPool},
+		{skill: 10, mapValue: e2e.Map2Attribute, targetPool: e2e.Map2AdvancedPool},
 		{skill: 10, mapValue: "non-indexable-map"},
 	}
 
 	// The Pools that are used for testing. Currently, each pool simply represents
 	// a combination of the attributes indexed on a ticket.
 	testPools := map[string]*pb.Pool{
-		map1BeginnerPool: {
-			Name: map1BeginnerPool,
+		e2e.Map1BeginnerPool: {
+			Name: e2e.Map1BeginnerPool,
 			Filter: []*pb.Filter{
-				{Attribute: skillattribute, Min: 0, Max: 5},
-				{Attribute: map1attribute, Max: math.MaxFloat64},
+				{Attribute: e2e.SkillAttribute, Min: 0, Max: 5},
+				{Attribute: e2e.Map1Attribute, Max: math.MaxFloat64},
 			},
 		},
-		map1AdvancedPool: {
-			Name: map1AdvancedPool,
+		e2e.Map1AdvancedPool: {
+			Name: e2e.Map1AdvancedPool,
 			Filter: []*pb.Filter{
-				{Attribute: skillattribute, Min: 6, Max: 10},
-				{Attribute: map1attribute, Max: math.MaxFloat64},
+				{Attribute: e2e.SkillAttribute, Min: 6, Max: 10},
+				{Attribute: e2e.Map1Attribute, Max: math.MaxFloat64},
 			},
 		},
-		map2BeginnerPool: {
-			Name: map2BeginnerPool,
+		e2e.Map2BeginnerPool: {
+			Name: e2e.Map2BeginnerPool,
 			Filter: []*pb.Filter{
-				{Attribute: skillattribute, Min: 0, Max: 5},
-				{Attribute: map2attribute, Max: math.MaxFloat64},
+				{Attribute: e2e.SkillAttribute, Min: 0, Max: 5},
+				{Attribute: e2e.Map2Attribute, Max: math.MaxFloat64},
 			},
 		},
-		map2AdvancedPool: {
-			Name: map2AdvancedPool,
+		e2e.Map2AdvancedPool: {
+			Name: e2e.Map2AdvancedPool,
 			Filter: []*pb.Filter{
-				{Attribute: skillattribute, Min: 6, Max: 10},
-				{Attribute: map2attribute, Max: math.MaxFloat64},
+				{Attribute: e2e.SkillAttribute, Min: 6, Max: 10},
+				{Attribute: e2e.Map2Attribute, Max: math.MaxFloat64},
 			},
 		},
 	}
@@ -101,8 +104,8 @@ func TestMinimatch(t *testing.T) {
 	// the current MMF returns a match per pool in the profile - so each profile should
 	// output two matches that are comprised of tickets belonging to that pool.
 	testProfiles := []testProfile{
-		{name: "", pools: []*pb.Pool{testPools[map1BeginnerPool], testPools[map1AdvancedPool]}},
-		{name: "", pools: []*pb.Pool{testPools[map2BeginnerPool], testPools[map2AdvancedPool]}},
+		{name: "", pools: []*pb.Pool{testPools[e2e.Map1BeginnerPool], testPools[e2e.Map1AdvancedPool]}},
+		{name: "", pools: []*pb.Pool{testPools[e2e.Map2BeginnerPool], testPools[e2e.Map2AdvancedPool]}},
 	}
 
 	// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids
@@ -111,8 +114,8 @@ func TestMinimatch(t *testing.T) {
 		resp, err := fe.CreateTicket(minimatchTc.Context(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{
 			Properties: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
-					skillattribute: {Kind: &structpb.Value_NumberValue{NumberValue: td.skill}},
-					td.mapValue:    {Kind: &structpb.Value_NumberValue{NumberValue: float64(time.Now().Unix())}},
+					e2e.SkillAttribute: {Kind: &structpb.Value_NumberValue{NumberValue: td.skill}},
+					td.mapValue:        {Kind: &structpb.Value_NumberValue{NumberValue: float64(time.Now().Unix())}},
 				},
 			},
 		}})

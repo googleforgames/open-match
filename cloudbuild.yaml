@@ -88,7 +88,7 @@ steps:
 
 - id: 'Build: Binaries'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'compile', 'all', '-j8']
+  args: ['make', 'GOPROXY=off', 'build', 'all', '-j8']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -135,10 +135,20 @@ steps:
   args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'sleep-30', 'install-chart']
   waitFor: ['Test: Create Cluster', 'Build: Docker Images']
 
+# TODO: Once the location of the cluster configs is known run the tests.
+#- id: 'Test: End-to-End Cluster'
+#  name: 'gcr.io/$PROJECT_ID/open-match-build'
+#  args: ['make', 'GOPROXY=off', 'SHORT_SHA=${SHORT_SHA}', 'sleep-30', 'e2ecluster']
+#  waitFor: ['Test: Deploy Open Match', 'Build: Assets']
+#  volumes:
+#  - name: 'go-vol'
+#    path: '/go'
+
 - id: 'Test: Delete Cluster'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'delete-gke-cluster']
   waitFor: ['Test: Deploy Open Match']
+#  waitFor: ['Test: End-to-End Cluster']
 
 - id: 'Deploy: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'

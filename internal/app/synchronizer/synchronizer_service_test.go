@@ -172,7 +172,7 @@ func TestSynchronizerService(t *testing.T) {
 				},
 			},
 			testEvaluator: &testEvaluatorData{
-				results: [][]*pb.Match{[]*pb.Match{}, tm[10:20]},
+				results: [][]*pb.Match{{}, tm[10:20]},
 			},
 			regInterval:  "2000ms",
 			propInterval: "100ms",
