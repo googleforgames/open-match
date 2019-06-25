@@ -15,26 +15,37 @@
 package minimatch
 
 import (
-	"testing"
-
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
+	"log"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 )
 
+const (
+	// Names of the test pools used by this test.
+	map1BeginnerPool = "map1beginner"
+	map1AdvancedPool = "map1advanced"
+	map2BeginnerPool = "map2beginner"
+	map2AdvancedPool = "map2advanced"
+	// Test specific metadata
+	skillattribute = "skill"
+	map1attribute  = "map1"
+	map2attribute  = "map2"
+)
+
 // Create a minimatch test service with function bindings from frontend, backend, and mmlogic.
 // Instruct this service to start and connect to a fake storage service.
-func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
+func createMinimatchForTest() *rpcTesting.TestContext {
 	var closer func()
 
 	// TODO: Use insecure for now since minimatch and mmf only works with the same secure mode
 	// Server a minimatch for testing using random port at tc.grpcAddress & tc.proxyAddress
-	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
+	tc := rpcTesting.MustServeInsecure(func(p *rpc.ServerParams) {
 		cfg := viper.New()
-		closer = statestoreTesting.New(t, cfg)
+		closer = statestoreTesting.New(cfg)
 
 		cfg.Set("storage.page.size", 10)
 		// Set up the attributes that a ticket will be indexed for.
@@ -43,7 +54,9 @@ func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
 			map1attribute,
 			map2attribute,
 		})
-		assert.Nil(t, minimatch.BindService(p, cfg))
+		if err := minimatch.BindService(p, cfg); err != nil {
+			log.Fatal(errors.Wrap(err, "cannot bind service to minimatch"))
+		}
 	})
 	// TODO: This is very ugly. Need a better story around closing resources.
 	tc.AddCloseFunc(closer)

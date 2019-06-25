@@ -30,7 +30,7 @@ import (
 )
 
 func TestAssignTickets(t *testing.T) {
-	tc := createMinimatchForTest(t)
+	tc := createMinimatchForTest()
 	defer tc.Close()
 
 	fe := pb.NewFrontendClient(tc.MustGRPC())
@@ -111,7 +111,7 @@ func TestAssignTickets(t *testing.T) {
 func TestTicketLifeCycle(t *testing.T) {
 	assert := assert.New(t)
 
-	tc := createMinimatchForTest(t)
+	tc := createMinimatchForTest()
 	defer tc.Close()
 	fe := pb.NewFrontendClient(tc.MustGRPC())
 	assert.NotNil(fe)
@@ -266,7 +266,7 @@ func TestQueryTickets(t *testing.T) {
 			test := test
 			t.Run(test.description, func(t *testing.T) {
 				t.Parallel()
-				tc := createMinimatchForTest(t)
+				tc := createMinimatchForTest()
 				defer tc.Close()
 
 				mml := pb.NewMmLogicClient(tc.MustGRPC())

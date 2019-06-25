@@ -15,19 +15,19 @@
 package testing
 
 import (
-	"testing"
 	"time"
 
 	miniredis "github.com/alicebob/miniredis/v2"
+	"log"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
 )
 
 // New creates a new in memory Redis instance for testing.
-func New(t *testing.T, cfg config.Mutable) func() {
+func New(cfg config.Mutable) func() {
 	mredis, err := miniredis.Run()
 	if err != nil {
-		t.Fatalf("failed to create miniredis, %v", err)
+		log.Fatalf("failed to create miniredis, %v", err)
 	}
 	cfg.Set("redis.hostname", mredis.Host())
 	cfg.Set("redis.port", mredis.Port())
@@ -47,8 +47,8 @@ func New(t *testing.T, cfg config.Mutable) func() {
 }
 
 // NewStoreServiceForTesting creates a new statestore service for testing
-func NewStoreServiceForTesting(t *testing.T, cfg config.Mutable) (statestore.Service, func()) {
-	closer := New(t, cfg)
+func NewStoreServiceForTesting(cfg config.Mutable) (statestore.Service, func()) {
+	closer := New(cfg)
 	s := statestore.New(cfg)
 
 	return s, closer

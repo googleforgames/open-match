@@ -41,10 +41,10 @@ func TestMustServeTLS(t *testing.T) {
 	runMustServeTest(t, MustServeTLS)
 }
 
-func runMustServeTest(t *testing.T, mustServeFunc func(*testing.T, func(*rpc.ServerParams)) *TestContext) {
+func runMustServeTest(t *testing.T, mustServeFunc func(func(*rpc.ServerParams)) *TestContext) {
 	assert := assert.New(t)
 	ff := &shellTesting.FakeFrontend{}
-	tc := mustServeFunc(t, func(spf *rpc.ServerParams) {
+	tc := mustServeFunc(func(spf *rpc.ServerParams) {
 		spf.AddHandleFunc(func(s *grpc.Server) {
 			pb.RegisterFrontendServer(s, ff)
 		}, pb.RegisterFrontendHandlerFromEndpoint)

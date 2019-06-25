@@ -128,7 +128,7 @@ func TestDoQueryTickets(t *testing.T) {
 			cfg := viper.New()
 			cfg.Set("storage.page.size", 1000)
 			cfg.Set("playerIndices", []string{attribute1, attribute2})
-			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+			store, closer := statestoreTesting.NewStoreServiceForTesting(cfg)
 			defer closer()
 
 			test.action(t, store)

@@ -17,12 +17,12 @@ package testing
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"testing"
 	"time"
 
 	"google.golang.org/grpc"
@@ -33,16 +33,16 @@ import (
 
 // MustServe creates a test server and returns TestContext that can be used to create clients.
 // This method pseudorandomly selects insecure and TLS mode to ensure both paths work.
-func MustServe(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
+func MustServe(binder func(*rpc.ServerParams)) *TestContext {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	if r.Intn(2) == 0 {
-		return MustServeInsecure(t, binder)
+		return MustServeInsecure(binder)
 	}
-	return MustServeTLS(t, binder)
+	return MustServeTLS(binder)
 }
 
 // MustServeInsecure creates a test server without transport encryption and returns TestContext that can be used to create clients.
-func MustServeInsecure(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
+func MustServeInsecure(binder func(*rpc.ServerParams)) *TestContext {
 	grpcLh := netlistenerTesting.MustListen()
 	proxyLh := netlistenerTesting.MustListen()
 
@@ -50,9 +50,8 @@ func MustServeInsecure(t *testing.T, binder func(*rpc.ServerParams)) *TestContex
 	proxyAddress := fmt.Sprintf("localhost:%d", proxyLh.Number())
 
 	p := rpc.NewServerParamsFromListeners(grpcLh, proxyLh)
-	s := bindAndStart(t, p, binder)
+	s := bindAndStart(p, binder)
 	return &TestContext{
-		t:            t,
 		s:            s,
 		grpcAddress:  grpcAddress,
 		proxyAddress: proxyAddress,
@@ -60,7 +59,7 @@ func MustServeInsecure(t *testing.T, binder func(*rpc.ServerParams)) *TestContex
 }
 
 // MustServeTLS creates a test server with TLS and returns TestContext that can be used to create clients.
-func MustServeTLS(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
+func MustServeTLS(binder func(*rpc.ServerParams)) *TestContext {
 	grpcLh := netlistenerTesting.MustListen()
 	proxyLh := netlistenerTesting.MustListen()
 
@@ -68,15 +67,14 @@ func MustServeTLS(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
 	proxyAddress := fmt.Sprintf("localhost:%d", proxyLh.Number())
 	pub, priv, err := certgenTesting.CreateCertificateAndPrivateKeyForTesting([]string{grpcAddress, proxyAddress})
 	if err != nil {
-		t.Fatalf("cannot create certificates %v", err)
+		log.Fatalf("cannot create certificates %v", err)
 	}
 
 	p := rpc.NewServerParamsFromListeners(grpcLh, proxyLh)
 	p.SetTLSConfiguration(pub, pub, priv)
-	s := bindAndStart(t, p, binder)
+	s := bindAndStart(p, binder)
 
 	return &TestContext{
-		t:                  t,
 		s:                  s,
 		grpcAddress:        grpcAddress,
 		proxyAddress:       proxyAddress,
@@ -84,12 +82,12 @@ func MustServeTLS(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
 	}
 }
 
-func bindAndStart(t *testing.T, p *rpc.ServerParams, binder func(*rpc.ServerParams)) *rpc.Server {
+func bindAndStart(p *rpc.ServerParams, binder func(*rpc.ServerParams)) *rpc.Server {
 	binder(p)
 	s := &rpc.Server{}
 	waitForStart, err := s.Start(p)
 	if err != nil {
-		t.Fatalf("failed to start server, %v", err)
+		log.Fatalf("failed to start server, %v", err)
 	}
 	waitForStart()
 	return s
@@ -97,7 +95,6 @@ func bindAndStart(t *testing.T, p *rpc.ServerParams, binder func(*rpc.ServerPara
 
 // TestContext provides methods to interact with the Open Match server.
 type TestContext struct {
-	t                  *testing.T
 	s                  *rpc.Server
 	grpcAddress        string
 	proxyAddress       string
@@ -128,7 +125,7 @@ func (tc *TestContext) Context() context.Context {
 func (tc *TestContext) MustGRPC() *grpc.ClientConn {
 	conn, err := rpc.GRPCClientFromParams(tc.newClientParams(tc.grpcAddress))
 	if err != nil {
-		tc.t.Fatal(err)
+		log.Fatal(err)
 	}
 	return conn
 }
@@ -137,13 +134,13 @@ func (tc *TestContext) MustGRPC() *grpc.ClientConn {
 func (tc *TestContext) MustHTTP() (*http.Client, string) {
 	client, endpoint, err := rpc.HTTPClientFromParams(tc.newClientParams(tc.proxyAddress))
 	if err != nil {
-		tc.t.Fatal(err)
+		log.Fatal(err)
 	}
 	return client, endpoint
 }
 
 func (tc *TestContext) newClientParams(address string) *rpc.ClientParams {
-	hostname, port := hostnameAndPort(tc.t, address)
+	hostname, port := hostnameAndPort(address)
 	return &rpc.ClientParams{
 		Hostname:           hostname,
 		Port:               port,
@@ -158,17 +155,17 @@ func (tc *TestContext) GetHostname() string {
 
 // GetHTTPPort returns the http proxy port of current text context
 func (tc *TestContext) GetHTTPPort() int {
-	_, port := hostnameAndPort(tc.t, tc.proxyAddress)
+	_, port := hostnameAndPort(tc.proxyAddress)
 	return port
 }
 
 // GetGRPCPort returns the grpc service port of current text context
 func (tc *TestContext) GetGRPCPort() int {
-	_, port := hostnameAndPort(tc.t, tc.grpcAddress)
+	_, port := hostnameAndPort(tc.grpcAddress)
 	return port
 }
 
-func hostnameAndPort(t *testing.T, address string) (string, int) {
+func hostnameAndPort(address string) (string, int) {
 	// Coerce to a url.
 	if !strings.Contains(address, "://") {
 		address = "http://" + address
@@ -177,11 +174,11 @@ func hostnameAndPort(t *testing.T, address string) (string, int) {
 
 	u, err := url.Parse(address)
 	if err != nil {
-		t.Fatalf("cannot parse address %s, %v", address, err)
+		log.Fatalf("cannot parse address %s, %v", address, err)
 	}
 	port, err := strconv.Atoi(u.Port())
 	if err != nil {
-		t.Fatalf("cannot convert port number %s, %v", u.Port(), err)
+		log.Fatalf("cannot convert port number %s, %v", u.Port(), err)
 	}
 	return u.Hostname(), port
 }

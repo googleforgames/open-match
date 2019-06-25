@@ -81,7 +81,7 @@ func TestDoCreateTickets(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+			store, closer := statestoreTesting.NewStoreServiceForTesting(cfg)
 			defer closer()
 
 			ctx, cancel := context.WithCancel(context.Background())
@@ -152,7 +152,7 @@ func TestDoGetAssignments(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+			store, closer := statestoreTesting.NewStoreServiceForTesting(viper.New())
 			defer closer()
 
 			senderTriggerCount := 0
@@ -210,7 +210,7 @@ func TestDoDeleteTicket(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
-			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+			store, closer := statestoreTesting.NewStoreServiceForTesting(viper.New())
 			defer closer()
 
 			test.preAction(ctx, cancel, store)
@@ -263,7 +263,7 @@ func TestDoGetTicket(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
-			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+			store, closer := statestoreTesting.NewStoreServiceForTesting(viper.New())
 			defer closer()
 
 			test.preAction(ctx, cancel, store)

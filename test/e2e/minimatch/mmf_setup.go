@@ -15,10 +15,9 @@
 package minimatch
 
 import (
-	"testing"
-
+	"log"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/examples/functions/golang/pool"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
@@ -27,9 +26,9 @@ import (
 
 // Create a mmf service using a started test server.
 // Inject the port config of mmlogic using that the passed in test server
-func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTesting.TestContext {
+func createMatchFunctionForTest(c *rpcTesting.TestContext) *rpcTesting.TestContext {
 	// TODO: Use insecure for now since minimatch and mmf only works with the same secure mode
-	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
+	tc := rpcTesting.MustServeInsecure(func(p *rpc.ServerParams) {
 		cfg := viper.New()
 
 		// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
@@ -37,9 +36,12 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 		cfg.Set("api.mmlogic.grpcport", c.GetGRPCPort())
 		cfg.Set("api.mmlogic.httpport", c.GetHTTPPort())
 
-		assert.Nil(t, mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
+		err := mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
 			Func: pool.MakeMatches,
-		}))
+		})
+		if err != nil {
+			log.Fatalf("%s", errors.Wrap(err, "cannot bind MMF service"))
+		}
 	})
 	return tc
 }

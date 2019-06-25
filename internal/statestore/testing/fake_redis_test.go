@@ -27,7 +27,7 @@ import (
 func TestFakeStatestore(t *testing.T) {
 	assert := assert.New(t)
 	cfg := viper.New()
-	closer := New(t, cfg)
+	closer := New(cfg)
 	defer closer()
 	s := statestore.New(cfg)
 	ctx := context.Background()

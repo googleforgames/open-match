@@ -25,9 +25,9 @@ import (
 )
 
 func TestFetchMatches(t *testing.T) {
-	mainTc := createMinimatchForTest(t)
+	mainTc := createMinimatchForTest()
 	defer mainTc.Close()
-	mmfTc := createMatchFunctionForTest(t, mainTc)
+	mmfTc := createMatchFunctionForTest(mainTc)
 	defer mmfTc.Close()
 
 	be := pb.NewBackendClient(mainTc.MustGRPC())
