@@ -11,6 +11,24 @@ a migration or emergency.
 If you're making changes to these files you must check in the .tfstate file as
 well as comment the reason why you're enabling a feature or making a change.
 
+## Update Infrastructure
+
+To apply your changes run the following commands:
+
+```bash
+# Get the Terraform tool we use.
+make build/toolchain/bin/terraform
+alias terraform=$PWD/build/toolchain/bin/terraform
+cd install/terraform/open-match-build/
+# Initialize Terraform and download the state of the project.
+terraform init
+terraform state pull
+# Preview the changes.
+terraform plan
+# Update the project, may be destructive!
+terraform apply
+```
+
 ## Security Warning
 For security purposes, only open-match-build administrators have the
 authorization to make changes to this file.
