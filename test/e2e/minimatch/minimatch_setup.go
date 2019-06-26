@@ -60,8 +60,7 @@ func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTe
 	cfg.Set("api.evaluator.hostname", evalTc.GetHostname())
 	cfg.Set("api.evaluator.grpcport", evalTc.GetGRPCPort())
 	cfg.Set("api.evaluator.httpport", evalTc.GetHTTPPort())
-	// TODO: Uncomment this when the synchronization logic is checked in to enable synchronizer.
-	// cfg.Set("synchronizer.enabled", true)
+	cfg.Set("synchronizer.enabled", true)
 
 	// TODO: This is very ugly. Need a better story around closing resources.
 	tc.AddCloseFunc(closer)

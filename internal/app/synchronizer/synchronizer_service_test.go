@@ -22,7 +22,6 @@ import (
 
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -39,16 +38,17 @@ func (s *testEvaluatorClient) evaluate(proposals []*pb.Match) ([]*pb.Match, erro
 }
 
 type testCallData struct {
-	registerDelay      int
-	evaluateDelay      int
-	proposals          []*pb.Match
-	evaluationrErrCode codes.Code
-	wantResults        []*pb.Match
+	registerDelay        int
+	evaluateDelay        int
+	proposals            []*pb.Match
+	evaluationrErrorCode codes.Code
+	wantResults          []*pb.Match
 }
 
 type testEvaluatorData struct {
 	callCount int
 	eval      evaluator
+	evalErr   error
 	results   [][]*pb.Match
 }
 
@@ -61,7 +61,6 @@ type testData struct {
 }
 
 func TestSynchronizerService(t *testing.T) {
-	assert := assert.New(t)
 	// Generate some test matches to be used in the test data.
 	tm := []*pb.Match{}
 	for i := 0; i < 30; i++ {
@@ -115,9 +114,9 @@ func TestSynchronizerService(t *testing.T) {
 					wantResults: tm[0:5],
 				},
 				{
-					evaluateDelay:      1000,
-					proposals:          tm[5:10],
-					evaluationrErrCode: codes.DeadlineExceeded,
+					evaluateDelay:        1000,
+					proposals:            tm[5:10],
+					evaluationrErrorCode: codes.DeadlineExceeded,
 				},
 			},
 			testEvaluator: &testEvaluatorData{
@@ -149,14 +148,14 @@ func TestSynchronizerService(t *testing.T) {
 			description: "Mix of successful requests and requests missing evaluation window",
 			testCalls: []*testCallData{
 				{
-					evaluateDelay:      3500,
-					proposals:          tm[0:5],
-					evaluationrErrCode: codes.DeadlineExceeded,
+					evaluateDelay:        3500,
+					proposals:            tm[0:5],
+					evaluationrErrorCode: codes.DeadlineExceeded,
 				},
 				{
-					evaluateDelay:      3500,
-					proposals:          tm[5:10],
-					evaluationrErrCode: codes.DeadlineExceeded,
+					evaluateDelay:        3500,
+					proposals:            tm[5:10],
+					evaluationrErrorCode: codes.DeadlineExceeded,
 				},
 				{
 					registerDelay: 3000,
@@ -177,14 +176,36 @@ func TestSynchronizerService(t *testing.T) {
 			regInterval:  "2000ms",
 			propInterval: "100ms",
 		},
+		{
+			description: "user evaluator returns an error causing evaluation request to fail",
+			testCalls: []*testCallData{
+				{
+					proposals:            tm[0:5],
+					evaluationrErrorCode: codes.Aborted,
+				},
+				{
+					proposals:            tm[5:10],
+					evaluationrErrorCode: codes.Aborted,
+				},
+			},
+			testEvaluator: &testEvaluatorData{
+				evalErr: status.Error(codes.Aborted, "not enough players to make this match"),
+			},
+			regInterval:  "500ms",
+			propInterval: "500ms",
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			tc.testEvaluator.eval = &testEvaluatorClient{
 				evalFunc: func(proposals []*pb.Match) ([]*pb.Match, error) {
+					if tc.testEvaluator.evalErr != nil {
+						return nil, tc.testEvaluator.evalErr
+					}
+
 					if tc.testEvaluator.callCount >= len(tc.testEvaluator.results) {
-						assert.Fail("Evaluation triggered more than the expected count")
+						require.Fail(t, "Evaluation triggered more than the expected count")
 					}
 
 					result := tc.testEvaluator.results[tc.testEvaluator.callCount]
@@ -199,9 +220,7 @@ func TestSynchronizerService(t *testing.T) {
 }
 
 func runEvaluationTest(t *testing.T, tc *testData) {
-	assert := assert.New(t)
 	require := require.New(t)
-	ctx := context.Background()
 
 	// Generate a config view with paths to the manifests
 	cfg := viper.New()
@@ -215,6 +234,7 @@ func runEvaluationTest(t *testing.T, tc *testData) {
 	for _, c := range tc.testCalls {
 		c := c
 		go func() {
+			ctx := context.Background()
 			defer w.Done()
 			time.Sleep(time.Duration(c.registerDelay) * time.Millisecond)
 			rResp, err := s.Register(ctx, &ipb.RegisterRequest{})
@@ -222,10 +242,10 @@ func runEvaluationTest(t *testing.T, tc *testData) {
 			require.Nil(err)
 			time.Sleep(time.Duration(c.evaluateDelay) * time.Millisecond)
 			epResp, err := s.EvaluateProposals(ctx, &ipb.EvaluateProposalsRequest{Match: c.proposals, Id: rResp.Id})
-			require.Equal(c.evaluationrErrCode, status.Convert(err).Code())
-			if c.evaluationrErrCode == codes.OK {
+			require.Equal(c.evaluationrErrorCode, status.Convert(err).Code())
+			if c.evaluationrErrorCode == codes.OK {
 				require.NotNil(epResp)
-				assert.ElementsMatch(c.wantResults, epResp.Match)
+				require.ElementsMatch(c.wantResults, epResp.Match)
 			}
 		}()
 	}
