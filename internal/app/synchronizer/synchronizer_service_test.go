@@ -181,11 +181,11 @@ func TestSynchronizerService(t *testing.T) {
 			testCalls: []*testCallData{
 				{
 					proposals:            tm[0:5],
-					evaluationrErrorCode: codes.ResourceExhausted,
+					evaluationrErrorCode: codes.Aborted,
 				},
 				{
 					proposals:            tm[5:10],
-					evaluationrErrorCode: codes.ResourceExhausted,
+					evaluationrErrorCode: codes.Aborted,
 				},
 			},
 			testEvaluator: &testEvaluatorData{
