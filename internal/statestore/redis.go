@@ -430,11 +430,12 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 	}
 
 	ttl := rb.cfg.GetDuration("redis.ignoreLists.ttl")
-	currentTime := time.Now()
-	startTime := currentTime.Add(-ttl)
+	curTime := time.Now()
+	curTimeInt := curTime.UnixNano()
+	startTimeInt := curTime.Add(-ttl).UnixNano()
 
 	// Filter out tickets that are fetched but not assigned within ttl time (ms).
-	idsInIgnoreLists, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTime.Unix(), currentTime.Unix()))
+	idsInIgnoreLists, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, curTimeInt))
 	if err != nil {
 		redisLogger.WithError(err).Error("failed to get proposed tickets")
 		return status.Errorf(codes.Internal, err.Error())
@@ -595,7 +596,7 @@ func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string
 		return status.Error(codes.Internal, err.Error())
 	}
 
-	currentTime := time.Now().Unix()
+	currentTime := time.Now().UnixNano()
 	for _, id := range ids {
 		// Index the attribute by value.
 		err = redisConn.Send("ZADD", "proposed_ticket_ids", currentTime, id)
