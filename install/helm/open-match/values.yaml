@@ -38,6 +38,7 @@ openmatch:
       port: 50505
     http:
       port: 51505
+    porttype: LoadBalancer
   frontend:
     install: true
     replicas: 3
@@ -45,6 +46,7 @@ openmatch:
       port: 50504
     http:
       port: 51504
+    porttype: LoadBalancer
   mmlogic:
     install: true
     replicas: 3
@@ -52,6 +54,7 @@ openmatch:
       port: 50503
     http:
       port: 51503
+    porttype: LoadBalancer
   synchronizer:
     install: true
     replicas: 1
@@ -59,25 +62,37 @@ openmatch:
       port: 50506
     http:
       port: 51506
+    porttype: LoadBalancer
   swaggerui:
     install: true
     replicas: 3
     http:
       port: 50500
+    porttype: LoadBalancer
+  demoevaluator:
+    install: true
+    replicas: 3
+    grpc:
+      port: 50508
+    http:
+      port: 51508
+    porttype: LoadBalancer
   demofunction:
     install: true
+    replicas: 3
     grpc:
       port: 50502
     http:
       port: 51502
-    replicas: 3
+    porttype: LoadBalancer
   demo:
     # TODO: Change to true once the demo is available.
     # It's currently missing liveness/readiness checks.
     install: false
+    replicas: 3
     http:
       port: 51507
-    replicas: 3
+    porttype: LoadBalancer
 
   config:
     install: true
@@ -125,11 +140,14 @@ openmatch:
           functions:
             grpcport: "{{.Values.openmatch.demofunction.grpc.port}}"
             httpport: "{{.Values.openmatch.demofunction.http.port}}"
+          evaluator:
+            grpcport: "{{.Values.openmatch.demoevaluator.grpc.port}}"
+            httpport: "{{.Values.openmatch.demoevaluator.http.port}}"
 
         synchronizer:
           enabled: false
-          pollIntervalMs: 1000
-          maxWaitMs: 10000
+          registrationIntervalMs: 3000ms
+          proposalCollectionIntervalMs: 2000ms
 
         monitoring:
           jaeger:
@@ -180,7 +198,7 @@ openmatch:
           # TODO: remove unused config
           results:
             pageSize: 10000
-          skiplist:
+          ignoreLists:
             ttl: 1000ms
           expiration: 43200
 
@@ -224,6 +242,9 @@ openmatch:
       pullPolicy: Always
     swaggerui:
       name: openmatch-swaggerui
+      pullPolicy: Always
+    demoevaluator:
+      name: openmatch-evaluator-go-simple
       pullPolicy: Always
     demofunction:
       name: openmatch-mmf-go-soloduel

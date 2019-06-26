@@ -424,6 +424,19 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 		}
 	}
 
+	ttl := rb.cfg.GetDuration("redis.ignorelists.ttl")
+	currentTime := time.Now()
+	startTime := currentTime.Add(-ttl)
+
+	// Filter out tickets that are fetched but not assigned within ttl time (ms).
+	ignoreListIds, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTime.Unix(), currentTime.Unix()))
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to get proposed tickets")
+		return status.Errorf(codes.Internal, err.Error())
+	}
+
+	idSet = set.Difference(idSet, ignoreListIds)
+
 	// TODO: finish reworking this after the proto changes.
 	for _, page := range idsToPages(idSet, pageSize) {
 		ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", page...))
@@ -563,28 +576,8 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 	return nil
 }
 
-// GetProposedTickets returns the tickets stored under the proposed sorted set withinin TTL period.
-func (rb *redisBackend) GetProposedTickets(ctx context.Context, ttl time.Duration) ([]string, error) {
-	redisConn, err := rb.connect(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer handleConnectionClose(&redisConn)
-
-	currentTime := time.Now()
-	startTime := currentTime.Add(-ttl)
-
-	// Get all tickets within the ttl range
-	ids, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_tickets", startTime.Unix(), currentTime.Unix()))
-	if err != nil {
-		redisLogger.WithError(err).Error("failed to get proposed tickets")
-		return nil, status.Errorf(codes.Internal, err.Error())
-	}
-	return ids, nil
-}
-
 // AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
-func (rb *redisBackend) AddProposedTickets(ctx context.Context, ids []string) error {
+func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
@@ -600,7 +593,7 @@ func (rb *redisBackend) AddProposedTickets(ctx context.Context, ids []string) er
 	currentTime := time.Now().Unix()
 	for _, id := range ids {
 		// Index the attribute by value.
-		err = redisConn.Send("ZADD", "proposed_tickets", currentTime, id)
+		err = redisConn.Send("ZADD", "proposed_ticket_ids", currentTime, id)
 		if err != nil {
 			redisLogger.WithError(err).Error("failed to append proposed tickets to redis")
 			return status.Error(codes.Internal, err.Error())

@@ -1,3 +1,5 @@
+// +build !e2ecluster
+
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,28 +25,43 @@ import (
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	"open-match.dev/open-match/internal/testing/e2e"
 )
 
 // Create a minimatch test service with function bindings from frontend, backend, and mmlogic.
 // Instruct this service to start and connect to a fake storage service.
-func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
+func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTesting.TestContext {
 	var closer func()
+	cfg := viper.New()
 
 	// TODO: Use insecure for now since minimatch and mmf only works with the same secure mode
 	// Server a minimatch for testing using random port at tc.grpcAddress & tc.proxyAddress
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
-		cfg := viper.New()
 		closer = statestoreTesting.New(t, cfg)
-
 		cfg.Set("storage.page.size", 10)
 		// Set up the attributes that a ticket will be indexed for.
 		cfg.Set("playerIndices", []string{
-			skillattribute,
-			map1attribute,
-			map2attribute,
+			e2e.SkillAttribute,
+			e2e.Map1Attribute,
+			e2e.Map2Attribute,
 		})
 		assert.Nil(t, minimatch.BindService(p, cfg))
 	})
+	// TODO: Revisit the Minimatch test setup in future milestone to simplify passing config
+	// values between components. The backend needs to connect to to the synchronizer but when
+	// it is initialized, does not know what port the synchronizer is on. To work around this,
+	// the backend sets up a connection to the synchronizer at runtime and hence can access these
+	// config values to establish the connection.
+	cfg.Set("api.synchronizer.hostname", tc.GetHostname())
+	cfg.Set("api.synchronizer.grpcport", tc.GetGRPCPort())
+	cfg.Set("api.synchronizer.httpport", tc.GetHTTPPort())
+	cfg.Set("synchronizer.registrationIntervalMs", "3000ms")
+	cfg.Set("synchronizer.proposalCollectionIntervalMs", "3000ms")
+	cfg.Set("api.evaluator.hostname", evalTc.GetHostname())
+	cfg.Set("api.evaluator.grpcport", evalTc.GetGRPCPort())
+	cfg.Set("api.evaluator.httpport", evalTc.GetHTTPPort())
+	cfg.Set("synchronizer.enabled", true)
+
 	// TODO: This is very ugly. Need a better story around closing resources.
 	tc.AddCloseFunc(closer)
 	return tc

@@ -1,3 +1,5 @@
+// +build !e2ecluster
+
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +27,9 @@ import (
 )
 
 func TestFetchMatches(t *testing.T) {
-	mainTc := createMinimatchForTest(t)
+	evalTc := createEvaluatorForTest(t)
+	defer evalTc.Close()
+	mainTc := createMinimatchForTest(t, evalTc)
 	defer mainTc.Close()
 	mmfTc := createMatchFunctionForTest(t, mainTc)
 	defer mmfTc.Close()

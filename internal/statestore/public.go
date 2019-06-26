@@ -16,7 +16,6 @@ package statestore
 
 import (
 	"context"
-	"time"
 
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/pkg/pb"
@@ -51,11 +50,8 @@ type Service interface {
 	// GetAssignments returns the assignment associated with the input ticket id
 	GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error
 
-	// GetProposedTickets returns the tickets stored under the proposed sorted set withinin TTL period.
-	GetProposedTickets(ctx context.Context, ttl time.Duration) ([]string, error)
-
 	// AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
-	AddProposedTickets(ctx context.Context, ids []string) error
+	AddTicketsToIgnoreList(ctx context.Context, ids []string) error
 
 	// Closes the connection to the underlying storage.
 	Close() error

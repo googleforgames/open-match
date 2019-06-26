@@ -103,7 +103,6 @@ tmp/
 
 # Terraform context
 .terraform
-*.tfstate
 *.tfstate.backup
 
 # Credential Files

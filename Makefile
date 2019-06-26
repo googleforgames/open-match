@@ -60,7 +60,8 @@ BUILD_DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 YEAR_MONTH = $(shell date -u +'%Y%m')
 YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
-
+NANOS = $(shell date -u +'%N')
+NANOS_MODULO_60 = $(shell echo $(NANOS)%60 | bc)
 PROTOC_VERSION = 3.8.0
 HELM_VERSION = 2.14.1
 HUGO_VERSION = 0.55.6
@@ -144,7 +145,7 @@ OPEN_MATCH_CI_LABEL = open-match-ci
 ifdef ALLOW_BUILD_WITH_SUDO
 	GCLOUD = gcloud --quiet --no-user-output-enabled
 	GKE_CLUSTER_NAME = om-cluster-$(SHORT_SHA)
-	GKE_CLUSTER_FLAGS = --labels open-match-ci=1 --node-labels=open-match-ci=1
+	GKE_CLUSTER_FLAGS = --labels open-match-ci=1 --node-labels=open-match-ci=1 --network=projects/$(GCP_PROJECT_ID)/global/networks/open-match-ci --subnetwork=projects/$(GCP_PROJECT_ID)/regions/$(GCP_REGION)/subnetworks/ci-$(GCP_REGION)-$(NANOS_MODULO_60)
 endif
 
 # If the version is 0.0* then the service name is "development" as in development.open-match.dev.
@@ -373,6 +374,7 @@ install/yaml/01-redis-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demoevaluator.install=false \
 		--set openmatch.demo.install=false \
 		--set openmatch.demofunction.install=false \
 		--set redis.enabled=true \
@@ -403,6 +405,7 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demoevaluator.install=false \
 		--set openmatch.demo.install=false \
 		--set openmatch.demofunction.install=false \
 		--set redis.enabled=false \
@@ -421,6 +424,7 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demoevaluator.install=false \
 		--set openmatch.demo.install=false \
 		--set openmatch.demofunction.install=false \
 		--set redis.enabled=false \
@@ -439,6 +443,7 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demoevaluator.install=false \
 		--set openmatch.demo.install=false \
 		--set openmatch.demofunction.install=false \
 		--set redis.enabled=false \
@@ -452,6 +457,7 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
+		--set openmatch.demoevaluator.install=false \
 		--set openmatch.demo.install=false \
 		--set openmatch.demofunction.install=false \
 		--set redis.enabled=true \
@@ -471,6 +477,7 @@ install/yaml/install-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.mmlogic.install=false \
 		--set openmatch.synchronizer.install=false \
 		--set openmatch.swaggerui.install=false \
+		--set openmatch.demoevaluator.install=true \
 		--set openmatch.demo.install=true \
 		--set openmatch.demofunction.install=true \
 		--set redis.enabled=false \
@@ -719,10 +726,14 @@ internal/pb/synchronizer.pb.go: pkg/pb/messages.pb.go
 
 build:
 	$(GO) build ./...
+	$(GO) build -tags e2ecluster ./... 
 
 test:
-	$(GO) test ./... -cover -test.count $(GOLANG_TEST_COUNT) -race
-	$(GO) test ./... -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$
+	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./...
+	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
+
+e2ecluster:
+	$(GO) test ./... -race -tags e2ecluster
 
 stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
@@ -1011,4 +1022,4 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
-.PHONY: docker gcloud update-deps sync-deps sleep-10 sleep-30 proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-reap-clusters md-test vet
+.PHONY: docker gcloud update-deps sync-deps sleep-10 sleep-30 all build proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-reap-clusters md-test vet

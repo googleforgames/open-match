@@ -47,7 +47,7 @@ provider "google-beta" {
 
 variable "gcp_project_id" {
   description = "GCP Project ID"
-  default = "jeremyedwards-gaming-dev"
+  default = "open-match-build"
 }
 
 variable "gcp_location" {

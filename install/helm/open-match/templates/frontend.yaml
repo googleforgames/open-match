@@ -26,6 +26,7 @@ spec:
     app: {{ template "openmatch.name" . }}
     component: frontend
     {{- include "openmatch.chartmeta" (set . "indent" 4) }}
+  type: {{ .Values.openmatch.frontend.porttype }}
   ports:
   - name: grpc
     protocol: TCP

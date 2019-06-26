@@ -25,6 +25,7 @@ spec:
   selector:
     app: {{ template "openmatch.name" . }}
     component: demo
+  type: {{ .Values.openmatch.demo.porttype }}
   ports:
   - name: http
     protocol: TCP

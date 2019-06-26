@@ -27,9 +27,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	internalpb "open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/internal/set"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -38,7 +36,7 @@ import (
 // and make assignments for Tickets.
 type backendService struct {
 	cfg          config.View
-	synchronizer internalpb.SynchronizerClient
+	synchronizer *synchronizerClient
 	store        statestore.Service
 	mmfClients   *sync.Map
 }
@@ -64,20 +62,6 @@ var (
 	})
 )
 
-func newBackendService(cfg config.View) (*backendService, error) {
-	conn, err := rpc.GRPCClientFromConfig(cfg, "api.synchronizer")
-	if err != nil {
-		return nil, err
-	}
-
-	return &backendService{
-		cfg:          cfg,
-		synchronizer: internalpb.NewSynchronizerClient(conn),
-		store:        statestore.New(cfg),
-		mmfClients:   &sync.Map{},
-	}, nil
-}
-
 // FetchMatches triggers execution of the specfied MatchFunction for each of the
 // specified MatchProfiles. Each MatchFunction execution returns a set of
 // proposals which are then evaluated to generate results. FetchMatches method
@@ -96,14 +80,10 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 
 	var syncID string
 	var err error
-	if s.synchronizerEnabled() {
-		var resp *internalpb.RegisterResponse
-		resp, err = s.synchronizer.Register(ctx, &internalpb.RegisterRequest{})
-		if err != nil {
-			return nil, err
-		}
 
-		syncID = resp.GetId()
+	syncID, err = s.synchronizer.register(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	err = doFetchMatchesReceiveMmfResult(ctx, s.cfg, s.mmfClients, req, resultChan)
@@ -116,25 +96,12 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		return nil, err
 	}
 
-	proposals, err = doFetchMatchesFilterSkiplistIds(ctx, s.cfg, s.store, proposals)
+	results, err := s.synchronizer.evaluate(ctx, syncID, proposals)
 	if err != nil {
 		return nil, err
 	}
 
-	results := proposals
-	if s.synchronizerEnabled() {
-		var resp *internalpb.EvaluateProposalsResponse
-		resp, err = s.synchronizer.EvaluateProposals(ctx, &internalpb.EvaluateProposalsRequest{
-			Id:    syncID,
-			Match: proposals})
-		if err != nil {
-			return nil, err
-		}
-
-		results = resp.Match
-	}
-
-	err = doFetchMatchesAddSkiplistIds(ctx, s.store, results)
+	err = doFetchMatchesAddIgnoredTickets(ctx, s.store, results)
 	if err != nil {
 		return nil, err
 	}
@@ -212,36 +179,14 @@ func doFetchMatchesFilterNonErrorProposals(ctx context.Context, resultChan <-cha
 	return proposals, nil
 }
 
-func doFetchMatchesFilterSkiplistIds(ctx context.Context, cfg config.View, store statestore.Service, proposals []*pb.Match) ([]*pb.Match, error) {
-	// Filter out proposals with ids in the proposed_ticket table
-	skipListIds, err := store.GetProposedTickets(ctx, cfg.GetDuration("redis.skiplist.ttl"))
-	if err != nil {
-		return nil, err
-	}
-
-	// Add to the filtered list if there is no overlap between the skiplist and results
-	filteredProposals := []*pb.Match{}
-	for _, proposal := range proposals {
-		proposalIds := make([]string, len(proposal.GetTicket()))
-		for _, ticket := range proposal.GetTicket() {
-			proposalIds = append(proposalIds, ticket.GetId())
-		}
-		if len(set.Intersection(skipListIds, proposalIds)) == 0 {
-			filteredProposals = append(filteredProposals, proposal)
-		}
-	}
-
-	return filteredProposals, nil
-}
-
-func doFetchMatchesAddSkiplistIds(ctx context.Context, store statestore.Service, results []*pb.Match) error {
+func doFetchMatchesAddIgnoredTickets(ctx context.Context, store statestore.Service, results []*pb.Match) error {
 	ids := []string{}
 	for _, match := range results {
 		for _, ticket := range match.GetTicket() {
 			ids = append(ids, ticket.GetId())
 		}
 	}
-	return store.AddProposedTickets(ctx, ids)
+	return store.AddTicketsToIgnoreList(ctx, ids)
 }
 
 func getHTTPClient(cfg config.View, mmfClients *sync.Map, addr string) (*http.Client, string, error) {
@@ -357,12 +302,4 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 	}
 
 	return nil
-}
-
-func (s *backendService) synchronizerEnabled() bool {
-	if !s.cfg.IsSet("synchronizer.enabled") {
-		return false
-	}
-
-	return s.cfg.GetBool("synchronizer.enabled")
 }
