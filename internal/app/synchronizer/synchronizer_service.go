@@ -52,6 +52,7 @@ type synchronizerData struct {
 	// associated with that request. It tracks ids issued during registration in the
 	// current synchronization cycle and mantain context for the evaluation call from them.
 	idToRequestData map[string]*requestData
+	evalError       error
 	pendingRequests sync.WaitGroup // Tracks the completion of all pending requests
 	resultsReady    chan struct{}  // Signal completion of evaluation and availability of results.
 }
@@ -158,7 +159,11 @@ func (s *synchronizerService) EvaluateProposals(ctx context.Context, req *ipb.Ev
 	// state of the synchronizer itself (since multiple concurrent of these can
 	// be in progress). The evaluation routine tracks the completion of all of
 	// these and then changes the state of the synchronizer to idle.
-	results := s.fetchResults(req.Id)
+	results, err := s.fetchResults(req.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ipb.EvaluateProposalsResponse{Match: results}, nil
 }
 
@@ -192,7 +197,7 @@ func (s *synchronizerService) canAcceptProposal() bool {
 	return s.state == stateProposalCollection || s.state == stateRequestRegistration
 }
 
-func (s *synchronizerService) fetchResults(id string) []*pb.Match {
+func (s *synchronizerService) fetchResults(id string) ([]*pb.Match, error) {
 	t := time.Now()
 	var results []*pb.Match
 
@@ -201,6 +206,12 @@ func (s *synchronizerService) fetchResults(id string) []*pb.Match {
 	// requests that the results are ready.
 	// TODO: Add a timeout in case results are not ready within a certain duration.
 	<-s.cycleData.resultsReady
+	if s.cycleData.evalError != nil {
+		synchronizerServiceLogger.WithError(s.cycleData.evalError).Errorf(
+			"Evaluation failed for request %v", id)
+		return nil, s.cycleData.evalError
+	}
+
 	results = make([]*pb.Match, len(s.cycleData.idToRequestData[id].results))
 	copy(results, s.cycleData.idToRequestData[id].results)
 	synchronizerServiceLogger.WithFields(logrus.Fields{
@@ -208,7 +219,7 @@ func (s *synchronizerService) fetchResults(id string) []*pb.Match {
 		"results": getMatchIds(results),
 		"elapsed": time.Since(t).String(),
 	}).Trace("Evaluation results ready")
-	return results
+	return results, nil
 }
 
 // Evaluate aggregates all the proposals across requests and calls the user configured
@@ -232,26 +243,29 @@ func (s *synchronizerService) Evaluate() {
 	}).Info("Requesting evaluation of proposals")
 	results, err := s.eval.evaluate(aggregateProposals)
 	if err != nil {
-		// TODO: Errors in evaluation are currently ignored. This should be handled and should lead to
-		// error being surfaced to all the pending requests to fetch matches.
+		// Evaluation failed. Set the error on the synchronization cycle data and
+		// signal completion of evaluation. Do not process any partial results.
+		s.cycleData.evalError = err
 		synchronizerServiceLogger.WithError(err).Errorf("Failed to evaluate proposals: %v", getMatchIds(aggregateProposals))
-	}
+	} else {
+		// Evaluation succeeded. Process all the results and add them to the results list
+		// for the corresponding request data
+		synchronizerServiceLogger.WithFields(logrus.Fields{
+			"results": getMatchIds(results),
+		}).Info("Evaluation successfully returned results")
+		for _, m := range results {
+			cid, ok := proposalMap[m.MatchId]
+			if !ok {
+				// Evaluator returned a match that the synchronizer did not submit for evaluation. This
+				// could happen if the match id was modified accidentally.
+				synchronizerServiceLogger.WithFields(logrus.Fields{
+					"match": m.GetMatchId(),
+				}).Warning("Result does not belong to any known requests")
+				continue
+			}
 
-	synchronizerServiceLogger.WithFields(logrus.Fields{
-		"results": getMatchIds(results),
-	}).Info("Evaluation successfully returned results")
-	for _, m := range results {
-		cid, ok := proposalMap[m.MatchId]
-		if !ok {
-			// Evaluator returned a match that the synchronizer did not submit for evaluation. This
-			// could happen if the match id was modified accidentally.
-			synchronizerServiceLogger.WithFields(logrus.Fields{
-				"match": m.GetMatchId(),
-			}).Warning("Result does not belong to any known requests")
-			continue
+			s.cycleData.idToRequestData[cid].results = append(s.cycleData.idToRequestData[cid].results, m)
 		}
-
-		s.cycleData.idToRequestData[cid].results = append(s.cycleData.idToRequestData[cid].results, m)
 	}
 
 	// Signal completion of evaluation to all requests waiting for results.
