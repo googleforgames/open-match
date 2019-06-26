@@ -395,7 +395,12 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
 func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error {
-	redisConn, err := rb.connect(ctx)
+	var err error
+	var redisConn redis.Conn
+	var ticketBytes [][]byte
+	var idsInFilter, idsInIgnoreLists []string
+
+	redisConn, err = rb.connect(ctx)
 	if err != nil {
 		return err
 	}
@@ -409,7 +414,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 		// Time Complexity O(logN + M), where N is the number of elements in the attribute set
 		// and M is the number of entries being returned.
 		// TODO: discuss if we need a LIMIT for # of queries being returned
-		idsInFilter, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.Attribute, filter.Min, filter.Max))
+		idsInFilter, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.Attribute, filter.Min, filter.Max))
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
 				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f", filter.Attribute, filter.Min, filter.Max),
@@ -429,17 +434,17 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 	startTime := currentTime.Add(-ttl)
 
 	// Filter out tickets that are fetched but not assigned within ttl time (ms).
-	ignoreListIds, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTime.Unix(), currentTime.Unix()))
+	idsInIgnoreLists, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTime.Unix(), currentTime.Unix()))
 	if err != nil {
 		redisLogger.WithError(err).Error("failed to get proposed tickets")
 		return status.Errorf(codes.Internal, err.Error())
 	}
 
-	idSet = set.Difference(idSet, ignoreListIds)
+	idSet = set.Difference(idSet, idsInIgnoreLists)
 
 	// TODO: finish reworking this after the proto changes.
 	for _, page := range idsToPages(idSet, pageSize) {
-		ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", page...))
+		ticketBytes, err = redis.ByteSlices(redisConn.Do("MGET", page...))
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
 				"Command": fmt.Sprintf("MGET %v", page),
