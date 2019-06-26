@@ -35,7 +35,7 @@ func New(t *testing.T, cfg config.Mutable) func() {
 	cfg.Set("redis.pool.maxActive", 10)
 	cfg.Set("redis.pool.idleTimeout", "10s")
 	cfg.Set("redis.pool.healthCheckTimeout", "100ms")
-	cfg.Set("redis.ignorelists.ttl", "1000ms")
+	cfg.Set("redis.ignoreLists.ttl", "10000ms")
 	cfg.Set("backoff.initialInterval", 30*time.Millisecond)
 	cfg.Set("backoff.randFactor", 0.5)
 	cfg.Set("backoff.multiplier", 0.5)

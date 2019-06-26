@@ -424,7 +424,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 		}
 	}
 
-	ttl := rb.cfg.GetDuration("redis.ignorelists.ttl")
+	ttl := rb.cfg.GetDuration("redis.ignoreLists.ttl")
 	currentTime := time.Now()
 	startTime := currentTime.Add(-ttl)
 
