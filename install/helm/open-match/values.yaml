@@ -35,27 +35,19 @@ openmatch:
     install: true
     replicas: 1
     grpc:
-      port: 50501
+      port: 50506
     http:
-      port: 51501
+      port: 51506
     porttype: LoadBalancer
   backend:
     install: true
     replicas: 3
     grpc:
-      port: 50502
+      port: 50505
     http:
-      port: 51502
+      port: 51505
     porttype: LoadBalancer
   frontend:
-    install: true
-    replicas: 3
-    grpc:
-      port: 50503
-    http:
-      port: 51503
-    porttype: LoadBalancer
-  mmlogic:
     install: true
     replicas: 3
     grpc:
@@ -63,36 +55,44 @@ openmatch:
     http:
       port: 51504
     porttype: LoadBalancer
+  mmlogic:
+    install: true
+    replicas: 3
+    grpc:
+      port: 50503
+    http:
+      port: 51503
+    porttype: LoadBalancer
   e2eevaluator:
     install: false
     replicas: 1
     grpc:
-      port: 50515
+      port: 50518
     http:
-      port: 51515
+      port: 51518
     porttype: LoadBalancer
   demoevaluator:
     install: true
     replicas: 3
     grpc:
-      port: 50525
+      port: 50508
     http:
-      port: 51525
+      port: 51508
     porttype: LoadBalancer
   e2ematchfunction:
     install: false
     replicas: 1
     grpc:
-      port: 50516
+      port: 50512
     http:
-      port: 51516
+      port: 51512
   demofunction:
     install: true
     replicas: 3
     grpc:
-      port: 50526
+      port: 50502
     http:
-      port: 51526
+      port: 51502
     porttype: LoadBalancer
   demo:
     # TODO: Change to true once the demo is available.
@@ -100,7 +100,7 @@ openmatch:
     install: false
     replicas: 3
     http:
-      port: 51527
+      port: 51507
     porttype: LoadBalancer
   swaggerui:
     install: true
@@ -261,14 +261,8 @@ openmatch:
     demoevaluator:
       name: openmatch-evaluator-go-simple
       pullPolicy: Always
-    e2eevaluator:
-      name: openmatch-evaluator-go-simple
-      pullPolicy: Always
     demofunction:
       name: openmatch-mmf-go-soloduel
-      pullPolicy: Always
-    e2ematchfunction:
-      name: openmatch-mmf-go-pool
       pullPolicy: Always
     demo:
       name: openmatch-demo

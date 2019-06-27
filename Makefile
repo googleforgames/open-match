@@ -352,7 +352,20 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set prometheus.enabled=false \
 		--set redis.enabled=true \
 		--set openmatch.monitoring.stackdriver.enabled=true \
-		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID) \
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+
+install-e2e-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
+		--timeout=400 \
+		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+		--set openmatch.image.registry=$(REGISTRY) \
+		--set openmatch.image.tag=$(TAG) \
+		--set grafana.enabled=false \
+		--set jaeger.enabled=false \
+		--set prometheus.enabled=false \
+		--set redis.enabled=true \
+		--set openmatch.monitoring.stackdriver.enabled=true \
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 		--set openmatch.e2eevaluator.install=true \
 		--set openmatch.e2ematchfunction.install=true
 
@@ -738,7 +751,7 @@ test:
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./...
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
-e2ecluster:
+test-e2e-cluster:
 	$(GO) test ./... -race -tags e2ecluster
 
 stress-frontend-%: build/toolchain/python/
