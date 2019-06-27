@@ -349,7 +349,9 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set prometheus.enabled=false \
 		--set redis.enabled=true \
 		--set openmatch.monitoring.stackdriver.enabled=true \
-		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID) \
+		--set openmatch.e2eevaluator.install=true \
+		--set openmatch.e2ematchfunction.install=true
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_CHART_NAME) install/helm/open-match \

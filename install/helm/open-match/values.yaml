@@ -31,53 +31,15 @@ openmatch:
       endpoint: "/zipkin"
       reporterEndpoint: "zipkin"
     reportingPeriod: "5s"
-  backend:
-    install: true
-    replicas: 3
-    grpc:
-      port: 50505
-    http:
-      port: 51505
-    porttype: LoadBalancer
-  frontend:
-    install: true
-    replicas: 3
-    grpc:
-      port: 50504
-    http:
-      port: 51504
-    porttype: LoadBalancer
-  mmlogic:
-    install: true
-    replicas: 3
-    grpc:
-      port: 50503
-    http:
-      port: 51503
-    porttype: LoadBalancer
   synchronizer:
     install: true
     replicas: 1
     grpc:
-      port: 50506
+      port: 50501
     http:
-      port: 51506
+      port: 51501
     porttype: LoadBalancer
-  swaggerui:
-    install: true
-    replicas: 3
-    http:
-      port: 50500
-    porttype: LoadBalancer
-  demoevaluator:
-    install: true
-    replicas: 3
-    grpc:
-      port: 50508
-    http:
-      port: 51508
-    porttype: LoadBalancer
-  demofunction:
+  backend:
     install: true
     replicas: 3
     grpc:
@@ -85,13 +47,66 @@ openmatch:
     http:
       port: 51502
     porttype: LoadBalancer
+  frontend:
+    install: true
+    replicas: 3
+    grpc:
+      port: 50503
+    http:
+      port: 51503
+    porttype: LoadBalancer
+  mmlogic:
+    install: true
+    replicas: 3
+    grpc:
+      port: 50504
+    http:
+      port: 51504
+    porttype: LoadBalancer
+  e2eevaluator:
+    install: false
+    replicas: 1
+    grpc:
+      port: 50515
+    http:
+      port: 51515
+    porttype: LoadBalancer
+  demoevaluator:
+    install: true
+    replicas: 3
+    grpc:
+      port: 50525
+    http:
+      port: 51525
+    porttype: LoadBalancer
+  e2ematchfunction:
+    install: false
+    replicas: 1
+    grpc:
+      port: 50516
+    http:
+      port: 51516
+  demofunction:
+    install: true
+    replicas: 3
+    grpc:
+      port: 50526
+    http:
+      port: 51526
+    porttype: LoadBalancer
   demo:
     # TODO: Change to true once the demo is available.
     # It's currently missing liveness/readiness checks.
     install: false
     replicas: 3
     http:
-      port: 51507
+      port: 51527
+    porttype: LoadBalancer
+  swaggerui:
+    install: true
+    replicas: 3
+    http:
+      port: 51500
     porttype: LoadBalancer
 
   config:
