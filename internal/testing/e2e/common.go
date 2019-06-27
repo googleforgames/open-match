@@ -19,23 +19,24 @@ import (
 	"log"
 	pb "open-match.dev/open-match/pkg/pb"
 	"os"
+	"sync"
 	"testing"
 )
 
 // OM is the interface for communicating with Open Match.
 type OM interface {
 	// MustFrontendGRPC returns a gRPC client to frontend server.
-	MustFrontendGRPC() (pb.FrontendClient, func())
+	MustFrontendGRPC() pb.FrontendClient
 	// MustBackendGRPC returns a gRPC client to backend server.
-	MustBackendGRPC() (pb.BackendClient, func())
+	MustBackendGRPC() pb.BackendClient
 	// MustMmLogicGRPC returns a gRPC client to mmlogic server.
-	MustMmLogicGRPC() (pb.MmLogicClient, func())
+	MustMmLogicGRPC() pb.MmLogicClient
 	// HealthCheck probes the cluster for readiness.
 	HealthCheck() error
 	// Context provides a context to call remote methods.
 	Context() context.Context
 
-	cleanup() error
+	cleanup()
 	cleanupMain() error
 	withT(t *testing.T) OM
 }
@@ -43,11 +44,7 @@ type OM interface {
 // New creates a new e2e test interface.
 func New(t *testing.T) (OM, func()) {
 	om := zygote.withT(t)
-	return om, func() {
-		if err := om.cleanup(); err != nil {
-			t.Errorf("failed to cleanup minimatch: %s", err)
-		}
-	}
+	return om, om.cleanup
 }
 
 // RunMain provides the setup and teardown for Open Match e2e tests.
@@ -68,10 +65,32 @@ func RunMain(m *testing.M) {
 	exitCode = m.Run()
 }
 
-func closeSilently(f func() error) func() {
-	return func() {
+type multicloser struct {
+	closers []func()
+	m       sync.Mutex
+}
+
+func newMulticloser() *multicloser {
+	return &multicloser{
+		closers: []func(){},
+	}
+}
+
+func (mc *multicloser) addSilent(f func() error) {
+	mc.m.Lock()
+	defer mc.m.Unlock()
+	mc.closers = append(mc.closers, func() {
 		if err := f(); err != nil {
 			log.Printf("failed to close, %s", err)
 		}
+	})
+}
+
+func (mc *multicloser) close() {
+	mc.m.Lock()
+	defer mc.m.Unlock()
+	for _, c := range mc.closers {
+		c()
 	}
+	mc.closers = []func(){}
 }

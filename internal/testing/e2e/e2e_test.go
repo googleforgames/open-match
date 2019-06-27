@@ -31,19 +31,16 @@ func TestServiceHealth(t *testing.T) {
 func TestGetClients(t *testing.T) {
 	om, closer := New(t)
 	defer closer()
-	fe, fec := om.MustFrontendGRPC()
-	defer fec()
-	if fe == nil {
+
+	if c := om.MustFrontendGRPC(); c == nil {
 		t.Error("cannot get frontend client")
 	}
-	be, bec := om.MustBackendGRPC()
-	defer bec()
-	if be == nil {
+
+	if c := om.MustBackendGRPC(); c == nil {
 		t.Error("cannot get backend client")
 	}
-	mml, mmlc := om.MustMmLogicGRPC()
-	defer mmlc()
-	if mml == nil {
+
+	if c := om.MustMmLogicGRPC(); c == nil {
 		t.Error("cannot get mmlogic client")
 	}
 }
@@ -51,8 +48,7 @@ func TestGetClients(t *testing.T) {
 func TestCreateTicket(t *testing.T) {
 	om, closer := New(t)
 	defer closer()
-	fe, cc := om.MustFrontendGRPC()
-	defer cc()
+	fe := om.MustFrontendGRPC()
 	resp, err := fe.CreateTicket(om.Context(), &pb.CreateTicketRequest{
 		Ticket: &pb.Ticket{
 			Properties: &structpb.Struct{

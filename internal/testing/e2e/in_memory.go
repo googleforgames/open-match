@@ -46,6 +46,7 @@ const (
 type inmemoryOM struct {
 	tc *rpcTesting.TestContext
 	t  *testing.T
+	mc *multicloser
 }
 
 func (iom *inmemoryOM) withT(t *testing.T) OM {
@@ -53,6 +54,7 @@ func (iom *inmemoryOM) withT(t *testing.T) OM {
 	om := &inmemoryOM{
 		tc: tc,
 		t:  t,
+		mc: newMulticloser(),
 	}
 	return om
 }
@@ -61,19 +63,22 @@ func createZygote(m *testing.M) (OM, error) {
 	return &inmemoryOM{}, nil
 }
 
-func (iom *inmemoryOM) MustFrontendGRPC() (pb.FrontendClient, func()) {
+func (iom *inmemoryOM) MustFrontendGRPC() pb.FrontendClient {
 	conn := iom.tc.MustGRPC()
-	return pb.NewFrontendClient(conn), closeSilently(conn.Close)
+	iom.mc.addSilent(conn.Close)
+	return pb.NewFrontendClient(conn)
 }
 
-func (iom *inmemoryOM) MustBackendGRPC() (pb.BackendClient, func()) {
+func (iom *inmemoryOM) MustBackendGRPC() pb.BackendClient {
 	conn := iom.tc.MustGRPC()
-	return pb.NewBackendClient(conn), closeSilently(conn.Close)
+	iom.mc.addSilent(conn.Close)
+	return pb.NewBackendClient(conn)
 }
 
-func (iom *inmemoryOM) MustMmLogicGRPC() (pb.MmLogicClient, func()) {
+func (iom *inmemoryOM) MustMmLogicGRPC() pb.MmLogicClient {
 	conn := iom.tc.MustGRPC()
-	return pb.NewMmLogicClient(conn), closeSilently(conn.Close)
+	iom.mc.addSilent(conn.Close)
+	return pb.NewMmLogicClient(conn)
 }
 
 func (iom *inmemoryOM) HealthCheck() error {
@@ -84,9 +89,9 @@ func (iom *inmemoryOM) Context() context.Context {
 	return iom.tc.Context()
 }
 
-func (iom *inmemoryOM) cleanup() error {
+func (iom *inmemoryOM) cleanup() {
+	iom.mc.close()
 	iom.tc.Close()
-	return nil
 }
 
 func (iom *inmemoryOM) cleanupMain() error {
