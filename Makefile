@@ -599,7 +599,7 @@ ifneq ($(strip $($(KUBECTL) get clusterroles | grep -i rbac)),)
 	$(KUBECTL) patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
 endif
 	@echo "Waiting for Tiller to become ready..."
-	$(KUBECTL) wait deployment --timeout=60s --for condition=available -l app=helm,name=tiller --namespace kube-system
+	$(KUBECTL) wait pod --timeout=60s --for condition=Ready -l app=helm,name=tiller --namespace kube-system
 
 delete-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) reset
