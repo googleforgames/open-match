@@ -29,8 +29,8 @@ import (
 	"log"
 	"open-match.dev/open-match/internal/rpc"
 	pb "open-match.dev/open-match/pkg/pb"
-	"os/user"
 	"os"
+	"os/user"
 	"path/filepath"
 	"testing"
 )
