@@ -245,7 +245,7 @@ build-images: build-service-images build-example-images build-tool-images
 build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-synchronizer-image build-swaggerui-image
 build-example-images: build-demo-images build-mmf-example-images build-evaluator-example-images
 build-demo-images: build-mmf-go-soloduel-image build-demo-image
-build-mmf-example-images: build-mmf-go-soloduel-image
+build-mmf-example-images: build-mmf-go-soloduel-image build-mmf-go-pool-image
 build-evaluator-example-images: build-evaluator-go-simple-image
 build-tool-images: build-reaper-image
 
@@ -277,6 +277,9 @@ build-demo-image: docker build-base-build-image
 
 build-mmf-go-soloduel-image: docker build-base-build-image
 	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
+
+build-mmf-go-pool-image: docker build-base-build-image
+	docker build -f examples/functions/golang/pool/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG)
 
 build-evaluator-go-simple-image: docker build-base-build-image
 	docker build -f examples/evaluator/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG) .

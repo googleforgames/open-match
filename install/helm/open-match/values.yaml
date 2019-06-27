@@ -261,8 +261,14 @@ openmatch:
     demoevaluator:
       name: openmatch-evaluator-go-simple
       pullPolicy: Always
+    e2eevaluator:
+      name: openmatch-evaluator-go-simple
+      pullPolicy: Always
     demofunction:
       name: openmatch-mmf-go-soloduel
+      pullPolicy: Always
+    e2ematchfunction:
+      name: openmatch-mmf-go-pool
       pullPolicy: Always
     demo:
       name: openmatch-demo
