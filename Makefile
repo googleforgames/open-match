@@ -360,18 +360,9 @@ install-e2e-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set grafana.enabled=false \
 		--set jaeger.enabled=false \
 		--set prometheus.enabled=false \
-		--set redis.enabled=false \
+		--set redis.enabled=true \
 		--set openmatch.monitoring.stackdriver.enabled=true \
-		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID) \
-		--set openmatch.config.install=false \
-		--set openmatch.backend.install=false \
-		--set openmatch.frontend.install=false \
-		--set openmatch.mmlogic.install=false \
-		--set openmatch.synchronizer.install=false \
-		--set openmatch.swaggerui.install=false \
-		--set openmatch.demoevaluator.install=false \
-		--set openmatch.demo.install=false \
-		--set openmatch.demofunction.install=false \
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 		--set openmatch.e2eevaluator.install=true \
 		--set openmatch.e2ematchfunction.install=true
 
