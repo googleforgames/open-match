@@ -92,7 +92,7 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			resultChan := make(chan mmfResult, len(test.req.GetProfile()))
-			err := doFetchMatchesInChannel(context.Background(), test.cfg, &sync.Map{}, test.req, resultChan)
+			err := doFetchMatchesReceiveMmfResult(context.Background(), test.cfg, &sync.Map{}, test.req, resultChan)
 			assert.Equal(t, test.wantErr, err)
 		})
 	}
@@ -144,7 +144,7 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 
 			test.preAction(resultChan, cancel)
 
-			matches, err := doFetchMatchesFilterChannel(ctx, resultChan, 2)
+			matches, err := doFetchMatchesFilterNonErrorProposals(ctx, resultChan, 2)
 
 			for _, match := range matches {
 				assert.Contains(t, test.wantMatches, match)
@@ -303,3 +303,5 @@ func TestDoAssignTickets(t *testing.T) {
 		})
 	}
 }
+
+// TODOs: add unit tests to doFetchMatchesFilterSkiplistIds and doFetchMatchesAddSkiplistIds
