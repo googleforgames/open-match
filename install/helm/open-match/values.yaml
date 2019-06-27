@@ -37,7 +37,7 @@ openmatch:
     grpc:
       port: 50506
     http:
-      port: 50506
+      port: 51506
     porttype: LoadBalancer
   backend:
     install: true
@@ -45,7 +45,7 @@ openmatch:
     grpc:
       port: 50505
     http:
-      port: 50505
+      port: 51505
     porttype: LoadBalancer
   frontend:
     install: true
@@ -53,7 +53,7 @@ openmatch:
     grpc:
       port: 50504
     http:
-      port: 50504
+      port: 51504
     porttype: LoadBalancer
   mmlogic:
     install: true
@@ -61,7 +61,7 @@ openmatch:
     grpc:
       port: 50503
     http:
-      port: 50503
+      port: 51503
     porttype: LoadBalancer
   e2eevaluator:
     install: false
@@ -77,7 +77,7 @@ openmatch:
     grpc:
       port: 50508
     http:
-      port: 50508
+      port: 51508
     porttype: LoadBalancer
   e2ematchfunction:
     install: false
@@ -92,7 +92,7 @@ openmatch:
     grpc:
       port: 50502
     http:
-      port: 50502
+      port: 51502
     porttype: LoadBalancer
   demo:
     # TODO: Change to true once the demo is available.
