@@ -52,15 +52,15 @@ steps:
   args: ['--destination=gcr.io/$PROJECT_ID/open-match-build', '--cache=true', '--cache-ttl=48h', '--dockerfile=Dockerfile.ci', '.']
   waitFor: ['-']
 
-- id: 'Test: Markdown'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'md-test']
-  waitFor: ['Docker Image: open-match-build']
-
 - id: 'Build: Clean'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'clean']
   waitFor: ['Docker Image: open-match-build']
+
+- id: 'Test: Markdown'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'md-test']
+  waitFor: ['Build: Clean']
 
 - id: 'Setup: Download Dependencies'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -135,7 +135,7 @@ steps:
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'sleep-10', 'install-chart']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'install-chart']
   waitFor: ['Test: Create Cluster', 'Build: Docker Images']
 
 # TODO: Once the location of the cluster configs is known run the tests.
