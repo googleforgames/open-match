@@ -31,13 +31,21 @@ openmatch:
       endpoint: "/zipkin"
       reporterEndpoint: "zipkin"
     reportingPeriod: "5s"
+  synchronizer:
+    install: true
+    replicas: 1
+    grpc:
+      port: 50506
+    http:
+      port: 50506
+    porttype: LoadBalancer
   backend:
     install: true
     replicas: 3
     grpc:
       port: 50505
     http:
-      port: 51505
+      port: 50505
     porttype: LoadBalancer
   frontend:
     install: true
@@ -45,7 +53,7 @@ openmatch:
     grpc:
       port: 50504
     http:
-      port: 51504
+      port: 50504
     porttype: LoadBalancer
   mmlogic:
     install: true
@@ -53,21 +61,15 @@ openmatch:
     grpc:
       port: 50503
     http:
-      port: 51503
+      port: 50503
     porttype: LoadBalancer
-  synchronizer:
-    install: true
+  e2eevaluator:
+    install: false
     replicas: 1
     grpc:
-      port: 50506
+      port: 50518
     http:
-      port: 51506
-    porttype: LoadBalancer
-  swaggerui:
-    install: true
-    replicas: 3
-    http:
-      port: 50500
+      port: 51518
     porttype: LoadBalancer
   demoevaluator:
     install: true
@@ -75,15 +77,22 @@ openmatch:
     grpc:
       port: 50508
     http:
-      port: 51508
+      port: 50508
     porttype: LoadBalancer
+  e2ematchfunction:
+    install: false
+    replicas: 1
+    grpc:
+      port: 50512
+    http:
+      port: 51512
   demofunction:
     install: true
     replicas: 3
     grpc:
       port: 50502
     http:
-      port: 51502
+      port: 50502
     porttype: LoadBalancer
   demo:
     # TODO: Change to true once the demo is available.
@@ -92,6 +101,12 @@ openmatch:
     replicas: 3
     http:
       port: 51507
+    porttype: LoadBalancer
+  swaggerui:
+    install: true
+    replicas: 3
+    http:
+      port: 51500
     porttype: LoadBalancer
 
   config:

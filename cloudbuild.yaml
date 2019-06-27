@@ -135,12 +135,12 @@ steps:
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'install-chart']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'install-chart', 'install-e2e-chart']
   waitFor: ['Test: Create Cluster', 'Build: Docker Images']
 
 - id: 'Test: End-to-End Cluster'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'SHORT_SHA=${SHORT_SHA}', 'e2ecluster']
+  args: ['make', 'GOPROXY=off', 'SHORT_SHA=${SHORT_SHA}', 'test-e2e-cluster']
   waitFor: ['Test: Deploy Open Match', 'Build: Assets']
   volumes:
   - name: 'go-vol'

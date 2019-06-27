@@ -21,7 +21,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"open-match.dev/open-match/examples/functions/golang/pool"
+	pool "open-match.dev/open-match/examples/functions/golang/pool/mmf"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"

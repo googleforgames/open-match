@@ -22,8 +22,8 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/pkg/pb"
 
+	simple "open-match.dev/open-match/examples/evaluator/golang/simple/evaluate"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 )
@@ -32,16 +32,8 @@ import (
 func createEvaluatorForTest(t *testing.T) *rpcTesting.TestContext {
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
-		assert.Nil(t, harness.BindService(p, cfg, Evaluate))
+		assert.Nil(t, harness.BindService(p, cfg, simple.Evaluate))
 	})
 
 	return tc
-}
-
-// Evaluate implements the evaluator function that will be triggered by the
-// minimatch synchronizer service.
-func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
-	// TODO: This is just a placeholder. Add test evaluation logic here or
-	// refactor this to use the demo sample evaluator.
-	return p.Matches, nil
 }
