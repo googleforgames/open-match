@@ -69,7 +69,7 @@ func TestEvaluate(t *testing.T) {
 		{
 			description: "test first returns matches with higher score",
 			testMatches: []*pb.Match{ticket123Score5, ticket12Score10},
-			wantMatches: []*pb.Match{ticket12Score10, ticket123Score5},
+			wantMatches: []*pb.Match{ticket12Score10},
 		},
 	}
 

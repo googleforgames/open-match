@@ -15,9 +15,6 @@
 package evaluate
 
 import (
-	"sort"
-	"strings"
-
 	"open-match.dev/open-match/examples"
 	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 	"open-match.dev/open-match/pkg/pb"
@@ -26,32 +23,33 @@ import (
 // Evaluate is where your custom evaluation logic lives.
 // This sample evaluator sorts and deduplicates the input matches.
 func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
-	// Sort in descending numerical order
-	scoreBy := func(a, b *pb.Match) bool {
+	scoreInDescendingOrder := func(a, b *pb.Match) bool {
 		return a.GetProperties().GetFields()[examples.MatchScore].GetNumberValue() > b.GetProperties().GetFields()[examples.MatchScore].GetNumberValue()
 	}
-
-	// Sort the input matches based on its score property
-	by(scoreBy).Sort(p.Matches)
+	by(scoreInDescendingOrder).Sort(p.Matches)
 
 	results := []*pb.Match{}
 
 	dedup := map[string]bool{}
 	for _, match := range p.Matches {
+		valid := true
 		ids := []string{}
-		for _, ticket := range match.GetTicket() {
-			ids = append(ids, ticket.GetId())
+		for i := 0; valid && i < len(match.GetTicket()); i++ {
+			id := match.GetTicket()[i].GetId()
+			ids = append(ids, id)
+			if _, ok := dedup[id]; ok {
+				// If a match with higher score have seen this ticket, discard current match
+				valid = false
+				break
+			}
 		}
-		sort.Sort(sort.StringSlice(ids))
-		k := strings.Join(ids, " ")
 
-		// If a match with the same tickets already exists in the map, we ignore the current one since it has lower score.
-		if _, ok := dedup[k]; ok {
-			continue
+		if valid {
+			for _, id := range ids {
+				dedup[id] = true
+			}
+			results = append(results, match)
 		}
-
-		dedup[k] = true
-		results = append(results, match)
 	}
 
 	return results, nil
