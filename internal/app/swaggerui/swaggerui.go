@@ -66,11 +66,12 @@ func serve(cfg config.View) {
 
 	mux.Handle("/", http.FileServer(http.Dir(directory)))
 	mux.HandleFunc("/healthz", monitoring.NewHealthProbe([]func(context.Context) error{}))
-	// TODO: Pull these values from the Environment variables or Config.
-	bindHandler(mux, "/v1/frontend/", "http://om-frontend:51504")
-	bindHandler(mux, "/v1/backend/", "http://om-backend:51505")
-	bindHandler(mux, "/v1/mmlogic/", "http://om-mmlogic:51503")
-	bindHandler(mux, "/v1/synchronizer/", "http://om-synchronizer:51506")
+	bindHandler(mux, cfg, "/v1/frontend/", "frontend")
+	bindHandler(mux, cfg, "/v1/backend/", "backend")
+	bindHandler(mux, cfg, "/v1/mmlogic/", "mmlogic")
+	bindHandler(mux, cfg, "/v1/synchronizer/", "synchronizer")
+	bindHandler(mux, cfg, "/v1/evaluator/", "evaluator")
+	bindHandler(mux, cfg, "/v1/matchfunction/", "functions")
 	addr := fmt.Sprintf(":%d", port)
 	srv := &http.Server{
 		Addr:    addr,
@@ -82,7 +83,11 @@ func serve(cfg config.View) {
 	swaggeruiLogger.Fatal(srv.ListenAndServe())
 }
 
-func bindHandler(mux *http.ServeMux, path string, endpoint string) {
+func bindHandler(mux *http.ServeMux, cfg config.View, path string, service string) {
+	hostname := cfg.GetString("api." + service + ".hostname")
+	httpport := cfg.GetString("api." + service + ".httpport")
+	endpoint := fmt.Sprintf("http://%s:%s/", hostname, httpport)
+	swaggeruiLogger.Infof("Registering reverse proxy %s -> %s", path, endpoint)
 	mux.Handle(path, overlayURLProxy(mustURLParse(endpoint)))
 }
 

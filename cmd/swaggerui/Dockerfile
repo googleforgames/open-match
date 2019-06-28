@@ -18,8 +18,9 @@ WORKDIR /go/src/open-match.dev/open-match/cmd/swaggerui/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
 COPY api/*.json /go/src/open-match.dev/open-match/third_party/swaggerui/api/
 
-# We need to change the location of the frontend.swagger.json so that we point to this server.
-RUN sed -i 's|url:.*|url: "/api/frontend.swagger.json",|g' /go/src/open-match.dev/open-match/third_party/swaggerui/index.html
+# Since we copy the swagger docs to the container point to them so they are served locally.
+# This is important because if there are local changes we want those reflecting in the container.
+RUN sed -i 's|https://open-match.dev/api/v.*/|/api/|g' /go/src/open-match.dev/open-match/third_party/swaggerui/config.json
 
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /app

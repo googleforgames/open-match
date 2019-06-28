@@ -1021,7 +1021,9 @@ third_party/swaggerui/:
 	cp -rf $(TOOLCHAIN_DIR)/swaggerui-temp/swagger-ui-$(SWAGGERUI_VERSION)/dist/ \
 		$(REPOSITORY_ROOT)/third_party/swaggerui
 	# Update the URL in the main page to point to a known good endpoint.
-	$(SED_REPLACE) 's/url:.*/url: \"https:\/\/open-match.dev\/api\/v$(BASE_VERSION)\/frontend.swagger.json\",/g' $(REPOSITORY_ROOT)/third_party/swaggerui/index.html
+	cp $(REPOSITORY_ROOT)/cmd/swaggerui/config.json $(REPOSITORY_ROOT)/third_party/swaggerui/
+	$(SED_REPLACE) 's|url:.*|configUrl: "/config.json",|g' $(REPOSITORY_ROOT)/third_party/swaggerui/index.html
+	$(SED_REPLACE) 's|0.0.0-dev|$(BASE_VERSION)|g' $(REPOSITORY_ROOT)/third_party/swaggerui/config.json
 	rm -rf $(TOOLCHAIN_DIR)/swaggerui-temp
 
 sync-deps:
