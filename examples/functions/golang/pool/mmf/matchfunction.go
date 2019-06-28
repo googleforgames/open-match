@@ -20,8 +20,11 @@
 package mmf
 
 import (
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/rs/xid"
+	"open-match.dev/open-match/examples"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
+
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -38,6 +41,7 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) []*pb.Match {
 	var result []*pb.Match
 	for pool, tickets := range params.PoolNameToTickets {
 		roster := &pb.Roster{Name: pool}
+
 		for _, ticket := range tickets {
 			roster.TicketId = append(roster.GetTicketId(), ticket.GetId())
 		}
@@ -48,8 +52,24 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) []*pb.Match {
 			MatchFunction: matchName,
 			Ticket:        tickets,
 			Roster:        []*pb.Roster{roster},
+			Properties: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					examples.MatchScore: {Kind: &structpb.Value_NumberValue{NumberValue: scoreCalculator(tickets)}},
+				},
+			},
 		})
 	}
 
 	return result
+}
+
+// This match function defines the quality of a match as the sum of the attribute values of all tickets per match
+func scoreCalculator(tickets []*pb.Ticket) float64 {
+	matchScore := 0.0
+	for _, ticket := range tickets {
+		for _, v := range ticket.GetProperties().GetFields() {
+			matchScore += v.GetNumberValue()
+		}
+	}
+	return matchScore
 }

@@ -104,7 +104,7 @@ func TestEvaluate(t *testing.T) {
 			gotMatches, err := Evaluate(&harness.EvaluatorParams{Matches: test.testMatches})
 
 			assert.Nil(t, err)
-			assert.Equal(t, len(test.wantMatches), gotMatches)
+			assert.Equal(t, len(test.wantMatches), len(gotMatches))
 			for _, match := range gotMatches {
 				assert.Contains(t, test.wantMatches, match)
 			}
