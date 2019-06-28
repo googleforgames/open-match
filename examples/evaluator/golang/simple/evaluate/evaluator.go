@@ -29,28 +29,26 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 	by(scoreInDescendingOrder).Sort(p.Matches)
 
 	results := []*pb.Match{}
-
 	dedup := map[string]bool{}
-	for _, match := range p.Matches {
-		valid := true
-		ids := []string{}
-		for i := 0; valid && i < len(match.GetTicket()); i++ {
-			id := match.GetTicket()[i].GetId()
-			ids = append(ids, id)
-			if _, ok := dedup[id]; ok {
-				// If a match with higher score have seen this ticket, discard current match
-				valid = false
-				break
-			}
-		}
 
-		if valid {
-			for _, id := range ids {
-				dedup[id] = true
+	for _, match := range p.Matches {
+		if isNonCollidingMatch(match, dedup) {
+			for _, ticket := range match.GetTicket() {
+				dedup[ticket.GetId()] = true
 			}
 			results = append(results, match)
 		}
 	}
 
 	return results, nil
+}
+
+func isNonCollidingMatch(match *pb.Match, validTickets map[string]bool) bool {
+	for _, ticket := range match.GetTicket() {
+		id := ticket.GetId()
+		if _, ok := validTickets[id]; ok {
+			return false
+		}
+	}
+	return true
 }

@@ -56,11 +56,30 @@ func TestEvaluate(t *testing.T) {
 		},
 	}
 
+	ticket3Score50 := &pb.Match{
+		Ticket: []*pb.Ticket{ticket3},
+		Properties: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				examples.MatchScore: {Kind: &structpb.Value_NumberValue{NumberValue: 50}},
+			},
+		},
+	}
+
 	tests := []struct {
 		description string
 		testMatches []*pb.Match
 		wantMatches []*pb.Match
 	}{
+		{
+			description: "test empty request returns empty response",
+			testMatches: []*pb.Match{},
+			wantMatches: []*pb.Match{},
+		},
+		{
+			description: "test input matches output when receiving one match",
+			testMatches: []*pb.Match{ticket12Score1},
+			wantMatches: []*pb.Match{ticket12Score1},
+		},
 		{
 			description: "test deduplicates and expect the one with higher score",
 			testMatches: []*pb.Match{ticket12Score1, ticket12Score10},
@@ -71,6 +90,11 @@ func TestEvaluate(t *testing.T) {
 			testMatches: []*pb.Match{ticket123Score5, ticket12Score10},
 			wantMatches: []*pb.Match{ticket12Score10},
 		},
+		{
+			description: "test evaluator returns two matches with the highest score",
+			testMatches: []*pb.Match{ticket12Score1, ticket12Score10, ticket123Score5, ticket3Score50},
+			wantMatches: []*pb.Match{ticket12Score10, ticket3Score50},
+		},
 	}
 
 	for _, test := range tests {
@@ -80,7 +104,10 @@ func TestEvaluate(t *testing.T) {
 			gotMatches, err := Evaluate(&harness.EvaluatorParams{Matches: test.testMatches})
 
 			assert.Nil(t, err)
-			assert.Equal(t, test.wantMatches, gotMatches)
+			assert.Equal(t, len(test.wantMatches), gotMatches)
+			for _, match := range gotMatches {
+				assert.Contains(t, test.wantMatches, match)
+			}
 		})
 	}
 }
