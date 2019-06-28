@@ -153,9 +153,11 @@ openmatch:
             grpcport: "{{.Values.openmatch.synchronizer.grpc.port}}"
             httpport: "{{.Values.openmatch.synchronizer.http.port}}"
           functions:
+            hostname: om-demofunction
             grpcport: "{{.Values.openmatch.demofunction.grpc.port}}"
             httpport: "{{.Values.openmatch.demofunction.http.port}}"
           evaluator:
+            hostname: om-demoevaluator
             grpcport: "{{.Values.openmatch.demoevaluator.grpc.port}}"
             httpport: "{{.Values.openmatch.demoevaluator.http.port}}"
           swaggerui:
