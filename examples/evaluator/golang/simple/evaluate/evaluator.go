@@ -11,9 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package evaluate
 
 import (
+	"sort"
 	"strings"
 
 	"open-match.dev/open-match/examples"
@@ -24,8 +26,9 @@ import (
 // Evaluate is where your custom evaluation logic lives.
 // This sample evaluator sorts and deduplicates the input matches.
 func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
+	// Sort in descending numerical order
 	scoreBy := func(a, b *pb.Match) bool {
-		return a.GetProperties().GetFields()[examples.MatchScore].GetNumberValue() < b.GetProperties().GetFields()[examples.MatchScore].GetNumberValue()
+		return a.GetProperties().GetFields()[examples.MatchScore].GetNumberValue() > b.GetProperties().GetFields()[examples.MatchScore].GetNumberValue()
 	}
 
 	// Sort the input matches based on its score property
@@ -39,12 +42,15 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 		for _, ticket := range match.GetTicket() {
 			ids = append(ids, ticket.GetId())
 		}
+		sort.Sort(sort.StringSlice(ids))
+		k := strings.Join(ids, " ")
 
 		// If a match with the same tickets already exists in the map, we ignore the current one since it has lower score.
-		if _, ok := dedup[strings.Join(ids, " ")]; ok {
+		if _, ok := dedup[k]; ok {
 			continue
 		}
 
+		dedup[k] = true
 		results = append(results, match)
 	}
 
