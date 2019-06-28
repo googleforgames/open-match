@@ -177,6 +177,7 @@ artifacts:
             - install/yaml/04-grafana-chart.yaml
             - install/yaml/05-jaeger-chart.yaml
             - examples/functions/golang/soloduel/soloduel
+            - examples/functions/golang/pool/pool
             - examples/evaluator/golang/simple/simple
             - tools/certgen/certgen
             - tools/reaper/reaper
@@ -189,6 +190,7 @@ images:
 - 'gcr.io/$PROJECT_ID/openmatch-minimatch:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-demo:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-go-soloduel:${_OM_VERSION}-${SHORT_SHA}'
+- 'gcr.io/$PROJECT_ID/openmatch-mmf-go-pool:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-evaluator-go-simple:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-swaggerui:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-reaper:${_OM_VERSION}-${SHORT_SHA}'
