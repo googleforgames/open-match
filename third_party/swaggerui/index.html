@@ -39,7 +39,7 @@
     window.onload = function() {
       // Begin Swagger UI call region
       const ui = SwaggerUIBundle({
-        url: "https://open-match.dev/api/v0.0.0-dev/frontend.swagger.json",
+        configUrl: "/config.json",
         dom_id: '#swagger-ui',
         deepLinking: true,
         presets: [
