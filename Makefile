@@ -86,6 +86,7 @@ TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
 PROTOC_INCLUDES := $(REPOSITORY_ROOT)/third_party
 GCP_PROJECT_ID ?=
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
+OPEN_MATCH_BUILD_PROJECT_ID = open-match-build
 OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID = open-match-public-images
 REGISTRY ?= gcr.io/$(GCP_PROJECT_ID)
 TAG = $(VERSION)
@@ -217,6 +218,26 @@ local-cloud-build: LOCAL_CLOUD_BUILD_PUSH = # --push
 local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
+# Below should match push-images
+retag-images: retag-service-images retag-example-images retag-tool-images
+
+retag-service-images: retag-backend-image retag-frontend-image retag-mmlogic-image retag-minimatch-image retag-synchronizer-image retag-swaggerui-image
+retag-example-images: retag-demo-images retag-mmf-example-images retag-evaluator-example-images
+retag-demo-images: retag-mmf-go-soloduel-image retag-demo-image
+retag-mmf-example-images: retag-mmf-go-soloduel-image retag-mmf-go-pool-image
+retag-evaluator-example-images: retag-evaluator-go-simple-image
+retag-tool-images: retag-reaper-image
+# Above should match push-images
+
+retag-%-image: SOURCE_REGISTRY = gcr.io/$(OPEN_MATCH_BUILD_PROJECT_ID)
+retag-%-image: TARGET_REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
+retag-%-image: SOURCE_TAG = canary
+retag-%-image: docker
+	docker pull $(SOURCE_REGISTRY)/openmatch-$*:$(SOURCE_TAG)
+	docker tag $(SOURCE_REGISTRY)/openmatch-$*:$(SOURCE_TAG) $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
+	docker push $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
+
+# Below should match retag-images
 push-images: push-service-images push-example-images push-tool-images
 
 push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-synchronizer-image push-swaggerui-image
@@ -225,6 +246,7 @@ push-demo-images: push-mmf-go-soloduel-image push-demo-image
 push-mmf-example-images: push-mmf-go-soloduel-image push-mmf-go-pool-image
 push-evaluator-example-images: push-evaluator-go-simple-image
 push-tool-images: push-reaper-image
+# Above should match retag-images
 
 push-%-image: build-%-image docker
 	docker push $(REGISTRY)/openmatch-$*:$(TAG)
@@ -876,6 +898,22 @@ presubmit: clean update-deps third_party/ assets lint build install-toolchain te
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
 	cp $(REPOSITORY_ROOT)/install/yaml/* $(BUILD_DIR)/release/
+
+validate-preview-release:
+ifneq ($(_GCB_POST_SUBMIT),1)
+	@echo "You must run make with _GCB_POST_SUBMIT=1"
+	exit 1
+endif
+ifneq (,$(findstring -preview,$(BASE_VERSION)))
+	@echo "Creating preview for $(BASE_VERSION)"
+else
+	@echo "BASE_VERSION must contain -preview, it is $(BASE_VERSION)"
+	exit 1
+endif
+
+preview-release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
+preview-release: TAG = $(BASE_VERSION)
+preview-release: validate-preview-release build/release/ retag-images ci-deploy-artifacts
 
 release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
 release: TAG = $(BASE_VERSION)
