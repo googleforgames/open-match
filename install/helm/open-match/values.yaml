@@ -158,6 +158,8 @@ openmatch:
           evaluator:
             grpcport: "{{.Values.openmatch.demoevaluator.grpc.port}}"
             httpport: "{{.Values.openmatch.demoevaluator.http.port}}"
+          swaggerui:
+            httpport: "{{.Values.openmatch.swaggerui.http.port}}"
 
         synchronizer:
           enabled: false

@@ -222,7 +222,7 @@ push-images: push-service-images push-example-images push-tool-images
 push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-synchronizer-image push-swaggerui-image
 push-example-images: push-demo-images push-mmf-example-images push-evaluator-example-images
 push-demo-images: push-mmf-go-soloduel-image push-demo-image
-push-mmf-example-images: push-mmf-go-soloduel-image
+push-mmf-example-images: push-mmf-go-soloduel-image push-mmf-go-pool-image
 push-evaluator-example-images: push-evaluator-go-simple-image
 push-tool-images: push-reaper-image
 
@@ -245,7 +245,7 @@ build-images: build-service-images build-example-images build-tool-images
 build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-synchronizer-image build-swaggerui-image
 build-example-images: build-demo-images build-mmf-example-images build-evaluator-example-images
 build-demo-images: build-mmf-go-soloduel-image build-demo-image
-build-mmf-example-images: build-mmf-go-soloduel-image
+build-mmf-example-images: build-mmf-go-soloduel-image build-mmf-go-pool-image
 build-evaluator-example-images: build-evaluator-go-simple-image
 build-tool-images: build-reaper-image
 
@@ -278,6 +278,9 @@ build-demo-image: docker build-base-build-image
 build-mmf-go-soloduel-image: docker build-base-build-image
 	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
 
+build-mmf-go-pool-image: docker build-base-build-image
+	docker build -f examples/functions/golang/pool/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG) .
+
 build-evaluator-go-simple-image: docker build-base-build-image
 	docker build -f examples/evaluator/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG) .
 
@@ -294,6 +297,7 @@ clean-images: docker
 	-docker rmi -f $(REGISTRY)/openmatch-swaggerui:$(TAG) $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG)
 
 	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-demo:$(TAG) $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-reaper:$(TAG) $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG)
@@ -776,11 +780,14 @@ service-binaries: cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE
 service-binaries: cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/synchronizer/synchronizer$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries example-evaluator-binaries
-example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
+example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION) examples/functions/golang/pool/pool$(EXE_EXTENSION)
 example-evaluator-binaries: examples/evaluator/golang/simple/simple$(EXE_EXTENSION)
 
 examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
+
+examples/functions/golang/pool/pool$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+	cd $(REPOSITORY_ROOT)/examples/functions/golang/pool; $(GO_BUILD_COMMAND)
 
 examples/evaluator/golang/simple/simple$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/evaluator/golang/simple; $(GO_BUILD_COMMAND)
@@ -891,6 +898,7 @@ clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/pool/pool$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/simple/evaluator$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/swaggerui/swaggerui$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/tools/certgen/certgen$(EXE_EXTENSION)
