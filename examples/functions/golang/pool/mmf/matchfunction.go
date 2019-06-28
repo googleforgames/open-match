@@ -22,14 +22,14 @@ package mmf
 import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/rs/xid"
+	"open-match.dev/open-match/examples"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
 
 	"open-match.dev/open-match/pkg/pb"
 )
 
 var (
-	matchName  = "pool-based-match"
-	matchScore = "match_score"
+	matchName = "pool-based-match"
 )
 
 // MakeMatches is where your custom matchmaking logic lives.
@@ -54,7 +54,7 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) []*pb.Match {
 			Roster:        []*pb.Roster{roster},
 			Properties: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
-					matchScore: {Kind: &structpb.Value_NumberValue{NumberValue: scoreCalculator(tickets)}},
+					examples.MatchScore: {Kind: &structpb.Value_NumberValue{NumberValue: scoreCalculator(tickets)}},
 				},
 			},
 		})

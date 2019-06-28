@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main a sample match function that uses the GRPC harness to set up
+// Package main defines a sample match function that uses the GRPC harness to set up
 // the match making function as a service. This sample is a reference
 // to demonstrate the usage of the GRPC harness and should only be used as
 // a starting point for your match function. You will need to modify the

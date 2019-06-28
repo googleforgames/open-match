@@ -17,6 +17,7 @@ package mmf
 import (
 	"testing"
 
+	"open-match.dev/open-match/examples"
 	"open-match.dev/open-match/pkg/pb"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -105,7 +106,7 @@ func TestMakeMatches(t *testing.T) {
 			Roster:        []*pb.Roster{{Name: poolName, TicketId: tids}},
 			Properties: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
-					matchScore: {Kind: &structpb.Value_NumberValue{NumberValue: scoreCalculator(tickets)}},
+					examples.MatchScore: {Kind: &structpb.Value_NumberValue{NumberValue: scoreCalculator(tickets)}},
 				},
 			},
 		}
