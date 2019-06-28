@@ -19,6 +19,7 @@ import (
 
 	"open-match.dev/open-match/pkg/pb"
 
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
@@ -27,9 +28,47 @@ import (
 func TestMakeMatches(t *testing.T) {
 	assert := assert.New(t)
 
+	tickets := []*pb.Ticket{
+		{
+			Id: "1",
+			Properties: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
+					"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 100}},
+				},
+			},
+		},
+		{
+			Id: "2",
+			Properties: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"level":  {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
+					"attack": {Kind: &structpb.Value_NumberValue{NumberValue: 50}},
+				},
+			},
+		},
+		{
+			Id: "3",
+			Properties: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"level": {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
+					"speed": {Kind: &structpb.Value_NumberValue{NumberValue: 522}},
+				},
+			},
+		}, {
+			Id: "4",
+			Properties: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"level": {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
+					"mana":  {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+				},
+			},
+		},
+	}
+
 	poolNameToTickets := map[string][]*pb.Ticket{
-		"pool1": {{Id: "1"}, {Id: "2"}},
-		"pool2": {{Id: "3"}, {Id: "4"}},
+		"pool1": tickets[:2],
+		"pool2": tickets[2:],
 	}
 
 	p := &mmfHarness.MatchFunctionParams{
@@ -49,19 +88,30 @@ func TestMakeMatches(t *testing.T) {
 			MatchFunction: match.MatchFunction,
 			Ticket:        match.Ticket,
 			Roster:        match.Roster,
+			Properties:    match.Properties,
 		})
 	}
 
-	assert.Contains(actual, &pb.Match{
-		MatchProfile:  p.ProfileName,
-		MatchFunction: matchName,
-		Ticket:        []*pb.Ticket{{Id: "1"}, {Id: "2"}},
-		Roster:        []*pb.Roster{{Name: "pool1", TicketId: []string{"1", "2"}}},
-	})
-	assert.Contains(actual, &pb.Match{
-		MatchProfile:  p.ProfileName,
-		MatchFunction: matchName,
-		Ticket:        []*pb.Ticket{{Id: "3"}, {Id: "4"}},
-		Roster:        []*pb.Roster{{Name: "pool2", TicketId: []string{"3", "4"}}},
-	})
+	matchGen := func(poolName string, tickets []*pb.Ticket) *pb.Match {
+		tids := []string{}
+		for _, ticket := range tickets {
+			tids = append(tids, ticket.GetId())
+		}
+
+		return &pb.Match{
+			MatchProfile:  p.ProfileName,
+			MatchFunction: matchName,
+			Ticket:        tickets,
+			Roster:        []*pb.Roster{{Name: poolName, TicketId: tids}},
+			Properties: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					matchScore: {Kind: &structpb.Value_NumberValue{NumberValue: scoreCalculator(tickets)}},
+				},
+			},
+		}
+	}
+
+	for poolName, tickets := range poolNameToTickets {
+		assert.Contains(actual, matchGen(poolName, tickets))
+	}
 }
