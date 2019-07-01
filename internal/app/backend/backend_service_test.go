@@ -144,7 +144,7 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 
 			test.preAction(resultChan, cancel)
 
-			matches, err := doFetchMatchesFilterNonErrorProposals(ctx, resultChan, 2)
+			matches, err := doFetchMatchesValidateProposals(ctx, resultChan, 2)
 
 			for _, match := range matches {
 				assert.Contains(t, test.wantMatches, match)
