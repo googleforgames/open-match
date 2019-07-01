@@ -214,9 +214,7 @@ func testFetchMatches(t *testing.T, poolTickets map[string][]string, testProfile
 		assert.NotNil(t, br)
 		assert.NotNil(t, br.Match)
 
-		brMatches := br.GetMatch()
-
-		for _, match := range brMatches {
+		for _, match := range br.GetMatch() {
 			// Currently, the MMF simply creates a match per pool in the match profile - and populates
 			// the roster with the pool name. Thus validate that for the roster populated in the match
 			// result has all the tickets expected in that pool.
