@@ -156,7 +156,7 @@ func (m *FetchMatchesRequest) GetProfile() []*MatchProfile {
 }
 
 type FetchMatchesResponse struct {
-	// Result Match for the requested MatchProfile.
+	// Result Match for the requested MatchProfile. Note that open-match will validate the proposals returned from MMF and skip the ones with empty tickets.
 	Match                []*Match `protobuf:"bytes,1,rep,name=match,proto3" json:"match,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`

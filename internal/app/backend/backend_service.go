@@ -91,7 +91,7 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		return nil, err
 	}
 
-	proposals, err := doFetchMatchesFilterNonErrorProposals(ctx, resultChan, len(req.GetProfile()))
+	proposals, err := doFetchMatchesValidateProposals(ctx, resultChan, len(req.GetProfile()))
 	if err != nil {
 		return nil, err
 	}
@@ -163,17 +163,24 @@ func doFetchMatchesReceiveMmfResult(ctx context.Context, cfg config.View, mmfCli
 	return nil
 }
 
-func doFetchMatchesFilterNonErrorProposals(ctx context.Context, resultChan <-chan mmfResult, channelSize int) ([]*pb.Match, error) {
+func doFetchMatchesValidateProposals(ctx context.Context, resultChan <-chan mmfResult, channelSize int) ([]*pb.Match, error) {
 	proposals := []*pb.Match{}
 	for i := 0; i < channelSize; i++ {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case result := <-resultChan:
+			// Check if mmf responds with any errors
 			if result.err != nil {
 				return nil, result.err
 			}
-			proposals = append(proposals, result.matches...)
+
+			// Check if mmf returns a match with no tickets in it
+			for _, match := range result.matches {
+				if len(match.GetTicket()) != 0 {
+					proposals = append(proposals, match)
+				}
+			}
 		}
 	}
 	return proposals, nil
