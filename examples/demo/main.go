@@ -29,7 +29,7 @@ import (
 var (
 	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "endtoend",
+		"component": "examples.demo",
 	})
 )
 
@@ -76,7 +76,5 @@ func main() {
 	// TODO: Other services read their port from the common config map, how should
 	// this be choosing the ports it exposes?
 	err = http.ListenAndServe(":51507", nil)
-	logger.WithFields(logrus.Fields{
-		"err": err.Error(),
-	}).Fatal("Http ListenAndServe failed.")
+	logger.WithError(err).Fatal("Http ListenAndServe failed.")
 }
