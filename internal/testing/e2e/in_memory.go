@@ -17,13 +17,19 @@ package e2e
 
 import (
 	"context"
+	"testing"
+
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
+	simple "open-match.dev/open-match/examples/evaluator/golang/simple/evaluate"
+	pool "open-match.dev/open-match/examples/functions/golang/pool/mmf"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	evalHarness "open-match.dev/open-match/pkg/harness/evaluator/golang"
+	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
 	pb "open-match.dev/open-match/pkg/pb"
-	"testing"
 )
 
 const (
@@ -44,17 +50,24 @@ const (
 )
 
 type inmemoryOM struct {
-	tc *rpcTesting.TestContext
-	t  *testing.T
-	mc *multicloser
+	mainTc *rpcTesting.TestContext
+	mmfTc  *rpcTesting.TestContext
+	evalTc *rpcTesting.TestContext
+	t      *testing.T
+	mc     *multicloser
 }
 
 func (iom *inmemoryOM) withT(t *testing.T) OM {
-	tc := createMinimatchForTest(t)
+	mainTc := createMinimatchForTest(t)
+	evalTc := createEvaluatorForTest(t)
+	mmfTc := createMatchFunctionForTest(t, mainTc)
+
 	om := &inmemoryOM{
-		tc: tc,
-		t:  t,
-		mc: newMulticloser(),
+		mainTc: mainTc,
+		mmfTc:  mmfTc,
+		evalTc: evalTc,
+		t:      t,
+		mc:     newMulticloser(),
 	}
 	return om
 }
@@ -64,21 +77,29 @@ func createZygote(m *testing.M) (OM, error) {
 }
 
 func (iom *inmemoryOM) MustFrontendGRPC() pb.FrontendClient {
-	conn := iom.tc.MustGRPC()
+	conn := iom.mainTc.MustGRPC()
 	iom.mc.addSilent(conn.Close)
 	return pb.NewFrontendClient(conn)
 }
 
 func (iom *inmemoryOM) MustBackendGRPC() pb.BackendClient {
-	conn := iom.tc.MustGRPC()
+	conn := iom.mainTc.MustGRPC()
 	iom.mc.addSilent(conn.Close)
 	return pb.NewBackendClient(conn)
 }
 
 func (iom *inmemoryOM) MustMmLogicGRPC() pb.MmLogicClient {
-	conn := iom.tc.MustGRPC()
+	conn := iom.mainTc.MustGRPC()
 	iom.mc.addSilent(conn.Close)
 	return pb.NewMmLogicClient(conn)
+}
+
+func (iom *inmemoryOM) MustMmfConfigGRPC() *pb.FunctionConfig {
+	return &pb.FunctionConfig{
+		Host: iom.mmfTc.GetHostname(),
+		Port: int32(iom.mmfTc.GetGRPCPort()),
+		Type: pb.FunctionConfig_GRPC,
+	}
 }
 
 func (iom *inmemoryOM) HealthCheck() error {
@@ -86,12 +107,14 @@ func (iom *inmemoryOM) HealthCheck() error {
 }
 
 func (iom *inmemoryOM) Context() context.Context {
-	return iom.tc.Context()
+	return iom.mainTc.Context()
 }
 
 func (iom *inmemoryOM) cleanup() {
 	iom.mc.close()
-	iom.tc.Close()
+	iom.mainTc.Close()
+	iom.mmfTc.Close()
+	iom.evalTc.Close()
 }
 
 func (iom *inmemoryOM) cleanupMain() error {
@@ -121,5 +144,34 @@ func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
 	})
 	// TODO: This is very ugly. Need a better story around closing resources.
 	tc.AddCloseFunc(closer)
+	return tc
+}
+
+// Create a mmf service using a started test server.
+// Inject the port config of mmlogic using that the passed in test server
+func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTesting.TestContext {
+	// TODO: Use insecure for now since minimatch and mmf only works with the same secure mode
+	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
+		cfg := viper.New()
+
+		// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
+		cfg.Set("api.mmlogic.hostname", c.GetHostname())
+		cfg.Set("api.mmlogic.grpcport", c.GetGRPCPort())
+		cfg.Set("api.mmlogic.httpport", c.GetHTTPPort())
+
+		assert.Nil(t, mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
+			Func: pool.MakeMatches,
+		}))
+	})
+	return tc
+}
+
+// Create an evaluator service that will be used by the minimatch tests.
+func createEvaluatorForTest(t *testing.T) *rpcTesting.TestContext {
+	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
+		cfg := viper.New()
+		assert.Nil(t, evalHarness.BindService(p, cfg, simple.Evaluate))
+	})
+
 	return tc
 }
