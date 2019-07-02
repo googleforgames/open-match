@@ -76,7 +76,7 @@ message FetchMatchesRequest {
 
 message FetchMatchesResponse {
   // Result Match for the requested MatchProfile.
-  // Note that open-match will validate the proposals, a valid match should contain at least one ticket.
+  // Note that OpenMatch will validate the proposals, a valid match should contain at least one ticket.
   repeated Match match = 1;
 }
 
