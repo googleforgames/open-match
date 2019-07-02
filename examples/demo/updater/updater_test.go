@@ -32,12 +32,12 @@ func TestUpdater(t *testing.T) {
 		latest <- string(b)
 	})
 
-	child := NewNested(ctx, base.ForField("Foo"))
-
 	l := <-latest
 	if l != "{}" {
 		t.Errorf("Got %s, expected %s", l, "{}")
 	}
+
+	child := NewNested(ctx, base.ForField("Foo"))
 
 	l = <-latest
 	if l != "{\"Foo\":{}}" {
