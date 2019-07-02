@@ -34,14 +34,14 @@ func Bool(v bool) *structpb.Value {
 // retrieve the type you want.
 type List []*structpb.Value
 
-// Converts a List into a proto struct list.
+// L converts a List into a proto struct list.
 func (l List) L() *structpb.ListValue {
 	return &structpb.ListValue{
 		Values: ([]*structpb.Value)(l),
 	}
 }
 
-// Converts a List into a proto struct value.
+// V converts a List into a proto struct value.
 func (l List) V() *structpb.Value {
 	return &structpb.Value{
 		Kind: &structpb.Value_ListValue{
@@ -77,19 +77,19 @@ func String(v string) *structpb.Value {
 	}
 }
 
-// List is used to specify a proto struct.  It can be used either as a literal,
+// Struct is used to specify a proto struct.  It can be used either as a literal,
 // or like you would a normal map.  Call S() or V() when finished constructing
 // to retrieve the type you want.
 type Struct map[string]*structpb.Value
 
-// Converts a Struct into a proto struct struct.
+// S converts a Struct into a proto struct struct.
 func (s Struct) S() *structpb.Struct {
 	return &structpb.Struct{
 		Fields: (map[string]*structpb.Value)(s),
 	}
 }
 
-// Converts a Struct into a proto struct value.
+// V converts a Struct into a proto struct value.
 func (s Struct) V() *structpb.Value {
 	return &structpb.Value{
 		Kind: &structpb.Value_StructValue{
