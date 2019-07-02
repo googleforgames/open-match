@@ -25,6 +25,8 @@ import (
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
@@ -210,17 +212,16 @@ func testFetchMatches(t *testing.T, poolTickets map[string][]string, testProfile
 			Config:  fc,
 			Profile: []*pb.MatchProfile{{Name: profile.name, Pool: profile.pools}},
 		})
-
 		assert.Nil(t, err)
 		assert.NotNil(t, br)
-		assert.NotNil(t, br.Match)
+		assert.NotNil(t, br.GetMatch())
 
 		for _, match := range br.GetMatch() {
 			// Currently, the MMF simply creates a match per pool in the match profile - and populates
 			// the roster with the pool name. Thus validate that for the roster populated in the match
 			// result has all the tickets expected in that pool.
 			assert.Equal(t, len(match.GetRoster()), 1)
-			assert.Equal(t, match.GetRoster()[0].TicketId, poolTickets[match.GetRoster()[0].GetName()])
+			assert.Equal(t, match.GetRoster()[0].GetTicketId(), poolTickets[match.GetRoster()[0].GetName()])
 
 			var gotTickets []string
 			for _, ticket := range match.GetTicket() {
@@ -231,5 +232,14 @@ func testFetchMatches(t *testing.T, poolTickets map[string][]string, testProfile
 			// all the tickets present in the result match are equal to the tickets in the pool for that match.
 			assert.Equal(t, gotTickets, poolTickets[match.GetRoster()[0].GetName()])
 		}
+
+		// Verify calling fetch matches twice within ttl interval won't yield new results
+		br, err = be.FetchMatches(tc.Context(), &pb.FetchMatchesRequest{
+			Config:  fc,
+			Profile: []*pb.MatchProfile{{Name: profile.name, Pool: profile.pools}},
+		})
+
+		assert.Nil(t, br)
+		assert.Equal(t, codes.FailedPrecondition, status.Convert(err).Code())
 	}
 }
