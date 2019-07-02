@@ -17,13 +17,14 @@ package e2e
 
 import (
 	"context"
+	"testing"
+
 	"github.com/spf13/viper"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	pb "open-match.dev/open-match/pkg/pb"
-	"testing"
 )
 
 const (
@@ -110,7 +111,7 @@ func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
 
 		cfg.Set("storage.page.size", 10)
 		// Set up the attributes that a ticket will be indexed for.
-		cfg.Set("playerIndices", []string{
+		cfg.Set("ticketIndices", []string{
 			SkillAttribute,
 			Map1Attribute,
 			Map2Attribute,

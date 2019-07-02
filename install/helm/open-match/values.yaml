@@ -194,7 +194,7 @@ openmatch:
           ignoreLists:
             ttl: 1000ms
           expiration: 43200
-        playerIndices:
+        ticketIndices:
         - char.cleric
         - char.knight
         - char.paladin

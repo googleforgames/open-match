@@ -40,7 +40,7 @@ func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTe
 		closer = statestoreTesting.New(t, cfg)
 		cfg.Set("storage.page.size", 10)
 		// Set up the attributes that a ticket will be indexed for.
-		cfg.Set("playerIndices", []string{
+		cfg.Set("ticketIndices", []string{
 			e2e.SkillAttribute,
 			e2e.Map1Attribute,
 			e2e.Map2Attribute,
