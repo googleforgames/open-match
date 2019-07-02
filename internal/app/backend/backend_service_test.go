@@ -20,17 +20,15 @@ import (
 	"testing"
 	"time"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
-
-	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/statestore"
-
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestDoFetchMatchesInChannel(t *testing.T) {
@@ -197,19 +195,15 @@ func TestDoAssignTickets(t *testing.T) {
 	fakeTickets := []*pb.Ticket{
 		{
 			Id: "1",
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					fakeProperty: {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-				},
-			},
+			Properties: structs.Struct{
+				fakeProperty: structs.Number(1),
+			}.S(),
 		},
 		{
 			Id: "2",
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					fakeProperty: {Kind: &structpb.Value_NumberValue{NumberValue: 2}},
-				},
-			},
+			Properties: structs.Struct{
+				fakeProperty: structs.Number(2),
+			}.S(),
 		},
 	}
 

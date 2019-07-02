@@ -17,9 +17,9 @@ package filter
 import (
 	"testing"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"open-match.dev/open-match/internal/filter/testcases"
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 // Only test Filter and InFilters for general use cases, not specific scenearios
@@ -30,42 +30,34 @@ func TestFilter(t *testing.T) {
 	tickets := []*pb.Ticket{
 		{
 			Id: "good",
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"field1": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
-					"field2": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
-				},
-			},
+			Properties: structs.Struct{
+				"field1": structs.Number(5),
+				"field2": structs.Number(5),
+			}.S(),
 		},
 
 		{
 			Id: "first_bad",
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"field1": {Kind: &structpb.Value_NumberValue{NumberValue: -5}},
-					"field2": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
-				},
-			},
+			Properties: structs.Struct{
+				"field1": structs.Number(-5),
+				"field2": structs.Number(5),
+			}.S(),
 		},
 
 		{
 			Id: "second_bad",
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"field1": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
-					"field2": {Kind: &structpb.Value_NumberValue{NumberValue: -5}},
-				},
-			},
+			Properties: structs.Struct{
+				"field1": structs.Number(5),
+				"field2": structs.Number(-5),
+			}.S(),
 		},
 
 		{
 			Id: "both_bad",
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"field1": {Kind: &structpb.Value_NumberValue{NumberValue: -5}},
-					"field2": {Kind: &structpb.Value_NumberValue{NumberValue: -5}},
-				},
-			},
+			Properties: structs.Struct{
+				"field1": structs.Number(-5),
+				"field2": structs.Number(-5),
+			}.S(),
 		},
 	}
 
