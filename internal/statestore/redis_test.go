@@ -29,6 +29,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
+	internalTesting "open-match.dev/open-match/internal/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -95,6 +96,48 @@ func TestTicketLifecycle(t *testing.T) {
 
 	_, err = service.GetTicket(context.Background(), id)
 	assert.NotNil(err)
+}
+
+func TestIgnoreLists(t *testing.T) {
+	// Create State Store
+	assert := assert.New(t)
+	cfg, closer := createRedis(t)
+	defer closer()
+	service := New(cfg)
+	assert.NotNil(service)
+	defer service.Close()
+
+	tickets := internalTesting.GenerateTickets(
+		internalTesting.Property{Name: "testindex1", Min: 0, Max: 10, Interval: 2},
+		internalTesting.Property{Name: "testindex2", Min: 0, Max: 10, Interval: 2},
+	)
+
+	ticketIds := []string{}
+	for _, ticket := range tickets {
+		assert.Nil(service.CreateTicket(context.Background(), ticket))
+		assert.Nil(service.IndexTicket(context.Background(), ticket))
+		ticketIds = append(ticketIds, ticket.GetId())
+	}
+
+	verifyTickets := func(service Service, expectLen int) {
+		var results []*pb.Ticket
+		service.FilterTickets(context.Background(), []*pb.Filter{{Attribute: "testindex1", Min: 0, Max: 10}, {Attribute: "testindex2", Min: 0, Max: 10}}, 100, func(tickets []*pb.Ticket) error {
+			results = tickets
+			return nil
+		})
+		assert.Equal(expectLen, len(results))
+	}
+
+	// Verify all tickets are created and returned
+	verifyTickets(service, len(tickets))
+
+	// Add the first three tickets to the ignore list and verify changes are reflected in the result
+	assert.Nil(service.AddTicketsToIgnoreList(context.Background(), ticketIds[:3]))
+	verifyTickets(service, len(tickets)-3)
+
+	// Sleep until the ignore list expired and verify we still have all the tickets
+	time.Sleep(cfg.GetDuration("redis.ignoreLists.ttl"))
+	verifyTickets(service, len(tickets))
 }
 
 func TestTicketIndexing(t *testing.T) {
@@ -319,6 +362,7 @@ func createRedis(t *testing.T) (config.View, func()) {
 	cfg.Set("redis.pool.healthCheckTimeout", 100*time.Millisecond)
 	cfg.Set("redis.pool.maxActive", 1000)
 	cfg.Set("redis.expiration", 42000)
+	cfg.Set("redis.ignoreLists.ttl", "200ms")
 	cfg.Set("backoff.initialInterval", 100*time.Millisecond)
 	cfg.Set("backoff.randFactor", 0.5)
 	cfg.Set("backoff.multiplier", 0.5)

@@ -78,17 +78,20 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 
 	resultChan := make(chan mmfResult, len(req.GetProfile()))
 
-	syncID, err := s.synchronizer.register(ctx)
+	var syncID string
+	var err error
+
+	syncID, err = s.synchronizer.register(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	err = doFetchMatchesInChannel(ctx, s.cfg, s.mmfClients, req, resultChan)
+	err = doFetchMatchesReceiveMmfResult(ctx, s.cfg, s.mmfClients, req, resultChan)
 	if err != nil {
 		return nil, err
 	}
 
-	proposals, err := doFetchMatchesFilterChannel(ctx, resultChan, len(req.GetProfile()))
+	proposals, err := doFetchMatchesValidateProposals(ctx, resultChan, len(req.GetProfile()))
 	if err != nil {
 		return nil, err
 	}
@@ -98,10 +101,15 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		return nil, err
 	}
 
+	err = doFetchMatchesAddIgnoredTickets(ctx, s.store, results)
+	if err != nil {
+		return nil, err
+	}
+
 	return &pb.FetchMatchesResponse{Match: results}, nil
 }
 
-func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *sync.Map, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
+func doFetchMatchesReceiveMmfResult(ctx context.Context, cfg config.View, mmfClients *sync.Map, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
 	var grpcClient pb.MatchFunctionClient
 	var httpClient *http.Client
 	var baseURL string
@@ -155,20 +163,38 @@ func doFetchMatchesInChannel(ctx context.Context, cfg config.View, mmfClients *s
 	return nil
 }
 
-func doFetchMatchesFilterChannel(ctx context.Context, resultChan <-chan mmfResult, channelSize int) ([]*pb.Match, error) {
+func doFetchMatchesValidateProposals(ctx context.Context, resultChan <-chan mmfResult, channelSize int) ([]*pb.Match, error) {
 	proposals := []*pb.Match{}
 	for i := 0; i < channelSize; i++ {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case result := <-resultChan:
+			// Check if mmf responds with any errors
 			if result.err != nil {
 				return nil, result.err
+			}
+
+			// Check if mmf returns a match with no tickets in it
+			for _, match := range result.matches {
+				if len(match.GetTicket()) == 0 {
+					return nil, status.Errorf(codes.FailedPrecondition, "match %s does not have associated tickets.", match.GetMatchId())
+				}
 			}
 			proposals = append(proposals, result.matches...)
 		}
 	}
 	return proposals, nil
+}
+
+func doFetchMatchesAddIgnoredTickets(ctx context.Context, store statestore.Service, results []*pb.Match) error {
+	ids := []string{}
+	for _, match := range results {
+		for _, ticket := range match.GetTicket() {
+			ids = append(ids, ticket.GetId())
+		}
+	}
+	return store.AddTicketsToIgnoreList(ctx, ids)
 }
 
 func getHTTPClient(cfg config.View, mmfClients *sync.Map, addr string) (*http.Client, string, error) {

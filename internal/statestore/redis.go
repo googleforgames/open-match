@@ -17,6 +17,7 @@ package statestore
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/gogo/protobuf/proto"
@@ -394,7 +395,12 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
 func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error {
-	redisConn, err := rb.connect(ctx)
+	var err error
+	var redisConn redis.Conn
+	var ticketBytes [][]byte
+	var idsInFilter, idsInIgnoreLists []string
+
+	redisConn, err = rb.connect(ctx)
 	if err != nil {
 		return err
 	}
@@ -408,7 +414,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 		// Time Complexity O(logN + M), where N is the number of elements in the attribute set
 		// and M is the number of entries being returned.
 		// TODO: discuss if we need a LIMIT for # of queries being returned
-		idsInFilter, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.Attribute, filter.Min, filter.Max))
+		idsInFilter, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.Attribute, filter.Min, filter.Max))
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
 				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f", filter.Attribute, filter.Min, filter.Max),
@@ -423,9 +429,23 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 		}
 	}
 
+	ttl := rb.cfg.GetDuration("redis.ignoreLists.ttl")
+	curTime := time.Now()
+	curTimeInt := curTime.UnixNano()
+	startTimeInt := curTime.Add(-ttl).UnixNano()
+
+	// Filter out tickets that are fetched but not assigned within ttl time (ms).
+	idsInIgnoreLists, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, curTimeInt))
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to get proposed tickets")
+		return status.Errorf(codes.Internal, err.Error())
+	}
+
+	idSet = set.Difference(idSet, idsInIgnoreLists)
+
 	// TODO: finish reworking this after the proto changes.
 	for _, page := range idsToPages(idSet, pageSize) {
-		ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", page...))
+		ticketBytes, err = redis.ByteSlices(redisConn.Do("MGET", page...))
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
 				"Command": fmt.Sprintf("MGET %v", page),
@@ -559,6 +579,40 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
+func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string) error {
+	redisConn, err := rb.connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer handleConnectionClose(&redisConn)
+
+	err = redisConn.Send("MULTI")
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to pipeline commands for AddProposedTickets")
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	currentTime := time.Now().UnixNano()
+	for _, id := range ids {
+		// Index the attribute by value.
+		err = redisConn.Send("ZADD", "proposed_ticket_ids", currentTime, id)
+		if err != nil {
+			redisLogger.WithError(err).Error("failed to append proposed tickets to redis")
+			return status.Error(codes.Internal, err.Error())
+		}
+	}
+
+	// Run pipelined Redis commands.
+	_, err = redisConn.Do("EXEC")
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to execute pipelined commands for AddProposedTickets")
+		return status.Error(codes.Internal, err.Error())
+	}
+
 	return nil
 }
 

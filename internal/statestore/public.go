@@ -50,6 +50,9 @@ type Service interface {
 	// GetAssignments returns the assignment associated with the input ticket id
 	GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error
 
+	// AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
+	AddTicketsToIgnoreList(ctx context.Context, ids []string) error
+
 	// Closes the connection to the underlying storage.
 	Close() error
 }

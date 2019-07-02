@@ -12,13 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main is a simple webserver for hosting Open Match Swagger UI.
-package main
+// Package examples defines the constants that some of the examples may share.
+package examples
 
-import (
-	"open-match.dev/open-match/internal/app/swaggerui"
+const (
+	MatchScore = "match_score"
 )
-
-func main() {
-	swaggerui.RunApplication()
-}

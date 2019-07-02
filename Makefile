@@ -86,6 +86,7 @@ TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
 PROTOC_INCLUDES := $(REPOSITORY_ROOT)/third_party
 GCP_PROJECT_ID ?=
 GCP_PROJECT_FLAG = --project=$(GCP_PROJECT_ID)
+OPEN_MATCH_BUILD_PROJECT_ID = open-match-build
 OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID = open-match-public-images
 REGISTRY ?= gcr.io/$(GCP_PROJECT_ID)
 TAG = $(VERSION)
@@ -142,7 +143,8 @@ DASHBOARD_PORT = 9092
 OPEN_MATCH_CI_LABEL = open-match-ci
 
 # This flag is set when running in Continuous Integration.
-ifdef ALLOW_BUILD_WITH_SUDO
+ifdef OPEN_MATCH_CI_MODE
+	export KUBECONFIG = $(HOME)/.kube/config
 	GCLOUD = gcloud --quiet --no-user-output-enabled
 	GKE_CLUSTER_NAME = om-cluster-$(SHORT_SHA)
 	GKE_CLUSTER_FLAGS = --labels open-match-ci=1 --node-labels=open-match-ci=1 --network=projects/$(GCP_PROJECT_ID)/global/networks/open-match-ci --subnetwork=projects/$(GCP_PROJECT_ID)/regions/$(GCP_REGION)/subnetworks/ci-$(GCP_REGION)-$(NANOS_MODULO_60)
@@ -216,14 +218,35 @@ local-cloud-build: LOCAL_CLOUD_BUILD_PUSH = # --push
 local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
+# Below should match push-images
+retag-images: retag-service-images retag-example-images retag-tool-images
+
+retag-service-images: retag-backend-image retag-frontend-image retag-mmlogic-image retag-minimatch-image retag-synchronizer-image retag-swaggerui-image
+retag-example-images: retag-demo-images retag-mmf-example-images retag-evaluator-example-images
+retag-demo-images: retag-mmf-go-soloduel-image retag-demo-image
+retag-mmf-example-images: retag-mmf-go-soloduel-image retag-mmf-go-pool-image
+retag-evaluator-example-images: retag-evaluator-go-simple-image
+retag-tool-images: retag-reaper-image
+# Above should match push-images
+
+retag-%-image: SOURCE_REGISTRY = gcr.io/$(OPEN_MATCH_BUILD_PROJECT_ID)
+retag-%-image: TARGET_REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
+retag-%-image: SOURCE_TAG = canary
+retag-%-image: docker
+	docker pull $(SOURCE_REGISTRY)/openmatch-$*:$(SOURCE_TAG)
+	docker tag $(SOURCE_REGISTRY)/openmatch-$*:$(SOURCE_TAG) $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
+	docker push $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
+
+# Below should match retag-images
 push-images: push-service-images push-example-images push-tool-images
 
 push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-synchronizer-image push-swaggerui-image
 push-example-images: push-demo-images push-mmf-example-images push-evaluator-example-images
 push-demo-images: push-mmf-go-soloduel-image push-demo-image
-push-mmf-example-images: push-mmf-go-soloduel-image
+push-mmf-example-images: push-mmf-go-soloduel-image push-mmf-go-pool-image
 push-evaluator-example-images: push-evaluator-go-simple-image
 push-tool-images: push-reaper-image
+# Above should match retag-images
 
 push-%-image: build-%-image docker
 	docker push $(REGISTRY)/openmatch-$*:$(TAG)
@@ -244,7 +267,7 @@ build-images: build-service-images build-example-images build-tool-images
 build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-synchronizer-image build-swaggerui-image
 build-example-images: build-demo-images build-mmf-example-images build-evaluator-example-images
 build-demo-images: build-mmf-go-soloduel-image build-demo-image
-build-mmf-example-images: build-mmf-go-soloduel-image
+build-mmf-example-images: build-mmf-go-soloduel-image build-mmf-go-pool-image
 build-evaluator-example-images: build-evaluator-go-simple-image
 build-tool-images: build-reaper-image
 
@@ -277,6 +300,9 @@ build-demo-image: docker build-base-build-image
 build-mmf-go-soloduel-image: docker build-base-build-image
 	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
 
+build-mmf-go-pool-image: docker build-base-build-image
+	docker build -f examples/functions/golang/pool/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG) .
+
 build-evaluator-go-simple-image: docker build-base-build-image
 	docker build -f examples/evaluator/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG) .
 
@@ -293,6 +319,7 @@ clean-images: docker
 	-docker rmi -f $(REGISTRY)/openmatch-swaggerui:$(TAG) $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG)
 
 	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-demo:$(TAG) $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-reaper:$(TAG) $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG)
@@ -349,6 +376,21 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set redis.enabled=true \
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+
+install-e2e-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
+		--timeout=400 \
+		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+		--set openmatch.image.registry=$(REGISTRY) \
+		--set openmatch.image.tag=$(TAG) \
+		--set grafana.enabled=false \
+		--set jaeger.enabled=false \
+		--set prometheus.enabled=false \
+		--set redis.enabled=true \
+		--set openmatch.monitoring.stackdriver.enabled=true \
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+		--set openmatch.e2eevaluator.install=true \
+		--set openmatch.e2ematchfunction.install=true
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
@@ -599,7 +641,7 @@ ifneq ($(strip $($(KUBECTL) get clusterroles | grep -i rbac)),)
 	$(KUBECTL) patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
 endif
 	@echo "Waiting for Tiller to become ready..."
-	$(KUBECTL) wait deployment --timeout=60s --for condition=available -l app=helm,name=tiller --namespace kube-system
+	$(KUBECTL) wait pod --timeout=60s --for condition=Ready -l app=helm,name=tiller --namespace kube-system
 
 delete-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) reset
@@ -732,7 +774,7 @@ test:
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./...
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
-e2ecluster:
+test-e2e-cluster:
 	$(GO) test ./... -race -tags e2ecluster
 
 stress-frontend-%: build/toolchain/python/
@@ -760,11 +802,14 @@ service-binaries: cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE
 service-binaries: cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/synchronizer/synchronizer$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries example-evaluator-binaries
-example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
+example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION) examples/functions/golang/pool/pool$(EXE_EXTENSION)
 example-evaluator-binaries: examples/evaluator/golang/simple/simple$(EXE_EXTENSION)
 
 examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
+
+examples/functions/golang/pool/pool$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+	cd $(REPOSITORY_ROOT)/examples/functions/golang/pool; $(GO_BUILD_COMMAND)
 
 examples/evaluator/golang/simple/simple$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/evaluator/golang/simple; $(GO_BUILD_COMMAND)
@@ -854,6 +899,22 @@ build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
 	cp $(REPOSITORY_ROOT)/install/yaml/* $(BUILD_DIR)/release/
 
+validate-preview-release:
+ifneq ($(_GCB_POST_SUBMIT),1)
+	@echo "You must run make with _GCB_POST_SUBMIT=1"
+	exit 1
+endif
+ifneq (,$(findstring -preview,$(BASE_VERSION)))
+	@echo "Creating preview for $(BASE_VERSION)"
+else
+	@echo "BASE_VERSION must contain -preview, it is $(BASE_VERSION)"
+	exit 1
+endif
+
+preview-release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
+preview-release: TAG = $(BASE_VERSION)
+preview-release: validate-preview-release build/release/ retag-images ci-deploy-artifacts
+
 release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
 release: TAG = $(BASE_VERSION)
 release: build/release/
@@ -875,6 +936,7 @@ clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/pool/pool$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/simple/evaluator$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/swaggerui/swaggerui$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/tools/certgen/certgen$(EXE_EXTENSION)
@@ -997,7 +1059,9 @@ third_party/swaggerui/:
 	cp -rf $(TOOLCHAIN_DIR)/swaggerui-temp/swagger-ui-$(SWAGGERUI_VERSION)/dist/ \
 		$(REPOSITORY_ROOT)/third_party/swaggerui
 	# Update the URL in the main page to point to a known good endpoint.
-	$(SED_REPLACE) 's/url:.*/url: \"https:\/\/open-match.dev\/api\/v$(BASE_VERSION)\/frontend.swagger.json\",/g' $(REPOSITORY_ROOT)/third_party/swaggerui/index.html
+	cp $(REPOSITORY_ROOT)/cmd/swaggerui/config.json $(REPOSITORY_ROOT)/third_party/swaggerui/
+	$(SED_REPLACE) 's|url:.*|configUrl: "/config.json",|g' $(REPOSITORY_ROOT)/third_party/swaggerui/index.html
+	$(SED_REPLACE) 's|0.0.0-dev|$(BASE_VERSION)|g' $(REPOSITORY_ROOT)/third_party/swaggerui/config.json
 	rm -rf $(TOOLCHAIN_DIR)/swaggerui-temp
 
 sync-deps:
@@ -1013,7 +1077,7 @@ sleep-30:
 # Prevents users from running with sudo.
 # There's an exception for Google Cloud Build because it runs as root.
 no-sudo:
-ifndef ALLOW_BUILD_WITH_SUDO
+ifndef OPEN_MATCH_CI_MODE
 ifeq ($(shell whoami),root)
 	@echo "ERROR: Running Makefile as root (or sudo)"
 	@echo "Please follow the instructions at https://docs.docker.com/install/linux/linux-postinstall/ if you are trying to sudo run the Makefile because of the 'Cannot connect to the Docker daemon' error."

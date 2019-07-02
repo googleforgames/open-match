@@ -30,10 +30,8 @@ import (
 func TestAssignTickets(t *testing.T) {
 	om, closer := e2e.New(t)
 	defer closer()
-	fe, fec := om.MustFrontendGRPC()
-	defer fec()
-	be, bec := om.MustBackendGRPC()
-	defer bec()
+	fe := om.MustFrontendGRPC()
+	be := om.MustBackendGRPC()
 
 	ctResp, err := fe.CreateTicket(om.Context(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 	assert.Nil(t, err)
@@ -111,8 +109,7 @@ func TestTicketLifeCycle(t *testing.T) {
 	assert := assert.New(t)
 	om, closer := e2e.New(t)
 	defer closer()
-	fe, fec := om.MustFrontendGRPC()
-	defer fec()
+	fe := om.MustFrontendGRPC()
 	assert.NotNil(fe)
 
 	ticket := &pb.Ticket{

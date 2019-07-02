@@ -31,6 +31,14 @@ openmatch:
       endpoint: "/zipkin"
       reporterEndpoint: "zipkin"
     reportingPeriod: "5s"
+  synchronizer:
+    install: true
+    replicas: 1
+    grpc:
+      port: 50506
+    http:
+      port: 51506
+    porttype: LoadBalancer
   backend:
     install: true
     replicas: 3
@@ -55,19 +63,13 @@ openmatch:
     http:
       port: 51503
     porttype: LoadBalancer
-  synchronizer:
-    install: true
+  e2eevaluator:
+    install: false
     replicas: 1
     grpc:
-      port: 50506
+      port: 50518
     http:
-      port: 51506
-    porttype: LoadBalancer
-  swaggerui:
-    install: true
-    replicas: 3
-    http:
-      port: 50500
+      port: 51518
     porttype: LoadBalancer
   demoevaluator:
     install: true
@@ -77,6 +79,13 @@ openmatch:
     http:
       port: 51508
     porttype: LoadBalancer
+  e2ematchfunction:
+    install: false
+    replicas: 1
+    grpc:
+      port: 50512
+    http:
+      port: 51512
   demofunction:
     install: true
     replicas: 3
@@ -93,6 +102,13 @@ openmatch:
     http:
       port: 51507
     porttype: LoadBalancer
+  swaggerui:
+    install: true
+    replicas: 3
+    http:
+      port: 51500
+    porttype: LoadBalancer
+
   config:
     install: true
     mountPath: /app/config
@@ -134,11 +150,15 @@ openmatch:
             grpcport: "{{.Values.openmatch.synchronizer.grpc.port}}"
             httpport: "{{.Values.openmatch.synchronizer.http.port}}"
           functions:
+            hostname: om-demofunction
             grpcport: "{{.Values.openmatch.demofunction.grpc.port}}"
             httpport: "{{.Values.openmatch.demofunction.http.port}}"
           evaluator:
+            hostname: om-demoevaluator
             grpcport: "{{.Values.openmatch.demoevaluator.grpc.port}}"
             httpport: "{{.Values.openmatch.demoevaluator.http.port}}"
+          swaggerui:
+            httpport: "{{.Values.openmatch.swaggerui.http.port}}"
 
         synchronizer:
           enabled: false
@@ -171,6 +191,8 @@ openmatch:
             maxActive: 0
             idleTimeout: 60s
             healthCheckTimeout: 100ms
+          ignoreLists:
+            ttl: 1000ms
           expiration: 43200
         playerIndices:
         - char.cleric

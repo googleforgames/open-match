@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+.git
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -119,6 +121,7 @@ cmd/swaggerui/swaggerui
 tools/certgen/certgen
 examples/demo/demo
 examples/functions/golang/soloduel/soloduel
+examples/functions/golang/pool/pool
 examples/evaluator/golang/simple/simple
 tools/reaper/reaper
 

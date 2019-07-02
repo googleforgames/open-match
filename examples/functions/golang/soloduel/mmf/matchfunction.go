@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main provides a sample match function that uses the GRPC harness to set up 1v1 matches.
+// Package mmf provides a sample match function that uses the GRPC harness to set up 1v1 matches.
 // This sample is a reference to demonstrate the usage of the GRPC harness and should only be used as
 // a starting point for your match function. You will need to modify the
 // matchmaking logic in this function based on your game's requirements.
-package main
+package mmf
 
 import (
 	"fmt"

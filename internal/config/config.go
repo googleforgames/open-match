@@ -108,7 +108,7 @@ func Read() (View, error) {
 				"configkey": cfgKey,
 				"envvar":    envVar,
 				"module":    "config",
-			}).Info("Binding environment var as a config variable")
+			}).Debug("Binding environment var as a config variable")
 		}
 	}
 
