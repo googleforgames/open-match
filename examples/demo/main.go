@@ -15,6 +15,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
@@ -43,11 +44,15 @@ func main() {
 	fileServe := http.FileServer(http.Dir("/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fileServe))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/dashboard/" {
+		if r.URL.Path != "/" {
 			http.NotFound(w, r)
 			return
 		}
 		fileServe.ServeHTTP(w, r)
+	})
+
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "ok")
 	})
 
 	logger.Info("Starting Server")
