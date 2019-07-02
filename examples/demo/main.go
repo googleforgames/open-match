@@ -17,8 +17,11 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/websocket"
+	"open-match.dev/open-match/examples/demo/bytesub"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
 )
@@ -41,7 +44,7 @@ func main() {
 
 	logger.Info("Initializing Server")
 
-	fileServe := http.FileServer(http.Dir("/static"))
+	fileServe := http.FileServer(http.Dir("/app/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fileServe))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -55,11 +58,23 @@ func main() {
 		fmt.Fprintf(w, "ok")
 	})
 
+	bs := bytesub.New()
+	go func() {
+		i := 0
+		for range time.Tick(time.Second) {
+			bs.AnnounceLatest([]byte(fmt.Sprintf("Uptime: %d", i)))
+			i++
+		}
+	}()
+
+	http.Handle("/connect", websocket.Handler(func(ws *websocket.Conn) {
+		bs.Subscribe(ws.Request().Context(), ws)
+	}))
+
 	logger.Info("Starting Server")
 
-	// TODO: Other services read their port from the common config map (oddly including
-	// the mmf, which isn't part of the core open-match), how should this be choosing the ports
-	// it exposes?
+	// TODO: Other services read their port from the common config map, how should
+	// this be choosing the ports it exposes?
 	err = http.ListenAndServe(":51507", nil)
 	logger.WithFields(logrus.Fields{
 		"err": err.Error(),
