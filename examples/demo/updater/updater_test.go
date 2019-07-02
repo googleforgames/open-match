@@ -91,7 +91,7 @@ func TestUpdaterInternal(t *testing.T) {
 		}()
 	}
 
-	// Blocking call ensures that canceling the context will clean up the itnernal go routine.
+	// Blocking call ensures that canceling the context will clean up the internal go routine.
 	u.start()
 
 	expectedMap := make(map[string]string)

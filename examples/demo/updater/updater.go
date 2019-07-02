@@ -21,6 +21,9 @@ import (
 	"encoding/json"
 )
 
+// Updater is like a json object, with each field allowed to be updated
+// concurrently by a different process.  After processing updates, Updater will
+// call a provided method with the json serialized value of all of its fields.
 type Updater struct {
 	ctx      context.Context
 	children map[string]*json.RawMessage
@@ -33,8 +36,9 @@ type Updater struct {
 // field will be removed from the Updater's json object.
 type SetFunc func(v interface{})
 
-// New creates an Updater, which will call set with the json serialized value
-// set the Updater's fields.
+// New creates an Updater.  Set is called when fields update, using the json
+// sererialized value of Updater's tree.  All updates after ctx is canceled are
+// ignored.
 func New(ctx context.Context, set func([]byte)) *Updater {
 	f := func(v interface{}) {
 		set([]byte(*forceMarshalJson(v)))
