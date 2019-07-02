@@ -177,10 +177,11 @@ func doFetchMatchesValidateProposals(ctx context.Context, resultChan <-chan mmfR
 
 			// Check if mmf returns a match with no tickets in it
 			for _, match := range result.matches {
-				if len(match.GetTicket()) != 0 {
-					proposals = append(proposals, match)
+				if len(match.GetTicket()) == 0 {
+					return nil, status.Errorf(codes.FailedPrecondition, "match %s does not have associated tickets.", match.GetMatchId())
 				}
 			}
+			proposals = append(proposals, result.matches...)
 		}
 	}
 	return proposals, nil

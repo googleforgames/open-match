@@ -16,7 +16,6 @@ package backend
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -103,7 +102,7 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 		description string
 		preAction   func(chan mmfResult, context.CancelFunc)
 		wantMatches []*pb.Match
-		wantErr     bool
+		wantCode    codes.Code
 	}{
 		{
 			description: "test the filter can exit the for loop when context was canceled",
@@ -114,25 +113,34 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 				}()
 			},
 			wantMatches: nil,
-			wantErr:     true,
+			wantCode:    codes.Unknown,
 		},
 		{
 			description: "test the filter can return an error when one of the mmfResult contains an error",
 			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1"}}, err: nil}
-				mmfChan <- mmfResult{matches: nil, err: errors.New("some error")}
+				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1", Ticket: []*pb.Ticket{{Id: "123"}}}}, err: nil}
+				mmfChan <- mmfResult{matches: nil, err: status.Error(codes.Unknown, "some error")}
 			},
 			wantMatches: nil,
-			wantErr:     true,
+			wantCode:    codes.Unknown,
 		},
 		{
-			description: "test the filter can return proposals when all mmfResults are valid",
+			description: "test the filter can return an error when one of the mmf calls return match with empty tickets",
 			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
 				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1"}}, err: nil}
 				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "2"}}, err: nil}
 			},
 			wantMatches: []*pb.Match{{MatchId: "1"}, {MatchId: "2"}},
-			wantErr:     false,
+			wantCode:    codes.FailedPrecondition,
+		},
+		{
+			description: "test the filter can return proposals when all mmfResults are valid",
+			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
+				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1", Ticket: []*pb.Ticket{{Id: "123"}}}}, err: nil}
+				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "2", Ticket: []*pb.Ticket{{Id: "321"}}}}, err: nil}
+			},
+			wantMatches: []*pb.Match{{MatchId: "1", Ticket: []*pb.Ticket{{Id: "123"}}}, {MatchId: "2", Ticket: []*pb.Ticket{{Id: "321"}}}},
+			wantCode:    codes.OK,
 		},
 	}
 
@@ -149,7 +157,7 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 			for _, match := range matches {
 				assert.Contains(t, test.wantMatches, match)
 			}
-			assert.Equal(t, test.wantErr, err != nil)
+			assert.Equal(t, test.wantCode, status.Convert(err).Code())
 		})
 	}
 }

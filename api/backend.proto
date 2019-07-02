@@ -75,7 +75,8 @@ message FetchMatchesRequest {
 }
 
 message FetchMatchesResponse {
-  // Result Match for the requested MatchProfile. Note that open-match will validate the proposals returned from MMF and skip the ones with empty tickets.
+  // Result Match for the requested MatchProfile.
+  // Note that open-match will validate the proposals, a valid match should contain at least one ticket.
   repeated Match match = 1;
 }
 
