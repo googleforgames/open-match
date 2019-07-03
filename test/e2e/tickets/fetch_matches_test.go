@@ -15,6 +15,7 @@
 package tickets
 
 import (
+	"fmt"
 	"testing"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -42,40 +43,52 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	be := om.MustBackendGRPC()
 	mmfCfg := om.MustMmfConfigGRPC()
 
-	tickets := []*pb.Ticket{
-		{
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
-					"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 100}},
-				},
-			},
-		},
-		{
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"level":  {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
-					"attack": {Kind: &structpb.Value_NumberValue{NumberValue: 50}},
-				},
-			},
-		},
-		{
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"level": {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
-					"speed": {Kind: &structpb.Value_NumberValue{NumberValue: 522}},
-				},
-			},
-		},
-		{
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"level": {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
-					"mana":  {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-				},
+	ticket1 := &pb.Ticket{
+		Properties: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
 			},
 		},
 	}
+
+	ticket2 := &pb.Ticket{
+		Properties: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
+				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
+			},
+		},
+	}
+
+	ticket3 := &pb.Ticket{
+		Properties: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
+				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
+			},
+		},
+	}
+
+	ticket4 := &pb.Ticket{
+		Properties: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 15}},
+				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 15}},
+			},
+		},
+	}
+
+	ticket5 := &pb.Ticket{
+		Properties: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 20}},
+				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 20}},
+			},
+		},
+	}
+
+	tickets := []*pb.Ticket{ticket1, ticket2, ticket3, ticket4, ticket5}
 
 	// 1. Create a few tickets with delicate designs and hand crafted properties
 	for _, ticket := range tickets {
@@ -84,13 +97,33 @@ func TestGameMatchWorkFlow(t *testing.T) {
 		assert.NotNil(t, ctResp)
 	}
 
-	_, err := be.FetchMatches(om.Context(), &pb.FetchMatchesRequest{
+	fmResp, err := be.FetchMatches(om.Context(), &pb.FetchMatchesRequest{
 		Config: mmfCfg,
 		Profile: []*pb.MatchProfile{
 			{
 				Name: "test-profile",
+				Pool: []*pb.Pool{
+					{
+						Name:   "ticket12",
+						Filter: []*pb.Filter{{Attribute: "level", Min: 0, Max: 6}, {Attribute: "defense", Min: 0, Max: 100}},
+					},
+					{
+						Name:   "ticket23",
+						Filter: []*pb.Filter{{Attribute: "level", Min: 3, Max: 15}, {Attribute: "defense", Min: 0, Max: 100}},
+					},
+					{
+						Name:   "ticket5",
+						Filter: []*pb.Filter{{Attribute: "level", Min: 0, Max: 100}, {Attribute: "defense", Min: 17, Max: 25}},
+					},
+					{
+						Name:   "ticket234",
+						Filter: []*pb.Filter{{Attribute: "level", Min: 3, Max: 17}, {Attribute: "defense", Min: 3, Max: 17}},
+					},
+				},
 			},
 		},
 	})
 	assert.Nil(t, err)
+	fmt.Println(fmResp)
+	assert.NotNil(t, fmResp)
 }
