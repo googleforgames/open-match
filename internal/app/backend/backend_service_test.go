@@ -36,16 +36,16 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 	secureCfg := viper.New()
 	secureCfg.Set("tls.enabled", true)
 	restFuncCfg := &pb.FetchMatchesRequest{
-		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_REST},
-		Profile: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
+		Config:   &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_REST},
+		Profiles: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
 	}
 	grpcFuncCfg := &pb.FetchMatchesRequest{
-		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_GRPC},
-		Profile: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
+		Config:   &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_GRPC},
+		Profiles: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
 	}
 	unsupporteFuncCfg := &pb.FetchMatchesRequest{
-		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: 3},
-		Profile: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
+		Config:   &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: 3},
+		Profiles: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
 	}
 
 	tests := []struct {
@@ -88,7 +88,7 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			resultChan := make(chan mmfResult, len(test.req.GetProfile()))
+			resultChan := make(chan mmfResult, len(test.req.GetProfiles()))
 			err := doFetchMatchesReceiveMmfResult(context.Background(), test.cfg, &sync.Map{}, test.req, resultChan)
 			assert.Equal(t, test.wantErr, err)
 		})
@@ -116,7 +116,7 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 		{
 			description: "test the filter can return an error when one of the mmfResult contains an error",
 			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1", Ticket: []*pb.Ticket{{Id: "123"}}}}, err: nil}
+				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1", Tickets: []*pb.Ticket{{Id: "123"}}}}, err: nil}
 				mmfChan <- mmfResult{matches: nil, err: status.Error(codes.Unknown, "some error")}
 			},
 			wantMatches: nil,
@@ -134,10 +134,10 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 		{
 			description: "test the filter can return proposals when all mmfResults are valid",
 			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1", Ticket: []*pb.Ticket{{Id: "123"}}}}, err: nil}
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "2", Ticket: []*pb.Ticket{{Id: "321"}}}}, err: nil}
+				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1", Tickets: []*pb.Ticket{{Id: "123"}}}}, err: nil}
+				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "2", Tickets: []*pb.Ticket{{Id: "321"}}}}, err: nil}
 			},
-			wantMatches: []*pb.Match{{MatchId: "1", Ticket: []*pb.Ticket{{Id: "123"}}}, {MatchId: "2", Ticket: []*pb.Ticket{{Id: "321"}}}},
+			wantMatches: []*pb.Match{{MatchId: "1", Tickets: []*pb.Ticket{{Id: "123"}}}, {MatchId: "2", Tickets: []*pb.Ticket{{Id: "321"}}}},
 			wantCode:    codes.OK,
 		},
 	}
@@ -220,7 +220,7 @@ func TestDoAssignTickets(t *testing.T) {
 				cancel()
 			},
 			req: &pb.AssignTicketsRequest{
-				TicketId:   []string{"1"},
+				TicketIds:  []string{"1"},
 				Assignment: &pb.Assignment{},
 			},
 			wantCode: codes.Unavailable,
@@ -237,7 +237,7 @@ func TestDoAssignTickets(t *testing.T) {
 			description: "expect not found code since ticket does not exist",
 			preAction:   func(_ context.Context, _ context.CancelFunc, _ statestore.Service) {},
 			req: &pb.AssignTicketsRequest{
-				TicketId: []string{"1", "2"},
+				TicketIds: []string{"1", "2"},
 				Assignment: &pb.Assignment{
 					Connection: "123",
 				},
@@ -261,7 +261,7 @@ func TestDoAssignTickets(t *testing.T) {
 				assert.Equal(t, len(fakeTickets), len(wantFilteredTickets))
 			},
 			req: &pb.AssignTicketsRequest{
-				TicketId: []string{"1", "2"},
+				TicketIds: []string{"1", "2"},
 				Assignment: &pb.Assignment{
 					Connection: "123",
 				},
@@ -288,7 +288,7 @@ func TestDoAssignTickets(t *testing.T) {
 			assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
 			if err == nil {
-				for _, id := range test.req.GetTicketId() {
+				for _, id := range test.req.GetTicketIds() {
 					ticket, err := store.GetTicket(ctx, id)
 					assert.Nil(t, err)
 					assert.Equal(t, test.wantAssignment, ticket.GetAssignment())

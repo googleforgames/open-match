@@ -104,7 +104,7 @@
           "type": "string",
           "description": "A developer-chosen human-readable name for this Pool."
         },
-        "filter": {
+        "filters": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiFilter"
@@ -125,7 +125,7 @@
     "apiQueryTicketsResponse": {
       "type": "object",
       "properties": {
-        "ticket": {
+        "tickets": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiTicket"

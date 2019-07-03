@@ -85,7 +85,7 @@ func (s *matchFunctionService) Run(ctx context.Context, req *pb.RunRequest) (*pb
 		Logger:            matchfunctionLogger,
 		ProfileName:       req.GetProfile().GetName(),
 		Properties:        req.GetProfile().GetProperties(),
-		Rosters:           req.GetProfile().GetRoster(),
+		Rosters:           req.GetProfile().GetRosters(),
 		PoolNameToTickets: poolNameToTickets,
 	}
 	// Run the customize match function!
@@ -93,7 +93,7 @@ func (s *matchFunctionService) Run(ctx context.Context, req *pb.RunRequest) (*pb
 	matchfunctionLogger.WithFields(logrus.Fields{
 		"proposals": proposals,
 	}).Trace("proposals returned by match function")
-	return &pb.RunResponse{Proposal: proposals}, nil
+	return &pb.RunResponse{Proposals: proposals}, nil
 }
 
 func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunctionService, error) {
@@ -110,7 +110,7 @@ func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunct
 // getMatchManifest fetches all the data needed from the mmlogic API.
 func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.RunRequest) (map[string][]*pb.Ticket, error) {
 	poolNameToTickets := make(map[string][]*pb.Ticket)
-	filterPools := req.GetProfile().GetPool()
+	filterPools := req.GetProfile().GetPools()
 
 	for _, pool := range filterPools {
 		qtClient, err := s.mmlogicClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
@@ -133,7 +133,7 @@ func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.Run
 				matchfunctionLogger.WithError(err).Error("Failed to receive a response from the queryTicketClient.")
 				return nil, err
 			}
-			poolTickets = append(poolTickets, qtResponse.Ticket...)
+			poolTickets = append(poolTickets, qtResponse.Tickets...)
 		}
 		poolNameToTickets[pool.GetName()] = poolTickets
 	}

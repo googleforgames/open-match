@@ -72,11 +72,11 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 	if req.GetConfig() == nil {
 		return nil, status.Error(codes.InvalidArgument, ".config is required")
 	}
-	if req.GetProfile() == nil {
+	if req.GetProfiles() == nil {
 		return nil, status.Error(codes.InvalidArgument, ".profile is required")
 	}
 
-	resultChan := make(chan mmfResult, len(req.GetProfile()))
+	resultChan := make(chan mmfResult, len(req.GetProfiles()))
 
 	var syncID string
 	var err error
@@ -91,7 +91,7 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		return nil, err
 	}
 
-	proposals, err := doFetchMatchesValidateProposals(ctx, resultChan, len(req.GetProfile()))
+	proposals, err := doFetchMatchesValidateProposals(ctx, resultChan, len(req.GetProfiles()))
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		return nil, err
 	}
 
-	return &pb.FetchMatchesResponse{Match: results}, nil
+	return &pb.FetchMatchesResponse{Matches: results}, nil
 }
 
 func doFetchMatchesReceiveMmfResult(ctx context.Context, cfg config.View, mmfClients *sync.Map, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
@@ -143,7 +143,7 @@ func doFetchMatchesReceiveMmfResult(ctx context.Context, cfg config.View, mmfCli
 		return status.Error(codes.InvalidArgument, "provided match function type is not supported")
 	}
 
-	for _, profile := range req.GetProfile() {
+	for _, profile := range req.GetProfiles() {
 		go func(profile *pb.MatchProfile) {
 			// Get the match results that will be sent.
 			// TODO: The matches returned by the MatchFunction will be sent to the
@@ -177,7 +177,7 @@ func doFetchMatchesValidateProposals(ctx context.Context, resultChan <-chan mmfR
 
 			// Check if mmf returns a match with no tickets in it
 			for _, match := range result.matches {
-				if len(match.GetTicket()) == 0 {
+				if len(match.GetTickets()) == 0 {
 					return nil, status.Errorf(codes.FailedPrecondition, "match %s does not have associated tickets.", match.GetMatchId())
 				}
 			}
@@ -190,7 +190,7 @@ func doFetchMatchesValidateProposals(ctx context.Context, resultChan <-chan mmfR
 func doFetchMatchesAddIgnoredTickets(ctx context.Context, store statestore.Service, results []*pb.Match) error {
 	ids := []string{}
 	for _, match := range results {
-		for _, ticket := range match.GetTicket() {
+		for _, ticket := range match.GetTickets() {
 			ids = append(ids, ticket.GetId())
 		}
 	}
@@ -264,7 +264,7 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 		return nil, status.Errorf(codes.FailedPrecondition, "failed to unmarshal response body to response pb for profile %s: %s", profile.Name, err.Error())
 	}
 
-	return pbResp.GetProposal(), nil
+	return pbResp.GetProposals(), nil
 }
 
 // matchesFromGRPCMMF triggers execution of MMFs to fetch match results for each profile.
@@ -279,7 +279,7 @@ func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb
 		return nil, err
 	}
 
-	return resp.GetProposal(), nil
+	return resp.GetProposals(), nil
 }
 
 // AssignTickets sets the specified Assignment on the Tickets for the Ticket
@@ -295,12 +295,12 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 }
 
 func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) error {
-	err := store.UpdateAssignments(ctx, req.GetTicketId(), req.GetAssignment())
+	err := store.UpdateAssignments(ctx, req.GetTicketIds(), req.GetAssignment())
 	if err != nil {
 		backendServiceLogger.WithError(err).Error("failed to update assignments")
 		return err
 	}
-	for _, id := range req.GetTicketId() {
+	for _, id := range req.GetTicketIds() {
 		err = store.DeindexTicket(ctx, id)
 		// Try to deindex all input tickets. Log without returning an error if the deindexing operation failed.
 		// TODO: consider retry the index operation
