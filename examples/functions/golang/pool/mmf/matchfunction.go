@@ -20,12 +20,11 @@
 package mmf
 
 import (
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/rs/xid"
 	"open-match.dev/open-match/examples"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
-
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 var (
@@ -52,11 +51,9 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) []*pb.Match {
 			MatchFunction: matchName,
 			Ticket:        tickets,
 			Roster:        []*pb.Roster{roster},
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					examples.MatchScore: {Kind: &structpb.Value_NumberValue{NumberValue: scoreCalculator(tickets)}},
-				},
-			},
+			Properties: structs.Struct{
+				examples.MatchScore: structs.Number(scoreCalculator(tickets)),
+			}.S(),
 		})
 	}
 

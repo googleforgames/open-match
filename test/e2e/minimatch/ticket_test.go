@@ -22,7 +22,6 @@ import (
 	"testing"
 	"time"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -30,6 +29,7 @@ import (
 	internalTesting "open-match.dev/open-match/internal/testing"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestAssignTickets(t *testing.T) {
@@ -124,11 +124,9 @@ func TestTicketLifeCycle(t *testing.T) {
 	assert.NotNil(fe)
 
 	ticket := &pb.Ticket{
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-			},
-		},
+		Properties: structs.Struct{
+			"test-property": structs.Number(1),
+		}.S(),
 		Assignment: &pb.Assignment{
 			Connection: "test-tbd",
 		},

@@ -15,9 +15,10 @@
 package e2e
 
 import (
-	structpb "github.com/golang/protobuf/ptypes/struct"
-	pb "open-match.dev/open-match/pkg/pb"
 	"testing"
+
+	pb "open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestServiceHealth(t *testing.T) {
@@ -51,11 +52,9 @@ func TestCreateTicket(t *testing.T) {
 	fe := om.MustFrontendGRPC()
 	resp, err := fe.CreateTicket(om.Context(), &pb.CreateTicketRequest{
 		Ticket: &pb.Ticket{
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-				},
-			},
+			Properties: structs.Struct{
+				"test-property": structs.Number(1),
+			}.S(),
 		},
 	})
 	if err != nil {
