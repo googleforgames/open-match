@@ -40,24 +40,26 @@ var (
 func MakeMatches(params *mmfHarness.MatchFunctionParams) []*pb.Match {
 	var result []*pb.Match
 	for pool, tickets := range params.PoolNameToTickets {
-		roster := &pb.Roster{Name: pool}
+		if len(tickets) != 0 {
+			roster := &pb.Roster{Name: pool}
 
-		for _, ticket := range tickets {
-			roster.TicketId = append(roster.GetTicketId(), ticket.GetId())
-		}
+			for _, ticket := range tickets {
+				roster.TicketId = append(roster.GetTicketId(), ticket.GetId())
+			}
 
-		result = append(result, &pb.Match{
-			MatchId:       xid.New().String(),
-			MatchProfile:  params.ProfileName,
-			MatchFunction: matchName,
-			Ticket:        tickets,
-			Roster:        []*pb.Roster{roster},
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					examples.MatchScore: {Kind: &structpb.Value_NumberValue{NumberValue: scoreCalculator(tickets)}},
+			result = append(result, &pb.Match{
+				MatchId:       xid.New().String(),
+				MatchProfile:  params.ProfileName,
+				MatchFunction: matchName,
+				Ticket:        tickets,
+				Roster:        []*pb.Roster{roster},
+				Properties: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						examples.MatchScore: {Kind: &structpb.Value_NumberValue{NumberValue: scoreCalculator(tickets)}},
+					},
 				},
-			},
-		})
+			})
+		}
 	}
 
 	return result
