@@ -32,23 +32,6 @@ import (
 	pb "open-match.dev/open-match/pkg/pb"
 )
 
-const (
-	// Map1BeginnerPool is an index.
-	Map1BeginnerPool = "map1beginner"
-	// Map1AdvancedPool is an index.
-	Map1AdvancedPool = "map1advanced"
-	// Map2BeginnerPool is an index.
-	Map2BeginnerPool = "map2beginner"
-	// Map2AdvancedPool is an index.
-	Map2AdvancedPool = "map2advanced"
-	// SkillAttribute is an index.
-	SkillAttribute = "skill"
-	// Map1Attribute is an index.
-	Map1Attribute = "map1"
-	// Map2Attribute is an index.
-	Map2Attribute = "map2"
-)
-
 type inmemoryOM struct {
 	mainTc *rpcTesting.TestContext
 	mmfTc  *rpcTesting.TestContext
@@ -58,8 +41,8 @@ type inmemoryOM struct {
 }
 
 func (iom *inmemoryOM) withT(t *testing.T) OM {
-	mainTc := createMinimatchForTest(t)
 	evalTc := createEvaluatorForTest(t)
+	mainTc := createMinimatchForTest(t, evalTc)
 	mmfTc := createMatchFunctionForTest(t, mainTc)
 
 	om := &inmemoryOM{
@@ -123,25 +106,34 @@ func (iom *inmemoryOM) cleanupMain() error {
 
 // Create a minimatch test service with function bindings from frontend, backend, and mmlogic.
 // Instruct this service to start and connect to a fake storage service.
-func createMinimatchForTest(t *testing.T) *rpcTesting.TestContext {
+func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTesting.TestContext {
 	var closer func()
+	cfg := viper.New()
+
 	// TODO: Use insecure for now since minimatch and mmf only works with the same secure mode
 	// Server a minimatch for testing using random port at tc.grpcAddress & tc.proxyAddress
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
-		cfg := viper.New()
 		closer = statestoreTesting.New(t, cfg)
-
 		cfg.Set("storage.page.size", 10)
 		// Set up the attributes that a ticket will be indexed for.
-		cfg.Set("playerIndices", []string{
-			SkillAttribute,
-			Map1Attribute,
-			Map2Attribute,
-		})
-		if err := minimatch.BindService(p, cfg); err != nil {
-			t.Fatalf("cannot bind minimatch: %s", err)
-		}
+		cfg.Set("playerIndices", Indices)
+		assert.Nil(t, minimatch.BindService(p, cfg))
 	})
+	// TODO: Revisit the Minimatch test setup in future milestone to simplify passing config
+	// values between components. The backend needs to connect to to the synchronizer but when
+	// it is initialized, does not know what port the synchronizer is on. To work around this,
+	// the backend sets up a connection to the synchronizer at runtime and hence can access these
+	// config values to establish the connection.
+	cfg.Set("api.synchronizer.hostname", tc.GetHostname())
+	cfg.Set("api.synchronizer.grpcport", tc.GetGRPCPort())
+	cfg.Set("api.synchronizer.httpport", tc.GetHTTPPort())
+	cfg.Set("synchronizer.registrationIntervalMs", "200ms")
+	cfg.Set("synchronizer.proposalCollectionIntervalMs", "200ms")
+	cfg.Set("api.evaluator.hostname", evalTc.GetHostname())
+	cfg.Set("api.evaluator.grpcport", evalTc.GetGRPCPort())
+	cfg.Set("api.evaluator.httpport", evalTc.GetHTTPPort())
+	cfg.Set("synchronizer.enabled", true)
+
 	// TODO: This is very ugly. Need a better story around closing resources.
 	tc.AddCloseFunc(closer)
 	return tc
