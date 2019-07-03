@@ -18,8 +18,8 @@ package testing
 import (
 	"fmt"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 // Property defines the required fields that we need to generate tickets for testing.
@@ -38,12 +38,10 @@ func GenerateTickets(manifest1, manifest2 Property) []*pb.Ticket {
 		for j := manifest2.Min; j < manifest2.Max; j += manifest2.Interval {
 			testTickets = append(testTickets, &pb.Ticket{
 				Id: fmt.Sprintf("%s%f-%s%f", manifest1.Name, i, manifest2.Name, j),
-				Properties: &structpb.Struct{
-					Fields: map[string]*structpb.Value{
-						manifest1.Name: {Kind: &structpb.Value_NumberValue{NumberValue: i}},
-						manifest2.Name: {Kind: &structpb.Value_NumberValue{NumberValue: j}},
-					},
-				},
+				Properties: structs.Struct{
+					manifest1.Name: structs.Number(i),
+					manifest2.Name: structs.Number(j),
+				}.S(),
 			})
 		}
 	}

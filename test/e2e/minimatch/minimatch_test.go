@@ -23,13 +23,11 @@ import (
 	"testing"
 	"time"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 type testProfile struct {
@@ -148,12 +146,10 @@ func TestMinimatch(t *testing.T) {
 				// to expected player pools.
 				for i, td := range testTickets {
 					resp, err := fe.CreateTicket(minimatchTc.Context(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{
-						Properties: &structpb.Struct{
-							Fields: map[string]*structpb.Value{
-								e2e.SkillAttribute: {Kind: &structpb.Value_NumberValue{NumberValue: td.skill}},
-								td.mapValue:        {Kind: &structpb.Value_NumberValue{NumberValue: float64(time.Now().Unix())}},
-							},
-						},
+						Properties: structs.Struct{
+							e2e.SkillAttribute: structs.Number(td.skill),
+							td.mapValue:        structs.Number(float64(time.Now().Unix())),
+						}.S(),
 					}})
 
 					assert.NotNil(t, resp)
@@ -239,7 +235,7 @@ func testFetchMatches(t *testing.T, poolTickets map[string][]string, testProfile
 			Profile: []*pb.MatchProfile{{Name: profile.name, Pool: profile.pools}},
 		})
 
-		assert.Nil(t, br)
-		assert.Equal(t, codes.FailedPrecondition, status.Convert(err).Code())
+		assert.Nil(t, br.GetMatch())
+		assert.Nil(t, err)
 	}
 }
