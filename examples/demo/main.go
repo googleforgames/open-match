@@ -15,7 +15,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -24,6 +26,7 @@ import (
 	"open-match.dev/open-match/examples/demo/bytesub"
 	"open-match.dev/open-match/examples/demo/components"
 	"open-match.dev/open-match/examples/demo/components/clients"
+	"open-match.dev/open-match/examples/demo/components/director"
 	"open-match.dev/open-match/examples/demo/components/uptime"
 	"open-match.dev/open-match/examples/demo/updater"
 	"open-match.dev/open-match/internal/config"
@@ -63,7 +66,15 @@ func main() {
 	})
 
 	bs := bytesub.New()
-	u := updater.New(context.Background(), bs.AnnounceLatest)
+	u := updater.New(context.Background(), func(b []byte) {
+		var out bytes.Buffer
+		err := json.Indent(&out, b, "", "  ")
+		if err == nil {
+			bs.AnnounceLatest(out.Bytes())
+		} else {
+			bs.AnnounceLatest(b)
+		}
+	})
 
 	http.Handle("/connect", websocket.Handler(func(ws *websocket.Conn) {
 		bs.Subscribe(ws.Request().Context(), ws)
@@ -81,10 +92,11 @@ func main() {
 
 func startComponents(cfg config.View, u *updater.Updater) {
 	for name, f := range map[string]func(*components.DemoShared){
-		"uptime":  uptime.Run,
-		"clients": clients.Run,
+		"uptime":   uptime.Run,
+		"clients":  clients.Run,
+		"director": director.Run,
 	} {
-		f(&components.DemoShared{
+		go f(&components.DemoShared{
 			Ctx:    context.Background(),
 			Cfg:    cfg,
 			Update: u.ForField(name),

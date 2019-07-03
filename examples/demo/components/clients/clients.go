@@ -25,11 +25,11 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 func Run(ds *components.DemoShared) {
 	u := updater.NewNested(ds.Ctx, ds.Update)
-	_ = u
 
 	for i := 0; i < 5; i++ {
 		name := fmt.Sprintf("fakeplayer_%d", i)
@@ -51,7 +51,8 @@ func isContextDone(ctx context.Context) bool {
 }
 
 type status struct {
-	Status string
+	Status     string
+	Assignment *pb.Assignment
 }
 
 func runScenario(ctx context.Context, cfg config.View, name string, update updater.SetFunc) {
@@ -74,7 +75,7 @@ func runScenario(ctx context.Context, cfg config.View, name string, update updat
 	s.Status = "Main Menu"
 	update(s)
 
-	time.Sleep(time.Duration(rand.Int63()) % (time.Second * 5))
+	time.Sleep(time.Duration(rand.Int63()) % (time.Second * 15))
 
 	//////////////////////////////////////////////////////////////////////////////
 	s.Status = "Connecting to Open Match frontend"
@@ -82,8 +83,9 @@ func runScenario(ctx context.Context, cfg config.View, name string, update updat
 
 	conn, err := rpc.GRPCClientFromConfig(cfg, "api.frontend")
 	if err != nil {
-
+		panic(err)
 	}
+	defer conn.Close()
 	fe := pb.NewFrontendClient(conn)
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -91,12 +93,11 @@ func runScenario(ctx context.Context, cfg config.View, name string, update updat
 	update(s)
 
 	var ticketId string
-
 	{
 		req := &pb.CreateTicketRequest{
 			Ticket: &pb.Ticket{
 				Properties: structs.Struct{
-					"name":      name,
+					"name":      structs.String(name),
 					"mode.demo": structs.Number(1),
 				}.S(),
 			},
@@ -111,6 +112,34 @@ func runScenario(ctx context.Context, cfg config.View, name string, update updat
 
 	//////////////////////////////////////////////////////////////////////////////
 	s.Status = fmt.Sprintf("Waiting match with ticket Id %s", ticketId)
+	update(s)
+
+	var assignment *pb.Assignment
+	{
+		req := &pb.GetAssignmentsRequest{
+			TicketId: ticketId,
+		}
+
+		stream, err := fe.GetAssignments(ctx, req)
+		for assignment.GetConnection() == "" {
+			resp, err := stream.Recv()
+			if err != nil {
+				// For now we don't expect to get EOF, so that's still an error worthy of panic.
+				panic(err)
+			}
+
+			assignment = resp.Assignment
+		}
+
+		err = stream.CloseSend()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	s.Status = "Sleeping (pretend this is playing a match...)"
+	s.Assignment = assignment
 	update(s)
 
 	time.Sleep(time.Second * 10)
