@@ -20,6 +20,7 @@ import (
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 // TestCase defines a single filtering test case to run.
@@ -47,6 +48,7 @@ func ExcludedTestCases() []TestCase {
 		{
 			"missingField",
 			&pb.Ticket{
+				// Using struct literals without helper for degenerate cases only.
 				Properties: &structpb.Struct{
 					Fields: map[string]*structpb.Value{},
 				},
@@ -61,6 +63,7 @@ func ExcludedTestCases() []TestCase {
 		{
 			"missingFieldsMap",
 			&pb.Ticket{
+				// Using struct literals without helper for degenerate cases only.
 				Properties: &structpb.Struct{
 					Fields: nil,
 				},
@@ -75,6 +78,7 @@ func ExcludedTestCases() []TestCase {
 		{
 			"missingProperties",
 			&pb.Ticket{
+				// Using struct literals without helper for degenerate cases only.
 				Properties: nil,
 			},
 			&pb.Filter{
@@ -96,11 +100,9 @@ func simpleRangeTest(name string, value, min, max float64) TestCase {
 	return TestCase{
 		name,
 		&pb.Ticket{
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"field": {Kind: &structpb.Value_NumberValue{NumberValue: value}},
-				},
-			},
+			Properties: structs.Struct{
+				"field": structs.Number(value),
+			}.S(),
 		},
 		&pb.Filter{
 			Attribute: "field",
