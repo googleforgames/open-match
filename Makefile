@@ -1013,7 +1013,7 @@ proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "View Demo: http://localhost:$(DEMO_PORT)"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) --selector="app=open-match-demo,component=demo,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(DEMO_PORT):51507 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) --selector="app=open-match,component=demo,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(DEMO_PORT):51507 $(PORT_FORWARD_ADDRESS_FLAG)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
