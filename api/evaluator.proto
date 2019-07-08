@@ -56,12 +56,12 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 
 message EvaluateRequest {
   // List of Matches to evaluate.
-  repeated api.Match match = 1;
+  repeated api.Match matches = 1;
 }
 
 message EvaluateResponse {
   // Accepted list of Matches.
-  repeated api.Match match = 1;
+  repeated api.Match matches = 1;
 }
 
 // The service implementing the Evaluator API that is called to evaluate
