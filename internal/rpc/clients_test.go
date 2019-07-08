@@ -59,6 +59,7 @@ func TestHTTPSFromConfig(t *testing.T) {
 
 	runHTTPClientTests(assert, cfg, rpcParams)
 }
+
 func TestInsecureHTTPFromConfig(t *testing.T) {
 	assert := assert.New(t)
 
@@ -66,6 +67,33 @@ func TestInsecureHTTPFromConfig(t *testing.T) {
 	defer closer()
 
 	runHTTPClientTests(assert, cfg, rpcParams)
+}
+
+func TestSanitizeHTTPAddress(t *testing.T) {
+	tests := []struct {
+		address     string
+		preferHTTPS bool
+		expected    string
+		err         error
+	}{
+		{"om-test:54321", false, "http://om-test:54321", nil},
+		{"om-test:54321", true, "https://om-test:54321", nil},
+		{"http://om-test:54321", false, "http://om-test:54321", nil},
+		{"https://om-test:54321", false, "https://om-test:54321", nil},
+		{"http://om-test:54321", true, "http://om-test:54321", nil},
+		{"https://om-test:54321", true, "https://om-test:54321", nil},
+	}
+
+	for _, testCase := range tests {
+		tc := testCase
+		description := fmt.Sprintf("sanitizeHTTPAddress(%s, %t) => (%s, %v)", tc.address, tc.preferHTTPS, tc.expected, tc.err)
+		t.Run(description, func(t *testing.T) {
+			assert := assert.New(t)
+			actual, err := sanitizeHTTPAddress(tc.address, tc.preferHTTPS)
+			assert.Equal(tc.expected, actual)
+			assert.Equal(tc.err, err)
+		})
+	}
 }
 
 func runGrpcClientTests(assert *assert.Assertions, cfg config.View, rpcParams *ServerParams) {
