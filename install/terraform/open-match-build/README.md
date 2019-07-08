@@ -11,6 +11,17 @@ a migration or emergency.
 If you're making changes to these files you must check in the .tfstate file as
 well as comment the reason why you're enabling a feature or making a change.
 
+## GCP IAM Setup
+To use the terraform templates when developing Open Match, you need to have a [GCP service account](https://cloud.google.com/docs/authentication/getting-started) associated with your Open Match project and generate a key file. The terraform templates would read the credentials from `./cred.json` file to authenticate with GCP.
+```bash
+# Create the service account. Replace [NAME] with a name for the service account.
+gcloud iam service-accounts create [NAME]
+# Grant permissions to the service account. Replace [PROJECT_ID] with your Open Match project ID.
+gcloud projects add-iam-policy-binding [PROJECT_ID] --member "serviceAccount:[NAME]@[PROJECT_ID].iam.gserviceaccount.com" --role "roles/owner"
+# Generate the key file for terraform authentication.
+gcloud iam service-accounts keys create ./creds.json --iam-account [NAME]@[PROJECT_ID].iam.gserviceaccount.com
+```
+
 ## Update Infrastructure
 
 To apply your changes run the following commands:
