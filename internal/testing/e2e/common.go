@@ -17,10 +17,11 @@ package e2e
 import (
 	"context"
 	"log"
-	pb "open-match.dev/open-match/pkg/pb"
 	"os"
 	"sync"
 	"testing"
+
+	pb "open-match.dev/open-match/pkg/pb"
 )
 
 // OM is the interface for communicating with Open Match.
@@ -33,6 +34,8 @@ type OM interface {
 	MustMmLogicGRPC() pb.MmLogicClient
 	// HealthCheck probes the cluster for readiness.
 	HealthCheck() error
+	// MustMmfConfigGRPC returns a match function config for backend server.
+	MustMmfConfigGRPC() *pb.FunctionConfig
 	// Context provides a context to call remote methods.
 	Context() context.Context
 
