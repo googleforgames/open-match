@@ -95,7 +95,7 @@
     "apiAssignTicketsRequest": {
       "type": "object",
       "properties": {
-        "ticket_id": {
+        "ticket_ids": {
           "type": "array",
           "items": {
             "type": "string"
@@ -136,7 +136,7 @@
           "$ref": "#/definitions/apiFunctionConfig",
           "title": "Configuration of the MatchFunction to be executed for the given list of MatchProfiles"
         },
-        "profile": {
+        "profiles": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiMatchProfile"
@@ -148,7 +148,7 @@
     "apiFetchMatchesResponse": {
       "type": "object",
       "properties": {
-        "match": {
+        "matches": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiMatch"
@@ -216,14 +216,14 @@
           "type": "string",
           "description": "Name of the match function that generated this Match."
         },
-        "ticket": {
+        "tickets": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiTicket"
           },
           "description": "Tickets belonging to this match."
         },
-        "roster": {
+        "rosters": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiRoster"
@@ -248,14 +248,14 @@
           "$ref": "#/definitions/protobufStruct",
           "description": "Set of properties associated with this MatchProfile. (Optional)\nOpen Match does not interpret these properties but passes them through to\nthe MatchFunction."
         },
-        "pool": {
+        "pools": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiPool"
           },
           "description": "Set of pools to be queried when generating a match for this MatchProfile.\nThe pool names can be used in empty Rosters to specify composition of a\nmatch."
         },
-        "roster": {
+        "rosters": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiRoster"
@@ -272,7 +272,7 @@
           "type": "string",
           "description": "A developer-chosen human-readable name for this Pool."
         },
-        "filter": {
+        "filters": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiFilter"
@@ -288,7 +288,7 @@
           "type": "string",
           "description": "A developer-chosen human-readable name for this Roster."
         },
-        "ticket_id": {
+        "ticket_ids": {
           "type": "array",
           "items": {
             "type": "string"

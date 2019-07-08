@@ -269,6 +269,12 @@ openmatch:
     demo:
       name: openmatch-demo
       pullPolicy: Always
+    e2ematchfunction:
+      name: openmatch-mmf-go-pool
+      pullPolicy: Always
+    e2eevaluator:
+      name: openmatch-evaluator-go-simple
+      pullPolicy: Always
 
 # https://hub.helm.sh/charts/stable/redis
 # https://github.com/helm/charts/tree/master/stable/redis

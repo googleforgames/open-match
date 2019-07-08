@@ -54,13 +54,13 @@ func (sc *synchronizerClient) evaluate(ctx context.Context, id string, proposals
 	}
 
 	resp, err := sc.synchronizer.EvaluateProposals(ctx, &ipb.EvaluateProposalsRequest{
-		Id:    id,
-		Match: proposals})
+		Id:      id,
+		Matches: proposals})
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.Match, nil
+	return resp.Matches, nil
 }
 
 // initialize attempts to connect to the Sychronizer service. If the connection is

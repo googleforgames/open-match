@@ -79,8 +79,8 @@ func TestMakeMatches(t *testing.T) {
 		actual = append(actual, &pb.Match{
 			MatchProfile:  match.MatchProfile,
 			MatchFunction: match.MatchFunction,
-			Ticket:        match.Ticket,
-			Roster:        match.Roster,
+			Tickets:       match.Tickets,
+			Rosters:       match.Rosters,
 			Properties:    match.Properties,
 		})
 	}
@@ -94,8 +94,8 @@ func TestMakeMatches(t *testing.T) {
 		return &pb.Match{
 			MatchProfile:  p.ProfileName,
 			MatchFunction: matchName,
-			Ticket:        tickets,
-			Roster:        []*pb.Roster{{Name: poolName, TicketId: tids}},
+			Tickets:       tickets,
+			Rosters:       []*pb.Roster{{Name: poolName, TicketIds: tids}},
 			Properties: structs.Struct{
 				examples.MatchScore: structs.Number(scoreCalculator(tickets)),
 			}.S(),

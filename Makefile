@@ -276,23 +276,8 @@ build-tool-images: build-reaper-image
 build-base-build-image: docker all-protos
 	docker build -f Dockerfile.base-build -t open-match-base-build .
 
-build-backend-image: docker build-base-build-image
-	docker build -f cmd/backend/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-backend:$(TAG) -t $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG) .
-
-build-frontend-image: docker build-base-build-image
-	docker build -f cmd/frontend/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-frontend:$(TAG) -t $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG) .
-
-build-mmlogic-image: docker build-base-build-image
-	docker build -f cmd/mmlogic/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-mmlogic:$(TAG) -t $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG) .
-
-build-minimatch-image: docker build-base-build-image
-	docker build -f cmd/minimatch/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
-
-build-synchronizer-image: docker build-base-build-image
-	docker build -f cmd/synchronizer/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-synchronizer:$(TAG) -t $(REGISTRY)/openmatch-synchronizer:$(ALTERNATE_TAG) .
-
-build-swaggerui-image: docker build-base-build-image third_party/swaggerui/
-	docker build -f cmd/swaggerui/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-swaggerui:$(TAG) -t $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG) .
+build-%-image: docker build-base-build-image
+	docker build -f cmd/$*/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-$*:$(TAG) -t $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG) .
 
 build-demo-image: docker build-base-build-image
 	docker build -f examples/demo/Dockerfile -t $(REGISTRY)/openmatch-demo:$(TAG) -t $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG) .
@@ -388,7 +373,7 @@ install-e2e-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set prometheus.enabled=false \
 		--set redis.enabled=true \
 		--set openmatch.monitoring.stackdriver.enabled=true \
-		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID) \
 		--set openmatch.e2eevaluator.install=true \
 		--set openmatch.e2ematchfunction.install=true
 
