@@ -42,15 +42,15 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 		roster := &pb.Roster{Name: pool}
 
 		for _, ticket := range tickets {
-			roster.TicketId = append(roster.GetTicketId(), ticket.GetId())
+			roster.TicketIds = append(roster.TicketIds, ticket.GetId())
 		}
 
 		result = append(result, &pb.Match{
 			MatchId:       xid.New().String(),
 			MatchProfile:  params.ProfileName,
 			MatchFunction: matchName,
-			Ticket:        tickets,
-			Roster:        []*pb.Roster{roster},
+			Tickets:       tickets,
+			Rosters:       []*pb.Roster{roster},
 			Properties: structs.Struct{
 				examples.MatchScore: structs.Number(scoreCalculator(tickets)),
 			}.S(),

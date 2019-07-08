@@ -61,7 +61,7 @@ message QueryTicketsRequest {
 
 message QueryTicketsResponse {
   // The Tickets that meet the Filter criteria requested by the Pool.
-  repeated Ticket ticket = 1;
+  repeated Ticket tickets = 1;
 }
 
 // The MMLogic API provides utility functions for common MMF functionality such

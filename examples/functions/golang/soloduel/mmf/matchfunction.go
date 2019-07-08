@@ -59,7 +59,7 @@ func MakeMatches(p *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 				MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", p.ProfileName, t, matchNum),
 				MatchProfile:  p.ProfileName,
 				MatchFunction: matchName,
-				Ticket:        thisMatch,
+				Tickets:       thisMatch,
 			})
 
 			thisMatch = make([]*pb.Ticket, 0, 2)

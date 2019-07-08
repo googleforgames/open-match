@@ -71,18 +71,18 @@ message FetchMatchesRequest {
   FunctionConfig config = 1;
 
   // MatchProfiles for which this MatchFunction should be executed.
-  repeated MatchProfile profile = 2;
+  repeated MatchProfile profiles = 2;
 }
 
 message FetchMatchesResponse {
   // Result Match for the requested MatchProfile.
   // Note that OpenMatch will validate the proposals, a valid match should contain at least one ticket.
-  repeated Match match = 1;
+  repeated Match matches = 1;
 }
 
 message AssignTicketsRequest {
   // List of Ticket IDs for which the Assignment is to be made.
-  repeated string ticket_id = 1;
+  repeated string ticket_ids = 1;
 
   // Assignment to be associated with the Ticket IDs.
   Assignment assignment = 2;

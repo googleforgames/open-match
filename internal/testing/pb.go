@@ -10,7 +10,7 @@ func NewPbFilter(attributeName string, min, max float64) *pb.Filter {
 // NewPbPool is a wrapper to create protobuf pool objects
 func NewPbPool(poolName string, filters ...*pb.Filter) *pb.Pool {
 	return &pb.Pool{
-		Name:   poolName,
-		Filter: filters,
+		Name:    poolName,
+		Filters: filters,
 	}
 }
