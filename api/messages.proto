@@ -16,6 +16,7 @@ syntax = "proto3";
 package api;
 option go_package = "pkg/pb";
 
+import "google/rpc/status.proto";
 import "google/protobuf/struct.proto";
 
 // A Ticket is a basic matchmaking entity in Open Match. In order to enter
@@ -48,7 +49,7 @@ message Assignment {
   string properties = 2;
 
   // Error when finding an Assignment for this Ticket.
-  string error = 3;
+  google.rpc.Status error = 3;
 }
 
 // A hard filter used to query a subset of Tickets meeting the filtering
