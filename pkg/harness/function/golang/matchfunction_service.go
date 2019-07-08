@@ -20,13 +20,12 @@ import (
 	"io"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
-
-	"github.com/sirupsen/logrus"
 )
 
 var (

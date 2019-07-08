@@ -20,10 +20,10 @@ import (
 	"open-match.dev/open-match/examples"
 	"open-match.dev/open-match/pkg/pb"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestMakeMatches(t *testing.T) {
@@ -32,38 +32,30 @@ func TestMakeMatches(t *testing.T) {
 	tickets := []*pb.Ticket{
 		{
 			Id: "1",
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
-					"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 100}},
-				},
-			},
+			Properties: structs.Struct{
+				"level":   structs.Number(10),
+				"defense": structs.Number(100),
+			}.S(),
 		},
 		{
 			Id: "2",
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"level":  {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
-					"attack": {Kind: &structpb.Value_NumberValue{NumberValue: 50}},
-				},
-			},
+			Properties: structs.Struct{
+				"level":  structs.Number(10),
+				"attack": structs.Number(50),
+			}.S(),
 		},
 		{
 			Id: "3",
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"level": {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
-					"speed": {Kind: &structpb.Value_NumberValue{NumberValue: 522}},
-				},
-			},
+			Properties: structs.Struct{
+				"level": structs.Number(10),
+				"speed": structs.Number(522),
+			}.S(),
 		}, {
 			Id: "4",
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"level": {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
-					"mana":  {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-				},
-			},
+			Properties: structs.Struct{
+				"level": structs.Number(10),
+				"mana":  structs.Number(1),
+			}.S(),
 		},
 	}
 
@@ -104,11 +96,9 @@ func TestMakeMatches(t *testing.T) {
 			MatchFunction: matchName,
 			Ticket:        tickets,
 			Roster:        []*pb.Roster{{Name: poolName, TicketId: tids}},
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					examples.MatchScore: {Kind: &structpb.Value_NumberValue{NumberValue: scoreCalculator(tickets)}},
-				},
-			},
+			Properties: structs.Struct{
+				examples.MatchScore: structs.Number(scoreCalculator(tickets)),
+			}.S(),
 		}
 	}
 
