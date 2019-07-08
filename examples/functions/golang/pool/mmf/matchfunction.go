@@ -36,7 +36,7 @@ var (
 // The goal of this function is to generate predictable matches that can be validated without flakyness.
 // This match function loops through all the pools and generates one match per pool aggregating all players
 // in that pool in the generated match.
-func MakeMatches(params *mmfHarness.MatchFunctionParams) []*pb.Match {
+func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 	var result []*pb.Match
 	for pool, tickets := range params.PoolNameToTickets {
 		roster := &pb.Roster{Name: pool}
@@ -57,7 +57,7 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) []*pb.Match {
 		})
 	}
 
-	return result
+	return result, nil
 }
 
 // This match function defines the quality of a match as the sum of the attribute values of all tickets per match
