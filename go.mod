@@ -30,7 +30,6 @@ require (
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.1
 	github.com/gomodule/redigo v1.7.1-0.20190322064113-39e2c31b7ca3
-	github.com/google/go-cmp v0.3.0
 	github.com/grpc-ecosystem/grpc-gateway v1.9.2
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/openzipkin/zipkin-go v0.1.6

@@ -18,7 +18,6 @@ import (
 	"context"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/google/go-cmp/cmp"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
@@ -160,10 +159,7 @@ func doGetAssignments(ctx context.Context, id string, sender func(*pb.Assignment
 	var currAssignment *pb.Assignment
 	var ok bool
 	callback := func(assignment *pb.Assignment) error {
-		if (currAssignment == nil && assignment != nil) ||
-			!cmp.Equal(currAssignment.GetConnection(), assignment.GetConnection()) ||
-			!cmp.Equal(currAssignment.GetProperties(), assignment.GetProperties()) ||
-			!cmp.Equal(currAssignment.GetError(), assignment.GetError()) {
+		if (currAssignment == nil && assignment != nil) || !proto.Equal(currAssignment, assignment) {
 			currAssignment, ok = proto.Clone(assignment).(*pb.Assignment)
 			if !ok {
 				return status.Error(codes.Internal, "failed to cast the assignment object")
