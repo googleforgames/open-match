@@ -100,25 +100,25 @@ func TestGameMatchWorkFlow(t *testing.T) {
 
 	fmResp, err := be.FetchMatches(om.Context(), &pb.FetchMatchesRequest{
 		Config: mmfCfg,
-		Profile: []*pb.MatchProfile{
+		Profiles: []*pb.MatchProfile{
 			{
 				Name: "test-profile",
-				Pool: []*pb.Pool{
+				Pools: []*pb.Pool{
 					{
-						Name:   "ticket12",
-						Filter: []*pb.Filter{{Attribute: "level", Min: 0, Max: 6}, {Attribute: "defense", Min: 0, Max: 100}},
+						Name:    "ticket12",
+						Filters: []*pb.Filter{{Attribute: "level", Min: 0, Max: 6}, {Attribute: "defense", Min: 0, Max: 100}},
 					},
 					{
-						Name:   "ticket23",
-						Filter: []*pb.Filter{{Attribute: "level", Min: 3, Max: 15}, {Attribute: "defense", Min: 0, Max: 100}},
+						Name:    "ticket23",
+						Filters: []*pb.Filter{{Attribute: "level", Min: 3, Max: 15}, {Attribute: "defense", Min: 0, Max: 100}},
 					},
 					{
-						Name:   "ticket5",
-						Filter: []*pb.Filter{{Attribute: "level", Min: 0, Max: 100}, {Attribute: "defense", Min: 17, Max: 25}},
+						Name:    "ticket5",
+						Filters: []*pb.Filter{{Attribute: "level", Min: 0, Max: 100}, {Attribute: "defense", Min: 17, Max: 25}},
 					},
 					{
-						Name:   "ticket234",
-						Filter: []*pb.Filter{{Attribute: "level", Min: 3, Max: 17}, {Attribute: "defense", Min: 3, Max: 17}},
+						Name:    "ticket234",
+						Filters: []*pb.Filter{{Attribute: "level", Min: 3, Max: 17}, {Attribute: "defense", Min: 3, Max: 17}},
 					},
 				},
 			},

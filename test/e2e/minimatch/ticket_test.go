@@ -93,7 +93,7 @@ func TestAssignTickets(t *testing.T) {
 			test := test
 			t.Run(test.description, func(t *testing.T) {
 				t.Parallel()
-				_, err := be.AssignTickets(tc.Context(), &pb.AssignTicketsRequest{TicketId: test.ticketIds, Assignment: test.assignment})
+				_, err := be.AssignTickets(tc.Context(), &pb.AssignTicketsRequest{TicketIds: test.ticketIds, Assignment: test.assignment})
 				assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
 				// If assign ticket succeeds, validate the assignment
@@ -175,7 +175,7 @@ func TestQueryTickets(t *testing.T) {
 			description: "expects response with no tickets since the store is empty",
 			preAction:   func(_ pb.FrontendClient, _ *testing.T) {},
 			pool: &pb.Pool{
-				Filter: []*pb.Filter{{
+				Filters: []*pb.Filter{{
 					Attribute: "ok",
 				}},
 			},
@@ -198,7 +198,7 @@ func TestQueryTickets(t *testing.T) {
 				}
 			},
 			pool: &pb.Pool{
-				Filter: []*pb.Filter{{
+				Filters: []*pb.Filter{{
 					Attribute: e2e.SkillAttribute,
 				}},
 			},
@@ -221,7 +221,7 @@ func TestQueryTickets(t *testing.T) {
 				}
 			},
 			pool: &pb.Pool{
-				Filter: []*pb.Filter{{
+				Filters: []*pb.Filter{{
 					Attribute: e2e.Map1Attribute,
 					Min:       1,
 					Max:       3,
@@ -251,7 +251,7 @@ func TestQueryTickets(t *testing.T) {
 			},
 
 			pool: &pb.Pool{
-				Filter: []*pb.Filter{{
+				Filters: []*pb.Filter{{
 					Attribute: e2e.Map1Attribute,
 					Min:       2,
 					Max:       6,
@@ -297,7 +297,7 @@ func TestQueryTickets(t *testing.T) {
 						break
 					}
 
-					actualTickets = append(actualTickets, resp.Ticket...)
+					actualTickets = append(actualTickets, resp.Tickets...)
 					pageCounts++
 				}
 

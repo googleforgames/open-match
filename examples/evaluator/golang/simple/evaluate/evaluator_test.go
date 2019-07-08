@@ -30,28 +30,28 @@ func TestEvaluate(t *testing.T) {
 	ticket3 := &pb.Ticket{Id: "3"}
 
 	ticket12Score1 := &pb.Match{
-		Ticket: []*pb.Ticket{ticket1, ticket2},
+		Tickets: []*pb.Ticket{ticket1, ticket2},
 		Properties: structs.Struct{
 			examples.MatchScore: structs.Number(1),
 		}.S(),
 	}
 
 	ticket12Score10 := &pb.Match{
-		Ticket: []*pb.Ticket{ticket2, ticket1},
+		Tickets: []*pb.Ticket{ticket2, ticket1},
 		Properties: structs.Struct{
 			examples.MatchScore: structs.Number(10),
 		}.S(),
 	}
 
 	ticket123Score5 := &pb.Match{
-		Ticket: []*pb.Ticket{ticket1, ticket2, ticket3},
+		Tickets: []*pb.Ticket{ticket1, ticket2, ticket3},
 		Properties: structs.Struct{
 			examples.MatchScore: structs.Number(5),
 		}.S(),
 	}
 
 	ticket3Score50 := &pb.Match{
-		Ticket: []*pb.Ticket{ticket3},
+		Tickets: []*pb.Ticket{ticket3},
 		Properties: structs.Struct{
 			examples.MatchScore: structs.Number(50),
 		}.S(),
