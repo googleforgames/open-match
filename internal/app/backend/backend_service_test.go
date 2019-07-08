@@ -16,7 +16,6 @@ package backend
 
 import (
 	"context"
-	"sync"
 	"testing"
 	"time"
 
@@ -25,6 +24,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/pkg/pb"
@@ -88,8 +88,9 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
+			cc := rpc.NewClientCache(test.cfg)
 			resultChan := make(chan mmfResult, len(test.req.GetProfiles()))
-			err := doFetchMatchesReceiveMmfResult(context.Background(), test.cfg, &sync.Map{}, test.req, resultChan)
+			err := doFetchMatchesReceiveMmfResult(context.Background(), cc, test.req, resultChan)
 			assert.Equal(t, test.wantErr, err)
 		})
 	}
@@ -158,36 +159,6 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 			assert.Equal(t, test.wantCode, status.Convert(err).Code())
 		})
 	}
-}
-
-func TestGetHTTPClient(t *testing.T) {
-	assert := assert.New(t)
-	cache := &sync.Map{}
-	client, url, err := getHTTPClient(viper.New(), cache, "om-test:54321")
-	assert.Nil(err)
-	assert.NotNil(client)
-	assert.NotNil(url)
-	cachedClient, url, err := getHTTPClient(viper.New(), cache, "om-test:54321")
-	assert.Nil(err)
-	assert.NotNil(client)
-	assert.NotNil(url)
-
-	// Test caching by comparing pointer value
-	assert.EqualValues(client, cachedClient)
-}
-
-func TestGetGRPCClient(t *testing.T) {
-	assert := assert.New(t)
-	cache := &sync.Map{}
-	client, err := getGRPCClient(viper.New(), cache, "om-test:54321")
-	assert.Nil(err)
-	assert.NotNil(client)
-	cachedClient, err := getGRPCClient(viper.New(), cache, "om-test:54321")
-	assert.Nil(err)
-	assert.NotNil(client)
-
-	// Test caching by comparing pointer value
-	assert.EqualValues(client, cachedClient)
 }
 
 func TestDoAssignTickets(t *testing.T) {

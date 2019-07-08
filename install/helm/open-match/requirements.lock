@@ -1,15 +1,15 @@
 dependencies:
 - name: prometheus
   repository: https://kubernetes-charts.storage.googleapis.com/
-  version: 8.11.4
+  version: 8.14.0
 - name: redis
   repository: https://kubernetes-charts.storage.googleapis.com/
-  version: 8.0.5
+  version: 8.0.9
 - name: grafana
   repository: https://kubernetes-charts.storage.googleapis.com/
-  version: 3.3.10
+  version: 3.5.7
 - name: jaeger
   repository: https://kubernetes-charts-incubator.storage.googleapis.com/
-  version: 0.10.3
-digest: sha256:3aa9f41cf0bdfe71c5a2cc6bf951506815a4d36885097341207909f7fd362224
-generated: "2019-05-31T15:19:57.13887816-07:00"
+  version: 0.12.0
+digest: sha256:46c589cecf346f749eebf700b2abfd5995361758adcc592881d7fae4abd1ea5f
+generated: "2019-07-03T11:14:34.486446966-07:00"

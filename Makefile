@@ -388,7 +388,7 @@ install-e2e-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set prometheus.enabled=false \
 		--set redis.enabled=true \
 		--set openmatch.monitoring.stackdriver.enabled=true \
-		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID) \
 		--set openmatch.e2eevaluator.install=true \
 		--set openmatch.e2ematchfunction.install=true
 

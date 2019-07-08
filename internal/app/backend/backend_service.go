@@ -21,12 +21,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sync"
 
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
@@ -35,19 +34,9 @@ import (
 // The service implementing the Backend API that is called to generate matches
 // and make assignments for Tickets.
 type backendService struct {
-	cfg          config.View
 	synchronizer *synchronizerClient
 	store        statestore.Service
-	mmfClients   *sync.Map
-}
-
-type grpcData struct {
-	client pb.MatchFunctionClient
-}
-
-type httpData struct {
-	client  *http.Client
-	baseURL string
+	mmfClients   *rpc.ClientCache
 }
 
 type mmfResult struct {
@@ -86,7 +75,7 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		return nil, err
 	}
 
-	err = doFetchMatchesReceiveMmfResult(ctx, s.cfg, s.mmfClients, req, resultChan)
+	err = doFetchMatchesReceiveMmfResult(ctx, s.mmfClients, req, resultChan)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +98,7 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 	return &pb.FetchMatchesResponse{Matches: results}, nil
 }
 
-func doFetchMatchesReceiveMmfResult(ctx context.Context, cfg config.View, mmfClients *sync.Map, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
+func doFetchMatchesReceiveMmfResult(ctx context.Context, mmfClients *rpc.ClientCache, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
 	var grpcClient pb.MatchFunctionClient
 	var httpClient *http.Client
 	var baseURL string
@@ -121,7 +110,8 @@ func doFetchMatchesReceiveMmfResult(ctx context.Context, cfg config.View, mmfCli
 	switch configType {
 	// MatchFunction Hosted as a GRPC service
 	case pb.FunctionConfig_GRPC:
-		grpcClient, err = getGRPCClient(cfg, mmfClients, address)
+		var conn *grpc.ClientConn
+		conn, err = mmfClients.GetGRPC(address)
 		if err != nil {
 			backendServiceLogger.WithFields(logrus.Fields{
 				"error":    err.Error(),
@@ -129,9 +119,10 @@ func doFetchMatchesReceiveMmfResult(ctx context.Context, cfg config.View, mmfCli
 			}).Error("failed to establish grpc client connection to match function")
 			return status.Error(codes.InvalidArgument, "failed to connect to match function")
 		}
+		grpcClient = pb.NewMatchFunctionClient(conn)
 	// MatchFunction Hosted as a REST service
 	case pb.FunctionConfig_REST:
-		httpClient, baseURL, err = getHTTPClient(cfg, mmfClients, address)
+		httpClient, baseURL, err = mmfClients.GetHTTP(address)
 		if err != nil {
 			backendServiceLogger.WithFields(logrus.Fields{
 				"error":    err.Error(),
@@ -195,35 +186,6 @@ func doFetchMatchesAddIgnoredTickets(ctx context.Context, store statestore.Servi
 		}
 	}
 	return store.AddTicketsToIgnoreList(ctx, ids)
-}
-
-func getHTTPClient(cfg config.View, mmfClients *sync.Map, addr string) (*http.Client, string, error) {
-	val, exists := mmfClients.Load(addr)
-	data, ok := val.(httpData)
-	if !ok || !exists {
-		client, baseURL, err := rpc.HTTPClientFromEndpoint(cfg, addr)
-		if err != nil {
-			return nil, "", err
-		}
-		data = httpData{client, baseURL}
-		mmfClients.Store(addr, data)
-	}
-	return data.client, data.baseURL, nil
-}
-
-func getGRPCClient(cfg config.View, mmfClients *sync.Map, addr string) (pb.MatchFunctionClient, error) {
-	val, exists := mmfClients.Load(addr)
-	data, ok := val.(grpcData)
-	if !ok || !exists {
-		conn, err := rpc.GRPCClientFromEndpoint(cfg, addr)
-		if err != nil {
-			return nil, err
-		}
-		data = grpcData{pb.NewMatchFunctionClient(conn)}
-		mmfClients.Store(addr, data)
-	}
-
-	return data.client, nil
 }
 
 func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *http.Client, baseURL string) ([]*pb.Match, error) {
