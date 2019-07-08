@@ -71,7 +71,8 @@ func TestMakeMatches(t *testing.T) {
 		PoolNameToTickets: poolNameToTickets,
 	}
 
-	matches := MakeMatches(p)
+	matches, err := MakeMatches(p)
+	assert.Nil(err)
 	assert.Equal(len(matches), 2)
 
 	actual := []*pb.Match{}
