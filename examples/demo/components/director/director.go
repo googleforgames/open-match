@@ -80,8 +80,8 @@ func run(ds *components.DemoShared) {
 	{
 		req := &pb.FetchMatchesRequest{
 			Config: &pb.FunctionConfig{
-				Host: "om-demofunction",
-				Port: 50502,
+				Host: ds.Cfg.GetString("api.functions.hostname"),
+				Port: int32(ds.Cfg.GetInt("api.functions.grpcport")),
 				Type: pb.FunctionConfig_GRPC,
 			},
 			Profile: []*pb.MatchProfile{
