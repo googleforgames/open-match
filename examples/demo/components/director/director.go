@@ -85,13 +85,13 @@ func run(ds *components.DemoShared) {
 				Type: pb.FunctionConfig_GRPC,
 			},
 			Profile: []*pb.MatchProfile{
-				&pb.MatchProfile{
+				{
 					Name: "1v1",
 					Pool: []*pb.Pool{
 						{
 							Name: "Everyone",
 							Filter: []*pb.Filter{
-								&pb.Filter{
+								{
 									Attribute: "mode.demo",
 									Min:       -100,
 									Max:       100,
