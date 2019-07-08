@@ -85,7 +85,7 @@ func TestAssignTickets(t *testing.T) {
 			test := test
 			t.Run(test.description, func(t *testing.T) {
 				t.Parallel()
-				_, err := be.AssignTickets(om.Context(), &pb.AssignTicketsRequest{TicketId: test.ticketIds, Assignment: test.assignment})
+				_, err := be.AssignTickets(om.Context(), &pb.AssignTicketsRequest{TicketIds: test.ticketIds, Assignment: test.assignment})
 				assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
 				// If assign ticket succeeds, validate the assignment

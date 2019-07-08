@@ -31,7 +31,7 @@ var (
 )
 
 // MakeMatches is where your custom matchmaking logic lives.
-func MakeMatches(p *mmfHarness.MatchFunctionParams) []*pb.Match {
+func MakeMatches(p *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 	// This simple match function does the following things
 	// 1. Deduplicates the tickets from the pools into a single list.
 	// 2. Groups players into 1v1 matches.
@@ -59,7 +59,7 @@ func MakeMatches(p *mmfHarness.MatchFunctionParams) []*pb.Match {
 				MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", p.ProfileName, t, matchNum),
 				MatchProfile:  p.ProfileName,
 				MatchFunction: matchName,
-				Ticket:        thisMatch,
+				Tickets:       thisMatch,
 			})
 
 			thisMatch = make([]*pb.Ticket, 0, 2)
@@ -67,5 +67,5 @@ func MakeMatches(p *mmfHarness.MatchFunctionParams) []*pb.Match {
 		}
 	}
 
-	return matches
+	return matches, nil
 }

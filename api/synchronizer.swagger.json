@@ -103,7 +103,7 @@
     "apiEvaluateProposalsRequest": {
       "type": "object",
       "properties": {
-        "match": {
+        "matches": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiMatch"
@@ -119,7 +119,7 @@
     "apiEvaluateProposalsResponse": {
       "type": "object",
       "properties": {
-        "match": {
+        "matches": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiMatch"
@@ -143,14 +143,14 @@
           "type": "string",
           "description": "Name of the match function that generated this Match."
         },
-        "ticket": {
+        "tickets": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiTicket"
           },
           "description": "Tickets belonging to this match."
         },
-        "roster": {
+        "rosters": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiRoster"
@@ -180,7 +180,7 @@
           "type": "string",
           "description": "A developer-chosen human-readable name for this Roster."
         },
-        "ticket_id": {
+        "ticket_ids": {
           "type": "array",
           "items": {
             "type": "string"
