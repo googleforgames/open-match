@@ -19,7 +19,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -150,6 +152,23 @@ func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string,
 	return HTTPClientFromParams(clientParams)
 }
 
+func sanitizeHTTPAddress(address string, preferHTTPS bool) (string, error) {
+	lca := strings.ToLower(address)
+	if !strings.HasPrefix(lca, "http://") && !strings.HasPrefix(lca, "https://") {
+		if preferHTTPS {
+			address = "https://" + address
+		} else {
+			address = "http://" + address
+		}
+	}
+	u, err := url.Parse(address)
+	if err != nil {
+		return "", errors.New(fmt.Sprintf("%s is not a valid HTTP(S) address", address))
+	}
+
+	return u.String(), nil
+}
+
 // HTTPClientFromEndpoint creates a HTTP client from from endpoint.
 func HTTPClientFromEndpoint(cfg config.View, address string) (*http.Client, string, error) {
 	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
@@ -158,8 +177,13 @@ func HTTPClientFromEndpoint(cfg config.View, address string) (*http.Client, stri
 	var baseURL string
 
 	if cfg.GetBool("tls.enabled") {
-		baseURL = "https://" + address
-		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
+		var err error
+		baseURL, err = sanitizeHTTPAddress(address, true)
+		if err != nil {
+			clientLogger.WithError(err).Error("cannot parse address")
+			return nil, "", err
+		}
+		_, err = os.Stat(cfg.GetString("tls.trustedCertificatePath"))
 		if err != nil {
 			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
 			return nil, "", err
@@ -184,7 +208,12 @@ func HTTPClientFromEndpoint(cfg config.View, address string) (*http.Client, stri
 			},
 		}
 	} else {
-		baseURL = "http://" + address
+		var err error
+		baseURL, err = sanitizeHTTPAddress(address, false)
+		if err != nil {
+			clientLogger.WithError(err).Error("cannot parse address")
+			return nil, "", err
+		}
 	}
 
 	return httpClient, baseURL, nil
@@ -198,7 +227,12 @@ func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 	var baseURL string
 
 	if params.usingTLS() {
-		baseURL = "https://" + address
+		var err error
+		baseURL, err = sanitizeHTTPAddress(address, true)
+		if err != nil {
+			clientLogger.WithError(err).Error("cannot parse address")
+			return nil, "", err
+		}
 
 		pool, err := trustedCertificateFromFileData(params.TrustedCertificate)
 		if err != nil {
@@ -213,7 +247,12 @@ func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 			},
 		}
 	} else {
-		baseURL = "http://" + address
+		var err error
+		baseURL, err = sanitizeHTTPAddress(address, false)
+		if err != nil {
+			clientLogger.WithError(err).Error("cannot parse address")
+			return nil, "", err
+		}
 	}
 
 	return httpClient, baseURL, nil

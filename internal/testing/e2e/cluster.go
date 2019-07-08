@@ -19,6 +19,12 @@ package e2e
 import (
 	"context"
 	"flag"
+	"log"
+	"os"
+	"os/user"
+	"path/filepath"
+	"testing"
+
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
@@ -26,13 +32,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
-	"log"
 	"open-match.dev/open-match/internal/rpc"
 	pb "open-match.dev/open-match/pkg/pb"
-	"os"
-	"os/user"
-	"path/filepath"
-	"testing"
 )
 
 type clusterOM struct {
@@ -78,22 +79,34 @@ func (com *clusterOM) MustMmLogicGRPC() pb.MmLogicClient {
 	return pb.NewMmLogicClient(conn)
 }
 
-func (com *clusterOM) getGRPCClientFromServiceName(serviceName string) (*grpc.ClientConn, error) {
+func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {
+	host, port := com.getAddressFromServiceName("om-e2ematchfunction")
+	return &pb.FunctionConfig{
+		Host: host,
+		Port: port,
+		Type: pb.FunctionConfig_GRPC,
+	}
+}
+
+func (com *clusterOM) getAddressFromServiceName(serviceName string) (string, int32) {
 	svc, err := com.kubeClient.CoreV1().Services(com.namespace).Get(serviceName, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot get service definition for %s", serviceName)
+		com.t.Fatalf("cannot get service definition for %s", serviceName)
 	}
 	if len(svc.Status.LoadBalancer.Ingress) != 1 {
-		return nil, errors.Errorf("LoadBalancer for %s does not have exactly 1 config, %v", serviceName, svc.Status.LoadBalancer.Ingress)
+		com.t.Fatalf("LoadBalancer for %s does not have exactly 1 config, %v", serviceName, svc.Status.LoadBalancer.Ingress)
 	}
-	ipAddress := svc.Status.LoadBalancer.Ingress[0].IP
-	port := svc.Spec.Ports[0]
+	return svc.Status.LoadBalancer.Ingress[0].IP, svc.Spec.Ports[0].Port
+}
+
+func (com *clusterOM) getGRPCClientFromServiceName(serviceName string) (*grpc.ClientConn, error) {
+	ipAddress, port := com.getAddressFromServiceName(serviceName)
 	conn, err := rpc.GRPCClientFromParams(&rpc.ClientParams{
 		Hostname: ipAddress,
-		Port:     int(port.Port),
+		Port:     int(port),
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot connect to gRPC %s:%d", ipAddress, port.Port)
+		return nil, errors.Wrapf(err, "cannot connect to gRPC %s:%d", ipAddress, port)
 	}
 	return conn, nil
 }
