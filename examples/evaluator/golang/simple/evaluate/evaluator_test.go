@@ -17,11 +17,11 @@ package evaluate
 import (
 	"testing"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/examples"
 	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestEvaluate(t *testing.T) {
@@ -30,39 +30,31 @@ func TestEvaluate(t *testing.T) {
 	ticket3 := &pb.Ticket{Id: "3"}
 
 	ticket12Score1 := &pb.Match{
-		Ticket: []*pb.Ticket{ticket1, ticket2},
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				examples.MatchScore: {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-			},
-		},
+		Tickets: []*pb.Ticket{ticket1, ticket2},
+		Properties: structs.Struct{
+			examples.MatchScore: structs.Number(1),
+		}.S(),
 	}
 
 	ticket12Score10 := &pb.Match{
-		Ticket: []*pb.Ticket{ticket2, ticket1},
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				examples.MatchScore: {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
-			},
-		},
+		Tickets: []*pb.Ticket{ticket2, ticket1},
+		Properties: structs.Struct{
+			examples.MatchScore: structs.Number(10),
+		}.S(),
 	}
 
 	ticket123Score5 := &pb.Match{
-		Ticket: []*pb.Ticket{ticket1, ticket2, ticket3},
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				examples.MatchScore: {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
-			},
-		},
+		Tickets: []*pb.Ticket{ticket1, ticket2, ticket3},
+		Properties: structs.Struct{
+			examples.MatchScore: structs.Number(5),
+		}.S(),
 	}
 
 	ticket3Score50 := &pb.Match{
-		Ticket: []*pb.Ticket{ticket3},
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				examples.MatchScore: {Kind: &structpb.Value_NumberValue{NumberValue: 50}},
-			},
-		},
+		Tickets: []*pb.Ticket{ticket3},
+		Properties: structs.Struct{
+			examples.MatchScore: structs.Number(50),
+		}.S(),
 	}
 
 	tests := []struct {

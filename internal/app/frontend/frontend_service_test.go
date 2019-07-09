@@ -21,7 +21,6 @@ import (
 	"testing"
 	"time"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -29,6 +28,7 @@ import (
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestDoCreateTickets(t *testing.T) {
@@ -45,11 +45,9 @@ func TestDoCreateTickets(t *testing.T) {
 			description: "expect precondition error since open-match does not support properties other than number",
 			preAction:   func(_ context.CancelFunc) {},
 			ticket: &pb.Ticket{
-				Properties: &structpb.Struct{
-					Fields: map[string]*structpb.Value{
-						"test-property": {Kind: &structpb.Value_StringValue{StringValue: "string"}},
-					},
-				},
+				Properties: structs.Struct{
+					"test-property": structs.String("string"),
+				}.S(),
 			},
 			wantCode: codes.FailedPrecondition,
 		},
@@ -57,11 +55,9 @@ func TestDoCreateTickets(t *testing.T) {
 			description: "expect error with canceled context",
 			preAction:   func(cancel context.CancelFunc) { cancel() },
 			ticket: &pb.Ticket{
-				Properties: &structpb.Struct{
-					Fields: map[string]*structpb.Value{
-						"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-					},
-				},
+				Properties: structs.Struct{
+					"test-property": structs.Number(1),
+				}.S(),
 			},
 			wantCode: codes.Unavailable,
 		},
@@ -69,11 +65,9 @@ func TestDoCreateTickets(t *testing.T) {
 			description: "expect normal return with default context",
 			preAction:   func(_ context.CancelFunc) {},
 			ticket: &pb.Ticket{
-				Properties: &structpb.Struct{
-					Fields: map[string]*structpb.Value{
-						"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-					},
-				},
+				Properties: structs.Struct{
+					"test-property": structs.Number(1),
+				}.S(),
 			},
 			wantCode: codes.OK,
 		},
@@ -174,11 +168,9 @@ func TestDoGetAssignments(t *testing.T) {
 func TestDoDeleteTicket(t *testing.T) {
 	fakeTicket := &pb.Ticket{
 		Id: "1",
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-			},
-		},
+		Properties: structs.Struct{
+			"test-property": structs.Number(1),
+		}.S(),
 	}
 
 	tests := []struct {
@@ -224,11 +216,9 @@ func TestDoDeleteTicket(t *testing.T) {
 func TestDoGetTicket(t *testing.T) {
 	fakeTicket := &pb.Ticket{
 		Id: "1",
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-			},
-		},
+		Properties: structs.Struct{
+			"test-property": structs.Number(1),
+		}.S(),
 	}
 
 	tests := []struct {

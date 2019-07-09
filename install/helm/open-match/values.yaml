@@ -95,10 +95,8 @@ openmatch:
       port: 51502
     porttype: LoadBalancer
   demo:
-    # TODO: Change to true once the demo is available.
-    # It's currently missing liveness/readiness checks.
-    install: false
-    replicas: 3
+    install: true
+    replicas: 1
     http:
       port: 51507
     porttype: LoadBalancer
@@ -239,6 +237,12 @@ openmatch:
       pullPolicy: Always
     demo:
       name: openmatch-demo
+      pullPolicy: Always
+    e2ematchfunction:
+      name: openmatch-mmf-go-pool
+      pullPolicy: Always
+    e2eevaluator:
+      name: openmatch-evaluator-go-simple
       pullPolicy: Always
 
 # https://hub.helm.sh/charts/stable/redis

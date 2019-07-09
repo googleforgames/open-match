@@ -22,7 +22,6 @@ import (
 	"time"
 
 	miniredis "github.com/alicebob/miniredis/v2"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -31,6 +30,7 @@ import (
 	"open-match.dev/open-match/internal/config"
 	internalTesting "open-match.dev/open-match/internal/testing"
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestStatestoreSetup(t *testing.T) {
@@ -55,11 +55,9 @@ func TestTicketLifecycle(t *testing.T) {
 	id := xid.New().String()
 	ticket := &pb.Ticket{
 		Id: id,
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				"testindex1": {Kind: &structpb.Value_NumberValue{NumberValue: 42}},
-			},
-		},
+		Properties: structs.Struct{
+			"testindex1": structs.Number(42),
+		}.S(),
 		Assignment: &pb.Assignment{
 			Connection: "test-tbd",
 		},
@@ -154,12 +152,10 @@ func TestTicketIndexing(t *testing.T) {
 
 		ticket := &pb.Ticket{
 			Id: id,
-			Properties: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"testindex1": {Kind: &structpb.Value_NumberValue{NumberValue: float64(i)}},
-					"testindex2": {Kind: &structpb.Value_NumberValue{NumberValue: 0.5}},
-				},
-			},
+			Properties: structs.Struct{
+				"testindex1": structs.Number(float64(i)),
+				"testindex2": structs.Number(0.5),
+			}.S(),
 			Assignment: &pb.Assignment{
 				Connection: "test-tbd",
 			},

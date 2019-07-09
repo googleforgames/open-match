@@ -19,12 +19,12 @@ import (
 	"testing"
 	"time"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestAssignTickets(t *testing.T) {
@@ -85,7 +85,7 @@ func TestAssignTickets(t *testing.T) {
 			test := test
 			t.Run(test.description, func(t *testing.T) {
 				t.Parallel()
-				_, err := be.AssignTickets(om.Context(), &pb.AssignTicketsRequest{TicketId: test.ticketIds, Assignment: test.assignment})
+				_, err := be.AssignTickets(om.Context(), &pb.AssignTicketsRequest{TicketIds: test.ticketIds, Assignment: test.assignment})
 				assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
 				// If assign ticket succeeds, validate the assignment
@@ -113,11 +113,9 @@ func TestTicketLifeCycle(t *testing.T) {
 	assert.NotNil(fe)
 
 	ticket := &pb.Ticket{
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				"test-property": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-			},
-		},
+		Properties: structs.Struct{
+			"test-property": structs.Number(1),
+		}.S(),
 		Assignment: &pb.Assignment{
 			Connection: "test-tbd",
 		},

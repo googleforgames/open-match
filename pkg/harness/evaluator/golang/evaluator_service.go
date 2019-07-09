@@ -59,13 +59,13 @@ type EvaluatorParams struct {
 // api/evaluator.proto.
 func (s *evaluatorService) Evaluate(ctx context.Context, req *pb.EvaluateRequest) (*pb.EvaluateResponse, error) {
 	evaluatorLogger.WithFields(logrus.Fields{
-		"proposals": req.GetMatch(),
+		"proposals": req.GetMatches(),
 	}).Debug("matches sent to the evaluator")
 
 	// Run the customized evaluator!
 	results, err := s.evaluate(&EvaluatorParams{
 		Logger:  evaluatorLogger,
-		Matches: req.GetMatch(),
+		Matches: req.GetMatches(),
 	})
 	if err != nil {
 		return nil, status.Error(codes.Aborted, err.Error())
@@ -74,5 +74,5 @@ func (s *evaluatorService) Evaluate(ctx context.Context, req *pb.EvaluateRequest
 	evaluatorLogger.WithFields(logrus.Fields{
 		"results": results,
 	}).Debug("matches accepted by the evaluator")
-	return &pb.EvaluateResponse{Match: results}, nil
+	return &pb.EvaluateResponse{Matches: results}, nil
 }
