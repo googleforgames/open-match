@@ -83,8 +83,11 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 	return &pb.CreateTicketResponse{Ticket: ticket}, nil
 }
 
-// DeleteTicket removes the Ticket from the configured indexes, thereby removing
-// it from matchmaking pool. It also lazily removes the ticket from state storage.
+// DeleteTicket removes the Ticket from state storage and from corresponding
+// configured indices and lazily removes the ticket from state storage.
+// Deleting a ticket immediately stops the ticket from being
+// considered for future matchmaking requests, yet when the ticket itself will be deleted
+// is undeterministic. Users may still be able to assign/get a ticket after calling DeleteTicket on it.
 func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*pb.DeleteTicketResponse, error) {
 	err := doDeleteTicket(ctx, req.GetTicketId(), s.store)
 	if err != nil {

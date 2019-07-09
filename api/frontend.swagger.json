@@ -89,7 +89,7 @@
         ]
       },
       "delete": {
-        "summary": "DeleteTicket removes the Ticket from state storage and from corresponding\nconfigured indices. Deleting the ticket stops the ticket from being\nconsidered for future matchmaking requests.",
+        "summary": "DeleteTicket removes the Ticket from state storage and from corresponding\nconfigured indices and lazily removes the ticket from state storage.\nDeleting a ticket immediately stops the ticket from being\nconsidered for future matchmaking requests, yet when the ticket itself will be deleted\nis undeterministic. Users may still be able to assign/get a ticket after calling DeleteTicket on it.",
         "operationId": "DeleteTicket",
         "responses": {
           "200": {

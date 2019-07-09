@@ -248,7 +248,7 @@ func TestDoAssignTickets(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			cfg := viper.New()
-			cfg.Set("playerIndices", []string{fakeProperty})
+			cfg.Set("ticketIndices", []string{fakeProperty})
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 			defer closer()
 
