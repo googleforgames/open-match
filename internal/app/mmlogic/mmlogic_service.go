@@ -48,11 +48,11 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 	}
 
 	ctx := responseServer.Context()
-	poolFilters := req.GetPool().GetFilter()
+	poolFilters := req.GetPool().GetFilters()
 	pSize := getPageSize(s.cfg)
 
 	callback := func(tickets []*pb.Ticket) error {
-		err := responseServer.Send(&pb.QueryTicketsResponse{Ticket: tickets})
+		err := responseServer.Send(&pb.QueryTicketsResponse{Tickets: tickets})
 		if err != nil {
 			mmlogicServiceLogger.WithError(err).Error("Failed to send Redis response to grpc server")
 			return status.Errorf(codes.Aborted, err.Error())

@@ -29,16 +29,11 @@ import (
 )
 
 func TestGameMatchWorkFlow(t *testing.T) {
-	var gotFmResp *pb.FetchMatchesResponse
-	var gotAtResp *pb.AssignTicketsResponse
-	var ctResp *pb.CreateTicketResponse
-	var gotDtResp *pb.DeleteTicketResponse
-	var err error
 	/*
 		This end to end test does the following things step by step
 		1. Create a few tickets with delicate designs and hand crafted properties
 		2. Call backend.FetchMatches and verify it returns expected matches.
-		3. Call backend.FetchMatches within redis.ignoreLists.ttl seconds and expect FailedPrecondition error.
+		3. Call backend.FetchMatches within redis.ignoreLists.ttl seconds and expects it return a match with duplicate tickets in step 2.
 		4. Wait for redis.ignoreLists.ttl seconds and call backend.FetchMatches the third time, expect the same result as step 2.
 		5. Call backend.AssignTickets to assign DGSs for the tickets in FetchMatches' response
 		6. Call backend.FetchMatches and verify it no longer returns tickets got assigned in the previous step.
@@ -99,8 +94,10 @@ func TestGameMatchWorkFlow(t *testing.T) {
 
 	tickets := []*pb.Ticket{ticket1, ticket2, ticket3, ticket4, ticket5}
 
+	var err error
 	// 1. Create a few tickets with delicate designs and hand crafted properties
 	for i := 0; i < len(tickets); i++ {
+		var ctResp *pb.CreateTicketResponse
 		ctResp, err = fe.CreateTicket(om.Context(), &pb.CreateTicketRequest{Ticket: tickets[i]})
 		assert.Nil(t, err)
 		assert.NotNil(t, ctResp)
@@ -110,25 +107,25 @@ func TestGameMatchWorkFlow(t *testing.T) {
 
 	fmReq := &pb.FetchMatchesRequest{
 		Config: mmfCfg,
-		Profile: []*pb.MatchProfile{
+		Profiles: []*pb.MatchProfile{
 			{
 				Name: "test-profile",
-				Pool: []*pb.Pool{
+				Pools: []*pb.Pool{
 					{
-						Name:   "ticket12",
-						Filter: []*pb.Filter{{Attribute: "level", Min: 0, Max: 6}, {Attribute: "defense", Min: 0, Max: 100}},
+						Name:    "ticket12",
+						Filters: []*pb.Filter{{Attribute: "level", Min: 0, Max: 6}, {Attribute: "defense", Min: 0, Max: 100}},
 					},
 					{
-						Name:   "ticket23",
-						Filter: []*pb.Filter{{Attribute: "level", Min: 3, Max: 14}, {Attribute: "defense", Min: 0, Max: 100}},
+						Name:    "ticket23",
+						Filters: []*pb.Filter{{Attribute: "level", Min: 3, Max: 10}, {Attribute: "defense", Min: 0, Max: 100}},
 					},
 					{
-						Name:   "ticket5",
-						Filter: []*pb.Filter{{Attribute: "level", Min: 0, Max: 100}, {Attribute: "defense", Min: 17, Max: 25}},
+						Name:    "ticket5",
+						Filters: []*pb.Filter{{Attribute: "level", Min: 0, Max: 100}, {Attribute: "defense", Min: 17, Max: 25}},
 					},
 					{
-						Name:   "ticket234",
-						Filter: []*pb.Filter{{Attribute: "level", Min: 3, Max: 17}, {Attribute: "defense", Min: 3, Max: 17}},
+						Name:    "ticket234",
+						Filters: []*pb.Filter{{Attribute: "level", Min: 3, Max: 17}, {Attribute: "defense", Min: 3, Max: 17}},
 					},
 				},
 			},
@@ -136,8 +133,9 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	}
 
 	// 2. Call backend.FetchMatches and expects two matches with the following tickets
+	var gotFmResp *pb.FetchMatchesResponse
 	gotFmResp, err = be.FetchMatches(om.Context(), fmReq)
-	tmpMatches := gotFmResp.GetMatch()
+	tmpMatches := gotFmResp.GetMatches()
 	assert.Nil(t, err)
 	validateFetchMatchesResponse(t, [][]*pb.Ticket{{ticket2, ticket3, ticket4}, {ticket5}}, gotFmResp)
 
@@ -153,12 +151,13 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	validateFetchMatchesResponse(t, [][]*pb.Ticket{{ticket2, ticket3, ticket4}, {ticket5}}, gotFmResp)
 
 	// 5. Call backend.AssignTickets to assign DGSs for the tickets in FetchMatches' response
+	var gotAtResp *pb.AssignTicketsResponse
 	for _, match := range tmpMatches {
 		tids := []string{}
-		for _, ticket := range match.GetTicket() {
+		for _, ticket := range match.GetTickets() {
 			tids = append(tids, ticket.GetId())
 		}
-		gotAtResp, err = be.AssignTickets(om.Context(), &pb.AssignTicketsRequest{TicketId: tids, Assignment: &pb.Assignment{Connection: "agones-1"}})
+		gotAtResp, err = be.AssignTickets(om.Context(), &pb.AssignTicketsRequest{TicketIds: tids, Assignment: &pb.Assignment{Connection: "agones-1"}})
 		assert.Nil(t, err)
 		assert.NotNil(t, gotAtResp)
 	}
@@ -170,20 +169,21 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	validateFetchMatchesResponse(t, [][]*pb.Ticket{{ticket1}}, gotFmResp)
 
 	// 7. Call frontend.DeleteTicket to delete part of the tickets that got assigned.
+	var gotDtResp *pb.DeleteTicketResponse
 	gotDtResp, err = fe.DeleteTicket(om.Context(), &pb.DeleteTicketRequest{TicketId: ticket2.GetId()})
 	assert.Nil(t, err)
 	assert.NotNil(t, gotDtResp)
 
 	// 8. Call backend.AssignTickets to the tickets got deleted and expect an error.
-	gotAtResp, err = be.AssignTickets(om.Context(), &pb.AssignTicketsRequest{TicketId: []string{ticket2.GetId(), ticket3.GetId()}, Assignment: &pb.Assignment{Connection: "agones-2"}})
+	gotAtResp, err = be.AssignTickets(om.Context(), &pb.AssignTicketsRequest{TicketIds: []string{ticket2.GetId(), ticket3.GetId()}, Assignment: &pb.Assignment{Connection: "agones-2"}})
 	assert.Equal(t, codes.NotFound, status.Convert(err).Code())
 	assert.Nil(t, gotAtResp)
 }
 
 func validateFetchMatchesResponse(t *testing.T, wantTickets [][]*pb.Ticket, resp *pb.FetchMatchesResponse) {
 	assert.NotNil(t, resp)
-	assert.Equal(t, len(wantTickets), len(resp.GetMatch()))
-	for _, match := range resp.GetMatch() {
-		assert.Contains(t, wantTickets, match.GetTicket())
+	assert.Equal(t, len(wantTickets), len(resp.GetMatches()))
+	for _, match := range resp.GetMatches() {
+		assert.Contains(t, wantTickets, match.GetTickets())
 	}
 }

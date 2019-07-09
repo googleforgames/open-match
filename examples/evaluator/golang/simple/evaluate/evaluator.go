@@ -33,7 +33,7 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 
 	for _, match := range p.Matches {
 		if isNonCollidingMatch(match, dedup) {
-			for _, ticket := range match.GetTicket() {
+			for _, ticket := range match.GetTickets() {
 				dedup[ticket.GetId()] = true
 			}
 			results = append(results, match)
@@ -44,7 +44,7 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 }
 
 func isNonCollidingMatch(match *pb.Match, validTickets map[string]bool) bool {
-	for _, ticket := range match.GetTicket() {
+	for _, ticket := range match.GetTickets() {
 		id := ticket.GetId()
 		if _, ok := validTickets[id]; ok {
 			return false
