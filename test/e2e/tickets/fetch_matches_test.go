@@ -21,8 +21,6 @@ import (
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
@@ -37,8 +35,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 		4. Wait for redis.ignoreLists.ttl seconds and call backend.FetchMatches the third time, expect the same result as step 2.
 		5. Call backend.AssignTickets to assign DGSs for the tickets in FetchMatches' response
 		6. Call backend.FetchMatches and verify it no longer returns tickets got assigned in the previous step.
-		7. Call frontend.DeleteTicket to delete part of the tickets that got assigned.
-		8. Call backend.AssignTickets to the tickets got deleted and expect an error.
+		7. Call frontend.DeleteTicket to delete the tickets returned in step 6.
+		8. Call backend.FetchMatches and verify the response does not contain the tickets got deleted.
 	*/
 
 	om, closer := e2e.New(t)
@@ -168,16 +166,17 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	assert.Nil(t, err)
 	validateFetchMatchesResponse(t, [][]*pb.Ticket{{ticket1}}, gotFmResp)
 
-	// 7. Call frontend.DeleteTicket to delete part of the tickets that got assigned.
+	// 7. Call frontend.DeleteTicket to delete the tickets returned in step 6.
 	var gotDtResp *pb.DeleteTicketResponse
-	gotDtResp, err = fe.DeleteTicket(om.Context(), &pb.DeleteTicketRequest{TicketId: ticket2.GetId()})
+	gotDtResp, err = fe.DeleteTicket(om.Context(), &pb.DeleteTicketRequest{TicketId: ticket1.GetId()})
 	assert.Nil(t, err)
 	assert.NotNil(t, gotDtResp)
 
-	// 8. Call backend.AssignTickets to the tickets got deleted and expect an error.
-	gotAtResp, err = be.AssignTickets(om.Context(), &pb.AssignTicketsRequest{TicketIds: []string{ticket2.GetId(), ticket3.GetId()}, Assignment: &pb.Assignment{Connection: "agones-2"}})
-	assert.Equal(t, codes.NotFound, status.Convert(err).Code())
-	assert.Nil(t, gotAtResp)
+	// 8. Call backend.FetchMatches and verify the response does not contain the tickets got deleted.
+	time.Sleep(statestoreTesting.IgnoreListTTL)
+	gotFmResp, err = be.FetchMatches(om.Context(), fmReq)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(gotFmResp.GetMatches()))
 }
 
 func validateFetchMatchesResponse(t *testing.T, wantTickets [][]*pb.Ticket, resp *pb.FetchMatchesResponse) {
