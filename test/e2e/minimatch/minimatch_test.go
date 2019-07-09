@@ -24,8 +24,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
@@ -237,7 +235,7 @@ func testFetchMatches(t *testing.T, poolTickets map[string][]string, testProfile
 			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
 		})
 
-		assert.Nil(t, br)
-		assert.Equal(t, codes.FailedPrecondition, status.Convert(err).Code())
+		assert.Nil(t, br.GetMatches())
+		assert.Nil(t, err)
 	}
 }
