@@ -67,15 +67,15 @@
           "description": "Connection information for this Assignment."
         },
         "properties": {
-          "type": "string",
-          "description": "Other details to be sent to the players. (Optional)\nOpen Match does not interpret these properties."
+          "$ref": "#/definitions/protobufStruct",
+          "description": "Other details to be sent to the players."
         },
         "error": {
           "$ref": "#/definitions/rpcStatus",
           "description": "Error when finding an Assignment for this Ticket."
         }
       },
-      "description": "An Assignment object represents the assignment associated with a Ticket."
+      "description": "An Assignment object represents the assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
     },
     "apiEvaluateRequest": {
       "type": "object",
