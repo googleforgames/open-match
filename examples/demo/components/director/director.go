@@ -84,13 +84,13 @@ func run(ds *components.DemoShared) {
 				Port: int32(ds.Cfg.GetInt("api.functions.grpcport")),
 				Type: pb.FunctionConfig_GRPC,
 			},
-			Profile: []*pb.MatchProfile{
+			Profiles: []*pb.MatchProfile{
 				{
 					Name: "1v1",
-					Pool: []*pb.Pool{
+					Pools: []*pb.Pool{
 						{
 							Name: "Everyone",
-							Filter: []*pb.Filter{
+							Filters: []*pb.Filter{
 								{
 									Attribute: "mode.demo",
 									Min:       -100,
@@ -108,7 +108,7 @@ func run(ds *components.DemoShared) {
 			panic(err)
 		}
 
-		matches = resp.Match
+		matches = resp.Matches
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -123,12 +123,12 @@ func run(ds *components.DemoShared) {
 	for _, match := range matches {
 		ids := []string{}
 
-		for _, t := range match.Ticket {
+		for _, t := range match.Tickets {
 			ids = append(ids, t.Id)
 		}
 
 		req := &pb.AssignTicketsRequest{
-			TicketId: ids,
+			TicketIds: ids,
 			Assignment: &pb.Assignment{
 				Connection: fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),
 			},
