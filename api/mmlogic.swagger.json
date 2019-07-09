@@ -71,7 +71,7 @@
           "description": "Other details to be sent to the players. (Optional)\nOpen Match does not interpret these properties."
         },
         "error": {
-          "type": "string",
+          "$ref": "#/definitions/rpcStatus",
           "description": "Error when finding an Assignment for this Ticket."
         }
       },
@@ -104,7 +104,7 @@
           "type": "string",
           "description": "A developer-chosen human-readable name for this Pool."
         },
-        "filter": {
+        "filters": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiFilter"
@@ -125,7 +125,7 @@
     "apiQueryTicketsResponse": {
       "type": "object",
       "properties": {
-        "ticket": {
+        "tickets": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiTicket"
@@ -232,6 +232,29 @@
         }
       },
       "description": "`Value` represents a dynamically typed value which can be either\nnull, a number, a string, a boolean, a recursive struct value, or a\nlist of values. A producer of value is expected to set one of that\nvariants, absence of any variant indicates an error.\n\nThe JSON representation for `Value` is JSON value."
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The status code, which should be an enum value of\n[google.rpc.Code][google.rpc.Code]."
+        },
+        "message": {
+          "type": "string",
+          "description": "A developer-facing error message, which should be in English. Any\nuser-facing error message should be localized and sent in the\n[google.rpc.Status.details][google.rpc.Status.details] field, or localized\nby the client."
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          },
+          "description": "A list of messages that carry the error details.  There is a common set of\nmessage types for APIs to use."
+        }
+      },
+      "description": "- Simple to use and understand for most users\n- Flexible enough to meet unexpected needs\n\n# Overview\n\nThe `Status` message contains three pieces of data: error code, error\nmessage, and error details. The error code should be an enum value of\n[google.rpc.Code][google.rpc.Code], but it may accept additional error codes\nif needed.  The error message should be a developer-facing English message\nthat helps developers *understand* and *resolve* the error. If a localized\nuser-facing error message is needed, put the localized message in the error\ndetails or localize it in the client. The optional error details may contain\narbitrary information about the error. There is a predefined set of error\ndetail types in the package `google.rpc` that can be used for common error\nconditions.\n\n# Language mapping\n\nThe `Status` message is the logical representation of the error model, but it\nis not necessarily the actual wire format. When the `Status` message is\nexposed in different client libraries and different wire protocols, it can be\nmapped differently. For example, it will likely be mapped to some exceptions\nin Java, but more likely mapped to some error codes in C.\n\n# Other uses\n\nThe error model and the `Status` message can be used in a variety of\nenvironments, either with or without APIs, to provide a\nconsistent developer experience across different environments.\n\nExample uses of this error model include:\n\n- Partial errors. If a service needs to return partial errors to the client,\n    it may embed the `Status` in the normal response to indicate the partial\n    errors.\n\n- Workflow errors. A typical workflow has multiple steps. Each step may\n    have a `Status` message for error reporting.\n\n- Batch operations. If a client uses batch request and batch response, the\n    `Status` message should be used directly inside batch response, one for\n    each error sub-response.\n\n- Asynchronous operations. If an API call embeds asynchronous operation\n    results in its response, the status of those operations should be\n    represented directly using the `Status` message.\n\n- Logging. If some API errors are stored in logs, the message `Status` could\n    be used directly after any stripping needed for security/privacy reasons.",
+      "title": "The `Status` type defines a logical error model that is suitable for\ndifferent programming environments, including REST APIs and RPC APIs. It is\nused by [gRPC](https://github.com/grpc). The error model is designed to be:"
     },
     "runtimeStreamError": {
       "type": "object",

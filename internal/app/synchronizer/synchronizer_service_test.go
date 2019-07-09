@@ -244,11 +244,11 @@ func runEvaluationTest(t *testing.T, tc *testData) {
 			require.NotNil(rResp)
 			require.Nil(err)
 			time.Sleep(time.Duration(c.evaluateDelay) * time.Millisecond)
-			epResp, err := s.EvaluateProposals(ctx, &ipb.EvaluateProposalsRequest{Match: c.proposals, Id: rResp.Id})
+			epResp, err := s.EvaluateProposals(ctx, &ipb.EvaluateProposalsRequest{Matches: c.proposals, Id: rResp.Id})
 			require.Equal(c.evaluationrErrorCode, status.Convert(err).Code())
 			if c.evaluationrErrorCode == codes.OK {
 				require.NotNil(epResp)
-				require.ElementsMatch(c.wantResults, epResp.GetMatch())
+				require.ElementsMatch(c.wantResults, epResp.GetMatches())
 			}
 		}(c)
 	}
