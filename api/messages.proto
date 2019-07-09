@@ -39,14 +39,14 @@ message Ticket {
   Assignment assignment = 3;
 }
 
-// An Assignment object represents the assignment associated with a Ticket.
+// An Assignment object represents the assignment associated with a Ticket. Open
+// match does not require or inspect any fields on assignment.
 message Assignment {
   // Connection information for this Assignment.
   string connection = 1;
 
-  // Other details to be sent to the players. (Optional)
-  // Open Match does not interpret these properties.
-  string properties = 2;
+  // Other details to be sent to the players.
+  google.protobuf.Struct properties = 2;
 
   // Error when finding an Assignment for this Ticket.
   google.rpc.Status error = 3;
