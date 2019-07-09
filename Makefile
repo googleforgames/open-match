@@ -165,7 +165,6 @@ ifeq ($(GCP_PROJECT_ID),)
 endif
 
 ifeq ($(OS),Windows_NT)
-	# TODO: Windows packages are here but things are broken since many paths are Linux based and zip vs tar.gz.
 	HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-windows-amd64.zip
 	MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-windows-amd64.exe
 	SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-windows-amd64.exe
