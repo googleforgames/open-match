@@ -90,11 +90,6 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		return nil, err
 	}
 
-	err = doFetchMatchesAddIgnoredTickets(ctx, s.store, results)
-	if err != nil {
-		return nil, err
-	}
-
 	return &pb.FetchMatchesResponse{Matches: results}, nil
 }
 
@@ -176,16 +171,6 @@ func doFetchMatchesValidateProposals(ctx context.Context, resultChan <-chan mmfR
 		}
 	}
 	return proposals, nil
-}
-
-func doFetchMatchesAddIgnoredTickets(ctx context.Context, store statestore.Service, results []*pb.Match) error {
-	ids := []string{}
-	for _, match := range results {
-		for _, ticket := range match.GetTickets() {
-			ids = append(ids, ticket.GetId())
-		}
-	}
-	return store.AddTicketsToIgnoreList(ctx, ids)
 }
 
 func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *http.Client, baseURL string) ([]*pb.Match, error) {
