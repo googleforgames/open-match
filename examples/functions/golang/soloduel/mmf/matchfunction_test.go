@@ -39,7 +39,8 @@ func TestMakeMatchesDeduplicate(t *testing.T) {
 		PoolNameToTickets: poolNameToTickets,
 	}
 
-	matches := MakeMatches(p)
+	matches, err := MakeMatches(p)
+	assert.Nil(err)
 	assert.Equal(len(matches), 0)
 }
 
@@ -59,7 +60,8 @@ func TestMakeMatches(t *testing.T) {
 		PoolNameToTickets: poolNameToTickets,
 	}
 
-	matches := MakeMatches(p)
+	matches, err := MakeMatches(p)
+	assert.Nil(err)
 	assert.Equal(len(matches), 3)
 
 	for _, match := range matches {
