@@ -16,3 +16,7 @@ Steps
  1. Select "Export"
  1. Select "Save to File"
  1. Download the file into this directory.
+
+Some templates came from the Grafana Labs site.
+
+go-processes.json - https://grafana.com/dashboards/6671

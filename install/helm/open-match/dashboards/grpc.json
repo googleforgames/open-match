@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1557247578070,
+  "iteration": 1562708434300,
   "links": [],
   "panels": [
     {
@@ -28,7 +28,7 @@
       },
       "id": 10,
       "panels": [],
-      "title": "Client",
+      "title": "Server",
       "type": "row"
     },
     {
@@ -58,6 +58,7 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {},
       "percentage": false,
       "pointradius": 2,
       "points": false,
@@ -68,11 +69,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(grpc_io_client_received_messages_per_rpc_count[$timewindow])",
+          "expr": "sum by (grpc_server_method)(rate(grpc_io_server_completed_rpcs[$timewindow]))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{component}} {{grpc_client_method}}",
+          "legendFormat": "{{grpc_server_method}}",
           "refId": "A"
         }
       ],
@@ -122,6 +123,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "description": "",
       "fill": 1,
       "gridPos": {
         "h": 8,
@@ -143,6 +145,7 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {},
       "percentage": false,
       "pointradius": 2,
       "points": false,
@@ -153,11 +156,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.9, rate(grpc_io_client_roundtrip_latency_bucket[$timewindow]))",
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_server_server_latency_bucket[$timewindow])) by (grpc_server_method, le))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{component}} {{grpc_client_method}}",
+          "legendFormat": "{{grpc_server_method}}",
           "refId": "A"
         }
       ],
@@ -165,7 +168,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Latency",
+      "title": "95%-ile Latency",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -213,7 +216,7 @@
       },
       "id": 8,
       "panels": [],
-      "title": "Server",
+      "title": "Client",
       "type": "row"
     },
     {
@@ -243,6 +246,7 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {},
       "paceLength": 10,
       "percentage": false,
       "pointradius": 2,
@@ -254,26 +258,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(grpc_io_server_received_messages_per_rpc_count[$timewindow])",
+          "expr": "sum by (grpc_client_method)(rate(grpc_io_client_completed_rpcs[$timewindow]))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Recv /{{component}}.{{grpc_server_method}}",
+          "legendFormat": "{{grpc_client_method}}",
           "refId": "A"
-        },
-        {
-          "expr": "rate(grpc_io_server_sent_messages_per_rpc_count[$timewindow])",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "Sent /{{component}}.{{grpc_server_method}}",
-          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Request Rate",
+      "title": "Client Request Rate",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -316,6 +313,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "description": "",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -337,6 +335,7 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {},
       "paceLength": 10,
       "percentage": false,
       "pointradius": 2,
@@ -348,10 +347,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.9, rate(grpc_io_server_server_latency_bucket[$timewindow]))",
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_roundtrip_latency_bucket[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{grpc_server_method}}",
+          "legendFormat": "{{grpc_client_method}}",
           "refId": "A"
         }
       ],
@@ -359,7 +359,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "RPC Latency",
+      "title": "95%-ile Client Latency",
       "tooltip": {
         "shared": true,
         "sort": 0,

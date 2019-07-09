@@ -88,7 +88,9 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
-		if err = handlerFunc(ctx, s.proxyMux, grpcListener.Addr().String(), []grpc.DialOption{grpc.WithInsecure()}); err != nil {
+		dialOpts := newDefaultGRPCDialOptions()
+		dialOpts = append(dialOpts, grpc.WithInsecure())
+		if err = handlerFunc(ctx, s.proxyMux, grpcListener.Addr().String(), dialOpts); err != nil {
 			cancel()
 			return func() {}, errors.WithStack(err)
 		}
