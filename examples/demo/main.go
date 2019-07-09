@@ -19,10 +19,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
+	"net/http"
 	"open-match.dev/open-match/examples/demo/bytesub"
 	"open-match.dev/open-match/examples/demo/components"
 	"open-match.dev/open-match/examples/demo/components/clients"
@@ -31,6 +30,7 @@ import (
 	"open-match.dev/open-match/examples/demo/updater"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
+	"open-match.dev/open-match/internal/monitoring"
 )
 
 var (
@@ -61,9 +61,7 @@ func main() {
 		fileServe.ServeHTTP(w, r)
 	})
 
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "ok")
-	})
+	http.Handle(monitoring.HealthCheckEndpoint, monitoring.NewAlwaysReadyHealthCheck())
 
 	bs := bytesub.New()
 	u := updater.New(context.Background(), func(b []byte) {
@@ -84,10 +82,9 @@ func main() {
 
 	go startComponents(cfg, u)
 
-	// TODO: Other services read their port from the common config map, how should
-	// this be choosing the ports it exposes?
-	err = http.ListenAndServe(":51507", nil)
-	logger.WithError(err).Fatal("Http ListenAndServe failed.")
+	address := fmt.Sprintf(":%d", cfg.GetInt("api.demo.httpport"))
+	err = http.ListenAndServe(address, nil)
+	logger.WithError(err).Warning("HTTP server closed.")
 }
 
 func startComponents(cfg config.View, u *updater.Updater) {

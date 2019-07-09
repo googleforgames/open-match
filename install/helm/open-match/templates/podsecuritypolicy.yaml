@@ -84,7 +84,7 @@ spec:
   #- ALL
   runAsUser:
     rule: "RunAsAny"
-    # Blocked on https://github.com/GoogleContainerTools/distroless/pull/368
+    # Blocked on isolating the open match services from dependencies (Redis, Prometheus, etc.)
     # Require the container to run without root privileges.
     #rule: 'MustRunAsNonRoot'
   seLinux:

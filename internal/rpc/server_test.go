@@ -17,18 +17,17 @@ package rpc
 import (
 	"context"
 	"fmt"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc"
 	"io/ioutil"
 	"net/http"
+	"open-match.dev/open-match/internal/monitoring"
+	shellTesting "open-match.dev/open-match/internal/testing"
+	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
+	"open-match.dev/open-match/pkg/pb"
 	"strings"
 	"testing"
 	"time"
-
-	"open-match.dev/open-match/pkg/pb"
-
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
-	shellTesting "open-match.dev/open-match/internal/testing"
-	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 )
 
 func TestStartStopServer(t *testing.T) {
@@ -105,7 +104,7 @@ func runGrpcWithProxyTests(assert *assert.Assertions, s grpcServerWithProxy, con
 	assert.Equal(200, httpResp.StatusCode)
 	assert.Equal("{}", string(body))
 
-	httpReq, err = http.NewRequest(http.MethodGet, endpoint+"/healthz", nil)
+	httpReq, err = http.NewRequest(http.MethodGet, endpoint+monitoring.HealthCheckEndpoint, nil)
 	assert.Nil(err)
 
 	httpResp, err = httpClient.Do(httpReq)

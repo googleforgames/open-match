@@ -160,6 +160,9 @@ openmatch:
             httpport: "{{.Values.openmatch.demoevaluator.http.port}}"
           swaggerui:
             httpport: "{{.Values.openmatch.swaggerui.http.port}}"
+          demo:
+            hostname: om-demo
+            httpport: "{{.Values.openmatch.demo.http.port}}"
 
         synchronizer:
           enabled: false
@@ -245,43 +248,33 @@ openmatch:
   image:
     registry: gcr.io/open-match-public-images
     tag: 0.0.0-dev
+    pullPolicy: Always
     backend:
       name: openmatch-backend
-      pullPolicy: Always
     frontend:
       name: openmatch-frontend
-      pullPolicy: Always
     mmlogic:
       name: openmatch-mmlogic
-      pullPolicy: Always
     synchronizer:
       name: openmatch-synchronizer
-      pullPolicy: Always
     swaggerui:
       name: openmatch-swaggerui
-      pullPolicy: Always
     demoevaluator:
       name: openmatch-evaluator-go-simple
-      pullPolicy: Always
     demofunction:
       name: openmatch-mmf-go-soloduel
-      pullPolicy: Always
     demo:
       name: openmatch-demo
-      pullPolicy: Always
     e2ematchfunction:
       name: openmatch-mmf-go-pool
-      pullPolicy: Always
     e2eevaluator:
       name: openmatch-evaluator-go-simple
-      pullPolicy: Always
 
 # https://hub.helm.sh/charts/stable/redis
 # https://github.com/helm/charts/tree/master/stable/redis
 redis:
   fullnameOverride: om-redis
-  # TODO: Temporarily disable password protected Redis until all the examples are no longer talking directly to the database.
-  usePassword: false
+  usePassword: true
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
   metrics:
