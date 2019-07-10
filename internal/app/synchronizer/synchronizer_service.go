@@ -25,6 +25,7 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	ipb "open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -60,12 +61,13 @@ type synchronizerData struct {
 // The service implementing the Synchronizer API that synchronizes the evaluation
 // of proposals from Match functions.
 type synchronizerService struct {
-	cfg        config.View       // Open Match configuration
-	cycleData  *synchronizerData // State for the current synchronization cycle
-	eval       evaluator         // Evaluation function to be triggered
-	idleCond   *sync.Cond        // Signal any blocked registrations to proceed
-	state      synchronizerState // Current state of the Synchronizer
-	stateMutex sync.Mutex        // Mutex to check on current state and take specific actions.
+	cfg        config.View        // Open Match configuration
+	cycleData  *synchronizerData  // State for the current synchronization cycle
+	eval       evaluator          // Evaluation function to be triggered
+	store      statestore.Service // A wrapper service that connects to the backend data storage service
+	idleCond   *sync.Cond         // Signal any blocked registrations to proceed
+	state      synchronizerState  // Current state of the Synchronizer
+	stateMutex sync.Mutex         // Mutex to check on current state and take specific actions.
 }
 
 var (
@@ -75,11 +77,12 @@ var (
 	})
 )
 
-func newSynchronizerService(cfg config.View, eval evaluator) *synchronizerService {
+func newSynchronizerService(cfg config.View, eval evaluator, store statestore.Service) *synchronizerService {
 	service := &synchronizerService{
 		state: stateIdle,
 		cfg:   cfg,
 		eval:  eval,
+		store: store,
 		cycleData: &synchronizerData{
 			idToRequestData: make(map[string]*requestData),
 			resultsReady:    make(chan struct{}),
@@ -141,12 +144,12 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 func (s *synchronizerService) EvaluateProposals(ctx context.Context, req *ipb.EvaluateProposalsRequest) (*ipb.EvaluateProposalsResponse, error) {
 	synchronizerServiceLogger.WithFields(logrus.Fields{
 		"id":        req.GetId(),
-		"proposals": getMatchIds(req.GetMatch()),
+		"proposals": getMatchIds(req.GetMatches()),
 	}).Info("Received request to evaluate propsals")
 	// pendingRequests keeps track of number of requests pending. This is incremented
 	// in addProposals while holding the state mutex. The count should be decremented
 	// only after this request completes.
-	err := s.addProposals(req.Id, req.Match)
+	err := s.addProposals(req.Id, req.Matches)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +167,18 @@ func (s *synchronizerService) EvaluateProposals(ctx context.Context, req *ipb.Ev
 		return nil, err
 	}
 
-	return &ipb.EvaluateProposalsResponse{Match: results}, nil
+	ids := []string{}
+	for _, match := range results {
+		for _, ticket := range match.GetTickets() {
+			ids = append(ids, ticket.GetId())
+		}
+	}
+	err = s.store.AddTicketsToIgnoreList(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ipb.EvaluateProposalsResponse{Matches: results}, nil
 }
 
 func (s *synchronizerService) addProposals(id string, proposals []*pb.Match) error {

@@ -80,16 +80,16 @@ func TestFetchMatches(t *testing.T) {
 			t.Run(test.description, func(t *testing.T) {
 				t.Parallel()
 
-				resp, err := be.FetchMatches(mainTc.Context(), &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile})
+				resp, err := be.FetchMatches(mainTc.Context(), &pb.FetchMatchesRequest{Config: test.fc, Profiles: test.profile})
 				assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
 				if err == nil {
-					for _, match := range resp.Match {
+					for _, match := range resp.Matches {
 						assert.Contains(t, test.wantMatch, &pb.Match{
 							MatchProfile:  match.GetMatchProfile(),
 							MatchFunction: match.GetMatchFunction(),
-							Ticket:        match.GetTicket(),
-							Roster:        match.GetRoster(),
+							Tickets:       match.GetTickets(),
+							Rosters:       match.GetRosters(),
 						})
 					}
 				}

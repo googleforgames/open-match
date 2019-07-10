@@ -26,6 +26,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	ipb "open-match.dev/open-match/internal/pb"
+	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -221,19 +222,21 @@ func TestSynchronizerService(t *testing.T) {
 
 func runEvaluationTest(t *testing.T, tc *testData) {
 	require := require.New(t)
-
 	// Generate a config view with paths to the manifests
 	cfg := viper.New()
 	cfg.Set("synchronizer.proposalCollectionIntervalMs", tc.propInterval)
 	cfg.Set("synchronizer.registrationIntervalMs", tc.regInterval)
 
-	s := newSynchronizerService(cfg, tc.testEvaluator.eval)
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+	defer closer()
+
+	s := newSynchronizerService(cfg, tc.testEvaluator.eval, store)
 	require.NotNil(s)
 	var w sync.WaitGroup
 	w.Add(len(tc.testCalls))
 	for _, c := range tc.testCalls {
 		c := c
-		go func() {
+		go func(c *testCallData) {
 			ctx := context.Background()
 			defer w.Done()
 			time.Sleep(time.Duration(c.registerDelay) * time.Millisecond)
@@ -241,13 +244,13 @@ func runEvaluationTest(t *testing.T, tc *testData) {
 			require.NotNil(rResp)
 			require.Nil(err)
 			time.Sleep(time.Duration(c.evaluateDelay) * time.Millisecond)
-			epResp, err := s.EvaluateProposals(ctx, &ipb.EvaluateProposalsRequest{Match: c.proposals, Id: rResp.Id})
+			epResp, err := s.EvaluateProposals(ctx, &ipb.EvaluateProposalsRequest{Matches: c.proposals, Id: rResp.Id})
 			require.Equal(c.evaluationrErrorCode, status.Convert(err).Code())
 			if c.evaluationrErrorCode == codes.OK {
 				require.NotNil(epResp)
-				require.ElementsMatch(c.wantResults, epResp.Match)
+				require.ElementsMatch(c.wantResults, epResp.GetMatches())
 			}
-		}()
+		}(c)
 	}
 
 	w.Wait()

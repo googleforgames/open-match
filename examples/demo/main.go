@@ -15,15 +15,22 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
-	"net/http"
-	"time"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
+	"net/http"
 	"open-match.dev/open-match/examples/demo/bytesub"
+	"open-match.dev/open-match/examples/demo/components"
+	"open-match.dev/open-match/examples/demo/components/clients"
+	"open-match.dev/open-match/examples/demo/components/director"
+	"open-match.dev/open-match/examples/demo/components/uptime"
+	"open-match.dev/open-match/examples/demo/updater"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
+	"open-match.dev/open-match/internal/monitoring"
 )
 
 var (
@@ -54,18 +61,18 @@ func main() {
 		fileServe.ServeHTTP(w, r)
 	})
 
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "ok")
-	})
+	http.Handle(monitoring.HealthCheckEndpoint, monitoring.NewAlwaysReadyHealthCheck())
 
 	bs := bytesub.New()
-	go func() {
-		i := 0
-		for range time.Tick(time.Second) {
-			bs.AnnounceLatest([]byte(fmt.Sprintf("Uptime: %d", i)))
-			i++
+	u := updater.New(context.Background(), func(b []byte) {
+		var out bytes.Buffer
+		err := json.Indent(&out, b, "", "  ")
+		if err == nil {
+			bs.AnnounceLatest(out.Bytes())
+		} else {
+			bs.AnnounceLatest(b)
 		}
-	}()
+	})
 
 	http.Handle("/connect", websocket.Handler(func(ws *websocket.Conn) {
 		bs.Subscribe(ws.Request().Context(), ws)
@@ -73,8 +80,23 @@ func main() {
 
 	logger.Info("Starting Server")
 
-	// TODO: Other services read their port from the common config map, how should
-	// this be choosing the ports it exposes?
-	err = http.ListenAndServe(":51507", nil)
-	logger.WithError(err).Fatal("Http ListenAndServe failed.")
+	go startComponents(cfg, u)
+
+	address := fmt.Sprintf(":%d", cfg.GetInt("api.demo.httpport"))
+	err = http.ListenAndServe(address, nil)
+	logger.WithError(err).Warning("HTTP server closed.")
+}
+
+func startComponents(cfg config.View, u *updater.Updater) {
+	for name, f := range map[string]func(*components.DemoShared){
+		"uptime":   uptime.Run,
+		"clients":  clients.Run,
+		"director": director.Run,
+	} {
+		go f(&components.DemoShared{
+			Ctx:    context.Background(),
+			Cfg:    cfg,
+			Update: u.ForField(name),
+		})
+	}
 }

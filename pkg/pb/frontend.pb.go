@@ -369,8 +369,10 @@ type FrontendClient interface {
 	// ticket adds the Ticket to the pool of Tickets considered for matchmaking.
 	CreateTicket(ctx context.Context, in *CreateTicketRequest, opts ...grpc.CallOption) (*CreateTicketResponse, error)
 	// DeleteTicket removes the Ticket from state storage and from corresponding
-	// configured indices. Deleting the ticket stops the ticket from being
-	// considered for future matchmaking requests.
+	// configured indices and lazily removes the ticket from state storage.
+	// Deleting a ticket immediately stops the ticket from being
+	// considered for future matchmaking requests, yet when the ticket itself will be deleted
+	// is undeterministic. Users may still be able to assign/get a ticket after calling DeleteTicket on it.
 	DeleteTicket(ctx context.Context, in *DeleteTicketRequest, opts ...grpc.CallOption) (*DeleteTicketResponse, error)
 	// GetTicket fetches the ticket associated with the specified Ticket ID.
 	GetTicket(ctx context.Context, in *GetTicketRequest, opts ...grpc.CallOption) (*Ticket, error)
@@ -455,8 +457,10 @@ type FrontendServer interface {
 	// ticket adds the Ticket to the pool of Tickets considered for matchmaking.
 	CreateTicket(context.Context, *CreateTicketRequest) (*CreateTicketResponse, error)
 	// DeleteTicket removes the Ticket from state storage and from corresponding
-	// configured indices. Deleting the ticket stops the ticket from being
-	// considered for future matchmaking requests.
+	// configured indices and lazily removes the ticket from state storage.
+	// Deleting a ticket immediately stops the ticket from being
+	// considered for future matchmaking requests, yet when the ticket itself will be deleted
+	// is undeterministic. Users may still be able to assign/get a ticket after calling DeleteTicket on it.
 	DeleteTicket(context.Context, *DeleteTicketRequest) (*DeleteTicketResponse, error)
 	// GetTicket fetches the ticket associated with the specified Ticket ID.
 	GetTicket(context.Context, *GetTicketRequest) (*Ticket, error)

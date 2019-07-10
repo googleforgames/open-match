@@ -24,8 +24,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
@@ -64,28 +62,28 @@ func TestMinimatch(t *testing.T) {
 	testPools := map[string]*pb.Pool{
 		e2e.Map1BeginnerPool: {
 			Name: e2e.Map1BeginnerPool,
-			Filter: []*pb.Filter{
+			Filters: []*pb.Filter{
 				{Attribute: e2e.SkillAttribute, Min: 0, Max: 5},
 				{Attribute: e2e.Map1Attribute, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map1AdvancedPool: {
 			Name: e2e.Map1AdvancedPool,
-			Filter: []*pb.Filter{
+			Filters: []*pb.Filter{
 				{Attribute: e2e.SkillAttribute, Min: 6, Max: 10},
 				{Attribute: e2e.Map1Attribute, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map2BeginnerPool: {
 			Name: e2e.Map2BeginnerPool,
-			Filter: []*pb.Filter{
+			Filters: []*pb.Filter{
 				{Attribute: e2e.SkillAttribute, Min: 0, Max: 5},
 				{Attribute: e2e.Map2Attribute, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map2AdvancedPool: {
 			Name: e2e.Map2AdvancedPool,
-			Filter: []*pb.Filter{
+			Filters: []*pb.Filter{
 				{Attribute: e2e.SkillAttribute, Min: 6, Max: 10},
 				{Attribute: e2e.Map2Attribute, Max: math.MaxFloat64},
 			},
@@ -176,7 +174,7 @@ func TestMinimatch(t *testing.T) {
 						}
 						assert.Nil(t, err)
 						assert.NotNil(t, qtresp)
-						tickets = append(tickets, qtresp.Ticket...)
+						tickets = append(tickets, qtresp.Tickets...)
 					}
 
 					// Generate a map of pool name to all tickets belonging to the pool.
@@ -207,37 +205,37 @@ func testFetchMatches(t *testing.T, poolTickets map[string][]string, testProfile
 	// Fetch Matches for each test profile.
 	for _, profile := range testProfiles {
 		br, err := be.FetchMatches(tc.Context(), &pb.FetchMatchesRequest{
-			Config:  fc,
-			Profile: []*pb.MatchProfile{{Name: profile.name, Pool: profile.pools}},
+			Config:   fc,
+			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
 		})
 		assert.Nil(t, err)
 		assert.NotNil(t, br)
-		assert.NotNil(t, br.GetMatch())
+		assert.NotNil(t, br.GetMatches())
 
-		for _, match := range br.GetMatch() {
+		for _, match := range br.GetMatches() {
 			// Currently, the MMF simply creates a match per pool in the match profile - and populates
 			// the roster with the pool name. Thus validate that for the roster populated in the match
 			// result has all the tickets expected in that pool.
-			assert.Equal(t, len(match.GetRoster()), 1)
-			assert.Equal(t, match.GetRoster()[0].GetTicketId(), poolTickets[match.GetRoster()[0].GetName()])
+			assert.Equal(t, len(match.GetRosters()), 1)
+			assert.Equal(t, match.GetRosters()[0].GetTicketIds(), poolTickets[match.GetRosters()[0].GetName()])
 
 			var gotTickets []string
-			for _, ticket := range match.GetTicket() {
+			for _, ticket := range match.GetTickets() {
 				gotTickets = append(gotTickets, ticket.Id)
 			}
 
 			// Given that currently we only populate all tickets in a match in a Roster, validate that
 			// all the tickets present in the result match are equal to the tickets in the pool for that match.
-			assert.Equal(t, gotTickets, poolTickets[match.GetRoster()[0].GetName()])
+			assert.Equal(t, gotTickets, poolTickets[match.GetRosters()[0].GetName()])
 		}
 
 		// Verify calling fetch matches twice within ttl interval won't yield new results
 		br, err = be.FetchMatches(tc.Context(), &pb.FetchMatchesRequest{
-			Config:  fc,
-			Profile: []*pb.MatchProfile{{Name: profile.name, Pool: profile.pools}},
+			Config:   fc,
+			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
 		})
 
-		assert.Nil(t, br)
-		assert.Equal(t, codes.FailedPrecondition, status.Convert(err).Code())
+		assert.Nil(t, br.GetMatches())
+		assert.Nil(t, err)
 	}
 }
