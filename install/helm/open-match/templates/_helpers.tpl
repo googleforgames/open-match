@@ -84,6 +84,12 @@ resources:
 volumeMounts:
 - name: om-config-volume
   mountPath: {{ .Values.openmatch.config.mountPath }}
+{{- if .Values.openmatch.tls.enabled }}
+- name: root-ca-volume
+  mountPath: {{ .Values.openmatch.tls.root.mountPath }}
+- name: tls-server-volume
+  mountPath: {{ .Values.openmatch.tls.server.mountPath }}
+{{- end }}
 {{- end -}}
 
 {{- define "openmatch.spec.common" -}}
@@ -92,6 +98,14 @@ volumes:
 - name: om-config-volume
   configMap:
     name: om-configmap
+{{- if .Values.openmatch.tls.enabled }}
+- name: root-ca-volume
+  secret:
+    secretName: om-tls-rootca
+- name: tls-server-volume
+  secret:
+    secretName: om-tls-server
+{{- end }}
 {{- end -}}
 
 {{- define "openmatch.container.withredis" -}}
@@ -112,6 +126,7 @@ env:
 {{- define "kubernetes.probe" -}}
 livenessProbe:
   httpGet:
+    scheme: {{ if (.isHTTPS) }}HTTPS{{ else }}HTTP{{ end }}
     path: /healthz
     port: {{ .port }}
   initialDelaySeconds: 5
@@ -119,6 +134,7 @@ livenessProbe:
   failureThreshold: 3
 readinessProbe:
   httpGet:
+    scheme: {{ if (.isHTTPS) }}HTTPS{{ else }}HTTP{{ end }}
     path: /healthz?readiness=true
     port: {{ .port }}
   initialDelaySeconds: 10

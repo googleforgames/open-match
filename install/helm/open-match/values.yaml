@@ -114,6 +114,13 @@ openmatch:
     rate: 200
     duration: 30s
     porttype: LoadBalancer
+  tls: 
+    # If you enable TLS, uncomment the tls section under "api:"
+    enabled: false
+    root:
+      mountPath: /app/secrets/tls/rootca
+    server:
+      mountPath: /app/secrets/tls/server
   kubernetes:
     serviceAccount: open-match-unprivileged-service
 
@@ -125,7 +132,7 @@ openmatch:
         logging:
           level: debug
           format: text
-          rpc: true
+          rpc: false
         # Open Match applies the exponential backoff strategy for its retryable gRPC calls.
         # The settings below are the default backoff configuration used in Open Match.
         # See https://github.com/cenkalti/backoff/blob/v3/exponential.go for detailed explanations
@@ -142,6 +149,12 @@ openmatch:
           maxElapsedTime: 3000ms
 
         api:
+          # TODO: Figure out how to key this off of tls.enabled=true. For now someone can uncomment these to turn it on.
+          #tls:
+          #  trustedCertificatePath: "{{.Values.openmatch.tls.root.mountPath}}/public.cert"
+          #  certificatefile: "{{.Values.openmatch.tls.server.mountPath}}/public.cert"
+          #  privatekey: "{{.Values.openmatch.tls.server.mountPath}}/private.key"
+          #  rootcertificatefile: "{{.Values.openmatch.tls.root.mountPath}}/public.cert"
           backend:
             hostname: om-backend
             grpcport: "{{.Values.openmatch.backend.grpc.port}}"

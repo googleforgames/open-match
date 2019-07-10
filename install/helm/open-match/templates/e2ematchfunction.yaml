@@ -71,5 +71,5 @@ spec:
           containerPort: {{ .Values.openmatch.e2ematchfunction.grpc.port }}
         - name: http
           containerPort: {{ .Values.openmatch.e2ematchfunction.http.port }}
-        {{- include "kubernetes.probe" (dict "port" .Values.openmatch.e2ematchfunction.http.port) | nindent 8 }}
+        {{- include "kubernetes.probe" (dict "port" .Values.openmatch.e2ematchfunction.http.port "isHTTPS" .Values.openmatch.tls.enabled) | nindent 8 }}
 {{- end }}

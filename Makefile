@@ -342,7 +342,7 @@ build/chart/index.yaml.$(YEAR_MONTH_DAY): build/chart/index.yaml
 
 build/chart/: build/chart/index.yaml build/chart/index.yaml.$(YEAR_MONTH_DAY)
 
-install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -355,7 +355,7 @@ install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -368,7 +368,7 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -395,6 +395,7 @@ delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubec
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheuses.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd servicemonitors.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
+	-$(KUBECTL) delete namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 
 install/yaml/: install/yaml/install.yaml install/yaml/install-demo.yaml install/yaml/01-redis-chart.yaml install/yaml/02-open-match.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml
 
@@ -758,15 +759,15 @@ pkg/pb/mmlogic.pb.go: pkg/pb/messages.pb.go
 pkg/pb/evaluator.pb.go: pkg/pb/messages.pb.go
 internal/pb/synchronizer.pb.go: pkg/pb/messages.pb.go
 
-build:
+build: assets
 	$(GO) build ./...
 	$(GO) build -tags e2ecluster ./... 
 
-test:
+test: assets
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./...
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
-test-e2e-cluster:
+test-e2e-cluster: assets
 	$(GO) test ./... -race -tags e2ecluster
 
 stress-frontend-%: build/toolchain/python/
