@@ -29,6 +29,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/monitoring"
 )
 
 var (
@@ -77,7 +78,7 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 // GRPCClientFromEndpoint creates a gRPC client connection from endpoint.
 func GRPCClientFromEndpoint(cfg config.View, address string) (*grpc.ClientConn, error) {
 	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
-	grpcOptions := []grpc.DialOption{}
+	grpcOptions := newDefaultGRPCDialOptions()
 
 	if cfg.GetBool("tls.enabled") {
 		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
@@ -111,7 +112,7 @@ func GRPCClientFromEndpoint(cfg config.View, address string) (*grpc.ClientConn, 
 func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 	address := fmt.Sprintf("%s:%d", params.Hostname, params.Port)
 
-	grpcOptions := []grpc.DialOption{}
+	grpcOptions := newDefaultGRPCDialOptions()
 
 	if params.usingTLS() {
 		trustedCertPool, err := trustedCertificateFromFileData(params.TrustedCertificate)
@@ -256,4 +257,8 @@ func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 	}
 
 	return httpClient, baseURL, nil
+}
+
+func newDefaultGRPCDialOptions() []grpc.DialOption {
+	return []grpc.DialOption{monitoring.MetricsForClient()}
 }
