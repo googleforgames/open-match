@@ -86,6 +86,7 @@ openmatch:
       port: 50512
     http:
       port: 51512
+    porttype: LoadBalancer
   demofunction:
     install: true
     replicas: 3

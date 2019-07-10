@@ -15,7 +15,6 @@ def number_generator():
 def ticket_generator(): 
     return {
         "ticket": {
-            "id": string_generator(),
             "properties": json.dumps({ attribute: number_generator() for attribute in ATTRIBUTE_LIST})
         }
     }

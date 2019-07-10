@@ -30,7 +30,7 @@ spec:
   - name: grpc
     protocol: TCP
     port: {{ .Values.openmatch.e2ematchfunction.grpc.port }}
-  - name: proxy
+  - name: http
     protocol: TCP
     port: {{ .Values.openmatch.e2ematchfunction.http.port }}
 ---

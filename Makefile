@@ -1005,6 +1005,9 @@ proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 # If you run this directly it will just run each proxy sequentially.
 proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-synchronizer proxy-ui proxy-dashboard proxy-demo
 
+stress-external-ip:
+	echo $(shell $(KUBECTL) get svc locust-master -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -o yaml | grep ip | awk -F":" '{print $NF}'):8089
+
 proxy:
 	# This is an exception case where we'll call recursive make.
 	# To simplify accessing all the proxy ports we'll call `make proxy-all` with enough subprocesses to run them concurrently.

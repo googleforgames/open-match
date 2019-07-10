@@ -30,7 +30,7 @@ spec:
   - name: grpc
     protocol: TCP
     port: {{ .Values.openmatch.demofunction.grpc.port }}
-  - name: proxy
+  - name: http
     protocol: TCP
     port: {{ .Values.openmatch.demofunction.http.port }}
 ---

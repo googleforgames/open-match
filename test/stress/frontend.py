@@ -37,9 +37,8 @@ class ClientBehavior(TaskSequence):
 
     method, endpoint, params, data, name = "POST", self.payload["endpoint"], None, json.dumps(self.payload["body"]), "Create: {}".format(self.payload["endpoint"])
 
-    with self.client.request(method, endpoint, name=name, params=params, data=data, catch_response=True) as response:
-      if response.content != b"{}":
-        response.failure("Got {}, was expected {{}}".format(response.content))
+    response = self.client.request(method, endpoint, name=name, params=params, data=data, catch_response=True)
+    print(response.content)
 
   @seq_task(2)
   @task(5)
