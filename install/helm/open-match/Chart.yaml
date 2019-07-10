@@ -32,5 +32,5 @@ maintainers:
    email: open-match-discuss@googlegroups.com
    url: https://groups.google.com/forum/#!forum/open-match-discuss
 engine: gotpl
-icon: https://raw.githubusercontent.com/googleforgames/open-match/master/site/static/images/logo.svg
+icon: https://open-match.dev/site/images/logo.svg
 tillerVersion: ">2.10.0"
