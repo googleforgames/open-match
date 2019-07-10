@@ -341,7 +341,7 @@ build/chart/index.yaml.$(YEAR_MONTH_DAY): build/chart/index.yaml
 
 build/chart/: build/chart/index.yaml build/chart/index.yaml.$(YEAR_MONTH_DAY)
 
-install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+install-large-chart: delete-chart build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -354,8 +354,8 @@ install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --force --debug install/helm/open-match \
+install-chart: delete-chart build/toolchain/bin/helm$(EXE_EXTENSION)
+	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
@@ -367,20 +367,7 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-stress-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) install --name $(OPEN_MATCH_CHART_NAME) --atomic --debug install/helm/open-match \
-		--timeout=600 \
-		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
-		--set openmatch.image.registry=$(REGISTRY) \
-		--set openmatch.image.tag=$(TAG) \
-		--set grafana.enabled=false \
-		--set jaeger.enabled=false \
-		--set prometheus.enabled=false \
-		--set openmatch.monitoring.stackdriver.enabled=false \
-		--set redis.enabled=true \
-		--set openmatch.stresstest.install=true 
-
-install-e2e-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -389,11 +376,11 @@ install-e2e-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set grafana.enabled=false \
 		--set jaeger.enabled=false \
 		--set prometheus.enabled=false \
+		--set openmatch.monitoring.stackdriver.enabled=false \
 		--set redis.enabled=true \
-		--set openmatch.monitoring.stackdriver.enabled=true \
-		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID) \
 		--set openmatch.e2eevaluator.install=true \
-		--set openmatch.e2ematchfunction.install=true
+		--set openmatch.e2ematchfunction.install=true \
+		--set openmatch.stresstest.install=true
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
@@ -785,7 +772,7 @@ stress-frontend-%: build/toolchain/python/
 		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
 
 stress-external-ip: install-stress-chart
-	$(KUBECTL) get svc locust-master -n open-match -o yaml | grep ip | awk -F":" '{print $NF}'
+	echo $(shell $(KUBECTL) get svc locust-master -n open-match -o yaml | grep ip | awk -F":" '{print $NF}'):8089
 
 fmt:
 	$(GO) fmt ./...
