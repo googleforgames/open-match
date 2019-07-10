@@ -19,9 +19,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/stats/view"
-	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 )
 
@@ -31,11 +29,6 @@ var (
 		"component": "monitoring",
 	})
 )
-
-// MetricsForClient yeah
-func MetricsForClient() grpc.DialOption {
-	return grpc.WithStatsHandler(new(ocgrpc.ClientHandler))
-}
 
 // Setup configures the monitoring for the server.
 func Setup(mux *http.ServeMux, cfg config.View) {

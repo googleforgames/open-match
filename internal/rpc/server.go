@@ -20,9 +20,14 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/monitoring"
@@ -62,6 +67,9 @@ type ServerParams struct {
 	publicCertificateFileData []byte
 	// Private key in PEM format.
 	privateKeyFileData []byte
+
+	enableRPCLogging bool
+	enableMetrics    bool
 }
 
 // NewServerParamsFromConfig returns server Params initialized from the configuration file.
@@ -113,6 +121,8 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 		p.SetTLSConfiguration(rootPublicCertData, publicCertData, privateKeyData)
 	}
 
+	p.enableMetrics = cfg.GetBool(configNameEnableMetrics)
+	p.enableRPCLogging = cfg.GetBool(configNameEnableRPCLogging)
 	// TODO: This isn't ideal since monitoring requires config for it to be initialized.
 	// This forces us to initialize readiness probes earlier than necessary.
 	monitoring.Setup(p.ServeMux, cfg)
@@ -234,4 +244,32 @@ func MustServeForever(params *ServerParams) {
 		return
 	}
 	serveUntilKilledFunc()
+}
+
+func newGRPCServerOptions(params *ServerParams) []grpc.ServerOption {
+	opts := []grpc.ServerOption{}
+	si := []grpc.StreamServerInterceptor{
+		grpc_recovery.StreamServerInterceptor(),
+		grpc_validator.StreamServerInterceptor(),
+	}
+	ui := []grpc.UnaryServerInterceptor{
+		grpc_recovery.UnaryServerInterceptor(),
+		grpc_validator.UnaryServerInterceptor(),
+	}
+	if params.enableRPCLogging {
+		grpcLogger := logrus.WithFields(logrus.Fields{
+			"app":       "openmatch",
+			"component": "grpc.server",
+		})
+		si = append(si, grpc_logrus.StreamServerInterceptor(grpcLogger))
+		ui = append(ui, grpc_logrus.UnaryServerInterceptor(grpcLogger))
+	}
+
+	if params.enableMetrics {
+		opts = append(opts, grpc.StatsHandler(&ocgrpc.ServerHandler{}))
+	}
+
+	return append(opts,
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(si...)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(ui...)))
 }

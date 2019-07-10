@@ -24,12 +24,21 @@ import (
 	"strings"
 	"time"
 
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	"go.opencensus.io/plugin/ocgrpc"
+
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/monitoring"
+)
+
+const (
+	configNameEnableRPCLogging = "logging.rpc"
+	configNameEnableMetrics    = "monitoring.prometheus.enabled"
 )
 
 var (
@@ -44,6 +53,8 @@ type ClientParams struct {
 	Hostname           string
 	Port               int
 	TrustedCertificate []byte
+	EnableRPCLogging   bool
+	EnableMetrics      bool
 }
 
 func (p *ClientParams) usingTLS() bool {
@@ -53,8 +64,10 @@ func (p *ClientParams) usingTLS() bool {
 // GRPCClientFromConfig creates a gRPC client connection from a configuration.
 func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, error) {
 	clientParams := &ClientParams{
-		Hostname: cfg.GetString(prefix + ".hostname"),
-		Port:     cfg.GetInt(prefix + ".grpcport"),
+		Hostname:         cfg.GetString(prefix + ".hostname"),
+		Port:             cfg.GetInt(prefix + ".grpcport"),
+		EnableRPCLogging: cfg.GetBool(configNameEnableRPCLogging),
+		EnableMetrics:    cfg.GetBool(configNameEnableMetrics),
 	}
 
 	// If TLS support is enabled in the config, fill in the trusted certificates for decrpting server certificate.
@@ -78,7 +91,7 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 // GRPCClientFromEndpoint creates a gRPC client connection from endpoint.
 func GRPCClientFromEndpoint(cfg config.View, address string) (*grpc.ClientConn, error) {
 	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
-	grpcOptions := newDefaultGRPCDialOptions()
+	grpcOptions := newGRPCDialOptions(cfg.GetBool(configNameEnableMetrics), cfg.GetBool(configNameEnableRPCLogging))
 
 	if cfg.GetBool("tls.enabled") {
 		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
@@ -112,7 +125,7 @@ func GRPCClientFromEndpoint(cfg config.View, address string) (*grpc.ClientConn, 
 func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 	address := fmt.Sprintf("%s:%d", params.Hostname, params.Port)
 
-	grpcOptions := newDefaultGRPCDialOptions()
+	grpcOptions := newGRPCDialOptions(params.EnableMetrics, params.EnableRPCLogging)
 
 	if params.usingTLS() {
 		trustedCertPool, err := trustedCertificateFromFileData(params.TrustedCertificate)
@@ -131,8 +144,10 @@ func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 // HTTPClientFromConfig creates a HTTP client from from a configuration.
 func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string, error) {
 	clientParams := &ClientParams{
-		Hostname: cfg.GetString(prefix + ".hostname"),
-		Port:     cfg.GetInt(prefix + ".httpport"),
+		Hostname:         cfg.GetString(prefix + ".hostname"),
+		Port:             cfg.GetInt(prefix + ".httpport"),
+		EnableRPCLogging: cfg.GetBool(configNameEnableRPCLogging),
+		EnableMetrics:    cfg.GetBool(configNameEnableMetrics),
 	}
 
 	// If TLS support is enabled in the config, fill in the trusted certificates for decrpting server certificate.
@@ -259,6 +274,27 @@ func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 	return httpClient, baseURL, nil
 }
 
-func newDefaultGRPCDialOptions() []grpc.DialOption {
-	return []grpc.DialOption{monitoring.MetricsForClient()}
+func newGRPCDialOptions(enableMetrics bool, enableRPCLogging bool) []grpc.DialOption {
+	si := []grpc.StreamClientInterceptor{
+		grpc_retry.StreamClientInterceptor(),
+	}
+	ui := []grpc.UnaryClientInterceptor{
+		grpc_retry.UnaryClientInterceptor(),
+	}
+	if enableRPCLogging {
+		grpcLogger := logrus.WithFields(logrus.Fields{
+			"app":       "openmatch",
+			"component": "grpc.client",
+		})
+		si = append(si, grpc_logrus.StreamClientInterceptor(grpcLogger))
+		ui = append(ui, grpc_logrus.UnaryClientInterceptor(grpcLogger))
+	}
+	opts := []grpc.DialOption{
+		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(si...)),
+		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(ui...)),
+	}
+	if enableMetrics {
+		opts = append(opts, grpc.WithStatsHandler(new(ocgrpc.ClientHandler)))
+	}
+	return opts
 }
