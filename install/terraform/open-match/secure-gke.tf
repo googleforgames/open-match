@@ -59,20 +59,10 @@ variable "gcp_machine_type" {
   default = "n1-standard-4"
 }
 
-# Enable Kubernetes API
-resource "google_project_service" "kubernetes_api" {
-  project     = "${var.gcp_project_id}"
-  service     = "container.googleapis.com"
-  
-  disable_dependent_services= true
-}
-
-# Enable Cloud Resource Manager API
-resource "google_project_service" "cloud_resource_manager_api" {
-  project     = "${var.gcp_project_id}"
-  service     = "cloudresourcemanager.googleapis.com"
-  
-  disable_dependent_services= true
+# Enable Kubernetes and Cloud Resource Manager API
+resource "google_project_services" "gcp_apis" {
+  project = "${var.gcp_project_id}"
+  services   = ["container.googleapis.com", "cloudresourcemanager.googleapis.com"]
 }
 
 # Create a role with the minimum amount of permissions for logging, auditing, etc from the node VM.
