@@ -119,6 +119,7 @@ openmatch:
         logging:
           level: debug
           format: text
+          rpc: true
         # Open Match applies the exponential backoff strategy for its retryable gRPC calls.
         # The settings below are the default backoff configuration used in Open Match.
         # See https://github.com/cenkalti/backoff/blob/v3/exponential.go for detailed explanations
