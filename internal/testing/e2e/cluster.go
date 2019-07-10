@@ -80,7 +80,7 @@ func (com *clusterOM) MustMmLogicGRPC() pb.MmLogicClient {
 }
 
 func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {
-	host, port := com.getAddressFromServiceName("om-e2ematchfunction")
+	host, port := com.getAddressFromServiceName("om-e2ematchfunction", "grpc")
 	return &pb.FunctionConfig{
 		Host: host,
 		Port: port,
@@ -88,7 +88,16 @@ func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {
 	}
 }
 
-func (com *clusterOM) getAddressFromServiceName(serviceName string) (string, int32) {
+func (com *clusterOM) MustMmfConfigHTTP() *pb.FunctionConfig {
+	host, port := com.getAddressFromServiceName("om-e2ematchfunction", "http")
+	return &pb.FunctionConfig{
+		Host: host,
+		Port: port,
+		Type: pb.FunctionConfig_REST,
+	}
+}
+
+func (com *clusterOM) getAddressFromServiceName(serviceName, portName string) (string, int32) {
 	svc, err := com.kubeClient.CoreV1().Services(com.namespace).Get(serviceName, metav1.GetOptions{})
 	if err != nil {
 		com.t.Fatalf("cannot get service definition for %s", serviceName)
@@ -96,11 +105,18 @@ func (com *clusterOM) getAddressFromServiceName(serviceName string) (string, int
 	if len(svc.Status.LoadBalancer.Ingress) != 1 {
 		com.t.Fatalf("LoadBalancer for %s does not have exactly 1 config, %v", serviceName, svc.Status.LoadBalancer.Ingress)
 	}
-	return svc.Status.LoadBalancer.Ingress[0].IP, svc.Spec.Ports[0].Port
+
+	var port int32
+	for _, servicePort := range svc.Spec.Ports {
+		if servicePort.Name == portName {
+			port = servicePort.Port
+		}
+	}
+	return svc.Status.LoadBalancer.Ingress[0].IP, port
 }
 
 func (com *clusterOM) getGRPCClientFromServiceName(serviceName string) (*grpc.ClientConn, error) {
-	ipAddress, port := com.getAddressFromServiceName(serviceName)
+	ipAddress, port := com.getAddressFromServiceName(serviceName, "grpc")
 	conn, err := rpc.GRPCClientFromParams(&rpc.ClientParams{
 		Hostname: ipAddress,
 		Port:     int(port),

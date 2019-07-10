@@ -1,3 +1,5 @@
+// +build !e2ecluster
+
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package tickets
+package e2e
 
 import (
 	"context"
@@ -107,6 +109,7 @@ func TestAssignTickets(t *testing.T) {
 // TestTicketLifeCycle tests creating, getting and deleting a ticket using Frontend service.
 func TestTicketLifeCycle(t *testing.T) {
 	assert := assert.New(t)
+
 	om, closer := e2e.New(t)
 	defer closer()
 	fe := om.MustFrontendGRPC()
@@ -122,7 +125,7 @@ func TestTicketLifeCycle(t *testing.T) {
 	}
 
 	// Create a ticket, validate that it got an id and set its id in the expected ticket.
-	resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: ticket})
+	resp, err := fe.CreateTicket(om.Context(), &pb.CreateTicketRequest{Ticket: ticket})
 	assert.NotNil(resp)
 	assert.Nil(err)
 	want := resp.Ticket
@@ -132,13 +135,13 @@ func TestTicketLifeCycle(t *testing.T) {
 	validateTicket(t, resp.GetTicket(), ticket)
 
 	// Fetch the ticket and validate that it is identical to the expected ticket.
-	gotTicket, err := fe.GetTicket(context.Background(), &pb.GetTicketRequest{TicketId: ticket.GetId()})
+	gotTicket, err := fe.GetTicket(om.Context(), &pb.GetTicketRequest{TicketId: ticket.GetId()})
 	assert.NotNil(gotTicket)
 	assert.Nil(err)
 	validateTicket(t, gotTicket, ticket)
 
 	// Delete the ticket and validate that it was actually deleted.
-	_, err = fe.DeleteTicket(context.Background(), &pb.DeleteTicketRequest{TicketId: ticket.GetId()})
+	_, err = fe.DeleteTicket(om.Context(), &pb.DeleteTicketRequest{TicketId: ticket.GetId()})
 	assert.Nil(err)
 	validateDelete(t, fe, ticket.GetId())
 }

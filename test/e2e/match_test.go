@@ -14,27 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package minimatch
+package e2e
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/testing/e2e"
+	"testing"
 
 	"open-match.dev/open-match/pkg/pb"
 )
 
 func TestFetchMatches(t *testing.T) {
-	evalTc := createEvaluatorForTest(t)
-	defer evalTc.Close()
-	mainTc := createMinimatchForTest(t, evalTc)
-	defer mainTc.Close()
-	mmfTc := createMatchFunctionForTest(t, mainTc)
-	defer mmfTc.Close()
+	om, closer := e2e.New(t)
+	defer closer()
 
-	be := pb.NewBackendClient(mainTc.MustGRPC())
+	be := om.MustBackendGRPC()
 
 	var tt = []struct {
 		description string
@@ -53,7 +49,7 @@ func TestFetchMatches(t *testing.T) {
 		{
 			"expects unavailable code since there is no mmf being hosted with given function config",
 			&pb.FunctionConfig{
-				Host: mmfTc.GetHostname(),
+				Host: "om-matchfunction",
 				Port: int32(54321),
 				Type: pb.FunctionConfig_GRPC,
 			},
@@ -63,11 +59,7 @@ func TestFetchMatches(t *testing.T) {
 		},
 		{
 			"expects empty response since the store is empty",
-			&pb.FunctionConfig{
-				Host: mmfTc.GetHostname(),
-				Port: int32(mmfTc.GetGRPCPort()),
-				Type: pb.FunctionConfig_GRPC,
-			},
+			om.MustMmfConfigGRPC(),
 			[]*pb.MatchProfile{{Name: "some name"}},
 			[]*pb.Match{},
 			codes.OK,
@@ -80,7 +72,7 @@ func TestFetchMatches(t *testing.T) {
 			t.Run(test.description, func(t *testing.T) {
 				t.Parallel()
 
-				resp, err := be.FetchMatches(mainTc.Context(), &pb.FetchMatchesRequest{Config: test.fc, Profiles: test.profile})
+				resp, err := be.FetchMatches(om.Context(), &pb.FetchMatchesRequest{Config: test.fc, Profiles: test.profile})
 				assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
 				if err == nil {
