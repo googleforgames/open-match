@@ -75,6 +75,39 @@ prometheus.io/path: {{ .prometheus.endpoint }}
 {{- end -}}
 {{- end -}}
 
+{{- define "openmatch.container.common" -}}
+imagePullPolicy: {{ .Values.openmatch.image.pullPolicy }}
+resources:
+  requests:
+    memory: 100Mi
+    cpu: 100m
+volumeMounts:
+- name: om-config-volume
+  mountPath: {{ .Values.openmatch.config.mountPath }}
+{{- end -}}
+
+{{- define "openmatch.spec.common" -}}
+serviceAccountName: {{ .Values.openmatch.kubernetes.serviceAccount }}
+volumes:
+- name: om-config-volume
+  configMap:
+    name: om-configmap
+{{- end -}}
+
+{{- define "openmatch.container.withredis" -}}
+env:
+- name: REDIS_SERVICE_HOST
+  value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
+- name: REDIS_SERVICE_PORT
+  value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
+{{- if .Values.redis.usePassword }}
+- name: REDIS_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.redis.fullnameOverride }}
+      key: redis-password
+{{- end}}
+{{- end -}}
 
 {{- define "kubernetes.probe" -}}
 livenessProbe:
