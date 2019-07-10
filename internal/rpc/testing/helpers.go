@@ -148,6 +148,8 @@ func (tc *TestContext) newClientParams(address string) *rpc.ClientParams {
 		Hostname:           hostname,
 		Port:               port,
 		TrustedCertificate: tc.trustedCertificate,
+		EnableRPCLogging:   true,
+		EnableMetrics:      false,
 	}
 }
 
