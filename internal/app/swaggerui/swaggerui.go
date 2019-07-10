@@ -16,7 +16,6 @@
 package swaggerui
 
 import (
-	"context"
 	"os"
 
 	"fmt"
@@ -65,7 +64,7 @@ func serve(cfg config.View) {
 	}
 
 	mux.Handle("/", http.FileServer(http.Dir(directory)))
-	mux.HandleFunc("/healthz", monitoring.NewHealthProbe([]func(context.Context) error{}))
+	mux.Handle(monitoring.HealthCheckEndpoint, monitoring.NewAlwaysReadyHealthCheck())
 	bindHandler(mux, cfg, "/v1/frontend/", "frontend")
 	bindHandler(mux, cfg, "/v1/backend/", "backend")
 	bindHandler(mux, cfg, "/v1/mmlogic/", "mmlogic")

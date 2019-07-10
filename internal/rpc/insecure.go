@@ -70,6 +70,7 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
+		insecureLogger.Infof("Serving gRPC: %s", s.grpcLh.AddrString())
 		gErr := s.grpcServer.Serve(s.grpcListener)
 		if gErr != nil {
 			return
@@ -93,7 +94,7 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 		}
 	}
 
-	s.httpMux.HandleFunc("/healthz", monitoring.NewHealthProbe(params.handlersForHealthCheck))
+	s.httpMux.Handle(monitoring.HealthCheckEndpoint, monitoring.NewHealthCheck(params.handlersForHealthCheck))
 	s.httpMux.Handle("/", s.proxyMux)
 	s.httpServer = &http.Server{
 		Addr:    s.httpListener.Addr().String(),
@@ -102,6 +103,7 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
+		insecureLogger.Infof("Serving HTTP: %s", s.httpLh.AddrString())
 		hErr := s.httpServer.Serve(s.httpListener)
 		defer cancel()
 		if hErr != nil {
