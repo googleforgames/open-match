@@ -105,6 +105,7 @@ GOLANG_TEST_COUNT = 1
 SWAGGERUI_PORT = 51500
 PROMETHEUS_PORT = 9090
 GRAFANA_PORT = 3000
+LOCUST_PORT = 8089
 FRONTEND_PORT = 51504
 BACKEND_PORT = 51505
 MMLOGIC_PORT = 51503
@@ -341,7 +342,7 @@ build/chart/index.yaml.$(YEAR_MONTH_DAY): build/chart/index.yaml
 
 build/chart/: build/chart/index.yaml build/chart/index.yaml.$(YEAR_MONTH_DAY)
 
-install-large-chart: delete-chart build/toolchain/bin/helm$(EXE_EXTENSION)
+install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -354,7 +355,7 @@ install-large-chart: delete-chart build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-chart: delete-chart build/toolchain/bin/helm$(EXE_EXTENSION)
+install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -768,11 +769,11 @@ test-e2e-cluster:
 	$(GO) test ./... -race -tags e2ecluster
 
 stress-frontend-%: build/toolchain/python/
-	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
+	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:$(FRONTEND_PORT) \
 		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
 
-stress-external-ip: install-stress-chart
-	echo $(shell $(KUBECTL) get svc locust-master -n open-match -o yaml | grep ip | awk -F":" '{print $NF}'):8089
+stress-external-ip: install-ci-chart
+	echo $(shell $(KUBECTL) get svc locust-master -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -o yaml | grep ip | awk -F":" '{print $NF}'):$(LOCUST_PORT)
 
 fmt:
 	$(GO) fmt ./...
