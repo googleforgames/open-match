@@ -1,4 +1,3 @@
-# Source: open-match/templates/stress-master.yaml
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,7 +46,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
-    name: locust-master
+    component: locust-master
     {{- include "openmatch.chartmeta" (set . "indent" 4) }}
 spec:
   replicas: 1 # We only need one master

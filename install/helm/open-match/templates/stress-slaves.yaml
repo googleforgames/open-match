@@ -1,4 +1,3 @@
-# Source: open-match/templates/stress-slaves.yaml
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +20,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
-    name: locust-worker
+    component: locust-worker
     {{- include "openmatch.chartmeta" (set . "indent" 4) }}
 spec:
   replicas: {{ .Values.openmatch.stresstest.replicas }}

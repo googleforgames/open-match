@@ -217,7 +217,7 @@ local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
 # Below should match push-images
-retag-images: retag-service-images retag-example-images retag-tool-images # retag-stress-test-images
+retag-images: retag-service-images retag-example-images retag-tool-images retag-stress-test-images
 
 retag-service-images: retag-backend-image retag-frontend-image retag-mmlogic-image retag-minimatch-image retag-synchronizer-image retag-swaggerui-image
 retag-example-images: retag-demo-images retag-mmf-example-images retag-evaluator-example-images
@@ -237,7 +237,7 @@ retag-%-image: docker
 	docker push $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
 
 # Below should match retag-images
-push-images: push-service-images push-example-images push-tool-images # push-stress-test-images
+push-images: push-service-images push-example-images push-tool-images push-stress-test-images
 
 push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-synchronizer-image push-swaggerui-image
 push-example-images: push-demo-images push-mmf-example-images push-evaluator-example-images
@@ -262,7 +262,7 @@ ifeq ($(BASE_VERSION),0.0.0-dev)
 endif
 endif
 
-build-images: build-service-images build-example-images build-tool-images # build-stress-test-images
+build-images: build-service-images build-example-images build-tool-images build-stress-test-images
 
 build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-synchronizer-image build-swaggerui-image
 build-example-images: build-demo-images build-mmf-example-images build-evaluator-example-images
