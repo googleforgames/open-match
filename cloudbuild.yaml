@@ -135,7 +135,7 @@ steps:
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'install-stress-chart']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'install-e2e-chart']
   waitFor: ['Test: Create Cluster', 'Build: Docker Images']
 
 - id: 'Test: End-to-End Cluster'
