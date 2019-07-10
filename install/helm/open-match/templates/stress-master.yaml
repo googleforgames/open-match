@@ -20,7 +20,8 @@ metadata:
   name: locust-master
   namespace: {{ .Release.Namespace }}
   labels:
-    app: locust-master
+    app: {{ template "openmatch.name" . }}
+    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
 spec:
   ports:
   - name: loc-master-web
@@ -36,7 +37,9 @@ spec:
     targetPort: loc-master-p2
     protocol: TCP
   selector:
-    app: locust-master
+    app: {{ template "openmatch.name" . }}
+    component: locust-master
+    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
   type: {{ .Values.openmatch.stresstest.porttype }}
 ---
 apiVersion: extensions/v1beta1
@@ -63,7 +66,7 @@ spec:
         component: locust-master
         {{- include "openmatch.chartmeta" (set . "indent" 8) }}
     spec:
-      serviceAccountName: open-match-unprivileged-service
+      # serviceAccountName: open-match-unprivileged-service
       containers:
       - name: locust-master
         image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.stresstest.name }}:{{ .Values.openmatch.image.tag }}"

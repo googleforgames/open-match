@@ -48,5 +48,5 @@ spec:
             cpu: 100m
         command: ["test/stress/run.sh"]
         # TODO: template the secure mode
-        args: ["http://om-frontend:{{.Values.openmatch.frontend.http.port}}", "master", "locust-master"]
+        args: ["http://om-frontend:{{.Values.openmatch.frontend.http.port}}", "slave", "locust-master"]
 {{- end }}

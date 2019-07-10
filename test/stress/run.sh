@@ -19,14 +19,14 @@ TARGET_HOST=$1
 LOCUST_MODE=$2
 LOCUST_MASTER=$3
 
-# TODO: template the filename
-LOCUST="../../build/toolchain/python/bin/locust"
-LOCUS_OPTS="-f ./frontend.py --host=$TARGET_HOST"
+# TODO: template the filename, config, and expect-slaves
+LOCUST="locust"
+LOCUS_OPTS="-f ./test/stress/frontend.py --host=$TARGET_HOST"
 LOCUST_MODE=${LOCUST_MODE:-standalone}
 
 if [[ "$LOCUST_MODE" = "master" ]]; then
-    LOCUS_OPTS="$LOCUS_OPTS --master"
-elif [[ "$LOCUST_MODE" = "worker" ]]; then
+    LOCUS_OPTS="$LOCUS_OPTS --master" # --expect-slaves 5 --no-web -c 100 -r 100 -t1m --csv=test/stress/stress_user100"
+elif [[ "$LOCUST_MODE" = "slave" ]]; then
     LOCUS_OPTS="$LOCUS_OPTS --slave --master-host=$LOCUST_MASTER"
 fi
 
