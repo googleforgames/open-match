@@ -106,6 +106,8 @@ openmatch:
     http:
       port: 51500
     porttype: LoadBalancer
+  kubernetes:
+    serviceAccount: open-match-unprivileged-service
 
   config:
     install: true
