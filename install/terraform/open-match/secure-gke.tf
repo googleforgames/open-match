@@ -272,7 +272,7 @@ resource "google_container_node_pool" "om-services" {
   project = "${google_container_cluster.primary.project}"
   version = "1.13"
 
-  depends_on = [google_project_service.cloud_resource_manager_api, google_project_service.kubernetes_api]
+  depends_on = [google_project_services.gcp_apis]
 }
 
 output "cluster_name" {
