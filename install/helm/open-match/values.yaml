@@ -114,6 +114,8 @@ openmatch:
     rate: 200
     duration: 30s
     porttype: LoadBalancer
+  kubernetes:
+    serviceAccount: open-match-unprivileged-service
 
   config:
     install: true
