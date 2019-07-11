@@ -127,7 +127,7 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 		p.SetTLSConfiguration(rootPublicCertData, publicCertData, privateKeyData)
 	}
 
-	p.enableMetrics = cfg.GetBool(configNameEnableMetrics)
+	p.enableMetrics = cfg.GetBool(monitoring.ConfigNameEnableMetrics)
 	p.enableRPCLogging = cfg.GetBool(configNameEnableRPCLogging)
 	// TODO: This isn't ideal since monitoring requires config for it to be initialized.
 	// This forces us to initialize readiness probes earlier than necessary.
