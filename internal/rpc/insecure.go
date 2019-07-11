@@ -24,7 +24,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/monitoring"
 	"open-match.dev/open-match/internal/util/netlistener"
@@ -61,7 +60,8 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 		return func() {}, errors.WithStack(err)
 	}
 	s.grpcListener = grpcListener
-	s.grpcServer = grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{}))
+
+	s.grpcServer = grpc.NewServer(newGRPCServerOptions(params)...)
 	// Bind gRPC handlers
 	for _, handlerFunc := range params.handlersForGrpc {
 		handlerFunc(s.grpcServer)
@@ -88,7 +88,9 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
-		if err = handlerFunc(ctx, s.proxyMux, grpcListener.Addr().String(), []grpc.DialOption{grpc.WithInsecure()}); err != nil {
+		dialOpts := newGRPCDialOptions(params.enableMetrics, params.enableRPCLogging)
+		dialOpts = append(dialOpts, grpc.WithInsecure())
+		if err = handlerFunc(ctx, s.proxyMux, grpcListener.Addr().String(), dialOpts); err != nil {
 			cancel()
 			return func() {}, errors.WithStack(err)
 		}

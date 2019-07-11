@@ -26,7 +26,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"open-match.dev/open-match/internal/monitoring"
@@ -85,7 +84,10 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 		return func() {}, errors.WithStack(err)
 	}
 	creds := credentials.NewServerTLSFromCert(grpcTLSCertificate)
-	s.grpcServer = grpc.NewServer(grpc.Creds(creds), grpc.StatsHandler(&ocgrpc.ServerHandler{}))
+	serverOpts := newGRPCServerOptions(params)
+	serverOpts = append(serverOpts, grpc.Creds(creds))
+	s.grpcServer = grpc.NewServer(serverOpts...)
+
 	// Bind gRPC handlers
 	for _, handlerFunc := range params.handlersForGrpc {
 		handlerFunc(s.grpcServer)
@@ -110,7 +112,8 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	// Bind gRPC handlers
 	ctx, cancel := context.WithCancel(context.Background())
 
-	httpsToGrpcProxyOptions := []grpc.DialOption{grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(certPoolForGrpcEndpoint, ""))}
+	httpsToGrpcProxyOptions := newGRPCDialOptions(params.enableMetrics, params.enableRPCLogging)
+	httpsToGrpcProxyOptions = append(httpsToGrpcProxyOptions, grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(certPoolForGrpcEndpoint, "")))
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
 		if err = handlerFunc(ctx, s.proxyMux, grpcAddress, httpsToGrpcProxyOptions); err != nil {
