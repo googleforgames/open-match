@@ -377,11 +377,12 @@ install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set grafana.enabled=false \
 		--set jaeger.enabled=false \
 		--set prometheus.enabled=false \
-		--set openmatch.monitoring.stackdriver.enabled=false \
 		--set redis.enabled=true \
 		--set openmatch.e2eevaluator.install=true \
 		--set openmatch.e2ematchfunction.install=true \
-		--set openmatch.stresstest.install=true
+		--set openmatch.stresstest.install=true \
+		--set openmatch.monitoring.stackdriver.enabled=true \
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
@@ -772,15 +773,6 @@ stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:$(FRONTEND_PORT) \
 		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
 
-external-ip-locust-master: external-host-locust-master
-	@echo :$(LOCUST_PORT)
-
-external-ip-om-frontend: external-host-om-frontend
-	@echo :$(FRONTEND_PORT)
-
-external-host-%:
-	@echo -n $(shell $(KUBECTL) get svc $* -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -o yaml | grep ip | awk -F":" '{print $$NF}')
-
 fmt:
 	$(GO) fmt ./...
 	gofmt -s -w .
@@ -1008,7 +1000,7 @@ proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=prometheus,component=server,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(PROMETHEUS_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9092 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "SwaggerUI Health: http://localhost:$(SWAGGERUI_PORT)/"
@@ -1017,6 +1009,10 @@ proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "View Demo: http://localhost:$(DEMO_PORT)"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=demo,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(DEMO_PORT):51507 $(PORT_FORWARD_ADDRESS_FLAG)
+
+proxy-locust: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	@echo "Locust UI: http://localhost:$(LOCUST_PORT)"
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=locust-master,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(LOCUST_PORT):8089 $(PORT_FORWARD_ADDRESS_FLAG)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
