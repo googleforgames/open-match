@@ -59,6 +59,12 @@ variable "gcp_machine_type" {
   default = "n1-standard-4"
 }
 
+# Enable Kubernetes and Cloud Resource Manager API
+resource "google_project_services" "gcp_apis" {
+  project = "${var.gcp_project_id}"
+  services   = ["container.googleapis.com", "cloudresourcemanager.googleapis.com"]
+}
+
 # Create a role with the minimum amount of permissions for logging, auditing, etc from the node VM.
 resource "google_project_iam_custom_role" "open_match_node_vm_role" {
   project     = "${var.gcp_project_id}"
@@ -90,7 +96,7 @@ resource "google_project_iam_binding" "node_vm_binding" {
   project = "${google_project_iam_custom_role.open_match_node_vm_role.project}"
   role    = "projects/${google_project_iam_custom_role.open_match_node_vm_role.project}/roles/${google_project_iam_custom_role.open_match_node_vm_role.role_id}"
   members = [
-    "user:${google_service_account.node_vm.name}"
+    "user:${google_service_account.node_vm.name}",
   ]
 }
 
@@ -242,7 +248,7 @@ resource "google_container_node_pool" "om-services" {
       disable-legacy-endpoints = "true"
     }
     */
-    min_cpu_platform = "Intel Haswell"
+    min_cpu_platform = "Intel Skylake"
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform",
       "https://www.googleapis.com/auth/compute",
@@ -265,6 +271,8 @@ resource "google_container_node_pool" "om-services" {
   node_count = 5
   project = "${google_container_cluster.primary.project}"
   version = "1.13"
+
+  depends_on = [google_project_services.gcp_apis]
 }
 
 output "cluster_name" {
