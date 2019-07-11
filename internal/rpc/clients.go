@@ -38,7 +38,9 @@ import (
 
 const (
 	configNameEnableRPCLogging = "logging.rpc"
-	configNameEnableMetrics    = "monitoring.prometheus.enabled"
+	configNameEnableMetrics    = "monitoring.prometheus.enable"
+	// configNameClientTrustedCertificatePath is the same as the root CA cert that the server trusts.
+	configNameClientTrustedCertificatePath = configNameServerRootCertificatePath
 )
 
 var (
@@ -71,14 +73,14 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 	}
 
 	// If TLS support is enabled in the config, fill in the trusted certificates for decrpting server certificate.
-	if cfg.GetBool("tls.enabled") {
-		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
+	if cfg.GetString(configNameClientTrustedCertificatePath) != "" {
+		_, err := os.Stat(cfg.GetString(configNameClientTrustedCertificatePath))
 		if err != nil {
 			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
 			return nil, err
 		}
 
-		clientParams.TrustedCertificate, err = ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
+		clientParams.TrustedCertificate, err = ioutil.ReadFile(cfg.GetString(configNameClientTrustedCertificatePath))
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
 			return nil, err
@@ -93,14 +95,14 @@ func GRPCClientFromEndpoint(cfg config.View, address string) (*grpc.ClientConn, 
 	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
 	grpcOptions := newGRPCDialOptions(cfg.GetBool(configNameEnableMetrics), cfg.GetBool(configNameEnableRPCLogging))
 
-	if cfg.GetBool("tls.enabled") {
-		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
+	if cfg.GetString(configNameClientTrustedCertificatePath) != "" {
+		_, err := os.Stat(cfg.GetString(configNameClientTrustedCertificatePath))
 		if err != nil {
 			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
 			return nil, err
 		}
 
-		trustedCertificate, err := ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
+		trustedCertificate, err := ioutil.ReadFile(cfg.GetString(configNameClientTrustedCertificatePath))
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
 			return nil, err
@@ -151,14 +153,14 @@ func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string,
 	}
 
 	// If TLS support is enabled in the config, fill in the trusted certificates for decrpting server certificate.
-	if cfg.GetBool("tls.enabled") {
-		_, err := os.Stat(cfg.GetString("tls.trustedCertificatePath"))
+	if cfg.GetString(configNameClientTrustedCertificatePath) != "" {
+		_, err := os.Stat(cfg.GetString(configNameClientTrustedCertificatePath))
 		if err != nil {
 			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
 			return nil, "", err
 		}
 
-		clientParams.TrustedCertificate, err = ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
+		clientParams.TrustedCertificate, err = ioutil.ReadFile(cfg.GetString(configNameClientTrustedCertificatePath))
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
 			return nil, "", err
@@ -192,20 +194,20 @@ func HTTPClientFromEndpoint(cfg config.View, address string) (*http.Client, stri
 	httpClient := &http.Client{Timeout: time.Second * 3}
 	var baseURL string
 
-	if cfg.GetBool("tls.enabled") {
+	if cfg.GetString(configNameClientTrustedCertificatePath) != "" {
 		var err error
 		baseURL, err = sanitizeHTTPAddress(address, true)
 		if err != nil {
 			clientLogger.WithError(err).Error("cannot parse address")
 			return nil, "", err
 		}
-		_, err = os.Stat(cfg.GetString("tls.trustedCertificatePath"))
+		_, err = os.Stat(cfg.GetString(configNameClientTrustedCertificatePath))
 		if err != nil {
 			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
 			return nil, "", err
 		}
 
-		trustedCertificate, err := ioutil.ReadFile(cfg.GetString("tls.trustedCertificatePath"))
+		trustedCertificate, err := ioutil.ReadFile(cfg.GetString(configNameClientTrustedCertificatePath))
 		if err != nil {
 			clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
 			return nil, "", err

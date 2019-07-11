@@ -35,6 +35,12 @@ import (
 	"open-match.dev/open-match/internal/util/netlistener"
 )
 
+const (
+	configNameServerPublicCertificateFile = "api.tls.certificateFile"
+	configNameServerPrivateKeyFile        = "api.tls.privateKey"
+	configNameServerRootCertificatePath   = "api.tls.rootCertificateFile"
+)
+
 var (
 	serverLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
@@ -92,8 +98,8 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 	}
 	p := NewServerParamsFromListeners(grpcLh, httpLh)
 
-	certFile := cfg.GetString("api.tls.certificatefile")
-	privateKeyFile := cfg.GetString("api.tls.privatekey")
+	certFile := cfg.GetString(configNameServerPublicCertificateFile)
+	privateKeyFile := cfg.GetString(configNameServerPrivateKeyFile)
 	if len(certFile) > 0 && len(privateKeyFile) > 0 {
 		serverLogger.Debugf("Loading TLS certificate (%s) and private key (%s)", certFile, privateKeyFile)
 		publicCertData, err := ioutil.ReadFile(certFile)
@@ -109,7 +115,7 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 		// If there's no root CA certificate then use the public certificate as the trusted root.
 		rootPublicCertData := publicCertData
 
-		rootCertFile := cfg.GetString("api.tls.rootcertificatefile")
+		rootCertFile := cfg.GetString(configNameServerRootCertificatePath)
 		if len(rootCertFile) > 0 {
 			serverLogger.Debugf("Loading Root CA TLS certificate (%s)", rootCertFile)
 			rootPublicCertData, err = ioutil.ReadFile(rootCertFile)

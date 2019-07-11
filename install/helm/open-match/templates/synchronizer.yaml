@@ -71,6 +71,6 @@ spec:
           containerPort: {{ .Values.openmatch.synchronizer.grpc.port }}
         - name: http
           containerPort: {{ .Values.openmatch.synchronizer.http.port }}
-        {{- include "kubernetes.probe" (dict "port" .Values.openmatch.synchronizer.http.port) | nindent 8 }}
+        {{- include "kubernetes.probe" (dict "port" .Values.openmatch.synchronizer.http.port "isHTTPS" .Values.openmatch.tls.enabled) | nindent 8 }}
         
 {{- end }}

@@ -71,5 +71,5 @@ spec:
           containerPort: {{ .Values.openmatch.demofunction.grpc.port }}
         - name: http
           containerPort: {{ .Values.openmatch.demofunction.http.port }}
-        {{- include "kubernetes.probe" (dict "port" .Values.openmatch.demofunction.http.port) | nindent 8 }}
+        {{- include "kubernetes.probe" (dict "port" .Values.openmatch.demofunction.http.port "isHTTPS" .Values.openmatch.tls.enabled) | nindent 8 }}
 {{- end }}

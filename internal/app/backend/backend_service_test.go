@@ -29,12 +29,17 @@ import (
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/pkg/structs"
+	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 
 func TestDoFetchMatchesInChannel(t *testing.T) {
 	insecureCfg := viper.New()
 	secureCfg := viper.New()
-	secureCfg.Set("tls.enabled", true)
+	pub, _, err := certgenTesting.CreateCertificateAndPrivateKeyForTesting([]string{})
+	if err != nil {
+		t.Fatalf("cannot create TLS keys: %s", err)
+	}
+	secureCfg.Set("api.tls.rootCertificateFile", pub)
 	restFuncCfg := &pb.FetchMatchesRequest{
 		Config:   &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_REST},
 		Profiles: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
