@@ -7,7 +7,7 @@ ATTRIBUTE_MIN = 1
 ATTRIBUTE_MAX = 101
 
 def string_generator():
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=ID_LEN))
+    return ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(ID_LEN))
 
 def number_generator():
     return random.randint(ATTRIBUTE_MIN, ATTRIBUTE_MAX)

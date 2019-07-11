@@ -106,6 +106,14 @@ openmatch:
     http:
       port: 51500
     porttype: LoadBalancer
+  stresstest:
+    install: false
+    replicas: 5
+    noweb: false
+    clients: 1000
+    rate: 200
+    duration: 30s
+    porttype: LoadBalancer
   kubernetes:
     serviceAccount: open-match-unprivileged-service
 
@@ -241,6 +249,8 @@ openmatch:
       name: openmatch-mmf-go-pool
     e2eevaluator:
       name: openmatch-evaluator-go-simple
+    stresstest:
+      name: openmatch-stress-frontend
 
 # https://hub.helm.sh/charts/stable/redis
 # https://github.com/helm/charts/tree/master/stable/redis

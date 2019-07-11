@@ -105,6 +105,7 @@ GOLANG_TEST_COUNT = 1
 SWAGGERUI_PORT = 51500
 PROMETHEUS_PORT = 9090
 GRAFANA_PORT = 3000
+LOCUST_PORT = 8089
 FRONTEND_PORT = 51504
 BACKEND_PORT = 51505
 MMLOGIC_PORT = 51503
@@ -217,7 +218,7 @@ local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
 # Below should match push-images
-retag-images: retag-service-images retag-example-images retag-tool-images
+retag-images: retag-service-images retag-example-images retag-tool-images retag-stress-test-images
 
 retag-service-images: retag-backend-image retag-frontend-image retag-mmlogic-image retag-minimatch-image retag-synchronizer-image retag-swaggerui-image
 retag-example-images: retag-demo-images retag-mmf-example-images retag-evaluator-example-images
@@ -225,6 +226,7 @@ retag-demo-images: retag-mmf-go-soloduel-image retag-demo-image
 retag-mmf-example-images: retag-mmf-go-soloduel-image retag-mmf-go-pool-image
 retag-evaluator-example-images: retag-evaluator-go-simple-image
 retag-tool-images: retag-reaper-image
+retag-stress-test-images: retag-stress-frontend-image
 # Above should match push-images
 
 retag-%-image: SOURCE_REGISTRY = gcr.io/$(OPEN_MATCH_BUILD_PROJECT_ID)
@@ -236,7 +238,7 @@ retag-%-image: docker
 	docker push $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
 
 # Below should match retag-images
-push-images: push-service-images push-example-images push-tool-images
+push-images: push-service-images push-example-images push-tool-images push-stress-test-images
 
 push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-synchronizer-image push-swaggerui-image
 push-example-images: push-demo-images push-mmf-example-images push-evaluator-example-images
@@ -244,6 +246,7 @@ push-demo-images: push-mmf-go-soloduel-image push-demo-image
 push-mmf-example-images: push-mmf-go-soloduel-image push-mmf-go-pool-image
 push-evaluator-example-images: push-evaluator-go-simple-image
 push-tool-images: push-reaper-image
+push-stress-test-images: push-stress-frontend-image
 # Above should match retag-images
 
 push-%-image: build-%-image docker
@@ -260,7 +263,7 @@ ifeq ($(BASE_VERSION),0.0.0-dev)
 endif
 endif
 
-build-images: build-service-images build-example-images build-tool-images
+build-images: build-service-images build-example-images build-tool-images build-stress-test-images
 
 build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-synchronizer-image build-swaggerui-image
 build-example-images: build-demo-images build-mmf-example-images build-evaluator-example-images
@@ -268,6 +271,7 @@ build-demo-images: build-mmf-go-soloduel-image build-demo-image
 build-mmf-example-images: build-mmf-go-soloduel-image build-mmf-go-pool-image
 build-evaluator-example-images: build-evaluator-go-simple-image
 build-tool-images: build-reaper-image
+build-stress-test-images: build-stress-frontend-image
 
 # Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
 # This is important so that the repository does not have any mutations while building individual images.
@@ -292,6 +296,9 @@ build-evaluator-go-simple-image: docker build-base-build-image
 build-reaper-image: docker build-base-build-image
 	docker build -f tools/reaper/Dockerfile -t $(REGISTRY)/openmatch-reaper:$(TAG) -t $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG) .
 
+build-stress-frontend-image: docker
+	docker build -f test/stress/Dockerfile -t $(REGISTRY)/openmatch-stress-frontend:$(TAG) -t $(REGISTRY)/openmatch-stress-frontend:$(ALTERNATE_TAG) .
+
 clean-images: docker
 	-docker rmi -f open-match-base-build
 	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
@@ -306,6 +313,7 @@ clean-images: docker
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-demo:$(TAG) $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-reaper:$(TAG) $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-stress-frontend:$(TAG) $(REGISTRY)/openmatch-stress-frontend:$(ALTERNATE_TAG)
 
 install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug $(REDIS_NAME) stable/redis --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
@@ -360,7 +368,7 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-e2e-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -370,10 +378,11 @@ install-e2e-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set jaeger.enabled=false \
 		--set prometheus.enabled=false \
 		--set redis.enabled=true \
-		--set openmatch.monitoring.stackdriver.enabled=true \
-		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID) \
 		--set openmatch.e2eevaluator.install=true \
-		--set openmatch.e2ematchfunction.install=true
+		--set openmatch.e2ematchfunction.install=true \
+		--set openmatch.stresstest.install=true \
+		--set openmatch.monitoring.stackdriver.enabled=true \
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
@@ -761,7 +770,7 @@ test-e2e-cluster:
 	$(GO) test ./... -race -tags e2ecluster
 
 stress-frontend-%: build/toolchain/python/
-	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
+	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:$(FRONTEND_PORT) \
 		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
 
 fmt:
@@ -991,7 +1000,7 @@ proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=prometheus,component=server,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(PROMETHEUS_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9092 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "SwaggerUI Health: http://localhost:$(SWAGGERUI_PORT)/"
@@ -1000,6 +1009,10 @@ proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "View Demo: http://localhost:$(DEMO_PORT)"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=demo,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(DEMO_PORT):51507 $(PORT_FORWARD_ADDRESS_FLAG)
+
+proxy-locust: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	@echo "Locust UI: http://localhost:$(LOCUST_PORT)"
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=locust-master,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(LOCUST_PORT):8089 $(PORT_FORWARD_ADDRESS_FLAG)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
