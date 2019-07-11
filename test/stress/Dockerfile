@@ -18,8 +18,6 @@ FROM python:3.5 AS build-env
 RUN pip install locustio
 # Add the external tasks directory into the container image
 ADD test/stress test/stress
-# Set script to be executable
-RUN chmod 755 test/stress/run.sh
 
 FROM gcr.io/distroless/python3
 # Copy Locust binaries
