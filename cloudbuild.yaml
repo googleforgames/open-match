@@ -128,6 +128,11 @@ steps:
     path: '/go'
   waitFor: ['Build: Assets', 'Build: Deployment Configs']
 
+- id: 'Test: Terraform Configuration'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'terraform-test']
+  waitFor: ['Build: Install Toolchain']
+
 - id: 'Test: Create Cluster'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'delete-gke-cluster', 'create-gke-cluster', 'push-helm']

@@ -783,7 +783,7 @@ vet:
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 	GO111MODULE=on $(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
 
-lint: fmt vet golangci lint-chart
+lint: fmt vet golangci lint-chart terraform-lint
 
 assets: all-protos tls-certs third_party/ build/chart/
 
@@ -851,14 +851,24 @@ else
 	$(SED_REPLACE) 's/$$EVALUATION_MODE/ALWAYS_ALLOW/g' $(BUILD_DIR)/policies/binauthz.yaml
 endif
 
+terraform-test: install/terraform/open-match/.terraform/ install/terraform/open-match-build/.terraform/
+	(cd $(REPOSITORY_ROOT)/install/terraform/open-match/ && $(TERRAFORM) validate)
+	(cd $(REPOSITORY_ROOT)/install/terraform/open-match-build/ && $(TERRAFORM) validate)
+
 terraform-plan: install/terraform/open-match/.terraform/
 	(cd $(REPOSITORY_ROOT)/install/terraform/open-match/ && $(TERRAFORM) plan -var gcp_project_id=$(GCP_PROJECT_ID) -var gcp_location=$(GCP_LOCATION))
+
+terraform-lint: build/toolchain/bin/terraform$(EXE_EXTENSION)
+	$(TERRAFORM) fmt -recursive
 
 terraform-apply: install/terraform/open-match/.terraform/
 	(cd $(REPOSITORY_ROOT)/install/terraform/open-match/ && $(TERRAFORM) apply -var gcp_project_id=$(GCP_PROJECT_ID) -var gcp_location=$(GCP_LOCATION))
 
 install/terraform/open-match/.terraform/: build/toolchain/bin/terraform$(EXE_EXTENSION)
 	(cd $(REPOSITORY_ROOT)/install/terraform/open-match/ && $(TERRAFORM) init)
+
+install/terraform/open-match-build/.terraform/: build/toolchain/bin/terraform$(EXE_EXTENSION)
+	(cd $(REPOSITORY_ROOT)/install/terraform/open-match-build/ && $(TERRAFORM) init)
 
 build/certificates/: build/toolchain/bin/certgen$(EXE_EXTENSION)
 	mkdir -p $(BUILD_DIR)/certificates/
@@ -885,7 +895,7 @@ ci-reap-clusters: build/toolchain/bin/reaper$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: GOLANG_TEST_COUNT = 5
-presubmit: clean update-deps third_party/ assets lint build install-toolchain test md-test
+presubmit: clean update-deps third_party/ assets lint build install-toolchain test md-test terraform-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/

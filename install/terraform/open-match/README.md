@@ -16,7 +16,8 @@ Lastly, these templates are meant for advanced users that are most likely
 already using Terraform.
 
 ## GCP Service Account Setup
-To use the terraform templates when developing Open Match, you need to have the [credential of your service account](https://www.terraform.io/docs/providers/google/provider_reference.html#credentials-1) associated with your Open Match project. The terraform templates would read the credentials from `./creds.json` file to authenticate with GCP.
+To use the terraform templates when developing Open Match, you need to have the [credential of your service account](https://www.terraform.io/docs/providers/google/provider_reference.html#credentials-1) associated with your Open Match project.
+
 ```bash
 # Example: Generates the key file in GCP.
 # Create the service account. Replace [NAME] with a name for the service account.
@@ -25,6 +26,8 @@ gcloud iam service-accounts create [NAME]
 gcloud projects add-iam-policy-binding [PROJECT_ID] --member "serviceAccount:[NAME]@[PROJECT_ID].iam.gserviceaccount.com" --role "roles/owner"
 # Generate the key file for terraform authentication.
 gcloud iam service-accounts keys create ./creds.json --iam-account [NAME]@[PROJECT_ID].iam.gserviceaccount.com
+# Set the environment variable for Terraform to pick up the credentials.
+export GOOGLE_APPLICATION_CREDENTIALS=$PWD/creds.json
 ```
 
 ## Apply Infrastructure
