@@ -13,16 +13,20 @@
 # limitations under the License.
 
 
-FROM python:3.7.4
-
-# Add the external tasks directory into the container image
-ADD test/stress test/stress
-
+FROM python:3.5 AS build-env
 # Install the required dependencies via pip
 RUN pip install locustio
-
-# Expose the required Locust ports
-EXPOSE 5557 5558 8089
-
+# Add the external tasks directory into the container image
+ADD test/stress test/stress
 # Set script to be executable
 RUN chmod 755 test/stress/run.sh
+
+FROM gcr.io/distroless/python3
+# Copy Locust binaries
+COPY --from=build-env /usr/local/lib/python3.5/site-packages/ /usr/local/lib/python3.5/site-packages/
+COPY --from=build-env /usr/local/bin/locust /test/stress/locust
+COPY --from=build-env test/stress /test/stress
+ENV PYTHONPATH=/usr/local/lib/python3.5/site-packages
+# Expose the required Locust ports
+EXPOSE 5557 5558 8089
+WORKDIR /test/stress

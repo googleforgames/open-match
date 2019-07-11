@@ -109,6 +109,10 @@ openmatch:
   stresstest:
     install: false
     replicas: 5
+    noweb: false
+    clients: 1000
+    rate: 200
+    duration: 30s
     porttype: LoadBalancer
 
   config:

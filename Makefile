@@ -772,8 +772,14 @@ stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:$(FRONTEND_PORT) \
 		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
 
-stress-external-ip: install-ci-chart
-	echo $(shell $(KUBECTL) get svc locust-master -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -o yaml | grep ip | awk -F":" '{print $NF}'):$(LOCUST_PORT)
+external-ip-locust-master: external-host-locust-master
+	@echo :$(LOCUST_PORT)
+
+external-ip-om-frontend: external-host-om-frontend
+	@echo :$(FRONTEND_PORT)
+
+external-host-%:
+	@echo -n $(shell $(KUBECTL) get svc $* -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -o yaml | grep ip | awk -F":" '{print $$NF}')
 
 fmt:
 	$(GO) fmt ./...

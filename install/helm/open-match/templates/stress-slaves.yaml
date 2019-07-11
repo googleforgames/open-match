@@ -46,7 +46,13 @@ spec:
           requests:
             memory: 100Mi
             cpu: 100m
-        command: ["test/stress/run.sh"]
+        command: ["python3"]
         # TODO: template the secure mode
-        args: ["http://om-frontend:{{.Values.openmatch.frontend.http.port}}", "slave", "locust-master"]
+        args:
+        - "./locust"
+        - "-f"
+        - "./frontend.py"
+        - "--host=http://om-frontend:{{ .Values.openmatch.frontend.http.port }}"
+        - "--slave"
+        - "--master-host=locust-master"
 {{- end }}
