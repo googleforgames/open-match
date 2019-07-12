@@ -25,11 +25,12 @@ spec:
   selector:
     app: {{ template "openmatch.name" . }}
     component: e2eevaluator
+  type: {{ .Values.openmatch.e2eevaluator.porttype }}
   ports:
   - name: grpc
     protocol: TCP
     port: {{ .Values.openmatch.e2eevaluator.grpc.port }}
-  - name: proxy
+  - name: http
     protocol: TCP
     port: {{ .Values.openmatch.e2eevaluator.http.port }}
 ---
