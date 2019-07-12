@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/monitoring"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -59,5 +60,11 @@ type Service interface {
 
 // New creates a Service based on the configuration.
 func New(cfg config.View) Service {
-	return newRedis(cfg)
+	s := newRedis(cfg)
+	if cfg.GetBool(monitoring.ConfigNameEnableMetrics) {
+		return &instrumentedService{
+			s: s,
+		}
+	}
+	return s
 }

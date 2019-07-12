@@ -27,9 +27,9 @@ import (
 )
 
 var (
-	mmlogicServiceLogger = logrus.WithFields(logrus.Fields{
+	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "app.mmlogic.mmlogic_service",
+		"component": "app.mmlogic",
 	})
 )
 
@@ -54,7 +54,7 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 	callback := func(tickets []*pb.Ticket) error {
 		err := responseServer.Send(&pb.QueryTicketsResponse{Tickets: tickets})
 		if err != nil {
-			mmlogicServiceLogger.WithError(err).Error("Failed to send Redis response to grpc server")
+			logger.WithError(err).Error("Failed to send Redis response to grpc server")
 			return status.Errorf(codes.Aborted, err.Error())
 		}
 		return nil
@@ -67,7 +67,7 @@ func doQueryTickets(ctx context.Context, filters []*pb.Filter, pageSize int, sen
 	// Send requests to the storage service
 	err := store.FilterTickets(ctx, filters, pageSize, sender)
 	if err != nil {
-		mmlogicServiceLogger.WithError(err).Error("Failed to retrieve result from storage service.")
+		logger.WithError(err).Error("Failed to retrieve result from storage service.")
 		return err
 	}
 
@@ -94,12 +94,12 @@ func getPageSize(cfg config.View) int {
 
 	pSize := cfg.GetInt("storage.page.size")
 	if pSize < minPageSize {
-		mmlogicServiceLogger.Infof("page size %v is lower than the minimum limit of %v", pSize, maxPageSize)
+		logger.Infof("page size %v is lower than the minimum limit of %v", pSize, maxPageSize)
 		pSize = minPageSize
 	}
 
 	if pSize > maxPageSize {
-		mmlogicServiceLogger.Infof("page size %v is higher than the maximum limit of %v", pSize, maxPageSize)
+		logger.Infof("page size %v is higher than the maximum limit of %v", pSize, maxPageSize)
 		return maxPageSize
 	}
 

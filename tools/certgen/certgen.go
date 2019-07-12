@@ -27,13 +27,27 @@ import (
 )
 
 var (
+	// serviceAddresses is a list of all the HTTP hostname:port combinations for generating a TLS certificate.
+	// It appears that gRPC does not care about validating the port number so we only add the HTTP addresses here.
+	serviceAddressList = []string{
+		"om-backend:51505",
+		"om-demo:51507",
+		"om-demoevaluator:51508",
+		"om-demofunction:51502",
+		"om-e2eevaluator:51518",
+		"om-e2ematchfunction:51512",
+		"om-frontend:51504",
+		"om-mmlogic:51503",
+		"om-swaggerui:51500",
+		"om-synchronizer:51506",
+	}
 	caFlag                    = flag.Bool("ca", false, "Create a root certificate. Use if you want a chain of trust with other certificates.")
 	rootPublicCertificateFlag = flag.String("rootpubliccertificate", "", "(optional) Path to root certificate file. If set the output certificate is rooted from this certificate.")
 	rootPrivateKeyFlag        = flag.String("rootprivatekey", "", "(required if --rootpubliccertificate is set) Path to private key paired from root certificate file.")
 	publicCertificateFlag     = flag.String("publiccertificate", "public.cert", "Public key certificate path to be generated")
 	privateKeyFlag            = flag.String("privatekey", "private.key", "Private key file path to be generated")
 	validityDurationFlag      = flag.Duration("duration", time.Hour*24*365*5, "Lifetime for certificate validity (default is 5 years)")
-	hostnamesFlag             = flag.String("hostnames", "om-frontendapi,om-backendapi,om-evaluatorapi,om-function,om-mmlogicapi", "Comma separated list of host names.")
+	hostnamesFlag             = flag.String("hostnames", strings.Join(serviceAddressList, ","), "Comma separated list of host names.")
 	rsaKeyLengthFlag          = flag.Int("rsa", 2048, "RSA Encryption Key bit length for certificate.")
 )
 

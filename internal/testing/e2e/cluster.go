@@ -118,8 +118,10 @@ func (com *clusterOM) getAddressFromServiceName(serviceName, portName string) (s
 func (com *clusterOM) getGRPCClientFromServiceName(serviceName string) (*grpc.ClientConn, error) {
 	ipAddress, port := com.getAddressFromServiceName(serviceName, "grpc")
 	conn, err := rpc.GRPCClientFromParams(&rpc.ClientParams{
-		Hostname: ipAddress,
-		Port:     int(port),
+		Hostname:         ipAddress,
+		Port:             int(port),
+		EnableRPCLogging: true,
+		EnableMetrics:    false,
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot connect to gRPC %s:%d", ipAddress, port)

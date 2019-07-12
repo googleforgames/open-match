@@ -75,10 +75,58 @@ prometheus.io/path: {{ .prometheus.endpoint }}
 {{- end -}}
 {{- end -}}
 
+{{- define "openmatch.container.common" -}}
+imagePullPolicy: {{ .Values.openmatch.image.pullPolicy }}
+resources:
+  requests:
+    memory: 100Mi
+    cpu: 100m
+volumeMounts:
+- name: om-config-volume
+  mountPath: {{ .Values.openmatch.config.mountPath }}
+{{- if .Values.openmatch.tls.enabled }}
+- name: root-ca-volume
+  mountPath: {{ .Values.openmatch.tls.root.mountPath }}
+- name: tls-server-volume
+  mountPath: {{ .Values.openmatch.tls.server.mountPath }}
+{{- end }}
+{{- end -}}
+
+{{- define "openmatch.spec.common" -}}
+serviceAccountName: {{ .Values.openmatch.kubernetes.serviceAccount }}
+volumes:
+- name: om-config-volume
+  configMap:
+    name: om-configmap
+{{- if .Values.openmatch.tls.enabled }}
+- name: root-ca-volume
+  secret:
+    secretName: om-tls-rootca
+- name: tls-server-volume
+  secret:
+    secretName: om-tls-server
+{{- end }}
+{{- end -}}
+
+{{- define "openmatch.container.withredis" -}}
+env:
+- name: REDIS_SERVICE_HOST
+  value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
+- name: REDIS_SERVICE_PORT
+  value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
+{{- if .Values.redis.usePassword }}
+- name: REDIS_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.redis.fullnameOverride }}
+      key: redis-password
+{{- end}}
+{{- end -}}
 
 {{- define "kubernetes.probe" -}}
 livenessProbe:
   httpGet:
+    scheme: {{ if (.isHTTPS) }}HTTPS{{ else }}HTTP{{ end }}
     path: /healthz
     port: {{ .port }}
   initialDelaySeconds: 5
@@ -86,6 +134,7 @@ livenessProbe:
   failureThreshold: 3
 readinessProbe:
   httpGet:
+    scheme: {{ if (.isHTTPS) }}HTTPS{{ else }}HTTP{{ end }}
     path: /healthz?readiness=true
     port: {{ .port }}
   initialDelaySeconds: 10

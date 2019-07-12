@@ -15,13 +15,13 @@
 package monitoring
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"go.opencensus.io/plugin/ocgrpc"
+	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
-	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 )
 
@@ -32,11 +32,6 @@ var (
 	})
 )
 
-// MetricsForClient yeah
-func MetricsForClient() grpc.DialOption {
-	return grpc.WithStatsHandler(new(ocgrpc.ClientHandler))
-}
-
 // Setup configures the monitoring for the server.
 func Setup(mux *http.ServeMux, cfg config.View) {
 	periodString := cfg.GetString("monitoring.reportingPeriod")
@@ -44,7 +39,7 @@ func Setup(mux *http.ServeMux, cfg config.View) {
 	if err != nil {
 		publicLogger.WithFields(logrus.Fields{
 			"error":           err,
-			"retentionPeriod": periodString,
+			"reportingPeriod": periodString,
 		}).Info("Failed to parse monitoring.reportingPeriod, defaulting to 10s")
 		reportingPeriod = time.Second * 10
 	}
@@ -58,15 +53,39 @@ func Setup(mux *http.ServeMux, cfg config.View) {
 	// Change the frequency of updates to the metrics endpoint
 	view.SetReportingPeriod(reportingPeriod)
 
-	// Register the OpenCensus views we want to export to Prometheus
-	/*
-		err = view.Register(views...)
-		if err != nil {
-			publicLogger.Fatalf("Failed to register OpenCensus views for metrics gathering: %v", err)
-		}
-	*/
-
 	publicLogger.WithFields(logrus.Fields{
-		"retentionPeriod": reportingPeriod,
+		"reportingPeriod": reportingPeriod,
 	}).Info("Monitoring has been configured.")
+}
+
+// Counter creates a counter metric.
+func Counter(name string, description string) *stats.Int64Measure {
+	s := stats.Int64(name, "Count of "+description+".", "1")
+	counterView(s)
+	return s
+}
+
+// IncrementCounter +1's the counter metric.
+func IncrementCounter(ctx context.Context, s *stats.Int64Measure) {
+	IncrementCounterN(ctx, s, 1)
+}
+
+// IncrementCounterN increases a metric by n.
+func IncrementCounterN(ctx context.Context, s *stats.Int64Measure, n int) {
+	stats.Record(ctx, s.M(int64(n)))
+}
+
+// CounterView converts the measurement into a view for a counter.
+func counterView(s *stats.Int64Measure) *view.View {
+	v := &view.View{
+		Name:        s.Name(),
+		Measure:     s,
+		Description: s.Description(),
+		Aggregation: view.Count(),
+	}
+	err := view.Register(v)
+	if err != nil {
+		publicLogger.WithError(err).Infof("cannot register view for metric: %s, it will not be reported", s.Name())
+	}
+	return v
 }

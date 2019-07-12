@@ -60,42 +60,16 @@ spec:
         component: demofunction
         {{- include "openmatch.chartmeta" (set . "indent" 8) }}
     spec:
-      serviceAccountName: open-match-unprivileged-service
+      {{- include "openmatch.spec.common" . | nindent 6 }}
       containers:
       - name: om-demofunction
+        {{- include "openmatch.container.common" . | nindent 8 }}
+        {{- include "openmatch.container.withredis" . | nindent 8 }}
         image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.demofunction.name}}:{{ .Values.openmatch.image.tag }}"
-        imagePullPolicy: {{ .Values.openmatch.image.pullPolicy }}
-        volumeMounts:
-        - name: om-config-volume
-          mountPath: {{ .Values.openmatch.config.mountPath }}
-        resources:
-          requests:
-            memory: 100Mi
-            cpu: 100m
         ports:
         - name: grpc
           containerPort: {{ .Values.openmatch.demofunction.grpc.port }}
         - name: http
           containerPort: {{ .Values.openmatch.demofunction.http.port }}
-        {{- include "kubernetes.probe" (dict "port" .Values.openmatch.demofunction.http.port) | nindent 8 }}
-        resources:
-          requests:
-            memory: 100Mi
-            cpu: 100m
-        env:
-        - name: REDIS_SERVICE_HOST
-          value: "$(OM_REDIS_MASTER_SERVICE_HOST)"
-        - name: REDIS_SERVICE_PORT
-          value: "$(OM_REDIS_MASTER_SERVICE_PORT)"
-        {{- if .Values.redis.usePassword }}
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.redis.fullnameOverride }}
-              key: redis-password
-        {{- end}}
-      volumes:
-      - name: om-config-volume
-        configMap:
-          name: om-configmap
+        {{- include "kubernetes.probe" (dict "port" .Values.openmatch.demofunction.http.port "isHTTPS" .Values.openmatch.tls.enabled) | nindent 8 }}
 {{- end }}
