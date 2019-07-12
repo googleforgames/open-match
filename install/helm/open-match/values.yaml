@@ -24,7 +24,7 @@ openmatch:
       serviceDiscovery: true
     stackdriver:
       enabled: false
-      gcpProjectId: "project_id"
+      gcpProjectId: "replace_with_your_project_id"
       metricPrefix: "open_match"
     zipkin:
       enabled: false

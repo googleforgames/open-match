@@ -23,30 +23,23 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-var (
-	backendLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "backend",
-	})
-)
-
 // RunApplication creates a server.
 func RunApplication() {
 	cfg, err := config.Read()
 	if err != nil {
-		backendLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
 	p, err := rpc.NewServerParamsFromConfig(cfg, "api.backend")
 	if err != nil {
-		backendLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("cannot construct server.")
 	}
 
 	if err := BindService(p, cfg); err != nil {
-		backendLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("failed to bind backend service.")
 	}

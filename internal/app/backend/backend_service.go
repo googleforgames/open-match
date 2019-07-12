@@ -26,6 +26,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/monitoring"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
@@ -45,10 +46,12 @@ type mmfResult struct {
 }
 
 var (
-	backendServiceLogger = logrus.WithFields(logrus.Fields{
+	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "app.backend.backend_service",
+		"component": "app.backend",
 	})
+	mMatchesFetched  = monitoring.Counter("backend/matches_fetched", "matches fetched")
+	mTicketsAssigned = monitoring.Counter("backend/tickets_assigned", "tickets assigned")
 )
 
 // FetchMatches triggers execution of the specfied MatchFunction for each of the
@@ -90,6 +93,7 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		return nil, err
 	}
 
+	monitoring.IncrementCounterN(ctx, mMatchesFetched, len(results))
 	return &pb.FetchMatchesResponse{Matches: results}, nil
 }
 
@@ -108,7 +112,7 @@ func doFetchMatchesReceiveMmfResult(ctx context.Context, mmfClients *rpc.ClientC
 		var conn *grpc.ClientConn
 		conn, err = mmfClients.GetGRPC(address)
 		if err != nil {
-			backendServiceLogger.WithFields(logrus.Fields{
+			logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
 				"function": req.GetConfig(),
 			}).Error("failed to establish grpc client connection to match function")
@@ -119,7 +123,7 @@ func doFetchMatchesReceiveMmfResult(ctx context.Context, mmfClients *rpc.ClientC
 	case pb.FunctionConfig_REST:
 		httpClient, baseURL, err = mmfClients.GetHTTP(address)
 		if err != nil {
-			backendServiceLogger.WithFields(logrus.Fields{
+			logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
 				"function": req.GetConfig(),
 			}).Error("failed to establish rest client connection to match function")
@@ -196,7 +200,7 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 	defer func() {
 		err = resp.Body.Close()
 		if err != nil {
-			backendServiceLogger.WithError(err).Warning("failed to close response body read closer")
+			logger.WithError(err).Warning("failed to close response body read closer")
 		}
 	}()
 
@@ -222,7 +226,7 @@ func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb
 	// and timeout gracefully to ensure that the ListMatches completes.
 	resp, err := client.Run(ctx, &pb.RunRequest{Profile: profile})
 	if err != nil {
-		backendServiceLogger.WithError(err).Error("failed to run match function for profile")
+		logger.WithError(err).Error("failed to run match function for profile")
 		return nil, err
 	}
 
@@ -234,17 +238,18 @@ func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb
 func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
 	err := doAssignTickets(ctx, req, s.store)
 	if err != nil {
-		backendServiceLogger.WithError(err).Error("failed to update assignments for requested tickets")
+		logger.WithError(err).Error("failed to update assignments for requested tickets")
 		return nil, err
 	}
 
+	monitoring.IncrementCounterN(ctx, mTicketsAssigned, len(req.TicketIds))
 	return &pb.AssignTicketsResponse{}, nil
 }
 
 func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) error {
 	err := store.UpdateAssignments(ctx, req.GetTicketIds(), req.GetAssignment())
 	if err != nil {
-		backendServiceLogger.WithError(err).Error("failed to update assignments")
+		logger.WithError(err).Error("failed to update assignments")
 		return err
 	}
 	for _, id := range req.GetTicketIds() {
@@ -252,7 +257,7 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 		// Try to deindex all input tickets. Log without returning an error if the deindexing operation failed.
 		// TODO: consider retry the index operation
 		if err != nil {
-			backendServiceLogger.WithError(err).Errorf("failed to deindex ticket %s after updating the assignments", id)
+			logger.WithError(err).Errorf("failed to deindex ticket %s after updating the assignments", id)
 		}
 	}
 
