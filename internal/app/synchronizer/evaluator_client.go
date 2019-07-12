@@ -104,12 +104,12 @@ func (ec *evaluatorClient) initialize() error {
 }
 
 func (ec *evaluatorClient) grpcEvaluate(proposals []*pb.Match) (results []*pb.Match, err error) {
-	resp, err := ec.grpcClient.Evaluate(context.Background(), &pb.EvaluateRequest{Match: proposals})
+	resp, err := ec.grpcClient.Evaluate(context.Background(), &pb.EvaluateRequest{Matches: proposals})
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.GetMatch(), nil
+	return resp.GetMatches(), nil
 }
 
 func (ec *evaluatorClient) httpEvaluate(proposals []*pb.Match) (results []*pb.Match, err error) {
@@ -154,5 +154,5 @@ func (ec *evaluatorClient) httpEvaluate(proposals []*pb.Match) (results []*pb.Ma
 			"failed to unmarshal response body to response pb for proposals %s: %s", proposalIDs, err.Error())
 	}
 
-	return pbResp.GetMatch(), nil
+	return pbResp.GetMatches(), nil
 }

@@ -16,7 +16,6 @@
 package swaggerui
 
 import (
-	"context"
 	"os"
 
 	"fmt"
@@ -28,10 +27,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/monitoring"
+	"open-match.dev/open-match/internal/rpc"
 )
 
 var (
-	swaggeruiLogger = logrus.WithFields(logrus.Fields{
+	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
 		"component": "swaggerui",
 	})
@@ -41,7 +41,7 @@ var (
 func RunApplication() {
 	cfg, err := config.Read()
 	if err != nil {
-		swaggeruiLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
@@ -55,17 +55,17 @@ func serve(cfg config.View) {
 	port := cfg.GetInt("api.swaggerui.httpport")
 	baseDir, err := os.Getwd()
 	if err != nil {
-		swaggeruiLogger.WithError(err).Fatal("cannot get current working directory")
+		logger.WithError(err).Fatal("cannot get current working directory")
 	}
 	directory := filepath.Join(baseDir, "static")
 
 	_, err = os.Stat(directory)
 	if err != nil {
-		swaggeruiLogger.WithError(err).Fatalf("Cannot access directory %s", directory)
+		logger.WithError(err).Fatalf("Cannot access directory %s", directory)
 	}
 
 	mux.Handle("/", http.FileServer(http.Dir(directory)))
-	mux.HandleFunc("/healthz", monitoring.NewHealthProbe([]func(context.Context) error{}))
+	mux.Handle(monitoring.HealthCheckEndpoint, monitoring.NewAlwaysReadyHealthCheck())
 	bindHandler(mux, cfg, "/v1/frontend/", "frontend")
 	bindHandler(mux, cfg, "/v1/backend/", "backend")
 	bindHandler(mux, cfg, "/v1/mmlogic/", "mmlogic")
@@ -77,22 +77,23 @@ func serve(cfg config.View) {
 		Addr:    addr,
 		Handler: mux,
 	}
-	swaggeruiLogger.Infof("SwaggerUI for Open Match")
-	swaggeruiLogger.Infof("Serving static directory: %s", directory)
-	swaggeruiLogger.Infof("Serving on %s", addr)
-	swaggeruiLogger.Fatal(srv.ListenAndServe())
+	logger.Infof("SwaggerUI for Open Match")
+	logger.Infof("Serving static directory: %s", directory)
+	logger.Infof("Serving on %s", addr)
+	logger.Fatal(srv.ListenAndServe())
 }
 
 func bindHandler(mux *http.ServeMux, cfg config.View, path string, service string) {
-	hostname := cfg.GetString("api." + service + ".hostname")
-	httpport := cfg.GetString("api." + service + ".httpport")
-	endpoint := fmt.Sprintf("http://%s:%s/", hostname, httpport)
-	swaggeruiLogger.Infof("Registering reverse proxy %s -> %s", path, endpoint)
-	mux.Handle(path, overlayURLProxy(mustURLParse(endpoint)))
+	client, endpoint, err := rpc.HTTPClientFromConfig(cfg, "api."+service)
+	if err != nil {
+		panic(err)
+	}
+	logger.Infof("Registering reverse proxy %s -> %s", path, endpoint)
+	mux.Handle(path, overlayURLProxy(mustURLParse(endpoint), client))
 }
 
 // Reference implementation: https://golang.org/src/net/http/httputil/reverseproxy.go?s=3330:3391#L98
-func overlayURLProxy(target *url.URL) *httputil.ReverseProxy {
+func overlayURLProxy(target *url.URL, client *http.Client) *httputil.ReverseProxy {
 	targetQuery := target.RawQuery
 	director := func(req *http.Request) {
 		req.URL.Scheme = target.Scheme
@@ -106,15 +107,18 @@ func overlayURLProxy(target *url.URL) *httputil.ReverseProxy {
 			// explicitly disable User-Agent so it's not set to default value
 			req.Header.Set("User-Agent", "")
 		}
-		swaggeruiLogger.Debugf("URL: %s", req.URL)
+		logger.Debugf("URL: %s", req.URL)
 	}
-	return &httputil.ReverseProxy{Director: director}
+	return &httputil.ReverseProxy{
+		Director:  director,
+		Transport: client.Transport,
+	}
 }
 
 func mustURLParse(u string) *url.URL {
 	url, err := url.Parse(u)
 	if err != nil {
-		swaggeruiLogger.Fatalf("failed to parse URL %s, %v", u, err)
+		logger.Fatalf("failed to parse URL %s, %v", u, err)
 	}
 	return url
 }

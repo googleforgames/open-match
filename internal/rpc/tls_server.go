@@ -26,7 +26,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"open-match.dev/open-match/internal/monitoring"
@@ -85,7 +84,10 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 		return func() {}, errors.WithStack(err)
 	}
 	creds := credentials.NewServerTLSFromCert(grpcTLSCertificate)
-	s.grpcServer = grpc.NewServer(grpc.Creds(creds), grpc.StatsHandler(&ocgrpc.ServerHandler{}))
+	serverOpts := newGRPCServerOptions(params)
+	serverOpts = append(serverOpts, grpc.Creds(creds))
+	s.grpcServer = grpc.NewServer(serverOpts...)
+
 	// Bind gRPC handlers
 	for _, handlerFunc := range params.handlersForGrpc {
 		handlerFunc(s.grpcServer)
@@ -94,6 +96,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
+		tlsServerLogger.Infof("Serving gRPC: %s", s.grpcLh.AddrString())
 		gErr := s.grpcServer.Serve(s.grpcListener)
 		if gErr != nil {
 			tlsServerLogger.Debugf("error closing gRPC server: %s", gErr)
@@ -109,7 +112,8 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	// Bind gRPC handlers
 	ctx, cancel := context.WithCancel(context.Background())
 
-	httpsToGrpcProxyOptions := []grpc.DialOption{grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(certPoolForGrpcEndpoint, ""))}
+	httpsToGrpcProxyOptions := newGRPCDialOptions(params.enableMetrics, params.enableRPCLogging)
+	httpsToGrpcProxyOptions = append(httpsToGrpcProxyOptions, grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(certPoolForGrpcEndpoint, "")))
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
 		if err = handlerFunc(ctx, s.proxyMux, grpcAddress, httpsToGrpcProxyOptions); err != nil {
@@ -119,7 +123,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	}
 
 	// Bind HTTPS handlers
-	s.httpMux.HandleFunc("/healthz", monitoring.NewHealthProbe(params.handlersForHealthCheck))
+	s.httpMux.Handle(monitoring.HealthCheckEndpoint, monitoring.NewHealthCheck(params.handlersForHealthCheck))
 	s.httpMux.Handle("/", s.proxyMux)
 	s.httpServer = &http.Server{
 		Addr:    s.httpListener.Addr().String(),
@@ -136,6 +140,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	go func() {
 		serverStartWaiter.Done()
 		tlsListener := tls.NewListener(s.httpListener, s.httpServer.TLSConfig)
+		tlsServerLogger.Infof("Serving HTTP: %s", s.httpLh.AddrString())
 		hErr := s.httpServer.Serve(tlsListener)
 		defer cancel()
 		if hErr != nil {

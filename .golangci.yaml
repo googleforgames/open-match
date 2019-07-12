@@ -209,6 +209,9 @@ issues:
     - source: "flag."
       linters:
         - gochecknoglobals
+    - source: "monitoring."
+      linters:
+        - gochecknoglobals
     - source: "View."
       linters:
         - gochecknoglobals
@@ -219,6 +222,9 @@ issues:
       linters:
         - gochecknoglobals
     - source: "stats."
+      linters:
+        - gochecknoglobals
+    - source: "serviceAddressList"
       linters:
         - gochecknoglobals
 

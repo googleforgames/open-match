@@ -34,7 +34,7 @@ import (
 
 func TestDoCreateTickets(t *testing.T) {
 	cfg := viper.New()
-	cfg.Set("playerIndices", []string{"test-property"})
+	cfg.Set("ticketIndices", []string{"test-property"})
 
 	tests := []struct {
 		description string

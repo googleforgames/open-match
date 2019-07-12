@@ -85,6 +85,14 @@ func (iom *inmemoryOM) MustMmfConfigGRPC() *pb.FunctionConfig {
 	}
 }
 
+func (iom *inmemoryOM) MustMmfConfigHTTP() *pb.FunctionConfig {
+	return &pb.FunctionConfig{
+		Host: iom.mmfTc.GetHostname(),
+		Port: int32(iom.mmfTc.GetHTTPPort()),
+		Type: pb.FunctionConfig_REST,
+	}
+}
+
 func (iom *inmemoryOM) HealthCheck() error {
 	return nil
 }
@@ -116,7 +124,7 @@ func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTe
 		closer = statestoreTesting.New(t, cfg)
 		cfg.Set("storage.page.size", 10)
 		// Set up the attributes that a ticket will be indexed for.
-		cfg.Set("playerIndices", Indices)
+		cfg.Set("ticketIndices", Indices)
 		assert.Nil(t, minimatch.BindService(p, cfg))
 	})
 	// TODO: Revisit the Minimatch test setup in future milestone to simplify passing config

@@ -23,6 +23,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/monitoring"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -35,10 +36,14 @@ type frontendService struct {
 }
 
 var (
-	frontendServiceLogger = logrus.WithFields(logrus.Fields{
+	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "app.frontend.frontend_service",
+		"component": "app.frontend",
 	})
+	mTicketsCreated             = monitoring.Counter("frontend/tickets_created", "tickets created")
+	mTicketsDeleted             = monitoring.Counter("frontend/tickets_deleted", "tickets deleted")
+	mTicketsRetrieved           = monitoring.Counter("frontend/tickets_retrieved", "tickets retrieved")
+	mTicketAssignmentsRetrieved = monitoring.Counter("frontend/tickets_assignments_retrieved", "ticket assignments retrieved")
 )
 
 // CreateTicket will create a new ticket, assign an id to it and put it in state
@@ -63,7 +68,7 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 	ticket.Id = xid.New().String()
 	err := store.CreateTicket(ctx, ticket)
 	if err != nil {
-		frontendServiceLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error":  err.Error(),
 			"ticket": ticket,
 		}).Error("failed to create the ticket")
@@ -72,23 +77,28 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 
 	err = store.IndexTicket(ctx, ticket)
 	if err != nil {
-		frontendServiceLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error":  err.Error(),
 			"ticket": ticket,
 		}).Error("failed to index the ticket")
 		return nil, err
 	}
 
+	monitoring.IncrementCounter(ctx, mTicketsCreated)
 	return &pb.CreateTicketResponse{Ticket: ticket}, nil
 }
 
-// DeleteTicket removes the Ticket from the configured indexes, thereby removing
-// it from matchmaking pool. It also lazily removes the ticket from state storage.
+// DeleteTicket removes the Ticket from state storage and from corresponding
+// configured indices and lazily removes the ticket from state storage.
+// Deleting a ticket immediately stops the ticket from being
+// considered for future matchmaking requests, yet when the ticket itself will be deleted
+// is undeterministic. Users may still be able to assign/get a ticket after calling DeleteTicket on it.
 func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*pb.DeleteTicketResponse, error) {
 	err := doDeleteTicket(ctx, req.GetTicketId(), s.store)
 	if err != nil {
 		return nil, err
 	}
+	monitoring.IncrementCounter(ctx, mTicketsDeleted)
 	return &pb.DeleteTicketResponse{}, nil
 }
 
@@ -96,7 +106,7 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 	// Deindex this Ticket to remove it from matchmaking pool.
 	err := store.DeindexTicket(ctx, id)
 	if err != nil {
-		frontendServiceLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 			"id":    id,
 		}).Error("failed to deindex the ticket")
@@ -108,7 +118,7 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 	go func() {
 		err := store.DeleteTicket(context.Background(), id)
 		if err != nil {
-			frontendServiceLogger.WithFields(logrus.Fields{
+			logger.WithFields(logrus.Fields{
 				"error": err.Error(),
 				"id":    id,
 			}).Error("failed to delete the ticket")
@@ -122,13 +132,14 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 
 // GetTicket returns the Ticket associated with the specified Ticket id.
 func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketRequest) (*pb.Ticket, error) {
+	monitoring.IncrementCounter(ctx, mTicketsRetrieved)
 	return doGetTickets(ctx, req.GetTicketId(), s.store)
 }
 
 func doGetTickets(ctx context.Context, id string, store statestore.Service) (*pb.Ticket, error) {
 	ticket, err := store.GetTicket(ctx, id)
 	if err != nil {
-		frontendServiceLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 			"id":    id,
 		}).Error("failed to get the ticket")
@@ -148,6 +159,7 @@ func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream p
 			return ctx.Err()
 		default:
 			sender := func(assignment *pb.Assignment) error {
+				monitoring.IncrementCounter(ctx, mTicketAssignmentsRetrieved)
 				return stream.Send(&pb.GetAssignmentsResponse{Assignment: assignment})
 			}
 			return doGetAssignments(ctx, req.GetTicketId(), sender, s.store)
@@ -167,7 +179,7 @@ func doGetAssignments(ctx context.Context, id string, sender func(*pb.Assignment
 
 			err := sender(currAssignment)
 			if err != nil {
-				frontendServiceLogger.WithError(err).Error("failed to send Redis response to grpc server")
+				logger.WithError(err).Error("failed to send Redis response to grpc server")
 				return status.Errorf(codes.Aborted, err.Error())
 			}
 		}

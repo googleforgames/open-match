@@ -21,12 +21,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sync"
 
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/monitoring"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
@@ -35,19 +35,9 @@ import (
 // The service implementing the Backend API that is called to generate matches
 // and make assignments for Tickets.
 type backendService struct {
-	cfg          config.View
 	synchronizer *synchronizerClient
 	store        statestore.Service
-	mmfClients   *sync.Map
-}
-
-type grpcData struct {
-	client pb.MatchFunctionClient
-}
-
-type httpData struct {
-	client  *http.Client
-	baseURL string
+	mmfClients   *rpc.ClientCache
 }
 
 type mmfResult struct {
@@ -56,10 +46,12 @@ type mmfResult struct {
 }
 
 var (
-	backendServiceLogger = logrus.WithFields(logrus.Fields{
+	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "app.backend.backend_service",
+		"component": "app.backend",
 	})
+	mMatchesFetched  = monitoring.Counter("backend/matches_fetched", "matches fetched")
+	mTicketsAssigned = monitoring.Counter("backend/tickets_assigned", "tickets assigned")
 )
 
 // FetchMatches triggers execution of the specfied MatchFunction for each of the
@@ -72,11 +64,11 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 	if req.GetConfig() == nil {
 		return nil, status.Error(codes.InvalidArgument, ".config is required")
 	}
-	if req.GetProfile() == nil {
+	if req.GetProfiles() == nil {
 		return nil, status.Error(codes.InvalidArgument, ".profile is required")
 	}
 
-	resultChan := make(chan mmfResult, len(req.GetProfile()))
+	resultChan := make(chan mmfResult, len(req.GetProfiles()))
 
 	var syncID string
 	var err error
@@ -86,12 +78,12 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		return nil, err
 	}
 
-	err = doFetchMatchesReceiveMmfResult(ctx, s.cfg, s.mmfClients, req, resultChan)
+	err = doFetchMatchesReceiveMmfResult(ctx, s.mmfClients, req, resultChan)
 	if err != nil {
 		return nil, err
 	}
 
-	proposals, err := doFetchMatchesValidateProposals(ctx, resultChan, len(req.GetProfile()))
+	proposals, err := doFetchMatchesValidateProposals(ctx, resultChan, len(req.GetProfiles()))
 	if err != nil {
 		return nil, err
 	}
@@ -101,15 +93,11 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		return nil, err
 	}
 
-	err = doFetchMatchesAddIgnoredTickets(ctx, s.store, results)
-	if err != nil {
-		return nil, err
-	}
-
-	return &pb.FetchMatchesResponse{Match: results}, nil
+	monitoring.IncrementCounterN(ctx, mMatchesFetched, len(results))
+	return &pb.FetchMatchesResponse{Matches: results}, nil
 }
 
-func doFetchMatchesReceiveMmfResult(ctx context.Context, cfg config.View, mmfClients *sync.Map, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
+func doFetchMatchesReceiveMmfResult(ctx context.Context, mmfClients *rpc.ClientCache, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
 	var grpcClient pb.MatchFunctionClient
 	var httpClient *http.Client
 	var baseURL string
@@ -121,19 +109,21 @@ func doFetchMatchesReceiveMmfResult(ctx context.Context, cfg config.View, mmfCli
 	switch configType {
 	// MatchFunction Hosted as a GRPC service
 	case pb.FunctionConfig_GRPC:
-		grpcClient, err = getGRPCClient(cfg, mmfClients, address)
+		var conn *grpc.ClientConn
+		conn, err = mmfClients.GetGRPC(address)
 		if err != nil {
-			backendServiceLogger.WithFields(logrus.Fields{
+			logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
 				"function": req.GetConfig(),
 			}).Error("failed to establish grpc client connection to match function")
 			return status.Error(codes.InvalidArgument, "failed to connect to match function")
 		}
+		grpcClient = pb.NewMatchFunctionClient(conn)
 	// MatchFunction Hosted as a REST service
 	case pb.FunctionConfig_REST:
-		httpClient, baseURL, err = getHTTPClient(cfg, mmfClients, address)
+		httpClient, baseURL, err = mmfClients.GetHTTP(address)
 		if err != nil {
-			backendServiceLogger.WithFields(logrus.Fields{
+			logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
 				"function": req.GetConfig(),
 			}).Error("failed to establish rest client connection to match function")
@@ -143,7 +133,7 @@ func doFetchMatchesReceiveMmfResult(ctx context.Context, cfg config.View, mmfCli
 		return status.Error(codes.InvalidArgument, "provided match function type is not supported")
 	}
 
-	for _, profile := range req.GetProfile() {
+	for _, profile := range req.GetProfiles() {
 		go func(profile *pb.MatchProfile) {
 			// Get the match results that will be sent.
 			// TODO: The matches returned by the MatchFunction will be sent to the
@@ -177,7 +167,7 @@ func doFetchMatchesValidateProposals(ctx context.Context, resultChan <-chan mmfR
 
 			// Check if mmf returns a match with no tickets in it
 			for _, match := range result.matches {
-				if len(match.GetTicket()) == 0 {
+				if len(match.GetTickets()) == 0 {
 					return nil, status.Errorf(codes.FailedPrecondition, "match %s does not have associated tickets.", match.GetMatchId())
 				}
 			}
@@ -185,45 +175,6 @@ func doFetchMatchesValidateProposals(ctx context.Context, resultChan <-chan mmfR
 		}
 	}
 	return proposals, nil
-}
-
-func doFetchMatchesAddIgnoredTickets(ctx context.Context, store statestore.Service, results []*pb.Match) error {
-	ids := []string{}
-	for _, match := range results {
-		for _, ticket := range match.GetTicket() {
-			ids = append(ids, ticket.GetId())
-		}
-	}
-	return store.AddTicketsToIgnoreList(ctx, ids)
-}
-
-func getHTTPClient(cfg config.View, mmfClients *sync.Map, addr string) (*http.Client, string, error) {
-	val, exists := mmfClients.Load(addr)
-	data, ok := val.(httpData)
-	if !ok || !exists {
-		client, baseURL, err := rpc.HTTPClientFromEndpoint(cfg, addr)
-		if err != nil {
-			return nil, "", err
-		}
-		data = httpData{client, baseURL}
-		mmfClients.Store(addr, data)
-	}
-	return data.client, data.baseURL, nil
-}
-
-func getGRPCClient(cfg config.View, mmfClients *sync.Map, addr string) (pb.MatchFunctionClient, error) {
-	val, exists := mmfClients.Load(addr)
-	data, ok := val.(grpcData)
-	if !ok || !exists {
-		conn, err := rpc.GRPCClientFromEndpoint(cfg, addr)
-		if err != nil {
-			return nil, err
-		}
-		data = grpcData{pb.NewMatchFunctionClient(conn)}
-		mmfClients.Store(addr, data)
-	}
-
-	return data.client, nil
 }
 
 func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *http.Client, baseURL string) ([]*pb.Match, error) {
@@ -249,7 +200,7 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 	defer func() {
 		err = resp.Body.Close()
 		if err != nil {
-			backendServiceLogger.WithError(err).Warning("failed to close response body read closer")
+			logger.WithError(err).Warning("failed to close response body read closer")
 		}
 	}()
 
@@ -264,7 +215,7 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 		return nil, status.Errorf(codes.FailedPrecondition, "failed to unmarshal response body to response pb for profile %s: %s", profile.Name, err.Error())
 	}
 
-	return pbResp.GetProposal(), nil
+	return pbResp.GetProposals(), nil
 }
 
 // matchesFromGRPCMMF triggers execution of MMFs to fetch match results for each profile.
@@ -275,11 +226,11 @@ func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb
 	// and timeout gracefully to ensure that the ListMatches completes.
 	resp, err := client.Run(ctx, &pb.RunRequest{Profile: profile})
 	if err != nil {
-		backendServiceLogger.WithError(err).Error("failed to run match function for profile")
+		logger.WithError(err).Error("failed to run match function for profile")
 		return nil, err
 	}
 
-	return resp.GetProposal(), nil
+	return resp.GetProposals(), nil
 }
 
 // AssignTickets sets the specified Assignment on the Tickets for the Ticket
@@ -287,25 +238,26 @@ func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb
 func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
 	err := doAssignTickets(ctx, req, s.store)
 	if err != nil {
-		backendServiceLogger.WithError(err).Error("failed to update assignments for requested tickets")
+		logger.WithError(err).Error("failed to update assignments for requested tickets")
 		return nil, err
 	}
 
+	monitoring.IncrementCounterN(ctx, mTicketsAssigned, len(req.TicketIds))
 	return &pb.AssignTicketsResponse{}, nil
 }
 
 func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) error {
-	err := store.UpdateAssignments(ctx, req.GetTicketId(), req.GetAssignment())
+	err := store.UpdateAssignments(ctx, req.GetTicketIds(), req.GetAssignment())
 	if err != nil {
-		backendServiceLogger.WithError(err).Error("failed to update assignments")
+		logger.WithError(err).Error("failed to update assignments")
 		return err
 	}
-	for _, id := range req.GetTicketId() {
+	for _, id := range req.GetTicketIds() {
 		err = store.DeindexTicket(ctx, id)
 		// Try to deindex all input tickets. Log without returning an error if the deindexing operation failed.
 		// TODO: consider retry the index operation
 		if err != nil {
-			backendServiceLogger.WithError(err).Errorf("failed to deindex ticket %s after updating the assignments", id)
+			logger.WithError(err).Errorf("failed to deindex ticket %s after updating the assignments", id)
 		}
 	}
 

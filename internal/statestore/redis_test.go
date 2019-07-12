@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/monitoring"
 	internalTesting "open-match.dev/open-match/internal/testing"
 	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/pkg/structs"
@@ -334,7 +335,9 @@ func TestConnect(t *testing.T) {
 	store := New(cfg)
 	defer store.Close()
 
-	rb, ok := store.(*redisBackend)
+	is, ok := store.(*instrumentedService)
+	assert.True(ok)
+	rb, ok := is.s.(*redisBackend)
 	assert.True(ok)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -364,7 +367,8 @@ func createRedis(t *testing.T) (config.View, func()) {
 	cfg.Set("backoff.multiplier", 0.5)
 	cfg.Set("backoff.maxInterval", 300*time.Millisecond)
 	cfg.Set("backoff.maxElapsedTime", 100*time.Millisecond)
-	cfg.Set("playerIndices", []string{"testindex1", "testindex2"})
+	cfg.Set(monitoring.ConfigNameEnableMetrics, true)
+	cfg.Set("ticketIndices", []string{"testindex1", "testindex2"})
 
 	return cfg, func() { mredis.Close() }
 }

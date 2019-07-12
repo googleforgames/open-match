@@ -24,7 +24,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/monitoring"
 	"open-match.dev/open-match/internal/util/netlistener"
@@ -61,7 +60,8 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 		return func() {}, errors.WithStack(err)
 	}
 	s.grpcListener = grpcListener
-	s.grpcServer = grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{}))
+
+	s.grpcServer = grpc.NewServer(newGRPCServerOptions(params)...)
 	// Bind gRPC handlers
 	for _, handlerFunc := range params.handlersForGrpc {
 		handlerFunc(s.grpcServer)
@@ -70,6 +70,7 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
+		insecureLogger.Infof("Serving gRPC: %s", s.grpcLh.AddrString())
 		gErr := s.grpcServer.Serve(s.grpcListener)
 		if gErr != nil {
 			return
@@ -87,13 +88,15 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
-		if err = handlerFunc(ctx, s.proxyMux, grpcListener.Addr().String(), []grpc.DialOption{grpc.WithInsecure()}); err != nil {
+		dialOpts := newGRPCDialOptions(params.enableMetrics, params.enableRPCLogging)
+		dialOpts = append(dialOpts, grpc.WithInsecure())
+		if err = handlerFunc(ctx, s.proxyMux, grpcListener.Addr().String(), dialOpts); err != nil {
 			cancel()
 			return func() {}, errors.WithStack(err)
 		}
 	}
 
-	s.httpMux.HandleFunc("/healthz", monitoring.NewHealthProbe(params.handlersForHealthCheck))
+	s.httpMux.Handle(monitoring.HealthCheckEndpoint, monitoring.NewHealthCheck(params.handlersForHealthCheck))
 	s.httpMux.Handle("/", s.proxyMux)
 	s.httpServer = &http.Server{
 		Addr:    s.httpListener.Addr().String(),
@@ -102,6 +105,7 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
+		insecureLogger.Infof("Serving HTTP: %s", s.httpLh.AddrString())
 		hErr := s.httpServer.Serve(s.httpListener)
 		defer cancel()
 		if hErr != nil {

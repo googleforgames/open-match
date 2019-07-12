@@ -44,6 +44,7 @@ type redisBackend struct {
 	cfg             config.View
 }
 
+// Close the connection to the database.
 func (rb *redisBackend) Close() error {
 	return rb.redisPool.Close()
 }
@@ -267,8 +268,8 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 	// Fetch the indices from the configuration.
 	// TODO: Consider adding Open Match specific custom indices in future.
 	var indices []string
-	if rb.cfg.IsSet("playerIndices") {
-		indices = rb.cfg.GetStringSlice("playerIndices")
+	if rb.cfg.IsSet("ticketIndices") {
+		indices = rb.cfg.GetStringSlice("ticketIndices")
 	}
 
 	attributesToValue := map[string]float64{}
@@ -358,8 +359,8 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	// Fetch the indices from the configuration.
 	// TODO: Consider adding Open Match specific custom indices in future.
 	var indices []string
-	if rb.cfg.IsSet("playerIndices") {
-		indices = rb.cfg.GetStringSlice("playerIndices")
+	if rb.cfg.IsSet("ticketIndices") {
+		indices = rb.cfg.GetStringSlice("ticketIndices")
 	}
 
 	for _, attribute := range indices {

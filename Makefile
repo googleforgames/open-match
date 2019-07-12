@@ -70,9 +70,9 @@ SKAFFOLD_VERSION = latest
 MINIKUBE_VERSION = latest
 HTMLTEST_VERSION = 0.10.3
 GOLANGCI_VERSION = 1.17.1
-KIND_VERSION = 0.3.0
-SWAGGERUI_VERSION = 3.22.3
-TERRAFORM_VERSION = 0.12.2
+KIND_VERSION = 0.4.0
+SWAGGERUI_VERSION = 3.23.0
+TERRAFORM_VERSION = 0.12.3
 CHART_TESTING_VERSION = 2.3.3
 
 ENABLE_SECURITY_HARDENING = 0
@@ -105,6 +105,7 @@ GOLANG_TEST_COUNT = 1
 SWAGGERUI_PORT = 51500
 PROMETHEUS_PORT = 9090
 GRAFANA_PORT = 3000
+LOCUST_PORT = 8089
 FRONTEND_PORT = 51504
 BACKEND_PORT = 51505
 MMLOGIC_PORT = 51503
@@ -126,7 +127,6 @@ CHART_TESTING = $(TOOLCHAIN_BIN)/ct$(EXE_EXTENSION)
 GCLOUD = gcloud --quiet
 OPEN_MATCH_CHART_NAME = open-match
 OPEN_MATCH_KUBERNETES_NAMESPACE = open-match
-OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE = open-match
 OPEN_MATCH_SECRETS_DIR = $(REPOSITORY_ROOT)/install/helm/open-match/secrets
 REDIS_NAME = om-redis
 GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | cut -c 10-)
@@ -165,7 +165,6 @@ ifeq ($(GCP_PROJECT_ID),)
 endif
 
 ifeq ($(OS),Windows_NT)
-	# TODO: Windows packages are here but things are broken since many paths are Linux based and zip vs tar.gz.
 	HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-windows-amd64.zip
 	MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-windows-amd64.exe
 	SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-windows-amd64.exe
@@ -219,7 +218,7 @@ local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
 # Below should match push-images
-retag-images: retag-service-images retag-example-images retag-tool-images
+retag-images: retag-service-images retag-example-images retag-tool-images retag-stress-test-images
 
 retag-service-images: retag-backend-image retag-frontend-image retag-mmlogic-image retag-minimatch-image retag-synchronizer-image retag-swaggerui-image
 retag-example-images: retag-demo-images retag-mmf-example-images retag-evaluator-example-images
@@ -227,6 +226,7 @@ retag-demo-images: retag-mmf-go-soloduel-image retag-demo-image
 retag-mmf-example-images: retag-mmf-go-soloduel-image retag-mmf-go-pool-image
 retag-evaluator-example-images: retag-evaluator-go-simple-image
 retag-tool-images: retag-reaper-image
+retag-stress-test-images: retag-stress-frontend-image
 # Above should match push-images
 
 retag-%-image: SOURCE_REGISTRY = gcr.io/$(OPEN_MATCH_BUILD_PROJECT_ID)
@@ -238,7 +238,7 @@ retag-%-image: docker
 	docker push $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
 
 # Below should match retag-images
-push-images: push-service-images push-example-images push-tool-images
+push-images: push-service-images push-example-images push-tool-images push-stress-test-images
 
 push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-synchronizer-image push-swaggerui-image
 push-example-images: push-demo-images push-mmf-example-images push-evaluator-example-images
@@ -246,6 +246,7 @@ push-demo-images: push-mmf-go-soloduel-image push-demo-image
 push-mmf-example-images: push-mmf-go-soloduel-image push-mmf-go-pool-image
 push-evaluator-example-images: push-evaluator-go-simple-image
 push-tool-images: push-reaper-image
+push-stress-test-images: push-stress-frontend-image
 # Above should match retag-images
 
 push-%-image: build-%-image docker
@@ -262,7 +263,7 @@ ifeq ($(BASE_VERSION),0.0.0-dev)
 endif
 endif
 
-build-images: build-service-images build-example-images build-tool-images
+build-images: build-service-images build-example-images build-tool-images build-stress-test-images
 
 build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-synchronizer-image build-swaggerui-image
 build-example-images: build-demo-images build-mmf-example-images build-evaluator-example-images
@@ -270,29 +271,15 @@ build-demo-images: build-mmf-go-soloduel-image build-demo-image
 build-mmf-example-images: build-mmf-go-soloduel-image build-mmf-go-pool-image
 build-evaluator-example-images: build-evaluator-go-simple-image
 build-tool-images: build-reaper-image
+build-stress-test-images: build-stress-frontend-image
 
 # Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
 # This is important so that the repository does not have any mutations while building individual images.
 build-base-build-image: docker all-protos
 	docker build -f Dockerfile.base-build -t open-match-base-build .
 
-build-backend-image: docker build-base-build-image
-	docker build -f cmd/backend/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-backend:$(TAG) -t $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG) .
-
-build-frontend-image: docker build-base-build-image
-	docker build -f cmd/frontend/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-frontend:$(TAG) -t $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG) .
-
-build-mmlogic-image: docker build-base-build-image
-	docker build -f cmd/mmlogic/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-mmlogic:$(TAG) -t $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG) .
-
-build-minimatch-image: docker build-base-build-image
-	docker build -f cmd/minimatch/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-minimatch:$(TAG) -t $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG) .
-
-build-synchronizer-image: docker build-base-build-image
-	docker build -f cmd/synchronizer/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-synchronizer:$(TAG) -t $(REGISTRY)/openmatch-synchronizer:$(ALTERNATE_TAG) .
-
-build-swaggerui-image: docker build-base-build-image third_party/swaggerui/
-	docker build -f cmd/swaggerui/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-swaggerui:$(TAG) -t $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG) .
+build-%-image: docker build-base-build-image
+	docker build -f cmd/$*/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-$*:$(TAG) -t $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG) .
 
 build-demo-image: docker build-base-build-image
 	docker build -f examples/demo/Dockerfile -t $(REGISTRY)/openmatch-demo:$(TAG) -t $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG) .
@@ -309,6 +296,9 @@ build-evaluator-go-simple-image: docker build-base-build-image
 build-reaper-image: docker build-base-build-image
 	docker build -f tools/reaper/Dockerfile -t $(REGISTRY)/openmatch-reaper:$(TAG) -t $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG) .
 
+build-stress-frontend-image: docker
+	docker build -f test/stress/Dockerfile -t $(REGISTRY)/openmatch-stress-frontend:$(TAG) -t $(REGISTRY)/openmatch-stress-frontend:$(ALTERNATE_TAG) .
+
 clean-images: docker
 	-docker rmi -f open-match-base-build
 	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
@@ -323,6 +313,7 @@ clean-images: docker
 	-docker rmi -f $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-demo:$(TAG) $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG)
 	-docker rmi -f $(REGISTRY)/openmatch-reaper:$(TAG) $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG)
+	-docker rmi -f $(REGISTRY)/openmatch-stress-frontend:$(TAG) $(REGISTRY)/openmatch-stress-frontend:$(ALTERNATE_TAG)
 
 install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug $(REDIS_NAME) stable/redis --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
@@ -351,7 +342,7 @@ build/chart/index.yaml.$(YEAR_MONTH_DAY): build/chart/index.yaml
 
 build/chart/: build/chart/index.yaml build/chart/index.yaml.$(YEAR_MONTH_DAY)
 
-install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -364,7 +355,7 @@ install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -377,7 +368,7 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set openmatch.monitoring.stackdriver.enabled=true \
 		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-e2e-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
+install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -387,10 +378,11 @@ install-e2e-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set jaeger.enabled=false \
 		--set prometheus.enabled=false \
 		--set redis.enabled=true \
-		--set openmatch.monitoring.stackdriver.enabled=true \
-		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID) \
 		--set openmatch.e2eevaluator.install=true \
-		--set openmatch.e2ematchfunction.install=true
+		--set openmatch.e2ematchfunction.install=true \
+		--set openmatch.stresstest.install=true \
+		--set openmatch.monitoring.stackdriver.enabled=true \
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
@@ -403,6 +395,7 @@ delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubec
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheuses.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd servicemonitors.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
+	-$(KUBECTL) delete namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 
 install/yaml/: install/yaml/install.yaml install/yaml/install-demo.yaml install/yaml/01-redis-chart.yaml install/yaml/02-open-match.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml
 
@@ -510,7 +503,7 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/install-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_CHART_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
 		--set openmatch.config.install=false \
@@ -534,7 +527,7 @@ set-redis-password:
 		read REDIS_PASSWORD; \
 		stty echo; \
 		printf "\n"; \
-		$(KUBECTL) create secret generic $(REDIS_NAME) -n $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
+		$(KUBECTL) create secret generic $(REDIS_NAME) -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
 
 install-toolchain: install-kubernetes-tools install-protoc-tools install-openmatch-tools
 install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION) build/toolchain/bin/terraform$(EXE_EXTENSION)
@@ -728,32 +721,32 @@ http-proxy-golang-protos: pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/p
 
 swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/synchronizer.swagger.json api/evaluator.swagger.json
 
-pkg/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+pkg/pb/%.pb.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	mkdir -p $(REPOSITORY_ROOT)/pkg/pb
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 
-internal/pb/%.pb.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+internal/pb/%.pb.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	mkdir -p $(REPOSITORY_ROOT)/internal/pb
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
 	$(SED_REPLACE) 's|pkg/pb|open-match.dev/open-match/pkg/pb|' $@
 
-pkg/pb/%.pb.gw.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+pkg/pb/%.pb.gw.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	mkdir -p $(REPOSITORY_ROOT)/pkg/pb
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
    		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
-internal/pb/%.pb.gw.go: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+internal/pb/%.pb.gw.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	mkdir -p $(REPOSITORY_ROOT)/internal/pb
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
    		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
-api/%.swagger.json: api/%.proto build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
+api/%.swagger.json: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
@@ -766,19 +759,19 @@ pkg/pb/mmlogic.pb.go: pkg/pb/messages.pb.go
 pkg/pb/evaluator.pb.go: pkg/pb/messages.pb.go
 internal/pb/synchronizer.pb.go: pkg/pb/messages.pb.go
 
-build:
+build: assets
 	$(GO) build ./...
 	$(GO) build -tags e2ecluster ./... 
 
-test:
+test: assets
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./...
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
-test-e2e-cluster:
+test-e2e-cluster: assets
 	$(GO) test ./... -race -tags e2ecluster
 
 stress-frontend-%: build/toolchain/python/
-	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:51504 \
+	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:$(FRONTEND_PORT) \
 		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
 
 fmt:
@@ -791,7 +784,7 @@ vet:
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 	GO111MODULE=on $(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
 
-lint: fmt vet golangci lint-chart
+lint: fmt vet golangci lint-chart terraform-lint
 
 assets: all-protos tls-certs third_party/ build/chart/
 
@@ -859,14 +852,24 @@ else
 	$(SED_REPLACE) 's/$$EVALUATION_MODE/ALWAYS_ALLOW/g' $(BUILD_DIR)/policies/binauthz.yaml
 endif
 
+terraform-test: install/terraform/open-match/.terraform/ install/terraform/open-match-build/.terraform/
+	(cd $(REPOSITORY_ROOT)/install/terraform/open-match/ && $(TERRAFORM) validate)
+	(cd $(REPOSITORY_ROOT)/install/terraform/open-match-build/ && $(TERRAFORM) validate)
+
 terraform-plan: install/terraform/open-match/.terraform/
 	(cd $(REPOSITORY_ROOT)/install/terraform/open-match/ && $(TERRAFORM) plan -var gcp_project_id=$(GCP_PROJECT_ID) -var gcp_location=$(GCP_LOCATION))
+
+terraform-lint: build/toolchain/bin/terraform$(EXE_EXTENSION)
+	$(TERRAFORM) fmt -recursive
 
 terraform-apply: install/terraform/open-match/.terraform/
 	(cd $(REPOSITORY_ROOT)/install/terraform/open-match/ && $(TERRAFORM) apply -var gcp_project_id=$(GCP_PROJECT_ID) -var gcp_location=$(GCP_LOCATION))
 
 install/terraform/open-match/.terraform/: build/toolchain/bin/terraform$(EXE_EXTENSION)
 	(cd $(REPOSITORY_ROOT)/install/terraform/open-match/ && $(TERRAFORM) init)
+
+install/terraform/open-match-build/.terraform/: build/toolchain/bin/terraform$(EXE_EXTENSION)
+	(cd $(REPOSITORY_ROOT)/install/terraform/open-match-build/ && $(TERRAFORM) init)
 
 build/certificates/: build/toolchain/bin/certgen$(EXE_EXTENSION)
 	mkdir -p $(BUILD_DIR)/certificates/
@@ -893,7 +896,7 @@ ci-reap-clusters: build/toolchain/bin/reaper$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: GOLANG_TEST_COUNT = 5
-presubmit: clean update-deps third_party/ assets lint build install-toolchain test md-test
+presubmit: clean update-deps third_party/ assets lint build install-toolchain test md-test terraform-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -967,10 +970,13 @@ clean-stress-test-tools:
 clean-swagger-docs:
 	rm -rf $(REPOSITORY_ROOT)/api/*.json
 
+clean-third-party:
+	rm -rf $(REPOSITORY_ROOT)/third_party/
+
 clean-swaggerui:
 	rm -rf $(REPOSITORY_ROOT)/third_party/swaggerui/
 
-clean: clean-images clean-binaries clean-release clean-chart clean-build clean-protos clean-swagger-docs clean-install-yaml clean-stress-test-tools clean-secrets clean-swaggerui clean-terraform
+clean: clean-images clean-binaries clean-release clean-chart clean-build clean-protos clean-swagger-docs clean-install-yaml clean-stress-test-tools clean-secrets clean-swaggerui clean-terraform clean-third-party
 
 proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Frontend Health: http://localhost:$(FRONTEND_PORT)/healthz"
@@ -1005,7 +1011,7 @@ proxy-prometheus: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=prometheus,component=server,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(PROMETHEUS_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9090 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace kube-system $(shell $(KUBECTL) get pod --namespace kube-system --selector="app=kubernetes-dashboard" --output jsonpath='{.items[0].metadata.name}') $(DASHBOARD_PORT):9092 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "SwaggerUI Health: http://localhost:$(SWAGGERUI_PORT)/"
@@ -1013,7 +1019,11 @@ proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "View Demo: http://localhost:$(DEMO_PORT)"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_DEMO_KUBERNETES_NAMESPACE) --selector="app=open-match,component=demo,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(DEMO_PORT):51507 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=demo,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(DEMO_PORT):51507 $(PORT_FORWARD_ADDRESS_FLAG)
+
+proxy-locust: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	@echo "Locust UI: http://localhost:$(LOCUST_PORT)"
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=locust-master,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(LOCUST_PORT):8089 $(PORT_FORWARD_ADDRESS_FLAG)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
@@ -1032,12 +1042,11 @@ third_party/: third_party/google/api third_party/protoc-gen-swagger/options thir
 third_party/google/api:
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
 	mkdir -p $(REPOSITORY_ROOT)/third_party/google/api
+	mkdir -p $(REPOSITORY_ROOT)/third_party/google/rpc
 	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L https://github.com/googleapis/googleapis/archive/master.zip
 	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
-	cp -f $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/annotations.proto \
-		$(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/http.proto \
-		$(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/httpbody.proto \
-		$(REPOSITORY_ROOT)/third_party/google/api
+	cp -f $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/*.proto $(REPOSITORY_ROOT)/third_party/google/api/
+	cp -f $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/rpc/*.proto $(REPOSITORY_ROOT)/third_party/google/rpc/
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
 
 third_party/protoc-gen-swagger/options:
@@ -1045,9 +1054,7 @@ third_party/protoc-gen-swagger/options:
 	mkdir -p $(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options
 	curl -o $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway.zip -L https://github.com/grpc-ecosystem/grpc-gateway/archive/master.zip
 	(cd $(TOOLCHAIN_DIR)/grpc-gateway-temp/; unzip -q -o grpc-gateway.zip)
-	cp -f $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/annotations.proto \
-		$(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/openapiv2.proto \
-		$(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options
+	cp -f $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/*.proto $(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options/
 	rm -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp
 
 third_party/swaggerui/:

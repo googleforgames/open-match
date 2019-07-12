@@ -15,8 +15,6 @@
 package backend
 
 import (
-	"sync"
-
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
@@ -25,30 +23,23 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-var (
-	backendLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "backend",
-	})
-)
-
 // RunApplication creates a server.
 func RunApplication() {
 	cfg, err := config.Read()
 	if err != nil {
-		backendLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
 	p, err := rpc.NewServerParamsFromConfig(cfg, "api.backend")
 	if err != nil {
-		backendLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("cannot construct server.")
 	}
 
 	if err := BindService(p, cfg); err != nil {
-		backendLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("failed to bind backend service.")
 	}
@@ -59,10 +50,9 @@ func RunApplication() {
 // BindService creates the backend service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View) error {
 	service := &backendService{
-		cfg:          cfg,
 		synchronizer: &synchronizerClient{cfg: cfg},
 		store:        statestore.New(cfg),
-		mmfClients:   &sync.Map{},
+		mmfClients:   rpc.NewClientCache(cfg),
 	}
 
 	p.AddHealthCheckFunc(service.store.HealthCheck)

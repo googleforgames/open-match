@@ -25,6 +25,11 @@ import (
 	"open-match.dev/open-match/internal/config"
 )
 
+const (
+	// ConfigNameEnableMetrics indicates that monitoring is enabled.
+	ConfigNameEnableMetrics = "monitoring.prometheus.enable"
+)
+
 var (
 	prometheusLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",

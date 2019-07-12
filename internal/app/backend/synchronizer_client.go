@@ -5,9 +5,14 @@ import (
 	"sync"
 
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/monitoring"
 	ipb "open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
+)
+
+var (
+	mMatchEvaluations = monitoring.Counter("backend/matches_evaluated", "matches evaluated")
 )
 
 type synchronizerClient struct {
@@ -54,13 +59,14 @@ func (sc *synchronizerClient) evaluate(ctx context.Context, id string, proposals
 	}
 
 	resp, err := sc.synchronizer.EvaluateProposals(ctx, &ipb.EvaluateProposalsRequest{
-		Id:    id,
-		Match: proposals})
+		Id:      id,
+		Matches: proposals})
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.Match, nil
+	monitoring.IncrementCounterN(ctx, mMatchEvaluations, len(resp.Matches))
+	return resp.Matches, nil
 }
 
 // initialize attempts to connect to the Sychronizer service. If the connection is
