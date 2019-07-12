@@ -36,9 +36,10 @@ class ClientBehavior(TaskSequence):
     self.payload["body"] = ticket_generator()
 
     method, endpoint, params, data, name = "POST", self.payload["endpoint"], None, json.dumps(self.payload["body"]), "Create: {}".format(self.payload["endpoint"])
-
-    response = self.client.request(method, endpoint, name=name, params=params, data=data, catch_response=True)
-    print(response.content)
+    with self.client.request(method, endpoint, name=name, params=params, data=data, catch_response=True) as response:
+      if response.status_code == 200:
+          response.success()
+          self.payload["body"] = json.loads(response.content)
 
   @seq_task(2)
   @task(5)
