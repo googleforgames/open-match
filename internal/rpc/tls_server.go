@@ -25,7 +25,6 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"open-match.dev/open-match/internal/monitoring"
@@ -35,13 +34,6 @@ import (
 const (
 	// https://http2.github.io/http2-spec/#rfc.section.3.1
 	http2WithTLSVersionID = "h2"
-)
-
-var (
-	tlsServerLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "tls_server",
-	})
 )
 
 type tlsServer struct {
@@ -96,10 +88,10 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	serverStartWaiter.Add(1)
 	go func() {
 		serverStartWaiter.Done()
-		tlsServerLogger.Infof("Serving gRPC: %s", s.grpcLh.AddrString())
+		serverLogger.Infof("Serving gRPC-TLS: %s", s.grpcLh.AddrString())
 		gErr := s.grpcServer.Serve(s.grpcListener)
 		if gErr != nil {
-			tlsServerLogger.Debugf("error closing gRPC server: %s", gErr)
+			serverLogger.Debugf("error closing gRPC-TLS server: %s", gErr)
 		}
 	}()
 
@@ -140,11 +132,11 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	go func() {
 		serverStartWaiter.Done()
 		tlsListener := tls.NewListener(s.httpListener, s.httpServer.TLSConfig)
-		tlsServerLogger.Infof("Serving HTTP: %s", s.httpLh.AddrString())
+		serverLogger.Infof("Serving HTTPS: %s", s.httpLh.AddrString())
 		hErr := s.httpServer.Serve(tlsListener)
 		defer cancel()
 		if hErr != nil {
-			tlsServerLogger.Debugf("error closing server: %s", hErr)
+			serverLogger.Debugf("error closing server: %s", hErr)
 		}
 	}()
 
@@ -155,15 +147,15 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 func (s *tlsServer) stop() {
 	s.grpcServer.Stop()
 	if err := s.grpcListener.Close(); err != nil {
-		tlsServerLogger.Debugf("error closing gRPC listener: %s", err)
+		serverLogger.Debugf("error closing gRPC-TLS listener: %s", err)
 	}
 
 	if err := s.httpServer.Close(); err != nil {
-		tlsServerLogger.Debugf("error closing HTTP server: %s", err)
+		serverLogger.Debugf("error closing HTTPS server: %s", err)
 	}
 
 	if err := s.httpListener.Close(); err != nil {
-		tlsServerLogger.Debugf("error closing HTTP listener: %s", err)
+		serverLogger.Debugf("error closing HTTPS listener: %s", err)
 	}
 }
 

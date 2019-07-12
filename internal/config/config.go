@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	cfgLog = logrus.WithFields(logrus.Fields{
+	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
 		"component": "config",
 	})
@@ -82,9 +82,7 @@ func Read() (View, error) {
 	// Read in config file using Viper
 	err := cfg.ReadInConfig()
 	if err != nil {
-		cfgLog.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatal("Fatal error reading config file")
+		logger.WithError(err).Fatal("Fatal error reading config file")
 	}
 
 	// Bind this envvars to viper config vars.
@@ -96,15 +94,14 @@ func Read() (View, error) {
 		err = cfg.BindEnv(cfgKey, envVar)
 
 		if err != nil {
-			cfgLog.WithFields(logrus.Fields{
+			logger.WithError(err).WithFields(logrus.Fields{
 				"configkey": cfgKey,
 				"envvar":    envVar,
-				"error":     err.Error(),
 				"module":    "config",
 			}).Warn("Unable to bind environment var as a config variable")
 
 		} else {
-			cfgLog.WithFields(logrus.Fields{
+			logger.WithFields(logrus.Fields{
 				"configkey": cfgKey,
 				"envvar":    envVar,
 				"module":    "config",
@@ -120,7 +117,7 @@ func Read() (View, error) {
 	cfg.WatchConfig() // Watch and re-read config file.
 	// Write a log when the configuration changes.
 	cfg.OnConfigChange(func(event fsnotify.Event) {
-		cfgLog.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"filename":  event.Name,
 			"operation": event.Op,
 		}).Info("Server configuration changed.")

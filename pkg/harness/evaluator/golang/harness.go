@@ -24,31 +24,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	harnessLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "evaluator.golang.harness",
-	})
-)
-
 // RunEvaluator is a hook for the main() method in the main executable.
 func RunEvaluator(eval Evaluator) {
 	cfg, err := config.Read()
 	if err != nil {
-		harnessLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
 
 	p, err := rpc.NewServerParamsFromConfig(cfg, "api.evaluator")
 	if err != nil {
-		harnessLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("cannot construct server.")
 	}
 
 	if err := BindService(p, cfg, eval); err != nil {
-		harnessLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("failed to bind evaluator service.")
 	}
