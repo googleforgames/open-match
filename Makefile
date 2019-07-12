@@ -370,7 +370,7 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/
 
 install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
-		--timeout=400 \
+		--timeout=600 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
@@ -378,6 +378,9 @@ install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-mat
 		--set jaeger.enabled=false \
 		--set prometheus.enabled=false \
 		--set redis.enabled=true \
+		--set openmatch.demoevaluator.install=false \
+		--set openmatch.demofunction.install=false \
+		--set openmatch.demo.install=false \
 		--set openmatch.e2eevaluator.install=true \
 		--set openmatch.e2ematchfunction.install=true \
 		--set openmatch.stresstest.install=true \

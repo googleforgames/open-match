@@ -4,7 +4,7 @@ To run the stress test
 ```
 # deploy Tiller to your GKE cluster
 make push-helm
-# deploy stress test services along with Open Match core components to the cluster
+# deploy stress test services along with Open Match core components to the cluster, it may take a while because the cloud load balancer is trying to assign an external ip to the services in your cluster.
 make install-ci-chart
 # kubectl port-forward localhost traffic to the cluster
 make proxy
