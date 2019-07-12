@@ -31,6 +31,26 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+const (
+	configNameRedisUser                   = "redis.user"
+	configNameRedisPassword               = "redis.password"
+	configNameRedisHostname               = "redis.hostname"
+	configNameRedisPort                   = "redis.port"
+	configNameRedisPoolIdleTimeout        = "redis.pool.idleTimeout"
+	configNameRedisPoolMaxActive          = "redis.pool.maxActive"
+	configNameRedisPoolMaxIdle            = "redis.pool.maxIdle"
+	configNameRedisPoolHealthCheckTimeout = "redis.pool.healthCheckTimeout"
+
+	configNameRedisExpiration     = "redis.expiration"
+	configNameRedisIgnoreListsTTL = "redis.ignoreLists.ttl"
+
+	configNameBackoffInitialInterval = "backoff.initialInterval"
+	configNameBackoffRandFactor      = "backoff.randFactor"
+	configNameBackoffMultiplier      = "backoff.multiplier"
+	configNameBackoffMaxInterval     = "backoff.maxInterval"
+	configNameBackoffMaxElapsedTime  = "backoff.maxElapsedTime"
+)
+
 var (
 	redisLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
@@ -57,37 +77,37 @@ func newRedis(cfg config.View) Service {
 	// Add redis user and password to connection url if they exist
 	redisURL := "redis://"
 	maskedURL := redisURL
-	if cfg.IsSet("redis.password") && cfg.GetString("redis.password") != "" {
-		redisURL += cfg.GetString("redis.user") + ":" + cfg.GetString("redis.password") + "@"
-		maskedURL += cfg.GetString("redis.user") + ":******@"
+	if cfg.IsSet(configNameRedisPassword) && cfg.GetString(configNameRedisPassword) != "" {
+		redisURL += cfg.GetString(configNameRedisUser) + ":" + cfg.GetString(configNameRedisPassword) + "@"
+		maskedURL += cfg.GetString(configNameRedisUser) + ":******@"
 	}
-	redisURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
-	maskedURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
+	redisURL += cfg.GetString(configNameRedisHostname) + ":" + cfg.GetString(configNameRedisPort)
+	maskedURL += cfg.GetString(configNameRedisHostname) + ":" + cfg.GetString(configNameRedisPort)
 
 	redisLogger.WithField("redisURL", maskedURL).Debug("Attempting to connect to Redis")
 
 	pool := &redis.Pool{
-		MaxIdle:     cfg.GetInt("redis.pool.maxIdle"),
-		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
-		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout"),
+		MaxIdle:     cfg.GetInt(configNameRedisPoolMaxIdle),
+		MaxActive:   cfg.GetInt(configNameRedisPoolMaxActive),
+		IdleTimeout: cfg.GetDuration(configNameRedisPoolIdleTimeout),
 		Wait:        true,
 		DialContext: func(ctx context.Context) (redis.Conn, error) {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			return redis.DialURL(redisURL, redis.DialConnectTimeout(cfg.GetDuration("redis.pool.idleTimeout")), redis.DialReadTimeout(cfg.GetDuration("redis.pool.idleTimeout")))
+			return redis.DialURL(redisURL, redis.DialConnectTimeout(cfg.GetDuration(configNameRedisPoolIdleTimeout)), redis.DialReadTimeout(cfg.GetDuration(configNameRedisPoolIdleTimeout)))
 		},
 	}
 	healthCheckPool := &redis.Pool{
 		MaxIdle:     1,
 		MaxActive:   2,
-		IdleTimeout: cfg.GetDuration("redis.pool.healthCheckTimeout"),
+		IdleTimeout: cfg.GetDuration(configNameRedisPoolHealthCheckTimeout),
 		Wait:        true,
 		DialContext: func(ctx context.Context) (redis.Conn, error) {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			return redis.DialURL(redisURL, redis.DialConnectTimeout(cfg.GetDuration("redis.pool.healthCheckTimeout")), redis.DialReadTimeout(cfg.GetDuration("redis.pool.healthCheckTimeout")))
+			return redis.DialURL(redisURL, redis.DialConnectTimeout(cfg.GetDuration(configNameRedisPoolHealthCheckTimeout)), redis.DialReadTimeout(cfg.GetDuration(configNameRedisPoolHealthCheckTimeout)))
 		},
 	}
 
@@ -161,8 +181,8 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	if rb.cfg.IsSet("redis.expiration") {
-		redisTTL := rb.cfg.GetInt("redis.expiration")
+	if rb.cfg.IsSet(configNameRedisExpiration) {
+		redisTTL := rb.cfg.GetInt(configNameRedisExpiration)
 		if redisTTL > 0 {
 			err = redisConn.Send("EXPIRE", ticket.GetId(), redisTTL)
 			if err != nil {
@@ -430,7 +450,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 		}
 	}
 
-	ttl := rb.cfg.GetDuration("redis.ignoreLists.ttl")
+	ttl := rb.cfg.GetDuration(configNameRedisIgnoreListsTTL)
 	curTime := time.Now()
 	curTimeInt := curTime.UnixNano()
 	startTimeInt := curTime.Add(-ttl).UnixNano()
@@ -643,7 +663,7 @@ func handleConnectionClose(conn *redis.Conn) {
 }
 
 func (rb *redisBackend) newConstantBackoffStrategy() backoff.BackOff {
-	backoffStrat := backoff.NewConstantBackOff(rb.cfg.GetDuration("backoff.initialInterval"))
+	backoffStrat := backoff.NewConstantBackOff(rb.cfg.GetDuration(configNameBackoffInitialInterval))
 	return backoff.BackOff(backoffStrat)
 }
 
@@ -651,10 +671,10 @@ func (rb *redisBackend) newConstantBackoffStrategy() backoff.BackOff {
 // nolint: unused
 func (rb *redisBackend) newExponentialBackoffStrategy() backoff.BackOff {
 	backoffStrat := backoff.NewExponentialBackOff()
-	backoffStrat.InitialInterval = rb.cfg.GetDuration("backoff.initialInterval")
-	backoffStrat.RandomizationFactor = rb.cfg.GetFloat64("backoff.randFactor")
-	backoffStrat.Multiplier = rb.cfg.GetFloat64("backoff.multiplier")
-	backoffStrat.MaxInterval = rb.cfg.GetDuration("backoff.maxInterval")
-	backoffStrat.MaxElapsedTime = rb.cfg.GetDuration("backoff.maxElapsedTime")
+	backoffStrat.InitialInterval = rb.cfg.GetDuration(configNameBackoffInitialInterval)
+	backoffStrat.RandomizationFactor = rb.cfg.GetFloat64(configNameBackoffRandFactor)
+	backoffStrat.Multiplier = rb.cfg.GetFloat64(configNameBackoffMultiplier)
+	backoffStrat.MaxInterval = rb.cfg.GetDuration(configNameBackoffMaxInterval)
+	backoffStrat.MaxElapsedTime = rb.cfg.GetDuration(configNameBackoffMaxElapsedTime)
 	return backoff.BackOff(backoffStrat)
 }

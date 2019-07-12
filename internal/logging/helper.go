@@ -21,12 +21,17 @@ import (
 	"open-match.dev/open-match/internal/config"
 )
 
+const (
+	configNameLoggingFormat = "logging.format"
+	configNameLoggingLevel  = "logging.level"
+)
+
 // ConfigureLogging sets up open match logrus instance using the logging section of the matchmaker_config.json
 //  - log line format (text[default] or json)
 //  - min log level to include (debug, info [default], warn, error, fatal, panic)
 //  - include source file and line number for every event (false [default], true)
 func ConfigureLogging(cfg config.View) {
-	switch cfg.GetString("logging.format") {
+	switch cfg.GetString(configNameLoggingFormat) {
 	case "stackdriver":
 		logrus.SetFormatter(stackdriver.NewFormatter())
 	case "json":
@@ -36,7 +41,7 @@ func ConfigureLogging(cfg config.View) {
 		logrus.SetFormatter(&logrus.TextFormatter{})
 	}
 
-	switch cfg.GetString("logging.level") {
+	switch cfg.GetString(configNameLoggingLevel) {
 	case "debug":
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.Warn("Debug logging level configured. Not recommended for production!")

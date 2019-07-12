@@ -15,13 +15,18 @@
 package monitoring
 
 import (
-	"go.opencensus.io/zpages"
 	"net/http"
+
+	"go.opencensus.io/zpages"
 	"open-match.dev/open-match/internal/config"
 )
 
+const (
+	configNameMonitoringZpagesEnable = "monitoring.zpages.enable"
+)
+
 func bindZpages(mux *http.ServeMux, cfg config.View) {
-	if !cfg.GetBool("monitoring.zpages.enable") {
+	if !cfg.GetBool(configNameMonitoringZpagesEnable) {
 		return
 	}
 	zpages.Handle(mux, "/debug")

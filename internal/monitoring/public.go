@@ -25,6 +25,10 @@ import (
 	"open-match.dev/open-match/internal/config"
 )
 
+const (
+	configNameMonitoringReportingPeriod = "monitoring.reportingPeriod"
+)
+
 var (
 	publicLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
@@ -34,7 +38,7 @@ var (
 
 // Setup configures the monitoring for the server.
 func Setup(mux *http.ServeMux, cfg config.View) {
-	periodString := cfg.GetString("monitoring.reportingPeriod")
+	periodString := cfg.GetString(configNameMonitoringReportingPeriod)
 	reportingPeriod, err := time.ParseDuration(periodString)
 	if err != nil {
 		publicLogger.WithFields(logrus.Fields{

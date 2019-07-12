@@ -27,7 +27,8 @@ import (
 
 const (
 	// ConfigNameEnableMetrics indicates that monitoring is enabled.
-	ConfigNameEnableMetrics = "monitoring.prometheus.enable"
+	ConfigNameEnableMetrics                = "monitoring.prometheus.enable"
+	configNameMonitoringPrometheusEndpoint = "monitoring.prometheus.endpoint"
 )
 
 var (
@@ -38,12 +39,12 @@ var (
 )
 
 func bindPrometheus(mux *http.ServeMux, cfg config.View) {
-	if !cfg.GetBool("monitoring.prometheus.enable") {
+	if !cfg.GetBool(ConfigNameEnableMetrics) {
 		prometheusLogger.Info("Prometheus Metrics: Disabled")
 		return
 	}
 
-	endpoint := cfg.GetString("monitoring.prometheus.endpoint")
+	endpoint := cfg.GetString(configNameMonitoringPrometheusEndpoint)
 	registry := prometheus.NewRegistry()
 	// Register standard prometheus instrumentation.
 	registry.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))

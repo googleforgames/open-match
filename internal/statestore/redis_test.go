@@ -135,7 +135,7 @@ func TestIgnoreLists(t *testing.T) {
 	verifyTickets(service, len(tickets)-3)
 
 	// Sleep until the ignore list expired and verify we still have all the tickets
-	time.Sleep(cfg.GetDuration("redis.ignoreLists.ttl"))
+	time.Sleep(cfg.GetDuration(configNameRedisIgnoreListsTTL))
 	verifyTickets(service, len(tickets))
 }
 

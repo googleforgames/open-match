@@ -22,6 +22,12 @@ import (
 	"open-match.dev/open-match/internal/config"
 )
 
+const (
+	configNameMonitoringStackdriverEnable       = "monitoring.stackdriver.enable"
+	configNameMonitoringStackdriverGCPProjectID = "monitoring.stackdriver.gcpProjectId"
+	configNameMonitoringStackdriverMetricPrefix = "monitoring.stackdriver.metricPrefix"
+)
+
 var (
 	stackdriverLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
@@ -30,12 +36,12 @@ var (
 )
 
 func bindStackDriver(cfg config.View) {
-	if !cfg.GetBool("monitoring.stackdriver.enable") {
+	if !cfg.GetBool(configNameMonitoringStackdriverEnable) {
 		stackdriverLogger.Info("StackDriver Metrics: Disabled")
 		return
 	}
-	gcpProjectID := cfg.GetString("monitoring.stackdriver.gcpProjectId")
-	metricPrefix := cfg.GetString("monitoring.stackdriver.metricPrefix")
+	gcpProjectID := cfg.GetString(configNameMonitoringStackdriverGCPProjectID)
+	metricPrefix := cfg.GetString(configNameMonitoringStackdriverMetricPrefix)
 	sd, err := stackdriver.NewExporter(stackdriver.Options{
 		ProjectID: gcpProjectID,
 		// MetricPrefix helps uniquely identify your metrics.

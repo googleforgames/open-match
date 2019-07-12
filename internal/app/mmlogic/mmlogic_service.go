@@ -26,6 +26,10 @@ import (
 	"open-match.dev/open-match/internal/statestore"
 )
 
+const (
+	configNameStoragePageSize = "storage.page.size"
+)
+
 var (
 	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
@@ -76,7 +80,6 @@ func doQueryTickets(ctx context.Context, filters []*pb.Filter, pageSize int, sen
 
 func getPageSize(cfg config.View) int {
 	const (
-		name = "storage.page.size"
 		// Minimum number of tickets to be returned in a streamed response for QueryTickets. This value
 		// will be used if page size is configured lower than the minimum value.
 		minPageSize int = 10
@@ -88,11 +91,11 @@ func getPageSize(cfg config.View) int {
 		maxPageSize int = 10000
 	)
 
-	if !cfg.IsSet(name) {
+	if !cfg.IsSet(configNameStoragePageSize) {
 		return defaultPageSize
 	}
 
-	pSize := cfg.GetInt("storage.page.size")
+	pSize := cfg.GetInt(configNameStoragePageSize)
 	if pSize < minPageSize {
 		logger.Infof("page size %v is lower than the minimum limit of %v", pSize, maxPageSize)
 		pSize = minPageSize

@@ -21,6 +21,12 @@ import (
 	"open-match.dev/open-match/internal/config"
 )
 
+const (
+	configNameMonitoringJaegerEnable            = "monitoring.jaeger.enable"
+	configNameMonitoringJaegerAgentEndpoint     = "monitoring.jaeger.agentEndpoint"
+	configNameMonitoringJaegerCollectorEndpoint = "monitoring.jaeger.collectorEndpoint"
+)
+
 var (
 	jaegerLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
@@ -29,13 +35,13 @@ var (
 )
 
 func bindJaeger(cfg config.View) {
-	if !cfg.GetBool("monitoring.jaeger.enable") {
+	if !cfg.GetBool(configNameMonitoringJaegerEnable) {
 		jaegerLogger.Info("Jaeger Tracing: Disabled")
 		return
 	}
 
-	agentEndpointURI := cfg.GetString("monitoring.jaeger.agentEndpoint")
-	collectorEndpointURI := cfg.GetString("monitoring.jaeger.collectorEndpoint")
+	agentEndpointURI := cfg.GetString(configNameMonitoringJaegerAgentEndpoint)
+	collectorEndpointURI := cfg.GetString(configNameMonitoringJaegerCollectorEndpoint)
 
 	je, err := jaeger.NewExporter(jaeger.Options{
 		AgentEndpoint:     agentEndpointURI,
