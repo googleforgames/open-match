@@ -80,7 +80,7 @@ func (com *clusterOM) MustMmLogicGRPC() pb.MmLogicClient {
 }
 
 func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {
-	host, port := com.getAddressFromServiceName("om-e2ematchfunction", "grpc")
+	host, port := com.getGRPCAddressFromServiceName("om-e2ematchfunction")
 	return &pb.FunctionConfig{
 		Host: host,
 		Port: port,
@@ -89,7 +89,7 @@ func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {
 }
 
 func (com *clusterOM) MustMmfConfigHTTP() *pb.FunctionConfig {
-	host, port := com.getAddressFromServiceName("om-e2ematchfunction", "http")
+	host, port := com.getHTTPAddressFromServiceName("om-e2ematchfunction")
 	return &pb.FunctionConfig{
 		Host: host,
 		Port: port,
@@ -115,8 +115,16 @@ func (com *clusterOM) getAddressFromServiceName(serviceName, portName string) (s
 	return svc.Status.LoadBalancer.Ingress[0].IP, port
 }
 
+func (com *clusterOM) getGRPCAddressFromServiceName(serviceName string) (string, int32) {
+	return com.getAddressFromServiceName(serviceName, "grpc")
+}
+
+func (com *clusterOM) getHTTPAddressFromServiceName(serviceName string) (string, int32) {
+	return com.getAddressFromServiceName(serviceName, "http")
+}
+
 func (com *clusterOM) getGRPCClientFromServiceName(serviceName string) (*grpc.ClientConn, error) {
-	ipAddress, port := com.getAddressFromServiceName(serviceName, "grpc")
+	ipAddress, port := com.getGRPCAddressFromServiceName(serviceName)
 	conn, err := rpc.GRPCClientFromParams(&rpc.ClientParams{
 		Hostname:         ipAddress,
 		Port:             int(port),
