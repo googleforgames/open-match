@@ -26,16 +26,9 @@ import (
 	"open-match.dev/open-match/internal/config"
 )
 
-var (
-	zipkinLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "monitoring.zipkin",
-	})
-)
-
 func bindZipkin(cfg config.View) {
 	if !cfg.GetBool("monitoring.zipkin.enable") {
-		zipkinLogger.Info("Zipkin Tracing: Disabled")
+		logger.Info("Zipkin Tracing: Disabled")
 		return
 	}
 	zipkinEndpoint := cfg.GetString("monitoring.zipkin.endpoint")
@@ -43,7 +36,7 @@ func bindZipkin(cfg config.View) {
 	// 1. Configure exporter to export traces to Zipkin.
 	localEndpoint, err := openzipkin.NewEndpoint("open_match", zipkinEndpoint)
 	if err != nil {
-		zipkinLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error":                  err,
 			"zipkinEndpoint":         zipkinEndpoint,
 			"zipkinReporterEndpoint": zipkinReporterEndpoint,
@@ -57,7 +50,7 @@ func bindZipkin(cfg config.View) {
 	// TODO: Provide a basic configuration for Zipkin trace samples.
 	trace.ApplyConfig(trace.Config{DefaultSampler: trace.AlwaysSample()})
 
-	zipkinLogger.WithFields(logrus.Fields{
+	logger.WithFields(logrus.Fields{
 		"zipkinEndpoint":         zipkinEndpoint,
 		"zipkinReporterEndpoint": zipkinReporterEndpoint,
 	}).Info("Zipkin Tracing: ENABLED")

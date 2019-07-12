@@ -33,6 +33,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/util"
 	pb "open-match.dev/open-match/pkg/pb"
 )
 
@@ -40,7 +41,7 @@ type clusterOM struct {
 	kubeClient kubernetes.Interface
 	namespace  string
 	t          *testing.T
-	mc         *multicloser
+	mc         *util.MultiClose
 }
 
 func (com *clusterOM) withT(t *testing.T) OM {
@@ -48,7 +49,7 @@ func (com *clusterOM) withT(t *testing.T) OM {
 		kubeClient: com.kubeClient,
 		namespace:  com.namespace,
 		t:          t,
-		mc:         newMulticloser(),
+		mc:         util.NewMultiClose(),
 	}
 }
 
@@ -57,7 +58,7 @@ func (com *clusterOM) MustFrontendGRPC() pb.FrontendClient {
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
-	com.mc.addSilent(conn.Close)
+	com.mc.AddCloseWithErrorFunc(conn.Close)
 	return pb.NewFrontendClient(conn)
 }
 
@@ -66,7 +67,7 @@ func (com *clusterOM) MustBackendGRPC() pb.BackendClient {
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
-	com.mc.addSilent(conn.Close)
+	com.mc.AddCloseWithErrorFunc(conn.Close)
 	return pb.NewBackendClient(conn)
 }
 
@@ -75,7 +76,7 @@ func (com *clusterOM) MustMmLogicGRPC() pb.MmLogicClient {
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
-	com.mc.addSilent(conn.Close)
+	com.mc.AddCloseWithErrorFunc(conn.Close)
 	return pb.NewMmLogicClient(conn)
 }
 
@@ -155,7 +156,7 @@ func (com *clusterOM) Context() context.Context {
 }
 
 func (com *clusterOM) cleanup() {
-	com.mc.close()
+	com.mc.Close()
 }
 
 func (com *clusterOM) cleanupMain() error {

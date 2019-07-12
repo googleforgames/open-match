@@ -30,6 +30,9 @@ openmatch:
       enabled: false
       endpoint: "/zipkin"
       reporterEndpoint: "zipkin"
+    opencensusAgent:
+      enabled: false
+      agentEndpoint: "om-opencensus-agent:55678"
     reportingPeriod: "5s"
   synchronizer:
     install: true
@@ -192,6 +195,9 @@ openmatch:
           proposalCollectionIntervalMs: 2000ms
 
         monitoring:
+          opencensusAgent:
+            enable: "{{.Values.openmatch.monitoring.opencensusAgent.enabled}}"
+            agentEndpoint: "{{.Values.openmatch.monitoring.opencensusAgent.agentEndpoint}}"
           jaeger:
             enable: "{{.Values.openmatch.monitoring.jaeger.enabled}}"
             agentEndpoint: "{{.Values.openmatch.monitoring.jaeger.agentEndpoint}}"
