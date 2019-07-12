@@ -85,6 +85,14 @@ func (iom *inmemoryOM) MustMmfConfigGRPC() *pb.FunctionConfig {
 	}
 }
 
+func (iom *inmemoryOM) MustMmfConfigHTTP() *pb.FunctionConfig {
+	return &pb.FunctionConfig{
+		Host: iom.mmfTc.GetHostname(),
+		Port: int32(iom.mmfTc.GetHTTPPort()),
+		Type: pb.FunctionConfig_REST,
+	}
+}
+
 func (iom *inmemoryOM) HealthCheck() error {
 	return nil
 }

@@ -44,6 +44,7 @@ type redisBackend struct {
 	cfg             config.View
 }
 
+// Close the connection to the database.
 func (rb *redisBackend) Close() error {
 	return rb.redisPool.Close()
 }

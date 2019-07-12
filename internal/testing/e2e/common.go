@@ -34,8 +34,10 @@ type OM interface {
 	MustMmLogicGRPC() pb.MmLogicClient
 	// HealthCheck probes the cluster for readiness.
 	HealthCheck() error
-	// MustMmfConfigGRPC returns a match function config for backend server.
+	// MustMmfConfigGRPC returns a grpc match function config for backend server.
 	MustMmfConfigGRPC() *pb.FunctionConfig
+	// MustMmfConfigHTTP returns a http match function config for backend server.
+	MustMmfConfigHTTP() *pb.FunctionConfig
 	// Context provides a context to call remote methods.
 	Context() context.Context
 

@@ -14,65 +14,65 @@
 
 variable "gcp_project_id" {
   description = "GCP Project ID"
-  default = "open-match-build"
+  default     = "open-match-build"
 }
 
 variable "gcp_region" {
   description = "Location where resources in GCP will be located."
-  default = "us-west1"
+  default     = "us-west1"
 }
 
 variable "gcp_zone" {
   description = "Location where resources in GCP will be located."
-  default = "us-west1-b"
+  default     = "us-west1-b"
 }
 
 variable "vpc_flow_logs" {
   description = "Enables VPC network flow logs for debugging."
-  default = "false"
+  default     = "false"
 }
 
 provider "null" {
 }
 
 provider "google" {
-  version = ">=0.0.0"
+  version = ">=2.8"
   project = "${var.gcp_project_id}"
-  region = "${var.gcp_region}"
+  region  = "${var.gcp_region}"
 }
 
 provider "google-beta" {
-  version = ">=0.0.0"
+  version = ">=2.8"
   project = "${var.gcp_project_id}"
-  region = "${var.gcp_region}"
+  region  = "${var.gcp_region}"
 }
 
 # Create a manual-mode GCP regionalized network for CI.
 # We'll create GKE clusters outside of the "default" auto-mode network so that we can have many subnets.
 resource "google_compute_network" "ci_network" {
-  name = "open-match-ci"
-  description = "VPC Network for Continuous Integration runs."
+  name                    = "open-match-ci"
+  description             = "VPC Network for Continuous Integration runs."
   auto_create_subnetworks = false
-  routing_mode = "REGIONAL"
+  routing_mode            = "REGIONAL"
 }
 
 # We create 60 subnetworks so that each GKE cluster we create in CI can run on it's own subnet.
 # This is to workaround a bug in GKE where it cannot tolerate creating 2 clusters on the same subnet at the same time.
 resource "google_compute_subnetwork" "ci_subnet" {
-  count = 60
-  name          = "ci-${var.gcp_region}-${count.index}"
-  ip_cidr_range = "10.0.${count.index}.0/24"
-  region        = "${var.gcp_region}"
-  network       = "${google_compute_network.ci_network.self_link}"
-  enable_flow_logs = "${var.vpc_flow_logs}"
-  description = "Subnetwork for continuous integration build that runs on the :${count.index} second."
+  count                    = 60
+  name                     = "ci-${var.gcp_region}-${count.index}"
+  ip_cidr_range            = "10.0.${count.index}.0/24"
+  region                   = "${var.gcp_region}"
+  network                  = "${google_compute_network.ci_network.self_link}"
+  enable_flow_logs         = "${var.vpc_flow_logs}"
+  description              = "Subnetwork for continuous integration build that runs on the :${count.index} second."
   private_ip_google_access = true
 }
 
 # The cluster reaper is a tool that scans for orphaned GKE clusters created by CI and deletes them.
 # The reaper runs as this service account.
 resource "google_service_account" "cluster_reaper" {
-  project     = "${var.gcp_project_id}"
+  project      = "${var.gcp_project_id}"
   account_id   = "cluster-reaper"
   display_name = "cluster-reaper"
   # Description is not supported yet.
@@ -82,7 +82,7 @@ resource "google_service_account" "cluster_reaper" {
 # This role defines all the permissions that the cluster reaper has.
 # It mainly needs to list and delete GKE cluster but it also runs in Cloud Run so it needs invoker permissions.
 resource "google_project_iam_custom_role" "cluster_reaper_role" {
-  provider = "google-beta"
+  provider    = "google-beta"
   project     = "${var.gcp_project_id}"
   role_id     = "continuousintegration.reaper"
   title       = "Open Match CI Cluster Reaper"
@@ -113,8 +113,8 @@ resource "google_project_iam_binding" "cluster_reaper_role_binding" {
 # TODO: Remove once run.routes.invoke can be added to custom roles.
 resource "google_project_iam_binding" "cluster_reaper_role_binding_for_cloud_run_invoker" {
   provider = "google-beta"
-  project = "${google_project_iam_custom_role.cluster_reaper_role.project}"
-  role    = "roles/run.invoker"
+  project  = "${google_project_iam_custom_role.cluster_reaper_role.project}"
+  role     = "roles/run.invoker"
   members = [
     "serviceAccount:${google_service_account.cluster_reaper.email}"
   ]
@@ -125,7 +125,7 @@ resource "google_project_iam_binding" "cluster_reaper_role_binding_for_cloud_run
 # It's recommended to delay creation of the role binding by a few seconds after the service account
 # because the service account creation is eventually consistent.
 resource "null_resource" "before_service_account_creation" {
-    depends_on = ["google_service_account.cluster_reaper"]
+  depends_on = ["google_service_account.cluster_reaper"]
 }
 
 resource "null_resource" "delay_after_service_account_creation" {

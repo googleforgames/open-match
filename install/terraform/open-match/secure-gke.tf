@@ -36,27 +36,31 @@
 
 # Declare the providers necessary to call the Google APIs 
 provider "google" {
-  version = "~> 2.8"
-  credentials = "${file("creds.json")}"
+  version = ">=2.8"
 }
 
 provider "google-beta" {
-  version = ">=0.0.0"
-  credentials = "${file("creds.json")}"
+  version = ">=2.8"
 }
 
 variable "gcp_project_id" {
   description = "GCP Project ID"
-  default = "open-match-build"
+  default     = "open-match-build"
 }
 
 variable "gcp_location" {
   description = "Location where resources in GCP will be located."
-  default = "us-west1-a"
+  default     = "us-west1-a"
 }
 variable "gcp_machine_type" {
   description = "Machine type of VM."
-  default = "n1-standard-4"
+  default     = "n1-standard-4"
+}
+
+# Enable Kubernetes and Cloud Resource Manager API
+resource "google_project_services" "gcp_apis" {
+  project  = "${var.gcp_project_id}"
+  services = ["container.googleapis.com", "cloudresourcemanager.googleapis.com"]
 }
 
 # Create a role with the minimum amount of permissions for logging, auditing, etc from the node VM.
@@ -80,7 +84,7 @@ resource "google_project_iam_custom_role" "open_match_node_vm_role" {
 # Create a low-privileged service account that will be the identity of the Node VMs that run Open Match.
 # This service account is mainly used to export service health and logging data to Stackdriver.
 resource "google_service_account" "node_vm" {
-  project     = "${var.gcp_project_id}"
+  project      = "${var.gcp_project_id}"
   account_id   = "open-match-node-vm"
   display_name = "Open Match Node VM Service Account"
 }
@@ -90,17 +94,17 @@ resource "google_project_iam_binding" "node_vm_binding" {
   project = "${google_project_iam_custom_role.open_match_node_vm_role.project}"
   role    = "projects/${google_project_iam_custom_role.open_match_node_vm_role.project}/roles/${google_project_iam_custom_role.open_match_node_vm_role.role_id}"
   members = [
-    "user:${google_service_account.node_vm.name}"
+    "user:${google_service_account.node_vm.name}",
   ]
 }
 
 # Create a GKE Cluster for serving Open Match.
 resource "google_container_cluster" "primary" {
   provider = "google-beta"
-  
-  name = "om-cluster"
+
+  name     = "om-cluster"
   location = "${var.gcp_location}"
-  
+
   addons_config {
     horizontal_pod_autoscaling {
       disabled = false
@@ -116,52 +120,52 @@ resource "google_container_cluster" "primary" {
     }
     istio_config {
       disabled = true
-      auth = "AUTH_MUTUAL_TLS"
+      auth     = "AUTH_MUTUAL_TLS"
     }
     cloudrun_config {
       disabled = true
     }
   }
-  
+
   cluster_autoscaling {
     enabled = true
     resource_limits {
-			resource_type = "cpu"
-			minimum = 0
-			maximum = 16
-		}
-		resource_limits {
-			resource_type = "memory"
-			minimum = 0
-			maximum = 32768
-		}
+      resource_type = "cpu"
+      minimum       = 0
+      maximum       = 16
+    }
+    resource_limits {
+      resource_type = "memory"
+      minimum       = 0
+      maximum       = 32768
+    }
   }
-  
+
   database_encryption {
-    state = "DECRYPTED"
+    state    = "DECRYPTED"
     key_name = ""
   }
 
   ip_allocation_policy {
     use_ip_aliases = true
   }
-  
+
   description = "Open Match Cluster"
-  
-  default_max_pods_per_node = 100
+
+  default_max_pods_per_node   = 100
   enable_binary_authorization = false
-  enable_kubernetes_alpha = false
-  enable_tpu = false
-  enable_legacy_abac = false
-  initial_node_count = 1
-  logging_service = "logging.googleapis.com/kubernetes"
-  
+  enable_kubernetes_alpha     = false
+  enable_tpu                  = false
+  enable_legacy_abac          = false
+  initial_node_count          = 1
+  logging_service             = "logging.googleapis.com/kubernetes"
+
   maintenance_policy {
     daily_maintenance_window {
       start_time = "03:00"
     }
   }
-  
+
   master_auth {
     username = ""
     password = ""
@@ -171,11 +175,11 @@ resource "google_container_cluster" "primary" {
   }
 
   min_master_version = "1.13"
-  
+
   monitoring_service = "monitoring.googleapis.com/kubernetes"
   network_policy {
     provider = "PROVIDER_UNSPECIFIED"
-    enabled = false
+    enabled  = false
   }
 
   /*
@@ -183,15 +187,15 @@ resource "google_container_cluster" "primary" {
     
   }
   */
-  
+
   #node_version = "1.13"
   pod_security_policy_config {
     enabled = false
   }
-  
-  project = "${var.gcp_project_id}"
+
+  project                  = "${var.gcp_project_id}"
   remove_default_node_pool = true
-  
+
   /*
   resource_labels {
     application = "open-match"
@@ -205,25 +209,25 @@ resource "google_container_cluster" "primary" {
 # Create a Node Pool inside the GKE cluster to serve the Open Match services.
 resource "google_container_node_pool" "om-services" {
   provider = "google-beta"
-  
-  name       = "open-match-services"
-  cluster    = "${google_container_cluster.primary.name}"
-  location   = "${google_container_cluster.primary.location}"
-  
+
+  name     = "open-match-services"
+  cluster  = "${google_container_cluster.primary.name}"
+  location = "${google_container_cluster.primary.location}"
+
   autoscaling {
     min_node_count = 1
     max_node_count = 5
   }
 
   management {
-    auto_repair = true
+    auto_repair  = true
     auto_upgrade = true
   }
 
   max_pods_per_node = 100
   node_config {
     disk_size_gb = 50
-    disk_type = "pd-standard"
+    disk_type    = "pd-standard"
     /*
     guest_accelerator {
       
@@ -236,13 +240,13 @@ resource "google_container_node_pool" "om-services" {
     }
     */
     local_ssd_count = 0
-    machine_type = "${var.gcp_machine_type}"
+    machine_type    = "${var.gcp_machine_type}"
     /*
     metadata {
       disable-legacy-endpoints = "true"
     }
     */
-    min_cpu_platform = "Intel Haswell"
+    min_cpu_platform = "Intel Skylake"
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform",
       "https://www.googleapis.com/auth/compute",
@@ -250,9 +254,9 @@ resource "google_container_node_pool" "om-services" {
       "https://www.googleapis.com/auth/logging.write",
       "https://www.googleapis.com/auth/monitoring",
     ]
-    preemptible = false
+    preemptible     = false
     service_account = "${google_service_account.node_vm.email}"
-    tags = []
+    tags            = []
     /*
     taint {
       
@@ -263,8 +267,10 @@ resource "google_container_node_pool" "om-services" {
     }
   }
   node_count = 5
-  project = "${google_container_cluster.primary.project}"
-  version = "1.13"
+  project    = "${google_container_cluster.primary.project}"
+  version    = "1.13"
+
+  depends_on = [google_project_services.gcp_apis]
 }
 
 output "cluster_name" {

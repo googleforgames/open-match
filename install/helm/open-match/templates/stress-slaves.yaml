@@ -12,56 +12,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{{- if .Values.openmatch.swaggerui.install }}
-kind: Service
-apiVersion: v1
-metadata:
-  name: om-swaggerui
-  namespace: {{ .Release.Namespace }}
-  labels:
-    app: {{ template "openmatch.name" . }}
-    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
-spec:
-  selector:
-    app: {{ template "openmatch.name" . }}
-    component: swaggerui
-  type: {{ .Values.openmatch.swaggerui.porttype }}
-  ports:
-  - name: http
-    protocol: TCP
-    port: {{ .Values.openmatch.swaggerui.http.port }}
----
-apiVersion: extensions/v1beta1
+{{- if .Values.openmatch.stresstest.install }}
 kind: Deployment
+apiVersion: extensions/v1beta1
 metadata:
-  name: om-swaggerui
+  name: locust-worker
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
-    component: swaggerui
+    component: locust-worker
     {{- include "openmatch.chartmeta" (set . "indent" 4) }}
 spec:
-  replicas: {{ .Values.openmatch.swaggerui.replicas }}
+  replicas: {{ .Values.openmatch.stresstest.replicas }}
   selector:
     matchLabels:
       app: {{ template "openmatch.name" . }}
-      component: swaggerui
+      component: locust-worker
       {{- include "openmatch.chartmeta" (set . "indent" 6) }}
   template:
     metadata:
       namespace: {{ .Release.Namespace }}
       labels:
         app: {{ template "openmatch.name" . }}
-        component: swaggerui
+        component: locust-worker
         {{- include "openmatch.chartmeta" (set . "indent" 8) }}
     spec:
       {{- include "openmatch.spec.common" . | nindent 6 }}
       containers:
-      - name: om-swaggerui
-        {{- include "openmatch.container.common" . | nindent 8 }}
-        image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.swaggerui.name}}:{{ .Values.openmatch.image.tag }}"
-        ports:
-        - name: http
-          containerPort: {{ .Values.openmatch.swaggerui.http.port }}
-        {{- include "kubernetes.probe" (dict "port" .Values.openmatch.swaggerui.http.port) | nindent 8 }}
+      - name: locust-worker
+        image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.stresstest.name}}:{{ .Values.openmatch.image.tag }}"
+        command: ["python3"]
+        # TODO: template the secure mode
+        args:
+        - "./locust"
+        - "-f"
+        - "./frontend.py"
+        - "--host=http://om-frontend:{{ .Values.openmatch.frontend.http.port }}"
+        - "--slave"
+        - "--master-host=locust-master"
 {{- end }}
