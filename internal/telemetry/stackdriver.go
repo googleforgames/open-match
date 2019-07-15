@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package monitoring
+package telemetry
 
 import (
 	"contrib.go.opencensus.io/exporter/stackdriver"
@@ -23,12 +23,12 @@ import (
 )
 
 func bindStackDriver(cfg config.View) func() {
-	if !cfg.GetBool("monitoring.stackdriver.enable") {
+	if !cfg.GetBool("telemetry.stackdriver.enable") {
 		logger.Info("StackDriver Metrics: Disabled")
 		return func() {}
 	}
-	gcpProjectID := cfg.GetString("monitoring.stackdriver.gcpProjectId")
-	metricPrefix := cfg.GetString("monitoring.stackdriver.metricPrefix")
+	gcpProjectID := cfg.GetString("telemetry.stackdriver.gcpProjectId")
+	metricPrefix := cfg.GetString("telemetry.stackdriver.metricPrefix")
 	sd, err := stackdriver.NewExporter(stackdriver.Options{
 		ProjectID: gcpProjectID,
 		// MetricPrefix helps uniquely identify your metrics.

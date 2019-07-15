@@ -26,9 +26,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/monitoring"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -50,8 +50,8 @@ var (
 		"app":       "openmatch",
 		"component": "app.backend",
 	})
-	mMatchesFetched  = monitoring.Counter("backend/matches_fetched", "matches fetched")
-	mTicketsAssigned = monitoring.Counter("backend/tickets_assigned", "tickets assigned")
+	mMatchesFetched  = telemetry.Counter("backend/matches_fetched", "matches fetched")
+	mTicketsAssigned = telemetry.Counter("backend/tickets_assigned", "tickets assigned")
 )
 
 // FetchMatches triggers execution of the specfied MatchFunction for each of the
@@ -93,7 +93,7 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 		return nil, err
 	}
 
-	monitoring.IncrementCounterN(ctx, mMatchesFetched, len(results))
+	telemetry.IncrementCounterN(ctx, mMatchesFetched, len(results))
 	return &pb.FetchMatchesResponse{Matches: results}, nil
 }
 
@@ -242,7 +242,7 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 		return nil, err
 	}
 
-	monitoring.IncrementCounterN(ctx, mTicketsAssigned, len(req.TicketIds))
+	telemetry.IncrementCounterN(ctx, mTicketsAssigned, len(req.TicketIds))
 	return &pb.AssignTicketsResponse{}, nil
 }
 

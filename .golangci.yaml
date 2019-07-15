@@ -209,7 +209,7 @@ issues:
     - source: "flag."
       linters:
         - gochecknoglobals
-    - source: "monitoring."
+    - source: "telemetry."
       linters:
         - gochecknoglobals
     - source: "View."

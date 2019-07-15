@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package monitoring
+package telemetry
 
 import (
 	"context"
@@ -29,20 +29,20 @@ import (
 var (
 	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "monitoring",
+		"component": "telemetry",
 	})
 )
 
-// Setup configures the monitoring for the server.
+// Setup configures the telemetry for the server.
 func Setup(mux *http.ServeMux, cfg config.View) func() {
 	mc := util.NewMultiClose()
-	periodString := cfg.GetString("monitoring.reportingPeriod")
+	periodString := cfg.GetString("telemetry.reportingPeriod")
 	reportingPeriod, err := time.ParseDuration(periodString)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error":           err,
 			"reportingPeriod": periodString,
-		}).Info("Failed to parse monitoring.reportingPeriod, defaulting to 10s")
+		}).Info("Failed to parse telemetry.reportingPeriod, defaulting to 10s")
 		reportingPeriod = time.Second * 10
 	}
 
@@ -58,7 +58,7 @@ func Setup(mux *http.ServeMux, cfg config.View) func() {
 
 	logger.WithFields(logrus.Fields{
 		"reportingPeriod": reportingPeriod,
-	}).Info("Monitoring has been configured.")
+	}).Info("Telemetry has been configured.")
 	return mc.Close
 }
 
