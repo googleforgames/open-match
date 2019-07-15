@@ -1,0 +1,74 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ .Values.function.hostName }}
+  namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+  labels:
+    app: {{ template "openmatch.name" . }}
+spec:
+  selector:
+    app: {{ template "openmatch.name" . }}
+    component: matchfunction
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: {{ .Values.function.grpcPort }}
+  - name: http
+    protocol: TCP
+    port: {{ .Values.function.httpPort }}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Values.function.hostName }}
+  namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+  labels:
+    app: {{ template "openmatch.name" . }}
+    component: matchfunction
+spec:
+  replicas: {{ .Values.function.replicas }}
+  selector:
+    matchLabels:
+      app: {{ template "openmatch.name" . }}
+      component: matchfunction
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      annotations:
+        {{- include "prometheus.annotations" (dict "port" .Values.function.httpPort "prometheus" .Values.global.monitoring.prometheus) | nindent 8 }}
+        {{- include "openmatch.chartmeta" . | nindent 8 }}
+      labels:
+        app: {{ template "openmatch.name" . }}
+        component: matchfunction
+    spec:
+      serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
+      containers:
+      - name: {{ .Values.function.hostName }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        image: "{{ .Values.image.registry }}/{{ .Values.function.image }}:{{ .Values.image.tag }}"
+        ports:
+        - name: grpc
+          containerPort: {{ .Values.function.grpcPort }}
+        - name: http
+          containerPort: {{ .Values.function.httpPort }}
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+        {{- include "kubernetes.probe" (dict "port" .Values.function.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
