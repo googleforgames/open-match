@@ -14,12 +14,23 @@
 
 dependencies:
   - name: open-match-core
+    version: 0.0.0-dev
     condition: open-match-core.enabled
+    repository: "file://./subcharts/open-match-core"
   - name: open-match-demo
+    version: 0.0.0-dev
     condition: open-match-demo.enabled
+    repository: "file://./subcharts/open-match-demo"
   - name: open-match-monitoring
+    version: 0.0.0-dev
     condition: open-match-monitoring.enabled
+    repository: "file://./subcharts/open-match-monitoring"
   - name: open-match-customize
+    version: 0.0.0-dev
     condition: open-match-customize.enabled
+    repository: "file://./subcharts/open-match-customize"
   - name: open-match-test
+    version: 0.0.0-dev
     condition: open-match-test.enabled
+    repository: "file://./subcharts/open-match-test"
+
