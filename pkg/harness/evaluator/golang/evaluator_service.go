@@ -27,9 +27,9 @@ import (
 )
 
 var (
-	evaluatorLogger = logrus.WithFields(logrus.Fields{
+	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "harness.golang.evaluator_service",
+		"component": "evaluator.harness.golang",
 	})
 )
 
@@ -58,20 +58,23 @@ type EvaluatorParams struct {
 // Evaluate is this harness's implementation of the gRPC call defined in
 // api/evaluator.proto.
 func (s *evaluatorService) Evaluate(ctx context.Context, req *pb.EvaluateRequest) (*pb.EvaluateResponse, error) {
-	evaluatorLogger.WithFields(logrus.Fields{
+	logger.WithFields(logrus.Fields{
 		"proposals": req.GetMatches(),
 	}).Debug("matches sent to the evaluator")
 
 	// Run the customized evaluator!
 	results, err := s.evaluate(&EvaluatorParams{
-		Logger:  evaluatorLogger,
+		Logger: logrus.WithFields(logrus.Fields{
+			"app":       "openmatch",
+			"component": "evaluator.implementation",
+		}),
 		Matches: req.GetMatches(),
 	})
 	if err != nil {
 		return nil, status.Error(codes.Aborted, err.Error())
 	}
 
-	evaluatorLogger.WithFields(logrus.Fields{
+	logger.WithFields(logrus.Fields{
 		"results": results,
 	}).Debug("matches accepted by the evaluator")
 	return &pb.EvaluateResponse{Matches: results}, nil

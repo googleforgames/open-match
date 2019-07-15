@@ -24,13 +24,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	harnessLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "matchfunction.golang.harness",
-	})
-)
-
 // FunctionSettings is a collection of parameters used to customize matchfunction views.
 type FunctionSettings struct {
 	Func MatchFunction
@@ -40,19 +33,19 @@ type FunctionSettings struct {
 func RunMatchFunction(settings *FunctionSettings) {
 	cfg, err := config.Read()
 	if err != nil {
-		harnessLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
 	p, err := rpc.NewServerParamsFromConfig(cfg, "api.functions")
 	if err != nil {
-		harnessLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("cannot construct server.")
 	}
 
 	if err := BindService(p, cfg, settings); err != nil {
-		harnessLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("failed to bind functions service.")
 	}

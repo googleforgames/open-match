@@ -29,9 +29,9 @@ import (
 )
 
 var (
-	matchfunctionLogger = logrus.WithFields(logrus.Fields{
+	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "harness.golang.matchfunction_service",
+		"component": "matchfunction.harness.golang",
 	})
 )
 
@@ -82,7 +82,10 @@ func (s *matchFunctionService) Run(ctx context.Context, req *pb.RunRequest) (*pb
 
 	// The matchfunction takes in some half-filled/empty rosters, a property bag, and a map[poolNames]tickets to generate match proposals
 	mfView := &MatchFunctionParams{
-		Logger:            matchfunctionLogger,
+		Logger: logrus.WithFields(logrus.Fields{
+			"app":       "openmatch",
+			"component": "matchfunction.implementation",
+		}),
 		ProfileName:       req.GetProfile().GetName(),
 		Properties:        req.GetProfile().GetProperties(),
 		Rosters:           req.GetProfile().GetRosters(),
@@ -93,7 +96,7 @@ func (s *matchFunctionService) Run(ctx context.Context, req *pb.RunRequest) (*pb
 	if err != nil {
 		return nil, err
 	}
-	matchfunctionLogger.WithFields(logrus.Fields{
+	logger.WithFields(logrus.Fields{
 		"proposals": proposals,
 	}).Trace("proposals returned by match function")
 	return &pb.RunResponse{Proposals: proposals}, nil
@@ -102,7 +105,7 @@ func (s *matchFunctionService) Run(ctx context.Context, req *pb.RunRequest) (*pb
 func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunctionService, error) {
 	conn, err := rpc.GRPCClientFromConfig(cfg, "api.mmlogic")
 	if err != nil {
-		harnessLogger.Errorf("Failed to get MMLogic connection, %v.", err)
+		logger.Errorf("Failed to get MMLogic connection, %v.", err)
 		return nil, err
 	}
 
@@ -118,7 +121,7 @@ func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.Run
 	for _, pool := range filterPools {
 		qtClient, err := s.mmlogicClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
 		if err != nil {
-			matchfunctionLogger.WithError(err).Error("Failed to get queryTicketClient from mmlogic.")
+			logger.WithError(err).Error("Failed to get queryTicketClient from mmlogic.")
 			return nil, err
 		}
 
@@ -127,13 +130,13 @@ func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.Run
 		for {
 			qtResponse, err := qtClient.Recv()
 			if err == io.EOF {
-				matchfunctionLogger.Trace("Received all results from the queryTicketClient.")
+				logger.Trace("Received all results from the queryTicketClient.")
 				// Break when all results are received
 				break
 			}
 
 			if err != nil {
-				matchfunctionLogger.WithError(err).Error("Failed to receive a response from the queryTicketClient.")
+				logger.WithError(err).Error("Failed to receive a response from the queryTicketClient.")
 				return nil, err
 			}
 			poolTickets = append(poolTickets, qtResponse.Tickets...)
