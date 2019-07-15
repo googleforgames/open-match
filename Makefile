@@ -51,7 +51,7 @@
 # If you want information on how to edit this file checkout,
 # http://makefiletutorial.com/
 
-BASE_VERSION = 0.0.0-dev
+BASE_VERSION = 0.6.0-rc.1
 SHORT_SHA = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 VERSION_SUFFIX = $(SHORT_SHA)
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
@@ -923,7 +923,7 @@ preview-release: validate-preview-release build/release/ retag-images ci-deploy-
 
 release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
 release: TAG = $(BASE_VERSION)
-release: build/release/
+release: presubmit build/release/
 
 clean-secrets:
 	rm -rf $(OPEN_MATCH_SECRETS_DIR)
