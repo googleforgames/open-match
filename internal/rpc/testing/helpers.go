@@ -27,6 +27,7 @@ import (
 
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/util"
 	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
@@ -56,6 +57,7 @@ func MustServeInsecure(t *testing.T, binder func(*rpc.ServerParams)) *TestContex
 		s:            s,
 		grpcAddress:  grpcAddress,
 		proxyAddress: proxyAddress,
+		mc:           util.NewMultiClose(),
 	}
 }
 
@@ -81,6 +83,7 @@ func MustServeTLS(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
 		grpcAddress:        grpcAddress,
 		proxyAddress:       proxyAddress,
 		trustedCertificate: pub,
+		mc:                 util.NewMultiClose(),
 	}
 }
 
@@ -102,20 +105,17 @@ type TestContext struct {
 	grpcAddress        string
 	proxyAddress       string
 	trustedCertificate []byte
-	closers            []func()
+	mc                 *util.MultiClose
 }
 
 // AddCloseFunc adds a close function.
 func (tc *TestContext) AddCloseFunc(closer func()) {
-	tc.closers = append(tc.closers, closer)
+	tc.mc.AddCloseFunc(closer)
 }
 
 // Close shutsdown the server and frees the TCP port.
 func (tc *TestContext) Close() {
-	for _, closer := range tc.closers {
-		closer()
-	}
-
+	tc.mc.Close()
 	tc.s.Stop()
 }
 

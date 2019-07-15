@@ -15,14 +15,22 @@
 package monitoring
 
 import (
-	"go.opencensus.io/zpages"
 	"net/http"
+
+	"github.com/sirupsen/logrus"
+	"go.opencensus.io/zpages"
 	"open-match.dev/open-match/internal/config"
 )
 
 func bindZpages(mux *http.ServeMux, cfg config.View) {
 	if !cfg.GetBool("monitoring.zpages.enable") {
+		logger.Info("zPages: Disabled")
 		return
 	}
-	zpages.Handle(mux, "/debug")
+	endpoint := "/debug"
+	zpages.Handle(mux, endpoint)
+
+	logger.WithFields(logrus.Fields{
+		"endpoint": endpoint,
+	}).Info("zPages: ENABLED")
 }

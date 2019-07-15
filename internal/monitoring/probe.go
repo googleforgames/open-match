@@ -17,7 +17,6 @@ package monitoring
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"sync/atomic"
 )
@@ -29,13 +28,6 @@ const (
 	healthStateFirstProbe = int32(0)
 	healthStateHealthy    = int32(1)
 	healthStateUnhealthy  = int32(2)
-)
-
-var (
-	probeLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "monitoring.probe",
-	})
 )
 
 type statefulProbe struct {
@@ -54,9 +46,9 @@ func (sp *statefulProbe) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			if err != nil {
 				old := atomic.SwapInt32(sp.healthState, healthStateUnhealthy)
 				if old == healthStateUnhealthy {
-					probeLogger.WithError(err).Warningf("%s health check continues to fail. The server is at risk of termination.", HealthCheckEndpoint)
+					logger.WithError(err).Warningf("%s health check continues to fail. The server is at risk of termination.", HealthCheckEndpoint)
 				} else {
-					probeLogger.WithError(err).Warningf("%s health check failed. The server will terminate if this continues to happen.", HealthCheckEndpoint)
+					logger.WithError(err).Warningf("%s health check failed. The server will terminate if this continues to happen.", HealthCheckEndpoint)
 				}
 				http.Error(w, err.Error(), http.StatusServiceUnavailable)
 				return
@@ -64,9 +56,9 @@ func (sp *statefulProbe) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		old := atomic.SwapInt32(sp.healthState, healthStateHealthy)
 		if old == healthStateUnhealthy {
-			probeLogger.Infof("%s is healthy again.", HealthCheckEndpoint)
+			logger.Infof("%s is healthy again.", HealthCheckEndpoint)
 		} else if old == healthStateFirstProbe {
-			probeLogger.Infof("%s is reporting healthy, .", HealthCheckEndpoint)
+			logger.Infof("%s is reporting healthy.", HealthCheckEndpoint)
 		}
 	}
 	w.WriteHeader(http.StatusOK)
