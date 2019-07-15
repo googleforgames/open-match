@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package monitoring
+package telemetry
 
 // Taken from https://opencensus.io/quickstart/go/metrics/#1
 import (
@@ -26,17 +26,17 @@ import (
 )
 
 const (
-	// ConfigNameEnableMetrics indicates that monitoring is enabled.
-	ConfigNameEnableMetrics = "monitoring.prometheus.enable"
+	// ConfigNameEnableMetrics indicates that telemetry is enabled.
+	ConfigNameEnableMetrics = "telemetry.prometheus.enable"
 )
 
 func bindPrometheus(mux *http.ServeMux, cfg config.View) {
-	if !cfg.GetBool("monitoring.prometheus.enable") {
+	if !cfg.GetBool("telemetry.prometheus.enable") {
 		logger.Info("Prometheus Metrics: Disabled")
 		return
 	}
 
-	endpoint := cfg.GetString("monitoring.prometheus.endpoint")
+	endpoint := cfg.GetString("telemetry.prometheus.endpoint")
 	registry := prometheus.NewRegistry()
 	// Register standard prometheus instrumentation.
 	registry.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))

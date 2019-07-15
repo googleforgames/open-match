@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package monitoring
+package telemetry
 
 import (
 	"net/http"
@@ -23,7 +23,7 @@ import (
 )
 
 func bindZpages(mux *http.ServeMux, cfg config.View) {
-	if !cfg.GetBool("monitoring.zpages.enable") {
+	if !cfg.GetBool("telemetry.zpages.enable") {
 		logger.Info("zPages: Disabled")
 		return
 	}

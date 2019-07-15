@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package monitoring
+package telemetry
 
 import (
 	"contrib.go.opencensus.io/exporter/ocagent"
@@ -23,12 +23,12 @@ import (
 )
 
 func bindOpenCensusAgent(cfg config.View) func() error {
-	if !cfg.GetBool("monitoring.opencensusAgent.enable") {
+	if !cfg.GetBool("telemetry.opencensusAgent.enable") {
 		logger.Info("OpenCensus Agent: Disabled")
 		return func() error { return nil }
 	}
 
-	agentEndpoint := cfg.GetString("monitoring.opencensusAgent.agentEndpoint")
+	agentEndpoint := cfg.GetString("telemetry.opencensusAgent.agentEndpoint")
 	oce, err := ocagent.NewExporter(ocagent.WithAddress(agentEndpoint), ocagent.WithInsecure(), ocagent.WithServiceName("open-match"))
 	if err != nil {
 		logger.WithError(err).Fatalf("Failed to create a new ocagent exporter")

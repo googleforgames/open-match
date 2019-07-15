@@ -30,7 +30,7 @@ import (
 	"open-match.dev/open-match/examples/demo/updater"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
-	"open-match.dev/open-match/internal/monitoring"
+	"open-match.dev/open-match/internal/telemetry"
 )
 
 var (
@@ -61,7 +61,7 @@ func main() {
 		fileServe.ServeHTTP(w, r)
 	})
 
-	http.Handle(monitoring.HealthCheckEndpoint, monitoring.NewAlwaysReadyHealthCheck())
+	http.Handle(telemetry.HealthCheckEndpoint, telemetry.NewAlwaysReadyHealthCheck())
 
 	bs := bytesub.New()
 	u := updater.New(context.Background(), func(b []byte) {

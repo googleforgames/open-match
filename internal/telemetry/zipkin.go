@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package monitoring
+package telemetry
 
 //https://opencensus.io/quickstart/go/tracing/
 
@@ -27,12 +27,12 @@ import (
 )
 
 func bindZipkin(cfg config.View) {
-	if !cfg.GetBool("monitoring.zipkin.enable") {
+	if !cfg.GetBool("telemetry.zipkin.enable") {
 		logger.Info("Zipkin Tracing: Disabled")
 		return
 	}
-	zipkinEndpoint := cfg.GetString("monitoring.zipkin.endpoint")
-	zipkinReporterEndpoint := cfg.GetString("monitoring.zipkin.reporterEndpoint")
+	zipkinEndpoint := cfg.GetString("telemetry.zipkin.endpoint")
+	zipkinReporterEndpoint := cfg.GetString("telemetry.zipkin.reporterEndpoint")
 	// 1. Configure exporter to export traces to Zipkin.
 	localEndpoint, err := openzipkin.NewEndpoint("open_match", zipkinEndpoint)
 	if err != nil {
