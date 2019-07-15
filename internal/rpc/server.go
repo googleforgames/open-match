@@ -30,8 +30,8 @@ import (
 	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/monitoring"
 	"open-match.dev/open-match/internal/signal"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/internal/util/netlistener"
 )
 
@@ -128,11 +128,11 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 		p.SetTLSConfiguration(rootPublicCertData, publicCertData, privateKeyData)
 	}
 
-	p.enableMetrics = cfg.GetBool(monitoring.ConfigNameEnableMetrics)
+	p.enableMetrics = cfg.GetBool(telemetry.ConfigNameEnableMetrics)
 	p.enableRPCLogging = cfg.GetBool(configNameEnableRPCLogging)
-	// TODO: This isn't ideal since monitoring requires config for it to be initialized.
+	// TODO: This isn't ideal since telemetry requires config for it to be initialized.
 	// This forces us to initialize readiness probes earlier than necessary.
-	p.closer = monitoring.Setup(p.ServeMux, cfg)
+	p.closer = telemetry.Setup(p.ServeMux, cfg)
 	return p, nil
 }
 

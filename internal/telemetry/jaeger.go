@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package monitoring
+package telemetry
 
 import (
 	"contrib.go.opencensus.io/exporter/jaeger"
@@ -22,13 +22,13 @@ import (
 )
 
 func bindJaeger(cfg config.View) {
-	if !cfg.GetBool("monitoring.jaeger.enable") {
+	if !cfg.GetBool("telemetry.jaeger.enable") {
 		logger.Info("Jaeger Tracing: Disabled")
 		return
 	}
 
-	agentEndpointURI := cfg.GetString("monitoring.jaeger.agentEndpoint")
-	collectorEndpointURI := cfg.GetString("monitoring.jaeger.collectorEndpoint")
+	agentEndpointURI := cfg.GetString("telemetry.jaeger.agentEndpoint")
+	collectorEndpointURI := cfg.GetString("telemetry.jaeger.collectorEndpoint")
 
 	je, err := jaeger.NewExporter(jaeger.Options{
 		AgentEndpoint:     agentEndpointURI,
