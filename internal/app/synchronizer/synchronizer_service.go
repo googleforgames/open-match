@@ -26,6 +26,7 @@ import (
 	"open-match.dev/open-match/internal/config"
 	ipb "open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -39,11 +40,21 @@ const (
 	stateEvaluation
 )
 
+func (syncState synchronizerState) String() string {
+	return []string{"Idle", "RequestRegistration", "ProposalCollection", "Evaluation"}[syncState]
+}
+
 var (
 	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
 		"component": "app.synchronizer",
 	})
+
+	mSynchronizerState  = telemetry.Gauge("synchronizer/state_idle", "Synchronizer State")
+	mRequestsWaiting    = telemetry.Gauge("synchronizer/requests_waiting", "requests waiting")
+	mRequestsRegistered = telemetry.Counter("synchronizer/requests_registered", "requests registered")
+	mProposalsQueued    = telemetry.Counter("synchronizer/proposals_queued", "proposals queued for evaluation")
+	mProposalsEvaluated = telemetry.Counter("synchronizer/proposals_evaluated", "proposals evaluated")
 )
 
 // The requestData holds the state of each pending request for evaluation. The
@@ -105,6 +116,7 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 	// blocked requests to make progress in the new cycle.
 	s.stateMutex.Lock()
 	for (s.state != stateIdle) && (s.state != stateRequestRegistration) {
+		telemetry.IncrementCounter(ctx, mRequestsWaiting)
 		s.idleCond.Wait()
 	}
 
@@ -113,8 +125,7 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 		// After waking up, the first request that encounters the idle state changes
 		// state to requestRegistration and initializes the state for this synchronization
 		// cycle. Consequent registration requests bypass this initialization.
-		logger.Info("Changing state from idle to requestRegistration")
-		s.state = stateRequestRegistration
+		s.setState(ctx, stateRequestRegistration)
 		s.cycleData = &synchronizerData{
 			idToRequestData: make(map[string]*requestData),
 			resultsReady:    make(chan struct{}),
@@ -125,6 +136,7 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 		go s.trackRegistrationWindow()
 	}
 
+	telemetry.IncrementCounter(ctx, mRequestsRegistered)
 	// Now that we are in requestRegistration state, allocate an id and initialize
 	// request data for this request.
 	id := xid.New().String()
@@ -133,6 +145,13 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 		"id": id,
 	}).Info("Registered request for synchronization")
 	return &ipb.RegisterResponse{Id: id}, nil
+}
+
+func (s *synchronizerService) setState(ctx context.Context, state synchronizerState) {
+	oldState := s.state
+	s.state = state
+	telemetry.SetGauge(ctx, mSynchronizerState, int(state))
+	logger.Infof("Changing state from %s to %s", oldState, state)
 }
 
 // EvaluateProposals accepts a list of proposals and a registration identifier
@@ -149,6 +168,7 @@ func (s *synchronizerService) EvaluateProposals(ctx context.Context, req *ipb.Ev
 	// pendingRequests keeps track of number of requests pending. This is incremented
 	// in addProposals while holding the state mutex. The count should be decremented
 	// only after this request completes.
+	telemetry.IncrementCounterN(ctx, mProposalsQueued, len(req.Matches))
 	err := s.addProposals(req.Id, req.Matches)
 	if err != nil {
 		return nil, err
@@ -178,6 +198,7 @@ func (s *synchronizerService) EvaluateProposals(ctx context.Context, req *ipb.Ev
 		return nil, err
 	}
 
+	telemetry.IncrementCounterN(ctx, mProposalsEvaluated, len(results))
 	return &ipb.EvaluateProposalsResponse{Matches: results}, nil
 }
 
@@ -288,17 +309,17 @@ func (s *synchronizerService) Evaluate() {
 	// Wait for all fetchMatches to complete processing results and then set synchronizer
 	// to idle state and signal any blocked registration requests to proceed.
 	s.cycleData.pendingRequests.Wait()
-	logger.Info("Changing state from evaluating to idle")
-	s.state = stateIdle
+	ctx := context.Background()
+	s.setState(ctx, stateIdle)
 	s.idleCond.Broadcast()
+	telemetry.SetGauge(ctx, mRequestsWaiting, 0)
 }
 
 func (s *synchronizerService) trackRegistrationWindow() {
 	time.Sleep(s.registrationInterval())
 	s.stateMutex.Lock()
 	defer s.stateMutex.Unlock()
-	logger.Info("Changing state from requestRegistration to proposalCollection")
-	s.state = stateProposalCollection
+	s.setState(context.Background(), stateProposalCollection)
 	go s.trackProposalWindow()
 }
 
@@ -306,8 +327,7 @@ func (s *synchronizerService) trackProposalWindow() {
 	time.Sleep(s.proposalCollectionInterval())
 	s.stateMutex.Lock()
 	defer s.stateMutex.Unlock()
-	logger.Info("Changing state from proposalCollection to evaluation")
-	s.state = stateEvaluation
+	s.setState(context.Background(), stateEvaluation)
 	s.Evaluate()
 }
 

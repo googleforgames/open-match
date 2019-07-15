@@ -23,6 +23,7 @@ import (
 
 var (
 	mStateStoreCreateTicket           = telemetry.Counter("statestore/createticket", "tickets created")
+	mStateStoreCreateTicketLatency    = telemetry.Counter("statestore/createticket_latency", "tickets created")
 	mStateStoreGetTicket              = telemetry.Counter("statestore/getticket", "tickets retrieve")
 	mStateStoreDeleteTicket           = telemetry.Counter("statestore/deleteticket", "tickets deleted")
 	mStateStoreIndexTicket            = telemetry.Counter("statestore/indexticket", "tickets indexed")

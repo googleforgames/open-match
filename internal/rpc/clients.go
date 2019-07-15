@@ -31,6 +31,7 @@ import (
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/plugin/ochttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"open-match.dev/open-match/internal/config"
@@ -185,13 +186,11 @@ func sanitizeHTTPAddress(address string, preferHTTPS bool) (string, error) {
 // HTTPClientFromEndpoint creates a HTTP client from from endpoint.
 func HTTPClientFromEndpoint(cfg config.View, address string) (*http.Client, string, error) {
 	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
-
 	params := &ClientParams{
 		Address:          address,
 		EnableRPCLogging: cfg.GetBool(configNameEnableRPCLogging),
 		EnableMetrics:    cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}
-
 	if cfg.GetString(configNameClientTrustedCertificatePath) != "" {
 		_, err := os.Stat(cfg.GetString(configNameClientTrustedCertificatePath))
 		if err != nil {
@@ -206,7 +205,6 @@ func HTTPClientFromEndpoint(cfg config.View, address string) (*http.Client, stri
 		}
 		params.TrustedCertificate = trustedCertificate
 	}
-
 	return HTTPClientFromParams(params)
 }
 
@@ -242,6 +240,12 @@ func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 		if err != nil {
 			clientLogger.WithError(err).Error("cannot parse address")
 			return nil, "", err
+		}
+	}
+
+	if params.EnableMetrics {
+		httpClient.Transport = &ochttp.Transport{
+			Base: httpClient.Transport,
 		}
 	}
 
