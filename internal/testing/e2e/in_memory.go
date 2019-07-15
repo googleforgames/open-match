@@ -27,6 +27,7 @@ import (
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	"open-match.dev/open-match/internal/util"
 	evalHarness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
 	pb "open-match.dev/open-match/pkg/pb"
@@ -37,7 +38,7 @@ type inmemoryOM struct {
 	mmfTc  *rpcTesting.TestContext
 	evalTc *rpcTesting.TestContext
 	t      *testing.T
-	mc     *multicloser
+	mc     *util.MultiClose
 }
 
 func (iom *inmemoryOM) withT(t *testing.T) OM {
@@ -50,7 +51,7 @@ func (iom *inmemoryOM) withT(t *testing.T) OM {
 		mmfTc:  mmfTc,
 		evalTc: evalTc,
 		t:      t,
-		mc:     newMulticloser(),
+		mc:     util.NewMultiClose(),
 	}
 	return om
 }
@@ -61,19 +62,19 @@ func createZygote(m *testing.M) (OM, error) {
 
 func (iom *inmemoryOM) MustFrontendGRPC() pb.FrontendClient {
 	conn := iom.mainTc.MustGRPC()
-	iom.mc.addSilent(conn.Close)
+	iom.mc.AddCloseWithErrorFunc(conn.Close)
 	return pb.NewFrontendClient(conn)
 }
 
 func (iom *inmemoryOM) MustBackendGRPC() pb.BackendClient {
 	conn := iom.mainTc.MustGRPC()
-	iom.mc.addSilent(conn.Close)
+	iom.mc.AddCloseWithErrorFunc(conn.Close)
 	return pb.NewBackendClient(conn)
 }
 
 func (iom *inmemoryOM) MustMmLogicGRPC() pb.MmLogicClient {
 	conn := iom.mainTc.MustGRPC()
-	iom.mc.addSilent(conn.Close)
+	iom.mc.AddCloseWithErrorFunc(conn.Close)
 	return pb.NewMmLogicClient(conn)
 }
 
@@ -102,7 +103,7 @@ func (iom *inmemoryOM) Context() context.Context {
 }
 
 func (iom *inmemoryOM) cleanup() {
-	iom.mc.close()
+	iom.mc.Close()
 	iom.mainTc.Close()
 	iom.mmfTc.Close()
 	iom.evalTc.Close()

@@ -30,16 +30,9 @@ const (
 	ConfigNameEnableMetrics = "monitoring.prometheus.enable"
 )
 
-var (
-	prometheusLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "monitoring.prometheus",
-	})
-)
-
 func bindPrometheus(mux *http.ServeMux, cfg config.View) {
 	if !cfg.GetBool("monitoring.prometheus.enable") {
-		prometheusLogger.Info("Prometheus Metrics: Disabled")
+		logger.Info("Prometheus Metrics: Disabled")
 		return
 	}
 
@@ -54,7 +47,7 @@ func bindPrometheus(mux *http.ServeMux, cfg config.View) {
 			Registry:  registry,
 		})
 	if err != nil {
-		prometheusLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error":    err,
 			"endpoint": endpoint,
 		}).Fatal(
@@ -64,8 +57,9 @@ func bindPrometheus(mux *http.ServeMux, cfg config.View) {
 	// Register the Prometheus exporters as a stats exporter.
 	view.RegisterExporter(promExporter)
 
-	prometheusLogger.WithFields(logrus.Fields{
+	mux.Handle(endpoint, promExporter)
+
+	logger.WithFields(logrus.Fields{
 		"endpoint": endpoint,
 	}).Info("Prometheus Metrics: ENABLED")
-	mux.Handle(endpoint, promExporter)
 }
