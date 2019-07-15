@@ -923,7 +923,7 @@ preview-release: validate-preview-release build/release/ retag-images ci-deploy-
 
 release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
 release: TAG = $(BASE_VERSION)
-release: build/release/
+release: presubmit build/release/
 
 clean-secrets:
 	rm -rf $(OPEN_MATCH_SECRETS_DIR)
