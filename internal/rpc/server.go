@@ -28,6 +28,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"
+	"go.opencensus.io/plugin/ochttp"
+	"go.opencensus.io/plugin/ochttp/propagation/b3"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/signal"
@@ -256,6 +258,16 @@ func MustServeForever(params *ServerParams) {
 		return
 	}
 	serveUntilKilledFunc()
+}
+
+func instrumentHTTPHandler(handler http.Handler, params *ServerParams) http.Handler {
+	if params.enableMetrics {
+		return &ochttp.Handler{
+			Handler:     handler,
+			Propagation: &b3.HTTPFormat{},
+		}
+	}
+	return handler
 }
 
 func newGRPCServerOptions(params *ServerParams) []grpc.ServerOption {

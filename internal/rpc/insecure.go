@@ -92,7 +92,7 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	s.httpMux.Handle("/", s.proxyMux)
 	s.httpServer = &http.Server{
 		Addr:    s.httpListener.Addr().String(),
-		Handler: s.httpMux,
+		Handler: instrumentHTTPHandler(s.httpMux, params),
 	}
 	serverStartWaiter.Add(1)
 	go func() {
