@@ -28,7 +28,7 @@ import (
 )
 
 func TestServeAndClose(t *testing.T) {
-	conn, err := net.Listen("tcp", ":0")
+	conn, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Fatalf("cannot open TCP port, %s", err)
 	}
