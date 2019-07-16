@@ -19,6 +19,7 @@ package e2e
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/user"
@@ -127,8 +128,7 @@ func (com *clusterOM) getHTTPAddressFromServiceName(serviceName string) (string,
 func (com *clusterOM) getGRPCClientFromServiceName(serviceName string) (*grpc.ClientConn, error) {
 	ipAddress, port := com.getGRPCAddressFromServiceName(serviceName)
 	conn, err := rpc.GRPCClientFromParams(&rpc.ClientParams{
-		Hostname:         ipAddress,
-		Port:             int(port),
+		Address:          fmt.Sprintf("%s:%d", ipAddress, int(port)),
 		EnableRPCLogging: true,
 		EnableMetrics:    false,
 	})

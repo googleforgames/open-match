@@ -143,10 +143,8 @@ func (tc *TestContext) MustHTTP() (*http.Client, string) {
 }
 
 func (tc *TestContext) newClientParams(address string) *rpc.ClientParams {
-	hostname, port := hostnameAndPort(tc.t, address)
 	return &rpc.ClientParams{
-		Hostname:           hostname,
-		Port:               port,
+		Address:            address,
 		TrustedCertificate: tc.trustedCertificate,
 		EnableRPCLogging:   true,
 		EnableMetrics:      false,
