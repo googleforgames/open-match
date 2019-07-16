@@ -1,0 +1,60 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Default values for open-match-demo.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+demo:
+  portType: LoadBalancer
+  replicas: 1
+  image: openmatch-demo
+
+image:
+  registry: gcr.io/open-match-public-images
+  tag: 0.0.0-dev
+  pullPolicy: Always
+
+# evaluator:
+#   # image: openmatch-evaluator-go-simple
+
+# TODO: Split tls configs into a separate config file. For now Open Match assumes core components share the same secure mode
+# with the mmfs and evaluator, so we have to copy these secure settings and define a new configmap for it whenever we what 
+# to create a new evaluator and mmf. We should create a global configmap for the security settings for all subcharts 
+# under the /install/helm/open-match directory to avoid copy&paste files around.
+config:
+  mountPath: /app/config
+  volumeName: demo-config-volume
+  mapName: demo-configmap
+  files:
+    matchmaker_config.yaml:
+      api:
+        # TODO: Figure out how to key this off of tls.enabled=true. For now someone can uncomment these to turn it on.
+        #tls:
+        #  trustedCertificatePath: "{{.Values.openmatch.tls.root.mountPath}}/public.cert"
+        #  certificatefile: "{{.Values.openmatch.tls.server.mountPath}}/public.cert"
+        #  privatekey: "{{.Values.openmatch.tls.server.mountPath}}/private.key"
+        #  rootcertificatefile: "{{.Values.openmatch.tls.root.mountPath}}/public.cert"
+        functions:
+          hostname: "{{ .Values.function.hostName }}"
+          grpcport: "{{ .Values.function.grpcPort }}"
+        demo:
+          hostname: "{{ .Values.demo.hostName }}"
+          httpport: "{{ .Values.demo.httpPort }}"
+        frontend:
+          hostname: "{{ .Values.frontend.hostName }}"
+          grpcport: "{{ .Values.frontend.grpcPort }}"
+        backend:
+          hostname: "{{ .Values.backend.hostName }}"
+          grpcport: "{{ .Values.backend.grpcPort }}"

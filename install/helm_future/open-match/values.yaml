@@ -1,0 +1,140 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Default values for open-match.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Overrides the host names and port numbers of Open Match components.
+components:
+  swaggerui: &swaggerui
+    hostName: om-swaggerui
+    httpPort: 51500
+  mmlogic: &mmlogic
+    hostName: om-mmlogic
+    grpcPort: 50503
+    httpPort: 51503
+  frontend: &frontend
+    hostName: om-frontend
+    grpcPort: 50504
+    httpPort: 51504
+  backend: &backend
+    hostName: om-backend
+    grpcPort: 50505
+    httpPort: 51505
+  synchronizer: &synchronizer
+    hostName: om-synchronizer
+    grpcPort: 50506
+    httpPort: 51506
+  evaluator: &evaluator
+    hostName: om-evaluator
+    grpcPort: 50508
+    httpPort: 51508
+  function: &function
+    hostName: om-function
+    grpcPort: 50502
+    httpPort: 51502
+  demo: &demo
+    hostName: om-demo
+    httpPort: 51507
+
+open-match-core:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: true
+  swaggerui: *swaggerui
+  mmlogic: *mmlogic
+  frontend: *frontend
+  backend: *backend
+  synchronizer: *synchronizer
+  evaluator: *evaluator
+
+open-match-demo:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: false
+  function: *function
+  demo: *demo
+  frontend: *frontend
+  backend: *backend
+
+open-match-telemetry:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: false
+
+open-match-customize:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: false
+  evaluator: *evaluator
+  function: *function
+  mmlogic: *mmlogic
+  # You can customize Open Match by enabling open-match-customize subchart
+  # and override the evaluator/mmf image 
+  # image:
+  #   registry: [YOUR_COMPONENT_REGISTRY]
+  #   tag: [YOUR_COMPONENT_IMAGE_VERSION]
+  #   pullPolicy: Always
+  # evaluator:
+  #   image: [YOUR_EVALUATOR_IMAGE]
+  # function:
+  #   image: [YOUR_MMF_IMAGE]
+
+open-match-test:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: false
+  mmlogic: *mmlogic
+  frontend: *frontend
+  backend: *backend
+  synchronizer: *synchronizer
+
+# Global configurations that are visible to all subcharts
+global:
+  # Defines a service account which provides an identity for processes that run in a Pod in Open Match.
+  kubernetes:
+    serviceAccount: open-match-unprivileged-service
+  
+  # Defines if Open Match needs to serve secure traffic
+  tls: 
+    # If you enable TLS, uncomment the tls section under "api:"
+    enabled: false
+    root:
+      mountPath: /app/secrets/tls/rootca
+    server:
+      mountPath: /app/secrets/tls/server
+  
+  image:
+    registry:
+    tag:
+  
+  # Expose the telemetry configurations to all subcharts because prometheus, for example, 
+  # requires pod-level annotation to customize its scrape path.
+  # See definitions in templates/_helpers.tpl - "prometheus.annotations" section for details
+  telemetry:
+    jaeger:
+      enabled: false
+      agentEndpoint: "open-match-jaeger-agent:6831"
+      collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
+    prometheus:
+      enabled: false
+      endpoint: "/metrics"
+      serviceDiscovery: true
+    stackdriver:
+      enabled: true
+      gcpProjectId: "replace_with_your_project_id"
+      metricPrefix: "open_match"
+    zipkin:
+      enabled: false
+      endpoint: "/zipkin"
+      reporterEndpoint: "zipkin" 
+    grafana:
+      enabled: false
+    reportingPeriod: "5s"

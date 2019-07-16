@@ -1,0 +1,18 @@
+dependencies:
+- name: open-match-core
+  repository: file://./subcharts/open-match-core
+  version: 0.0.0-dev
+- name: open-match-demo
+  repository: file://./subcharts/open-match-demo
+  version: 0.0.0-dev
+- name: open-match-telemetry
+  repository: file://./subcharts/open-match-telemetry
+  version: 0.0.0-dev
+- name: open-match-customize
+  repository: file://./subcharts/open-match-customize
+  version: 0.0.0-dev
+- name: open-match-test
+  repository: file://./subcharts/open-match-test
+  version: 0.0.0-dev
+digest: sha256:cd2951794abed55d660bace5efa9781b0b1be9e3cf6cb66ed815a6a061c48990
+generated: "2019-07-16T13:47:29.459198073-07:00"

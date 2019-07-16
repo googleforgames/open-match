@@ -1,0 +1,78 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ .Values.backend.hostName }}
+  namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+  labels:
+    app: {{ template "openmatch.name" . }}
+    component: backend
+    release: {{ .Release.Name }}
+spec:
+  selector:
+    app: {{ template "openmatch.name" . }}
+    component: backend
+    release: {{ .Release.Name }}
+  type: {{ .Values.backend.portType }}
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: {{ .Values.backend.grpcPort }}
+  - name: http
+    protocol: TCP
+    port: {{ .Values.backend.httpPort }}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Values.backend.hostName }}
+  namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+  labels:
+    app: {{ template "openmatch.name" . }}
+    component: backend
+    release: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      app: {{ template "openmatch.name" . }}
+      component: backend
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      annotations:
+        {{- include "openmatch.chartmeta" . | nindent 8 }}
+        {{- include "prometheus.annotations" (dict "port" .Values.backend.httpPort "prometheus" .Values.global.telemetry.prometheus) | nindent 8 }}
+      labels:
+        app: {{ template "openmatch.name" . }}
+        component: backend
+        release: {{ .Release.Name }}
+    spec:
+      {{- include "openmatch.spec.common" . | nindent 6 }}
+      serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
+      containers:
+      - name: {{ .Values.backend.hostName }}
+        {{- include "openmatch.container.common" . | nindent 8 }}
+        {{- include "openmatch.container.withredis" . | nindent 8 }}
+        image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.backend.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
+        ports:
+        - name: grpc
+          containerPort: {{ .Values.backend.grpcPort }}
+        - name: http
+          containerPort: {{ .Values.backend.httpPort }}
+        {{- include "kubernetes.probe" (dict "port" .Values.backend.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
