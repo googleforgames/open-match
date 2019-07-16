@@ -70,7 +70,14 @@ func (lh *ListenerHolder) Close() error {
 
 // NewFromPortNumber opens a TCP listener based on the port number provided.
 func NewFromPortNumber(portNumber int) (*ListenerHolder, error) {
-	addr := fmt.Sprintf(":%d", portNumber)
+	addr := ""
+	// port 0 actually means random port which should only be used in tests.
+	if portNumber == 0 {
+		// Only accept connections from localhost in test mode.
+		addr = fmt.Sprintf("localhost:%d", portNumber)
+	} else {
+		addr = fmt.Sprintf(":%d", portNumber)
+	}
 	conn, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -86,5 +93,4 @@ func NewFromPortNumber(portNumber int) (*ListenerHolder, error) {
 		listener: conn,
 		addr:     conn.Addr().String(),
 	}, nil
-
 }
