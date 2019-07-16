@@ -1,0 +1,80 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Default values for open-match-test.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+function:
+  replicas: 3
+  image: openmatch-mmf-go-pool
+
+evaluator:
+  replicas: 3
+  image: openmatch-evaluator-go-simple
+
+image:
+  registry: gcr.io/open-match-public-images
+  tag: 0.0.0-dev
+  pullPolicy: Always
+
+# TODO: Split tls configs into a separate config file. For now Open Match assumes core components share the same secure mode
+# with the mmfs and evaluator, so we have to copy these secure settings and define a new configmap for it whenever we what 
+# to create a new evaluator and mmf. We should create a global configmap for the security settings for all subcharts 
+# under the /install/helm/open-match directory to avoid copy&paste files around.
+config:
+  mountPath: /app/config
+  volumeName: matchfunction-config-volume
+  mapName: matchfunction-configmap
+  files:
+    matchmaker_config.yaml:
+      api:
+        # TODO: Figure out how to key this off of tls.enabled=true. For now someone can uncomment these to turn it on.
+        #tls:
+        #  trustedCertificatePath: "{{.Values.openmatch.tls.root.mountPath}}/public.cert"
+        #  certificatefile: "{{.Values.openmatch.tls.server.mountPath}}/public.cert"
+        #  privatekey: "{{.Values.openmatch.tls.server.mountPath}}/private.key"
+        #  rootcertificatefile: "{{.Values.openmatch.tls.root.mountPath}}/public.cert"
+        mmlogic:
+          hostname: "{{ .Values.mmlogic.hostName }}"
+          grpcport: "{{ .Values.mmlogic.grpcPort }}"
+        
+        functions:
+          hostname: "{{ .Values.function.hostName }}"
+          grpcport: "{{ .Values.function.grpcPort }}"
+          httpport: "{{ .Values.function.httpPort }}"
+        
+        evaluator:
+          hostname: "{{ .Values.evaluator.hostName }}"
+          grpcport: "{{ .Values.evaluator.grpcPort }}"
+          httpport: "{{ .Values.evaluator.httpPort }}"
+      
+      telemetry:
+        jaeger:
+          enable: "{{ .Values.global.telemetry.jaeger.enabled }}"
+          agentEndpoint: "{{ .Values.global.telemetry.jaeger.agentEndpoint }}"
+          collectorEndpoint: "{{ .Values.global.telemetry.jaeger.collectorEndpoint }}"
+        prometheus:
+          enable: "{{ .Values.global.telemetry.prometheus.enabled }}"
+          endpoint: "{{ .Values.global.telemetry.prometheus.endpoint }}"
+          serviceDiscovery: "{{ .Values.global.telemetry.prometheus.serviceDiscovery }}"
+        stackdriver:
+          enable: "{{ .Values.global.telemetry.stackdriver.enabled }}"
+          gcpProjectId: "{{ .Values.global.telemetry.stackdriver.gcpProjectId }}"
+          metricPrefix: "{{ .Values.global.telemetry.stackdriver.metricPrefix }}"
+        zipkin:
+          enable: "{{ .Values.global.telemetry.zipkin.enabled }}"
+          endpoint: "{{ .Values.global.telemetry.zipkin.endpoint }}"
+          reporterEndpoint: "{{ .Values.global.telemetry.zipkin.reporterEndpoint }}"
+        reportingPeriod: "{{ .Values.global.telemetry.reportingPeriod }}"

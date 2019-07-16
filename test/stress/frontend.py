@@ -39,7 +39,7 @@ class ClientBehavior(TaskSequence):
     with self.client.request(method, endpoint, name=name, params=params, data=data, catch_response=True) as response:
       if response.status_code == 200:
           response.success()
-          self.payload["body"] = json.loads(response.content)
+          self.payload["body"] = json.loads(str(response.content, 'utf-8'))
 
   @seq_task(2)
   @task(5)

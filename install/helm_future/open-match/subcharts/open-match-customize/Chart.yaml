@@ -1,27 +1,19 @@
 # Copyright 2019 Google LLC
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:latest
-ENV GO111MODULE=on
-
-WORKDIR /go/src/open-match.dev/open-match
-
-# First copy only the go.sum and go.mod then download dependencies. Docker
-# caching is [in]validated by the input files changes.  So when the dependencies
-# for the project don't change, the previous image layer can be re-used.  go.sum
-# is included as its hashing verifies the expected files are downloaded.
-COPY go.sum go.mod ./
-RUN go mod download
-
-COPY . .
+apiVersion: v1
+appVersion: "1.0"
+description: A Helm chart for Kubernetes
+name: open-match-customize
+version: 0.0.0-dev
