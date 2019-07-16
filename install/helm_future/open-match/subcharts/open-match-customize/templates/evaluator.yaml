@@ -61,18 +61,15 @@ spec:
         component: evaluator
         release: {{ .Release.Name }}
     spec:
+      {{- include "openmatch.spec.common" . | nindent 6 }}
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:
       - name: {{ .Values.evaluator.hostName }}
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        image: "{{ .Values.image.registry }}/{{ .Values.evaluator.image }}:{{ .Values.image.tag }}"
+        {{- include "openmatch.container.common" . | nindent 8 }}
+        image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.evaluator.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
         ports:
         - name: grpc
           containerPort: {{ .Values.evaluator.grpcPort }}
         - name: http
           containerPort: {{ .Values.evaluator.httpPort }}
-        resources:
-          requests:
-            memory: 100Mi
-            cpu: 100m
-        {{- include "kubernetes.probe" (dict "port" .Values.evaluator.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
+

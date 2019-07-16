@@ -49,7 +49,12 @@ config:
         functions:
           hostname: "{{ .Values.function.hostName }}"
           grpcport: "{{ .Values.function.grpcPort }}"
-          httpport: "{{ .Values.function.httpPort }}"
         demo:
           hostname: "{{ .Values.demo.hostName }}"
           httpport: "{{ .Values.demo.httpPort }}"
+        frontend:
+          hostname: "{{ .Values.frontend.hostName }}"
+          grpcport: "{{ .Values.frontend.grpcPort }}"
+        backend:
+          hostname: "{{ .Values.backend.hostName }}"
+          grpcport: "{{ .Values.backend.grpcPort }}"

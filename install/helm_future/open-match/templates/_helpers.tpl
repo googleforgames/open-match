@@ -44,8 +44,8 @@ prometheus.io/path: {{ .prometheus.endpoint }}
 imagePullPolicy: {{ .Values.image.pullPolicy }}
 resources:
   requests:
-    memory: 100Mi
-    cpu: 100m
+    memory: 200Mi
+    cpu: 200m
 volumeMounts:
 - name: {{ .Values.config.volumeName }}
   mountPath: {{ .Values.config.mountPath }}

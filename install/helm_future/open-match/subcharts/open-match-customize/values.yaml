@@ -35,8 +35,8 @@ image:
 # under the /install/helm/open-match directory to avoid copy&paste files around.
 config:
   mountPath: /app/config
-  volumeName: customize-config-volume
-  mapName: customize-configmap
+  volumeName: matchfunction-config-volume
+  mapName: matchfunction-configmap
   files:
     matchmaker_config.yaml:
       api:
@@ -46,3 +46,6 @@ config:
         #  certificatefile: "{{.Values.openmatch.tls.server.mountPath}}/public.cert"
         #  privatekey: "{{.Values.openmatch.tls.server.mountPath}}/private.key"
         #  rootcertificatefile: "{{.Values.openmatch.tls.root.mountPath}}/public.cert"
+        mmlogic:
+          hostname: "{{ .Values.mmlogic.hostName }}"
+          grpcport: "{{ .Values.mmlogic.grpcPort }}"

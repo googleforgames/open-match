@@ -70,7 +70,7 @@ spec:
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:
       - name: {{ .Values.stresstest.masterName }}
-        image: "{{ .Values.image.registry }}/{{ .Values.stresstest.image }}:{{ .Values.image.tag }}"
+        image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.stresstest.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
         ports:
         - name: loc-master-web
           containerPort: 8089

@@ -69,7 +69,7 @@ spec:
       - name: {{ .Values.backend.hostName }}
         {{- include "openmatch.container.common" . | nindent 8 }}
         {{- include "openmatch.container.withredis" . | nindent 8 }}
-        image: "{{ .Values.image.registry }}/{{ .Values.backend.image}}:{{ .Values.image.tag }}"
+        image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.backend.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
         ports:
         - name: grpc
           containerPort: {{ .Values.backend.grpcPort }}

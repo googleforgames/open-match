@@ -61,9 +61,11 @@ open-match-core:
 
 open-match-demo:
   # Switch the value between true/false to turn on/off this subchart
-  enabled: false
+  enabled: true
   function: *function
   demo: *demo
+  frontend: *frontend
+  backend: *backend
 
 open-match-monitoring:
   # Switch the value between true/false to turn on/off this subchart
@@ -71,9 +73,10 @@ open-match-monitoring:
 
 open-match-customize:
   # Switch the value between true/false to turn on/off this subchart
-  enabled: false
+  enabled: true
   evaluator: *evaluator
   function: *function
+  mmlogic: *mmlogic
   # You can customize Open Match by enabling open-match-customize subchart
   # and override the evaluator/mmf image 
   # image:

@@ -64,7 +64,7 @@ spec:
       containers:
       - name: {{ .Values.demo.hostName }}
         {{- include "openmatch.container.common" . | nindent 8 }}
-        image: "{{ .Values.image.registry }}/{{ .Values.demo.image }}:{{ .Values.image.tag }}"
+        image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.demo.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
         ports:
         - name: http
           containerPort: {{ .Values.demo.httpPort }}
