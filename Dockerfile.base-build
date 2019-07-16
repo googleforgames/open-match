@@ -16,5 +16,12 @@ FROM golang:latest
 ENV GO111MODULE=on
 
 WORKDIR /go/src/open-match.dev/open-match
-COPY . .
+
+# First copy only the go.sum and go.mod then download dependencies. Docker
+# caching is [in]validated by the input files changes.  So when the dependencies
+# for the project don't change, the previous image layer can be re-used.  go.sum
+# is included as its hashing verifies the expected files are downloaded.
+COPY go.sum go.mod ./
 RUN go mod download
+
+COPY . .
