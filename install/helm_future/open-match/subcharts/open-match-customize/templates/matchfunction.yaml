@@ -20,6 +20,8 @@ metadata:
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
+    component: matchfunction
+    release: {{ .Release.Name }}
 spec:
   selector:
     app: {{ template "openmatch.name" . }}
@@ -41,6 +43,7 @@ metadata:
   labels:
     app: {{ template "openmatch.name" . }}
     component: matchfunction
+    release: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.function.replicas }}
   selector:
@@ -56,6 +59,7 @@ spec:
       labels:
         app: {{ template "openmatch.name" . }}
         component: matchfunction
+        release: {{ .Release.Name }}
     spec:
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:

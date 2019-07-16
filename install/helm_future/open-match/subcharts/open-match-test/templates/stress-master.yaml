@@ -20,6 +20,8 @@ metadata:
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
+    component: locust-master
+    release: {{ .Release.Name }}
 spec:
   selector:
     app: {{ template "openmatch.name" . }}
@@ -48,6 +50,7 @@ metadata:
   labels:
     app: {{ template "openmatch.name" . }}
     component: locust-master
+    release: {{ .Release.Name }}
 spec:
   replicas: 1 # We only need one master
   selector:
@@ -62,6 +65,7 @@ spec:
       labels:
         app: {{ template "openmatch.name" . }}
         component: locust-master
+        release: {{ .Release.Name }}
     spec:
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:

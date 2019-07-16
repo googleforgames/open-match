@@ -21,6 +21,7 @@ metadata:
   labels:
     app: {{ template "openmatch.name" . }}
     component: swaggerui
+    release: {{ .Release.Name }}
 spec:
   selector:
     app: {{ template "openmatch.name" . }}
@@ -40,6 +41,7 @@ metadata:
   labels:
     app: {{ template "openmatch.name" . }}
     component: swaggerui
+    release: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.swaggerui.replicas }}
   selector:
@@ -54,6 +56,7 @@ spec:
       labels:
         app: {{ template "openmatch.name" . }}
         component: swaggerui
+        release: {{ .Release.Name }}
     spec:
       {{- include "openmatch.spec.common" . | nindent 6 }}
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}

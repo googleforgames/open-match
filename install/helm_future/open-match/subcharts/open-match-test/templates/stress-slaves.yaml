@@ -21,6 +21,7 @@ metadata:
   labels:
     app: {{ template "openmatch.name" . }}
     component: locust-worker
+    release: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.stresstest.replicas }}
   selector:
@@ -34,6 +35,7 @@ spec:
       labels:
         app: {{ template "openmatch.name" . }}
         component: locust-worker
+        release: {{ .Release.Name }}
     spec:
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:

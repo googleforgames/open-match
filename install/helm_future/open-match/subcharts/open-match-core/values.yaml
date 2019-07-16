@@ -142,19 +142,19 @@ config:
 
       monitoring:
         jaeger:
-          enabled: "{{ .Values.global.monitoring.jaeger.enabled }}"
+          enable: "{{ .Values.global.monitoring.jaeger.enabled }}"
           agentEndpoint: "{{ .Values.global.monitoring.jaeger.agentEndpoint }}"
           collectorEndpoint: "{{ .Values.global.monitoring.jaeger.collectorEndpoint }}"
         prometheus:
-          enabled: "{{ .Values.global.monitoring.prometheus.enabled }}"
+          enable: "{{ .Values.global.monitoring.prometheus.enabled }}"
           endpoint: "{{ .Values.global.monitoring.prometheus.endpoint }}"
           serviceDiscovery: "{{ .Values.global.monitoring.prometheus.serviceDiscovery }}"
         stackdriver:
-          enabled: "{{ .Values.global.monitoring.stackdriver.enabled }}"
+          enable: "{{ .Values.global.monitoring.stackdriver.enabled }}"
           gcpProjectId: "{{ .Values.global.monitoring.stackdriver.gcpProjectId }}"
           metricPrefix: "{{ .Values.global.monitoring.stackdriver.metricPrefix }}"
         zipkin:
-          enabled: "{{ .Values.global.monitoring.zipkin.enabled }}"
+          enable: "{{ .Values.global.monitoring.zipkin.enabled }}"
           endpoint: "{{ .Values.global.monitoring.zipkin.endpoint }}"
           reporterEndpoint: "{{ .Values.global.monitoring.zipkin.reporterEndpoint }}"
         reportingPeriod: "{{ .Values.global.monitoring.reportingPeriod }}"

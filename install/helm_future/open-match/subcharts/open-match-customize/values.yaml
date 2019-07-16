@@ -17,12 +17,10 @@
 # Declare variables to be passed into your templates.
 
 function:
-  portType: LoadBalancer
   replicas: 3
   image: openmatch-mmf-go-pool
 
 evaluator:
-  portType: LoadBalancer
   replicas: 3
   image: openmatch-evaluator-go-simple
 

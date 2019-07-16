@@ -21,6 +21,7 @@ metadata:
   labels:
     app: {{ template "openmatch.name" . }}
     component: config
+    release: {{ .Release.Name }}
 data:
   {{- $root := . -}}
   {{ range $path, $content := $root.Values.config.files }}

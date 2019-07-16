@@ -17,27 +17,17 @@
 # Declare variables to be passed into your templates.
 
 demo:
-  hostName: om-demo
-  httpPort: 51507
   portType: LoadBalancer
   replicas: 1
   image: openmatch-demo
-
-function:
-  hostName: om-demofunction
-  grpcPort: 50502
-  httpPort: 51502
-  # portType: LoadBalancer
-  # replicas: 3
-  # image: openmatch-mmf-go-soloduel
 
 image:
   registry: gcr.io/open-match-public-images
   tag: 0.0.0-dev
   pullPolicy: Always
 
-evaluator:
-  # image: openmatch-evaluator-go-simple
+# evaluator:
+#   # image: openmatch-evaluator-go-simple
 
 # TODO: Split tls configs into a separate config file. For now Open Match assumes core components share the same secure mode
 # with the mmfs and evaluator, so we have to copy these secure settings and define a new configmap for it whenever we what 

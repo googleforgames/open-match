@@ -21,10 +21,12 @@ metadata:
   labels:
     app: {{ template "openmatch.name" . }}
     component: frontend
+    release: {{ .Release.Name }}
 spec:
   selector:
     app: {{ template "openmatch.name" . }}
     component: frontend
+    release: {{ .Release.Name }}
   type: {{ .Values.frontend.portType }}
   ports:
   - name: grpc
@@ -43,6 +45,7 @@ metadata:
   labels:
     app: {{ template "openmatch.name" . }}
     component: frontend
+    release: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.frontend.replicas }}
   selector:
@@ -58,6 +61,7 @@ spec:
       labels:
         app: {{ template "openmatch.name" . }}
         component: frontend
+        release: {{ .Release.Name }}
     spec:
       {{- include "openmatch.spec.common" . | nindent 6 }}
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}

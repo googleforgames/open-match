@@ -21,6 +21,7 @@ metadata:
   labels:
     app: {{ template "openmatch.name" . }}
     component: mmlogic
+    release: {{ .Release.Name }}
 spec:
   selector:
     app: {{ template "openmatch.name" . }}
@@ -43,6 +44,7 @@ metadata:
   labels:
     app: {{ template "openmatch.name" . }}
     component: mmlogic
+    release: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.mmlogic.replicas }}
   selector:
@@ -58,6 +60,7 @@ spec:
       labels:
         app: {{ template "openmatch.name" . }}
         component: mmlogic
+        release: {{ .Release.Name }}
     spec:
       {{- include "openmatch.spec.common" . | nindent 6 }}
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
