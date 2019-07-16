@@ -52,8 +52,7 @@ var (
 
 // ClientParams contains the connection parameters to connect to an Open Match service.
 type ClientParams struct {
-	Hostname           string
-	Port               int
+	Address            string
 	TrustedCertificate []byte
 	EnableRPCLogging   bool
 	EnableMetrics      bool
@@ -66,8 +65,7 @@ func (p *ClientParams) usingTLS() bool {
 // GRPCClientFromConfig creates a gRPC client connection from a configuration.
 func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, error) {
 	clientParams := &ClientParams{
-		Hostname:         cfg.GetString(prefix + ".hostname"),
-		Port:             cfg.GetInt(prefix + ".grpcport"),
+		Address:          toAddress(cfg.GetString(prefix+".hostname"), cfg.GetInt(prefix+".grpcport")),
 		EnableRPCLogging: cfg.GetBool(configNameEnableRPCLogging),
 		EnableMetrics:    cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}
@@ -125,8 +123,6 @@ func GRPCClientFromEndpoint(cfg config.View, address string) (*grpc.ClientConn, 
 
 // GRPCClientFromParams creates a gRPC client connection from the parameters.
 func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
-	address := fmt.Sprintf("%s:%d", params.Hostname, params.Port)
-
 	grpcOptions := newGRPCDialOptions(params.EnableMetrics, params.EnableRPCLogging)
 
 	if params.usingTLS() {
@@ -140,14 +136,13 @@ func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 		grpcOptions = append(grpcOptions, grpc.WithInsecure())
 	}
 
-	return grpc.Dial(address, grpcOptions...)
+	return grpc.Dial(params.Address, grpcOptions...)
 }
 
 // HTTPClientFromConfig creates a HTTP client from from a configuration.
 func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string, error) {
 	clientParams := &ClientParams{
-		Hostname:         cfg.GetString(prefix + ".hostname"),
-		Port:             cfg.GetInt(prefix + ".httpport"),
+		Address:          toAddress(cfg.GetString(prefix+".hostname"), cfg.GetInt(prefix+".httpport")),
 		EnableRPCLogging: cfg.GetBool(configNameEnableRPCLogging),
 		EnableMetrics:    cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}
@@ -190,18 +185,15 @@ func sanitizeHTTPAddress(address string, preferHTTPS bool) (string, error) {
 // HTTPClientFromEndpoint creates a HTTP client from from endpoint.
 func HTTPClientFromEndpoint(cfg config.View, address string) (*http.Client, string, error) {
 	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
-	// TODO: Make client Timeout configurable
-	httpClient := &http.Client{Timeout: time.Second * 3}
-	var baseURL string
+
+	params := &ClientParams{
+		Address:          address,
+		EnableRPCLogging: cfg.GetBool(configNameEnableRPCLogging),
+		EnableMetrics:    cfg.GetBool(telemetry.ConfigNameEnableMetrics),
+	}
 
 	if cfg.GetString(configNameClientTrustedCertificatePath) != "" {
-		var err error
-		baseURL, err = sanitizeHTTPAddress(address, true)
-		if err != nil {
-			clientLogger.WithError(err).Error("cannot parse address")
-			return nil, "", err
-		}
-		_, err = os.Stat(cfg.GetString(configNameClientTrustedCertificatePath))
+		_, err := os.Stat(cfg.GetString(configNameClientTrustedCertificatePath))
 		if err != nil {
 			clientLogger.WithError(err).Error("trusted certificate file may not exists.")
 			return nil, "", err
@@ -212,41 +204,21 @@ func HTTPClientFromEndpoint(cfg config.View, address string) (*http.Client, stri
 			clientLogger.WithError(err).Error("failed to read tls trusted certificate to establish a secure grpc client.")
 			return nil, "", err
 		}
-
-		pool, err := trustedCertificateFromFileData(trustedCertificate)
-		if err != nil {
-			clientLogger.WithError(err).Error("failed to get cert pool from file.")
-			return nil, "", err
-		}
-
-		httpClient.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				ServerName: address,
-				RootCAs:    pool,
-			},
-		}
-	} else {
-		var err error
-		baseURL, err = sanitizeHTTPAddress(address, false)
-		if err != nil {
-			clientLogger.WithError(err).Error("cannot parse address")
-			return nil, "", err
-		}
+		params.TrustedCertificate = trustedCertificate
 	}
 
-	return httpClient, baseURL, nil
+	return HTTPClientFromParams(params)
 }
 
 // HTTPClientFromParams creates a HTTP client from the parameters.
 func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
-	address := fmt.Sprintf("%s:%d", params.Hostname, params.Port)
 	// TODO: Make client Timeout configurable
 	httpClient := &http.Client{Timeout: time.Second * 3}
 	var baseURL string
 
 	if params.usingTLS() {
 		var err error
-		baseURL, err = sanitizeHTTPAddress(address, true)
+		baseURL, err = sanitizeHTTPAddress(params.Address, true)
 		if err != nil {
 			clientLogger.WithError(err).Error("cannot parse address")
 			return nil, "", err
@@ -260,13 +232,13 @@ func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 
 		httpClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				ServerName: address,
+				ServerName: params.Address,
 				RootCAs:    pool,
 			},
 		}
 	} else {
 		var err error
-		baseURL, err = sanitizeHTTPAddress(address, false)
+		baseURL, err = sanitizeHTTPAddress(params.Address, false)
 		if err != nil {
 			clientLogger.WithError(err).Error("cannot parse address")
 			return nil, "", err
@@ -299,4 +271,8 @@ func newGRPCDialOptions(enableMetrics bool, enableRPCLogging bool) []grpc.DialOp
 		opts = append(opts, grpc.WithStatsHandler(new(ocgrpc.ClientHandler)))
 	}
 	return opts
+}
+
+func toAddress(hostname string, port int) string {
+	return fmt.Sprintf("%s:%d", hostname, port)
 }
