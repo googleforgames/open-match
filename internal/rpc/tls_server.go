@@ -119,7 +119,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	s.httpMux.Handle("/", s.proxyMux)
 	s.httpServer = &http.Server{
 		Addr:    s.httpListener.Addr().String(),
-		Handler: s.httpMux,
+		Handler: instrumentHTTPHandler(s.httpMux, params),
 		TLSConfig: &tls.Config{
 			Certificates: []tls.Certificate{*grpcTLSCertificate},
 			ClientCAs:    rootCaCert,
