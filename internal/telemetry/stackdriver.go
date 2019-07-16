@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package monitoring
+package telemetry
 
 import (
 	"contrib.go.opencensus.io/exporter/stackdriver"
@@ -22,34 +22,25 @@ import (
 	"open-match.dev/open-match/internal/config"
 )
 
-var (
-	stackdriverLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "monitoring.stackdriver",
-	})
-)
-
-func bindStackDriver(cfg config.View) {
-	if !cfg.GetBool("monitoring.stackdriver.enable") {
-		stackdriverLogger.Info("StackDriver Metrics: Disabled")
-		return
+func bindStackDriver(cfg config.View) func() {
+	if !cfg.GetBool("telemetry.stackdriver.enable") {
+		logger.Info("StackDriver Metrics: Disabled")
+		return func() {}
 	}
-	gcpProjectID := cfg.GetString("monitoring.stackdriver.gcpProjectId")
-	metricPrefix := cfg.GetString("monitoring.stackdriver.metricPrefix")
+	gcpProjectID := cfg.GetString("telemetry.stackdriver.gcpProjectId")
+	metricPrefix := cfg.GetString("telemetry.stackdriver.metricPrefix")
 	sd, err := stackdriver.NewExporter(stackdriver.Options{
 		ProjectID: gcpProjectID,
 		// MetricPrefix helps uniquely identify your metrics.
 		MetricPrefix: metricPrefix,
 	})
 	if err != nil {
-		stackdriverLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error":        err,
 			"gcpProjectID": gcpProjectID,
 			"metricPrefix": metricPrefix,
 		}).Fatal("Failed to initialize OpenCensus exporter to Stack Driver")
 	}
-	// It is imperative to invoke flush before your main function exits
-	defer sd.Flush()
 
 	// Register it as a metrics exporter
 	view.RegisterExporter(sd)
@@ -57,8 +48,11 @@ func bindStackDriver(cfg config.View) {
 	// Register it as a trace exporter
 	trace.RegisterExporter(sd)
 
-	stackdriverLogger.WithFields(logrus.Fields{
+	logger.WithFields(logrus.Fields{
 		"gcpProjectID": gcpProjectID,
 		"metricPrefix": metricPrefix,
 	}).Info("StackDriver Metrics: ENABLED")
+
+	// It is imperative to invoke flush before your main function exits
+	return sd.Flush
 }

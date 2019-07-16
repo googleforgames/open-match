@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package monitoring
+package telemetry
 
 import (
 	"contrib.go.opencensus.io/exporter/jaeger"
@@ -21,21 +21,14 @@ import (
 	"open-match.dev/open-match/internal/config"
 )
 
-var (
-	jaegerLogger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "monitoring.jaeger",
-	})
-)
-
 func bindJaeger(cfg config.View) {
-	if !cfg.GetBool("monitoring.jaeger.enable") {
-		jaegerLogger.Info("Jaeger Tracing: Disabled")
+	if !cfg.GetBool("telemetry.jaeger.enable") {
+		logger.Info("Jaeger Tracing: Disabled")
 		return
 	}
 
-	agentEndpointURI := cfg.GetString("monitoring.jaeger.agentEndpoint")
-	collectorEndpointURI := cfg.GetString("monitoring.jaeger.collectorEndpoint")
+	agentEndpointURI := cfg.GetString("telemetry.jaeger.agentEndpoint")
+	collectorEndpointURI := cfg.GetString("telemetry.jaeger.collectorEndpoint")
 
 	je, err := jaeger.NewExporter(jaeger.Options{
 		AgentEndpoint:     agentEndpointURI,
@@ -43,7 +36,7 @@ func bindJaeger(cfg config.View) {
 		ServiceName:       "open_match",
 	})
 	if err != nil {
-		jaegerLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error":             err,
 			"agentEndpoint":     agentEndpointURI,
 			"collectorEndpoint": collectorEndpointURI,
@@ -51,10 +44,11 @@ func bindJaeger(cfg config.View) {
 			"Failed to create the Jaeger exporter: %v", err)
 	}
 
-	jaegerLogger.WithFields(logrus.Fields{
+	// And now finally register it as a Trace Exporter
+	trace.RegisterExporter(je)
+
+	logger.WithFields(logrus.Fields{
 		"agentEndpoint":     agentEndpointURI,
 		"collectorEndpoint": collectorEndpointURI,
 	}).Info("Jaeger Tracing: ENABLED")
-	// And now finally register it as a Trace Exporter
-	trace.RegisterExporter(je)
 }

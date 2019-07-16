@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package monitoring
+package telemetry
 
 import (
 	"context"
@@ -24,20 +24,20 @@ import (
 
 func TestIncrementCounter(t *testing.T) {
 	//assert := assert.New(t)
-	c := Counter("monitoring/fake_metric", "fake")
+	c := Counter("telemetry/fake_metric", "fake")
 	IncrementCounter(context.Background(), c)
 	IncrementCounter(context.Background(), c)
 }
 func TestDoubleMetric(t *testing.T) {
 	assert := assert.New(t)
-	c := Counter("monitoring/fake_metric", "fake")
-	c2 := Counter("monitoring/fake_metric", "fake")
+	c := Counter("telemetry/fake_metric", "fake")
+	c2 := Counter("telemetry/fake_metric", "fake")
 	assert.Equal(c, c2)
 }
 
 func TestDoubleRegisterView(t *testing.T) {
 	assert := assert.New(t)
-	mFakeCounter := stats.Int64("monitoring/fake_metric", "Fake", "1")
+	mFakeCounter := stats.Int64("telemetry/fake_metric", "Fake", "1")
 	v := counterView(mFakeCounter)
 	v2 := counterView(mFakeCounter)
 	assert.Equal(v, v2)

@@ -23,8 +23,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/monitoring"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -40,10 +40,10 @@ var (
 		"app":       "openmatch",
 		"component": "app.frontend",
 	})
-	mTicketsCreated             = monitoring.Counter("frontend/tickets_created", "tickets created")
-	mTicketsDeleted             = monitoring.Counter("frontend/tickets_deleted", "tickets deleted")
-	mTicketsRetrieved           = monitoring.Counter("frontend/tickets_retrieved", "tickets retrieved")
-	mTicketAssignmentsRetrieved = monitoring.Counter("frontend/tickets_assignments_retrieved", "ticket assignments retrieved")
+	mTicketsCreated             = telemetry.Counter("frontend/tickets_created", "tickets created")
+	mTicketsDeleted             = telemetry.Counter("frontend/tickets_deleted", "tickets deleted")
+	mTicketsRetrieved           = telemetry.Counter("frontend/tickets_retrieved", "tickets retrieved")
+	mTicketAssignmentsRetrieved = telemetry.Counter("frontend/tickets_assignments_retrieved", "ticket assignments retrieved")
 )
 
 // CreateTicket will create a new ticket, assign an id to it and put it in state
@@ -84,7 +84,7 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 		return nil, err
 	}
 
-	monitoring.IncrementCounter(ctx, mTicketsCreated)
+	telemetry.IncrementCounter(ctx, mTicketsCreated)
 	return &pb.CreateTicketResponse{Ticket: ticket}, nil
 }
 
@@ -98,7 +98,7 @@ func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicket
 	if err != nil {
 		return nil, err
 	}
-	monitoring.IncrementCounter(ctx, mTicketsDeleted)
+	telemetry.IncrementCounter(ctx, mTicketsDeleted)
 	return &pb.DeleteTicketResponse{}, nil
 }
 
@@ -132,7 +132,7 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 
 // GetTicket returns the Ticket associated with the specified Ticket id.
 func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketRequest) (*pb.Ticket, error) {
-	monitoring.IncrementCounter(ctx, mTicketsRetrieved)
+	telemetry.IncrementCounter(ctx, mTicketsRetrieved)
 	return doGetTickets(ctx, req.GetTicketId(), s.store)
 }
 
@@ -159,7 +159,7 @@ func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream p
 			return ctx.Err()
 		default:
 			sender := func(assignment *pb.Assignment) error {
-				monitoring.IncrementCounter(ctx, mTicketAssignmentsRetrieved)
+				telemetry.IncrementCounter(ctx, mTicketAssignmentsRetrieved)
 				return stream.Send(&pb.GetAssignmentsResponse{Assignment: assignment})
 			}
 			return doGetAssignments(ctx, req.GetTicketId(), sender, s.store)

@@ -27,7 +27,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"open-match.dev/open-match/internal/monitoring"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/internal/util/netlistener"
 )
 
@@ -115,7 +115,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	}
 
 	// Bind HTTPS handlers
-	s.httpMux.Handle(monitoring.HealthCheckEndpoint, monitoring.NewHealthCheck(params.handlersForHealthCheck))
+	s.httpMux.Handle(telemetry.HealthCheckEndpoint, telemetry.NewHealthCheck(params.handlersForHealthCheck))
 	s.httpMux.Handle("/", s.proxyMux)
 	s.httpServer = &http.Server{
 		Addr:    s.httpListener.Addr().String(),

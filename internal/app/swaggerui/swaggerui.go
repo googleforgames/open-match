@@ -26,8 +26,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/monitoring"
 	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/telemetry"
 )
 
 var (
@@ -51,7 +51,8 @@ func RunApplication() {
 
 func serve(cfg config.View) {
 	mux := &http.ServeMux{}
-	monitoring.Setup(mux, cfg)
+	closer := telemetry.Setup(mux, cfg)
+	defer closer()
 	port := cfg.GetInt("api.swaggerui.httpport")
 	baseDir, err := os.Getwd()
 	if err != nil {
@@ -65,7 +66,7 @@ func serve(cfg config.View) {
 	}
 
 	mux.Handle("/", http.FileServer(http.Dir(directory)))
-	mux.Handle(monitoring.HealthCheckEndpoint, monitoring.NewAlwaysReadyHealthCheck())
+	mux.Handle(telemetry.HealthCheckEndpoint, telemetry.NewAlwaysReadyHealthCheck())
 	bindHandler(mux, cfg, "/v1/frontend/", "frontend")
 	bindHandler(mux, cfg, "/v1/backend/", "backend")
 	bindHandler(mux, cfg, "/v1/mmlogic/", "mmlogic")

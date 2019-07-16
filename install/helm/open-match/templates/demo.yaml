@@ -51,7 +51,7 @@ spec:
     metadata:
       namespace: {{ .Release.Namespace }}
       annotations:
-        {{- include "prometheus.annotations" (dict "port" .Values.openmatch.demo.http.port "prometheus" .Values.openmatch.monitoring.prometheus) | nindent 8 }}
+        {{- include "prometheus.annotations" (dict "port" .Values.openmatch.demo.http.port "prometheus" .Values.openmatch.telemetry.prometheus) | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
         component: demo
