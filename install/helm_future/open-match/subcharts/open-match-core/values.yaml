@@ -140,24 +140,24 @@ config:
         registrationIntervalMs: 3000ms
         proposalCollectionIntervalMs: 2000ms
 
-      monitoring:
+      telemetry:
         jaeger:
-          enable: "{{ .Values.global.monitoring.jaeger.enabled }}"
-          agentEndpoint: "{{ .Values.global.monitoring.jaeger.agentEndpoint }}"
-          collectorEndpoint: "{{ .Values.global.monitoring.jaeger.collectorEndpoint }}"
+          enable: "{{ .Values.global.telemetry.jaeger.enabled }}"
+          agentEndpoint: "{{ .Values.global.telemetry.jaeger.agentEndpoint }}"
+          collectorEndpoint: "{{ .Values.global.telemetry.jaeger.collectorEndpoint }}"
         prometheus:
-          enable: "{{ .Values.global.monitoring.prometheus.enabled }}"
-          endpoint: "{{ .Values.global.monitoring.prometheus.endpoint }}"
-          serviceDiscovery: "{{ .Values.global.monitoring.prometheus.serviceDiscovery }}"
+          enable: "{{ .Values.global.telemetry.prometheus.enabled }}"
+          endpoint: "{{ .Values.global.telemetry.prometheus.endpoint }}"
+          serviceDiscovery: "{{ .Values.global.telemetry.prometheus.serviceDiscovery }}"
         stackdriver:
-          enable: "{{ .Values.global.monitoring.stackdriver.enabled }}"
-          gcpProjectId: "{{ .Values.global.monitoring.stackdriver.gcpProjectId }}"
-          metricPrefix: "{{ .Values.global.monitoring.stackdriver.metricPrefix }}"
+          enable: "{{ .Values.global.telemetry.stackdriver.enabled }}"
+          gcpProjectId: "{{ .Values.global.telemetry.stackdriver.gcpProjectId }}"
+          metricPrefix: "{{ .Values.global.telemetry.stackdriver.metricPrefix }}"
         zipkin:
-          enable: "{{ .Values.global.monitoring.zipkin.enabled }}"
-          endpoint: "{{ .Values.global.monitoring.zipkin.endpoint }}"
-          reporterEndpoint: "{{ .Values.global.monitoring.zipkin.reporterEndpoint }}"
-        reportingPeriod: "{{ .Values.global.monitoring.reportingPeriod }}"
+          enable: "{{ .Values.global.telemetry.zipkin.enabled }}"
+          endpoint: "{{ .Values.global.telemetry.zipkin.endpoint }}"
+          reporterEndpoint: "{{ .Values.global.telemetry.zipkin.reporterEndpoint }}"
+        reportingPeriod: "{{ .Values.global.telemetry.reportingPeriod }}"
       
       storage:
         page:

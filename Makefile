@@ -319,7 +319,7 @@ install-redis: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug $(REDIS_NAME) stable/redis --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 
 update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com; $(HELM) dependency update)
+	(cd $(REPOSITORY_ROOT)/install/helm_future/open-match; $(HELM) repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com; $(HELM) dependency update)
 
 lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/ct$(EXE_EXTENSION)
 	(cd $(REPOSITORY_ROOT)/install/helm; $(HELM) lint $(OPEN_MATCH_CHART_NAME))
@@ -369,6 +369,17 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/
 		--set openmatch.telemetry.stackdriver.enabled=true \
 		--set openmatch.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
+install-future-chart: update-chart-deps
+	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm_future/open-match \
+		--timeout=400 \
+		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+		--set global.image.registry=$(REGISTRY) \
+		--set global.image.tag=$(TAG) \
+		--set open-match-customize.function.image=openmatch-mmf-go-soloduel \
+		--set openmatch.monitoring.stackdriver.enabled=true \
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+
+
 install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=600 \
@@ -379,14 +390,14 @@ install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-mat
 		--set jaeger.enabled=false \
 		--set prometheus.enabled=false \
 		--set redis.enabled=true \
-		--set openmatch.demoevaluator.install=false \
-		--set openmatch.demofunction.install=false \
-		--set openmatch.demo.install=false \
-		--set openmatch.e2eevaluator.install=true \
-		--set openmatch.e2ematchfunction.install=true \
-		--set openmatch.stresstest.install=true \
-		--set openmatch.telemetry.stackdriver.enabled=true \
-		--set openmatch.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+		--set openmatch.demoevaluator.install=true \
+		--set openmatch.demofunction.install=true \
+		--set openmatch.demo.install=true \
+		--set openmatch.e2eevaluator.install=false \
+		--set openmatch.e2ematchfunction.install=false \
+		--set openmatch.stresstest.install=false \
+		--set openmatch.monitoring.stackdriver.enabled=true \
+		--set openmatch.monitoring.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_CHART_NAME) install/helm/open-match \

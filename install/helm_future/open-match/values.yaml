@@ -61,19 +61,19 @@ open-match-core:
 
 open-match-demo:
   # Switch the value between true/false to turn on/off this subchart
-  enabled: true
+  enabled: false
   function: *function
   demo: *demo
   frontend: *frontend
   backend: *backend
 
-open-match-monitoring:
+open-match-telemetry:
   # Switch the value between true/false to turn on/off this subchart
-  enabled: true
+  enabled: false
 
 open-match-customize:
   # Switch the value between true/false to turn on/off this subchart
-  enabled: true
+  enabled: false
   evaluator: *evaluator
   function: *function
   mmlogic: *mmlogic
@@ -111,10 +111,14 @@ global:
     server:
       mountPath: /app/secrets/tls/server
   
-  # Expose the monitoring configurations to all subcharts because prometheus, for example, 
+  image:
+    registry:
+    tag:
+  
+  # Expose the telemetry configurations to all subcharts because prometheus, for example, 
   # requires pod-level annotation to customize its scrape path.
   # See definitions in templates/_helpers.tpl - "prometheus.annotations" section for details
-  monitoring:
+  telemetry:
     jaeger:
       enabled: false
       agentEndpoint: "open-match-jaeger-agent:6831"

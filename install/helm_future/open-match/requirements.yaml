@@ -21,10 +21,10 @@ dependencies:
     version: 0.0.0-dev
     condition: open-match-demo.enabled
     repository: "file://./subcharts/open-match-demo"
-  - name: open-match-monitoring
+  - name: open-match-telemetry
     version: 0.0.0-dev
-    condition: open-match-monitoring.enabled
-    repository: "file://./subcharts/open-match-monitoring"
+    condition: open-match-telemetry.enabled
+    repository: "file://./subcharts/open-match-telemetry"
   - name: open-match-customize
     version: 0.0.0-dev
     condition: open-match-customize.enabled

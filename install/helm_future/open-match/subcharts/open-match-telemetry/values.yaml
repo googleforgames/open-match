@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Default values for open-match-monitoring.
+# Default values for open-match-telemetry.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 

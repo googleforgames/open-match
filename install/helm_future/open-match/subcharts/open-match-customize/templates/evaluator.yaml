@@ -54,7 +54,7 @@ spec:
     metadata:
       namespace: {{ .Release.Namespace }}
       annotations:
-        {{- include "prometheus.annotations" (dict "port" .Values.evaluator.httpPort "prometheus" .Values.global.monitoring.prometheus) | nindent 8 }}
+        {{- include "prometheus.annotations" (dict "port" .Values.evaluator.httpPort "prometheus" .Values.global.telemetry.prometheus) | nindent 8 }}
         {{- include "openmatch.chartmeta" . | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
