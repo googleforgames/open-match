@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package monitoring
+package telemetry
 
 import (
 	"context"
@@ -23,39 +23,43 @@ import (
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/util"
 )
 
 var (
-	publicLogger = logrus.WithFields(logrus.Fields{
+	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "monitoring",
+		"component": "telemetry",
 	})
 )
 
-// Setup configures the monitoring for the server.
-func Setup(mux *http.ServeMux, cfg config.View) {
-	periodString := cfg.GetString("monitoring.reportingPeriod")
+// Setup configures the telemetry for the server.
+func Setup(mux *http.ServeMux, cfg config.View) func() {
+	mc := util.NewMultiClose()
+	periodString := cfg.GetString("telemetry.reportingPeriod")
 	reportingPeriod, err := time.ParseDuration(periodString)
 	if err != nil {
-		publicLogger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error":           err,
 			"reportingPeriod": periodString,
-		}).Info("Failed to parse monitoring.reportingPeriod, defaulting to 10s")
+		}).Info("Failed to parse telemetry.reportingPeriod, defaulting to 10s")
 		reportingPeriod = time.Second * 10
 	}
 
 	bindJaeger(cfg)
 	bindPrometheus(mux, cfg)
-	bindStackDriver(cfg)
+	mc.AddCloseFunc(bindStackDriver(cfg))
+	mc.AddCloseWithErrorFunc(bindOpenCensusAgent(cfg))
 	bindZipkin(cfg)
 	bindZpages(mux, cfg)
 
 	// Change the frequency of updates to the metrics endpoint
 	view.SetReportingPeriod(reportingPeriod)
 
-	publicLogger.WithFields(logrus.Fields{
+	logger.WithFields(logrus.Fields{
 		"reportingPeriod": reportingPeriod,
-	}).Info("Monitoring has been configured.")
+	}).Info("Telemetry has been configured.")
+	return mc.Close
 }
 
 // Counter creates a counter metric.
@@ -85,7 +89,7 @@ func counterView(s *stats.Int64Measure) *view.View {
 	}
 	err := view.Register(v)
 	if err != nil {
-		publicLogger.WithError(err).Infof("cannot register view for metric: %s, it will not be reported", s.Name())
+		logger.WithError(err).Infof("cannot register view for metric: %s, it will not be reported", s.Name())
 	}
 	return v
 }

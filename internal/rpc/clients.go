@@ -34,7 +34,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/monitoring"
+	"open-match.dev/open-match/internal/telemetry"
 )
 
 const (
@@ -69,7 +69,7 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 		Hostname:         cfg.GetString(prefix + ".hostname"),
 		Port:             cfg.GetInt(prefix + ".grpcport"),
 		EnableRPCLogging: cfg.GetBool(configNameEnableRPCLogging),
-		EnableMetrics:    cfg.GetBool(monitoring.ConfigNameEnableMetrics),
+		EnableMetrics:    cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}
 
 	// If TLS support is enabled in the config, fill in the trusted certificates for decrpting server certificate.
@@ -93,7 +93,7 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 // GRPCClientFromEndpoint creates a gRPC client connection from endpoint.
 func GRPCClientFromEndpoint(cfg config.View, address string) (*grpc.ClientConn, error) {
 	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
-	grpcOptions := newGRPCDialOptions(cfg.GetBool(monitoring.ConfigNameEnableMetrics), cfg.GetBool(configNameEnableRPCLogging))
+	grpcOptions := newGRPCDialOptions(cfg.GetBool(telemetry.ConfigNameEnableMetrics), cfg.GetBool(configNameEnableRPCLogging))
 
 	if cfg.GetString(configNameClientTrustedCertificatePath) != "" {
 		_, err := os.Stat(cfg.GetString(configNameClientTrustedCertificatePath))
@@ -149,7 +149,7 @@ func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string,
 		Hostname:         cfg.GetString(prefix + ".hostname"),
 		Port:             cfg.GetInt(prefix + ".httpport"),
 		EnableRPCLogging: cfg.GetBool(configNameEnableRPCLogging),
-		EnableMetrics:    cfg.GetBool(monitoring.ConfigNameEnableMetrics),
+		EnableMetrics:    cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}
 
 	// If TLS support is enabled in the config, fill in the trusted certificates for decrpting server certificate.

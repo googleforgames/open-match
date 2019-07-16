@@ -1,11 +1,7 @@
 # Development Guide
 
-Open Match is a collection of [Go](https://golang.org/) applications that run
+Open Match is a collection of [Go](https://golang.org/) gRPC services that run
 within [Kubernetes](https://kubernetes.io).
-
-If you're not familiar with either that's ok, you can checkout the
-[reference material](references.md). Knowledge of these tools is not
-required to setup your environment.
 
 ## Install Prerequisites
 

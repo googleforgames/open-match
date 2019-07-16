@@ -13,7 +13,7 @@
 # limitations under the License.
 
 openmatch:
-  monitoring:
+  telemetry:
     jaeger:
       enabled: true
       agentEndpoint: "open-match-jaeger-agent:6831"
@@ -30,6 +30,9 @@ openmatch:
       enabled: false
       endpoint: "/zipkin"
       reporterEndpoint: "zipkin"
+    opencensusAgent:
+      enabled: false
+      agentEndpoint: "om-opencensus-agent:55678"
     reportingPeriod: "5s"
   synchronizer:
     install: true
@@ -191,23 +194,26 @@ openmatch:
           registrationIntervalMs: 3000ms
           proposalCollectionIntervalMs: 2000ms
 
-        monitoring:
+        telemetry:
+          opencensusAgent:
+            enable: "{{.Values.openmatch.telemetry.opencensusAgent.enabled}}"
+            agentEndpoint: "{{.Values.openmatch.telemetry.opencensusAgent.agentEndpoint}}"
           jaeger:
-            enable: "{{.Values.openmatch.monitoring.jaeger.enabled}}"
-            agentEndpoint: "{{.Values.openmatch.monitoring.jaeger.agentEndpoint}}"
-            collectorEndpoint: "{{.Values.openmatch.monitoring.jaeger.collectorEndpoint}}"
+            enable: "{{.Values.openmatch.telemetry.jaeger.enabled}}"
+            agentEndpoint: "{{.Values.openmatch.telemetry.jaeger.agentEndpoint}}"
+            collectorEndpoint: "{{.Values.openmatch.telemetry.jaeger.collectorEndpoint}}"
           prometheus:
-            enable: "{{.Values.openmatch.monitoring.prometheus.enabled}}"
-            endpoint: "{{.Values.openmatch.monitoring.prometheus.endpoint}}"
+            enable: "{{.Values.openmatch.telemetry.prometheus.enabled}}"
+            endpoint: "{{.Values.openmatch.telemetry.prometheus.endpoint}}"
           stackdriver:
-            enable: "{{.Values.openmatch.monitoring.stackdriver.enabled}}"
-            gcpProjectId: "{{.Values.openmatch.monitoring.stackdriver.gcpProjectId}}"
-            metricPrefix: "{{.Values.openmatch.monitoring.stackdriver.metricPrefix}}"
+            enable: "{{.Values.openmatch.telemetry.stackdriver.enabled}}"
+            gcpProjectId: "{{.Values.openmatch.telemetry.stackdriver.gcpProjectId}}"
+            metricPrefix: "{{.Values.openmatch.telemetry.stackdriver.metricPrefix}}"
           zipkin:
-            enable: "{{.Values.openmatch.monitoring.zipkin.enabled}}"
-            endpoint: "{{.Values.openmatch.monitoring.zipkin.endpoint}}"
-            reporterEndpoint: "{{.Values.openmatch.monitoring.zipkin.reporterEndpoint}}"
-          reportingPeriod: "{{.Values.openmatch.monitoring.reportingPeriod}}"
+            enable: "{{.Values.openmatch.telemetry.zipkin.enabled}}"
+            endpoint: "{{.Values.openmatch.telemetry.zipkin.endpoint}}"
+            reporterEndpoint: "{{.Values.openmatch.telemetry.zipkin.reporterEndpoint}}"
+          reportingPeriod: "{{.Values.openmatch.telemetry.reportingPeriod}}"
         storage:
           page:
             size: 10000

@@ -6,19 +6,27 @@
 [![GitHub release](https://img.shields.io/github/release-pre/googleforgames/open-match.svg)](https://github.com/googleforgames/open-match/releases)
 [![Follow on Twitter](https://img.shields.io/twitter/follow/Open_Match.svg?style=social&logo=twitter)](https://twitter.com/intent/follow?screen_name=Open_Match)
 
-Open Match is a flexible, extensible, and scalable game matchmaking framework.
+Open Match is an open source game matchmaking framework that simplifies building
+a scalable and extensible Matchmaker. It is designed to give the game developer
+full control over how to make matches while removing the burden of dealing with
+the challenges of running a production service at scale.
 
-Open Match replaces the complex plumbing parts of matchmaking and allows you to
-focus on the details of making a good match based on your game.
+Please visit [Open Match website](https://open-match.dev/site/docs/) for user
+documentation, demo instructions etc.
+
+## Contributing to Open Match
+
+Open Match is in active development and we would love your contribution! Please
+read the [contributing guide](CONTRIBUTING.md) for guidelines on contributing to
+Open Match.
+
+The [Open Match Development guide](docs/development.md) has detailed instructions
+on getting the source code, making changes, testing and submitting a pull request
+to Open Match.
 
 ## Disclaimer
 
-This software is currently alpha, and subject to change. Although Open Match has
-already been used to run [production workloads within Google](https://cloud.google.com/blog/topics/inside-google-cloud/no-tricks-just-treats-globally-scaling-the-halloween-multiplayer-doodle-with-open-match-on-google-cloud).
-
-## Usage
-
-Documentation can be found on the [Open Match website](https://open-match.dev/site/docs/).
+This software is currently alpha, and subject to change.
 
 ## Support
 
@@ -29,27 +37,6 @@ Documentation can be found on the [Open Match website](https://open-match.dev/si
 ## Code of Conduct
 
 Participation in this project comes under the [Contributor Covenant Code of Conduct](code-of-conduct.md)
-
-## Documentation
-
-Here are some useful links to additional documentation:
-
-* [Get Started](https://open-match.dev/site/docs/installation/)
-* [Development Guide](docs/development.md)
-* [Future Roadmap](docs/roadmap.md)
-* [Open Match Concepts](docs/concepts.md)
-* [Open Match Integrations](docs/integrations.md)
-* [References](docs/references.md)
-
-For more information on the technical underpinnings of Open Match you can refer to the [docs/](docs/) directory.
-
-## Contributing
-
-Please read the [contributing](CONTRIBUTING.md) guide for directions on submitting Pull Requests to Open Match.
-
-See the [Development guide](docs/development.md) for documentation for development and building Open Match from source.
-
-Open Match is in active development - we would love your help in shaping its future!
 
 ## License
 

@@ -12,17 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package monitoring
+package telemetry
 
 import (
-	"go.opencensus.io/zpages"
 	"net/http"
+
+	"github.com/sirupsen/logrus"
+	"go.opencensus.io/zpages"
 	"open-match.dev/open-match/internal/config"
 )
 
 func bindZpages(mux *http.ServeMux, cfg config.View) {
-	if !cfg.GetBool("monitoring.zpages.enable") {
+	if !cfg.GetBool("telemetry.zpages.enable") {
+		logger.Info("zPages: Disabled")
 		return
 	}
-	zpages.Handle(mux, "/debug")
+	endpoint := "/debug"
+	zpages.Handle(mux, endpoint)
+
+	logger.WithFields(logrus.Fields{
+		"endpoint": endpoint,
+	}).Info("zPages: ENABLED")
 }
