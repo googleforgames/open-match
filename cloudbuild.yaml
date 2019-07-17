@@ -64,7 +64,7 @@ steps:
 
 - id: 'Setup: Download Dependencies'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'sync-deps', 'update-chart-deps']
+  args: ['make', 'sync-deps']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -115,11 +115,6 @@ steps:
   args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'push-images', '-j8']
   waitFor: ['Build: Assets']
 
-- id: 'Build: Deployment Configs'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'clean-install-yaml', 'install/yaml/']
-  waitFor: ['Build: Install Toolchain']
-
 - id: 'Lint: Format, Vet, Charts'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'lint']
@@ -135,8 +130,14 @@ steps:
 
 - id: 'Test: Create Cluster'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'delete-gke-cluster', 'create-gke-cluster', 'push-helm']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'delete-gke-cluster', 'create-gke-cluster', 'push-helm', 'update-chart-deps']
   waitFor: ['Build: Install Kubernetes Tools']
+
+# TODO: `make update-chart-deps` requires `helm init`. This requirement will go away after introducing helm3.
+- id: 'Build: Deployment Configs'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'clean-install-yaml', 'install/yaml/']
+  waitFor: ['Test: Create Cluster']
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
