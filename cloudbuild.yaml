@@ -115,14 +115,6 @@ steps:
   args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'push-images', '-j8']
   waitFor: ['Build: Assets']
 
-- id: 'Lint: Format, Vet, Charts'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'lint']
-  volumes:
-  - name: 'go-vol'
-    path: '/go'
-  waitFor: ['Build: Assets', 'Build: Deployment Configs']
-
 - id: 'Test: Terraform Configuration'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'terraform-test']
@@ -138,6 +130,14 @@ steps:
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'clean-install-yaml', 'install/yaml/']
   waitFor: ['Test: Create Cluster']
+
+- id: 'Lint: Format, Vet, Charts'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'lint']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
+  waitFor: ['Build: Assets', 'Build: Deployment Configs']
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
