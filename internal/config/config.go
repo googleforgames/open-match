@@ -76,16 +76,17 @@ func Read() View {
 	cfg.AddConfigPath("config")
 
 	// Read in config file using Viper
+	// Worth to panic if cannot read the config on startup.
 	cfg.SetConfigName("global_config")
 	err := cfg.ReadInConfig()
 	if err != nil {
-		logger.WithError(err).Fatal("failed to read from global_config file")
+		panic(err)
 	}
 
 	cfg.SetConfigName("matchmaker_config")
 	err = cfg.MergeInConfig()
 	if err != nil {
-		logger.WithError(err).Fatal("failed to read from matchmaker_config file")
+		panic(err)
 	}
 
 	// Bind this envvars to viper config vars.
