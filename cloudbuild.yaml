@@ -64,7 +64,7 @@ steps:
 
 - id: 'Setup: Download Dependencies'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'sync-deps']
+  args: ['make', 'sync-deps', 'update-chart-deps']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -175,9 +175,8 @@ artifacts:
             - cmd/minimatch/minimatch
             - cmd/swaggerui/swaggerui
             - install/yaml/install.yaml
-            - install/yaml/install-demo.yaml
-            - install/yaml/01-redis-chart.yaml
-            - install/yaml/02-open-match.yaml
+            - install/yaml/01-open-match-core.yaml
+            - install/yaml/02-open-match-demo.yaml
             - install/yaml/03-prometheus-chart.yaml
             - install/yaml/04-grafana-chart.yaml
             - install/yaml/05-jaeger-chart.yaml

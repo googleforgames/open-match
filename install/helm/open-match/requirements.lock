@@ -1,15 +1,18 @@
 dependencies:
-- name: prometheus
-  repository: https://kubernetes-charts.storage.googleapis.com/
-  version: 8.14.0
-- name: redis
-  repository: https://kubernetes-charts.storage.googleapis.com/
-  version: 8.0.9
-- name: grafana
-  repository: https://kubernetes-charts.storage.googleapis.com/
-  version: 3.5.7
-- name: jaeger
-  repository: https://kubernetes-charts-incubator.storage.googleapis.com/
-  version: 0.12.0
-digest: sha256:46c589cecf346f749eebf700b2abfd5995361758adcc592881d7fae4abd1ea5f
-generated: "2019-07-03T11:14:34.486446966-07:00"
+- name: open-match-core
+  repository: file://./subcharts/open-match-core
+  version: 0.0.0-dev
+- name: open-match-demo
+  repository: file://./subcharts/open-match-demo
+  version: 0.0.0-dev
+- name: open-match-telemetry
+  repository: file://./subcharts/open-match-telemetry
+  version: 0.0.0-dev
+- name: open-match-customize
+  repository: file://./subcharts/open-match-customize
+  version: 0.0.0-dev
+- name: open-match-test
+  repository: file://./subcharts/open-match-test
+  version: 0.0.0-dev
+digest: sha256:cd2951794abed55d660bace5efa9781b0b1be9e3cf6cb66ed815a6a061c48990
+generated: "2019-07-16T13:47:29.459198073-07:00"

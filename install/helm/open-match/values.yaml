@@ -12,112 +12,97 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-openmatch:
-  telemetry:
-    jaeger:
-      enabled: true
-      agentEndpoint: "open-match-jaeger-agent:6831"
-      collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
-    prometheus:
-      enabled: true
-      endpoint: "/metrics"
-      serviceDiscovery: true
-    stackdriver:
-      enabled: false
-      gcpProjectId: "replace_with_your_project_id"
-      metricPrefix: "open_match"
-    zipkin:
-      enabled: false
-      endpoint: "/zipkin"
-      reporterEndpoint: "zipkin"
-    opencensusAgent:
-      enabled: false
-      agentEndpoint: "om-opencensus-agent:55678"
-    reportingPeriod: "5s"
-  synchronizer:
-    install: true
-    replicas: 1
-    grpc:
-      port: 50506
-    http:
-      port: 51506
-    porttype: LoadBalancer
-  backend:
-    install: true
-    replicas: 3
-    grpc:
-      port: 50505
-    http:
-      port: 51505
-    porttype: LoadBalancer
-  frontend:
-    install: true
-    replicas: 3
-    grpc:
-      port: 50504
-    http:
-      port: 51504
-    porttype: LoadBalancer
-  mmlogic:
-    install: true
-    replicas: 3
-    grpc:
-      port: 50503
-    http:
-      port: 51503
-    porttype: LoadBalancer
-  e2eevaluator:
-    install: false
-    replicas: 1
-    grpc:
-      port: 50518
-    http:
-      port: 51518
-    porttype: LoadBalancer
-  demoevaluator:
-    install: true
-    replicas: 3
-    grpc:
-      port: 50508
-    http:
-      port: 51508
-    porttype: LoadBalancer
-  e2ematchfunction:
-    install: false
-    replicas: 1
-    grpc:
-      port: 50512
-    http:
-      port: 51512
-    porttype: LoadBalancer
-  demofunction:
-    install: true
-    replicas: 3
-    grpc:
-      port: 50502
-    http:
-      port: 51502
-    porttype: LoadBalancer
-  demo:
-    install: true
-    replicas: 1
-    http:
-      port: 51507
-    porttype: LoadBalancer
-  swaggerui:
-    install: true
-    replicas: 3
-    http:
-      port: 51500
-    porttype: LoadBalancer
-  stresstest:
-    install: false
-    replicas: 5
-    noweb: false
-    clients: 1000
-    rate: 200
-    duration: 30s
-    porttype: LoadBalancer
+# Default values for open-match.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Overrides the host names and port numbers of Open Match components.
+components:
+  swaggerui: &swaggerui
+    hostName: om-swaggerui
+    httpPort: 51500
+  mmlogic: &mmlogic
+    hostName: om-mmlogic
+    grpcPort: 50503
+    httpPort: 51503
+  frontend: &frontend
+    hostName: om-frontend
+    grpcPort: 50504
+    httpPort: 51504
+  backend: &backend
+    hostName: om-backend
+    grpcPort: 50505
+    httpPort: 51505
+  synchronizer: &synchronizer
+    hostName: om-synchronizer
+    grpcPort: 50506
+    httpPort: 51506
+  evaluator: &evaluator
+    hostName: om-evaluator
+    grpcPort: 50508
+    httpPort: 51508
+  function: &function
+    hostName: om-function
+    grpcPort: 50502
+    httpPort: 51502
+  demo: &demo
+    hostName: om-demo
+    httpPort: 51507
+
+open-match-core:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: true
+  swaggerui: *swaggerui
+  mmlogic: *mmlogic
+  frontend: *frontend
+  backend: *backend
+  synchronizer: *synchronizer
+  evaluator: *evaluator
+
+open-match-demo:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: true
+  function: *function
+  demo: *demo
+  frontend: *frontend
+  backend: *backend
+
+open-match-telemetry:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: true
+
+open-match-customize:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: true
+  evaluator: *evaluator
+  function: *function
+  mmlogic: *mmlogic
+  # You can customize Open Match by enabling open-match-customize subchart
+  # and override the evaluator/mmf image 
+  # image:
+  #   registry: [YOUR_COMPONENT_REGISTRY]
+  #   tag: [YOUR_COMPONENT_IMAGE_VERSION]
+  #   pullPolicy: Always
+  # evaluator:
+  #   image: [YOUR_EVALUATOR_IMAGE]
+  # function:
+  #   image: [YOUR_MMF_IMAGE]
+
+open-match-test:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: false
+  mmlogic: *mmlogic
+  frontend: *frontend
+  backend: *backend
+  synchronizer: *synchronizer
+
+# Global configurations that are visible to all subcharts
+global:
+  # Defines a service account which provides an identity for processes that run in a Pod in Open Match.
+  kubernetes:
+    serviceAccount: open-match-unprivileged-service
+  
+  # Defines if Open Match needs to serve secure traffic
   tls: 
     # If you enable TLS, uncomment the tls section under "api:"
     enabled: false
@@ -125,292 +110,31 @@ openmatch:
       mountPath: /app/secrets/tls/rootca
     server:
       mountPath: /app/secrets/tls/server
-  kubernetes:
-    serviceAccount: open-match-unprivileged-service
-
-  config:
-    install: true
-    mountPath: /app/config
-    files:
-      matchmaker_config.yaml:
-        logging:
-          level: debug
-          format: text
-          rpc: false
-        # Open Match applies the exponential backoff strategy for its retryable gRPC calls.
-        # The settings below are the default backoff configuration used in Open Match.
-        # See https://github.com/cenkalti/backoff/blob/v3/exponential.go for detailed explanations
-        backoff:
-          # The initial retry interval (in milliseconds)
-          initialInterval: 100ms
-          # maxInterval caps the maximum time elapsed for a retry interval
-          maxInterval: 500ms
-          # The next retry interval is multiplied by this multiplier
-          multiplier: 1.5
-          # Randomize the retry interval
-          randFactor: 0.5
-          # maxElapsedTime caps the retry time (in milliseconds)
-          maxElapsedTime: 3000ms
-
-        api:
-          # TODO: Figure out how to key this off of tls.enabled=true. For now someone can uncomment these to turn it on.
-          #tls:
-          #  trustedCertificatePath: "{{.Values.openmatch.tls.root.mountPath}}/public.cert"
-          #  certificatefile: "{{.Values.openmatch.tls.server.mountPath}}/public.cert"
-          #  privatekey: "{{.Values.openmatch.tls.server.mountPath}}/private.key"
-          #  rootcertificatefile: "{{.Values.openmatch.tls.root.mountPath}}/public.cert"
-          backend:
-            hostname: om-backend
-            grpcport: "{{.Values.openmatch.backend.grpc.port}}"
-            httpport: "{{.Values.openmatch.backend.http.port}}"
-          frontend:
-            hostname: om-frontend
-            grpcport: "{{.Values.openmatch.frontend.grpc.port}}"
-            httpport: "{{.Values.openmatch.frontend.http.port}}"
-          mmlogic:
-            hostname: om-mmlogic
-            grpcport: "{{.Values.openmatch.mmlogic.grpc.port}}"
-            httpport: "{{.Values.openmatch.mmlogic.http.port}}"
-          synchronizer:
-            hostname: om-synchronizer
-            grpcport: "{{.Values.openmatch.synchronizer.grpc.port}}"
-            httpport: "{{.Values.openmatch.synchronizer.http.port}}"
-          functions:
-            hostname: om-demofunction
-            grpcport: "{{.Values.openmatch.demofunction.grpc.port}}"
-            httpport: "{{.Values.openmatch.demofunction.http.port}}"
-          evaluator:
-            hostname: om-demoevaluator
-            grpcport: "{{.Values.openmatch.demoevaluator.grpc.port}}"
-            httpport: "{{.Values.openmatch.demoevaluator.http.port}}"
-          swaggerui:
-            httpport: "{{.Values.openmatch.swaggerui.http.port}}"
-          demo:
-            hostname: om-demo
-            httpport: "{{.Values.openmatch.demo.http.port}}"
-
-        synchronizer:
-          enabled: false
-          registrationIntervalMs: 3000ms
-          proposalCollectionIntervalMs: 2000ms
-
-        telemetry:
-          opencensusAgent:
-            enable: "{{.Values.openmatch.telemetry.opencensusAgent.enabled}}"
-            agentEndpoint: "{{.Values.openmatch.telemetry.opencensusAgent.agentEndpoint}}"
-          jaeger:
-            enable: "{{.Values.openmatch.telemetry.jaeger.enabled}}"
-            agentEndpoint: "{{.Values.openmatch.telemetry.jaeger.agentEndpoint}}"
-            collectorEndpoint: "{{.Values.openmatch.telemetry.jaeger.collectorEndpoint}}"
-          prometheus:
-            enable: "{{.Values.openmatch.telemetry.prometheus.enabled}}"
-            endpoint: "{{.Values.openmatch.telemetry.prometheus.endpoint}}"
-          stackdriver:
-            enable: "{{.Values.openmatch.telemetry.stackdriver.enabled}}"
-            gcpProjectId: "{{.Values.openmatch.telemetry.stackdriver.gcpProjectId}}"
-            metricPrefix: "{{.Values.openmatch.telemetry.stackdriver.metricPrefix}}"
-          zipkin:
-            enable: "{{.Values.openmatch.telemetry.zipkin.enabled}}"
-            endpoint: "{{.Values.openmatch.telemetry.zipkin.endpoint}}"
-            reporterEndpoint: "{{.Values.openmatch.telemetry.zipkin.reporterEndpoint}}"
-          reportingPeriod: "{{.Values.openmatch.telemetry.reportingPeriod}}"
-        storage:
-          page:
-            size: 10000
-        redis:
-          pool:
-            maxIdle: 3
-            maxActive: 0
-            idleTimeout: 60s
-            healthCheckTimeout: 100ms
-          ignoreLists:
-            ttl: 1000ms
-          expiration: 43200
-        ticketIndices:
-        - char.cleric
-        - char.knight
-        - char.paladin
-        - map.aleroth
-        - map.oasis
-        - mmr.rating
-        - mode.battleroyale
-        - mode.ctf
-        - mode.demo
-        - region.europe-east1
-        - region.europe-west1
-        - region.europe-west2
-        - region.europe-west3
-        - region.europe-west4
-        - role.dps
-        - role.support
-        - role.tank
-
+  
   image:
-    registry: gcr.io/open-match-public-images
-    tag: 0.0.0-dev
-    pullPolicy: Always
-    backend:
-      name: openmatch-backend
-    frontend:
-      name: openmatch-frontend
-    mmlogic:
-      name: openmatch-mmlogic
-    synchronizer:
-      name: openmatch-synchronizer
-    swaggerui:
-      name: openmatch-swaggerui
-    demoevaluator:
-      name: openmatch-evaluator-go-simple
-    demofunction:
-      name: openmatch-mmf-go-soloduel
-    demo:
-      name: openmatch-demo
-    e2ematchfunction:
-      name: openmatch-mmf-go-pool
-    e2eevaluator:
-      name: openmatch-evaluator-go-simple
-    stresstest:
-      name: openmatch-stress-frontend
-
-# https://hub.helm.sh/charts/stable/redis
-# https://github.com/helm/charts/tree/master/stable/redis
-redis:
-  fullnameOverride: om-redis
-  usePassword: true
-  master:
-    disableCommands: [] # don't disable 'FLUSH-' commands
-  metrics:
-    enabled: true
-
-# https://github.com/helm/charts/tree/master/stable/prometheus
-prometheus:
-  alertmanager:
-    enabled: true
-  nodeExporter:
-    enabled: true
-  kubeStateMetrics:
-    enabled: true
-  pushgateway:
-    enabled: true
-  server:
-    resources:
-      requests:
-        memory: 4Gi
-        cpu: 2
-  prometheus.yml:
-      rule_files:
-        - /etc/config/rules
-        - /etc/config/alerts
-
-      scrape_configs:
-        - job_name: prometheus
-          static_configs:
-            - targets:
-              - localhost:9090
-
-        # A scrape configuration for running Prometheus on a Kubernetes cluster.
-        # This uses separate scrape configs for cluster components (i.e. API server, node)
-        # and services to allow each to use different authentication configs.
-        #
-        # Kubernetes labels will be added as Prometheus labels on metrics via the
-        # `labelmap` relabeling action.
-
-        # Scrape config for API servers.
-        #
-        # Kubernetes exposes API servers as endpoints to the default/kubernetes
-        # service so this uses `endpoints` role and uses relabelling to only keep
-        # the endpoints associated with the default/kubernetes service using the
-        # default named port `https`. This works for single API server deployments as
-        # well as HA API server deployments.
-        - job_name: 'kubernetes-apiservers'
-
-          kubernetes_sd_configs:
-            - role: endpoints
-
-          # Default to scraping over https. If required, just disable this or change to
-          # `http`.
-          scheme: https
-
-          # This TLS & bearer token file config is used to connect to the actual scrape
-          # endpoints for cluster components. This is separate to discovery auth
-          # configuration because discovery & scraping are two separate concerns in
-          # Prometheus. The discovery auth config is automatic if Prometheus runs inside
-          # the cluster. Otherwise, more config options have to be provided within the
-          # <kubernetes_sd_config>.
-          tls_config:
-            ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-            # If your node certificates are self-signed or use a different CA to the
-            # master CA, then disable certificate verification below. Note that
-            # certificate verification is an integral part of a secure infrastructure
-            # so this should only be disabled in a controlled environment. You can
-            # disable certificate verification by uncommenting the line below.
-            #
-            insecure_skip_verify: true
-          bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-
-          # Keep only the default/kubernetes service endpoints for the https port. This
-          # will add targets for each API server which Kubernetes adds an endpoint to
-          # the default/kubernetes service.
-          relabel_configs:
-            - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
-              action: keep
-              regex: default;kubernetes;https
-
-        # Example scrape config for pods
-        #
-        # The relabeling allows the actual pod scrape endpoint to be configured via the
-        # following annotations:
-        #
-        # * `prometheus.io/scrape`: Only scrape pods that have a value of `true`
-        # * `prometheus.io/path`: If the metrics path is not `/metrics` override this.
-        # * `prometheus.io/port`: Scrape the pod on the indicated port instead of the default of `9102`.
-        - job_name: 'kubernetes-pods'
-
-          kubernetes_sd_configs:
-            - role: pod
-
-          relabel_configs:
-            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-              action: keep
-              regex: true
-            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-              action: replace
-              target_label: __metrics_path__
-              regex: (.+)
-            - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-              action: replace
-              regex: ([^:]+)(?::\d+)?;(\d+)
-              replacement: $1:$2
-              target_label: __address__
-            - action: labelmap
-              regex: __meta_kubernetes_pod_label_(.+)
-            - source_labels: [__meta_kubernetes_namespace]
-              action: replace
-              target_label: kubernetes_namespace
-            - source_labels: [__meta_kubernetes_pod_name]
-              action: replace
-              target_label: kubernetes_pod_name
-
-grafana:
-  enabled: true
-  persistence:
-    enabled: true
-  server:
-    persistentVolume:
-      size: 10Gi
-  adminPassword: openmatch
-  service:
-    port: 3000
-  sidecar:
-      dashboards:
-          enabled: true
-  plugins: grafana-piechart-panel
-  datasources:
-    datasources.yaml:
-      apiVersion: 1
-      datasources:
-      - name: Prometheus
-        type: prometheus
-        url: http://open-match-prometheus-server.{{ .Release.Namespace }}.svc.cluster.local:80/
-        access: proxy
-        isDefault: true
+    registry:
+    tag:
+  
+  # Expose the telemetry configurations to all subcharts because prometheus, for example, 
+  # requires pod-level annotation to customize its scrape path.
+  # See definitions in templates/_helpers.tpl - "prometheus.annotations" section for details
+  telemetry:
+    jaeger:
+      enabled: false
+      agentEndpoint: "open-match-jaeger-agent:6831"
+      collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
+    prometheus:
+      enabled: false
+      endpoint: "/metrics"
+      serviceDiscovery: true
+    stackdriver:
+      enabled: true
+      gcpProjectId: "replace_with_your_project_id"
+      metricPrefix: "open_match"
+    zipkin:
+      enabled: false
+      endpoint: "/zipkin"
+      reporterEndpoint: "zipkin" 
+    grafana:
+      enabled: false
+    reportingPeriod: "5s"

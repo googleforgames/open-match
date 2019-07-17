@@ -23,49 +23,14 @@ Expand the name of the chart.
 {{- end -}}
 
 {{/*
-Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
-*/}}
-{{- define "openmatch.fullname" -}}
-{{- if .Values.fullnameOverride -}}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-{{- $name := default .Chart.Name .Values.nameOverride -}}
-{{- if contains $name .Release.Name -}}
-{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-{{- end -}}
-{{- end -}}
-
-{{/*
-Create chart name and version as used by the chart label.
-*/}}
-{{- define "openmatch.chart" -}}
-{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-
-{{/*
-Render chart metadata labels unless "openmatch.noChartMeta" is set.
-Expects to find in a scope a field "indent" with an integer value to pass to function "nindent".
+Render chart metadata labels: "chart", "heritage" unless "openmatch.noChartMeta" is set.
 */}}
 {{- define "openmatch.chartmeta" -}}
-{{- if not .Values.openmatch.noChartMeta -}}
-{{- include "openmatch.chartmetalabels" . | nindent .indent }}
+{{- if not .Values.noChartMeta -}}
+chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+heritage: {{ .Release.Service }}
 {{- end }}
 {{- end -}}
-
-{{/*
-Print chart metadata labels: "chart", "release", "heritage".
-*/}}
-{{- define "openmatch.chartmetalabels" -}}
-chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
-release: {{ .Release.Name }}
-heritage: {{ .Release.Service }}
-{{- end -}}
-
 
 {{- define "prometheus.annotations" -}}
 {{- if and (.prometheus.serviceDiscovery) (.prometheus.enabled) -}}
@@ -76,29 +41,28 @@ prometheus.io/path: {{ .prometheus.endpoint }}
 {{- end -}}
 
 {{- define "openmatch.container.common" -}}
-imagePullPolicy: {{ .Values.openmatch.image.pullPolicy }}
+imagePullPolicy: {{ .Values.image.pullPolicy }}
 resources:
   requests:
-    memory: 100Mi
-    cpu: 100m
+    memory: 200Mi
+    cpu: 200m
 volumeMounts:
-- name: om-config-volume
-  mountPath: {{ .Values.openmatch.config.mountPath }}
-{{- if .Values.openmatch.tls.enabled }}
+- name: {{ .Values.config.volumeName }}
+  mountPath: {{ .Values.config.mountPath }}
+{{- if .Values.global.tls.enabled }}
 - name: root-ca-volume
-  mountPath: {{ .Values.openmatch.tls.root.mountPath }}
+  mountPath: {{ .Values.global.tls.root.mountPath }}
 - name: tls-server-volume
-  mountPath: {{ .Values.openmatch.tls.server.mountPath }}
+  mountPath: {{ .Values.global.tls.server.mountPath }}
 {{- end }}
 {{- end -}}
 
 {{- define "openmatch.spec.common" -}}
-serviceAccountName: {{ .Values.openmatch.kubernetes.serviceAccount }}
 volumes:
-- name: om-config-volume
+- name: {{ .Values.config.volumeName }}
   configMap:
-    name: om-configmap
-{{- if .Values.openmatch.tls.enabled }}
+    name: {{ .Values.config.mapName }}
+{{- if .Values.global.tls.enabled }}
 - name: root-ca-volume
   secret:
     secretName: om-tls-rootca
