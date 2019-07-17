@@ -12,43 +12,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{{- if index .Values "open-match-core" "enabled" }}
 kind: Service
 apiVersion: v1
 metadata:
-  name: {{ .Values.swaggerui.hostName }}
+  name: {{ .Values.demo.hostName }}
   namespace: {{ .Release.Namespace }}
-  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 2 }}
   labels:
     app: {{ template "openmatch.name" . }}
-    component: swaggerui
+    component: demo
     release: {{ .Release.Name }}
 spec:
   selector:
     app: {{ template "openmatch.name" . }}
-    component: swaggerui
-  type: {{ .Values.swaggerui.portType }}
+    component: demo
+  type: {{ .Values.demo.portType }}
   ports:
   - name: http
     protocol: TCP
-    port: {{ .Values.swaggerui.httpPort }}
+    port: {{ .Values.demo.httpPort }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: {{ .Values.swaggerui.hostName }}
+  name: {{ .Values.demo.hostName }}
   namespace: {{ .Release.Namespace }}
-  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 2 }}
   labels:
     app: {{ template "openmatch.name" . }}
-    component: swaggerui
+    component: demo
     release: {{ .Release.Name }}
 spec:
-  replicas: {{ .Values.swaggerui.replicas }}
+  replicas: {{ .Values.demo.replicas }}
   selector:
     matchLabels:
       app: {{ template "openmatch.name" . }}
-      component: swaggerui
+      component: demo
   template:
     metadata:
       namespace: {{ .Release.Namespace }}
@@ -56,7 +55,7 @@ spec:
         {{- include "openmatch.chartmeta" . | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
-        component: swaggerui
+        component: demo
         release: {{ .Release.Name }}
     spec:
       volumes:
@@ -64,14 +63,12 @@ spec:
         {{- include "openmatch.volumes.tls" . | nindent 8}}
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:
-      - name: {{ .Values.swaggerui.hostName }}
+      - name: {{ .Values.demo.hostName }}
         volumeMounts:
           {{- include "openmatch.volumemounts.configs" . | nindent 10 }}
           {{- include "openmatch.volumemounts.tls" . | nindent 10 }}
-        image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.swaggerui.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
+        image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.demo.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
         ports:
         - name: http
-          containerPort: {{ .Values.swaggerui.httpPort }}
-        {{- include "openmatch.container.common" . | nindent 8 }}
-        {{- include "kubernetes.probe" (dict "port" .Values.swaggerui.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
-{{- end }}
+          containerPort: {{ .Values.demo.httpPort }}
+        {{- include "kubernetes.probe" (dict "port" .Values.demo.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}

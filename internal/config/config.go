@@ -75,12 +75,18 @@ func Read() (View, error) {
 	// with previous versions)
 	cfg.SetConfigType("json")
 	cfg.SetConfigType("yaml")
-	cfg.SetConfigName("matchmaker_config")
 	cfg.AddConfigPath(".")
-	cfg.AddConfigPath("config")
-
-	// Read in config file using Viper
+	cfg.AddConfigPath("config/global")
+	cfg.SetConfigName("global_config")
 	err := cfg.ReadInConfig()
+	if err != nil {
+		logger.WithError(err).Fatal("Fatal error reading config file")
+	}
+
+	cfg.AddConfigPath("config/om")
+	cfg.SetConfigName("matchmaker_config")
+	// Read in config file using Viper
+	err = cfg.MergeInConfig()
 	if err != nil {
 		logger.WithError(err).Fatal("Fatal error reading config file")
 	}

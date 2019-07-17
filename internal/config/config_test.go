@@ -29,6 +29,11 @@ func TestReadConfigIgnoreRace(t *testing.T) {
 		t.Fatalf("could not create config file: %s", err)
 	}
 	defer os.Remove("matchmaker_config.yaml")
+	yaml = []byte(`metrics.url: om`)
+	if err := ioutil.WriteFile("global_config.yaml", yaml, 0666); err != nil {
+		t.Fatalf("could not create config file: %s", err)
+	}
+	defer os.Remove("global_config.yaml")
 
 	cfg, err := Read()
 	if err != nil {
