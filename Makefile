@@ -403,7 +403,7 @@ install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set global.image.tag=$(TAG) \
 		--set open-match-core.enabled=false \
 		--set open-match-telemetry.enabled=false \
-		install/helm/open-match > install/yaml/02-open-match-demo
+		install/helm/open-match > install/yaml/02-open-match-demo.yaml
 
 install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
