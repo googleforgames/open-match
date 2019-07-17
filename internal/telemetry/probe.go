@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"net/http"
 	"sync/atomic"
+
+	"go.opencensus.io/tag"
 )
 
 const (
@@ -28,6 +30,11 @@ const (
 	healthStateFirstProbe = int32(0)
 	healthStateHealthy    = int32(1)
 	healthStateUnhealthy  = int32(2)
+)
+
+var (
+	successKey       = tag.MustNewKey("success")
+	mReadinessProbes = Counter("health/readiness", "readiness probes", successKey)
 )
 
 type statefulProbe struct {
@@ -51,9 +58,11 @@ func (sp *statefulProbe) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 					logger.WithError(err).Warningf("%s health check failed. The server will terminate if this continues to happen.", HealthCheckEndpoint)
 				}
 				http.Error(w, err.Error(), http.StatusServiceUnavailable)
+				IncrementCounter(req.Context(), mReadinessProbes, tag.Insert(successKey, "false"))
 				return
 			}
 		}
+		IncrementCounter(req.Context(), mReadinessProbes, tag.Insert(successKey, "true"))
 		old := atomic.SwapInt32(sp.healthState, healthStateHealthy)
 		if old == healthStateUnhealthy {
 			logger.Infof("%s is healthy again.", HealthCheckEndpoint)
