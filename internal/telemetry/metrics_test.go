@@ -23,11 +23,11 @@ import (
 )
 
 func TestIncrementCounter(t *testing.T) {
-	//assert := assert.New(t)
 	c := Counter("telemetry/fake_metric", "fake")
 	IncrementCounter(context.Background(), c)
 	IncrementCounter(context.Background(), c)
 }
+
 func TestDoubleMetric(t *testing.T) {
 	assert := assert.New(t)
 	c := Counter("telemetry/fake_metric", "fake")
