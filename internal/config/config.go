@@ -68,21 +68,24 @@ var (
 
 // Read reads a config file into a viper.Viper instance and associates environment vars defined in
 // config.envMappings
-func Read() (View, error) {
+func Read() View {
 	cfg := viper.New()
 	// Viper config management initialization
-	// Support either json or yaml file types (json for backwards compatibility
-	// with previous versions)
-	cfg.SetConfigType("json")
 	cfg.SetConfigType("yaml")
-	cfg.SetConfigName("matchmaker_config")
 	cfg.AddConfigPath(".")
 	cfg.AddConfigPath("config")
 
 	// Read in config file using Viper
+	cfg.SetConfigName("global_config")
 	err := cfg.ReadInConfig()
 	if err != nil {
-		logger.WithError(err).Fatal("Fatal error reading config file")
+		logger.WithError(err).Fatal("failed to read from global_config file")
+	}
+
+	cfg.SetConfigName("matchmaker_config")
+	err = cfg.MergeInConfig()
+	if err != nil {
+		logger.WithError(err).Fatal("failed to read from matchmaker_config file")
 	}
 
 	// Bind this envvars to viper config vars.
@@ -122,5 +125,5 @@ func Read() (View, error) {
 			"operation": event.Op,
 		}).Info("Server configuration changed.")
 	})
-	return cfg, err
+	return cfg
 }

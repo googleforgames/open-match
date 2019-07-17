@@ -25,12 +25,8 @@ import (
 
 // RunApplication creates a server.
 func RunApplication() {
-	cfg, err := config.Read()
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot read configuration.")
-	}
+	cfg := config.Read()
+
 	p, err := rpc.NewServerParamsFromConfig(cfg, "api.frontend")
 	if err != nil {
 		logger.WithFields(logrus.Fields{

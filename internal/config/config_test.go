@@ -30,13 +30,17 @@ func TestReadConfigIgnoreRace(t *testing.T) {
 	}
 	defer os.Remove("matchmaker_config.yaml")
 
-	cfg, err := Read()
-	if err != nil {
-		t.Fatalf("cannot load config, %s", err)
+	if err := ioutil.WriteFile("global_config.yaml", []byte(`metrics.path: om-config`), 0666); err != nil {
+		t.Fatalf("could not create config file: %s", err)
 	}
+	defer os.Remove("global_config.yaml")
 
+	cfg := Read()
 	if cfg.GetString("metrics.endpoint") != "/metrics" {
-		t.Errorf("av.GetString('metrics.endpoint') = %s, expected '/metrics'", cfg.GetString("metrics.endpoint"))
+		t.Errorf("cfg.GetString('metrics.endpoint') = %s, expected '/metrics'", cfg.GetString("metrics.endpoint"))
+	}
+	if cfg.GetString("metrics.path") != "om-config" {
+		t.Errorf("cfg.GetString('metrics.path') = %s, expected 'om-config'", cfg.GetString("metrics.path"))
 	}
 
 	yaml = []byte(`metrics.endpoint: ''`)

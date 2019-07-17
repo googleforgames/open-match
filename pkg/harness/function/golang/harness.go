@@ -31,12 +31,8 @@ type FunctionSettings struct {
 
 // RunMatchFunction is a hook for the main() method in the main executable.
 func RunMatchFunction(settings *FunctionSettings) {
-	cfg, err := config.Read()
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot read configuration.")
-	}
+	cfg := config.Read()
+
 	p, err := rpc.NewServerParamsFromConfig(cfg, "api.functions")
 	if err != nil {
 		logger.WithFields(logrus.Fields{

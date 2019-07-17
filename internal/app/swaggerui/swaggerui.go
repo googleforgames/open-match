@@ -39,14 +39,7 @@ var (
 
 // RunApplication is the main for swagger ui http reverse proxy.
 func RunApplication() {
-	cfg, err := config.Read()
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot read configuration.")
-	}
-
-	serve(cfg)
+	serve(config.Read())
 }
 
 func serve(cfg config.View) {

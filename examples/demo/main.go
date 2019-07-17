@@ -19,9 +19,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
-	"net/http"
 	"open-match.dev/open-match/examples/demo/bytesub"
 	"open-match.dev/open-match/examples/demo/components"
 	"open-match.dev/open-match/examples/demo/components/clients"
@@ -41,12 +42,8 @@ var (
 )
 
 func main() {
-	cfg, err := config.Read()
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot read configuration.")
-	}
+	cfg := config.Read()
+
 	logging.ConfigureLogging(cfg)
 
 	logger.Info("Initializing Server")
@@ -83,7 +80,7 @@ func main() {
 	go startComponents(cfg, u)
 
 	address := fmt.Sprintf(":%d", cfg.GetInt("api.demo.httpport"))
-	err = http.ListenAndServe(address, nil)
+	err := http.ListenAndServe(address, nil)
 	logger.WithError(err).Warning("HTTP server closed.")
 }
 
