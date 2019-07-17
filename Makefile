@@ -349,7 +349,7 @@ install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-
 		--set openmatch.image.registry=$(REGISTRY) \
 		--set openmatch.image.tag=$(TAG) \
 		--set grafana.enabled=true \
-		--set jaeger.enabled=true \
+		--set jaeger.enabled=false \
 		--set prometheus.enabled=true \
 		--set redis.enabled=true \
 		--set openmatch.telemetry.stackdriver.enabled=true \
@@ -501,7 +501,7 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set redis.enabled=true \
 		--set prometheus.enabled=true \
 		--set grafana.enabled=true \
-		--set jaeger.enabled=true \
+		--set jaeger.enabled=false \
 		install/helm/open-match > install/yaml/install.yaml
 
 install/yaml/install-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
