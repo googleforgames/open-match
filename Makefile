@@ -791,6 +791,28 @@ lint: fmt vet golangci lint-chart terraform-lint
 
 assets: all-protos tls-certs third_party/ build/chart/
 
+# CMDS is a list of all folders in cmd/
+CMDS = $(notdir $(wildcard cmd/*))
+CMDS_BUILD_FOLDERS = $(foreach CMD,$(CMDS),build/cmd/$(CMD))
+
+build/cmd: $(CMDS_BUILD_FOLDERS)
+
+$(CMDS_BUILD_FOLDERS): build/cmd/%: build/cmd/%/BUILD_PHONY build/cmd/%/COPY_PHONY
+
+build/cmd/%/BUILD_PHONY: all-protos
+	mkdir -p $(BUILD_DIR)/cmd/$*
+	$(GO) build -o $(BUILD_DIR)/cmd/$*/$* open-match.dev/open-match/cmd/$*
+
+# Default is that nothing needs to be copied into the direcotry
+build/cmd/%/COPY_PHONY:
+	#
+
+build/cmd/swaggerui/COPY_PHONY:
+	mkdir -p $(BUILD_DIR)/cmd/swaggerui/static/api
+	cp third_party/swaggerui/* $(BUILD_DIR)/cmd/swaggerui/static/
+	$(SED_REPLACE) 's|https://open-match.dev/api/v.*/|/api/|g' $(BUILD_DIR)/cmd/swaggerui/static/config.json
+	cp api/*.json $(BUILD_DIR)/cmd/swaggerui/static/api/
+
 all: service-binaries example-binaries tools-binaries
 
 service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/swaggerui/swaggerui$(EXE_EXTENSION)
