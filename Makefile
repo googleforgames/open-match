@@ -797,6 +797,10 @@ CMDS_BUILD_FOLDERS = $(foreach CMD,$(CMDS),build/cmd/$(CMD))
 
 build/cmd: $(CMDS_BUILD_FOLDERS)
 
+# Building a given build/cmd folder is split into two pieces: BUILD_PHONY and
+# COPY_PHONY.  The BUILD_PHONY is the common go build command, which is
+# reusable.  The COPY_PHONY is used by some targets which require additional
+# files to be included in the image.
 $(CMDS_BUILD_FOLDERS): build/cmd/%: build/cmd/%/BUILD_PHONY build/cmd/%/COPY_PHONY
 
 build/cmd/%/BUILD_PHONY: all-protos
