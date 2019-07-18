@@ -115,6 +115,8 @@ global:
     registry:
     tag:
   
+  gcpProjectId: "replace_with_your_project_id"
+  
   # Expose the telemetry configurations to all subcharts because prometheus, for example, 
   # requires pod-level annotation to customize its scrape path.
   # See definitions in templates/_helpers.tpl - "prometheus.annotations" section for details
@@ -129,7 +131,6 @@ global:
       serviceDiscovery: true
     stackdriver:
       enabled: true
-      gcpProjectId: "replace_with_your_project_id"
       metricPrefix: "open_match"
     zipkin:
       enabled: false

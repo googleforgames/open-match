@@ -350,7 +350,7 @@ install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-
 		--set global.telemetry.zipkin.enabled=true
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
-		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
@@ -358,7 +358,7 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
-		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
@@ -369,7 +369,7 @@ install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-mat
 		--set open-match-demo.enabled=false \
 		--set open-match-test.enabled=true \
 		--set open-match-customize.function.image=openmatch-mmf-go-pool \
-		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_CHART_NAME) install/helm/open-match \
@@ -528,7 +528,7 @@ build/toolchain/python/:
 	virtualenv --python=python3 $(TOOLCHAIN_DIR)/python/
 	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
 	cd $(TOOLCHAIN_DIR)/python/bin && ln -s python3 pytho
-	cd $(TOOLCHAIN_DIR)/python/ && . bin/activate && pip install locustio && deactivate
+	cd $(TOOLCHAIN_DIR)/python/ && . bin/activate && pip install locustio google-cloud-storage && deactivate
 
 build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -583,7 +583,10 @@ gcloud: no-sudo
 
 tls-certs: install/helm/open-match/secrets/
 
-install/helm/open-match/secrets/: install/helm/open-match/secrets/tls/root-ca/ install/helm/open-match/secrets/tls/server/
+install/helm/open-match/secrets/: install/helm/open-match/secrets/tls/root-ca/ install/helm/open-match/secrets/tls/server/ install/helm/open-match/secrets/open-match-test/key.json
+
+install/helm/open-match/secrets/open-match-test/key.json:
+	$(GCLOUD) iam service-accounts keys create $(OPEN_MATCH_SECRETS_DIR)/open-match-test/key.json --iam-account open-match-dev@$(GCP_PROJECT_ID).iam.gserviceaccount.com
 
 install/helm/open-match/secrets/tls/root-ca/: build/toolchain/bin/certgen$(EXE_EXTENSION)
 	mkdir -p $(OPEN_MATCH_SECRETS_DIR)/tls/root-ca

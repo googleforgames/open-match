@@ -67,10 +67,17 @@ spec:
         component: locust-master
         release: {{ .Release.Name }}
     spec:
+{{- if .Values.stresstest.noweb }}
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: om-gcs-key
+{{- end }}
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:
       - name: {{ .Values.stresstest.masterName }}
         image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.stresstest.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - name: loc-master-web
           containerPort: 8089
@@ -81,6 +88,18 @@ spec:
         - name: loc-master-p2
           containerPort: 5558
           protocol: TCP
+{{- if .Values.stresstest.noweb }}
+        volumeMounts:
+        - name: google-cloud-key
+          mountPath: /var/secrets/google
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /var/secrets/google/key.json
+        - name: NO_WEB
+          value: "{{ .Values.stresstest.noweb }}"
+        - name: GCP_PROJECT
+          value: "{{ .Values.global.gcpProjectId }}"
+{{- end }}
         command: ["python3"]
         # TODO: template the secure mode
         args:
@@ -95,4 +114,5 @@ spec:
         - "-r{{ .Values.stresstest.rate }}"
         - "-t{{ .Values.stresstest.duration }}"
         - "--expect-slaves={{ .Values.stresstest.replicas }}"
+        - "--csv=stress_user{{ .Values.stresstest.clients }}"
 {{- end }}

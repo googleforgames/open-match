@@ -41,6 +41,7 @@ spec:
       containers:
       - name: {{ .Values.stresstest.slavesName }}
         image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.stresstest.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["python3"]
         # TODO: template the secure mode
         args:
