@@ -12,15 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#FROM gcr.io/distroless/static:debug
+FROM open-match-base-build as builder
+
+WORKDIR /go/src/open-match.dev/open-match
+
+ARG IMAGE_TITLE
+
+RUN make "build/cmd/${IMAGE_TITLE}"
+
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /app/
 
-ARG IMAGE_TITLE
-COPY --from=open-match-base-build --chown=nonroot "/go/src/open-match.dev/open-match/build/cmd/${IMAGE_TITLE}/" "/app/"
-
-#RUN ls -a -l /app/
-#RUN ls -a -l /
+COPY --from=builder --chown=nonroot "/go/src/open-match.dev/open-match/build/cmd/${IMAGE_TITLE}/" "/app/"
 
 ENTRYPOINT ["/app/run"]
 
