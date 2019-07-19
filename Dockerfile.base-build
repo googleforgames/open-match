@@ -25,3 +25,7 @@ COPY go.sum go.mod ./
 RUN go mod download
 
 COPY . .
+
+RUN make build/cmd -j20
+RUN ls build/cmd
+RUN ls build/cmd/frontend

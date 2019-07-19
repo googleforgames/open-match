@@ -12,22 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM open-match-base-build as builder
-
-WORKDIR /go/src/open-match.dev/open-match/cmd/frontend/
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
-
-FROM gcr.io/distroless/static:nonroot
+FROM gcr.io/distroless/static:debug
+#rem FROM gcr.io/distroless/static:nonroot
 WORKDIR /app/
-COPY --from=builder --chown=nonroot /go/src/open-match.dev/open-match/cmd/frontend/frontend /app/
 
-ENTRYPOINT ["/app/frontend"]
+ARG IMAGE_TITLE
+COPY --from=open-match-base-build --chown=nonroot "/go/src/open-match.dev/open-match/build/cmd/${IMAGE_TITLE}/" "/app/"
+
+RUN ls -a -l /app/
+RUN ls -a -l /
+
+ENTRYPOINT ["/app/run"]
 
 # Docker Image Arguments
 ARG BUILD_DATE
 ARG VCS_REF
 ARG BUILD_VERSION
-ARG IMAGE_TITLE="Open Match Frontend API"
 
 # Standardized Docker Image Labels
 # https://github.com/opencontainers/image-spec/blob/master/annotations.md
