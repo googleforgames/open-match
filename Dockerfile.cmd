@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM gcr.io/distroless/static:debug
-#rem FROM gcr.io/distroless/static:nonroot
+#FROM gcr.io/distroless/static:debug
+FROM gcr.io/distroless/static:nonroot
 WORKDIR /app/
 
 ARG IMAGE_TITLE
 COPY --from=open-match-base-build --chown=nonroot "/go/src/open-match.dev/open-match/build/cmd/${IMAGE_TITLE}/" "/app/"
 
-RUN ls -a -l /app/
-RUN ls -a -l /
+#RUN ls -a -l /app/
+#RUN ls -a -l /
 
 ENTRYPOINT ["/app/run"]
 

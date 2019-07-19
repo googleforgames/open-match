@@ -811,7 +811,7 @@ $(CMDS_BUILD_FOLDERS): build/cmd/%: build/cmd/%/BUILD_PHONY build/cmd/%/COPY_PHO
 
 build/cmd/%/BUILD_PHONY:
 	mkdir -p $(BUILD_DIR)/cmd/$*
-	$(GO) build -o $(BUILD_DIR)/cmd/$*/run open-match.dev/open-match/cmd/$*
+	CGO_ENABLED=0 $(GO) build -a -installsuffix cgo -o $(BUILD_DIR)/cmd/$*/run open-match.dev/open-match/cmd/$*
 
 # Default is that nothing needs to be copied into the direcotry
 build/cmd/%/COPY_PHONY:
