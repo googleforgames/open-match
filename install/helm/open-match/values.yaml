@@ -16,54 +16,95 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# Overrides the host names and port numbers of Open Match components.
-components:
-  swaggerui: &swaggerui
-    hostName: om-swaggerui
-    httpPort: 51500
-  mmlogic: &mmlogic
-    hostName: om-mmlogic
-    grpcPort: 50503
-    httpPort: 51503
-  frontend: &frontend
-    hostName: om-frontend
-    grpcPort: 50504
-    httpPort: 51504
-  backend: &backend
-    hostName: om-backend
-    grpcPort: 50505
-    httpPort: 51505
-  synchronizer: &synchronizer
-    hostName: om-synchronizer
-    grpcPort: 50506
-    httpPort: 51506
-  evaluator: &evaluator
-    hostName: om-evaluator
-    grpcPort: 50508
-    httpPort: 51508
-  function: &function
-    hostName: om-function
-    grpcPort: 50502
-    httpPort: 51502
-  demo: &demo
-    hostName: om-demo
-    httpPort: 51507
+swaggerui: &swaggerui
+  hostName: om-swaggerui
+  httpPort: 51500
+  portType: LoadBalancer
+  replicas: 3
+  image: openmatch-swaggerui
+mmlogic: &mmlogic
+  hostName: om-mmlogic
+  grpcPort: 50503
+  httpPort: 51503
+  portType: LoadBalancer
+  replicas: 3
+  image: openmatch-mmlogic
+frontend: &frontend
+  hostName: om-frontend
+  grpcPort: 50504
+  httpPort: 51504
+  portType: LoadBalancer
+  replicas: 3
+  image: openmatch-frontend
+backend: &backend
+  hostName: om-backend
+  grpcPort: 50505
+  httpPort: 51505
+  portType: LoadBalancer
+  replicas: 3
+  image: openmatch-backend
+synchronizer: &synchronizer
+  hostName: om-synchronizer
+  grpcPort: 50506
+  httpPort: 51506
+  portType: LoadBalancer
+  replicas: 1
+  image: openmatch-synchronizer
+evaluator: &evaluator
+  hostName: om-evaluator
+  grpcPort: 50508
+  httpPort: 51508
+function: &function
+  hostName: om-function
+  grpcPort: 50502
+  httpPort: 51502
+
+image:
+  registry: gcr.io/open-match-public-images
+  tag: 0.0.0-dev
+  pullPolicy: Always
+
+ticketIndices:
+- char.cleric
+- char.knight
+- char.paladin
+- map.aleroth
+- map.oasis
+- mmr.rating
+- mode.battleroyale
+- mode.ctf
+- mode.demo
+- region.europe-east1
+- region.europe-west1
+- region.europe-west2
+- region.europe-west3
+- region.europe-west4
+- role.dps
+- role.support
+- role.tank
+
+configs:
+  om-configmap:
+    volumeName: om-config-volume
+    mountPath: /app/config/om
+
+# https://hub.helm.sh/charts/stable/redis
+# https://github.com/helm/charts/tree/master/stable/redis
+redis:
+  fullnameOverride: om-redis
+  usePassword: true
+  master:
+    disableCommands: [] # don't disable 'FLUSH-' commands
+  metrics:
+    enabled: true
 
 open-match-core:
-  # Switch the value between true/false to turn on/off this subchart
   enabled: true
-  swaggerui: *swaggerui
-  mmlogic: *mmlogic
-  frontend: *frontend
-  backend: *backend
-  synchronizer: *synchronizer
-  evaluator: *evaluator
 
 open-match-demo:
   # Switch the value between true/false to turn on/off this subchart
   enabled: true
   function: *function
-  demo: *demo
   frontend: *frontend
   backend: *backend
 
@@ -102,20 +143,24 @@ global:
   kubernetes:
     serviceAccount: open-match-unprivileged-service
   
+  gcpProjectId: "replace_with_your_project_id"
+  
   # Defines if Open Match needs to serve secure traffic
   tls: 
-    # If you enable TLS, uncomment the tls section under "api:"
     enabled: false
-    root:
-      mountPath: /app/secrets/tls/rootca
     server:
       mountPath: /app/secrets/tls/server
+    rootca:
+      mountPath: /app/secrets/tls/rootca
+  
+  configs:
+    global-configmap:
+      volumeName: global-config-volume
+      mountPath: /app/config/global
   
   image:
     registry:
     tag:
-  
-  gcpProjectId: "replace_with_your_project_id"
   
   # Expose the telemetry configurations to all subcharts because prometheus, for example, 
   # requires pod-level annotation to customize its scrape path.

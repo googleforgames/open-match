@@ -1,7 +1,7 @@
 dependencies:
-- name: open-match-core
-  repository: file://./subcharts/open-match-core
-  version: 0.0.0-dev
+- name: redis
+  repository: https://kubernetes-charts.storage.googleapis.com/
+  version: 8.0.9
 - name: open-match-demo
   repository: file://./subcharts/open-match-demo
   version: 0.0.0-dev
@@ -14,5 +14,5 @@ dependencies:
 - name: open-match-test
   repository: file://./subcharts/open-match-test
   version: 0.0.0-dev
-digest: sha256:cd2951794abed55d660bace5efa9781b0b1be9e3cf6cb66ed815a6a061c48990
-generated: "2019-07-16T13:47:29.459198073-07:00"
+digest: sha256:14faae8b59e808749ad29fc675a009daf72a3d0f22bcb7b954ba92660cb60779
+generated: "2019-07-23T15:11:31.843427698-07:00"

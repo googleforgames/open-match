@@ -15,7 +15,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.config.mapName }}
+  name: demo-configmap
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -23,7 +23,17 @@ metadata:
     component: config
     release: {{ .Release.Name }}
 data:
-  {{- $root := . -}}
-  {{ range $path, $content := $root.Values.config.files }}
-  {{ $path }}: |- {{- tpl (toYaml $content | nindent 4) $root -}}
-  {{- end -}}
+  matchmaker_config.yaml: |-
+    api:
+      functions:
+        hostname: "{{ .Values.function.hostName }}"
+        grpcport: "{{ .Values.function.grpcPort }}"
+      demo:
+        hostname: "{{ .Values.demo.hostName }}"
+        httpport: "{{ .Values.demo.httpPort }}"
+      frontend:
+        hostname: "{{ .Values.frontend.hostName }}"
+        grpcport: "{{ .Values.frontend.grpcPort }}"
+      backend:
+        hostname: "{{ .Values.backend.hostName }}"
+        grpcport: "{{ .Values.backend.grpcPort }}"

@@ -15,7 +15,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.config.mapName }}
+  name: customize-configmap
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -23,7 +23,18 @@ metadata:
     component: config
     release: {{ .Release.Name }}
 data:
-  {{- $root := . -}}
-  {{ range $path, $content := $root.Values.config.files }}
-  {{ $path }}: |- {{- tpl (toYaml $content | nindent 4) $root -}}
-  {{- end -}}
+  matchmaker_config.yaml: |-
+    api:
+      mmlogic:
+        hostname: "{{ .Values.mmlogic.hostName }}"
+        grpcport: "{{ .Values.mmlogic.grpcPort }}"
+      
+      functions:
+        hostname: "{{ .Values.function.hostName }}"
+        grpcport: "{{ .Values.function.grpcPort }}"
+        httpport: "{{ .Values.function.httpPort }}"
+      
+      evaluator:
+        hostname: "{{ .Values.evaluator.hostName }}"
+        grpcport: "{{ .Values.evaluator.grpcPort }}"
+        httpport: "{{ .Values.evaluator.httpPort }}"

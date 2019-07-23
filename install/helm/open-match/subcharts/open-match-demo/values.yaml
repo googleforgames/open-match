@@ -17,6 +17,8 @@
 # Declare variables to be passed into your templates.
 
 demo:
+  hostName: om-demo
+  httpPort: 51507
   portType: LoadBalancer
   replicas: 1
   image: openmatch-demo
@@ -26,35 +28,11 @@ image:
   tag: 0.0.0-dev
   pullPolicy: Always
 
-# evaluator:
-#   # image: openmatch-evaluator-go-simple
-
 # TODO: Split tls configs into a separate config file. For now Open Match assumes core components share the same secure mode
 # with the mmfs and evaluator, so we have to copy these secure settings and define a new configmap for it whenever we what 
 # to create a new evaluator and mmf. We should create a global configmap for the security settings for all subcharts 
 # under the /install/helm/open-match directory to avoid copy&paste files around.
-config:
-  mountPath: /app/config
-  volumeName: demo-config-volume
-  mapName: demo-configmap
-  files:
-    matchmaker_config.yaml:
-      api:
-        # TODO: Figure out how to key this off of tls.enabled=true. For now someone can uncomment these to turn it on.
-        #tls:
-        #  trustedCertificatePath: "{{.Values.openmatch.tls.root.mountPath}}/public.cert"
-        #  certificatefile: "{{.Values.openmatch.tls.server.mountPath}}/public.cert"
-        #  privatekey: "{{.Values.openmatch.tls.server.mountPath}}/private.key"
-        #  rootcertificatefile: "{{.Values.openmatch.tls.root.mountPath}}/public.cert"
-        functions:
-          hostname: "{{ .Values.function.hostName }}"
-          grpcport: "{{ .Values.function.grpcPort }}"
-        demo:
-          hostname: "{{ .Values.demo.hostName }}"
-          httpport: "{{ .Values.demo.httpPort }}"
-        frontend:
-          hostname: "{{ .Values.frontend.hostName }}"
-          grpcport: "{{ .Values.frontend.grpcPort }}"
-        backend:
-          hostname: "{{ .Values.backend.hostName }}"
-          grpcport: "{{ .Values.backend.grpcPort }}"
+configs:
+  demo-configmap:
+    mountPath: /app/config/om
+    volumeName: demo-config-volume

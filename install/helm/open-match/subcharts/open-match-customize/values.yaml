@@ -29,52 +29,7 @@ image:
   tag: 0.0.0-dev
   pullPolicy: Always
 
-# TODO: Split tls configs into a separate config file. For now Open Match assumes core components share the same secure mode
-# with the mmfs and evaluator, so we have to copy these secure settings and define a new configmap for it whenever we what 
-# to create a new evaluator and mmf. We should create a global configmap for the security settings for all subcharts 
-# under the /install/helm/open-match directory to avoid copy&paste files around.
-config:
-  mountPath: /app/config
-  volumeName: matchfunction-config-volume
-  mapName: matchfunction-configmap
-  files:
-    matchmaker_config.yaml:
-      api:
-        # TODO: Figure out how to key this off of tls.enabled=true. For now someone can uncomment these to turn it on.
-        #tls:
-        #  trustedCertificatePath: "{{.Values.openmatch.tls.root.mountPath}}/public.cert"
-        #  certificatefile: "{{.Values.openmatch.tls.server.mountPath}}/public.cert"
-        #  privatekey: "{{.Values.openmatch.tls.server.mountPath}}/private.key"
-        #  rootcertificatefile: "{{.Values.openmatch.tls.root.mountPath}}/public.cert"
-        mmlogic:
-          hostname: "{{ .Values.mmlogic.hostName }}"
-          grpcport: "{{ .Values.mmlogic.grpcPort }}"
-        
-        functions:
-          hostname: "{{ .Values.function.hostName }}"
-          grpcport: "{{ .Values.function.grpcPort }}"
-          httpport: "{{ .Values.function.httpPort }}"
-        
-        evaluator:
-          hostname: "{{ .Values.evaluator.hostName }}"
-          grpcport: "{{ .Values.evaluator.grpcPort }}"
-          httpport: "{{ .Values.evaluator.httpPort }}"
-      
-      telemetry:
-        jaeger:
-          enable: "{{ .Values.global.telemetry.jaeger.enabled }}"
-          agentEndpoint: "{{ .Values.global.telemetry.jaeger.agentEndpoint }}"
-          collectorEndpoint: "{{ .Values.global.telemetry.jaeger.collectorEndpoint }}"
-        prometheus:
-          enable: "{{ .Values.global.telemetry.prometheus.enabled }}"
-          endpoint: "{{ .Values.global.telemetry.prometheus.endpoint }}"
-          serviceDiscovery: "{{ .Values.global.telemetry.prometheus.serviceDiscovery }}"
-        stackdriver:
-          enable: "{{ .Values.global.telemetry.stackdriver.enabled }}"
-          gcpProjectId: "{{ .Values.global.gcpProjectId }}"
-          metricPrefix: "{{ .Values.global.telemetry.stackdriver.metricPrefix }}"
-        zipkin:
-          enable: "{{ .Values.global.telemetry.zipkin.enabled }}"
-          endpoint: "{{ .Values.global.telemetry.zipkin.endpoint }}"
-          reporterEndpoint: "{{ .Values.global.telemetry.zipkin.reporterEndpoint }}"
-        reportingPeriod: "{{ .Values.global.telemetry.reportingPeriod }}"
+configs:
+  customize-configmap:
+    mountPath: /app/config/om
+    volumeName: customize-config-volume

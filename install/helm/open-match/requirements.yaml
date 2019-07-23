@@ -13,10 +13,10 @@
 # limitations under the License.
 
 dependencies:
-  - name: open-match-core
-    version: 0.0.0-dev
+  - name: redis
+    version: 8.0.9
+    repository: https://kubernetes-charts.storage.googleapis.com/
     condition: open-match-core.enabled
-    repository: "file://./subcharts/open-match-core"
   - name: open-match-demo
     version: 0.0.0-dev
     condition: open-match-demo.enabled

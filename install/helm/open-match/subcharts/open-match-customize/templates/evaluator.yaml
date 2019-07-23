@@ -26,6 +26,7 @@ spec:
   selector:
     app: {{ template "openmatch.name" . }}
     component: evaluator
+    release: {{ .Release.Name }}
   ports:
   - name: grpc
     protocol: TCP
@@ -61,15 +62,20 @@ spec:
         component: evaluator
         release: {{ .Release.Name }}
     spec:
-      {{- include "openmatch.spec.common" . | nindent 6 }}
+      volumes:
+        {{- include "openmatch.volumes.configs" . | nindent 8}}
+        {{- include "openmatch.volumes.tls" . | nindent 8}}
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:
       - name: {{ .Values.evaluator.hostName }}
-        {{- include "openmatch.container.common" . | nindent 8 }}
+        volumeMounts:
+          {{- include "openmatch.volumemounts.configs" . | nindent 10 }}
+          {{- include "openmatch.volumemounts.tls" . | nindent 10 }}
         image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.evaluator.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
         ports:
         - name: grpc
           containerPort: {{ .Values.evaluator.grpcPort }}
         - name: http
           containerPort: {{ .Values.evaluator.httpPort }}
-
+        {{- include "openmatch.container.common" . | nindent 8 }}
+        {{- include "kubernetes.probe" (dict "port" .Values.evaluator.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
