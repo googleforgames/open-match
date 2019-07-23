@@ -45,8 +45,8 @@ data:
 {{- if .Values.global.tls.enabled }}
     api:
       tls:
-      trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
-      certificatefile: "{{.Values.global.tls.server.mountPath}}/public.cert"
-      privatekey: "{{.Values.global.tls.server.mountPath}}/private.key"
-      rootcertificatefile: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
+        trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
+        certificatefile: "{{.Values.global.tls.server.mountPath}}/public.cert"
+        privatekey: "{{.Values.global.tls.server.mountPath}}/private.key"
+        rootcertificatefile: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
 {{- end -}}

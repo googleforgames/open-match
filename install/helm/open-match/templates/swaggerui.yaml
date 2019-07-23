@@ -73,5 +73,5 @@ spec:
         - name: http
           containerPort: {{ .Values.swaggerui.httpPort }}
         {{- include "openmatch.container.common" . | nindent 8 }}
-        {{- include "kubernetes.probe" (dict "port" .Values.swaggerui.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
+        {{- include "kubernetes.probe" (dict "port" .Values.swaggerui.httpPort) | nindent 8 }}
 {{- end }}

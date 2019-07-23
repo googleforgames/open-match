@@ -71,4 +71,4 @@ spec:
         ports:
         - name: http
           containerPort: {{ .Values.demo.httpPort }}
-        {{- include "kubernetes.probe" (dict "port" .Values.demo.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
+        {{- include "kubernetes.probe" (dict "port" .Values.demo.httpPort) | nindent 8 }}

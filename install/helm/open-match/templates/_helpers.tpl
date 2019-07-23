@@ -66,9 +66,9 @@ resources:
 {{- define "openmatch.volumemounts.tls" -}}
 {{- if .Values.global.tls.enabled }}
 - name: tls-server-volume
-  mountPath: /app/secrets/tls/server
+  mountPath: {{ .Values.global.tls.server.mountPath }}
 - name: root-ca-volume
-  mountPath: /app/secrets/tls/rootca
+  mountPath: {{ .Values.global.tls.rootca.mountPath }}
 {{- end -}}
 {{- end -}}
 
