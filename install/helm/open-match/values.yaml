@@ -145,7 +145,7 @@ global:
   
   # Defines if Open Match needs to serve secure traffic
   tls: 
-    enabled: true
+    enabled: false
     server:
       mountPath: /app/secrets/tls/server
     rootca:
