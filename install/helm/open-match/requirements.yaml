@@ -12,22 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TIP: Find versions via `gsutil ls gs://kubernetes-charts`
-
 dependencies:
-  - name: prometheus
-    version: 8.14.0
-    repository: https://kubernetes-charts.storage.googleapis.com/
-    condition: prometheus.enabled
   - name: redis
     version: 8.0.9
     repository: https://kubernetes-charts.storage.googleapis.com/
-    condition: redis.enabled
-  - name: grafana
-    version: 3.5.7
-    repository: https://kubernetes-charts.storage.googleapis.com/
-    condition: grafana.enabled
-  - name: jaeger
-    version: 0.12.0
-    repository: https://kubernetes-charts-incubator.storage.googleapis.com/
-    condition: jaeger.enabled
+    condition: open-match-core.enabled
+  - name: open-match-demo
+    version: 0.0.0-dev
+    condition: open-match-demo.enabled
+    repository: "file://./subcharts/open-match-demo"
+  - name: open-match-telemetry
+    version: 0.0.0-dev
+    condition: open-match-telemetry.enabled
+    repository: "file://./subcharts/open-match-telemetry"
+  - name: open-match-customize
+    version: 0.0.0-dev
+    condition: open-match-customize.enabled
+    repository: "file://./subcharts/open-match-customize"
+  - name: open-match-test
+    version: 0.0.0-dev
+    condition: open-match-test.enabled
+    repository: "file://./subcharts/open-match-test"
+
