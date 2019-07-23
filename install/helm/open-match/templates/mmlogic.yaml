@@ -12,59 +12,74 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if index .Values "open-match-core" "enabled" }}
 kind: Service
 apiVersion: v1
 metadata:
-  name: {{ .Values.swaggerui.hostName }}
+  name: {{ .Values.mmlogic.hostName }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
-    component: swaggerui
+    component: mmlogic
     release: {{ .Release.Name }}
 spec:
   selector:
     app: {{ template "openmatch.name" . }}
-    component: swaggerui
-  type: {{ .Values.swaggerui.portType }}
+    component: mmlogic
+    release: {{ .Release.Name }}
+  type: {{ .Values.mmlogic.portType }}
   ports:
+  - name: grpc
+    protocol: TCP
+    port: {{ .Values.mmlogic.grpcPort }}
   - name: http
     protocol: TCP
-    port: {{ .Values.swaggerui.httpPort }}
+    port: {{ .Values.mmlogic.httpPort }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: {{ .Values.swaggerui.hostName }}
+  name: {{ .Values.mmlogic.hostName }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
-    component: swaggerui
+    component: mmlogic
     release: {{ .Release.Name }}
 spec:
-  replicas: {{ .Values.swaggerui.replicas }}
+  replicas: {{ .Values.mmlogic.replicas }}
   selector:
     matchLabels:
       app: {{ template "openmatch.name" . }}
-      component: swaggerui
+      component: mmlogic
   template:
     metadata:
       namespace: {{ .Release.Namespace }}
       annotations:
         {{- include "openmatch.chartmeta" . | nindent 8 }}
+        {{- include "prometheus.annotations" (dict "port" .Values.mmlogic.httpPort "prometheus" .Values.global.telemetry.prometheus) | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
-        component: swaggerui
+        component: mmlogic
         release: {{ .Release.Name }}
     spec:
-      {{- include "openmatch.spec.common" . | nindent 6 }}
+      volumes:
+        {{- include "openmatch.volumes.configs" . | nindent 8}}
+        {{- include "openmatch.volumes.tls" . | nindent 8}}
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:
-      - name: {{ .Values.swaggerui.hostName }}
-        {{- include "openmatch.container.common" . | nindent 8 }}
-        image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.swaggerui.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
+      - name: {{ .Values.mmlogic.hostName }}
+        volumeMounts:
+          {{- include "openmatch.volumemounts.configs" . | nindent 10 }}
+          {{- include "openmatch.volumemounts.tls" . | nindent 10 }}
+        image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.mmlogic.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
         ports:
+        - name: grpc
+          containerPort: {{ .Values.mmlogic.grpcPort }}
         - name: http
-          containerPort: {{ .Values.swaggerui.httpPort }}
-        {{- include "kubernetes.probe" (dict "port" .Values.swaggerui.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
+          containerPort: {{ .Values.mmlogic.httpPort }}
+        {{- include "openmatch.container.common" . | nindent 8 }}
+        {{- include "openmatch.container.withredis" . | nindent 8 }}
+        {{- include "kubernetes.probe" (dict "port" .Values.mmlogic.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
+{{- end }}

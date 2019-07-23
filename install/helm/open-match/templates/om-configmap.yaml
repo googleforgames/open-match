@@ -1,0 +1,95 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+{{- if index .Values "open-match-core" "enabled" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: om-configmap
+  namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+  labels:
+    app: {{ template "openmatch.name" . }}
+    component: config
+    release: {{ .Release.Name }}
+data:
+  matchmaker_config.yaml: |-
+    logging:
+      level: debug
+      format: text
+      rpc: false
+    # Open Match applies the exponential backoff strategy for its retryable gRPC calls.
+    # The settings below are the default backoff configuration used in Open Match.
+    # See https://github.com/cenkalti/backoff/blob/v3/exponential.go for detailed explanations
+    backoff:
+      # The initial retry interval (in milliseconds)
+      initialInterval: 100ms
+      # maxInterval caps the maximum time elapsed for a retry interval
+      maxInterval: 500ms
+      # The next retry interval is multiplied by this multiplier
+      multiplier: 1.5
+      # Randomize the retry interval
+      randFactor: 0.5
+      # maxElapsedTime caps the retry time (in milliseconds)
+      maxElapsedTime: 3000ms
+
+    api:
+      backend:
+        hostname: "{{ .Values.backend.hostName }}"
+        grpcport: "{{ .Values.backend.grpcPort }}"
+        httpport: "{{ .Values.backend.httpPort }}"
+      frontend:
+        hostname: "{{ .Values.frontend.hostName }}"
+        grpcport: "{{ .Values.frontend.grpcPort }}"
+        httpport: "{{ .Values.frontend.httpPort }}"
+      mmlogic:
+        hostname: "{{ .Values.mmlogic.hostName }}"
+        grpcport: "{{ .Values.mmlogic.grpcPort }}"
+        httpport: "{{ .Values.mmlogic.httpPort }}"
+      synchronizer:
+        hostname: "{{ .Values.synchronizer.hostName }}"
+        grpcport: "{{ .Values.synchronizer.grpcPort }}"
+        httpport: "{{ .Values.synchronizer.httpPort }}"
+      swaggerui:
+        hostname: "{{ .Values.swaggerui.hostName }}"
+        httpport: "{{ .Values.swaggerui.httpPort }}"
+      evaluator:
+        hostname: "{{ .Values.evaluator.hostName }}"
+        grpcport: "{{ .Values.evaluator.grpcPort }}"
+        httpport: "{{ .Values.evaluator.httpPort }}"
+
+    synchronizer:
+      enabled: false
+      registrationIntervalMs: 3000ms
+      proposalCollectionIntervalMs: 2000ms
+    
+    storage:
+      page:
+        size: 10000
+    
+    redis:
+      pool:
+        maxIdle: 3
+        maxActive: 0
+        idleTimeout: 60s
+        healthCheckTimeout: 100ms
+      ignoreLists:
+        ttl: 1000ms
+      expiration: 43200
+    
+    ticketIndices:
+    {{- range .Values.ticketIndices }}
+      - {{ . }}
+    {{- end }}
+{{- end }}

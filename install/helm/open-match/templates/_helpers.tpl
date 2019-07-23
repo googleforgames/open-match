@@ -44,32 +44,43 @@ prometheus.io/path: {{ .prometheus.endpoint }}
 imagePullPolicy: {{ .Values.image.pullPolicy }}
 resources:
   requests:
-    memory: 200Mi
-    cpu: 200m
-volumeMounts:
-- name: {{ .Values.config.volumeName }}
-  mountPath: {{ .Values.config.mountPath }}
-{{- if .Values.global.tls.enabled }}
-- name: root-ca-volume
-  mountPath: {{ .Values.global.tls.root.mountPath }}
-- name: tls-server-volume
-  mountPath: {{ .Values.global.tls.server.mountPath }}
+    memory: 100Mi
+    cpu: 100m
+{{- end -}}
+
+{{- define "openmatch.volumemounts.configs" -}}
+{{- range $configName, $configValues := (mergeOverwrite .Values.configs .Values.global.configs) }}
+- name: {{ $configValues.volumeName }}
+  mountPath: {{ $configValues.mountPath }}
 {{- end }}
 {{- end -}}
 
-{{- define "openmatch.spec.common" -}}
-volumes:
-- name: {{ .Values.config.volumeName }}
+{{- define "openmatch.volumes.configs" -}}
+{{- range $configName, $configValues := (mergeOverwrite .Values.configs .Values.global.configs) }}
+- name: {{ $configValues.volumeName }}
   configMap:
-    name: {{ .Values.config.mapName }}
+    name: {{ $configName }}
+{{- end }}
+{{- end -}}
+
+{{- define "openmatch.volumemounts.tls" -}}
 {{- if .Values.global.tls.enabled }}
+- name: tls-server-volume
+  mountPath: {{ .Values.global.tls.server.mountPath }}
 - name: root-ca-volume
-  secret:
-    secretName: om-tls-rootca
+  mountPath: {{ .Values.global.tls.rootca.mountPath }}
+{{- end -}}
+{{- end -}}
+
+{{- define "openmatch.volumes.tls" -}}
+{{- if .Values.global.tls.enabled }}
 - name: tls-server-volume
   secret:
     secretName: om-tls-server
-{{- end }}
+- name: root-ca-volume
+  secret:
+    secretName: om-tls-rootca
+{{- end -}}
 {{- end -}}
 
 {{- define "openmatch.container.withredis" -}}
