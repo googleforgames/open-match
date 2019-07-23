@@ -18,6 +18,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -105,6 +106,33 @@ func TestBadValues(t *testing.T) {
 			} else if err.Error() != testCase.errorString {
 				t.Errorf("Expected an error with text, '%s', got '%s'", testCase.errorString, err)
 			}
+		})
+	}
+}
+
+func TestExpandHostnames(t *testing.T) {
+	testCases := []struct {
+		input    []string
+		expected []string
+	}{
+		{
+			[]string{},
+			[]string{},
+		},
+		{
+			[]string{"hello"},
+			[]string{"hello"},
+		},
+		{
+			[]string{"hello:1234"},
+			[]string{"hello:1234", "hello"},
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(fmt.Sprintf("expandHostnames(%s) => %s", testCase.input, testCase.expected), func(t *testing.T) {
+			assert := assert.New(t)
+			actual := expandHostnames(testCase.input)
+			assert.Equal(testCase.expected, actual)
 		})
 	}
 }
