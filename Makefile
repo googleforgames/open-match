@@ -367,7 +367,6 @@ install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-mat
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
 		--set open-match-demo.enabled=false \
-		--set open-match-test.enabled=true \
 		--set open-match-customize.function.image=openmatch-mmf-go-pool \
 		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
