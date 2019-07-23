@@ -16,7 +16,7 @@ dependencies:
   - name: redis
     version: 8.0.9
     repository: https://kubernetes-charts.storage.googleapis.com/
-    condition: redis.enabled
+    condition: open-match-core.enabled
   - name: open-match-demo
     version: 0.0.0-dev
     condition: open-match-demo.enabled

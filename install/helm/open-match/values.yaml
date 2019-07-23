@@ -91,7 +91,6 @@ configs:
 # https://hub.helm.sh/charts/stable/redis
 # https://github.com/helm/charts/tree/master/stable/redis
 redis:
-  enabled: true
   fullnameOverride: om-redis
   usePassword: true
   master:
