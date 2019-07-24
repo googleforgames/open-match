@@ -104,8 +104,8 @@ func (com *clusterOM) getAddressFromServiceName(serviceName, portName string) (s
 	if err != nil {
 		com.t.Fatalf("cannot get service definition for %s", serviceName)
 	}
-	if len(svc.Status.LoadBalancer.Ingress) != 1 {
-		com.t.Fatalf("LoadBalancer for %s does not have exactly 1 config, %v", serviceName, svc.Status.LoadBalancer.Ingress)
+	if len(svc.Spec.Ports) == 0 {
+		com.t.Fatalf("Service %s does not have an available ContainerPort", serviceName)
 	}
 
 	var port int32
@@ -114,7 +114,7 @@ func (com *clusterOM) getAddressFromServiceName(serviceName, portName string) (s
 			port = servicePort.Port
 		}
 	}
-	return svc.Status.LoadBalancer.Ingress[0].IP, port
+	return svc.Spec.ClusterIP, port
 }
 
 func (com *clusterOM) getGRPCAddressFromServiceName(serviceName string) (string, int32) {

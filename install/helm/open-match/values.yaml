@@ -19,35 +19,35 @@
 swaggerui: &swaggerui
   hostName: om-swaggerui
   httpPort: 51500
-  portType: LoadBalancer
+  portType: ClusterIP
   replicas: 3
   image: openmatch-swaggerui
 mmlogic: &mmlogic
   hostName: om-mmlogic
   grpcPort: 50503
   httpPort: 51503
-  portType: LoadBalancer
+  portType: ClusterIP
   replicas: 3
   image: openmatch-mmlogic
 frontend: &frontend
   hostName: om-frontend
   grpcPort: 50504
   httpPort: 51504
-  portType: LoadBalancer
+  portType: ClusterIP
   replicas: 3
   image: openmatch-frontend
 backend: &backend
   hostName: om-backend
   grpcPort: 50505
   httpPort: 51505
-  portType: LoadBalancer
+  portType: ClusterIP
   replicas: 3
   image: openmatch-backend
 synchronizer: &synchronizer
   hostName: om-synchronizer
   grpcPort: 50506
   httpPort: 51506
-  portType: LoadBalancer
+  portType: ClusterIP
   replicas: 1
   image: openmatch-synchronizer
 evaluator: &evaluator
@@ -141,9 +141,11 @@ open-match-test:
 
 # Global configurations that are visible to all subcharts
 global:
-  # Defines a service account which provides an identity for processes that run in a Pod in Open Match.
   kubernetes:
+    # Defines a service account which provides an identity for processes that run in a Pod in Open Match.
     serviceAccount: open-match-unprivileged-service
+    service:
+      portType:
   
   # Defines if Open Match needs to serve secure traffic
   tls: 

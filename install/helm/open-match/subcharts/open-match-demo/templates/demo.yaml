@@ -26,7 +26,7 @@ spec:
   selector:
     app: {{ template "openmatch.name" . }}
     component: demo
-  type: {{ .Values.demo.portType }}
+  type: {{ coalesce .Values.global.kubernetes.service.portType .Values.demo.portType }}
   ports:
   - name: http
     protocol: TCP

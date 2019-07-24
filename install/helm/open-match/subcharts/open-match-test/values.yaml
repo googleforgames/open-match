@@ -19,7 +19,7 @@
 stresstest:
   masterName: locust-master
   slavesName: locust-slaves
-  portType: LoadBalancer
+  portType: ClusterIP
   image: openmatch-stress-frontend
   replicas: 5
   noweb: false
