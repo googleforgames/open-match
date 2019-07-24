@@ -28,7 +28,7 @@ spec:
     app: {{ template "openmatch.name" . }}
     component: synchronizer
     release: {{ .Release.Name }}
-  type: {{ .Values.synchronizer.portType }}
+  type: {{ coalesce .Values.global.kubernetes.service.portType .Values.synchronizer.portType }}
   ports:
   - name: grpc
     protocol: TCP

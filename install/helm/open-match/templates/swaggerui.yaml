@@ -27,7 +27,7 @@ spec:
   selector:
     app: {{ template "openmatch.name" . }}
     component: swaggerui
-  type: {{ .Values.swaggerui.portType }}
+  type: {{ coalesce .Values.global.kubernetes.service.portType .Values.swaggerui.portType }}
   ports:
   - name: http
     protocol: TCP
