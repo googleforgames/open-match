@@ -34,8 +34,9 @@ func TestAssignTickets(t *testing.T) {
 	defer closer()
 	fe := om.MustFrontendGRPC()
 	be := om.MustBackendGRPC()
+	ctx := om.Context()
 
-	ctResp, err := fe.CreateTicket(om.Context(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	ctResp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 	assert.Nil(t, err)
 
 	var tt = []struct {
@@ -87,13 +88,14 @@ func TestAssignTickets(t *testing.T) {
 			test := test
 			t.Run(test.description, func(t *testing.T) {
 				t.Parallel()
-				_, err := be.AssignTickets(om.Context(), &pb.AssignTicketsRequest{TicketIds: test.ticketIds, Assignment: test.assignment})
+				ctx := om.Context()
+				_, err := be.AssignTickets(ctx, &pb.AssignTicketsRequest{TicketIds: test.ticketIds, Assignment: test.assignment})
 				assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
 				// If assign ticket succeeds, validate the assignment
 				if err == nil {
 					for _, id := range test.ticketIds {
-						gtResp, err := fe.GetTicket(om.Context(), &pb.GetTicketRequest{TicketId: id})
+						gtResp, err := fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: id})
 						assert.Nil(t, err)
 						// grpc will write something to the reserved fields of this protobuf object, so we have to do comparisons fields by fields.
 						assert.Equal(t, test.wantAssignment.GetConnection(), gtResp.GetAssignment().GetConnection())
@@ -114,6 +116,7 @@ func TestTicketLifeCycle(t *testing.T) {
 	defer closer()
 	fe := om.MustFrontendGRPC()
 	assert.NotNil(fe)
+	ctx := om.Context()
 
 	ticket := &pb.Ticket{
 		Properties: structs.Struct{
@@ -125,7 +128,7 @@ func TestTicketLifeCycle(t *testing.T) {
 	}
 
 	// Create a ticket, validate that it got an id and set its id in the expected ticket.
-	resp, err := fe.CreateTicket(om.Context(), &pb.CreateTicketRequest{Ticket: ticket})
+	resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
 	assert.NotNil(resp)
 	assert.Nil(err)
 	want := resp.Ticket
@@ -135,15 +138,15 @@ func TestTicketLifeCycle(t *testing.T) {
 	validateTicket(t, resp.GetTicket(), ticket)
 
 	// Fetch the ticket and validate that it is identical to the expected ticket.
-	gotTicket, err := fe.GetTicket(om.Context(), &pb.GetTicketRequest{TicketId: ticket.GetId()})
+	gotTicket, err := fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: ticket.GetId()})
 	assert.NotNil(gotTicket)
 	assert.Nil(err)
 	validateTicket(t, gotTicket, ticket)
 
 	// Delete the ticket and validate that it was actually deleted.
-	_, err = fe.DeleteTicket(om.Context(), &pb.DeleteTicketRequest{TicketId: ticket.GetId()})
+	_, err = fe.DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: ticket.GetId()})
 	assert.Nil(err)
-	validateDelete(t, fe, ticket.GetId())
+	validateDelete(ctx, t, fe, ticket.GetId())
 }
 
 // validateTicket validates that the fetched ticket is identical to the expected ticket.
@@ -157,7 +160,7 @@ func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
 
 // validateDelete validates that the ticket is actually deleted from the state storage.
 // Given that delete is async, this method retries fetch every 100ms up to 5 seconds.
-func validateDelete(t *testing.T, fe pb.FrontendClient, id string) {
+func validateDelete(ctx context.Context, t *testing.T, fe pb.FrontendClient, id string) {
 	start := time.Now()
 	for {
 		if time.Since(start) > 5*time.Second {
@@ -165,7 +168,7 @@ func validateDelete(t *testing.T, fe pb.FrontendClient, id string) {
 		}
 
 		// Attempt to fetch the ticket every 100ms
-		_, err := fe.GetTicket(context.Background(), &pb.GetTicketRequest{TicketId: id})
+		_, err := fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: id})
 		if err != nil {
 			// Only failure to fetch with NotFound should be considered as success.
 			assert.Equal(t, status.Code(err), codes.NotFound)

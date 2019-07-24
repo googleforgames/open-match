@@ -129,5 +129,5 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 		Timeout:   time.Second * 10,
 		Transport: tlsTransport,
 	}
-	runGrpcWithProxyTests(assert, s, conn, httpClient, httpsEndpoint)
+	runGrpcWithProxyTests(t, assert, s, conn, httpClient, httpsEndpoint)
 }

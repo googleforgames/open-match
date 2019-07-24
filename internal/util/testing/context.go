@@ -12,31 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package testing provides utility methods for testing.
 package testing
 
 import (
+	"context"
 	"testing"
-
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
-	"open-match.dev/open-match/internal/statestore"
-	utilTesting "open-match.dev/open-match/internal/util/testing"
-	"open-match.dev/open-match/pkg/pb"
 )
 
-func TestFakeStatestore(t *testing.T) {
-	assert := assert.New(t)
-	cfg := viper.New()
-	closer := New(t, cfg)
-	defer closer()
-	s := statestore.New(cfg)
-	ctx := utilTesting.NewContext(t)
+type contextTestKey string
 
-	ticket := &pb.Ticket{
-		Id: "abc",
-	}
-	assert.Nil(s.CreateTicket(ctx, ticket))
-	retrievedTicket, err := s.GetTicket(ctx, "abc")
-	assert.Nil(err)
-	assert.Equal(ticket.Id, retrievedTicket.Id)
+// NewContext returns a context appropriate for calling a gRPC service that
+// is not hosted on a cluster or in Minimatch, (ie: tests not in test/e2e/).
+// For those tests use OM.Context() method.
+func NewContext(t *testing.T) context.Context {
+	return context.WithValue(context.Background(), contextTestKey("testing.T"), t)
 }
