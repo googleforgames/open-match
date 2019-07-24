@@ -131,7 +131,7 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 	}
 
 	p.enableMetrics = cfg.GetBool(telemetry.ConfigNameEnableMetrics)
-	p.enableRPCLogging = cfg.GetBool(configNameEnableRPCLogging)
+	p.enableRPCLogging = cfg.GetBool(ConfigNameEnableRPCLogging)
 	// TODO: This isn't ideal since telemetry requires config for it to be initialized.
 	// This forces us to initialize readiness probes earlier than necessary.
 	p.closer = telemetry.Setup(p.ServeMux, cfg)
