@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"open-match.dev/open-match/internal/telemetry"
 	shellTesting "open-match.dev/open-match/internal/testing"
-	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 	"strings"
@@ -32,8 +31,8 @@ import (
 
 func TestStartStopServer(t *testing.T) {
 	assert := assert.New(t)
-	grpcLh := netlistenerTesting.MustListen()
-	httpLh := netlistenerTesting.MustListen()
+	grpcLh := MustListen()
+	httpLh := MustListen()
 	ff := &shellTesting.FakeFrontend{}
 
 	params := NewServerParamsFromListeners(grpcLh, httpLh)
@@ -60,8 +59,8 @@ func TestStartStopServer(t *testing.T) {
 
 func TestMustServeForever(t *testing.T) {
 	assert := assert.New(t)
-	grpcLh := netlistenerTesting.MustListen()
-	httpLh := netlistenerTesting.MustListen()
+	grpcLh := MustListen()
+	httpLh := MustListen()
 	ff := &shellTesting.FakeFrontend{}
 
 	params := NewServerParamsFromListeners(grpcLh, httpLh)

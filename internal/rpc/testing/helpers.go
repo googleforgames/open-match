@@ -28,7 +28,6 @@ import (
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/util"
-	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 
@@ -44,8 +43,8 @@ func MustServe(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
 
 // MustServeInsecure creates a test server without transport encryption and returns TestContext that can be used to create clients.
 func MustServeInsecure(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
-	grpcLh := netlistenerTesting.MustListen()
-	proxyLh := netlistenerTesting.MustListen()
+	grpcLh := rpc.MustListen()
+	proxyLh := rpc.MustListen()
 
 	grpcAddress := fmt.Sprintf("localhost:%d", grpcLh.Number())
 	proxyAddress := fmt.Sprintf("localhost:%d", proxyLh.Number())
@@ -63,8 +62,8 @@ func MustServeInsecure(t *testing.T, binder func(*rpc.ServerParams)) *TestContex
 
 // MustServeTLS creates a test server with TLS and returns TestContext that can be used to create clients.
 func MustServeTLS(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
-	grpcLh := netlistenerTesting.MustListen()
-	proxyLh := netlistenerTesting.MustListen()
+	grpcLh := rpc.MustListen()
+	proxyLh := rpc.MustListen()
 
 	grpcAddress := fmt.Sprintf("localhost:%d", grpcLh.Number())
 	proxyAddress := fmt.Sprintf("localhost:%d", proxyLh.Number())
