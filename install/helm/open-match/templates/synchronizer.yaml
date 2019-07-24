@@ -12,65 +12,74 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{{- if .Values.openmatch.synchronizer.install }}
+{{- if index .Values "open-match-core" "enabled" }}
 kind: Service
 apiVersion: v1
 metadata:
-  name: om-synchronizer
+  name: {{ .Values.synchronizer.hostName }}
   namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
-    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
+    component: synchronizer
+    release: {{ .Release.Name }}
 spec:
   selector:
     app: {{ template "openmatch.name" . }}
     component: synchronizer
-  type: {{ .Values.openmatch.synchronizer.porttype }}
+    release: {{ .Release.Name }}
+  type: {{ .Values.synchronizer.portType }}
   ports:
   - name: grpc
     protocol: TCP
-    port: {{ .Values.openmatch.synchronizer.grpc.port }}
+    port: {{ .Values.synchronizer.grpcPort }}
   - name: http
     protocol: TCP
-    port: {{ .Values.openmatch.synchronizer.http.port }}
+    port: {{ .Values.synchronizer.httpPort }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: om-synchronizer
+  name: {{ .Values.synchronizer.hostName }}
   namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
     component: synchronizer
-    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
+    release: {{ .Release.Name }}
 spec:
-  replicas: {{ .Values.openmatch.synchronizer.replicas }}
+  replicas: {{ .Values.synchronizer.replicas }}
   selector:
     matchLabels:
       app: {{ template "openmatch.name" . }}
       component: synchronizer
-      {{- include "openmatch.chartmeta" (set . "indent" 6) }}
   template:
     metadata:
       namespace: {{ .Release.Namespace }}
       annotations:
-        {{- include "prometheus.annotations" (dict "port" .Values.openmatch.synchronizer.http.port "prometheus" .Values.openmatch.telemetry.prometheus) | nindent 8 }}
+        {{- include "openmatch.chartmeta" . | nindent 8 }}
+        {{- include "prometheus.annotations" (dict "port" .Values.synchronizer.httpPort "prometheus" .Values.global.telemetry.prometheus) | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
         component: synchronizer
-        {{- include "openmatch.chartmeta" (set . "indent" 8) }}
+        release: {{ .Release.Name }}
     spec:
-      {{- include "openmatch.spec.common" . | nindent 6 }}
+      volumes:
+        {{- include "openmatch.volumes.configs" . | nindent 8}}
+        {{- include "openmatch.volumes.tls" . | nindent 8}}
+      serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:
-      - name: om-synchronizer
-        {{- include "openmatch.container.common" . | nindent 8 }}
-        {{- include "openmatch.container.withredis" . | nindent 8 }}
-        image: "{{ .Values.openmatch.image.registry }}/{{ .Values.openmatch.image.synchronizer.name}}:{{ .Values.openmatch.image.tag }}"
+      - name: {{ .Values.mmlogic.hostName }}
+        volumeMounts:
+          {{- include "openmatch.volumemounts.configs" . | nindent 10 }}
+          {{- include "openmatch.volumemounts.tls" . | nindent 10 }}
+        image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.synchronizer.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
         ports:
         - name: grpc
-          containerPort: {{ .Values.openmatch.synchronizer.grpc.port }}
+          containerPort: {{ .Values.synchronizer.grpcPort }}
         - name: http
-          containerPort: {{ .Values.openmatch.synchronizer.http.port }}
-        {{- include "kubernetes.probe" (dict "port" .Values.openmatch.synchronizer.http.port "isHTTPS" .Values.openmatch.tls.enabled) | nindent 8 }}
-        
+          containerPort: {{ .Values.synchronizer.httpPort }}
+        {{- include "openmatch.container.common" . | nindent 8 }}
+        {{- include "openmatch.container.withredis" . | nindent 8 }}
+        {{- include "kubernetes.probe" (dict "port" .Values.synchronizer.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
 {{- end }}

@@ -115,10 +115,21 @@ steps:
   args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'push-images', '-j8']
   waitFor: ['Build: Assets']
 
+- id: 'Test: Terraform Configuration'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'terraform-test']
+  waitFor: ['Build: Install Toolchain']
+
+- id: 'Test: Create Cluster'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'delete-gke-cluster', 'create-gke-cluster', 'push-helm', 'update-chart-deps']
+  waitFor: ['Build: Install Kubernetes Tools']
+
+# TODO: `make update-chart-deps` requires `helm init`. This requirement will go away after introducing helm3.
 - id: 'Build: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'clean-install-yaml', 'install/yaml/']
-  waitFor: ['Build: Install Toolchain']
+  waitFor: ['Test: Create Cluster']
 
 - id: 'Lint: Format, Vet, Charts'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -127,16 +138,6 @@ steps:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Assets', 'Build: Deployment Configs']
-
-- id: 'Test: Terraform Configuration'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'terraform-test']
-  waitFor: ['Build: Install Toolchain']
-
-- id: 'Test: Create Cluster'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'delete-gke-cluster', 'create-gke-cluster', 'push-helm']
-  waitFor: ['Build: Install Kubernetes Tools']
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -168,24 +169,12 @@ artifacts:
     objects:
         location: gs://open-match-build-artifacts/output/
         paths:
-            - cmd/backend/backend
-            - cmd/frontend/frontend
-            - cmd/mmlogic/mmlogic
-            - cmd/synchronizer/synchronizer
-            - cmd/minimatch/minimatch
-            - cmd/swaggerui/swaggerui
             - install/yaml/install.yaml
-            - install/yaml/install-demo.yaml
-            - install/yaml/01-redis-chart.yaml
-            - install/yaml/02-open-match.yaml
+            - install/yaml/01-open-match-core.yaml
+            - install/yaml/02-open-match-demo.yaml
             - install/yaml/03-prometheus-chart.yaml
             - install/yaml/04-grafana-chart.yaml
             - install/yaml/05-jaeger-chart.yaml
-            - examples/functions/golang/soloduel/soloduel
-            - examples/functions/golang/pool/pool
-            - examples/evaluator/golang/simple/simple
-            - tools/certgen/certgen
-            - tools/reaper/reaper
 
 images:
 - 'gcr.io/$PROJECT_ID/openmatch-backend:${_OM_VERSION}-${SHORT_SHA}'
