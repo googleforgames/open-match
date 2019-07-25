@@ -29,6 +29,7 @@ import (
 	"math"
 	"math/big"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -155,7 +156,8 @@ func CreateCertificateAndPrivateKey(params *Params) ([]byte, []byte, error) {
 	if params.CertificateAuthority {
 		certTemplate.KeyUsage = certTemplate.KeyUsage | x509.KeyUsageCertSign
 	}
-	for _, hostname := range params.Hostnames {
+	hostnames := expandHostnames(params.Hostnames)
+	for _, hostname := range hostnames {
 		if ipAddress := net.ParseIP(hostname); ipAddress != nil {
 			certTemplate.IPAddresses = append(certTemplate.IPAddresses, ipAddress)
 		} else {
@@ -207,4 +209,17 @@ func publicKey(priv interface{}) interface{} {
 	default:
 		return nil
 	}
+}
+
+func expandHostnames(hostnames []string) []string {
+	expanded := []string{}
+	for _, hostname := range hostnames {
+		expanded = append(expanded, hostname)
+		// If this is a hostname:port then also add just the hostname.
+		parts := strings.SplitN(hostname, ":", -1)
+		if len(parts) == 2 {
+			expanded = append(expanded, parts[0])
+		}
+	}
+	return expanded
 }
