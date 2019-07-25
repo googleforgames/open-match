@@ -95,6 +95,11 @@ redis:
   usePassword: true
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
+    persistence:
+      size: 1Gi
+  slave:
+    persistence:
+      size: 1Gi
   metrics:
     enabled: true
 
