@@ -45,7 +45,7 @@ imagePullPolicy: {{ .Values.image.pullPolicy }}
 resources:
   requests:
     memory: 100Mi
-    cpu: 100m
+    cpu: 50m
 {{- end -}}
 
 {{- define "openmatch.volumemounts.configs" -}}

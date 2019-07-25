@@ -96,10 +96,10 @@ redis:
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
     persistence:
-      size: 1Gi
+      size: 200Mi
   slave:
     persistence:
-      size: 1Gi
+      size: 200Mi
   metrics:
     enabled: true
 
