@@ -32,6 +32,11 @@ variable "vpc_flow_logs" {
   default     = "false"
 }
 
+variable "stress-test-uploader_namespace" {
+  description = "Kubernetes namespace where the stress test uploader service account will take effect"
+  default     = "open-match"
+}
+
 provider "null" {
 }
 
@@ -79,6 +84,28 @@ resource "google_service_account" "cluster_reaper" {
   #description = "Deletes orphaned GKE clusters."
 }
 
+# Create a Google service account with workload identity feature enabled to authenticate gcloud with its k8s service account binding.
+resource "google_service_account" "stress_test_uploader" {
+  project      = "${var.gcp_project_id}"
+  account_id   = "stress-test-uploader"
+  display_name = "stress-test-uploader"
+}
+
+# Defines the binding between the Kubernetes service account used to auto upload the stress test result
+# and the Google service account. 
+# Change kubernetes.serviceAccount for install/helm/open-match/subcharts/open-match-test/values.yaml 
+# file if you want to modify this name.
+resource "google_service_account_iam_binding" "stress_test_uploader_iam" {
+  service_account_id = "${google_service_account.stress_test_uploader.name}"
+  role               = "projects/${google_project_iam_custom_role.stress_test_uploader_role.project}/roles/${google_project_iam_custom_role.stress_test_uploader_role.role_id}"
+
+  members = [
+    # "serviceAccount:[PROJECT_NAME].svc.id.goog[[K8S_NAMESPACE]/[KSA_NAME]]"
+    "serviceAccount:${var.gcp_project_id}.svc.id.goog[${var.stress-test-uploader_namespace}/stress-test-uploader]",
+  ]
+  depends_on = ["null_resource.after_service_account_creation"]
+}
+
 # This role defines all the permissions that the cluster reaper has.
 # It mainly needs to list and delete GKE cluster but it also runs in Cloud Run so it needs invoker permissions.
 resource "google_project_iam_custom_role" "cluster_reaper_role" {
@@ -96,6 +123,31 @@ resource "google_project_iam_custom_role" "cluster_reaper_role" {
     "resourcemanager.projects.get",
     # Not supported yet.
     #"run.routes.invoke",
+  ]
+  stage = "BETA"
+}
+
+# This role defines all the permissions that the stress test uploader has.
+# It mainly needs the GCS permissions but it also needs the workload identity user permissions to work in a kubernetes container.
+resource "google_project_iam_custom_role" "stress_test_uploader_role" {
+  provider    = "google-beta"
+  project     = "${var.gcp_project_id}"
+  role_id     = "continuousintegration.stresstest"
+  title       = "Open Match CI Stress Test Uploader"
+  description = "Role to authorize the uploader to write to the specified GCS bucket."
+  permissions = [
+    # GCS Permissions
+    "storage.objects.list",
+    "storage.objects.get",
+    "storage.objects.create",
+    "storage.buckets.list",
+    "storage.buckets.get",
+    "storage.buckets.create",
+    "resourcemanager.projects.get",
+    # Workload Identity User Permissions
+    "iam.serviceAccounts.get",
+    "iam.serviceAccounts.getAccessToken",
+    "iam.serviceAccounts.list",
   ]
   stage = "BETA"
 }
@@ -125,7 +177,7 @@ resource "google_project_iam_binding" "cluster_reaper_role_binding_for_cloud_run
 # It's recommended to delay creation of the role binding by a few seconds after the service account
 # because the service account creation is eventually consistent.
 resource "null_resource" "before_service_account_creation" {
-  depends_on = ["google_service_account.cluster_reaper"]
+  depends_on = ["google_service_account.cluster_reaper", "google_service_account.stress_test_uploader"]
 }
 
 resource "null_resource" "delay_after_service_account_creation" {
