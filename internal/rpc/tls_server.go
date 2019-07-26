@@ -103,7 +103,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	// Bind gRPC handlers
 	ctx, cancel := context.WithCancel(context.Background())
 
-	httpsToGrpcProxyOptions := newGRPCDialOptions(params.enableMetrics, params.enableRPCLogging)
+	httpsToGrpcProxyOptions := newGRPCDialOptions(params.enableMetrics, params.enableRPCLogging, params.enableRPCPayloadLogging)
 	httpsToGrpcProxyOptions = append(httpsToGrpcProxyOptions, grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(certPoolForGrpcEndpoint, "")))
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {

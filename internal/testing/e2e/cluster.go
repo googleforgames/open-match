@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
+	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/util"
 	pb "open-match.dev/open-match/pkg/pb"
@@ -128,9 +129,10 @@ func (com *clusterOM) getHTTPAddressFromServiceName(serviceName string) (string,
 func (com *clusterOM) getGRPCClientFromServiceName(serviceName string) (*grpc.ClientConn, error) {
 	ipAddress, port := com.getGRPCAddressFromServiceName(serviceName)
 	conn, err := rpc.GRPCClientFromParams(&rpc.ClientParams{
-		Address:          fmt.Sprintf("%s:%d", ipAddress, int(port)),
-		EnableRPCLogging: *testOnlyEnableRPCLoggingFlag,
-		EnableMetrics:    *testOnlyEnableMetrics,
+		Address:                 fmt.Sprintf("%s:%d", ipAddress, int(port)),
+		EnableRPCLogging:        *testOnlyEnableRPCLoggingFlag,
+		EnableRPCPayloadLogging: logging.IsDebugLevel(*testOnlyLoggingLevel),
+		EnableMetrics:           *testOnlyEnableMetrics,
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot connect to gRPC %s:%d", ipAddress, port)
