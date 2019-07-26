@@ -17,36 +17,17 @@ package golang
 
 import (
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/app"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
-
-	"github.com/sirupsen/logrus"
 )
 
 // RunEvaluator is a hook for the main() method in the main executable.
 func RunEvaluator(eval Evaluator) {
-	cfg, err := config.Read()
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot read configuration.")
-	}
-
-	p, err := rpc.NewServerParamsFromConfig(cfg, "api.evaluator")
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot construct server.")
-	}
-
-	if err := BindService(p, cfg, eval); err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("failed to bind evaluator service.")
-	}
-
-	rpc.MustServeForever(p)
+	app.RunApplication("evaluator", func(p *rpc.ServerParams, cfg config.View) error {
+		return BindService(p, cfg, eval)
+	})
 }
 
 // BindService creates the evaluator service to the server Params.
