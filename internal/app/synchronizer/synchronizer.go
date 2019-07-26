@@ -15,38 +15,12 @@
 package synchronizer
 
 import (
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 )
-
-// RunApplication creates a server.
-func RunApplication() {
-	cfg, err := config.Read()
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot read configuration.")
-	}
-
-	p, err := rpc.NewServerParamsFromConfig(cfg, "api.synchronizer")
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot construct server.")
-	}
-
-	if err := BindService(p, cfg); err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("failed to bind synchronizer service.")
-	}
-
-	rpc.MustServeForever(p)
-}
 
 // BindService creates the synchronizer service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View) error {

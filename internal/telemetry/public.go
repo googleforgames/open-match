@@ -42,8 +42,8 @@ func Setup(mux *http.ServeMux, cfg config.View) func() {
 		logger.WithFields(logrus.Fields{
 			"error":           err,
 			"reportingPeriod": periodString,
-		}).Info("Failed to parse telemetry.reportingPeriod, defaulting to 10s")
-		reportingPeriod = time.Second * 10
+		}).Info("Failed to parse telemetry.reportingPeriod, defaulting to 1m")
+		reportingPeriod = time.Minute * 1
 	}
 
 	bindJaeger(cfg)

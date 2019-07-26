@@ -17,11 +17,10 @@ package golang
 
 import (
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/app"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
-
-	"github.com/sirupsen/logrus"
 )
 
 // FunctionSettings is a collection of parameters used to customize matchfunction views.
@@ -31,26 +30,9 @@ type FunctionSettings struct {
 
 // RunMatchFunction is a hook for the main() method in the main executable.
 func RunMatchFunction(settings *FunctionSettings) {
-	cfg, err := config.Read()
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot read configuration.")
-	}
-	p, err := rpc.NewServerParamsFromConfig(cfg, "api.functions")
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot construct server.")
-	}
-
-	if err := BindService(p, cfg, settings); err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("failed to bind functions service.")
-	}
-
-	rpc.MustServeForever(p)
+	app.RunApplication("functions", func(p *rpc.ServerParams, cfg config.View) error {
+		return BindService(p, cfg, settings)
+	})
 }
 
 // BindService creates the function service to the server Params.

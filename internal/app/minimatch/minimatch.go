@@ -15,7 +15,6 @@
 package minimatch
 
 import (
-	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/app/backend"
 	"open-match.dev/open-match/internal/app/frontend"
 	"open-match.dev/open-match/internal/app/mmlogic"
@@ -23,37 +22,6 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 )
-
-var (
-	logger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "minimatch",
-	})
-)
-
-// RunApplication creates a server.
-func RunApplication() {
-	cfg, err := config.Read()
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot read configuration.")
-	}
-	p, err := rpc.NewServerParamsFromConfig(cfg, "api.frontend")
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot construct server.")
-	}
-
-	if err := BindService(p, cfg); err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot bind server.")
-	}
-
-	rpc.MustServeForever(p)
-}
 
 // BindService creates the minimatch service to the server Params.
 func BindService(p *rpc.ServerParams, cfg config.View) error {

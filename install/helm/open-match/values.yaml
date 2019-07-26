@@ -33,7 +33,7 @@ openmatch:
     opencensusAgent:
       enabled: false
       agentEndpoint: "om-opencensus-agent:55678"
-    reportingPeriod: "5s"
+    reportingPeriod: "1m"
   synchronizer:
     install: true
     replicas: 1
@@ -135,7 +135,7 @@ openmatch:
       matchmaker_config.yaml:
         logging:
           level: debug
-          format: text
+          format: "{{ternary \"stackdriver\" \"text\" .Values.openmatch.telemetry.stackdriver.enabled}}"
           rpc: false
         # Open Match applies the exponential backoff strategy for its retryable gRPC calls.
         # The settings below are the default backoff configuration used in Open Match.
