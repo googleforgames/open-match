@@ -12,25 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Default values for open-match-test.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
-stresstest:
-  masterName: locust-master
-  slavesName: locust-slaves
-  portType: LoadBalancer
-  image: openmatch-stress-frontend
-  replicas: 5
-  noweb: true
-  clients: 1000
-  rate: 200
-  duration: 30s
-
-kubernetes:
-  serviceAccount: stress-test-uploader
-
-image:
-  registry: gcr.io/open-match-public-images
-  tag: 0.0.0-dev
-  pullPolicy: Always
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gce:podsecuritypolicy:gke-metadata-server-workaround
+  namespace: kube-system
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gce:podsecuritypolicy:privileged
+subjects:
+- kind: ServiceAccount
+  name: gke-metadata-server
+  namespace: kube-system
