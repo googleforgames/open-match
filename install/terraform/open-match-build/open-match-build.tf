@@ -127,8 +127,8 @@ resource "google_project_iam_custom_role" "cluster_reaper_role" {
   stage = "BETA"
 }
 
-# This role defines all the permissions that the cluster reaper has.
-# It mainly needs to list and delete GKE cluster but it also runs in Cloud Run so it needs invoker permissions.
+# This role defines all the permissions that the stress test uploader has.
+# It mainly needs the GCS permissions but it also needs the workload identity user permissions to work in a kubernetes container.
 resource "google_project_iam_custom_role" "stress_test_uploader_role" {
   provider    = "google-beta"
   project     = "${var.gcp_project_id}"
