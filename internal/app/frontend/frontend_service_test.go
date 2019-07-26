@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/pkg/structs"
 )
@@ -79,7 +80,7 @@ func TestDoCreateTickets(t *testing.T) {
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 			defer closer()
 
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
 			test.preAction(cancel)
 
 			res, err := doCreateTicket(ctx, &pb.CreateTicketRequest{Ticket: test.ticket}, store)
@@ -111,25 +112,25 @@ func TestDoGetAssignments(t *testing.T) {
 
 	tests := []struct {
 		description     string
-		preAction       func(*testing.T, statestore.Service, []*pb.Assignment, *sync.WaitGroup)
+		preAction       func(context.Context, *testing.T, statestore.Service, []*pb.Assignment, *sync.WaitGroup)
 		wantCode        codes.Code
 		wantAssignments []*pb.Assignment
 	}{
 		{
 			description:     "expect error because ticket id does not exist",
-			preAction:       func(_ *testing.T, _ statestore.Service, _ []*pb.Assignment, _ *sync.WaitGroup) {},
+			preAction:       func(_ context.Context, _ *testing.T, _ statestore.Service, _ []*pb.Assignment, _ *sync.WaitGroup) {},
 			wantCode:        codes.NotFound,
 			wantAssignments: []*pb.Assignment{},
 		},
 		{
 			description: "expect two assignment reads from preAction writes and fail in grpc aborted code",
-			preAction: func(t *testing.T, store statestore.Service, wantAssignments []*pb.Assignment, wg *sync.WaitGroup) {
-				assert.Nil(t, store.CreateTicket(context.Background(), testTicket))
+			preAction: func(ctx context.Context, t *testing.T, store statestore.Service, wantAssignments []*pb.Assignment, wg *sync.WaitGroup) {
+				assert.Nil(t, store.CreateTicket(ctx, testTicket))
 
 				go func(wg *sync.WaitGroup) {
 					for i := 0; i < len(wantAssignments); i++ {
 						time.Sleep(50 * time.Millisecond)
-						assert.Nil(t, store.UpdateAssignments(context.Background(), []string{testTicket.GetId()}, wantAssignments[i]))
+						assert.Nil(t, store.UpdateAssignments(ctx, []string{testTicket.GetId()}, wantAssignments[i]))
 						wg.Done()
 					}
 				}(wg)
@@ -147,10 +148,12 @@ func TestDoGetAssignments(t *testing.T) {
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
 			defer closer()
 
+			ctx := utilTesting.NewContext(t)
+
 			gotAssignments := []*pb.Assignment{}
 
-			test.preAction(t, store, test.wantAssignments, &wg)
-			err := doGetAssignments(context.Background(), testTicket.GetId(), senderGenerator(gotAssignments, len(test.wantAssignments)), store)
+			test.preAction(ctx, t, store, test.wantAssignments, &wg)
+			err := doGetAssignments(ctx, testTicket.GetId(), senderGenerator(gotAssignments, len(test.wantAssignments)), store)
 			assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
 			wg.Wait()
@@ -197,7 +200,7 @@ func TestDoDeleteTicket(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
 			defer closer()
 
@@ -248,7 +251,7 @@ func TestDoGetTicket(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
 			defer closer()
 

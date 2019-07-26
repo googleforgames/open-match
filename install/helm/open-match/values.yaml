@@ -54,10 +54,12 @@ evaluator: &evaluator
   hostName: om-evaluator
   grpcPort: 50508
   httpPort: 51508
+  replicas: 3
 function: &function
   hostName: om-function
   grpcPort: 50502
   httpPort: 51502
+  replicas: 3
 
 image:
   registry: gcr.io/open-match-public-images
@@ -182,4 +184,4 @@ global:
       reporterEndpoint: "zipkin" 
     grafana:
       enabled: false
-    reportingPeriod: "5s"
+    reportingPeriod: "1m"

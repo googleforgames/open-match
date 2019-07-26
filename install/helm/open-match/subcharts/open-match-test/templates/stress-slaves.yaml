@@ -37,7 +37,7 @@ spec:
         component: locust-worker
         release: {{ .Release.Name }}
     spec:
-      serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
+      serviceAccountName: {{ .Values.kubernetes.serviceAccount }}
       containers:
       - name: {{ .Values.stresstest.slavesName }}
         image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.stresstest.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"

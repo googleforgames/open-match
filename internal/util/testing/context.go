@@ -12,28 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package testing provides utility methods for testing.
 package testing
 
 import (
-	"fmt"
+	"context"
 	"testing"
 )
 
-const (
-	numIterations = 1000
-)
+type contextTestKey string
 
-func TestMustListen(t *testing.T) {
-	for i := 0; i < numIterations; i++ {
-		testName := fmt.Sprintf("[%d] MustListen", i)
-		t.Run(testName, func(t *testing.T) {
-			t.Parallel()
-
-			lh := MustListen()
-			defer lh.Close()
-			if lh.Number() <= 0 {
-				t.Errorf("Expected %d > 0, port is out of range.", lh.Number())
-			}
-		})
-	}
+// NewContext returns a context appropriate for calling a gRPC service that
+// is not hosted on a cluster or in Minimatch, (ie: tests not in test/e2e/).
+// For those tests use OM.Context() method.
+func NewContext(t *testing.T) context.Context {
+	return context.WithValue(context.Background(), contextTestKey("testing.T"), t)
 }

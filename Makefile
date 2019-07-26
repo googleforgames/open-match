@@ -348,12 +348,11 @@ build/chart/: build/chart/index.yaml build/chart/index.yaml.$(YEAR_MONTH_DAY)
 
 install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
-		--timeout=400 \
+		--timeout=600 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
 		--set global.telemetry.grafana.enabled=true \
-		--set global.telemetry.zipkin.enabled=true
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
 		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
@@ -633,7 +632,12 @@ create-gke-cluster: GKE_VERSION = 1.13.6 # gcloud beta container get-server-conf
 create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
-	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --enable-pod-security-policy --cluster-version $(GKE_VERSION) --image-type cos_containerd --tags open-match $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS) $(GKE_CLUSTER_FLAGS)
+	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS) $(GKE_CLUSTER_FLAGS) \
+		--enable-pod-security-policy \
+		--cluster-version $(GKE_VERSION) \
+		--image-type cos_containerd \
+		--tags open-match \
+		--identity-namespace=$(GCP_PROJECT_ID).svc.id.goog
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
 delete-gke-cluster: gcloud
@@ -698,11 +702,11 @@ build: assets
 	$(GO) build ./...
 	$(GO) build -tags e2ecluster ./... 
 
-test: assets
+test: all-protos tls-certs third_party/
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./...
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
-test-e2e-cluster: assets
+test-e2e-cluster: all-protos tls-certs third_party/
 	$(GO) test ./... -race -tags e2ecluster
 
 stress-frontend-%: build/toolchain/python/

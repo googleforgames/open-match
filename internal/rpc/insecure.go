@@ -25,15 +25,14 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/telemetry"
-	"open-match.dev/open-match/internal/util/netlistener"
 )
 
 type insecureServer struct {
-	grpcLh       *netlistener.ListenerHolder
+	grpcLh       *ListenerHolder
 	grpcListener net.Listener
 	grpcServer   *grpc.Server
 
-	httpLh       *netlistener.ListenerHolder
+	httpLh       *ListenerHolder
 	httpListener net.Listener
 	httpMux      *http.ServeMux
 	proxyMux     *runtime.ServeMux
@@ -123,7 +122,7 @@ func (s *insecureServer) stop() {
 	}
 }
 
-func newInsecureServer(grpcLh *netlistener.ListenerHolder, httpLh *netlistener.ListenerHolder) *insecureServer {
+func newInsecureServer(grpcLh *ListenerHolder, httpLh *ListenerHolder) *insecureServer {
 	return &insecureServer{
 		grpcLh: grpcLh,
 		httpLh: httpLh,

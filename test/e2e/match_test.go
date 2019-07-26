@@ -17,11 +17,12 @@
 package e2e
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/testing/e2e"
-	"testing"
 
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -71,8 +72,9 @@ func TestFetchMatches(t *testing.T) {
 			test := test
 			t.Run(test.description, func(t *testing.T) {
 				t.Parallel()
+				ctx := om.Context()
 
-				resp, err := be.FetchMatches(om.Context(), &pb.FetchMatchesRequest{Config: test.fc, Profiles: test.profile})
+				resp, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{Config: test.fc, Profiles: test.profile})
 				assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
 				if err == nil {

@@ -17,7 +17,7 @@ kind: PodSecurityPolicy
 metadata:
   name: om-podsecuritypolicy
   namespace: {{ .Release.Namespace }}
-  annotations: {{- include "openmatch.chartmeta" . | nindent 2 }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
     release: {{ .Release.Name }}
