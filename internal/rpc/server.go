@@ -34,7 +34,6 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/signal"
 	"open-match.dev/open-match/internal/telemetry"
-	"open-match.dev/open-match/internal/util/netlistener"
 )
 
 const (
@@ -65,8 +64,8 @@ type ServerParams struct {
 	handlersForGrpcProxy   []GrpcProxyHandler
 	handlersForHealthCheck []func(context.Context) error
 
-	grpcListener      *netlistener.ListenerHolder
-	grpcProxyListener *netlistener.ListenerHolder
+	grpcListener      *ListenerHolder
+	grpcProxyListener *ListenerHolder
 
 	// Root CA public certificate in PEM format.
 	rootCaPublicCertificateFileData []byte
@@ -83,12 +82,12 @@ type ServerParams struct {
 
 // NewServerParamsFromConfig returns server Params initialized from the configuration file.
 func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, error) {
-	grpcLh, err := netlistener.NewFromPortNumber(cfg.GetInt(prefix + ".grpcport"))
+	grpcLh, err := newFromPortNumber(cfg.GetInt(prefix + ".grpcport"))
 	if err != nil {
 		serverLogger.Fatal(err)
 		return nil, err
 	}
-	httpLh, err := netlistener.NewFromPortNumber(cfg.GetInt(prefix + ".httpport"))
+	httpLh, err := newFromPortNumber(cfg.GetInt(prefix + ".httpport"))
 	if err != nil {
 		closeErr := grpcLh.Close()
 		if closeErr != nil {
@@ -139,7 +138,7 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 }
 
 // NewServerParamsFromListeners returns server Params initialized with the ListenerHolder variables.
-func NewServerParamsFromListeners(grpcLh *netlistener.ListenerHolder, proxyLh *netlistener.ListenerHolder) *ServerParams {
+func NewServerParamsFromListeners(grpcLh *ListenerHolder, proxyLh *ListenerHolder) *ServerParams {
 	return &ServerParams{
 		ServeMux:             http.NewServeMux(),
 		handlersForGrpc:      []GrpcHandler{},

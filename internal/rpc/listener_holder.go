@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package netlistener provides utilities for net.Listener.
-package netlistener
+package rpc
 
 import (
 	"fmt"
@@ -68,8 +67,8 @@ func (lh *ListenerHolder) Close() error {
 	return nil
 }
 
-// NewFromPortNumber opens a TCP listener based on the port number provided.
-func NewFromPortNumber(portNumber int) (*ListenerHolder, error) {
+// newFromPortNumber opens a TCP listener based on the port number provided.
+func newFromPortNumber(portNumber int) (*ListenerHolder, error) {
 	addr := ""
 	// port 0 actually means random port which should only be used in tests.
 	if portNumber == 0 {
@@ -93,4 +92,15 @@ func NewFromPortNumber(portNumber int) (*ListenerHolder, error) {
 		listener: conn,
 		addr:     conn.Addr().String(),
 	}, nil
+}
+
+// MustListen finds the next available port to open for TCP connections, used in tests to make them isolated.
+func MustListen() *ListenerHolder {
+	// Port 0 in Go is a special port number to randomly choose an available port.
+	// Reference, https://golang.org/pkg/net/#ListenTCP.
+	lh, err := newFromPortNumber(0)
+	if err != nil {
+		panic(err)
+	}
+	return lh
 }

@@ -16,22 +16,19 @@ package rpc
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"testing"
-
 	"github.com/spf13/viper"
-	"open-match.dev/open-match/internal/config"
-
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
+	"io/ioutil"
+	"net/http"
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/telemetry"
 	shellTesting "open-match.dev/open-match/internal/testing"
-	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
+	"os"
+	"testing"
 )
 
 func TestSecureGRPCFromConfig(t *testing.T) {
@@ -162,8 +159,8 @@ func runHTTPClientTests(assert *assert.Assertions, cfg config.View, rpcParams *S
 // Generate a config view and optional TLS key manifests (optional) for testing
 func configureConfigAndKeysForTesting(assert *assert.Assertions, tlsEnabled bool) (config.View, *ServerParams, func()) {
 	// Create netlisteners on random ports used for rpc serving
-	grpcLh := netlistenerTesting.MustListen()
-	httpLh := netlistenerTesting.MustListen()
+	grpcLh := MustListen()
+	httpLh := MustListen()
 	rpcParams := NewServerParamsFromListeners(grpcLh, httpLh)
 
 	// Generate a config view with paths to the manifests
