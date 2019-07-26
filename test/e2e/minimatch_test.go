@@ -17,6 +17,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"math"
@@ -128,11 +129,12 @@ func TestMinimatch(t *testing.T) {
 
 				fe := om.MustFrontendGRPC()
 				mml := om.MustMmLogicGRPC()
+				ctx := om.Context()
 
 				// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids
 				// to expected player pools.
 				for i, td := range testTickets {
-					resp, err := fe.CreateTicket(om.Context(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{
+					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{
 						Properties: structs.Struct{
 							e2e.SkillAttribute: structs.Number(td.skill),
 							td.mapValue:        structs.Number(float64(time.Now().Unix())),
@@ -149,7 +151,7 @@ func TestMinimatch(t *testing.T) {
 
 				// Query tickets for each pool
 				for _, pool := range testPools {
-					qtstr, err := mml.QueryTickets(om.Context(), &pb.QueryTicketsRequest{Pool: pool})
+					qtstr, err := mml.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
 					assert.Nil(t, err)
 					assert.NotNil(t, qtstr)
 
@@ -182,17 +184,17 @@ func TestMinimatch(t *testing.T) {
 					assert.Equal(t, poolTickets[pool.Name], want)
 				}
 
-				testFetchMatches(t, poolTickets, testProfiles, om, fc)
+				testFetchMatches(ctx, t, poolTickets, testProfiles, om, fc)
 			})
 		}
 	})
 }
 
-func testFetchMatches(t *testing.T, poolTickets map[string][]string, testProfiles []testProfile, om e2e.OM, fc *pb.FunctionConfig) {
+func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string][]string, testProfiles []testProfile, om e2e.OM, fc *pb.FunctionConfig) {
 	// Fetch Matches for each test profile.
 	be := om.MustBackendGRPC()
 	for _, profile := range testProfiles {
-		br, err := be.FetchMatches(om.Context(), &pb.FetchMatchesRequest{
+		br, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{
 			Config:   fc,
 			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
 		})

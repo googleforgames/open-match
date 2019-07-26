@@ -15,7 +15,6 @@
 package rpc
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -30,6 +29,7 @@ import (
 	"open-match.dev/open-match/internal/telemetry"
 	shellTesting "open-match.dev/open-match/internal/testing"
 	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
+	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
@@ -40,7 +40,7 @@ func TestSecureGRPCFromConfig(t *testing.T) {
 	cfg, rpcParams, closer := configureConfigAndKeysForTesting(assert, true)
 	defer closer()
 
-	runGrpcClientTests(assert, cfg, rpcParams)
+	runGrpcClientTests(t, assert, cfg, rpcParams)
 }
 
 func TestInsecureGRPCFromConfig(t *testing.T) {
@@ -49,7 +49,7 @@ func TestInsecureGRPCFromConfig(t *testing.T) {
 	cfg, rpcParams, closer := configureConfigAndKeysForTesting(assert, false)
 	defer closer()
 
-	runGrpcClientTests(assert, cfg, rpcParams)
+	runGrpcClientTests(t, assert, cfg, rpcParams)
 }
 
 func TestHTTPSFromConfig(t *testing.T) {
@@ -97,7 +97,7 @@ func TestSanitizeHTTPAddress(t *testing.T) {
 	}
 }
 
-func runGrpcClientTests(assert *assert.Assertions, cfg config.View, rpcParams *ServerParams) {
+func runGrpcClientTests(t *testing.T, assert *assert.Assertions, cfg config.View, rpcParams *ServerParams) {
 	// Serve a fake frontend server and wait for its full start up
 	ff := &shellTesting.FakeFrontend{}
 	rpcParams.AddHandleFunc(func(s *grpc.Server) {
@@ -116,7 +116,7 @@ func runGrpcClientTests(assert *assert.Assertions, cfg config.View, rpcParams *S
 	assert.NotNil(grpcConn)
 
 	// Confirm the client works as expected
-	ctx := context.Background()
+	ctx := utilTesting.NewContext(t)
 	feClient := pb.NewFrontendClient(grpcConn)
 	grpcResp, err := feClient.CreateTicket(ctx, &pb.CreateTicketRequest{})
 	assert.Nil(err)

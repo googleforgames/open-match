@@ -15,17 +15,18 @@
 package telemetry
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"go.opencensus.io/stats"
+	utilTesting "open-match.dev/open-match/internal/util/testing"
 )
 
 func TestIncrementCounter(t *testing.T) {
+	ctx := utilTesting.NewContext(t)
 	c := Counter("telemetry/fake_metric", "fake")
-	IncrementCounter(context.Background(), c)
-	IncrementCounter(context.Background(), c)
+	IncrementCounter(ctx, c)
+	IncrementCounter(ctx, c)
 }
 
 func TestDoubleMetric(t *testing.T) {

@@ -52,5 +52,5 @@ func TestInsecureStartStop(t *testing.T) {
 	httpClient := &http.Client{
 		Timeout: time.Second,
 	}
-	runGrpcWithProxyTests(assert, s, conn, httpClient, endpoint)
+	runGrpcWithProxyTests(t, assert, s, conn, httpClient, endpoint)
 }

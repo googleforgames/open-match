@@ -15,7 +15,6 @@
 package synchronizer
 
 import (
-	"context"
 	"sync"
 	"testing"
 	"time"
@@ -27,6 +26,7 @@ import (
 	"google.golang.org/grpc/status"
 	ipb "open-match.dev/open-match/internal/pb"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -237,7 +237,7 @@ func runEvaluationTest(t *testing.T, tc *testData) {
 	for _, c := range tc.testCalls {
 		c := c
 		go func(c *testCallData) {
-			ctx := context.Background()
+			ctx := utilTesting.NewContext(t)
 			defer w.Done()
 			time.Sleep(time.Duration(c.registerDelay) * time.Millisecond)
 			rResp, err := s.Register(ctx, &ipb.RegisterRequest{})
