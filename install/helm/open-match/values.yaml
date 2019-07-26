@@ -185,4 +185,4 @@ global:
       reporterEndpoint: "zipkin" 
     grafana:
       enabled: false
-    reportingPeriod: "5s"
+    reportingPeriod: "1m"
