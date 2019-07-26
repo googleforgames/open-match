@@ -110,7 +110,7 @@ resource "google_project_iam_binding" "stress_test_uploader_iam" {
   project = "${google_project_iam_custom_role.stress_test_uploader_role.project}"
   role    = "projects/${google_project_iam_custom_role.stress_test_uploader_role.project}/roles/${google_project_iam_custom_role.stress_test_uploader_role.role_id}"
   members = [
-    "serviceAccount:${google_service_account.stress_test_uploader_role.email}"
+    "serviceAccount:${google_service_account.stress_test_uploader.email}"
   ]
   depends_on = ["null_resource.after_service_account_creation"]
 }
