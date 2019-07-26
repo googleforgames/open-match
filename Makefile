@@ -692,11 +692,11 @@ build: assets
 	$(GO) build ./...
 	$(GO) build -tags e2ecluster ./... 
 
-test: assets
+test: all-protos tls-certs third_party/
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./...
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
-test-e2e-cluster: assets
+test-e2e-cluster: all-protos tls-certs third_party/
 	$(GO) test ./... -race -tags e2ecluster
 
 stress-frontend-%: build/toolchain/python/
