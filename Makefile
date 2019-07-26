@@ -583,10 +583,7 @@ gcloud: no-sudo
 
 tls-certs: install/helm/open-match/secrets/
 
-install/helm/open-match/secrets/: install/helm/open-match/secrets/tls/root-ca/ install/helm/open-match/secrets/tls/server/ install/helm/open-match/secrets/open-match-test/key.json
-
-install/helm/open-match/secrets/open-match-test/key.json:
-	$(GCLOUD) iam service-accounts keys create $(OPEN_MATCH_SECRETS_DIR)/open-match-test/key.json --iam-account open-match-dev@$(GCP_PROJECT_ID).iam.gserviceaccount.com
+install/helm/open-match/secrets/: install/helm/open-match/secrets/tls/root-ca/ install/helm/open-match/secrets/tls/server/
 
 install/helm/open-match/secrets/tls/root-ca/: build/toolchain/bin/certgen$(EXE_EXTENSION)
 	mkdir -p $(OPEN_MATCH_SECRETS_DIR)/tls/root-ca
@@ -859,7 +856,7 @@ ci-reap-clusters: build/toolchain/bin/reaper$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: GOLANG_TEST_COUNT = 5
-presubmit: clean update-deps update-chart-deps third_party/ assets lint build install-toolchain test md-test terraform-test
+presubmit: clean update-deps third_party/ assets lint build install-toolchain test md-test terraform-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
