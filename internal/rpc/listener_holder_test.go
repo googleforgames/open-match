@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package netlistener
+package rpc
 
 import (
 	"fmt"
@@ -28,9 +28,9 @@ const (
 
 // TestAddrString verifies that AddrString() is consistent with the port's Addr().String() value.
 func TestAddrString(t *testing.T) {
-	lh, err := NewFromPortNumber(0)
+	lh, err := newFromPortNumber(0)
 	if err != nil {
-		t.Fatalf("NewFromPortNumber(0) had error, %s", err)
+		t.Fatalf("newFromPortNumber(0) had error, %s", err)
 	}
 
 	if !strings.HasSuffix(lh.AddrString(), fmt.Sprintf(":%d", lh.Number())) {
@@ -56,9 +56,9 @@ func TestAddrString(t *testing.T) {
 func TestObtain(t *testing.T) {
 	var errCount uint64
 	var obtainCount uint64
-	lh, err := NewFromPortNumber(0)
+	lh, err := newFromPortNumber(0)
 	if err != nil {
-		t.Fatalf("NewFromPortNumber(0) had error, %s", err)
+		t.Fatalf("newFromPortNumber(0) had error, %s", err)
 	}
 	var wg sync.WaitGroup
 	for i := 0; i < numIterations; i++ {
@@ -83,5 +83,20 @@ func TestObtain(t *testing.T) {
 	}
 	if finalObtainCount != 1 {
 		t.Errorf("expected %d obtains, got %d", 1, finalObtainCount)
+	}
+}
+
+func TestMustListen(t *testing.T) {
+	for i := 0; i < numIterations; i++ {
+		testName := fmt.Sprintf("[%d] MustListen", i)
+		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
+
+			lh := MustListen()
+			defer lh.Close()
+			if lh.Number() <= 0 {
+				t.Errorf("Expected %d > 0, port is out of range.", lh.Number())
+			}
+		})
 	}
 }

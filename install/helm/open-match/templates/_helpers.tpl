@@ -116,3 +116,9 @@ readinessProbe:
   periodSeconds: 10
   failureThreshold: 2
 {{- end -}}
+
+{{- define "openmatch.HorizontalPodAutoscaler.spec.common" -}}
+minReplicas: 1
+maxReplicas: 10
+targetCPUUtilizationPercentage: 50
+{{- end -}}

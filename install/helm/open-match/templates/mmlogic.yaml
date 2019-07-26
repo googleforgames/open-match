@@ -37,6 +37,18 @@ spec:
     protocol: TCP
     port: {{ .Values.mmlogic.httpPort }}
 ---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.mmlogic.hostName }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: {{ .Values.mmlogic.hostName }}
+  {{- include "openmatch.HorizontalPodAutoscaler.spec.common" . | nindent 2 }}
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:

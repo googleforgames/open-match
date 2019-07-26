@@ -25,13 +25,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	shellTesting "open-match.dev/open-match/internal/testing"
-	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 )
 
 func TestInsecureStartStop(t *testing.T) {
 	assert := assert.New(t)
-	grpcLh := netlistenerTesting.MustListen()
-	httpLh := netlistenerTesting.MustListen()
+	grpcLh := MustListen()
+	httpLh := MustListen()
 	ff := &shellTesting.FakeFrontend{}
 
 	params := NewServerParamsFromListeners(grpcLh, httpLh)
@@ -52,5 +51,5 @@ func TestInsecureStartStop(t *testing.T) {
 	httpClient := &http.Client{
 		Timeout: time.Second,
 	}
-	runGrpcWithProxyTests(assert, s, conn, httpClient, endpoint)
+	runGrpcWithProxyTests(t, assert, s, conn, httpClient, endpoint)
 }

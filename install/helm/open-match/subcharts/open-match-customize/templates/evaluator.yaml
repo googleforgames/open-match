@@ -35,12 +35,24 @@ spec:
     protocol: TCP
     port: {{ .Values.evaluator.httpPort }}
 ---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.evaluator.hostName }}
+  namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: {{ .Values.evaluator.hostName }}
+  {{- include "openmatch.HorizontalPodAutoscaler.spec.common" . | nindent 2 }}
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: {{ .Values.evaluator.hostName }}
   namespace: {{ .Release.Namespace }}
-  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
     component: evaluator

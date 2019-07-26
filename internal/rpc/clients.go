@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"strings"
@@ -39,7 +40,8 @@ import (
 )
 
 const (
-	configNameEnableRPCLogging = "logging.rpc"
+	// ConfigNameEnableRPCLogging is the config name for enabling RPC logging.
+	ConfigNameEnableRPCLogging = "logging.rpc"
 	// configNameClientTrustedCertificatePath is the same as the root CA cert that the server trusts.
 	configNameClientTrustedCertificatePath = configNameServerRootCertificatePath
 )
@@ -67,7 +69,7 @@ func (p *ClientParams) usingTLS() bool {
 func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, error) {
 	clientParams := &ClientParams{
 		Address:          toAddress(cfg.GetString(prefix+".hostname"), cfg.GetInt(prefix+".grpcport")),
-		EnableRPCLogging: cfg.GetBool(configNameEnableRPCLogging),
+		EnableRPCLogging: cfg.GetBool(ConfigNameEnableRPCLogging),
 		EnableMetrics:    cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}
 
@@ -92,7 +94,7 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 // GRPCClientFromEndpoint creates a gRPC client connection from endpoint.
 func GRPCClientFromEndpoint(cfg config.View, address string) (*grpc.ClientConn, error) {
 	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
-	grpcOptions := newGRPCDialOptions(cfg.GetBool(telemetry.ConfigNameEnableMetrics), cfg.GetBool(configNameEnableRPCLogging))
+	grpcOptions := newGRPCDialOptions(cfg.GetBool(telemetry.ConfigNameEnableMetrics), cfg.GetBool(ConfigNameEnableRPCLogging))
 
 	if cfg.GetString(configNameClientTrustedCertificatePath) != "" {
 		_, err := os.Stat(cfg.GetString(configNameClientTrustedCertificatePath))
@@ -144,7 +146,7 @@ func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string, error) {
 	clientParams := &ClientParams{
 		Address:          toAddress(cfg.GetString(prefix+".hostname"), cfg.GetInt(prefix+".httpport")),
-		EnableRPCLogging: cfg.GetBool(configNameEnableRPCLogging),
+		EnableRPCLogging: cfg.GetBool(ConfigNameEnableRPCLogging),
 		EnableMetrics:    cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}
 
@@ -188,7 +190,7 @@ func HTTPClientFromEndpoint(cfg config.View, address string) (*http.Client, stri
 	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
 	params := &ClientParams{
 		Address:          address,
-		EnableRPCLogging: cfg.GetBool(configNameEnableRPCLogging),
+		EnableRPCLogging: cfg.GetBool(ConfigNameEnableRPCLogging),
 		EnableMetrics:    cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}
 	if cfg.GetString(configNameClientTrustedCertificatePath) != "" {
@@ -243,10 +245,20 @@ func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 		}
 	}
 
+	if params.EnableRPCLogging {
+		attachTransport(httpClient, func(transport http.RoundTripper) http.RoundTripper {
+			return &loggingHTTPClient{
+				transport: transport,
+			}
+		})
+	}
+
 	if params.EnableMetrics {
-		httpClient.Transport = &ochttp.Transport{
-			Base: httpClient.Transport,
-		}
+		attachTransport(httpClient, func(transport http.RoundTripper) http.RoundTripper {
+			return &ochttp.Transport{
+				Base: transport,
+			}
+		})
 	}
 
 	return httpClient, baseURL, nil
@@ -279,4 +291,42 @@ func newGRPCDialOptions(enableMetrics bool, enableRPCLogging bool) []grpc.DialOp
 
 func toAddress(hostname string, port int) string {
 	return fmt.Sprintf("%s:%d", hostname, port)
+}
+
+type loggingHTTPClient struct {
+	transport http.RoundTripper
+}
+
+func (c *loggingHTTPClient) RoundTrip(req *http.Request) (*http.Response, error) {
+	dumpReqLog, dumpReqErr := httputil.DumpRequest(req, true)
+	fields := logrus.Fields{
+		"method": req.Method,
+		"url":    req.URL,
+		"proto":  req.Proto,
+	}
+	if dumpReqErr == nil {
+		clientLogger.WithFields(fields).Info(string(dumpReqLog))
+	} else {
+		clientLogger.WithError(dumpReqErr).WithFields(fields).Info("cannot dump request")
+	}
+	resp, err := c.transport.RoundTrip(req)
+	if err == nil {
+		dumpRespLog, dumpRespErr := httputil.DumpResponse(resp, true)
+		if dumpRespErr == nil {
+			clientLogger.WithFields(fields).Info(string(dumpRespLog))
+		} else {
+			clientLogger.WithError(dumpRespErr).WithFields(fields).Info("request was successful but cannot dump response")
+		}
+	} else {
+		clientLogger.WithError(err).WithFields(fields).Info("request failed")
+	}
+	return resp, err
+}
+
+func attachTransport(client *http.Client, wrapper func(http.RoundTripper) http.RoundTripper) {
+	transport := client.Transport
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+	client.Transport = wrapper(transport)
 }
