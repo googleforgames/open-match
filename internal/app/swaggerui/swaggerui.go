@@ -26,6 +26,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/telemetry"
 )
@@ -45,6 +46,7 @@ func RunApplication() {
 			"error": err.Error(),
 		}).Fatalf("cannot read configuration.")
 	}
+	logging.ConfigureLogging(cfg)
 
 	serve(cfg)
 }
