@@ -83,6 +83,7 @@ spec:
           containerPort: 5558
           protocol: TCP
 {{- if .Values.stresstest.noweb }}
+        env:
         - name: NO_WEB
           value: "{{ .Values.stresstest.noweb }}"
         - name: GCP_PROJECT
