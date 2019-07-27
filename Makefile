@@ -279,7 +279,13 @@ build-base-build-image: docker all-protos
 	docker build -f Dockerfile.base-build -t open-match-base-build .
 
 build-%-image: docker build-base-build-image
-	docker build -f cmd/$*/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-$*:$(TAG) -t $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG) .
+	docker build \
+		-f Dockerfile.cmd \
+		$(IMAGE_BUILD_ARGS) \
+		--build-arg=IMAGE_TITLE=$* \
+		-t $(REGISTRY)/openmatch-$*:$(TAG) \
+		-t $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG) \
+		.
 
 build-demo-image: docker build-base-build-image
 	docker build -f examples/demo/Dockerfile -t $(REGISTRY)/openmatch-demo:$(TAG) -t $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG) .
@@ -733,9 +739,10 @@ build/cmd: $(CMDS_BUILD_FOLDERS)
 # files to be included in the image.
 $(CMDS_BUILD_FOLDERS): build/cmd/%: build/cmd/%/BUILD_PHONY build/cmd/%/COPY_PHONY
 
-build/cmd/%/BUILD_PHONY: all-protos
+
+build/cmd/%/BUILD_PHONY:
 	mkdir -p $(BUILD_DIR)/cmd/$*
-	$(GO) build -o $(BUILD_DIR)/cmd/$*/$* open-match.dev/open-match/cmd/$*
+	CGO_ENABLED=0 $(GO) build -a -installsuffix cgo -o $(BUILD_DIR)/cmd/$*/run open-match.dev/open-match/cmd/$*
 
 # Default is that nothing needs to be copied into the direcotry
 build/cmd/%/COPY_PHONY:
