@@ -21,6 +21,7 @@ ARG IMAGE_TITLE
 RUN make "build/cmd/${IMAGE_TITLE}"
 
 FROM gcr.io/distroless/static:nonroot
+ARG IMAGE_TITLE
 WORKDIR /app/
 
 COPY --from=builder --chown=nonroot "/go/src/open-match.dev/open-match/build/cmd/${IMAGE_TITLE}/" "/app/"
