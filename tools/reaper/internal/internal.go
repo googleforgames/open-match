@@ -16,15 +16,16 @@
 package internal
 
 import (
-	container "cloud.google.com/go/container/apiv1"
 	"context"
 	"fmt"
-	containerpb "google.golang.org/genproto/googleapis/container/v1"
 	"log"
 	"net"
 	"net/http"
 	"strings"
 	"time"
+
+	container "cloud.google.com/go/container/apiv1"
+	containerpb "google.golang.org/genproto/googleapis/container/v1"
 )
 
 // Params for deleting a cluster.
