@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package demo contains the core startup code for running a demo.
 package demo
 
 import (
@@ -38,6 +39,8 @@ var (
 	})
 )
 
+// Run starts the provided components, and hosts a webserver for observing the
+// output of those components.
 func Run(comps map[string]func(*components.DemoShared)) {
 	cfg, err := config.Read()
 	if err != nil {
