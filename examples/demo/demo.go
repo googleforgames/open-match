@@ -12,21 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package demo
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
-	"net/http"
 	"open-match.dev/open-match/examples/demo/bytesub"
 	"open-match.dev/open-match/examples/demo/components"
-	"open-match.dev/open-match/examples/demo/components/clients"
-	"open-match.dev/open-match/examples/demo/components/director"
-	"open-match.dev/open-match/examples/demo/components/uptime"
 	"open-match.dev/open-match/examples/demo/updater"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
@@ -40,7 +38,7 @@ var (
 	})
 )
 
-func main() {
+func Run(comps map[string]func(*components.DemoShared)) {
 	cfg, err := config.Read()
 	if err != nil {
 		logger.WithFields(logrus.Fields{
@@ -80,23 +78,15 @@ func main() {
 
 	logger.Info("Starting Server")
 
-	go startComponents(cfg, u)
-
-	address := fmt.Sprintf(":%d", cfg.GetInt("api.demo.httpport"))
-	err = http.ListenAndServe(address, nil)
-	logger.WithError(err).Warning("HTTP server closed.")
-}
-
-func startComponents(cfg config.View, u *updater.Updater) {
-	for name, f := range map[string]func(*components.DemoShared){
-		"uptime":   uptime.Run,
-		"clients":  clients.Run,
-		"director": director.Run,
-	} {
+	for name, f := range comps {
 		go f(&components.DemoShared{
 			Ctx:    context.Background(),
 			Cfg:    cfg,
 			Update: u.ForField(name),
 		})
 	}
+
+	address := fmt.Sprintf(":%d", cfg.GetInt("api.demo.httpport"))
+	err = http.ListenAndServe(address, nil)
+	logger.WithError(err).Warning("HTTP server closed.")
 }
