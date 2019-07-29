@@ -48,7 +48,7 @@ func RunApplication(serverName string, bindService func(*rpc.ServerParams, confi
 	if err := bindService(p, cfg); err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
-		}).Fatalf("failed to bind backend service.")
+		}).Fatalf("failed to bind %s service.", serverName)
 	}
 
 	rpc.MustServeForever(p)
