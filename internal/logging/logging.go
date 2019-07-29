@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package logging provides configurable logging.
+// Package logging configures the Logrus logging library.
 package logging
 
 import (
@@ -37,6 +37,9 @@ func ConfigureLogging(cfg config.View) {
 	}
 
 	switch cfg.GetString("logging.level") {
+	case "trace":
+		logrus.SetLevel(logrus.TraceLevel)
+		logrus.Warn("Trace logging level configured. Not recommended for production!")
 	case "debug":
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.Warn("Debug logging level configured. Not recommended for production!")
