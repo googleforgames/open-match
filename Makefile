@@ -739,7 +739,7 @@ build/cmd: $(CMDS_BUILD_FOLDERS)
 # files to be included in the image.
 $(CMDS_BUILD_FOLDERS): build/cmd/%: build/cmd/%/BUILD_PHONY build/cmd/%/COPY_PHONY
 
-build/cmd/%/BUILD_PHONY: $(ALL_PROTOS)
+build/cmd/%/BUILD_PHONY:
 	mkdir -p $(BUILD_DIR)/cmd/$*
 	CGO_ENABLED=0 $(GO) build -a -installsuffix cgo -o $(BUILD_DIR)/cmd/$*/run open-match.dev/open-match/cmd/$*
 
