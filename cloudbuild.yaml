@@ -70,14 +70,6 @@ steps:
     path: '/go'
   waitFor: ['Build: Clean']
 
-- id: 'Build: Install Kubernetes Tools'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'install-kubernetes-tools']
-  volumes:
-  - name: 'go-vol'
-    path: '/go'
-  waitFor: ['Build: Clean']
-
 - id: 'Build: Install Toolchain'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'install-toolchain']
@@ -123,7 +115,7 @@ steps:
 - id: 'Build: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'push-helm-ci', 'update-chart-deps', 'clean-install-yaml', 'install/yaml/']
-  waitFor: ['Build: Install Kubernetes Tools']
+  waitFor: ['Build: Install Toolchain']
 
 - id: 'Lint: Format, Vet, Charts'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -136,7 +128,7 @@ steps:
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'auth-gke-cluster', 'delete-chart', 'install-ci-chart']
-  waitFor: ['Build: Install Kubernetes Tools', 'Build: Docker Images']
+  waitFor: ['Build: Install Toolchain', 'Build: Docker Images']
 
 - id: 'Deploy: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
