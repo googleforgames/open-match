@@ -144,9 +144,9 @@ steps:
   - name: 'go-vol'
     path: '/go'
 
-- id: 'Test: Delete Cluster'
+- id: 'Test: Delete Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'GCP_PROJECT_ID=${PROJECT_ID}', 'ci-reap-clusters', 'delete-gke-cluster']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'GCP_PROJECT_ID=${PROJECT_ID}', 'ci-reap-namespaces', 'delete-chart']
   waitFor: ['Test: End-to-End Cluster']
 
 - id: 'Deploy: Deployment Configs'
