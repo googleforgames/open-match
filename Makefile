@@ -146,7 +146,8 @@ OPEN_MATCH_CI_LABEL = open-match-ci
 ifdef OPEN_MATCH_CI_MODE
 	export KUBECONFIG = $(HOME)/.kube/config
 	GCLOUD = gcloud --quiet --no-user-output-enabled
-	GKE_CLUSTER_NAME = om-cluster-$(SHORT_SHA)
+	GKE_CLUSTER_NAME = open-match-ci
+	OPEN_MATCH_KUBERNETES_NAMESPACE = open-match-$(SHORT_SHA)
 	GKE_CLUSTER_FLAGS = --labels open-match-ci=1 --node-labels=open-match-ci=1 --network=projects/$(GCP_PROJECT_ID)/global/networks/open-match-ci --subnetwork=projects/$(GCP_PROJECT_ID)/regions/$(GCP_REGION)/subnetworks/ci-$(GCP_REGION)-$(NANOS_MODULO_60)
 endif
 
@@ -561,6 +562,9 @@ build/toolchain/bin/certgen$(EXE_EXTENSION): tools/certgen/certgen$(EXE_EXTENSIO
 build/toolchain/bin/reaper$(EXE_EXTENSION): tools/reaper/reaper$(EXE_EXTENSION)
 	mkdir -p $(TOOLCHAIN_BIN)
 	cp -f $(REPOSITORY_ROOT)/tools/reaper/reaper$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/reaper$(EXE_EXTENSION)
+ 
+push-helm-ci: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	$(HELM) init --service-account tiller --force-upgrade --client-only
 
 push-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(KUBECTL) create serviceaccount --namespace kube-system tiller
