@@ -161,6 +161,7 @@ artifacts:
             - install/yaml/03-prometheus-chart.yaml
             - install/yaml/04-grafana-chart.yaml
             - install/yaml/05-jaeger-chart.yaml
+
 substitutions:
     _OM_VERSION: "0.0.0-dev"
     _GCB_POST_SUBMIT: "0"
