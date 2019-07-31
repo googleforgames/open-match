@@ -196,7 +196,7 @@ func createZygote(m *testing.M) (OM, error) {
 		log.Fatalf("cannot get current user, %s", err)
 	}
 	kubeconfig := flag.String("kubeconfig", filepath.Join(u.HomeDir, ".kube", "config"), "Kubernetes configuration file")
-	namespace := flag.String("namespace", "open-match", "Open Match Namespace")
+	namespace := flag.String("namespace", fmt.Sprintf("open-match-%s", os.Getenv("SHORT_SHA")), "Open Match Namespace")
 	kubeconfigFromEnv := os.Getenv("KUBECONFIG")
 
 	flag.Parse()

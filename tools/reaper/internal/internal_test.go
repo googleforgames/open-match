@@ -16,7 +16,6 @@ package internal
 
 import (
 	"fmt"
-	containerpb "google.golang.org/genproto/googleapis/container/v1"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -24,7 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestServeAndClose(t *testing.T) {
@@ -53,10 +53,7 @@ func serve(conn net.Listener) func() {
 	go func() {
 		wg.Done()
 		err := Serve(conn, &Params{
-			Age:       time.Minute * 30,
-			Label:     "open-match-ci",
-			ProjectID: "open-match-build",
-			Location:  "us-west1-a",
+			Age: time.Minute * 30,
 		})
 		if err != nil {
 			fmt.Printf("http server did not shutdown cleanly, %s", err)
@@ -77,60 +74,56 @@ func killLater(port int) {
 
 func TestIsOrphaned(t *testing.T) {
 	testCases := []struct {
-		age      time.Duration
-		label    string
-		cluster  *containerpb.Cluster
-		expected bool
+		age       time.Duration
+		namespace corev1.Namespace
+		expected  bool
 	}{
 		{
 			time.Second,
-			"ci",
-			&containerpb.Cluster{
-				Name:           "Orphaned",
-				CreateTime:     time.Now().Add(-1 * time.Hour).Format(time.RFC3339),
-				ResourceLabels: map[string]string{"ci": "ok"},
+			corev1.Namespace{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					CreationTimestamp: metav1.Time{Time: time.Now().Add(-1 * time.Hour).UTC()},
+					Name:              "open-match-test-namespace",
+				},
 			},
 			true,
 		},
 		{
 			time.Second,
-			"ci",
-			&containerpb.Cluster{
-				Name:           "Not Orphaned, Created in the Future",
-				CreateTime:     time.Now().Add(1 * time.Hour).Format(time.RFC3339),
-				ResourceLabels: map[string]string{"ci": "ok"},
+			corev1.Namespace{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					CreationTimestamp: metav1.Time{Time: time.Now().Add(1 * time.Hour).UTC()},
+					Name:              "open-match-future-namespace",
+				},
 			},
 			false,
 		},
 		{
 			time.Second,
-			"ci",
-			&containerpb.Cluster{
-				Name:           "Not Orphaned, Created in Past but no Label",
-				CreateTime:     time.Now().Add(-1 * time.Hour).Format(time.RFC3339),
-				ResourceLabels: map[string]string{},
+			corev1.Namespace{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					CreationTimestamp: metav1.Time{Time: time.Now().Add(-1 * time.Hour).UTC()},
+					Name:              "kube-system",
+				},
 			},
 			false,
 		},
 	}
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%s deleted= %t", tc.cluster.Name, tc.expected), func(t *testing.T) {
-			actual := isOrphaned(tc.cluster, &Params{
-				Age:   tc.age,
-				Label: tc.label,
+		t.Run(fmt.Sprintf("%s deleted= %t", tc.namespace.ObjectMeta.Name, tc.expected), func(t *testing.T) {
+			actual := isOrphaned(tc.namespace, &Params{
+				Age: tc.age,
 			})
 			if actual != tc.expected {
 				if tc.expected {
-					t.Errorf("Cluster %s was NOT marked as orphaned but should have.", tc.cluster.Name)
+					t.Errorf("Namespace %s was NOT marked as orphaned but should have.", tc.namespace.ObjectMeta.Name)
 				} else {
-					t.Errorf("Cluster %s was marked as orphaned but should not have.", tc.cluster.Name)
+					t.Errorf("Namespace %s was marked as orphaned but should not have.", tc.namespace.ObjectMeta.Name)
 				}
 			}
 		})
 	}
-}
-
-func TestSelfLinkToQualifiedName(t *testing.T) {
-	assert := assert.New(t)
-	assert.Equal("projects/open-match-build/zones/us-central1-a/clusters/orphaned", selfLinkToQualifiedName("https://container.googleapis.com/v1/projects/open-match-build/zones/us-central1-a/clusters/orphaned"))
 }
