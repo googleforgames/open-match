@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main is the synchronizer service for Open Match.
-package main
-
-import (
-	"open-match.dev/open-match/internal/app"
-	"open-match.dev/open-match/internal/app/synchronizer"
-)
-
-func main() {
-	app.RunApplication("synchronizer", synchronizer.BindService)
-}
+// Package util provides utility structs and methods for Open Match.
+package util

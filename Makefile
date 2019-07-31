@@ -210,6 +210,12 @@ else
 	endif
 endif
 
+GOLANG_PROTOS = pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/messages.pb.go pkg/pb/mmlogic.pb.go pkg/pb/messages.pb.go pkg/pb/evaluator.pb.go internal/pb/synchronizer.pb.go pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/messages.pb.gw.go pkg/pb/mmlogic.pb.gw.go pkg/pb/evaluator.pb.gw.go internal/pb/synchronizer.pb.gw.go
+
+SWAGGER_JSON_DOCS = api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/synchronizer.swagger.json api/evaluator.swagger.json
+
+ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS)
+
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
 
@@ -222,7 +228,7 @@ retag-images: retag-service-images retag-example-images retag-tool-images retag-
 
 retag-service-images: retag-backend-image retag-frontend-image retag-mmlogic-image retag-minimatch-image retag-synchronizer-image retag-swaggerui-image
 retag-example-images: retag-demo-images retag-mmf-example-images retag-evaluator-example-images
-retag-demo-images: retag-mmf-go-soloduel-image retag-demo-image
+retag-demo-images: retag-mmf-go-soloduel-image retag-demo-first-match-image
 retag-mmf-example-images: retag-mmf-go-soloduel-image retag-mmf-go-pool-image
 retag-evaluator-example-images: retag-evaluator-go-simple-image
 retag-tool-images: retag-reaper-image
@@ -242,7 +248,7 @@ push-images: push-service-images push-example-images push-tool-images push-stres
 
 push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-synchronizer-image push-swaggerui-image
 push-example-images: push-demo-images push-mmf-example-images push-evaluator-example-images
-push-demo-images: push-mmf-go-soloduel-image push-demo-image
+push-demo-images: push-mmf-go-soloduel-image push-demo-first-match-image
 push-mmf-example-images: push-mmf-go-soloduel-image push-mmf-go-pool-image
 push-evaluator-example-images: push-evaluator-go-simple-image
 push-tool-images: push-reaper-image
@@ -267,7 +273,7 @@ build-images: build-service-images build-example-images build-tool-images build-
 
 build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-synchronizer-image build-swaggerui-image
 build-example-images: build-demo-images build-mmf-example-images build-evaluator-example-images
-build-demo-images: build-mmf-go-soloduel-image build-demo-image
+build-demo-images: build-mmf-go-soloduel-image build-demo-first-match-image
 build-mmf-example-images: build-mmf-go-soloduel-image build-mmf-go-pool-image
 build-evaluator-example-images: build-evaluator-go-simple-image
 build-tool-images: build-reaper-image
@@ -275,14 +281,17 @@ build-stress-test-images: build-stress-frontend-image
 
 # Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
 # This is important so that the repository does not have any mutations while building individual images.
-build-base-build-image: docker all-protos
+build-base-build-image: docker $(ALL_PROTOS)
 	docker build -f Dockerfile.base-build -t open-match-base-build .
 
 build-%-image: docker build-base-build-image
-	docker build -f cmd/$*/Dockerfile $(IMAGE_BUILD_ARGS) -t $(REGISTRY)/openmatch-$*:$(TAG) -t $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG) .
-
-build-demo-image: docker build-base-build-image
-	docker build -f examples/demo/Dockerfile -t $(REGISTRY)/openmatch-demo:$(TAG) -t $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG) .
+	docker build \
+		-f Dockerfile.cmd \
+		$(IMAGE_BUILD_ARGS) \
+		--build-arg=IMAGE_TITLE=$* \
+		-t $(REGISTRY)/openmatch-$*:$(TAG) \
+		-t $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG) \
+		.
 
 build-mmf-go-soloduel-image: docker build-base-build-image
 	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
@@ -342,12 +351,11 @@ build/chart/: build/chart/index.yaml build/chart/index.yaml.$(YEAR_MONTH_DAY)
 
 install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
-		--timeout=400 \
+		--timeout=600 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
 		--set global.telemetry.grafana.enabled=true \
-		--set global.telemetry.zipkin.enabled=true
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
 		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
@@ -562,6 +570,7 @@ ifneq ($(strip $($(KUBECTL) get clusterroles | grep -i rbac)),)
 	$(KUBECTL) patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
 endif
 	@echo "Waiting for Tiller to become ready..."
+	$(KUBECTL) wait deployment --timeout=60s --for condition=available -l app=helm,name=tiller --namespace kube-system
 	$(KUBECTL) wait pod --timeout=60s --for condition=Ready -l app=helm,name=tiller --namespace kube-system
 
 delete-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
@@ -626,7 +635,12 @@ create-gke-cluster: GKE_VERSION = 1.13.6 # gcloud beta container get-server-conf
 create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-2 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
-	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) --enable-pod-security-policy --cluster-version $(GKE_VERSION) --image-type cos_containerd --tags open-match $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS) $(GKE_CLUSTER_FLAGS)
+	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS) $(GKE_CLUSTER_FLAGS) \
+		--enable-pod-security-policy \
+		--cluster-version $(GKE_VERSION) \
+		--image-type cos_containerd \
+		--tags open-match \
+		--identity-namespace=$(GCP_PROJECT_ID).svc.id.goog
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
 delete-gke-cluster: gcloud
@@ -641,13 +655,7 @@ delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 gcp-apply-binauthz-policy: build/policies/binauthz.yaml
 	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
 
-all-protos: golang-protos http-proxy-golang-protos swagger-json-docs
-
-golang-protos: pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/messages.pb.go pkg/pb/mmlogic.pb.go pkg/pb/messages.pb.go pkg/pb/evaluator.pb.go internal/pb/synchronizer.pb.go
-
-http-proxy-golang-protos: pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/messages.pb.gw.go pkg/pb/mmlogic.pb.gw.go pkg/pb/evaluator.pb.gw.go internal/pb/synchronizer.pb.gw.go
-
-swagger-json-docs: api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/synchronizer.swagger.json api/evaluator.swagger.json
+all-protos: $(ALL_PROTOS)
 
 pkg/pb/%.pb.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	mkdir -p $(REPOSITORY_ROOT)/pkg/pb
@@ -691,11 +699,11 @@ build: assets
 	$(GO) build ./...
 	$(GO) build -tags e2ecluster ./... 
 
-test: assets
+test: $(ALL_PROTOS) tls-certs third_party/
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./...
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
-test-e2e-cluster: assets
+test-e2e-cluster: $(ALL_PROTOS) tls-certs third_party/
 	$(GO) test ./... -race -tags e2ecluster
 
 stress-frontend-%: build/toolchain/python/
@@ -714,7 +722,7 @@ golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 
 lint: fmt vet golangci lint-chart terraform-lint
 
-assets: all-protos tls-certs third_party/ build/chart/
+assets: $(ALL_PROTOS) tls-certs third_party/ build/chart/
 
 # CMDS is a list of all folders in cmd/
 CMDS = $(notdir $(wildcard cmd/*))
@@ -728,9 +736,9 @@ build/cmd: $(CMDS_BUILD_FOLDERS)
 # files to be included in the image.
 $(CMDS_BUILD_FOLDERS): build/cmd/%: build/cmd/%/BUILD_PHONY build/cmd/%/COPY_PHONY
 
-build/cmd/%/BUILD_PHONY: all-protos
+build/cmd/%/BUILD_PHONY:
 	mkdir -p $(BUILD_DIR)/cmd/$*
-	$(GO) build -o $(BUILD_DIR)/cmd/$*/$* open-match.dev/open-match/cmd/$*
+	CGO_ENABLED=0 $(GO) build -a -installsuffix cgo -o $(BUILD_DIR)/cmd/$*/run open-match.dev/open-match/cmd/$*
 
 # Default is that nothing needs to be copied into the direcotry
 build/cmd/%/COPY_PHONY:
@@ -741,6 +749,10 @@ build/cmd/swaggerui/COPY_PHONY:
 	cp third_party/swaggerui/* $(BUILD_DIR)/cmd/swaggerui/static/
 	$(SED_REPLACE) 's|https://open-match.dev/api/v.*/|/api/|g' $(BUILD_DIR)/cmd/swaggerui/static/config.json
 	cp api/*.json $(BUILD_DIR)/cmd/swaggerui/static/api/
+
+build/cmd/demo-%/COPY_PHONY:
+	mkdir -p $(BUILD_DIR)/cmd/demo-$*/
+	cp -r examples/demo/static $(BUILD_DIR)/cmd/demo-$*/static
 
 all: service-binaries example-binaries tools-binaries
 
@@ -830,9 +842,9 @@ build/certificates/: build/toolchain/bin/certgen$(EXE_EXTENSION)
 	cd $(BUILD_DIR)/certificates/ && $(CERTGEN)
 
 md-test: docker
-	docker run -t --rm -v $(CURDIR):/mnt:ro dkhamsing/awesome_bot --white-list "localhost,github.com/googleforgames/open-match/tree/release-,github.com/googleforgames/open-match/blob/release-,github.com/googleforgames/open-match/releases/download/v" --allow-dupe --allow-redirect --skip-save-results `find . -type f -name '*.md' -not -path './build/*' -not -path './.git*'`
+	docker run -t --rm -v $(CURDIR):/mnt:ro dkhamsing/awesome_bot --white-list "localhost,https://goreportcard.com,github.com/googleforgames/open-match/tree/release-,github.com/googleforgames/open-match/blob/release-,github.com/googleforgames/open-match/releases/download/v" --allow-dupe --allow-redirect --skip-save-results `find . -type f -name '*.md' -not -path './build/*' -not -path './.git*'`
 
-ci-deploy-artifacts: install/yaml/ swagger-json-docs build/chart/ gcloud
+ci-deploy-artifacts: install/yaml/ $(SWAGGER_JSON_DOCS) build/chart/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
 	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/v$(BASE_VERSION)/yaml/
 	gsutil cp -a public-read $(REPOSITORY_ROOT)/api/*.json gs://open-match-chart/api/v$(BASE_VERSION)/

@@ -37,6 +37,18 @@ spec:
     protocol: TCP
     port: {{ .Values.frontend.httpPort }}
 ---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.frontend.hostName }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: {{ .Values.frontend.hostName }}
+  {{- include "openmatch.HorizontalPodAutoscaler.spec.common" . | nindent 2 }}
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:

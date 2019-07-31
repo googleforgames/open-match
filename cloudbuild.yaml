@@ -70,14 +70,6 @@ steps:
     path: '/go'
   waitFor: ['Build: Clean']
 
-- id: 'Build: Install Kubernetes Tools'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'install-kubernetes-tools']
-  volumes:
-  - name: 'go-vol'
-    path: '/go'
-  waitFor: ['Build: Clean']
-
 - id: 'Build: Install Toolchain'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'install-toolchain']
@@ -123,7 +115,7 @@ steps:
 - id: 'Test: Create Cluster'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'delete-gke-cluster', 'create-gke-cluster', 'push-helm', 'update-chart-deps']
-  waitFor: ['Build: Install Kubernetes Tools']
+  waitFor: ['Build: Install Toolchain']
 
 # TODO: `make update-chart-deps` requires `helm init`. This requirement will go away after introducing helm3.
 - id: 'Build: Deployment Configs'
@@ -182,7 +174,7 @@ images:
 - 'gcr.io/$PROJECT_ID/openmatch-mmlogic:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-synchronizer:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-minimatch:${_OM_VERSION}-${SHORT_SHA}'
-- 'gcr.io/$PROJECT_ID/openmatch-demo:${_OM_VERSION}-${SHORT_SHA}'
+- 'gcr.io/$PROJECT_ID/openmatch-demo-first-match:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-go-soloduel:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-mmf-go-pool:${_OM_VERSION}-${SHORT_SHA}'
 - 'gcr.io/$PROJECT_ID/openmatch-evaluator-go-simple:${_OM_VERSION}-${SHORT_SHA}'

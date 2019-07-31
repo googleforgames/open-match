@@ -27,6 +27,9 @@ stresstest:
   rate: 200
   duration: 30s
 
+kubernetes:
+  serviceAccount: stress-test-uploader
+
 image:
   registry: gcr.io/open-match-public-images
   tag: 0.0.0-dev
