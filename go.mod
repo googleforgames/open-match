@@ -17,7 +17,7 @@ module open-match.dev/open-match
 go 1.12
 
 require (
-	cloud.google.com/go v0.40.0
+	cloud.google.com/go v0.40.0 // indirect
 	contrib.go.opencensus.io/exporter/jaeger v0.1.0
 	contrib.go.opencensus.io/exporter/ocagent v0.5.0
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
