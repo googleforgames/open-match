@@ -359,6 +359,7 @@ install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
+		--set global.logging.rpc.enabled=true \
 		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
@@ -861,8 +862,8 @@ else
 	@echo "Not deploying build artifacts to open-match.dev because this is not a post commit change."
 endif
 
-ci-reap-clusters: build/toolchain/bin/reaper$(EXE_EXTENSION)
-	$(TOOLCHAIN_BIN)/reaper -project=$(GCP_PROJECT_ID) -age=30m -location=$(GCP_ZONE) -label=$(OPEN_MATCH_CI_LABEL)
+ci-reap-namespaces: build/toolchain/bin/reaper$(EXE_EXTENSION)
+	$(TOOLCHAIN_BIN)/reaper -age=30m
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: GOLANG_TEST_COUNT = 5
@@ -1063,4 +1064,4 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
-.PHONY: docker gcloud update-deps sync-deps sleep-10 sleep-30 all build proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-reap-clusters md-test vet
+.PHONY: docker gcloud update-deps sync-deps sleep-10 sleep-30 all build proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-reap-namespaces md-test vet

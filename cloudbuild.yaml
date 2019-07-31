@@ -146,10 +146,9 @@ steps:
   - name: 'go-vol'
     path: '/go'
 
-# Disable ci-reap-clusters for now. TODO: refactor it to ci-reap-namespace
 - id: 'Test: Delete Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'GCP_PROJECT_ID=${PROJECT_ID}', 'ci-reap-clusters', 'delete-chart']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'GCP_PROJECT_ID=${PROJECT_ID}', 'ci-reap-namespaces', 'delete-chart']
   waitFor: ['Test: End-to-End Cluster']
 
 artifacts:

@@ -15,6 +15,7 @@
 package rpc
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
@@ -36,6 +37,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/telemetry"
 )
 
@@ -55,10 +57,11 @@ var (
 
 // ClientParams contains the connection parameters to connect to an Open Match service.
 type ClientParams struct {
-	Address            string
-	TrustedCertificate []byte
-	EnableRPCLogging   bool
-	EnableMetrics      bool
+	Address                 string
+	TrustedCertificate      []byte
+	EnableRPCLogging        bool
+	EnableRPCPayloadLogging bool
+	EnableMetrics           bool
 }
 
 func (p *ClientParams) usingTLS() bool {
@@ -68,9 +71,10 @@ func (p *ClientParams) usingTLS() bool {
 // GRPCClientFromConfig creates a gRPC client connection from a configuration.
 func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, error) {
 	clientParams := &ClientParams{
-		Address:          toAddress(cfg.GetString(prefix+".hostname"), cfg.GetInt(prefix+".grpcport")),
-		EnableRPCLogging: cfg.GetBool(ConfigNameEnableRPCLogging),
-		EnableMetrics:    cfg.GetBool(telemetry.ConfigNameEnableMetrics),
+		Address:                 toAddress(cfg.GetString(prefix+".hostname"), cfg.GetInt(prefix+".grpcport")),
+		EnableRPCLogging:        cfg.GetBool(ConfigNameEnableRPCLogging),
+		EnableRPCPayloadLogging: logging.IsDebugEnabled(cfg),
+		EnableMetrics:           cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}
 
 	// If TLS support is enabled in the config, fill in the trusted certificates for decrpting server certificate.
@@ -94,7 +98,7 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 // GRPCClientFromEndpoint creates a gRPC client connection from endpoint.
 func GRPCClientFromEndpoint(cfg config.View, address string) (*grpc.ClientConn, error) {
 	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
-	grpcOptions := newGRPCDialOptions(cfg.GetBool(telemetry.ConfigNameEnableMetrics), cfg.GetBool(ConfigNameEnableRPCLogging))
+	grpcOptions := newGRPCDialOptions(cfg.GetBool(telemetry.ConfigNameEnableMetrics), cfg.GetBool(ConfigNameEnableRPCLogging), logging.IsDebugEnabled(cfg))
 
 	if cfg.GetString(configNameClientTrustedCertificatePath) != "" {
 		_, err := os.Stat(cfg.GetString(configNameClientTrustedCertificatePath))
@@ -126,7 +130,7 @@ func GRPCClientFromEndpoint(cfg config.View, address string) (*grpc.ClientConn, 
 
 // GRPCClientFromParams creates a gRPC client connection from the parameters.
 func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
-	grpcOptions := newGRPCDialOptions(params.EnableMetrics, params.EnableRPCLogging)
+	grpcOptions := newGRPCDialOptions(params.EnableMetrics, params.EnableRPCLogging, params.EnableRPCPayloadLogging)
 
 	if params.usingTLS() {
 		trustedCertPool, err := trustedCertificateFromFileData(params.TrustedCertificate)
@@ -145,9 +149,10 @@ func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 // HTTPClientFromConfig creates a HTTP client from from a configuration.
 func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string, error) {
 	clientParams := &ClientParams{
-		Address:          toAddress(cfg.GetString(prefix+".hostname"), cfg.GetInt(prefix+".httpport")),
-		EnableRPCLogging: cfg.GetBool(ConfigNameEnableRPCLogging),
-		EnableMetrics:    cfg.GetBool(telemetry.ConfigNameEnableMetrics),
+		Address:                 toAddress(cfg.GetString(prefix+".hostname"), cfg.GetInt(prefix+".httpport")),
+		EnableRPCLogging:        cfg.GetBool(ConfigNameEnableRPCLogging),
+		EnableRPCPayloadLogging: logging.IsDebugEnabled(cfg),
+		EnableMetrics:           cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}
 
 	// If TLS support is enabled in the config, fill in the trusted certificates for decrpting server certificate.
@@ -189,9 +194,10 @@ func sanitizeHTTPAddress(address string, preferHTTPS bool) (string, error) {
 func HTTPClientFromEndpoint(cfg config.View, address string) (*http.Client, string, error) {
 	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
 	params := &ClientParams{
-		Address:          address,
-		EnableRPCLogging: cfg.GetBool(ConfigNameEnableRPCLogging),
-		EnableMetrics:    cfg.GetBool(telemetry.ConfigNameEnableMetrics),
+		Address:                 address,
+		EnableRPCLogging:        cfg.GetBool(ConfigNameEnableRPCLogging),
+		EnableRPCPayloadLogging: logging.IsDebugEnabled(cfg),
+		EnableMetrics:           cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}
 	if cfg.GetString(configNameClientTrustedCertificatePath) != "" {
 		_, err := os.Stat(cfg.GetString(configNameClientTrustedCertificatePath))
@@ -248,7 +254,8 @@ func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 	if params.EnableRPCLogging {
 		attachTransport(httpClient, func(transport http.RoundTripper) http.RoundTripper {
 			return &loggingHTTPClient{
-				transport: transport,
+				transport:   transport,
+				logPayloads: params.EnableRPCPayloadLogging,
 			}
 		})
 	}
@@ -264,7 +271,7 @@ func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 	return httpClient, baseURL, nil
 }
 
-func newGRPCDialOptions(enableMetrics bool, enableRPCLogging bool) []grpc.DialOption {
+func newGRPCDialOptions(enableMetrics bool, enableRPCLogging bool, enableRPCPayloadLogging bool) []grpc.DialOption {
 	si := []grpc.StreamClientInterceptor{
 		grpc_retry.StreamClientInterceptor(),
 	}
@@ -276,8 +283,17 @@ func newGRPCDialOptions(enableMetrics bool, enableRPCLogging bool) []grpc.DialOp
 			"app":       "openmatch",
 			"component": "grpc.client",
 		})
-		si = append(si, grpc_logrus.StreamClientInterceptor(grpcLogger))
-		ui = append(ui, grpc_logrus.UnaryClientInterceptor(grpcLogger))
+		grpcLogger.Level = logrus.DebugLevel
+		if enableRPCPayloadLogging {
+			logEverythingFromClient := func(_ context.Context, _ string) bool {
+				return true
+			}
+			si = append(si, grpc_logrus.PayloadStreamClientInterceptor(grpcLogger, logEverythingFromClient))
+			ui = append(ui, grpc_logrus.PayloadUnaryClientInterceptor(grpcLogger, logEverythingFromClient))
+		} else {
+			si = append(si, grpc_logrus.StreamClientInterceptor(grpcLogger))
+			ui = append(ui, grpc_logrus.UnaryClientInterceptor(grpcLogger))
+		}
 	}
 	opts := []grpc.DialOption{
 		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(si...)),
@@ -294,31 +310,32 @@ func toAddress(hostname string, port int) string {
 }
 
 type loggingHTTPClient struct {
-	transport http.RoundTripper
+	transport   http.RoundTripper
+	logPayloads bool
 }
 
 func (c *loggingHTTPClient) RoundTrip(req *http.Request) (*http.Response, error) {
-	dumpReqLog, dumpReqErr := httputil.DumpRequest(req, true)
+	dumpReqLog, dumpReqErr := httputil.DumpRequest(req, c.logPayloads)
 	fields := logrus.Fields{
 		"method": req.Method,
 		"url":    req.URL,
 		"proto":  req.Proto,
 	}
 	if dumpReqErr == nil {
-		clientLogger.WithFields(fields).Info(string(dumpReqLog))
+		clientLogger.WithFields(fields).Debug(string(dumpReqLog))
 	} else {
-		clientLogger.WithError(dumpReqErr).WithFields(fields).Info("cannot dump request")
+		clientLogger.WithError(dumpReqErr).WithFields(fields).Debug("cannot dump request")
 	}
 	resp, err := c.transport.RoundTrip(req)
 	if err == nil {
-		dumpRespLog, dumpRespErr := httputil.DumpResponse(resp, true)
+		dumpRespLog, dumpRespErr := httputil.DumpResponse(resp, c.logPayloads)
 		if dumpRespErr == nil {
-			clientLogger.WithFields(fields).Info(string(dumpRespLog))
+			clientLogger.WithFields(fields).Debug(string(dumpRespLog))
 		} else {
-			clientLogger.WithError(dumpRespErr).WithFields(fields).Info("request was successful but cannot dump response")
+			clientLogger.WithError(dumpRespErr).WithFields(fields).Debug("request was successful but cannot dump response")
 		}
 	} else {
-		clientLogger.WithError(err).WithFields(fields).Info("request failed")
+		clientLogger.WithError(err).WithFields(fields).Debug("request failed")
 	}
 	return resp, err
 }
