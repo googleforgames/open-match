@@ -20,18 +20,16 @@ import (
 	"fmt"
 	"log"
 	"net"
-	reaperInternal "open-match.dev/open-match/tools/reaper/internal"
 	"os"
 	"strconv"
 	"time"
+
+	reaperInternal "open-match.dev/open-match/tools/reaper/internal"
 )
 
 var (
-	projectIDFlag = flag.String("project", "open-match-build", "Target Project ID to scan for leaked clusters.")
-	ageFlag       = flag.Duration("age", time.Hour*1, "Age of a cluster before it's a candidate for deletion.")
-	labelFlag     = flag.String("label", "open-match-ci", "Required label that must be on the cluster for it to be considered for reaping.")
-	locationFlag  = flag.String("location", "us-west1-a", "Location of the cluster")
-	portFlag      = flag.Int("port", 0, "HTTP Port to serve from.")
+	ageFlag  = flag.Duration("age", time.Minute*30, "Age of a namespace before it's a candidate for deletion.")
+	portFlag = flag.Int("port", 0, "HTTP Port to serve from.")
 )
 
 func main() {
@@ -57,19 +55,16 @@ func main() {
 			log.Fatal(err)
 		}
 	} else {
-		if resp, err := reaperInternal.ReapCluster(flagToParams()); err != nil {
+		if err := reaperInternal.ReapNamespaces(flagToParams()); err != nil {
 			log.Fatal(err)
 		} else {
-			log.Print(resp)
+			log.Print("OK")
 		}
 	}
 }
 
 func flagToParams() *reaperInternal.Params {
 	return &reaperInternal.Params{
-		Age:       *ageFlag,
-		Label:     *labelFlag,
-		ProjectID: *projectIDFlag,
-		Location:  *locationFlag,
+		Age: *ageFlag,
 	}
 }

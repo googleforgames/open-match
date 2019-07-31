@@ -34,14 +34,14 @@ func TestQueryTickets(t *testing.T) {
 	tests := []struct {
 		description   string
 		pool          *pb.Pool
-		preAction     func(fe pb.FrontendClient, t *testing.T)
+		preAction     func(context.Context, pb.FrontendClient, *testing.T)
 		wantCode      codes.Code
 		wantTickets   []*pb.Ticket
 		wantPageCount int
 	}{
 		{
 			description:   "expects invalid argument code since pool is empty",
-			preAction:     func(_ pb.FrontendClient, _ *testing.T) {},
+			preAction:     func(_ context.Context, _ pb.FrontendClient, _ *testing.T) {},
 			pool:          nil,
 			wantCode:      codes.InvalidArgument,
 			wantTickets:   nil,
@@ -49,7 +49,7 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			description: "expects response with no tickets since the store is empty",
-			preAction:   func(_ pb.FrontendClient, _ *testing.T) {},
+			preAction:   func(_ context.Context, _ pb.FrontendClient, _ *testing.T) {},
 			pool: &pb.Pool{
 				Filters: []*pb.Filter{{
 					Attribute: "ok",
@@ -61,14 +61,14 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			description: "expects response with no tickets since all tickets in the store are filtered out",
-			preAction: func(fe pb.FrontendClient, t *testing.T) {
+			preAction: func(ctx context.Context, fe pb.FrontendClient, t *testing.T) {
 				tickets := internalTesting.GenerateTickets(
 					internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
 					internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
 				)
 
 				for _, ticket := range tickets {
-					resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: ticket})
+					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
 					assert.NotNil(t, resp)
 					assert.Nil(t, err)
 				}
@@ -84,14 +84,14 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			description: "expects response with 5 tickets with e2e.Map1Attribute=2 and e2e.Map2Attribute in range of [0,10)",
-			preAction: func(fe pb.FrontendClient, t *testing.T) {
+			preAction: func(ctx context.Context, fe pb.FrontendClient, t *testing.T) {
 				tickets := internalTesting.GenerateTickets(
 					internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
 					internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
 				)
 
 				for _, ticket := range tickets {
-					resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: ticket})
+					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
 					assert.NotNil(t, resp)
 					assert.Nil(t, err)
 				}
@@ -113,14 +113,14 @@ func TestQueryTickets(t *testing.T) {
 		{
 			// Test inclusive filters and paging works as expected
 			description: "expects response with 15 tickets with e2e.Map1Attribute=2,4,6 and e2e.Map2Attribute=[0,10)",
-			preAction: func(fe pb.FrontendClient, t *testing.T) {
+			preAction: func(ctx context.Context, fe pb.FrontendClient, t *testing.T) {
 				tickets := internalTesting.GenerateTickets(
 					internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
 					internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
 				)
 
 				for _, ticket := range tickets {
-					resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: ticket})
+					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
 					assert.NotNil(t, resp)
 					assert.Nil(t, err)
 				}
@@ -153,10 +153,11 @@ func TestQueryTickets(t *testing.T) {
 				fe := om.MustFrontendGRPC()
 				mml := om.MustMmLogicGRPC()
 				pageCounts := 0
+				ctx := om.Context()
 
-				test.preAction(fe, t)
+				test.preAction(ctx, fe, t)
 
-				stream, err := mml.QueryTickets(om.Context(), &pb.QueryTicketsRequest{Pool: test.pool})
+				stream, err := mml.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: test.pool})
 				assert.Nil(t, err)
 
 				var actualTickets []*pb.Ticket

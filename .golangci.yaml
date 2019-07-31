@@ -212,6 +212,9 @@ issues:
     - source: "telemetry."
       linters:
         - gochecknoglobals
+    - source: " Counter"
+      linters:
+        - gochecknoglobals
     - source: "View."
       linters:
         - gochecknoglobals
@@ -219,6 +222,9 @@ issues:
       linters:
         - gochecknoglobals
     - source: "logrus."
+      linters:
+        - gochecknoglobals
+    - source: "template.New"
       linters:
         - gochecknoglobals
     - source: "stats."

@@ -27,6 +27,7 @@ import (
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/pkg/structs"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
@@ -93,9 +94,10 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
+			ctx := utilTesting.NewContext(t)
 			cc := rpc.NewClientCache(test.cfg)
 			resultChan := make(chan mmfResult, len(test.req.GetProfiles()))
-			err := doFetchMatchesReceiveMmfResult(context.Background(), cc, test.req, resultChan)
+			err := doFetchMatchesReceiveMmfResult(ctx, cc, test.req, resultChan)
 			assert.Equal(t, test.wantErr, err)
 		})
 	}
@@ -150,8 +152,9 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
+			ctx := utilTesting.NewContext(t)
 			resultChan := make(chan mmfResult, 2)
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
 
 			test.preAction(resultChan, cancel)
@@ -251,7 +254,7 @@ func TestDoAssignTickets(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
 			cfg := viper.New()
 			cfg.Set("ticketIndices", []string{fakeProperty})
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)

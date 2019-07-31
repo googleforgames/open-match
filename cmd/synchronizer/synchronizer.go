@@ -16,9 +16,10 @@
 package main
 
 import (
+	"open-match.dev/open-match/internal/app"
 	"open-match.dev/open-match/internal/app/synchronizer"
 )
 
 func main() {
-	synchronizer.RunApplication()
+	app.RunApplication("synchronizer", synchronizer.BindService)
 }

@@ -15,37 +15,12 @@
 package backend
 
 import (
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
 )
-
-// RunApplication creates a server.
-func RunApplication() {
-	cfg, err := config.Read()
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot read configuration.")
-	}
-	p, err := rpc.NewServerParamsFromConfig(cfg, "api.backend")
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot construct server.")
-	}
-
-	if err := BindService(p, cfg); err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("failed to bind backend service.")
-	}
-
-	rpc.MustServeForever(p)
-}
 
 // BindService creates the backend service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View) error {

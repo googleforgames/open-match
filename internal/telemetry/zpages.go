@@ -15,22 +15,32 @@
 package telemetry
 
 import (
-	"net/http"
-
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/zpages"
+	"net/http"
+	"net/http/pprof"
 	"open-match.dev/open-match/internal/config"
 )
 
+const (
+	debugEndpoint                    = "/debug"
+	configNameTelemetryZpagesEnabled = "telemetry.zpages.enable"
+)
+
 func bindZpages(mux *http.ServeMux, cfg config.View) {
-	if !cfg.GetBool("telemetry.zpages.enable") {
+	if !cfg.GetBool(configNameTelemetryZpagesEnabled) {
 		logger.Info("zPages: Disabled")
 		return
 	}
-	endpoint := "/debug"
-	zpages.Handle(mux, endpoint)
+	zpages.Handle(mux, debugEndpoint)
+
+	mux.HandleFunc(debugEndpoint+"/pprof/", pprof.Index)
+	mux.HandleFunc(debugEndpoint+"/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc(debugEndpoint+"/pprof/profile", pprof.Profile)
+	mux.HandleFunc(debugEndpoint+"/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc(debugEndpoint+"/pprof/trace", pprof.Trace)
 
 	logger.WithFields(logrus.Fields{
-		"endpoint": endpoint,
+		"endpoint": debugEndpoint,
 	}).Info("zPages: ENABLED")
 }

@@ -16,9 +16,10 @@
 package main
 
 import (
+	"open-match.dev/open-match/internal/app"
 	"open-match.dev/open-match/internal/app/mmlogic"
 )
 
 func main() {
-	mmlogic.RunApplication()
+	app.RunApplication("mmlogic", mmlogic.BindService)
 }

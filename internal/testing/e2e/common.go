@@ -16,11 +16,18 @@ package e2e
 
 import (
 	"context"
+	"flag"
 	"log"
 	"os"
 	"testing"
 
 	pb "open-match.dev/open-match/pkg/pb"
+)
+
+var (
+	testOnlyEnableMetrics        = flag.Bool("test_only_metrics", true, "Enables metrics exporting for tests.")
+	testOnlyEnableRPCLoggingFlag = flag.Bool("test_only_rpc_logging", false, "Enables RPC Logging for tests. This output is very verbose.")
+	testOnlyLoggingLevel         = flag.String("test_only_log_level", "info", "Sets the log level for tests.")
 )
 
 // OM is the interface for communicating with Open Match.

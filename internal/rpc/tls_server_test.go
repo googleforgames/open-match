@@ -21,13 +21,10 @@ import (
 	"testing"
 	"time"
 
-	"open-match.dev/open-match/internal/util/netlistener"
-
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	shellTesting "open-match.dev/open-match/internal/testing"
-	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
 	"open-match.dev/open-match/pkg/pb"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
@@ -35,8 +32,8 @@ import (
 // TestStartStopTlsServerWithCARootedCertificate verifies that we can have a gRPC+TLS+HTTPS server/client work with a single self-signed certificate.
 func TestStartStopTlsServerWithSingleCertificate(t *testing.T) {
 	assert := assert.New(t)
-	grpcLh := netlistenerTesting.MustListen()
-	proxyLh := netlistenerTesting.MustListen()
+	grpcLh := MustListen()
+	proxyLh := MustListen()
 	grpcAddress := fmt.Sprintf("localhost:%d", grpcLh.Number())
 	proxyAddress := fmt.Sprintf("localhost:%d", proxyLh.Number())
 	allHostnames := []string{grpcAddress, proxyAddress}
@@ -57,8 +54,8 @@ func TestStartStopTlsServerWithSingleCertificate(t *testing.T) {
 // TestStartStopTlsServerWithCARootedCertificate verifies that we can have a gRPC+TLS+HTTPS server/client work with a self-signed CA-rooted certificate.
 func TestStartStopTlsServerWithCARootedCertificate(t *testing.T) {
 	assert := assert.New(t)
-	grpcLh := netlistenerTesting.MustListen()
-	proxyLh := netlistenerTesting.MustListen()
+	grpcLh := MustListen()
+	proxyLh := MustListen()
 	grpcAddress := fmt.Sprintf("localhost:%d", grpcLh.Number())
 	proxyAddress := fmt.Sprintf("localhost:%d", proxyLh.Number())
 	allHostnames := []string{grpcAddress, proxyAddress}
@@ -85,8 +82,8 @@ type tlsServerTestParams struct {
 	rootPrivateKeyFileData        []byte
 	publicCertificateFileData     []byte
 	privateKeyFileData            []byte
-	grpcLh                        *netlistener.ListenerHolder
-	proxyLh                       *netlistener.ListenerHolder
+	grpcLh                        *ListenerHolder
+	proxyLh                       *ListenerHolder
 	grpcAddress                   string
 	proxyAddress                  string
 }
@@ -129,5 +126,5 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 		Timeout:   time.Second * 10,
 		Transport: tlsTransport,
 	}
-	runGrpcWithProxyTests(assert, s, conn, httpClient, httpsEndpoint)
+	runGrpcWithProxyTests(t, assert, s, conn, httpClient, httpsEndpoint)
 }

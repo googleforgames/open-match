@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
@@ -32,9 +33,9 @@ import (
 	"go.opencensus.io/plugin/ochttp/propagation/b3"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/signal"
 	"open-match.dev/open-match/internal/telemetry"
-	"open-match.dev/open-match/internal/util/netlistener"
 )
 
 const (
@@ -65,8 +66,8 @@ type ServerParams struct {
 	handlersForGrpcProxy   []GrpcProxyHandler
 	handlersForHealthCheck []func(context.Context) error
 
-	grpcListener      *netlistener.ListenerHolder
-	grpcProxyListener *netlistener.ListenerHolder
+	grpcListener      *ListenerHolder
+	grpcProxyListener *ListenerHolder
 
 	// Root CA public certificate in PEM format.
 	rootCaPublicCertificateFileData []byte
@@ -76,19 +77,20 @@ type ServerParams struct {
 	// Private key in PEM format.
 	privateKeyFileData []byte
 
-	enableRPCLogging bool
-	enableMetrics    bool
-	closer           func()
+	enableRPCLogging        bool
+	enableRPCPayloadLogging bool
+	enableMetrics           bool
+	closer                  func()
 }
 
 // NewServerParamsFromConfig returns server Params initialized from the configuration file.
 func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, error) {
-	grpcLh, err := netlistener.NewFromPortNumber(cfg.GetInt(prefix + ".grpcport"))
+	grpcLh, err := newFromPortNumber(cfg.GetInt(prefix + ".grpcport"))
 	if err != nil {
 		serverLogger.Fatal(err)
 		return nil, err
 	}
-	httpLh, err := netlistener.NewFromPortNumber(cfg.GetInt(prefix + ".httpport"))
+	httpLh, err := newFromPortNumber(cfg.GetInt(prefix + ".httpport"))
 	if err != nil {
 		closeErr := grpcLh.Close()
 		if closeErr != nil {
@@ -131,7 +133,8 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 	}
 
 	p.enableMetrics = cfg.GetBool(telemetry.ConfigNameEnableMetrics)
-	p.enableRPCLogging = cfg.GetBool(configNameEnableRPCLogging)
+	p.enableRPCLogging = cfg.GetBool(ConfigNameEnableRPCLogging)
+	p.enableRPCPayloadLogging = logging.IsDebugEnabled(cfg)
 	// TODO: This isn't ideal since telemetry requires config for it to be initialized.
 	// This forces us to initialize readiness probes earlier than necessary.
 	p.closer = telemetry.Setup(p.ServeMux, cfg)
@@ -139,7 +142,7 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 }
 
 // NewServerParamsFromListeners returns server Params initialized with the ListenerHolder variables.
-func NewServerParamsFromListeners(grpcLh *netlistener.ListenerHolder, proxyLh *netlistener.ListenerHolder) *ServerParams {
+func NewServerParamsFromListeners(grpcLh *ListenerHolder, proxyLh *ListenerHolder) *ServerParams {
 	return &ServerParams{
 		ServeMux:             http.NewServeMux(),
 		handlersForGrpc:      []GrpcHandler{},
@@ -260,11 +263,37 @@ func MustServeForever(params *ServerParams) {
 	serveUntilKilledFunc()
 }
 
+type loggingHTTPHandler struct {
+	handler     http.Handler
+	logPayloads bool
+}
+
+func (l *loggingHTTPHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	dumpReqLog, dumpReqErr := httputil.DumpRequest(req, l.logPayloads)
+	fields := logrus.Fields{
+		"method": req.Method,
+		"url":    req.URL,
+		"proto":  req.Proto,
+	}
+	if dumpReqErr == nil {
+		serverLogger.WithFields(fields).Debug(string(dumpReqLog))
+	} else {
+		serverLogger.WithError(dumpReqErr).WithFields(fields).Debug("cannot dump request")
+	}
+	l.handler.ServeHTTP(w, req)
+}
+
 func instrumentHTTPHandler(handler http.Handler, params *ServerParams) http.Handler {
 	if params.enableMetrics {
-		return &ochttp.Handler{
+		handler = &ochttp.Handler{
 			Handler:     handler,
 			Propagation: &b3.HTTPFormat{},
+		}
+	}
+	if params.enableRPCLogging {
+		handler = &loggingHTTPHandler{
+			handler:     handler,
+			logPayloads: params.enableRPCPayloadLogging,
 		}
 	}
 	return handler
@@ -285,8 +314,17 @@ func newGRPCServerOptions(params *ServerParams) []grpc.ServerOption {
 			"app":       "openmatch",
 			"component": "grpc.server",
 		})
-		si = append(si, grpc_logrus.StreamServerInterceptor(grpcLogger))
-		ui = append(ui, grpc_logrus.UnaryServerInterceptor(grpcLogger))
+		grpcLogger.Level = logrus.DebugLevel
+		if params.enableRPCPayloadLogging {
+			logEverythingFromServer := func(_ context.Context, _ string, _ interface{}) bool {
+				return true
+			}
+			si = append(si, grpc_logrus.PayloadStreamServerInterceptor(grpcLogger, logEverythingFromServer))
+			ui = append(ui, grpc_logrus.PayloadUnaryServerInterceptor(grpcLogger, logEverythingFromServer))
+		} else {
+			si = append(si, grpc_logrus.StreamServerInterceptor(grpcLogger))
+			ui = append(ui, grpc_logrus.UnaryServerInterceptor(grpcLogger))
+		}
 	}
 
 	if params.enableMetrics {

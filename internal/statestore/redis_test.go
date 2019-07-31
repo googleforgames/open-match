@@ -18,9 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"testing"
-	"time"
-
 	miniredis "github.com/alicebob/miniredis/v2"
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
@@ -30,8 +27,11 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/telemetry"
 	internalTesting "open-match.dev/open-match/internal/testing"
+	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/pkg/structs"
+	"testing"
+	"time"
 )
 
 func TestStatestoreSetup(t *testing.T) {
@@ -52,6 +52,8 @@ func TestTicketLifecycle(t *testing.T) {
 	assert.NotNil(service)
 	defer service.Close()
 
+	ctx := utilTesting.NewContext(t)
+
 	// Initialize test data
 	id := xid.New().String()
 	ticket := &pb.Ticket{
@@ -65,24 +67,24 @@ func TestTicketLifecycle(t *testing.T) {
 	}
 
 	// Validate that GetTicket fails for a Ticket that does not exist.
-	_, err := service.GetTicket(context.Background(), id)
+	_, err := service.GetTicket(ctx, id)
 	assert.NotNil(err)
 	assert.Equal(status.Code(err), codes.NotFound)
 
 	// Validate nonexisting Ticket deletion
-	err = service.DeleteTicket(context.Background(), id)
+	err = service.DeleteTicket(ctx, id)
 	assert.Nil(err)
 
 	// Validate nonexisting Ticket deindexing
-	err = service.DeindexTicket(context.Background(), id)
+	err = service.DeindexTicket(ctx, id)
 	assert.Nil(err)
 
 	// Validate Ticket creation
-	err = service.CreateTicket(context.Background(), ticket)
+	err = service.CreateTicket(ctx, ticket)
 	assert.Nil(err)
 
 	// Validate Ticket retrival
-	result, err := service.GetTicket(context.Background(), ticket.Id)
+	result, err := service.GetTicket(ctx, ticket.Id)
 	assert.Nil(err)
 	assert.NotNil(result)
 	assert.Equal(ticket.Id, result.Id)
@@ -90,10 +92,10 @@ func TestTicketLifecycle(t *testing.T) {
 	assert.Equal(ticket.Assignment.Connection, result.Assignment.Connection)
 
 	// Validate Ticket deletion
-	err = service.DeleteTicket(context.Background(), id)
+	err = service.DeleteTicket(ctx, id)
 	assert.Nil(err)
 
-	_, err = service.GetTicket(context.Background(), id)
+	_, err = service.GetTicket(ctx, id)
 	assert.NotNil(err)
 }
 
@@ -105,6 +107,7 @@ func TestIgnoreLists(t *testing.T) {
 	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
+	ctx := utilTesting.NewContext(t)
 
 	tickets := internalTesting.GenerateTickets(
 		internalTesting.Property{Name: "testindex1", Min: 0, Max: 10, Interval: 2},
@@ -113,14 +116,14 @@ func TestIgnoreLists(t *testing.T) {
 
 	ticketIds := []string{}
 	for _, ticket := range tickets {
-		assert.Nil(service.CreateTicket(context.Background(), ticket))
-		assert.Nil(service.IndexTicket(context.Background(), ticket))
+		assert.Nil(service.CreateTicket(ctx, ticket))
+		assert.Nil(service.IndexTicket(ctx, ticket))
 		ticketIds = append(ticketIds, ticket.GetId())
 	}
 
 	verifyTickets := func(service Service, expectLen int) {
 		var results []*pb.Ticket
-		service.FilterTickets(context.Background(), []*pb.Filter{{Attribute: "testindex1", Min: 0, Max: 10}, {Attribute: "testindex2", Min: 0, Max: 10}}, 100, func(tickets []*pb.Ticket) error {
+		service.FilterTickets(ctx, []*pb.Filter{{Attribute: "testindex1", Min: 0, Max: 10}, {Attribute: "testindex2", Min: 0, Max: 10}}, 100, func(tickets []*pb.Ticket) error {
 			results = tickets
 			return nil
 		})
@@ -131,7 +134,7 @@ func TestIgnoreLists(t *testing.T) {
 	verifyTickets(service, len(tickets))
 
 	// Add the first three tickets to the ignore list and verify changes are reflected in the result
-	assert.Nil(service.AddTicketsToIgnoreList(context.Background(), ticketIds[:3]))
+	assert.Nil(service.AddTicketsToIgnoreList(ctx, ticketIds[:3]))
 	verifyTickets(service, len(tickets)-3)
 
 	// Sleep until the ignore list expired and verify we still have all the tickets
@@ -147,6 +150,7 @@ func TestTicketIndexing(t *testing.T) {
 	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
+	ctx := utilTesting.NewContext(t)
 
 	for i := 0; i < 10; i++ {
 		id := fmt.Sprintf("ticket.no.%d", i)
@@ -162,19 +166,19 @@ func TestTicketIndexing(t *testing.T) {
 			},
 		}
 
-		err := service.CreateTicket(context.Background(), ticket)
+		err := service.CreateTicket(ctx, ticket)
 		assert.Nil(err)
 
-		err = service.IndexTicket(context.Background(), ticket)
+		err = service.IndexTicket(ctx, ticket)
 		assert.Nil(err)
 	}
 
 	// Remove one ticket, to test that it doesn't fall over.
-	err := service.DeleteTicket(context.Background(), "ticket.no.5")
+	err := service.DeleteTicket(ctx, "ticket.no.5")
 	assert.Nil(err)
 
 	// Remove ticket from index, should not show up.
-	err = service.DeindexTicket(context.Background(), "ticket.no.6")
+	err = service.DeindexTicket(ctx, "ticket.no.6")
 	assert.Nil(err)
 
 	found := make(map[string]struct{})
@@ -192,7 +196,7 @@ func TestTicketIndexing(t *testing.T) {
 		},
 	}
 
-	err = service.FilterTickets(context.Background(), filters, 2, func(tickets []*pb.Ticket) error {
+	err = service.FilterTickets(ctx, filters, 2, func(tickets []*pb.Ticket) error {
 		assert.True(len(tickets) <= 2)
 		for _, ticket := range tickets {
 			found[ticket.Id] = struct{}{}
@@ -216,10 +220,11 @@ func TestGetAssignmentBeforeSet(t *testing.T) {
 	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
+	ctx := utilTesting.NewContext(t)
 
 	var assignmentResp *pb.Assignment
 
-	err := service.GetAssignments(context.Background(), "id", func(assignment *pb.Assignment) error {
+	err := service.GetAssignments(ctx, "id", func(assignment *pb.Assignment) error {
 		assignmentResp = assignment
 		return nil
 	})
@@ -236,18 +241,19 @@ func TestUpdateAssignmentFatal(t *testing.T) {
 	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
+	ctx := utilTesting.NewContext(t)
 
 	var assignmentResp *pb.Assignment
 
 	// Now create a ticket in the state store service
-	err := service.CreateTicket(context.Background(), &pb.Ticket{
+	err := service.CreateTicket(ctx, &pb.Ticket{
 		Id:         "1",
 		Assignment: &pb.Assignment{Connection: "2"},
 	})
 	assert.Nil(err)
 
 	// Try to update the assignmets with the ticket created and some non-existed tickets
-	err = service.UpdateAssignments(context.Background(), []string{"1", "2", "3"}, &pb.Assignment{Connection: "localhost"})
+	err = service.UpdateAssignments(ctx, []string{"1", "2", "3"}, &pb.Assignment{Connection: "localhost"})
 	// UpdateAssignment failed because the ticket does not exists
 	assert.Equal(codes.NotFound, status.Convert(err).Code())
 	assert.Nil(assignmentResp)
@@ -261,15 +267,16 @@ func TestGetAssignmentNormal(t *testing.T) {
 	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
+	ctx := utilTesting.NewContext(t)
 
-	err := service.CreateTicket(context.Background(), &pb.Ticket{
+	err := service.CreateTicket(ctx, &pb.Ticket{
 		Id:         "1",
 		Assignment: &pb.Assignment{Connection: "2"},
 	})
 	assert.Nil(err)
 
 	var assignmentResp *pb.Assignment
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	callbackCount := 0
 	returnedErr := errors.New("some errors")
 
@@ -301,31 +308,31 @@ func TestUpdateAssignmentNormal(t *testing.T) {
 	service := New(cfg)
 	assert.NotNil(service)
 	defer service.Close()
+	ctx := utilTesting.NewContext(t)
 
 	// Create a ticket without assignment
-	err := service.CreateTicket(context.Background(), &pb.Ticket{
+	err := service.CreateTicket(ctx, &pb.Ticket{
 		Id: "1",
 	})
 	assert.Nil(err)
 	// Create a ticket already with an assignment
-	err = service.CreateTicket(context.Background(), &pb.Ticket{
+	err = service.CreateTicket(ctx, &pb.Ticket{
 		Id:         "3",
 		Assignment: &pb.Assignment{Connection: "4"},
 	})
 	assert.Nil(err)
 
 	fakeAssignment := &pb.Assignment{Connection: "Halo"}
-	err = service.UpdateAssignments(context.Background(), []string{"1", "3"}, fakeAssignment)
+	err = service.UpdateAssignments(ctx, []string{"1", "3"}, fakeAssignment)
 	assert.Nil(err)
 	// Verify the transaction behavior of the UpdateAssignment.
-	ticket, err := service.GetTicket(context.Background(), "1")
+	ticket, err := service.GetTicket(ctx, "1")
 	assert.Equal(fakeAssignment.Connection, ticket.Assignment.Connection)
 	assert.Nil(err)
 	// Verify the transaction behavior of the UpdateAssignment.
-	ticket, err = service.GetTicket(context.Background(), "3")
+	ticket, err = service.GetTicket(ctx, "3")
 	assert.Equal(fakeAssignment.Connection, ticket.Assignment.Connection)
 	assert.Nil(err)
-
 }
 
 func TestConnect(t *testing.T) {
@@ -334,13 +341,14 @@ func TestConnect(t *testing.T) {
 	defer closer()
 	store := New(cfg)
 	defer store.Close()
+	ctx := utilTesting.NewContext(t)
 
 	is, ok := store.(*instrumentedService)
 	assert.True(ok)
 	rb, ok := is.s.(*redisBackend)
 	assert.True(ok)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	cancel()
 	conn, err := rb.connect(ctx)
 	assert.NotNil(err)
