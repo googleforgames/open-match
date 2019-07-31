@@ -282,7 +282,7 @@ build-stress-test-images: build-stress-frontend-image
 
 # Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
 # This is important so that the repository does not have any mutations while building individual images.
-build-base-build-image: docker all-protos
+build-base-build-image: docker $(ALL_PROTOS)
 	docker build -f Dockerfile.base-build -t open-match-base-build -t $(REGISTRY)/openmatch-base-build:$(TAG) -t $(REGISTRY)/openmatch-base-build:$(ALTERNATE_TAG) .
 
 build-%-image: docker build-base-build-image
