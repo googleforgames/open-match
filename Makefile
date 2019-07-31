@@ -232,7 +232,7 @@ retag-example-images: retag-demo-images retag-mmf-example-images retag-evaluator
 retag-demo-images: retag-mmf-go-soloduel-image retag-demo-first-match-image
 retag-mmf-example-images: retag-mmf-go-soloduel-image retag-mmf-go-pool-image
 retag-evaluator-example-images: retag-evaluator-go-simple-image
-retag-tool-images: retag-reaper-image
+retag-tool-images: retag-reaper-image retag-base-build-image
 retag-stress-test-images: retag-stress-frontend-image
 # Above should match push-images
 
@@ -252,7 +252,7 @@ push-example-images: push-demo-images push-mmf-example-images push-evaluator-exa
 push-demo-images: push-mmf-go-soloduel-image push-demo-first-match-image
 push-mmf-example-images: push-mmf-go-soloduel-image push-mmf-go-pool-image
 push-evaluator-example-images: push-evaluator-go-simple-image
-push-tool-images: push-reaper-image
+push-tool-images: push-reaper-image push-base-build-image
 push-stress-test-images: push-stress-frontend-image
 # Above should match retag-images
 
@@ -282,8 +282,8 @@ build-stress-test-images: build-stress-frontend-image
 
 # Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
 # This is important so that the repository does not have any mutations while building individual images.
-build-base-build-image: docker $(ALL_PROTOS)
-	docker build -f Dockerfile.base-build -t open-match-base-build .
+build-base-build-image: docker all-protos
+	docker build -f Dockerfile.base-build -t open-match-base-build -t $(REGISTRY)/openmatch-base-build:$(TAG) -t $(REGISTRY)/openmatch-base-build:$(ALTERNATE_TAG) .
 
 build-%-image: docker build-base-build-image
 	docker build \
@@ -377,7 +377,7 @@ install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-mat
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
 		--set open-match-demo.enabled=false \
-		--set open-match-customize.function.image=openmatch-mmf-go-pool \
+		--set open-match-customize.enabled=false \
 		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -953,25 +953,25 @@ proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Frontend Health: http://localhost:$(FRONTEND_PORT)/healthz"
 	@echo "Frontend RPC: http://localhost:$(FRONTEND_PORT)/debug/rpcz"
 	@echo "Frontend Trace: http://localhost:$(FRONTEND_PORT)/debug/tracez"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match-core,component=frontend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(FRONTEND_PORT):51504 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=frontend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(FRONTEND_PORT):51504 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-backend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Backend Health: http://localhost:$(BACKEND_PORT)/healthz"
 	@echo "Backend RPC: http://localhost:$(BACKEND_PORT)/debug/rpcz"
 	@echo "Backend Trace: http://localhost:$(BACKEND_PORT)/debug/tracez"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match-core,component=backend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(BACKEND_PORT):51505 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=backend,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(BACKEND_PORT):51505 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-mmlogic: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "MmLogic Health: http://localhost:$(MMLOGIC_PORT)/healthz"
 	@echo "MmLogic RPC: http://localhost:$(MMLOGIC_PORT)/debug/rpcz"
 	@echo "MmLogic Trace: http://localhost:$(MMLOGIC_PORT)/debug/tracez"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match-core,component=mmlogic,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(MMLOGIC_PORT):51503 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=mmlogic,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(MMLOGIC_PORT):51503 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-synchronizer: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Synchronizer Health: http://localhost:$(SYNCHRONIZER_PORT)/healthz"
 	@echo "Synchronizer RPC: http://localhost:$(SYNCHRONIZER_PORT)/debug/rpcz"
 	@echo "Synchronizer Trace: http://localhost:$(SYNCHRONIZER_PORT)/debug/tracez"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match-core,component=synchronizer,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(SYNCHRONIZER_PORT):51506 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=synchronizer,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(SYNCHRONIZER_PORT):51506 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-grafana: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "User: admin"
@@ -986,7 +986,7 @@ proxy-dashboard: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "SwaggerUI Health: http://localhost:$(SWAGGERUI_PORT)/"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match-core,component=swaggerui,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(SWAGGERUI_PORT):51500 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=swaggerui,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(SWAGGERUI_PORT):51500 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "View Demo: http://localhost:$(DEMO_PORT)"
@@ -994,7 +994,7 @@ proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 proxy-locust: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Locust UI: http://localhost:$(LOCUST_PORT)"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match-stress,component=locust-master,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(LOCUST_PORT):8089 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match-test,component=locust-master,release=$(OPEN_MATCH_CHART_NAME)" --output jsonpath='{.items[0].metadata.name}') $(LOCUST_PORT):8089 $(PORT_FORWARD_ADDRESS_FLAG)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
