@@ -50,6 +50,8 @@ RUN sudo mkdir -p "$GOPATH/src" "$GOPATH/bin" \
 RUN mkdir -p /toolchain
 
 WORKDIR /workspace
+ARG SHORT_SHA
+ENV SHORT_SHA=${SHORT_SHA}
 ENV OPEN_MATCH_CI_MODE=1
 ENV KUBECONFIG=$HOME/.kube/config
 RUN mkdir -p $HOME/.kube/
