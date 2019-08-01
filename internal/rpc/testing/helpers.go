@@ -143,10 +143,11 @@ func (tc *TestContext) MustHTTP() (*http.Client, string) {
 
 func (tc *TestContext) newClientParams(address string) *rpc.ClientParams {
 	return &rpc.ClientParams{
-		Address:            address,
-		TrustedCertificate: tc.trustedCertificate,
-		EnableRPCLogging:   true,
-		EnableMetrics:      false,
+		Address:                 address,
+		TrustedCertificate:      tc.trustedCertificate,
+		EnableRPCLogging:        true,
+		EnableRPCPayloadLogging: true,
+		EnableMetrics:           false,
 	}
 }
 

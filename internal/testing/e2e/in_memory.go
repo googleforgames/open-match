@@ -144,6 +144,7 @@ func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTe
 	cfg.Set("api.evaluator.httpport", evalTc.GetHTTPPort())
 	cfg.Set("synchronizer.enabled", true)
 	cfg.Set(rpc.ConfigNameEnableRPCLogging, *testOnlyEnableRPCLoggingFlag)
+	cfg.Set("logging.level", *testOnlyLoggingLevel)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, *testOnlyEnableMetrics)
 
 	// TODO: This is very ugly. Need a better story around closing resources.
