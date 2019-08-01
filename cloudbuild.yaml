@@ -114,7 +114,7 @@ steps:
 
 - id: 'Build: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'SHORT_SHA=${SHORT_SHA}', 'push-helm-ci', 'update-chart-deps', 'clean-install-yaml', 'install/yaml/']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'push-helm-ci', 'update-chart-deps', 'clean-install-yaml', 'install/yaml/']
   waitFor: ['Build: Install Toolchain']
 
 - id: 'Lint: Format, Vet, Charts'
@@ -132,7 +132,7 @@ steps:
 
 - id: 'Deploy: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'VERSION_SUFFIX=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
   waitFor: ['Lint: Format, Vet, Charts', 'Test: Deploy Open Match']
   volumes:
   - name: 'go-vol'
@@ -148,7 +148,7 @@ steps:
 
 - id: 'Test: Delete Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
+  args: ['make', 'GCLOUD_EXTRA_FLAGS=--async', 'SHORT_SHA=${SHORT_SHA}', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
   waitFor: ['Test: End-to-End Cluster']
 
 artifacts:
