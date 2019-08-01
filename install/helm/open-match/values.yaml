@@ -155,6 +155,10 @@ global:
     rootca:
       mountPath: /app/secrets/tls/rootca
   
+  logging:
+    rpc:
+      enabled: true
+
   configs:
     global-configmap:
       volumeName: global-config-volume
@@ -168,6 +172,8 @@ global:
   # requires pod-level annotation to customize its scrape path.
   # See definitions in templates/_helpers.tpl - "prometheus.annotations" section for details
   telemetry:
+    zpages:
+      enabled: true
     jaeger:
       enabled: false
       agentEndpoint: "open-match-jaeger-agent:6831"

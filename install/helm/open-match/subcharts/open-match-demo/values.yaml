@@ -21,7 +21,7 @@ demo:
   httpPort: 51507
   portType: LoadBalancer
   replicas: 1
-  image: openmatch-demo
+  image: openmatch-demo-first-match
 
 image:
   registry: gcr.io/open-match-public-images
