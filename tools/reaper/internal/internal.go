@@ -132,7 +132,7 @@ func ReapNamespaces(params *Params) error {
 			log.Printf("skipping namespace %s created at %s", namespace.ObjectMeta.Name, namespace.ObjectMeta.CreationTimestamp)
 			continue
 		}
-		
+
 		err = namespaceInterface.Delete(namespace.ObjectMeta.Name, &metav1.DeleteOptions{})
 		if err != nil {
 			log.Printf("error: %s", err.Error())

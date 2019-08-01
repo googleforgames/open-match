@@ -114,7 +114,7 @@ steps:
 
 - id: 'Build: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'push-helm-ci', 'update-chart-deps', 'clean-install-yaml', 'install/yaml/']
+  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'SHORT_SHA=${SHORT_SHA}', 'push-helm-ci', 'update-chart-deps', 'clean-install-yaml', 'install/yaml/']
   waitFor: ['Build: Install Toolchain']
 
 - id: 'Lint: Format, Vet, Charts'
@@ -127,12 +127,12 @@ steps:
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'auth-gke-cluster', 'delete-chart', 'install-ci-chart']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'auth-gke-cluster', 'delete-chart', 'ci-reap-namespaces', 'install-ci-chart']
   waitFor: ['Build: Install Toolchain', 'Build: Docker Images']
 
 - id: 'Deploy: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'VERSION_SUFFIX=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'VERSION_SUFFIX=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
   waitFor: ['Lint: Format, Vet, Charts', 'Test: Deploy Open Match']
   volumes:
   - name: 'go-vol'
@@ -148,7 +148,7 @@ steps:
 
 - id: 'Test: Delete Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'GCP_PROJECT_ID=${PROJECT_ID}', 'ci-reap-namespaces', 'delete-chart']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
   waitFor: ['Test: End-to-End Cluster']
 
 artifacts:
@@ -162,18 +162,6 @@ artifacts:
             - install/yaml/04-grafana-chart.yaml
             - install/yaml/05-jaeger-chart.yaml
 
-images:
-- 'gcr.io/$PROJECT_ID/openmatch-backend:${_OM_VERSION}-${SHORT_SHA}'
-- 'gcr.io/$PROJECT_ID/openmatch-frontend:${_OM_VERSION}-${SHORT_SHA}'
-- 'gcr.io/$PROJECT_ID/openmatch-mmlogic:${_OM_VERSION}-${SHORT_SHA}'
-- 'gcr.io/$PROJECT_ID/openmatch-synchronizer:${_OM_VERSION}-${SHORT_SHA}'
-- 'gcr.io/$PROJECT_ID/openmatch-minimatch:${_OM_VERSION}-${SHORT_SHA}'
-- 'gcr.io/$PROJECT_ID/openmatch-demo-first-match:${_OM_VERSION}-${SHORT_SHA}'
-- 'gcr.io/$PROJECT_ID/openmatch-mmf-go-soloduel:${_OM_VERSION}-${SHORT_SHA}'
-- 'gcr.io/$PROJECT_ID/openmatch-mmf-go-pool:${_OM_VERSION}-${SHORT_SHA}'
-- 'gcr.io/$PROJECT_ID/openmatch-evaluator-go-simple:${_OM_VERSION}-${SHORT_SHA}'
-- 'gcr.io/$PROJECT_ID/openmatch-swaggerui:${_OM_VERSION}-${SHORT_SHA}'
-- 'gcr.io/$PROJECT_ID/openmatch-reaper:${_OM_VERSION}-${SHORT_SHA}'
 substitutions:
     _OM_VERSION: "0.0.0-dev"
     _GCB_POST_SUBMIT: "0"
