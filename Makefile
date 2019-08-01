@@ -322,7 +322,6 @@ print-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 build/chart/open-match-$(BASE_VERSION).tgz: build/toolchain/bin/helm$(EXE_EXTENSION) lint-chart
 	mkdir -p $(BUILD_DIR)/chart/
-	$(HELM) init --client-only
 	$(HELM) package -d $(BUILD_DIR)/chart/ --version $(BASE_VERSION) $(REPOSITORY_ROOT)/install/helm/open-match
 
 build/chart/index.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) gcloud build/chart/open-match-$(BASE_VERSION).tgz
@@ -881,9 +880,6 @@ release: build/release/
 clean-secrets:
 	rm -rf $(OPEN_MATCH_SECRETS_DIR)
 
-clean-release:
-	rm -rf $(BUILD_DIR)/release/
-
 clean-protos:
 	rm -rf $(REPOSITORY_ROOT)/pkg/pb/
 	rm -rf $(REPOSITORY_ROOT)/internal/pb/
@@ -904,8 +900,11 @@ clean-binaries:
 clean-terraform:
 	rm -rf $(REPOSITORY_ROOT)/install/terraform/.terraform/
 
-clean-build: clean-toolchain clean-archives clean-release
+clean-build: clean-toolchain clean-archives clean-release clean-chart
 	rm -rf $(BUILD_DIR)/
+
+clean-release:
+	rm -rf $(BUILD_DIR)/release/
 
 clean-toolchain:
 	rm -rf $(TOOLCHAIN_DIR)/
@@ -929,10 +928,7 @@ clean-swagger-docs:
 clean-third-party:
 	rm -rf $(REPOSITORY_ROOT)/third_party/
 
-clean-swaggerui:
-	rm -rf $(REPOSITORY_ROOT)/third_party/swaggerui/
-
-clean: clean-images clean-binaries clean-release clean-chart clean-build clean-protos clean-swagger-docs clean-install-yaml clean-stress-test-tools clean-secrets clean-swaggerui clean-terraform clean-third-party
+clean: clean-images clean-binaries clean-build clean-install-yaml clean-stress-test-tools clean-secrets clean-terraform clean-third-party clean-protos clean-swagger-docs
 
 proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Frontend Health: http://localhost:$(FRONTEND_PORT)/healthz"
