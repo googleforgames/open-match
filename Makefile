@@ -47,6 +47,7 @@
 ##
 ## Prepare a Pull Request
 ## make presubmit
+##
 
 # If you want information on how to edit this file checkout,
 # http://makefiletutorial.com/
@@ -206,7 +207,7 @@ ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS)
 CMDS = $(notdir $(wildcard cmd/*))
 
 # Names of the individual images, ommiting the openmatch prefix.
-IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool evaluator-go-simple reaper stress-frontend
+IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool evaluator-go-simple reaper stress-frontend base-build
 
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
@@ -215,41 +216,18 @@ local-cloud-build: LOCAL_CLOUD_BUILD_PUSH = # --push
 local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
-#######################################
-### retag
-#######################################
-retag-images: $(foreach IMAGE,$(IMAGES),retag-$(IMAGE)-image)
-
-retag-%-image: SOURCE_REGISTRY = gcr.io/$(OPEN_MATCH_BUILD_PROJECT_ID)
-retag-%-image: TARGET_REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
-retag-%-image: SOURCE_TAG = canary
-$(foreach IMAGE,$(IMAGES),retag-$(IMAGE)-image): retag-%-image: docker
-	docker pull $(SOURCE_REGISTRY)/openmatch-$*:$(SOURCE_TAG)
-	docker tag $(SOURCE_REGISTRY)/openmatch-$*:$(SOURCE_TAG) $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
-	docker push $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
+################################################################################
+## #############################################################################
+## Image commands: 
+## These commands are auto-generated based on a complete list of images.  All
+## folders in cmd/ are turned into an image using Dockerfile.cmd.  Additional
+## images are specified by the IMAGES variable.  Image commands ommit the
+## "openmatch-" prefix on the image name and tags.
+##
 
 #######################################
-### push
-#######################################
-push-images: $(foreach IMAGE,$(IMAGES),push-$(IMAGE)-image)
-
-$(foreach IMAGE,$(IMAGES),push-$(IMAGE)-image): push-%-image: build-%-image docker
-	docker push $(REGISTRY)/openmatch-$*:$(TAG)
-	docker push $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG)
-ifeq ($(_GCB_POST_SUBMIT),1)
-	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(VERSIONED_CANARY_TAG)
-	docker push $(REGISTRY)/openmatch-$*:$(VERSIONED_CANARY_TAG)
-ifeq ($(BASE_VERSION),0.0.0-dev)
-	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(DATED_CANARY_TAG)
-	docker push $(REGISTRY)/openmatch-$*:$(DATED_CANARY_TAG)
-	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
-	docker push $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
-endif
-endif
-
-#######################################
-### build
-#######################################
+## build-images / build-<image name>-image: builds images locally
+##
 build-images: $(foreach IMAGE,$(IMAGES),build-$(IMAGE)-image)
 
 # Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
@@ -282,15 +260,49 @@ build-stress-frontend-image: docker
 	docker build -f test/stress/Dockerfile -t $(REGISTRY)/openmatch-stress-frontend:$(TAG) -t $(REGISTRY)/openmatch-stress-frontend:$(ALTERNATE_TAG) .
 
 #######################################
-### clean
+## push-images / push-<image name>-image: builds and pushes images to your
+## container registry.
+##
+push-images: $(foreach IMAGE,$(IMAGES),push-$(IMAGE)-image)
+
+$(foreach IMAGE,$(IMAGES),push-$(IMAGE)-image): push-%-image: build-%-image docker
+	docker push $(REGISTRY)/openmatch-$*:$(TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG)
+ifeq ($(_GCB_POST_SUBMIT),1)
+	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(VERSIONED_CANARY_TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(VERSIONED_CANARY_TAG)
+ifeq ($(BASE_VERSION),0.0.0-dev)
+	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(DATED_CANARY_TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(DATED_CANARY_TAG)
+	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
+endif
+endif
+
 #######################################
+## retag-images / retag-<image name>-image: publishes images on the public
+## container registry.  Used for publishing releases.
+## 
+retag-images: $(foreach IMAGE,$(IMAGES),retag-$(IMAGE)-image)
+
+retag-%-image: SOURCE_REGISTRY = gcr.io/$(OPEN_MATCH_BUILD_PROJECT_ID)
+retag-%-image: TARGET_REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
+retag-%-image: SOURCE_TAG = canary
+$(foreach IMAGE,$(IMAGES),retag-$(IMAGE)-image): retag-%-image: docker
+	docker pull $(SOURCE_REGISTRY)/openmatch-$*:$(SOURCE_TAG)
+	docker tag $(SOURCE_REGISTRY)/openmatch-$*:$(SOURCE_TAG) $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
+	docker push $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
+
+#######################################
+## clean-images / clean-<image name>-image: removes images from local docker
+##
 clean-images: docker $(foreach IMAGE,$(IMAGES),clean-$(IMAGE)-image)
 	-docker rmi -f open-match-base-build
 
 $(foreach IMAGE,$(IMAGES),clean-$(IMAGE)-image): clean-%-image:
 	-docker rmi -f $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG)
 
-#######################################
+#####################################################################################################################
 update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com; $(HELM) dependency update)
 
