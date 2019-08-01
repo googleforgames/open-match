@@ -16,49 +16,49 @@ You may control the behavior of Open Match by overriding the configs in `install
 
 # Setup Open Match with customized ticket indices
 ticketIndices:
-+- myfirstindice
-+- mysecondice
-+- ...
++ - myfirstindice
++ - mysecondice
++ - ...
 
 # Overrides spec.type of a specific Kubernetes Service
 # Equivalent helm cli flag --set swaggerui.portType=LoadBalancer
 swaggerui:
--   portType: ClusterIP
+-  portType: ClusterIP
 +  portType: LoadBalancer
 
 # Overrides spec.type of all Open Match components
 # Equivalent helm cli flag --set global.kubernetes.service.portType=LoadBalancer
 global:
-   kubernetes:
-       service:
--	       portType: ClusterIP
-+		  portType: LoadBalancer
+  kubernetes:
+    service:
+-	  portType: ClusterIP
++     portType: LoadBalancer
 
 # Enables grafana support in Open Match
 # Equivalent helm cli flag --set global.telemetry.grafana.enabled=true
 global:
-   telemetry:
-       grafana:
--         enabled: false
-+        enabled: true
+  telemetry:
+    grafana:
+-     enabled: false
++     enabled: true
 
 # Enables an optional component in Open Match
 # Equivalent helm cli flag --set open-match-demo.enabled=true
 open-match-demo:
--   enabled: false
-+  enabled: true
+- enabled: false
++ enabled: true
 
 # Instructs Open Match to use customized matchfunction and evaluator images
 # Equivalent helm cli flag --set open-match-customize.image.registry=[XXX],open-match-customize.image.tag=[XXX]
 open-match-customize:
-    enabled: true
-+  image:
-+      registry: [YOUR_REGISTRY_URL]
-+      tag: [YOUR_IMAGE_TAG]
-+  function:
-+      image: [YOUR_MATCHFUNCTION_IMAGE_NAME]
-+  evaluator:
-+      image: [YOUR_EVALUATOR_IMAGE_NAME]
+  enabled: true
++   image:
++     registry: [YOUR_REGISTRY_URL]
++     tag: [YOUR_IMAGE_TAG]
++   function:
++     image: [YOUR_MATCHFUNCTION_IMAGE_NAME]
++   evaluator:
++     image: [YOUR_EVALUATOR_IMAGE_NAME]
 ```
 
 Please see [Helm - Chart Template Guide](https://helm.sh/docs/chart_template_guide/#the-chart-template-developer-s-guide "Chart Template Guide") for the advanced usages and our [Makefile](https://github.com/googleforgames/open-match/blob/master/Makefile#L358 "Makefile")  for how we use the helm charts to deploy Open Match.
