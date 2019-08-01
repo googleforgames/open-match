@@ -371,6 +371,7 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/
 		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
+	$(KUBECTL) create namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 	$(HELM) upgrade $(OPEN_MATCH_CHART_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=600 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \

@@ -127,7 +127,7 @@ steps:
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'auth-gke-cluster', 'delete-chart', 'install-ci-chart']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'auth-gke-cluster', 'delete-chart', 'ci-reap-namespaces', 'install-ci-chart']
   waitFor: ['Build: Install Toolchain', 'Build: Docker Images']
 
 - id: 'Deploy: Deployment Configs'
@@ -148,7 +148,7 @@ steps:
 
 - id: 'Test: Delete Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'GCP_PROJECT_ID=${PROJECT_ID}', 'ci-reap-namespaces', 'delete-chart']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
   waitFor: ['Test: End-to-End Cluster']
 
 artifacts:
