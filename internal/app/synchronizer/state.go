@@ -15,6 +15,7 @@
 package synchronizer
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -157,7 +158,7 @@ func (syncState *synchronizerState) fetchResults(id string) ([]*pb.Match, error)
 // for all the result processing (by fetchMatches) to be compelted before changing the
 // synchronizer state to idle.
 // NOTE: This method is always called while holding the synchronizer state mutex.
-func (syncState *synchronizerState) evaluate() {
+func (syncState *synchronizerState) evaluate(ctx context.Context) {
 	aggregateProposals := []*pb.Match{}
 	proposalMap := make(map[string]string)
 	for id, data := range syncState.cycleData.idToRequestData {
@@ -170,7 +171,7 @@ func (syncState *synchronizerState) evaluate() {
 	logger.WithFields(logrus.Fields{
 		"proposals": getMatchIds(aggregateProposals),
 	}).Info("Requesting evaluation of proposals")
-	results, err := syncState.eval.evaluate(aggregateProposals)
+	results, err := syncState.eval.evaluate(ctx, aggregateProposals)
 	if err != nil {
 		// Evaluation failed. Set the error on the synchronization cycle data and
 		// signal completion of evaluation. Do not process any partial results.
@@ -223,7 +224,7 @@ func (syncState *synchronizerState) trackProposalWindow() {
 	defer syncState.stateMutex.Unlock()
 	logger.Info("Changing status from proposalCollection to evaluation")
 	syncState.status = statusEvaluation
-	syncState.evaluate()
+	syncState.evaluate(context.Background())
 }
 
 func (syncState *synchronizerState) registrationInterval() time.Duration {

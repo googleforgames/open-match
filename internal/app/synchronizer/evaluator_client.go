@@ -18,7 +18,7 @@ import (
 )
 
 type evaluator interface {
-	evaluate([]*pb.Match) ([]*pb.Match, error)
+	evaluate(context.Context, []*pb.Match) ([]*pb.Match, error)
 }
 
 type clientType int
@@ -48,7 +48,7 @@ type evaluatorClient struct {
 
 // evaluate method triggers execution of user evaluation function. It initializes the configured
 // GRPC or HTTP client. If the client was already initialized, initialize is a no-op.
-func (ec *evaluatorClient) evaluate(proposals []*pb.Match) (result []*pb.Match, err error) {
+func (ec *evaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) (result []*pb.Match, err error) {
 	if err := ec.initialize(); err != nil {
 		return nil, err
 	}
@@ -56,9 +56,9 @@ func (ec *evaluatorClient) evaluate(proposals []*pb.Match) (result []*pb.Match, 
 	// Call the appropriate client's evaluation function.
 	switch ec.clType {
 	case grpcEvaluator:
-		return ec.grpcEvaluate(proposals)
+		return ec.grpcEvaluate(ctx, proposals)
 	case httpEvaluator:
-		return ec.httpEvaluate(proposals)
+		return ec.httpEvaluate(ctx, proposals)
 	default:
 		return nil, status.Error(codes.Unavailable, "failed to initialize a connection to the evaluator")
 	}
@@ -103,8 +103,8 @@ func (ec *evaluatorClient) initialize() error {
 	return nil
 }
 
-func (ec *evaluatorClient) grpcEvaluate(proposals []*pb.Match) (results []*pb.Match, err error) {
-	resp, err := ec.grpcClient.Evaluate(context.Background(), &pb.EvaluateRequest{Matches: proposals})
+func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Match) (results []*pb.Match, err error) {
+	resp, err := ec.grpcClient.Evaluate(ctx, &pb.EvaluateRequest{Matches: proposals})
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func (ec *evaluatorClient) grpcEvaluate(proposals []*pb.Match) (results []*pb.Ma
 	return resp.GetMatches(), nil
 }
 
-func (ec *evaluatorClient) httpEvaluate(proposals []*pb.Match) (results []*pb.Match, err error) {
+func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) (results []*pb.Match, err error) {
 	proposalIDs := getMatchIds(proposals)
 	jsonProposals, err := json.Marshal(proposals)
 	if err != nil {
@@ -129,7 +129,7 @@ func (ec *evaluatorClient) httpEvaluate(proposals []*pb.Match) (results []*pb.Ma
 		return nil, status.Errorf(codes.FailedPrecondition, "failed to create evaluator http request for proposals %s: %s", proposalIDs, err.Error())
 	}
 
-	resp, err := ec.httpClient.Do(req.WithContext(context.Background()))
+	resp, err := ec.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get response from evaluator for proposals %s: %s", proposalIDs, err.Error())
 	}
