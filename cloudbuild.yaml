@@ -114,7 +114,7 @@ steps:
 
 - id: 'Build: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'push-helm-ci', 'update-chart-deps', 'clean-install-yaml', 'install/yaml/']
+  args: ['make', 'VERSION_SUFFIX=$SHORT_SHA', 'SHORT_SHA=${SHORT_SHA}', 'push-helm-ci', 'update-chart-deps', 'clean-install-yaml', 'install/yaml/']
   waitFor: ['Build: Install Toolchain']
 
 - id: 'Lint: Format, Vet, Charts'
@@ -132,7 +132,7 @@ steps:
 
 - id: 'Deploy: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'VERSION_SUFFIX=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'VERSION_SUFFIX=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
   waitFor: ['Lint: Format, Vet, Charts', 'Test: Deploy Open Match']
   volumes:
   - name: 'go-vol'
