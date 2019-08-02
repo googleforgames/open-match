@@ -26,7 +26,7 @@ spec:
   selector:
     app: {{ template "openmatch.name" . }}
     component: locust-master
-  type: {{ .Values.stresstest.portType }}
+  type: {{ coalesce .Values.global.kubernetes.service.portType .Values.stresstest.portType }}
   ports:
   - name: loc-master-web
     port: 8089

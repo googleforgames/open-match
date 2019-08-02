@@ -28,7 +28,7 @@ spec:
     app: {{ template "openmatch.name" . }}
     component: backend
     release: {{ .Release.Name }}
-  type: {{ .Values.backend.portType }}
+  type: {{ coalesce .Values.global.kubernetes.service.portType .Values.backend.portType }}
   ports:
   - name: grpc
     protocol: TCP
