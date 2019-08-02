@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if empty .Values.ci }}
 apiVersion: extensions/v1beta1
 kind: PodSecurityPolicy
 metadata:
   name: om-podsecuritypolicy
   namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
-    {{- include "openmatch.chartmeta" (set . "indent" 4) }}
+    release: {{ .Release.Name }}
 spec:
   allowPrivilegeEscalation: false
   defaultAllowPrivilegeEscalation: false
@@ -100,3 +102,4 @@ spec:
     - 'downwardAPI'
     # Assume that persistentVolumes set up by the cluster admin are safe to use.
     - 'persistentVolumeClaim'
+{{- end }}

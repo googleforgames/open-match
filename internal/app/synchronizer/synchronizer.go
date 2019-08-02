@@ -15,7 +15,6 @@
 package synchronizer
 
 import (
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/pb"
@@ -23,35 +22,11 @@ import (
 	"open-match.dev/open-match/internal/statestore"
 )
 
-// RunApplication creates a server.
-func RunApplication() {
-	cfg, err := config.Read()
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot read configuration.")
-	}
-
-	p, err := rpc.NewServerParamsFromConfig(cfg, "api.synchronizer")
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot construct server.")
-	}
-
-	if err := BindService(p, cfg); err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("failed to bind synchronizer service.")
-	}
-
-	rpc.MustServeForever(p)
-}
-
 // BindService creates the synchronizer service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View) error {
-	service := newSynchronizerService(cfg, &evaluatorClient{cfg: cfg}, statestore.New(cfg))
-	p.AddHealthCheckFunc(service.store.HealthCheck)
+	store := statestore.New(cfg)
+	service := newSynchronizerService(cfg, &evaluatorClient{cfg: cfg}, store)
+	p.AddHealthCheckFunc(store.HealthCheck)
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterSynchronizerServer(s, service)
 	}, pb.RegisterSynchronizerHandlerFromEndpoint)

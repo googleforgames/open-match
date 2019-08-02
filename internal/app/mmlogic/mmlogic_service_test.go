@@ -27,6 +27,7 @@ import (
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	internalTesting "open-match.dev/open-match/internal/testing"
+	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -59,7 +60,7 @@ func TestDoQueryTickets(t *testing.T) {
 		sender      func(tickets []*pb.Ticket) error
 		filters     []*pb.Filter
 		pageSize    int
-		action      func(*testing.T, statestore.Service)
+		action      func(context.Context, *testing.T, statestore.Service)
 		wantErr     error
 		wantTickets []*pb.Ticket
 	}{
@@ -74,7 +75,7 @@ func TestDoQueryTickets(t *testing.T) {
 				},
 			},
 			100,
-			func(_ *testing.T, _ statestore.Service) {},
+			func(_ context.Context, _ *testing.T, _ statestore.Service) {},
 			nil,
 			nil,
 		},
@@ -89,10 +90,10 @@ func TestDoQueryTickets(t *testing.T) {
 				},
 			},
 			100,
-			func(t *testing.T, store statestore.Service) {
+			func(ctx context.Context, t *testing.T, store statestore.Service) {
 				for _, testTicket := range testTickets {
-					assert.Nil(t, store.CreateTicket(context.Background(), testTicket))
-					assert.Nil(t, store.IndexTicket(context.Background(), testTicket))
+					assert.Nil(t, store.CreateTicket(ctx, testTicket))
+					assert.Nil(t, store.IndexTicket(ctx, testTicket))
 				}
 			},
 			nil,
@@ -112,10 +113,10 @@ func TestDoQueryTickets(t *testing.T) {
 				},
 			},
 			100,
-			func(t *testing.T, store statestore.Service) {
+			func(ctx context.Context, t *testing.T, store statestore.Service) {
 				for _, testTicket := range testTickets {
-					assert.Nil(t, store.CreateTicket(context.Background(), testTicket))
-					assert.Nil(t, store.IndexTicket(context.Background(), testTicket))
+					assert.Nil(t, store.CreateTicket(ctx, testTicket))
+					assert.Nil(t, store.IndexTicket(ctx, testTicket))
 				}
 			},
 			status.Errorf(codes.Internal, "%v", fakeErr),
@@ -131,8 +132,10 @@ func TestDoQueryTickets(t *testing.T) {
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 			defer closer()
 
-			test.action(t, store)
-			assert.Equal(t, test.wantErr, doQueryTickets(context.Background(), test.filters, test.pageSize, test.sender, store))
+			ctx := utilTesting.NewContext(t)
+
+			test.action(ctx, t, store)
+			assert.Equal(t, test.wantErr, doQueryTickets(ctx, test.filters, test.pageSize, test.sender, store))
 			for _, wantTicket := range test.wantTickets {
 				assert.Contains(t, actualTickets, wantTicket)
 			}

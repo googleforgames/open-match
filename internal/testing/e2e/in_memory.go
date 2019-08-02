@@ -27,6 +27,7 @@ import (
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/internal/util"
 	evalHarness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
@@ -142,6 +143,9 @@ func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTe
 	cfg.Set("api.evaluator.grpcport", evalTc.GetGRPCPort())
 	cfg.Set("api.evaluator.httpport", evalTc.GetHTTPPort())
 	cfg.Set("synchronizer.enabled", true)
+	cfg.Set(rpc.ConfigNameEnableRPCLogging, *testOnlyEnableRPCLoggingFlag)
+	cfg.Set("logging.level", *testOnlyLoggingLevel)
+	cfg.Set(telemetry.ConfigNameEnableMetrics, *testOnlyEnableMetrics)
 
 	// TODO: This is very ugly. Need a better story around closing resources.
 	tc.AddCloseFunc(closer)

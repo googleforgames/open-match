@@ -15,7 +15,6 @@
 package rpc
 
 import (
-	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
@@ -23,7 +22,7 @@ import (
 	"net/http"
 	"open-match.dev/open-match/internal/telemetry"
 	shellTesting "open-match.dev/open-match/internal/testing"
-	netlistenerTesting "open-match.dev/open-match/internal/util/netlistener/testing"
+	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 	"strings"
 	"testing"
@@ -32,8 +31,8 @@ import (
 
 func TestStartStopServer(t *testing.T) {
 	assert := assert.New(t)
-	grpcLh := netlistenerTesting.MustListen()
-	httpLh := netlistenerTesting.MustListen()
+	grpcLh := MustListen()
+	httpLh := MustListen()
 	ff := &shellTesting.FakeFrontend{}
 
 	params := NewServerParamsFromListeners(grpcLh, httpLh)
@@ -55,13 +54,13 @@ func TestStartStopServer(t *testing.T) {
 		Timeout: time.Second,
 	}
 
-	runGrpcWithProxyTests(assert, s.serverWithProxy, conn, httpClient, endpoint)
+	runGrpcWithProxyTests(t, assert, s.serverWithProxy, conn, httpClient, endpoint)
 }
 
 func TestMustServeForever(t *testing.T) {
 	assert := assert.New(t)
-	grpcLh := netlistenerTesting.MustListen()
-	httpLh := netlistenerTesting.MustListen()
+	grpcLh := MustListen()
+	httpLh := MustListen()
 	ff := &shellTesting.FakeFrontend{}
 
 	params := NewServerParamsFromListeners(grpcLh, httpLh)
@@ -81,8 +80,8 @@ func TestMustServeForever(t *testing.T) {
 	// This test will intentionally deadlock if the stop function is not respected.
 }
 
-func runGrpcWithProxyTests(assert *assert.Assertions, s grpcServerWithProxy, conn *grpc.ClientConn, httpClient *http.Client, endpoint string) {
-	ctx := context.Background()
+func runGrpcWithProxyTests(t *testing.T, assert *assert.Assertions, s grpcServerWithProxy, conn *grpc.ClientConn, httpClient *http.Client, endpoint string) {
+	ctx := utilTesting.NewContext(t)
 	feClient := pb.NewFrontendClient(conn)
 	grpcResp, err := feClient.CreateTicket(ctx, &pb.CreateTicketRequest{})
 	assert.Nil(err)

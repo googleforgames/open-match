@@ -15,12 +15,12 @@
 package testing
 
 import (
-	"context"
 	"testing"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/internal/statestore"
+	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -30,7 +30,7 @@ func TestFakeStatestore(t *testing.T) {
 	closer := New(t, cfg)
 	defer closer()
 	s := statestore.New(cfg)
-	ctx := context.Background()
+	ctx := utilTesting.NewContext(t)
 
 	ticket := &pb.Ticket{
 		Id: "abc",

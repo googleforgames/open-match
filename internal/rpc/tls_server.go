@@ -28,7 +28,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"open-match.dev/open-match/internal/telemetry"
-	"open-match.dev/open-match/internal/util/netlistener"
 )
 
 const (
@@ -37,11 +36,11 @@ const (
 )
 
 type tlsServer struct {
-	grpcLh       *netlistener.ListenerHolder
+	grpcLh       *ListenerHolder
 	grpcListener net.Listener
 	grpcServer   *grpc.Server
 
-	httpLh       *netlistener.ListenerHolder
+	httpLh       *ListenerHolder
 	httpListener net.Listener
 	httpMux      *http.ServeMux
 	proxyMux     *runtime.ServeMux
@@ -104,7 +103,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	// Bind gRPC handlers
 	ctx, cancel := context.WithCancel(context.Background())
 
-	httpsToGrpcProxyOptions := newGRPCDialOptions(params.enableMetrics, params.enableRPCLogging)
+	httpsToGrpcProxyOptions := newGRPCDialOptions(params.enableMetrics, params.enableRPCLogging, params.enableRPCPayloadLogging)
 	httpsToGrpcProxyOptions = append(httpsToGrpcProxyOptions, grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(certPoolForGrpcEndpoint, "")))
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
@@ -159,7 +158,7 @@ func (s *tlsServer) stop() {
 	}
 }
 
-func newTLSServer(grpcLh *netlistener.ListenerHolder, httpLh *netlistener.ListenerHolder) *tlsServer {
+func newTLSServer(grpcLh *ListenerHolder, httpLh *ListenerHolder) *tlsServer {
 	return &tlsServer{
 		grpcLh: grpcLh,
 		httpLh: httpLh,

@@ -16,15 +16,25 @@
 package internal
 
 import (
-	container "cloud.google.com/go/container/apiv1"
-	"context"
 	"fmt"
-	containerpb "google.golang.org/genproto/googleapis/container/v1"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"os/user"
+	"path/filepath"
 	"strings"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+
+	// Enabled gcloud auth plugin
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/pkg/errors"
 )
 
 // Params for deleting a cluster.
@@ -71,13 +81,13 @@ func Serve(conn net.Listener, params *Params) error {
 	})
 
 	mux.HandleFunc("/reap", func(w http.ResponseWriter, req *http.Request) {
-		resp, err := ReapCluster(params)
+		err := ReapNamespaces(params)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "ERROR: %s", err.Error())
 		} else {
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprintf(w, "OK: %s", resp)
+			fmt.Fprintf(w, "OK")
 		}
 	})
 
@@ -86,82 +96,61 @@ func Serve(conn net.Listener, params *Params) error {
 	return server.Serve(conn)
 }
 
-// ReapCluster scans for orphaned clusters and deletes them.
-func ReapCluster(params *Params) (string, error) {
-	log.Printf("Scanning for orphaned clusters in projects/%s/locations/%s that are older than %s with label %s.", params.ProjectID, params.Location, params.Age.String(), params.Label)
-	ctx := context.Background()
-	c, err := container.NewClusterManagerClient(ctx)
+// ReapNamespaces scans for orphaned namespaces and deletes them.
+func ReapNamespaces(params *Params) error {
+	log.Printf("Scanning for orphaned namespaces that are older than %s.", params.Age.String())
+
+	u, err := user.Current()
 	if err != nil {
-		return "", err
-	}
-	clusters, err := listOrphanedClusters(ctx, c, params)
-	if err != nil {
-		return "", err
+		log.Fatalf("cannot get current user, %s", err)
 	}
 
-	err = deleteClusters(ctx, c, clusters)
+	kubeconfig := filepath.Join(u.HomeDir, ".kube", "config")
+	kubeconfigFromEnv := os.Getenv("KUBECONFIG")
+
+	if !fileExists(kubeconfig) && fileExists(kubeconfigFromEnv) {
+		kubeconfig = kubeconfigFromEnv
+	}
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		return "", err
+		return errors.Wrapf(err, "building Kubernetes config from flags %s failed", kubeconfig)
 	}
 
-	if len(clusters) > 0 {
-		return fmt.Sprintf("Deleted %d GKE clusters", len(clusters)), nil
-	}
-	return fmt.Sprintf("There were no orphaned clusters. :)"), nil
-}
-
-func listOrphanedClusters(ctx context.Context, c *container.ClusterManagerClient, params *Params) ([]*containerpb.Cluster, error) {
-	resp, err := c.ListClusters(ctx, &containerpb.ListClustersRequest{
-		Parent: fmt.Sprintf("projects/%s/locations/%s", params.ProjectID, params.Location),
-	})
+	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return []*containerpb.Cluster{}, err
+		return errors.Wrapf(err, "creating Kubernetes client from config failed\nkubeconfig= %s\nconfig= %+v", kubeconfig, config)
 	}
-	orphanedClusters := []*containerpb.Cluster{}
-	for _, cluster := range resp.Clusters {
-		if isOrphaned(cluster, params) {
-			log.Printf("Cluster '/%s' was orphaned.\nDetails: %+v", cluster.Name, cluster)
-			orphanedClusters = append(orphanedClusters, cluster)
+
+	namespaceInterface := kubeClient.CoreV1().Namespaces()
+	namespaces, err := namespaceInterface.List(metav1.ListOptions{})
+	if err != nil {
+		return errors.Wrap(err, "listing namespace from kubernetes cluster failed")
+	}
+
+	for _, namespace := range namespaces.Items {
+		if !isOrphaned(namespace, params) {
+			log.Printf("skipping namespace %s created at %s", namespace.ObjectMeta.Name, namespace.ObjectMeta.CreationTimestamp)
+			continue
 		}
-	}
-	return orphanedClusters, nil
-}
 
-func deleteClusters(ctx context.Context, c *container.ClusterManagerClient, clusters []*containerpb.Cluster) error {
-	for _, cluster := range clusters {
-		clusterName := selfLinkToQualifiedName(cluster.SelfLink)
-		log.Printf("Deleting Orphaned GKE Cluster %s", clusterName)
-		resp, err := c.DeleteCluster(ctx, &containerpb.DeleteClusterRequest{
-			Name: clusterName,
-		})
+		err = namespaceInterface.Delete(namespace.ObjectMeta.Name, &metav1.DeleteOptions{})
 		if err != nil {
-			return err
+			log.Printf("error: %s", err.Error())
+			continue
 		}
-		log.Printf("Delete GKE Cluster: %s => %v", clusterName, resp)
+
+		log.Printf("deleting namespace %s created at %s", namespace.ObjectMeta.Name, namespace.ObjectMeta.CreationTimestamp)
 	}
-	return nil
+
+	return err
 }
 
-func isOrphaned(cluster *containerpb.Cluster, params *Params) bool {
-	deadline := time.Now().Add(-1 * params.Age)
-	creationTime, err := time.Parse(time.RFC3339, cluster.CreateTime)
-	if err != nil {
-		log.Printf("cannot parse time '%s' because '%v', ignoring for orphan detection.", cluster.CreateTime, err)
-		return false
-	}
-	if creationTime.After(deadline) {
-		return false
-	}
-	if _, ok := cluster.ResourceLabels[params.Label]; !ok {
-		return false
-	}
-	return true
+func fileExists(name string) bool {
+	_, err := os.Stat(name)
+	return err == nil
 }
 
-func selfLinkToQualifiedName(selfLink string) string {
-	parts := strings.Split(selfLink, "v1/")
-	if len(parts) != 2 {
-		log.Fatalf("SelfLink: %s is not a valid selflink it should contain 'v1/'", selfLink)
-	}
-	return parts[1]
+func isOrphaned(namespace corev1.Namespace, params *Params) bool {
+	deadline := time.Now().Add(-1 * params.Age).UTC()
+	return namespace.ObjectMeta.CreationTimestamp.Time.Before(deadline) && strings.HasPrefix(namespace.ObjectMeta.Name, "open-match")
 }
