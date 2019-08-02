@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 package api;
-option go_package = "pkg/pb";
+option go_package = "open-match.dev/open-match/pkg/pb";
 
 import "api/messages.proto";
 import "google/api/annotations.proto";
