@@ -47,6 +47,7 @@
 ##
 ## Prepare a Pull Request
 ## make presubmit
+##
 
 # If you want information on how to edit this file checkout,
 # http://makefiletutorial.com/
@@ -201,6 +202,12 @@ SWAGGER_JSON_DOCS = api/frontend.swagger.json api/backend.swagger.json api/mmlog
 
 ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS)
 
+# CMDS is a list of all folders in cmd/
+CMDS = $(notdir $(wildcard cmd/*))
+
+# Names of the individual images, ommiting the openmatch prefix.
+IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool evaluator-go-simple reaper stress-frontend base-build
+
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
 
@@ -208,68 +215,26 @@ local-cloud-build: LOCAL_CLOUD_BUILD_PUSH = # --push
 local-cloud-build: gcloud
 	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(SHORT_SHA),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
-# Below should match push-images
-retag-images: retag-service-images retag-example-images retag-tool-images retag-stress-test-images
+################################################################################
+## #############################################################################
+## Image commands: 
+## These commands are auto-generated based on a complete list of images.  All
+## folders in cmd/ are turned into an image using Dockerfile.cmd.  Additional
+## images are specified by the IMAGES variable.  Image commands ommit the
+## "openmatch-" prefix on the image name and tags.
+##
 
-retag-service-images: retag-backend-image retag-frontend-image retag-mmlogic-image retag-minimatch-image retag-synchronizer-image retag-swaggerui-image
-retag-example-images: retag-demo-images retag-mmf-example-images retag-evaluator-example-images
-retag-demo-images: retag-mmf-go-soloduel-image retag-demo-first-match-image
-retag-mmf-example-images: retag-mmf-go-soloduel-image retag-mmf-go-pool-image
-retag-evaluator-example-images: retag-evaluator-go-simple-image
-retag-tool-images: retag-reaper-image retag-base-build-image
-retag-stress-test-images: retag-stress-frontend-image
-# Above should match push-images
-
-retag-%-image: SOURCE_REGISTRY = gcr.io/$(OPEN_MATCH_BUILD_PROJECT_ID)
-retag-%-image: TARGET_REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
-retag-%-image: SOURCE_TAG = canary
-retag-%-image: docker
-	docker pull $(SOURCE_REGISTRY)/openmatch-$*:$(SOURCE_TAG)
-	docker tag $(SOURCE_REGISTRY)/openmatch-$*:$(SOURCE_TAG) $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
-	docker push $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
-
-# Below should match retag-images
-push-images: push-service-images push-example-images push-tool-images push-stress-test-images
-
-push-service-images: push-backend-image push-frontend-image push-mmlogic-image push-minimatch-image push-synchronizer-image push-swaggerui-image
-push-example-images: push-demo-images push-mmf-example-images push-evaluator-example-images
-push-demo-images: push-mmf-go-soloduel-image push-demo-first-match-image
-push-mmf-example-images: push-mmf-go-soloduel-image push-mmf-go-pool-image
-push-evaluator-example-images: push-evaluator-go-simple-image
-push-tool-images: push-reaper-image push-base-build-image
-push-stress-test-images: push-stress-frontend-image
-# Above should match retag-images
-
-push-%-image: build-%-image docker
-	docker push $(REGISTRY)/openmatch-$*:$(TAG)
-	docker push $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG)
-ifeq ($(_GCB_POST_SUBMIT),1)
-	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(VERSIONED_CANARY_TAG)
-	docker push $(REGISTRY)/openmatch-$*:$(VERSIONED_CANARY_TAG)
-ifeq ($(BASE_VERSION),0.0.0-dev)
-	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(DATED_CANARY_TAG)
-	docker push $(REGISTRY)/openmatch-$*:$(DATED_CANARY_TAG)
-	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
-	docker push $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
-endif
-endif
-
-build-images: build-service-images build-example-images build-tool-images build-stress-test-images
-
-build-service-images: build-backend-image build-frontend-image build-mmlogic-image build-minimatch-image build-synchronizer-image build-swaggerui-image
-build-example-images: build-demo-images build-mmf-example-images build-evaluator-example-images
-build-demo-images: build-mmf-go-soloduel-image build-demo-first-match-image
-build-mmf-example-images: build-mmf-go-soloduel-image build-mmf-go-pool-image
-build-evaluator-example-images: build-evaluator-go-simple-image
-build-tool-images: build-reaper-image
-build-stress-test-images: build-stress-frontend-image
+#######################################
+## build-images / build-<image name>-image: builds images locally
+##
+build-images: $(foreach IMAGE,$(IMAGES),build-$(IMAGE)-image)
 
 # Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
 # This is important so that the repository does not have any mutations while building individual images.
 build-base-build-image: docker $(ALL_PROTOS)
 	docker build -f Dockerfile.base-build -t open-match-base-build -t $(REGISTRY)/openmatch-base-build:$(TAG) -t $(REGISTRY)/openmatch-base-build:$(ALTERNATE_TAG) .
 
-build-%-image: docker build-base-build-image
+$(foreach CMD,$(CMDS),build-$(CMD)-image): build-%-image: docker build-base-build-image
 	docker build \
 		-f Dockerfile.cmd \
 		$(IMAGE_BUILD_ARGS) \
@@ -293,22 +258,50 @@ build-reaper-image: docker build-base-build-image
 build-stress-frontend-image: docker
 	docker build -f test/stress/Dockerfile -t $(REGISTRY)/openmatch-stress-frontend:$(TAG) -t $(REGISTRY)/openmatch-stress-frontend:$(ALTERNATE_TAG) .
 
-clean-images: docker
+#######################################
+## push-images / push-<image name>-image: builds and pushes images to your
+## container registry.
+##
+push-images: $(foreach IMAGE,$(IMAGES),push-$(IMAGE)-image)
+
+$(foreach IMAGE,$(IMAGES),push-$(IMAGE)-image): push-%-image: build-%-image docker
+	docker push $(REGISTRY)/openmatch-$*:$(TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG)
+ifeq ($(_GCB_POST_SUBMIT),1)
+	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(VERSIONED_CANARY_TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(VERSIONED_CANARY_TAG)
+ifeq ($(BASE_VERSION),0.0.0-dev)
+	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(DATED_CANARY_TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(DATED_CANARY_TAG)
+	docker tag $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
+	docker push $(REGISTRY)/openmatch-$*:$(CANARY_TAG)
+endif
+endif
+
+#######################################
+## retag-images / retag-<image name>-image: publishes images on the public
+## container registry.  Used for publishing releases.
+## 
+retag-images: $(foreach IMAGE,$(IMAGES),retag-$(IMAGE)-image)
+
+retag-%-image: SOURCE_REGISTRY = gcr.io/$(OPEN_MATCH_BUILD_PROJECT_ID)
+retag-%-image: TARGET_REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
+retag-%-image: SOURCE_TAG = canary
+$(foreach IMAGE,$(IMAGES),retag-$(IMAGE)-image): retag-%-image: docker
+	docker pull $(SOURCE_REGISTRY)/openmatch-$*:$(SOURCE_TAG)
+	docker tag $(SOURCE_REGISTRY)/openmatch-$*:$(SOURCE_TAG) $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
+	docker push $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
+
+#######################################
+## clean-images / clean-<image name>-image: removes images from local docker
+##
+clean-images: docker $(foreach IMAGE,$(IMAGES),clean-$(IMAGE)-image)
 	-docker rmi -f open-match-base-build
-	-docker rmi -f $(REGISTRY)/openmatch-backend:$(TAG) $(REGISTRY)/openmatch-backend:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-frontend:$(TAG) $(REGISTRY)/openmatch-frontend:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-mmlogic:$(TAG) $(REGISTRY)/openmatch-mmlogic:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-synchronizer:$(TAG) $(REGISTRY)/openmatch-synchronizer:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-minimatch:$(TAG) $(REGISTRY)/openmatch-minimatch:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-swaggerui:$(TAG) $(REGISTRY)/openmatch-swaggerui:$(ALTERNATE_TAG)
 
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-demo:$(TAG) $(REGISTRY)/openmatch-demo:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-reaper:$(TAG) $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG)
-	-docker rmi -f $(REGISTRY)/openmatch-stress-frontend:$(TAG) $(REGISTRY)/openmatch-stress-frontend:$(ALTERNATE_TAG)
+$(foreach IMAGE,$(IMAGES),clean-$(IMAGE)-image): clean-%-image:
+	-docker rmi -f $(REGISTRY)/openmatch-$*:$(TAG) $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG)
 
+#####################################################################################################################
 update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
 	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com; $(HELM) dependency update)
 
@@ -322,7 +315,6 @@ print-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 build/chart/open-match-$(BASE_VERSION).tgz: build/toolchain/bin/helm$(EXE_EXTENSION) lint-chart
 	mkdir -p $(BUILD_DIR)/chart/
-	$(HELM) init --client-only
 	$(HELM) package -d $(BUILD_DIR)/chart/ --version $(BASE_VERSION) $(REPOSITORY_ROOT)/install/helm/open-match
 
 build/chart/index.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) gcloud build/chart/open-match-$(BASE_VERSION).tgz
@@ -714,17 +706,13 @@ lint: fmt vet golangci lint-chart terraform-lint
 
 assets: $(ALL_PROTOS) tls-certs third_party/ build/chart/
 
-# CMDS is a list of all folders in cmd/
-CMDS = $(notdir $(wildcard cmd/*))
-CMDS_BUILD_FOLDERS = $(foreach CMD,$(CMDS),build/cmd/$(CMD))
-
-build/cmd: $(CMDS_BUILD_FOLDERS)
+build/cmd: $(foreach CMD,$(CMDS),build/cmd/$(CMD))
 
 # Building a given build/cmd folder is split into two pieces: BUILD_PHONY and
 # COPY_PHONY.  The BUILD_PHONY is the common go build command, which is
 # reusable.  The COPY_PHONY is used by some targets which require additional
 # files to be included in the image.
-$(CMDS_BUILD_FOLDERS): build/cmd/%: build/cmd/%/BUILD_PHONY build/cmd/%/COPY_PHONY
+$(foreach CMD,$(CMDS),build/cmd/$(CMD)): build/cmd/%: build/cmd/%/BUILD_PHONY build/cmd/%/COPY_PHONY
 
 build/cmd/%/BUILD_PHONY:
 	mkdir -p $(BUILD_DIR)/cmd/$*
@@ -876,13 +864,10 @@ preview-release: validate-preview-release build/release/ retag-images ci-deploy-
 
 release: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
 release: TAG = $(BASE_VERSION)
-release: build/release/
+release: presubmit build/release/
 
 clean-secrets:
 	rm -rf $(OPEN_MATCH_SECRETS_DIR)
-
-clean-release:
-	rm -rf $(BUILD_DIR)/release/
 
 clean-protos:
 	rm -rf $(REPOSITORY_ROOT)/pkg/pb/
@@ -904,8 +889,11 @@ clean-binaries:
 clean-terraform:
 	rm -rf $(REPOSITORY_ROOT)/install/terraform/.terraform/
 
-clean-build: clean-toolchain clean-archives clean-release
+clean-build: clean-toolchain clean-archives clean-release clean-chart
 	rm -rf $(BUILD_DIR)/
+
+clean-release:
+	rm -rf $(BUILD_DIR)/release/
 
 clean-toolchain:
 	rm -rf $(TOOLCHAIN_DIR)/
@@ -929,10 +917,7 @@ clean-swagger-docs:
 clean-third-party:
 	rm -rf $(REPOSITORY_ROOT)/third_party/
 
-clean-swaggerui:
-	rm -rf $(REPOSITORY_ROOT)/third_party/swaggerui/
-
-clean: clean-images clean-binaries clean-release clean-chart clean-build clean-protos clean-swagger-docs clean-install-yaml clean-stress-test-tools clean-secrets clean-swaggerui clean-terraform clean-third-party
+clean: clean-images clean-binaries clean-build clean-install-yaml clean-stress-test-tools clean-secrets clean-terraform clean-third-party clean-protos clean-swagger-docs
 
 proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Frontend Health: http://localhost:$(FRONTEND_PORT)/healthz"

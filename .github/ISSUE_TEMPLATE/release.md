@@ -8,80 +8,90 @@ assignees: ''
 
 # Open Match Release Process
 
-Follow these instructions to create an Open Match release.  The output of the
+Follow these instructions to create an Open Match release. The output of the
 release process is new images and new configuration.
 
 ## Getting setup
 
-*note: the commands below are pasted from the 0.5 release.  make the necessary
-changes to match your naming & environment.*
+**NOTE: The instructions below are NOT strictly copy-pastable and assume 0.5**
+**release. Please update the version number for your commands.**
 
 The Git flow for pushing a new release is similar to the development process
 but there are some small differences.
 
-**1. Clone your fork of the Open Match repository.**
+### 1. Clone Repository
 
 ```shell
+# Clone your fork of the Open Match repository.
 git clone git@github.com:afeddersen/open-match.git
-```
-**2. Move into the new open-match directory.**
-
-```shell
+# Change directory to the git repository.
 cd open-match
-```
-
-**3. Configure a remote that points to the upstream repository. This is required to sync changes you make in a fork with the original repository.  Note: Upstream is the gatekeeper of the project or the source of truth to which you wish to contribute.**
-
-```shell
+# Add a remote, you'll be pushing to this.
 git remote add upstream https://github.com/googleforgames/open-match.git
 ```
 
-**3. Fetch the branches and their respective commits from the upstream repo.**
+### 2. Release Branch
+
+If you're creating the first release of the version, that would be `0.5.0-rc.1`
+then you'll need to create the release branch.
 
 ```shell
-git fetch upstream
+# Create a local release branch.
+git checkout -b release-0.5 upstream/master
+# Push the branch upstream.
+git push upstream release-0.5
 ```
 
-**4.  Create a local release branch that tracks upstream and check it out.**
+otherwise there should already be a `release-0.5` branch so run,
 
 ```shell
+# Checkout the release branch.
 git checkout -b release-0.5 upstream/release-0.5
 ```
 
+**NOTE: The branch name must be in the format, `release-X.Y` otherwise**
+**some artifacts will not be pushed.**
+
 ## Releases & Versions
 
-
-Open Match uses Semantic Versioning 2.0.0.  If you're not familiar please
+Open Match uses Semantic Versioning 2.0.0. If you're not familiar please
 see the documentation - [https://semver.org/](https://semver.org/).
 
 Full Release / Stable Release:
 
-* The final software product.  Stable, reliable, etc...
-* Naming example: 1.0.0
+* The final software product. Stable, reliable, etc...
+* Example: 1.0.0, 1.1.0
 
 Release Candidate (RC):
 
 * A release candidate (RC) is a version with the potential to be the final
   product but it hasn't validated by automated and/or manual tests.
-* Naming example: 1.0.0-rc.1
+* Example: 1.0.0-rc.1
 
 Hot Fixes:
 
 * Code developed to correct a major software bug or fault
   that's been discovered after the full release.
-* Naming example: 1.0.1
+* Example: 1.0.1
+
+Preview:
+
+* Rare, a one off release cut from the master branch to provide early access
+  to APIs or some other major change.
+* **NOTE: There's no branch for this release.** 
+* Example: 0.5-preview.1
+
+**NOTE: Semantic versioning is enforced by `go mod`. A non-compliant version**
+**tag will cause `go get` to break for users.**
 
 # Detailed Instructions
 
-
 ## Find and replace
 
-
 Below this point you will see {version} used as a placeholder for future
-releases.  Find {version} and replace with the current release (e.g. 0.5.0)
+releases. Find {version} and replace with the current release (e.g. 0.5.0)
 
 ## Create a release branch in the upstream repository
-
 
 **Note: This step is performed by the person who starts the release.  It is
 only required once.**
@@ -89,7 +99,7 @@ only required once.**
 - [ ] Create the branch in the **upstream** repository. It should be named
   release-X.Y. Example: release-0.5. At this point there's effectively a code
   freeze for this version and all work on master will be included in a future
-  version.  If you're on the branch that you created in the *getting setup*
+  version. If you're on the branch that you created in the *getting setup*
   section above you should be able to push upstream.
 
 ```shell
@@ -98,19 +108,18 @@ git push origin release-0.5
 
 - [ ] Announce a PR freeze on release-X.Y branch on [open-match-discuss@](mailing-list-post).
 - [ ] Open the [`Makefile`](makefile-version) and change BASE_VERSION entry.
-- [ ] Open the [`install/helm/open-match/Chart.yaml`](om-chart-yaml-version) and [`install/helm/open-match-example/Chart.yaml`](om-example-chart-yaml-version) and change the `appVersion` and `version` entries.
-- [ ] Open the [`install/helm/open-match/values.yaml`](om-values-yaml-version) and [`install/helm/open-match-example/values.yaml`](om-example-values-yaml-version) and change the `tag` entries.
-- [ ] Open the [`site/config.toml`] and change the `release_branch` and `release_version` entries.
+- [ ] Open the [`install/helm/open-match/Chart.yaml`](om-chart-yaml-version) and change the `appVersion` and `version` entries.
+- [ ] Open the [`install/helm/open-match/values.yaml`](om-values-yaml-version) and change the `tag` entries.
 - [ ] Open the [`cloudbuild.yaml`] and change the `_OM_VERSION` entry.
-- [ ] Run `make clean release`
 - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
+- [ ] Run `make release`
 - [ ] Create a PR with the changes and include the release candidate name.
+- [ ] Go to [open-match-build](https://pantheon.corp.google.com/cloud-build/triggers?project=open-match-build) and update all the triggers' `_GCB_LATEST_VERSION` value to the `X.Y` of the release. This value should only increase as it's used to determine the latest stable version.
 - [ ] Merge your changes once the PR is approved.
 
 ## Complete Milestone
 
-
-**Note: This step is performed by the person who starts the release.  It is
+**Note: This step is performed by the person who starts the release. It is
 only required once.**
 - [ ] Create the next [version milestone](https://github.com/googleforgames/open-match/milestones) and use [semantic versioning](https://semver.org/) when naming it to be consistent with the [Go community](https://blog.golang.org/versioning-proposal).
 - [ ] Create a *draft* [release](https://github.com/googleforgames/open-match/releases).
@@ -138,7 +147,6 @@ TODO: Add guidelines for labeling issues.
 - [ ] Run `./docs/governance/templates/release.sh {source version tag} {version}` to copy the images to open-match-public-images.
 - [ ] If this is a new minor version in the newest major version then run `./docs/governance/templates/release.sh {source version tag} latest`.
 - [ ] Copy the files from `build/release/` generated from `make release` to the release draft you created.  You can drag and drop the files using the Github UI.
-- [ ] Run `make delete-gke-cluster create-gke-cluster` and run through the instructions under the [README](readme-deploy), verify the pods are healthy. You'll need to adjust the path to the `build/release/install.yaml` and `build/release/install-demo.yaml` in your local clone since you haven't published them yet.
 - [ ] Open the [`README.md`](readme-deploy) update the version references and submit. (Release candidates can ignore this step.)
 - [ ] Publish the [Release](om-release) in Github.
 
@@ -151,9 +159,7 @@ TODO: Add guidelines for labeling issues.
 [mailing-list-post]: https://groups.google.com/forum/#!newtopic/open-match-discuss
 [release-template]: https://github.com/googleforgames/open-match/blob/master/docs/governance/templates/release.md
 [makefile-version]: https://github.com/googleforgames/open-match/blob/master/Makefile#L53
-[om-example-chart-yaml-version]: https://github.com/googleforgames/open-match/blob/master/install/helm/open-match/Chart.yaml#L16
-[om-example-values-yaml-version]: https://github.com/googleforgames/open-match/blob/master/install/helm/open-match/values.yaml#L16
-[om-example-chart-yaml-version]: https://github.com/googleforgames/open-match/blob/master/install/helm/open-match-example/Chart.yaml#L16
-[om-example-values-yaml-version]: https://github.com/googleforgames/open-match/blob/master/install/helm/open-match-example/values.yaml#L16
+[om-chart-yaml-version]: https://github.com/googleforgames/open-match/blob/master/install/helm/open-match/Chart.yaml#L16
+[om-values-yaml-version]: https://github.com/googleforgames/open-match/blob/master/install/helm/open-match/values.yaml#L16
 [om-release]: https://github.com/googleforgames/open-match/releases/new
 [readme-deploy]: https://github.com/googleforgames/open-match/blob/master/README.md#deploy-to-kubernetes
