@@ -15,6 +15,7 @@
 package synchronizer
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -31,11 +32,11 @@ import (
 )
 
 type testEvaluatorClient struct {
-	evalFunc func([]*pb.Match) ([]*pb.Match, error)
+	evalFunc func(context.Context, []*pb.Match) ([]*pb.Match, error)
 }
 
-func (s *testEvaluatorClient) evaluate(proposals []*pb.Match) ([]*pb.Match, error) {
-	return s.evalFunc(proposals)
+func (s *testEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	return s.evalFunc(ctx, proposals)
 }
 
 type testCallData struct {
@@ -199,8 +200,9 @@ func TestSynchronizerService(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
+			ctx := utilTesting.NewContext(t)
 			tc.testEvaluator.eval = &testEvaluatorClient{
-				evalFunc: func(proposals []*pb.Match) ([]*pb.Match, error) {
+				evalFunc: func(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
 					if tc.testEvaluator.evalErr != nil {
 						return nil, tc.testEvaluator.evalErr
 					}
@@ -215,12 +217,12 @@ func TestSynchronizerService(t *testing.T) {
 				},
 			}
 
-			runEvaluationTest(t, tc)
+			runEvaluationTest(ctx, t, tc)
 		})
 	}
 }
 
-func runEvaluationTest(t *testing.T, tc *testData) {
+func runEvaluationTest(ctx context.Context, t *testing.T, tc *testData) {
 	require := require.New(t)
 	// Generate a config view with paths to the manifests
 	cfg := viper.New()
@@ -237,7 +239,6 @@ func runEvaluationTest(t *testing.T, tc *testData) {
 	for _, c := range tc.testCalls {
 		c := c
 		go func(c *testCallData) {
-			ctx := utilTesting.NewContext(t)
 			defer w.Done()
 			time.Sleep(time.Duration(c.registerDelay) * time.Millisecond)
 			rResp, err := s.Register(ctx, &ipb.RegisterRequest{})

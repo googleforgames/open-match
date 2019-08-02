@@ -19,13 +19,16 @@
 stresstest:
   masterName: locust-master
   slavesName: locust-slaves
-  portType: LoadBalancer
+  portType: ClusterIP
   image: openmatch-stress-frontend
   replicas: 5
   noweb: false
   clients: 1000
   rate: 200
   duration: 30s
+
+e2etest:
+  image: openmatch-base-build
 
 kubernetes:
   serviceAccount: stress-test-uploader
