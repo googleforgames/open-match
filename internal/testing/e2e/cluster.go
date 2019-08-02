@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"log"
 
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
@@ -170,7 +171,7 @@ func createZygote(m *testing.M) (OM, error) {
 	// creates the in-cluster config
 	kubeconfig, err := rest.InClusterConfig()
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(kubeconfig)

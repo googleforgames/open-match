@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if empty .Values.ci }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -27,3 +28,4 @@ subjects:
 - kind: ServiceAccount
   name: gke-metadata-server
   namespace: kube-system
+{{- end }}
