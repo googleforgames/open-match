@@ -17,7 +17,7 @@ package synchronizer
 import (
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 )
@@ -28,8 +28,8 @@ func BindService(p *rpc.ServerParams, cfg config.View) error {
 	service := newSynchronizerService(cfg, &evaluatorClient{cfg: cfg}, store)
 	p.AddHealthCheckFunc(store.HealthCheck)
 	p.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterSynchronizerServer(s, service)
-	}, pb.RegisterSynchronizerHandlerFromEndpoint)
+		ipb.RegisterSynchronizerServer(s, service)
+	}, nil)
 
 	return nil
 }

@@ -20,7 +20,7 @@ import (
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
-	ipb "open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/statestore"
 )
 
