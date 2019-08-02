@@ -19,9 +19,9 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"testing"
-	"log"
 
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
