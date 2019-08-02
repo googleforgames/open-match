@@ -247,7 +247,7 @@ openmatch:
 
   image:
     registry: gcr.io/open-match-public-images
-    tag: 0.6.0-rc.1
+    tag: 0.6.0
     pullPolicy: Always
     backend:
       name: openmatch-backend
