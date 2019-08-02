@@ -347,11 +347,14 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/
 		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
+	# Ignore errors result from reruning a failed build
+	-$(KUBECTL) create clusterrolebinding default-view-$(OPEN_MATCH_KUBERNETES_NAMESPACE) --clusterrole=view --serviceaccount=$(OPEN_MATCH_KUBERNETES_NAMESPACE):default
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=600 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
+		--set open-match-test.enabled=true \
 		--set open-match-demo.enabled=false \
 		--set open-match-customize.enabled=false \
 		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID) \
@@ -685,8 +688,10 @@ test: $(ALL_PROTOS) tls-certs third_party/
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./...
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
-test-e2e-cluster: $(ALL_PROTOS) tls-certs third_party/
-	$(GO) test ./... -race -tags e2ecluster
+test-e2e-cluster: all-protos tls-certs third_party/
+	-$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 120s
+	$(KUBECTL) logs job/e2e-job -n $(OPEN_MATCH_KUBERNETES_NAMESPACE)
+	$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 0
 
 stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:$(FRONTEND_PORT) \

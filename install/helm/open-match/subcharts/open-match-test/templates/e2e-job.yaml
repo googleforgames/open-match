@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: e2e-job
+  namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+  labels:
+    app: {{ template "openmatch.name" . }}
+    component: e2e-job
+    release: {{ .Release.Name }}
+spec:
+  selector:
+    app: {{ template "openmatch.name" . }}
+    component: e2e-job
+  # Specifies the number of retries before marking this job failed. Defaults to 6 if not specified.
+  backoffLimit: 3
+  # Specifies the desired number of successfully finished pods the job should be run with.
+  completions: 1
+  # Specifies the maximum desired number of pods the job should run at any given time.
+  parallelism: 1 
+  # Specifies the duration in seconds relative to the startTime that the job may be active before the system tries to terminate it.
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      annotations:
+        {{- include "openmatch.chartmeta" . | nindent 8 }}
+      labels:
+        app: {{ template "openmatch.name" . }}
+        component: e2e-job
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+      - image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.e2etest.image }}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
+        name: e2e-job
+        env:
+        - name: NAMESPACE
+          value: "{{ .Release.Namespace }}"
+        command: ["go"]
+        args:
+        - "test"
+        - "./..."
+        - "-race"
+        - "-tags"
+        - "e2ecluster"
+      restartPolicy: Never

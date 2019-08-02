@@ -18,13 +18,10 @@ package e2e
 
 import (
 	"context"
-	"flag"
 	"fmt"
-	"log"
 	"os"
-	"os/user"
-	"path/filepath"
 	"testing"
+	"log"
 
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
@@ -32,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/rest"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/util"
@@ -103,10 +100,10 @@ func (com *clusterOM) MustMmfConfigHTTP() *pb.FunctionConfig {
 func (com *clusterOM) getAddressFromServiceName(serviceName, portName string) (string, int32) {
 	svc, err := com.kubeClient.CoreV1().Services(com.namespace).Get(serviceName, metav1.GetOptions{})
 	if err != nil {
-		com.t.Fatalf("cannot get service definition for %s", serviceName)
+		com.t.Fatalf("cannot get service definition for %s, %s", serviceName, err.Error())
 	}
-	if len(svc.Status.LoadBalancer.Ingress) != 1 {
-		com.t.Fatalf("LoadBalancer for %s does not have exactly 1 config, %v", serviceName, svc.Status.LoadBalancer.Ingress)
+	if len(svc.Spec.Ports) == 0 {
+		com.t.Fatalf("service %s does not have an available ContainerPort", serviceName)
 	}
 
 	var port int32
@@ -115,7 +112,7 @@ func (com *clusterOM) getAddressFromServiceName(serviceName, portName string) (s
 			port = servicePort.Port
 		}
 	}
-	return svc.Status.LoadBalancer.Ingress[0].IP, port
+	return svc.Spec.ClusterIP, port
 }
 
 func (com *clusterOM) getGRPCAddressFromServiceName(serviceName string) (string, int32) {
@@ -170,35 +167,20 @@ func fileExists(name string) bool {
 	return err == nil
 }
 
-func newClusterOM(kubeconfig string, kubeconfigFromEnv string, namespace string) (*clusterOM, error) {
-	if !fileExists(kubeconfig) && fileExists(kubeconfigFromEnv) {
-		kubeconfig = kubeconfigFromEnv
-	}
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+func createZygote(m *testing.M) (OM, error) {
+	// creates the in-cluster config
+	kubeconfig, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, errors.Wrapf(err, "building Kubernetes config from flags %s failed", kubeconfig)
+		log.Fatal(err.Error())
 	}
 
-	kubeClient, err := kubernetes.NewForConfig(config)
+	kubeClient, err := kubernetes.NewForConfig(kubeconfig)
 	if err != nil {
-		return nil, errors.Wrapf(err, "creating Kubernetes client from config failed\nkubeconfig= %s\nconfig= %+v", kubeconfig, config)
+		return nil, errors.Wrapf(err, "creating Kubernetes client from config failed\nconfig= %+v", kubeconfig)
 	}
 
 	return &clusterOM{
 		kubeClient: kubeClient,
-		namespace:  namespace,
+		namespace:  os.Getenv("NAMESPACE"),
 	}, nil
-}
-
-func createZygote(m *testing.M) (OM, error) {
-	u, err := user.Current()
-	if err != nil {
-		log.Fatalf("cannot get current user, %s", err)
-	}
-	kubeconfig := flag.String("kubeconfig", filepath.Join(u.HomeDir, ".kube", "config"), "Kubernetes configuration file")
-	namespace := flag.String("namespace", fmt.Sprintf("open-match-%s", os.Getenv("SHORT_SHA")), "Open Match Namespace")
-	kubeconfigFromEnv := os.Getenv("KUBECONFIG")
-
-	flag.Parse()
-	return newClusterOM(*kubeconfig, kubeconfigFromEnv, *namespace)
 }

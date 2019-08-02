@@ -19,7 +19,7 @@
 demo:
   hostName: om-demo
   httpPort: 51507
-  portType: LoadBalancer
+  portType: ClusterIP
   replicas: 1
   image: openmatch-demo-first-match
 
