@@ -53,9 +53,8 @@
 
 BASE_VERSION = 0.0.0-dev
 SHORT_SHA = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
-VERSION_SUFFIX = $(SHORT_SHA)
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
-VERSION = $(BASE_VERSION)-$(VERSION_SUFFIX)
+VERSION = $(BASE_VERSION)-$(SHORT_SHA)
 BUILD_DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 YEAR_MONTH = $(shell date -u +'%Y%m')
 YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
@@ -207,7 +206,7 @@ help:
 
 local-cloud-build: LOCAL_CLOUD_BUILD_PUSH = # --push
 local-cloud-build: gcloud
-	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(VERSION_SUFFIX),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
+	cloud-build-local --config=cloudbuild.yaml --dryrun=false $(LOCAL_CLOUD_BUILD_PUSH) --substitutions SHORT_SHA=$(SHORT_SHA),_GCB_POST_SUBMIT=$(_GCB_POST_SUBMIT),_GCB_LATEST_VERSION=$(_GCB_LATEST_VERSION),BRANCH_NAME=$(BRANCH_NAME) .
 
 # Below should match push-images
 retag-images: retag-service-images retag-example-images retag-tool-images retag-stress-test-images
@@ -364,6 +363,7 @@ install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-mat
 		--set open-match-demo.enabled=false \
 		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 		--set open-match-customize.enabled=false \
+		--set ci=true
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_RELEASE_NAME) install/helm/open-match \
