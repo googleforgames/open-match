@@ -364,6 +364,7 @@ install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-mat
 		--set open-match-demo.enabled=false \
 		--set open-match-customize.enabled=false \
 		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+		--set ci=true
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_RELEASE_NAME) install/helm/open-match \
