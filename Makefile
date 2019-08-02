@@ -335,8 +335,8 @@ install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
-		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 		--set global.logging.rpc.enabled=true \
+		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) --install --wait --debug install/helm/open-match \
@@ -357,7 +357,7 @@ install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-mat
 		--set open-match-test.enabled=true \
 		--set open-match-demo.enabled=false \
 		--set open-match-customize.enabled=false \
-		--set global.gcpProjectId=$(GCP_PROJECT_ID)
+		--set global.gcpProjectId=$(GCP_PROJECT_ID) \
 		--set ci=true
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
