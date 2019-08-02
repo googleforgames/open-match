@@ -356,8 +356,8 @@ install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-mat
 		--set global.image.tag=$(TAG) \
 		--set open-match-test.enabled=true \
 		--set open-match-demo.enabled=false \
-		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 		--set open-match-customize.enabled=false \
+		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 		--set ci=true
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
