@@ -39,7 +39,7 @@ spec:
         command: ["go"]
         args:
         - "test"
-        - "./..."
+        - "./test/e2e"
         - "-race"
         - "-tags"
         - "e2ecluster"
