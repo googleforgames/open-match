@@ -25,21 +25,20 @@ Images
 
 ```bash
 # Servers
-docker pull gcr.io/open-match-public-images/openmatch-backendapi:{version}
-docker pull gcr.io/open-match-public-images/openmatch-frontendapi:{version}
-docker pull gcr.io/open-match-public-images/openmatch-mmforc:{version}
-docker pull gcr.io/open-match-public-images/openmatch-mmlogicapi:{version}
+docker pull gcr.io/open-match-public-images/openmatch-backend:{version}
+docker pull gcr.io/open-match-public-images/openmatch-frontend:{version}
+docker pull gcr.io/open-match-public-images/openmatch-mmlogic:{version}
+docker pull gcr.io/open-match-public-images/openmatch-synchronizer:{version}
 
 # Evaluators
-docker pull gcr.io/open-match-public-images/openmatch-evaluator-serving:{version}
+docker pull gcr.io/open-match-public-images/openmatch-evaluator-go-simple:{version}
 
 # Sample Match Making Functions
-docker pull gcr.io/open-match-public-images/openmatch-mmf-go-simple:{version}
+docker pull gcr.io/open-match-public-images/openmatch-mmf-go-soloduel:{version}
+docker pull gcr.io/open-match-public-images/openmatch-mmf-go-pool:{version}
 
 # Test Clients
-docker pull gcr.io/open-match-public-images/openmatch-backendclient:{version}
-docker pull gcr.io/open-match-public-images/openmatch-clientloadgen:{version}
-docker pull gcr.io/open-match-public-images/openmatch-frontendclient:{version}
+docker pull gcr.io/open-match-public-images/openmatch-demo:{version}
 ```
 
 _This software is currently alpha, and subject to change. Not to be used in production systems._

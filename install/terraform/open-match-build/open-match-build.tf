@@ -74,14 +74,13 @@ resource "google_compute_subnetwork" "ci_subnet" {
   private_ip_google_access = true
 }
 
-# The cluster reaper is a tool that scans for orphaned GKE clusters created by CI and deletes them.
+# The reaper is a tool that scans for orphaned GKE namespaces created by CI and deletes them.
 # The reaper runs as this service account.
-resource "google_service_account" "cluster_reaper" {
+resource "google_service_account" "reaper" {
   project      = "${var.gcp_project_id}"
-  account_id   = "cluster-reaper"
-  display_name = "cluster-reaper"
+  account_id   = "reaper"
+  display_name = "reaper"
   # Description is not supported yet.
-  #description = "Deletes orphaned GKE clusters."
 }
 
 # Create a Google service account with workload identity feature enabled to authenticate gcloud with its k8s service account binding.
@@ -97,7 +96,7 @@ resource "google_service_account" "stress_test_uploader" {
 # file if you want to modify this name.
 resource "google_service_account_iam_binding" "stress_test_uploader_iam" {
   service_account_id = "${google_service_account.stress_test_uploader.name}"
-  role               = "projects/${google_project_iam_custom_role.stress_test_uploader_role.project}/roles/${google_project_iam_custom_role.stress_test_uploader_role.role_id}"
+  role               = "roles/iam.workloadIdentityUser"
 
   members = [
     # "serviceAccount:[PROJECT_NAME].svc.id.goog[[K8S_NAMESPACE]/[KSA_NAME]]"
@@ -106,21 +105,31 @@ resource "google_service_account_iam_binding" "stress_test_uploader_iam" {
   depends_on = ["null_resource.after_service_account_creation"]
 }
 
+resource "google_project_iam_binding" "stress_test_uploader_iam" {
+  project = "${google_project_iam_custom_role.stress_test_uploader_role.project}"
+  role    = "projects/${google_project_iam_custom_role.stress_test_uploader_role.project}/roles/${google_project_iam_custom_role.stress_test_uploader_role.role_id}"
+  members = [
+    "serviceAccount:${google_service_account.stress_test_uploader.email}"
+  ]
+  depends_on = ["null_resource.after_service_account_creation"]
+}
+
 # This role defines all the permissions that the cluster reaper has.
 # It mainly needs to list and delete GKE cluster but it also runs in Cloud Run so it needs invoker permissions.
-resource "google_project_iam_custom_role" "cluster_reaper_role" {
+resource "google_project_iam_custom_role" "reaper_role" {
   provider    = "google-beta"
   project     = "${var.gcp_project_id}"
   role_id     = "continuousintegration.reaper"
-  title       = "Open Match CI Cluster Reaper"
-  description = "Role to authorize the cluster reaper to delete GKE clusters and invoke itself through Cloud Scheduler."
+  title       = "Open Match CI Reaper"
+  description = "Role to authorize the reaper to delete namespaces in a GKE cluster and invoke itself through Cloud Scheduler."
   permissions = [
-    "container.clusters.delete",
     "container.clusters.get",
-    "container.clusters.list",
     "container.operations.get",
-    "container.operations.list",
     "resourcemanager.projects.get",
+    "container.namespaces.delete",
+    "container.namespaces.get",
+    "container.namespaces.getStatus",
+    "container.namespaces.list",
     # Not supported yet.
     #"run.routes.invoke",
   ]
@@ -128,7 +137,7 @@ resource "google_project_iam_custom_role" "cluster_reaper_role" {
 }
 
 # This role defines all the permissions that the stress test uploader has.
-# It mainly needs the GCS permissions but it also needs the workload identity user permissions to work in a kubernetes container.
+# It mainly needs the GCS permissions.
 resource "google_project_iam_custom_role" "stress_test_uploader_role" {
   provider    = "google-beta"
   project     = "${var.gcp_project_id}"
@@ -144,31 +153,27 @@ resource "google_project_iam_custom_role" "stress_test_uploader_role" {
     "storage.buckets.get",
     "storage.buckets.create",
     "resourcemanager.projects.get",
-    # Workload Identity User Permissions
-    "iam.serviceAccounts.get",
-    "iam.serviceAccounts.getAccessToken",
-    "iam.serviceAccounts.list",
   ]
   stage = "BETA"
 }
 
-# This binds the role to the service account so the cluster reaper can do its thing.
-resource "google_project_iam_binding" "cluster_reaper_role_binding" {
-  project = "${google_project_iam_custom_role.cluster_reaper_role.project}"
-  role    = "projects/${google_project_iam_custom_role.cluster_reaper_role.project}/roles/${google_project_iam_custom_role.cluster_reaper_role.role_id}"
+# This binds the role to the service account so the reaper can do its thing.
+resource "google_project_iam_binding" "reaper_role_binding" {
+  project = "${google_project_iam_custom_role.reaper_role.project}"
+  role    = "projects/${google_project_iam_custom_role.reaper_role.project}/roles/${google_project_iam_custom_role.reaper_role.role_id}"
   members = [
-    "serviceAccount:${google_service_account.cluster_reaper.email}"
+    "serviceAccount:${google_service_account.reaper.email}"
   ]
   depends_on = ["null_resource.after_service_account_creation"]
 }
 
 # TODO: Remove once run.routes.invoke can be added to custom roles.
-resource "google_project_iam_binding" "cluster_reaper_role_binding_for_cloud_run_invoker" {
+resource "google_project_iam_binding" "reaper_role_binding_for_cloud_run_invoker" {
   provider = "google-beta"
-  project  = "${google_project_iam_custom_role.cluster_reaper_role.project}"
+  project  = "${google_project_iam_custom_role.reaper_role.project}"
   role     = "roles/run.invoker"
   members = [
-    "serviceAccount:${google_service_account.cluster_reaper.email}"
+    "serviceAccount:${google_service_account.reaper.email}"
   ]
   depends_on = ["null_resource.after_service_account_creation"]
 }
@@ -177,7 +182,7 @@ resource "google_project_iam_binding" "cluster_reaper_role_binding_for_cloud_run
 # It's recommended to delay creation of the role binding by a few seconds after the service account
 # because the service account creation is eventually consistent.
 resource "null_resource" "before_service_account_creation" {
-  depends_on = ["google_service_account.cluster_reaper", "google_service_account.stress_test_uploader"]
+  depends_on = ["google_service_account.reaper", "google_service_account.stress_test_uploader"]
 }
 
 resource "null_resource" "delay_after_service_account_creation" {

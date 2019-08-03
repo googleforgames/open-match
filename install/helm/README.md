@@ -1,0 +1,75 @@
+### Open Match Helm Chart Templates
+This directory contains the [helm](https://helm.sh/ "helm") chart templates used to customize and deploy Open Match.
+
+Templates under the `templates/` directory are for the core components in Open Match - e.g. backend, frontend, mmlogic, synchronizor, some security policies, and configmaps are defined under this folder.
+
+Open Match also provides templates for optional components that are disabled by default under the `subcharts/` directory.
+1. `open-match-demo` contains the template for a sample director.
+2. `open-match-customize` contains flexible templates to deploy your own matchfunction and evaluator.
+3. `open-match-telemetry` contains monitoring supports for Open Match, you may choose to enable/disable [jaeger](https://www.jaegertracing.io/ "jaeger"), [prometheus](http://prometheus.io "prometheus"), [stackdriver](https://cloud.google.com/stackdriver/ "stackdriver"), [zipkin](https://zipkin.io/ "zipkin"), and [grafana](https://grafana.com/ "grafana") by overriding the config values in the provided templates.
+4. `open-match-test` contains templates of the end-to-end in-cluster tests and distributed stress tests for Open Match.
+
+You may control the behavior of Open Match by overriding the configs in `install/helm/open-match/values.yaml` file. Here are a few examples:
+
+```diff
+# install/helm/open-match/values.yaml
+# 1. Configs under the `global` section affects all components - including components in the subcharts.
+# 2. Configs under the subchart name - e.g. `open-match-test` only affects the settings in that subchart.
+# 3. Otherwise, the configs are for core components (templates in the parent chart) only.
+
+# Setup Open Match with customized ticket indices
+ticketIndices:
++ - myfirstindice
++ - mysecondice
++ - ...
+
+# Overrides spec.type of a specific Kubernetes Service
+# Equivalent helm cli flag --set swaggerui.portType=LoadBalancer
+swaggerui:
+-  portType: ClusterIP
++  portType: LoadBalancer
+
+# Overrides spec.type of all Open Match components - including components in the subcharts
+# Equivalent helm cli flag --set global.kubernetes.service.portType=LoadBalancer
+global:
+  kubernetes:
+    service:
+-	  portType: ClusterIP
++     portType: LoadBalancer
+
+# Enables grafana support in Open Match
+# Equivalent helm cli flag --set global.telemetry.grafana.enabled=true
+global:
+  telemetry:
+    grafana:
+-     enabled: false
++     enabled: true
+
+# Enables an optional component in Open Match
+# Equivalent helm cli flag --set open-match-demo.enabled=true
+open-match-demo:
+- enabled: false
++ enabled: true
+
+# Enables rpc logging in Open Match
+# Equivalent helm cli flag --set global.logging.rpc.enabled=true
+global:
+  logging:
+    rpc:
+-     enabled: false
++     enabled: true
+
+# Instructs Open Match to use customized matchfunction and evaluator images
+# Equivalent helm cli flag --set open-match-customize.image.registry=[XXX],open-match-customize.image.tag=[XXX]
+open-match-customize:
+  enabled: true
++   image:
++     registry: [YOUR_REGISTRY_URL]
++     tag: [YOUR_IMAGE_TAG]
++   function:
++     image: [YOUR_MATCHFUNCTION_IMAGE_NAME]
++   evaluator:
++     image: [YOUR_EVALUATOR_IMAGE_NAME]
+```
+
+Please see [Helm - Chart Template Guide](https://helm.sh/docs/chart_template_guide/#the-chart-template-developer-s-guide "Chart Template Guide") for the advanced usages and our [Makefile](https://github.com/googleforgames/open-match/blob/master/Makefile#L358 "Makefile")  for how we use the helm charts to deploy Open Match.

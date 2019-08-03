@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	ipb "open-match.dev/open-match/internal/pb"
+	"open-match.dev/open-match/internal/ipb"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"

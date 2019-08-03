@@ -26,7 +26,7 @@ spec:
   selector:
     app: {{ template "openmatch.name" . }}
     component: locust-master
-  type: {{ .Values.stresstest.portType }}
+  type: {{ coalesce .Values.global.kubernetes.service.portType .Values.stresstest.portType }}
   ports:
   - name: loc-master-web
     port: 8089
@@ -82,6 +82,13 @@ spec:
         - name: loc-master-p2
           containerPort: 5558
           protocol: TCP
+{{- if .Values.stresstest.noweb }}
+        env:
+        - name: NO_WEB
+          value: "{{ .Values.stresstest.noweb }}"
+        - name: GCP_PROJECT
+          value: "{{ .Values.global.gcpProjectId }}"
+{{- end }}
         command: ["python3"]
         # TODO: template the secure mode
         args:
@@ -96,4 +103,5 @@ spec:
         - "-r{{ .Values.stresstest.rate }}"
         - "-t{{ .Values.stresstest.duration }}"
         - "--expect-slaves={{ .Values.stresstest.replicas }}"
+        - "--csv=stress_user{{ .Values.stresstest.clients }}"
 {{- end }}
