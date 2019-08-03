@@ -76,10 +76,10 @@ resource "google_compute_subnetwork" "ci_subnet" {
 
 # The ci reaper is a tool that scans for orphaned GKE namespaces created by CI and deletes them.
 # The reaper runs as this service account.
-resource "google_service_account" "ci_reaper" {
+resource "google_service_account" "reaper" {
   project      = "${var.gcp_project_id}"
-  account_id   = "ci-reaper"
-  display_name = "ci-reaper"
+  account_id   = "reaper"
+  display_name = "reaper"
   # Description is not supported yet.
 }
 
@@ -116,7 +116,7 @@ resource "google_project_iam_binding" "stress_test_uploader_iam" {
 
 # This role defines all the permissions that the cluster reaper has.
 # It mainly needs to list and delete GKE cluster but it also runs in Cloud Run so it needs invoker permissions.
-resource "google_project_iam_custom_role" "ci_reaper_role" {
+resource "google_project_iam_custom_role" "reaper_role" {
   provider    = "google-beta"
   project     = "${var.gcp_project_id}"
   role_id     = "continuousintegration.reaper"
@@ -158,22 +158,22 @@ resource "google_project_iam_custom_role" "stress_test_uploader_role" {
 }
 
 # This binds the role to the service account so the ci reaper can do its thing.
-resource "google_project_iam_binding" "ci_reaper_role_binding" {
-  project = "${google_project_iam_custom_role.ci_reaper_role.project}"
-  role    = "projects/${google_project_iam_custom_role.ci_reaper_role.project}/roles/${google_project_iam_custom_role.ci_reaper_role.role_id}"
+resource "google_project_iam_binding" "reaper_role_binding" {
+  project = "${google_project_iam_custom_role.reaper_role.project}"
+  role    = "projects/${google_project_iam_custom_role.reaper_role.project}/roles/${google_project_iam_custom_role.reaper_role.role_id}"
   members = [
-    "serviceAccount:${google_service_account.ci_reaper.email}"
+    "serviceAccount:${google_service_account.reaper.email}"
   ]
   depends_on = ["null_resource.after_service_account_creation"]
 }
 
 # TODO: Remove once run.routes.invoke can be added to custom roles.
-resource "google_project_iam_binding" "ci_reaper_role_binding_for_cloud_run_invoker" {
+resource "google_project_iam_binding" "reaper_role_binding_for_cloud_run_invoker" {
   provider = "google-beta"
-  project  = "${google_project_iam_custom_role.ci_reaper_role.project}"
+  project  = "${google_project_iam_custom_role.reaper_role.project}"
   role     = "roles/run.invoker"
   members = [
-    "serviceAccount:${google_service_account.ci_reaper.email}"
+    "serviceAccount:${google_service_account.reaper.email}"
   ]
   depends_on = ["null_resource.after_service_account_creation"]
 }
@@ -182,7 +182,7 @@ resource "google_project_iam_binding" "ci_reaper_role_binding_for_cloud_run_invo
 # It's recommended to delay creation of the role binding by a few seconds after the service account
 # because the service account creation is eventually consistent.
 resource "null_resource" "before_service_account_creation" {
-  depends_on = ["google_service_account.ci_reaper", "google_service_account.stress_test_uploader"]
+  depends_on = ["google_service_account.reaper", "google_service_account.stress_test_uploader"]
 }
 
 resource "null_resource" "delay_after_service_account_creation" {
