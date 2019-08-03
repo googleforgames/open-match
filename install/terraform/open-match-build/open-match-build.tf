@@ -74,7 +74,7 @@ resource "google_compute_subnetwork" "ci_subnet" {
   private_ip_google_access = true
 }
 
-# The ci reaper is a tool that scans for orphaned GKE namespaces created by CI and deletes them.
+# The reaper is a tool that scans for orphaned GKE namespaces created by CI and deletes them.
 # The reaper runs as this service account.
 resource "google_service_account" "reaper" {
   project      = "${var.gcp_project_id}"
