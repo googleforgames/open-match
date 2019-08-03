@@ -18,7 +18,8 @@ WORKDIR /go/src/open-match.dev/open-match
 
 ARG IMAGE_TITLE
 
-RUN make "build/cmd/${IMAGE_TITLE}"
+RUN mkdir -p build/cmd/${IMAGE_TITLE}
+RUN CGO_ENABLED=0 go build -a -installsuffix cgo -o build/cmd/${IMAGE_TITLE}/run open-match.dev/open-match/cmd/${IMAGE_TITLE}
 
 FROM gcr.io/distroless/static:nonroot
 ARG IMAGE_TITLE
