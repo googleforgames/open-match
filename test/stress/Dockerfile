@@ -15,7 +15,7 @@
 
 FROM python:3.5 AS build-env
 # Install the required dependencies via pip
-RUN pip install locustio
+RUN pip install locustio google-cloud-storage
 # Add the external tasks directory into the container image
 ADD test/stress test/stress
 

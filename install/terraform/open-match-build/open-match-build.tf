@@ -97,11 +97,20 @@ resource "google_service_account" "stress_test_uploader" {
 # file if you want to modify this name.
 resource "google_service_account_iam_binding" "stress_test_uploader_iam" {
   service_account_id = "${google_service_account.stress_test_uploader.name}"
-  role               = "projects/${google_project_iam_custom_role.stress_test_uploader_role.project}/roles/${google_project_iam_custom_role.stress_test_uploader_role.role_id}"
+  role               = "roles/iam.workloadIdentityUser"
 
   members = [
     # "serviceAccount:[PROJECT_NAME].svc.id.goog[[K8S_NAMESPACE]/[KSA_NAME]]"
     "serviceAccount:${var.gcp_project_id}.svc.id.goog[${var.stress-test-uploader_namespace}/stress-test-uploader]",
+  ]
+  depends_on = ["null_resource.after_service_account_creation"]
+}
+
+resource "google_project_iam_binding" "stress_test_uploader_iam" {
+  project = "${google_project_iam_custom_role.stress_test_uploader_role.project}"
+  role    = "projects/${google_project_iam_custom_role.stress_test_uploader_role.project}/roles/${google_project_iam_custom_role.stress_test_uploader_role.role_id}"
+  members = [
+    "serviceAccount:${google_service_account.stress_test_uploader.email}"
   ]
   depends_on = ["null_resource.after_service_account_creation"]
 }
@@ -128,7 +137,7 @@ resource "google_project_iam_custom_role" "cluster_reaper_role" {
 }
 
 # This role defines all the permissions that the stress test uploader has.
-# It mainly needs the GCS permissions but it also needs the workload identity user permissions to work in a kubernetes container.
+# It mainly needs the GCS permissions.
 resource "google_project_iam_custom_role" "stress_test_uploader_role" {
   provider    = "google-beta"
   project     = "${var.gcp_project_id}"
@@ -144,10 +153,6 @@ resource "google_project_iam_custom_role" "stress_test_uploader_role" {
     "storage.buckets.get",
     "storage.buckets.create",
     "resourcemanager.projects.get",
-    # Workload Identity User Permissions
-    "iam.serviceAccounts.get",
-    "iam.serviceAccounts.getAccessToken",
-    "iam.serviceAccounts.list",
   ]
   stage = "BETA"
 }

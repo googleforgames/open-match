@@ -12,8 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
+import os
+import glob
+from datetime import datetime
 
-from locust import HttpLocust, TaskSequence, task, seq_task
+from pathlib import Path
+from google.cloud import storage
+from locust import HttpLocust, TaskSequence, task, seq_task, events
 from util import string_generator, number_generator, ticket_generator
 
 class ClientBehavior(TaskSequence):
@@ -55,3 +60,31 @@ class WebsiteUser(HttpLocust):
   task_set = ClientBehavior
   min_wait = 500
   max_wait = 1500
+
+
+"""
+*on_quitting* is fired when the locust process is exiting
+"""
+def on_quitting(**kw):
+    """ Upload data to GCS bucket on quit """
+    storage_client = storage.Client()
+
+    bucket = storage_client.get_bucket("artifacts.{}.appspot.com".format(os.environ['GCP_PROJECT']))
+
+    rdir = os.path.dirname(os.path.realpath(__file__))
+    rfiles = glob.glob(rdir + '/*.csv')
+
+    for rfile in rfiles:
+      time_postfix = str(datetime.now().replace(microsecond=0))
+      blobname = Path(rfile).stem + '_' + time_postfix + '.csv'
+      blob = bucket.blob('stress/' + blobname)
+      blob.upload_from_filename(rfile)
+      print("Test result is available via {}".format(blob.public_url))
+
+    return
+
+"""
+Register locust.events.quitting hook if executing under --no-web mode in a kubernetes container
+"""
+if "NO_WEB" in os.environ:
+  events.quitting += on_quitting
