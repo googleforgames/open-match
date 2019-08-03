@@ -121,7 +121,7 @@ resource "google_project_iam_custom_role" "reaper_role" {
   project     = "${var.gcp_project_id}"
   role_id     = "continuousintegration.reaper"
   title       = "Open Match CI Reaper"
-  description = "Role to authorize the ci reaper to delete namespaces in a GKE cluster and invoke itself through Cloud Scheduler."
+  description = "Role to authorize the reaper to delete namespaces in a GKE cluster and invoke itself through Cloud Scheduler."
   permissions = [
     "container.clusters.get",
     "container.operations.get",
@@ -157,7 +157,7 @@ resource "google_project_iam_custom_role" "stress_test_uploader_role" {
   stage = "BETA"
 }
 
-# This binds the role to the service account so the ci reaper can do its thing.
+# This binds the role to the service account so the reaper can do its thing.
 resource "google_project_iam_binding" "reaper_role_binding" {
   project = "${google_project_iam_custom_role.reaper_role.project}"
   role    = "projects/${google_project_iam_custom_role.reaper_role.project}/roles/${google_project_iam_custom_role.reaper_role.role_id}"
