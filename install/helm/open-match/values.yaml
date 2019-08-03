@@ -147,6 +147,8 @@ global:
     service:
       portType:
   
+  gcpProjectId: "replace_with_your_project_id"
+  
   # Defines if Open Match needs to serve secure traffic
   tls: 
     enabled: false
@@ -184,7 +186,6 @@ global:
       serviceDiscovery: true
     stackdriver:
       enabled: true
-      gcpProjectId: "replace_with_your_project_id"
       metricPrefix: "open_match"
     zipkin:
       enabled: false

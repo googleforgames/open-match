@@ -336,7 +336,7 @@ install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
 		--set global.logging.rpc.enabled=true \
-		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) --install --wait --debug install/helm/open-match \
@@ -344,7 +344,7 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
-		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID)
+		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	# Ignore errors result from reruning a failed build
@@ -357,7 +357,7 @@ install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-mat
 		--set open-match-test.enabled=true \
 		--set open-match-demo.enabled=false \
 		--set open-match-customize.enabled=false \
-		--set global.telemetry.stackdriver.gcpProjectId=$(GCP_PROJECT_ID) \
+		--set global.gcpProjectId=$(GCP_PROJECT_ID) \
 		--set ci=true
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -517,7 +517,7 @@ build/toolchain/python/:
 	virtualenv --python=python3 $(TOOLCHAIN_DIR)/python/
 	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
 	cd $(TOOLCHAIN_DIR)/python/bin && ln -s python3 pytho
-	cd $(TOOLCHAIN_DIR)/python/ && . bin/activate && pip install locustio && deactivate
+	cd $(TOOLCHAIN_DIR)/python/ && . bin/activate && pip install locustio google-cloud-storage && deactivate
 
 build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -683,7 +683,7 @@ test: $(ALL_PROTOS) tls-certs third_party/
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
 test-e2e-cluster: all-protos tls-certs third_party/
-	-$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 120s
+	-$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 150s
 	$(KUBECTL) logs job/e2e-job -n $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 	$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 0
 

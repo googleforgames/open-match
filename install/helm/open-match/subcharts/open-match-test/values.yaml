@@ -22,7 +22,7 @@ stresstest:
   portType: ClusterIP
   image: openmatch-stress-frontend
   replicas: 5
-  noweb: false
+  noweb: true
   clients: 1000
   rate: 200
   duration: 30s
