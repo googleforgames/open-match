@@ -37,7 +37,7 @@ data:
         serviceDiscovery: "{{ .Values.global.telemetry.prometheus.serviceDiscovery }}"
       stackdriver:
         enable: "{{ .Values.global.telemetry.stackdriver.enabled }}"
-        gcpProjectId: "{{ .Values.global.telemetry.stackdriver.gcpProjectId }}"
+        gcpProjectId: "{{ .Values.global.gcpProjectId }}"
         metricPrefix: "{{ .Values.global.telemetry.stackdriver.metricPrefix }}"
       zipkin:
         enable: "{{ .Values.global.telemetry.zipkin.enabled }}"

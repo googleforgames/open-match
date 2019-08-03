@@ -54,7 +54,7 @@ steps:
 
 - id: 'Build: Clean'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'clean']
+  args: ['make', 'clean-third-party', 'clean-protos', 'clean-swagger-docs']
   waitFor: ['Docker Image: open-match-build']
 
 - id: 'Test: Markdown'
@@ -70,13 +70,23 @@ steps:
     path: '/go'
   waitFor: ['Build: Clean']
 
-- id: 'Build: Install Toolchain'
+- id: 'Build: Initialize Toolchain'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'install-toolchain']
+  args: ['make', 'install-toolchain', 'push-helm-ci']
   volumes:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Setup: Download Dependencies']
+
+- id: 'Test: Terraform Configuration'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'terraform-test']
+  waitFor: ['Build: Initialize Toolchain']
+
+- id: 'Build: Deployment Configs'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'update-chart-deps', 'install/yaml/']
+  waitFor: ['Build: Initialize Toolchain']
 
 - id: 'Build: Assets'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -84,7 +94,7 @@ steps:
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Build: Install Toolchain']
+  waitFor: ['Build: Initialize Toolchain']
 
 - id: 'Build: Binaries'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -107,16 +117,6 @@ steps:
   args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'push-images', '-j8']
   waitFor: ['Build: Assets']
 
-- id: 'Test: Terraform Configuration'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'terraform-test']
-  waitFor: ['Build: Install Toolchain']
-
-- id: 'Build: Deployment Configs'
-  name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'push-helm-ci', 'update-chart-deps', 'clean-install-yaml', 'install/yaml/']
-  waitFor: ['Build: Install Toolchain']
-
 - id: 'Lint: Format, Vet, Charts'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'lint']
@@ -127,12 +127,12 @@ steps:
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'auth-gke-cluster', 'delete-chart', 'install-ci-chart']
-  waitFor: ['Build: Install Toolchain', 'Build: Docker Images']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'auth-gke-cluster', 'delete-chart', 'ci-reap-namespaces', 'install-ci-chart']
+  waitFor: ['Build: Docker Images']
 
 - id: 'Deploy: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'VERSION_SUFFIX=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
   waitFor: ['Lint: Format, Vet, Charts', 'Test: Deploy Open Match']
   volumes:
   - name: 'go-vol'
@@ -148,7 +148,7 @@ steps:
 
 - id: 'Test: Delete Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'GCLOUD_EXTRA_FLAGS=--async', 'GCP_PROJECT_ID=${PROJECT_ID}', 'ci-reap-namespaces', 'delete-chart']
+  args: ['make', 'GCLOUD_EXTRA_FLAGS=--async', 'SHORT_SHA=${SHORT_SHA}', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
   waitFor: ['Test: End-to-End Cluster']
 
 artifacts:
