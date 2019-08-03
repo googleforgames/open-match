@@ -27,7 +27,7 @@ ENTRYPOINT ["/app/reaper"]
 ARG BUILD_DATE
 ARG VCS_REF
 ARG BUILD_VERSION
-ARG IMAGE_TITLE="Open Match Cluster Reaper"
+ARG IMAGE_TITLE="Open Match CI Reaper"
 
 # Standardized Docker Image Labels
 # https://github.com/opencontainers/image-spec/blob/master/annotations.md
