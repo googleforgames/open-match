@@ -196,7 +196,7 @@ else
 	endif
 endif
 
-GOLANG_PROTOS = pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/messages.pb.go pkg/pb/mmlogic.pb.go pkg/pb/messages.pb.go pkg/pb/evaluator.pb.go internal/ipb/synchronizer.pb.go pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/messages.pb.gw.go pkg/pb/mmlogic.pb.gw.go pkg/pb/evaluator.pb.gw.go
+GOLANG_PROTOS = pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/mmlogic.pb.go pkg/pb/messages.pb.go pkg/pb/evaluator.pb.go internal/ipb/synchronizer.pb.go pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/mmlogic.pb.gw.go pkg/pb/evaluator.pb.gw.go
 
 SWAGGER_JSON_DOCS = api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/evaluator.swagger.json
 
@@ -642,24 +642,30 @@ gcp-apply-binauthz-policy: build/policies/binauthz.yaml
 
 all-protos: $(ALL_PROTOS)
 
+# The proto generator really wants to be run from the $GOPATH root, and doesn't
+# support methods for directing it to the correct location that's not the proto
+# file's location.  So instead put it in a tempororary directory, then move it
+# out.
 pkg/pb/%.pb.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
-	mkdir -p $(REPOSITORY_ROOT)/pkg/pb
+	mkdir -p $(REPOSITORY_ROOT)/build/prototmp $(REPOSITORY_ROOT)/pkg/pb
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
+		--go_out=plugins=grpc:$(REPOSITORY_ROOT)/build/prototmp
+	mv $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/$@ $@
 
 internal/ipb/%.pb.go: internal/api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
-	mkdir -p $(REPOSITORY_ROOT)/internal/ipb
+	mkdir -p $(REPOSITORY_ROOT)/build/prototmp $(REPOSITORY_ROOT)/internal/ipb
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-		--go_out=plugins=grpc:$(REPOSITORY_ROOT)
-	$(SED_REPLACE) 's|pkg/pb|open-match.dev/open-match/pkg/pb|' $@
+		--go_out=plugins=grpc:$(REPOSITORY_ROOT)/build/prototmp
+	mv $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/$@ $@
 
 pkg/pb/%.pb.gw.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
-	mkdir -p $(REPOSITORY_ROOT)/pkg/pb
+	mkdir -p $(REPOSITORY_ROOT)/build/prototmp $(REPOSITORY_ROOT)/pkg/pb
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
+   		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)/build/prototmp
+	mv $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/$@ $@
 
 api/%.swagger.json: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 	$(PROTOC) $< \

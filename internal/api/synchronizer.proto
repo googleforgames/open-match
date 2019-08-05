@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 package api.internal;
-option go_package = "internal/ipb";
+option go_package = "open-match.dev/open-match/internal/ipb";
 
 import "api/messages.proto";
 import "google/api/annotations.proto";
