@@ -52,28 +52,6 @@ provider "google-beta" {
   region  = "${var.gcp_region}"
 }
 
-# Create a manual-mode GCP regionalized network for CI.
-# We'll create GKE clusters outside of the "default" auto-mode network so that we can have many subnets.
-resource "google_compute_network" "ci_network" {
-  name                    = "open-match-ci"
-  description             = "VPC Network for Continuous Integration runs."
-  auto_create_subnetworks = false
-  routing_mode            = "REGIONAL"
-}
-
-# We create 60 subnetworks so that each GKE cluster we create in CI can run on it's own subnet.
-# This is to workaround a bug in GKE where it cannot tolerate creating 2 clusters on the same subnet at the same time.
-resource "google_compute_subnetwork" "ci_subnet" {
-  count                    = 60
-  name                     = "ci-${var.gcp_region}-${count.index}"
-  ip_cidr_range            = "10.0.${count.index}.0/24"
-  region                   = "${var.gcp_region}"
-  network                  = "${google_compute_network.ci_network.self_link}"
-  enable_flow_logs         = "${var.vpc_flow_logs}"
-  description              = "Subnetwork for continuous integration build that runs on the :${count.index} second."
-  private_ip_google_access = true
-}
-
 # The reaper is a tool that scans for orphaned GKE namespaces created by CI and deletes them.
 # The reaper runs as this service account.
 resource "google_service_account" "reaper" {
