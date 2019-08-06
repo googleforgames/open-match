@@ -60,8 +60,6 @@ BUILD_DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 YEAR_MONTH = $(shell date -u +'%Y%m')
 YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
-NANOS = $(shell date -u +'%N')
-NANOS_MODULO_60 = $(shell echo $(NANOS)%60 | bc)
 PROTOC_VERSION = 3.8.0
 HELM_VERSION = 2.14.1
 KUBECTL_VERSION = 1.14.3
@@ -146,7 +144,7 @@ ifdef OPEN_MATCH_CI_MODE
 	GKE_CLUSTER_NAME = open-match-ci
 	OPEN_MATCH_RELEASE_NAME = open-match-$(SHORT_SHA)
 	OPEN_MATCH_KUBERNETES_NAMESPACE = open-match-$(SHORT_SHA)
-	GKE_CLUSTER_FLAGS = --labels open-match-ci=1 --node-labels=open-match-ci=1 --network=projects/$(GCP_PROJECT_ID)/global/networks/open-match-ci --subnetwork=projects/$(GCP_PROJECT_ID)/regions/$(GCP_REGION)/subnetworks/ci-$(GCP_REGION)-$(NANOS_MODULO_60)
+	GKE_CLUSTER_FLAGS = --labels open-match-ci=1 --node-labels=open-match-ci=1
 endif
 
 export PATH := $(TOOLCHAIN_BIN):$(PATH)
