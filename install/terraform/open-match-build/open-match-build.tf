@@ -59,30 +59,34 @@ resource "google_storage_bucket" "ci_artifacts" {
 }
 
 resource "google_container_cluster" "ci_cluster" {
-  # The enable_binary_authorization field is not yet GA so the cluster resource
-  # uses the beta provider.
   provider = "google-beta"
   name     = "open-match-ci"
 
   # --zone us-west1-a
   location = "us-west1-a"
 
-  # Enable IP Aliases. --enable-ip-alias
-  ip_allocation_policy = {
+  # Enable IP Aliases. A cluster that uses Alias IPs is called a VPC-native cluster and is the recommended type for new clusters.
+  # https://cloud.google.com/kubernetes-engine/docs/how-to/alias-ips
+  ip_allocation_policy {
     use_ip_aliases = true
+    cluster_ipv4_cidr_block = "/14"
+    services_ipv4_cidr_block = "/20"
+    create_subnetwork = false
   }
 
-  # Use Kubernetes-Native logging/monitoring.
-  logging_service    = "logging.googleapis.com/kubernetes"
-  monitoring_service = "monitoring.googleapis.com/kubernetes"
-
-  min_master_version = "1.13"
-
-  # Setting an empty username and password explicitly disables basic auth.
+  # Setting an empty username and password explicitly disables basic auth
   master_auth {
     username = ""
     password = ""
+
+    client_certificate_config {
+      issue_client_certificate = false
+    }
   }
+
+  # Use Kubernetes-Native logging/monitoring.
+  logging_service    = "logging.googleapis.com"
+  monitoring_service = "monitoring.googleapis.com"
 
   addons_config {
     kubernetes_dashboard {
@@ -90,73 +94,41 @@ resource "google_container_cluster" "ci_cluster" {
     }
   }
 
-  # GKE doesn't allow creation of a cluster without an initial node pool
-  # defined, so create the smallest possible default node pool and immediately
-  # delete it.
-  remove_default_node_pool = true
-
-  initial_node_count = 2
-
-  timeouts {
-    create = "30m"
-    update = "40m"
-  }
+  initial_node_count = 0
 
   # https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity
   workload_identity_config {
     identity_namespace = "${var.gcp_project_id}.svc.id.goog"
   }
 
-  # Enable PodSecurityPolicy for locking down what kind of containers can run
-  # in our cluster.
-  # b/129533356#comment10
+  # Enable PodSecurityPolicy
   pod_security_policy_config {
     enabled = "true"
   }
-}
-
-resource "google_container_node_pool" "ci_node_pool" {
-  provider = "google-beta"
-
-  # For terraform to understand that this node pool belongs to the above
-  # cluster, this must reference the name in the cluster resource instead
-  # of using ${var.cluster_name}.
-  cluster = "${google_container_cluster.ci_cluster.name}"
-
-  location = "us-west1-a"
-
-  initial_node_count = 2
-
-  autoscaling {
-    min_node_count = 1
-    max_node_count = 10
-  }
-
-  management {
-    auto_repair  = true
-    auto_upgrade = true
-  }
 
   node_config {
-    machine_type = "n1-standard-8"
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/devstorage.read_only",
+      "https://www.googleapis.com/auth/logging.write",
+      "https://www.googleapis.com/auth/monitoring",
+      "https://www.googleapis.com/auth/service.management.readonly",
+      "https://www.googleapis.com/auth/servicecontrol",
+      "https://www.googleapis.com/auth/trace.append"
+    ]
 
-    # Use cos_containerd instead of the default image to unlock GKE sandbox.
-    # https://cloud.google.com/kubernetes-engine/docs/concepts/using-containerd
-    image_type = "cos_containerd"
+    disk_size_gb = 50
 
-    metadata {
+    disk_type = "pd-standard"
+
+    image_type = "COS_CONTAINERD"
+
+    machine_type = "n1-standard-4"
+
+    metadata = {
       disable-legacy-endpoints = "true"
     }
 
-    # https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity
-    workload_metadata_config {
-      node_metadata = "GKE_METADATA_SERVER"
-    }
-  }
-
-  timeouts {
-    create = "30m"
-    update = "30m"
+    tags = ["open-match"]
   }
 }
 
