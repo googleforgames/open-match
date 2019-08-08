@@ -18,20 +18,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"testing"
+	"time"
+
 	miniredis "github.com/alicebob/miniredis/v2"
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/telemetry"
 	internalTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/pkg/structs"
-	"testing"
-	"time"
 )
 
 func TestStatestoreSetup(t *testing.T) {
@@ -138,7 +140,7 @@ func TestIgnoreLists(t *testing.T) {
 	verifyTickets(service, len(tickets)-3)
 
 	// Sleep until the ignore list expired and verify we still have all the tickets
-	time.Sleep(cfg.GetDuration("redis.ignoreLists.ttl"))
+	time.Sleep(cfg.GetDuration(internal.RedisIgnoreListTimeToLive))
 	verifyTickets(service, len(tickets))
 }
 
@@ -362,21 +364,21 @@ func createRedis(t *testing.T) (config.View, func()) {
 		t.Fatalf("cannot create redis %s", err)
 	}
 
-	cfg.Set("redis.hostname", mredis.Host())
-	cfg.Set("redis.port", mredis.Port())
-	cfg.Set("redis.pool.maxIdle", 1000)
-	cfg.Set("redis.pool.idleTimeout", time.Second)
-	cfg.Set("redis.pool.healthCheckTimeout", 100*time.Millisecond)
-	cfg.Set("redis.pool.maxActive", 1000)
-	cfg.Set("redis.expiration", 42000)
-	cfg.Set("redis.ignoreLists.ttl", "200ms")
-	cfg.Set("backoff.initialInterval", 100*time.Millisecond)
-	cfg.Set("backoff.randFactor", 0.5)
-	cfg.Set("backoff.multiplier", 0.5)
-	cfg.Set("backoff.maxInterval", 300*time.Millisecond)
-	cfg.Set("backoff.maxElapsedTime", 100*time.Millisecond)
+	cfg.Set(internal.RedisHostName, mredis.Host())
+	cfg.Set(internal.RedisPort, mredis.Port())
+	cfg.Set(internal.RedisConnMaxIdle, 1000)
+	cfg.Set(internal.RedisConnIdleTimeout, time.Second)
+	cfg.Set(internal.RedisConnHealthCheckTimeout, 100*time.Millisecond)
+	cfg.Set(internal.RedisConnMaxActive, 1000)
+	cfg.Set(internal.RedisExpiration, 42000)
+	cfg.Set(internal.RedisIgnoreListTimeToLive, "200ms")
+	cfg.Set(internal.BackoffInitInterval, 100*time.Millisecond)
+	cfg.Set(internal.BackoffRandFactor, 0.5)
+	cfg.Set(internal.BackoffMultiplier, 0.5)
+	cfg.Set(internal.BackoffMaxInterval, 300*time.Millisecond)
+	cfg.Set(internal.BackoffMaxElapsedTime, 100*time.Millisecond)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, true)
-	cfg.Set("ticketIndices", []string{"testindex1", "testindex2"})
+	cfg.Set(internal.TicketIndices, []string{"testindex1", "testindex2"})
 
 	return cfg, func() { mredis.Close() }
 }

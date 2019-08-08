@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
+	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/rpc"
@@ -55,7 +56,7 @@ func serve(cfg config.View) {
 	mux := &http.ServeMux{}
 	closer := telemetry.Setup(mux, cfg)
 	defer closer()
-	port := cfg.GetInt("api.swaggerui.httpport")
+	port := cfg.GetInt(internal.SwaggerUIPrefix + internal.HTTPPortSuffix)
 	baseDir, err := os.Getwd()
 	if err != nil {
 		logger.WithError(err).Fatal("cannot get current working directory")

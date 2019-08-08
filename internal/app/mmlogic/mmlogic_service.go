@@ -20,6 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/pkg/pb"
 
@@ -76,7 +77,6 @@ func doQueryTickets(ctx context.Context, filters []*pb.Filter, pageSize int, sen
 
 func getPageSize(cfg config.View) int {
 	const (
-		name = "storage.page.size"
 		// Minimum number of tickets to be returned in a streamed response for QueryTickets. This value
 		// will be used if page size is configured lower than the minimum value.
 		minPageSize int = 10
@@ -88,11 +88,11 @@ func getPageSize(cfg config.View) int {
 		maxPageSize int = 10000
 	)
 
-	if !cfg.IsSet(name) {
+	if !cfg.IsSet(internal.StatestorePageSize) {
 		return defaultPageSize
 	}
 
-	pSize := cfg.GetInt("storage.page.size")
+	pSize := cfg.GetInt(internal.StatestorePageSize)
 	if pSize < minPageSize {
 		logger.Infof("page size %v is lower than the minimum limit of %v", pSize, maxPageSize)
 		pSize = minPageSize

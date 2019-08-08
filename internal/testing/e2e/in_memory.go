@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	simple "open-match.dev/open-match/examples/evaluator/golang/simple/evaluate"
 	pool "open-match.dev/open-match/examples/functions/golang/pool/mmf"
+	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
@@ -124,9 +125,9 @@ func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTe
 	// Server a minimatch for testing using random port at tc.grpcAddress & tc.proxyAddress
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		closer = statestoreTesting.New(t, cfg)
-		cfg.Set("storage.page.size", 10)
+		cfg.Set(internal.StatestorePageSize, 10)
 		// Set up the attributes that a ticket will be indexed for.
-		cfg.Set("ticketIndices", Indices)
+		cfg.Set(internal.TicketIndices, Indices)
 		assert.Nil(t, minimatch.BindService(p, cfg))
 	})
 	// TODO: Revisit the Minimatch test setup in future milestone to simplify passing config
@@ -134,17 +135,17 @@ func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTe
 	// it is initialized, does not know what port the synchronizer is on. To work around this,
 	// the backend sets up a connection to the synchronizer at runtime and hence can access these
 	// config values to establish the connection.
-	cfg.Set("api.synchronizer.hostname", tc.GetHostname())
-	cfg.Set("api.synchronizer.grpcport", tc.GetGRPCPort())
-	cfg.Set("api.synchronizer.httpport", tc.GetHTTPPort())
-	cfg.Set("synchronizer.registrationIntervalMs", "200ms")
-	cfg.Set("synchronizer.proposalCollectionIntervalMs", "200ms")
-	cfg.Set("api.evaluator.hostname", evalTc.GetHostname())
-	cfg.Set("api.evaluator.grpcport", evalTc.GetGRPCPort())
-	cfg.Set("api.evaluator.httpport", evalTc.GetHTTPPort())
-	cfg.Set("synchronizer.enabled", true)
-	cfg.Set(rpc.ConfigNameEnableRPCLogging, *testOnlyEnableRPCLoggingFlag)
-	cfg.Set("logging.level", *testOnlyLoggingLevel)
+	cfg.Set(internal.SynchronizerPrefix+internal.HostNameSuffix, tc.GetHostname())
+	cfg.Set(internal.SynchronizerPrefix+internal.GRPCPortSuffix, tc.GetGRPCPort())
+	cfg.Set(internal.SynchronizerPrefix+internal.HTTPPortSuffix, tc.GetHTTPPort())
+	cfg.Set(internal.SynchronizerRegistrationMs, "200ms")
+	cfg.Set(internal.SynchronizerProposalCollectionMs, "200ms")
+	cfg.Set(internal.EvaluatorPrefix+internal.HostNameSuffix, evalTc.GetHostname())
+	cfg.Set(internal.EvaluatorPrefix+internal.GRPCPortSuffix, evalTc.GetGRPCPort())
+	cfg.Set(internal.EvaluatorPrefix+internal.HTTPPortSuffix, evalTc.GetHTTPPort())
+	cfg.Set(internal.SynchronizerEnabled, true)
+	cfg.Set(internal.LoggingEnableRpc, *testOnlyEnableRPCLoggingFlag)
+	cfg.Set(internal.LoggingLevel, *testOnlyLoggingLevel)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, *testOnlyEnableMetrics)
 
 	// TODO: This is very ugly. Need a better story around closing resources.
@@ -160,9 +161,9 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 		cfg := viper.New()
 
 		// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
-		cfg.Set("api.mmlogic.hostname", c.GetHostname())
-		cfg.Set("api.mmlogic.grpcport", c.GetGRPCPort())
-		cfg.Set("api.mmlogic.httpport", c.GetHTTPPort())
+		cfg.Set(internal.MmlogicPrefix+internal.HostNameSuffix, c.GetHostname())
+		cfg.Set(internal.MmlogicPrefix+internal.GRPCPortSuffix, c.GetGRPCPort())
+		cfg.Set(internal.MmlogicPrefix+internal.HTTPPortSuffix, c.GetHTTPPort())
 
 		assert.Nil(t, mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
 			Func: pool.MakeMatches,

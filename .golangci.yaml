@@ -197,7 +197,8 @@ issues:
     - path: consts\.go
       linters:
         - gochecknoglobals
-    # Exclude some linters from running on test files
+        - golint
+        # Exclude some linters from running on test files
     - path: _test\.go
       linters:
         - errcheck

@@ -32,6 +32,7 @@ import (
 	"go.opencensus.io/plugin/ochttp"
 	"go.opencensus.io/plugin/ochttp/propagation/b3"
 	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/signal"
@@ -85,12 +86,12 @@ type ServerParams struct {
 
 // NewServerParamsFromConfig returns server Params initialized from the configuration file.
 func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, error) {
-	grpcLh, err := newFromPortNumber(cfg.GetInt(prefix + ".grpcport"))
+	grpcLh, err := newFromPortNumber(cfg.GetInt(prefix + internal.GRPCPortSuffix))
 	if err != nil {
 		serverLogger.Fatal(err)
 		return nil, err
 	}
-	httpLh, err := newFromPortNumber(cfg.GetInt(prefix + ".httpport"))
+	httpLh, err := newFromPortNumber(cfg.GetInt(prefix + internal.HTTPPortSuffix))
 	if err != nil {
 		closeErr := grpcLh.Close()
 		if closeErr != nil {
@@ -133,7 +134,7 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 	}
 
 	p.enableMetrics = cfg.GetBool(telemetry.ConfigNameEnableMetrics)
-	p.enableRPCLogging = cfg.GetBool(ConfigNameEnableRPCLogging)
+	p.enableRPCLogging = cfg.GetBool(internal.LoggingEnableRpc)
 	p.enableRPCPayloadLogging = logging.IsDebugEnabled(cfg)
 	// TODO: This isn't ideal since telemetry requires config for it to be initialized.
 	// This forces us to initialize readiness probes earlier than necessary.

@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
@@ -256,7 +257,7 @@ func TestDoAssignTickets(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
 			cfg := viper.New()
-			cfg.Set("ticketIndices", []string{fakeProperty})
+			cfg.Set(internal.TicketIndices, []string{fakeProperty})
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 			defer closer()
 
