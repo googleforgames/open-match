@@ -15,7 +15,7 @@
 FROM debian
 
 RUN apt-get update
-RUN apt-get install -y -qq git make python3 virtualenv curl sudo unzip apt-transport-https ca-certificates curl software-properties-common gnupg2 bc
+RUN apt-get install -y -qq git make python3 virtualenv curl sudo unzip apt-transport-https ca-certificates curl software-properties-common gnupg2
 
 # Docker
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
