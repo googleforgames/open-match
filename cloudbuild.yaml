@@ -94,7 +94,7 @@ steps:
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Build: Initialize Toolchain']
+  waitFor: ['Build: Deployment Configs']
 
 - id: 'Build: Binaries'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -123,7 +123,7 @@ steps:
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Build: Assets', 'Build: Deployment Configs']
+  waitFor: ['Build: Assets']
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
