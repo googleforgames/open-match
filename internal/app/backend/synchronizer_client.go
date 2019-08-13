@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/consts"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/telemetry"
@@ -26,7 +26,7 @@ type synchronizerClient struct {
 // if the synchronizer is enabled. The first attempt to call the synchronizer service
 // establishes a connection. Consequent requests use the cached connection.
 func (sc *synchronizerClient) register(ctx context.Context) (string, error) {
-	if !sc.cfg.GetBool(internal.SynchronizerEnabled) {
+	if !sc.cfg.GetBool(consts.SynchronizerEnabled) {
 		// Synchronizer is disabled. Succeed the call without returning any ID.
 		return "", nil
 	}
@@ -48,7 +48,7 @@ func (sc *synchronizerClient) register(ctx context.Context) (string, error) {
 // this if the synchronizer is enabled. The first attempt to call the synchronizer service
 // establishes a connection. Consequent requests use the cached connection.
 func (sc *synchronizerClient) evaluate(ctx context.Context, id string, proposals []*pb.Match) ([]*pb.Match, error) {
-	if !sc.cfg.GetBool(internal.SynchronizerEnabled) {
+	if !sc.cfg.GetBool(consts.SynchronizerEnabled) {
 		// Synchronizer is disabled. Return all the proposals as results. This is only temporary.
 		// After the synchronizer is implememnted, it will be mandatory and this check will be removed.
 		return proposals, nil

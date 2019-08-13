@@ -36,8 +36,8 @@ import (
 	"go.opencensus.io/plugin/ochttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/consts"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/telemetry"
 )
@@ -70,8 +70,8 @@ func (p *ClientParams) usingTLS() bool {
 // GRPCClientFromConfig creates a gRPC client connection from a configuration.
 func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, error) {
 	clientParams := &ClientParams{
-		Address:                 toAddress(cfg.GetString(prefix+internal.HostNameSuffix), cfg.GetInt(prefix+internal.GRPCPortSuffix)),
-		EnableRPCLogging:        cfg.GetBool(internal.LoggingEnableRpc),
+		Address:                 toAddress(cfg.GetString(prefix+consts.HostNameSuffix), cfg.GetInt(prefix+consts.GRPCPortSuffix)),
+		EnableRPCLogging:        cfg.GetBool(consts.LoggingEnableRpc),
 		EnableRPCPayloadLogging: logging.IsDebugEnabled(cfg),
 		EnableMetrics:           cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}
@@ -97,7 +97,7 @@ func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, err
 // GRPCClientFromEndpoint creates a gRPC client connection from endpoint.
 func GRPCClientFromEndpoint(cfg config.View, address string) (*grpc.ClientConn, error) {
 	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
-	grpcOptions := newGRPCDialOptions(cfg.GetBool(telemetry.ConfigNameEnableMetrics), cfg.GetBool(internal.LoggingEnableRpc), logging.IsDebugEnabled(cfg))
+	grpcOptions := newGRPCDialOptions(cfg.GetBool(telemetry.ConfigNameEnableMetrics), cfg.GetBool(consts.LoggingEnableRpc), logging.IsDebugEnabled(cfg))
 
 	if cfg.GetString(configNameClientTrustedCertificatePath) != "" {
 		_, err := os.Stat(cfg.GetString(configNameClientTrustedCertificatePath))
@@ -148,8 +148,8 @@ func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 // HTTPClientFromConfig creates a HTTP client from from a configuration.
 func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string, error) {
 	clientParams := &ClientParams{
-		Address:                 toAddress(cfg.GetString(prefix+internal.HostNameSuffix), cfg.GetInt(prefix+internal.HTTPPortSuffix)),
-		EnableRPCLogging:        cfg.GetBool(internal.LoggingEnableRpc),
+		Address:                 toAddress(cfg.GetString(prefix+consts.HostNameSuffix), cfg.GetInt(prefix+consts.HTTPPortSuffix)),
+		EnableRPCLogging:        cfg.GetBool(consts.LoggingEnableRpc),
 		EnableRPCPayloadLogging: logging.IsDebugEnabled(cfg),
 		EnableMetrics:           cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}
@@ -194,7 +194,7 @@ func HTTPClientFromEndpoint(cfg config.View, address string) (*http.Client, stri
 	// TODO: investigate if it is possible to keep a cache of the certpool and transport credentials
 	params := &ClientParams{
 		Address:                 address,
-		EnableRPCLogging:        cfg.GetBool(internal.LoggingEnableRpc),
+		EnableRPCLogging:        cfg.GetBool(consts.LoggingEnableRpc),
 		EnableRPCPayloadLogging: logging.IsDebugEnabled(cfg),
 		EnableMetrics:           cfg.GetBool(telemetry.ConfigNameEnableMetrics),
 	}

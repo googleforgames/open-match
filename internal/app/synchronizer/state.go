@@ -22,8 +22,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/consts"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -233,11 +233,11 @@ func (syncState *synchronizerState) registrationInterval() time.Duration {
 		defaultInterval = 3000 * time.Millisecond
 	)
 
-	if !syncState.cfg.IsSet(internal.SynchronizerRegistrationMs) {
+	if !syncState.cfg.IsSet(consts.SynchronizerRegistrationMs) {
 		return defaultInterval
 	}
 
-	return syncState.cfg.GetDuration(internal.SynchronizerRegistrationMs)
+	return syncState.cfg.GetDuration(consts.SynchronizerRegistrationMs)
 }
 
 func (syncState *synchronizerState) proposalCollectionInterval() time.Duration {
@@ -245,11 +245,11 @@ func (syncState *synchronizerState) proposalCollectionInterval() time.Duration {
 		defaultInterval = 3000 * time.Millisecond
 	)
 
-	if !syncState.cfg.IsSet(internal.SynchronizerProposalCollectionMs) {
+	if !syncState.cfg.IsSet(consts.SynchronizerProposalCollectionMs) {
 		return defaultInterval
 	}
 
-	return syncState.cfg.GetDuration(internal.SynchronizerProposalCollectionMs)
+	return syncState.cfg.GetDuration(consts.SynchronizerProposalCollectionMs)
 }
 
 func getMatchIds(matches []*pb.Match) []string {

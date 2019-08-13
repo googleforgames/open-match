@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal"
+	"open-match.dev/open-match/internal/consts"
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
@@ -36,7 +36,7 @@ import (
 
 func TestDoCreateTickets(t *testing.T) {
 	cfg := viper.New()
-	cfg.Set(internal.TicketIndices, []string{"test-property"})
+	cfg.Set(consts.TicketIndices, []string{"test-property"})
 
 	tests := []struct {
 		description string

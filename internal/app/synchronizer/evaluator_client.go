@@ -12,8 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/consts"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -76,9 +76,9 @@ func (ec *evaluatorClient) initialize() error {
 		return nil
 	}
 
-	evaluatorHostName := ec.cfg.GetString(internal.EvaluatorPrefix + internal.HostNameSuffix)
-	evaluatorGRPCPort := ec.cfg.GetInt64(internal.EvaluatorPrefix + internal.GRPCPortSuffix)
-	evaluatorHTTPPort := ec.cfg.GetInt64(internal.EvaluatorPrefix + internal.HTTPPortSuffix)
+	evaluatorHostName := ec.cfg.GetString(consts.EvaluatorHostName)
+	evaluatorGRPCPort := ec.cfg.GetInt64(consts.EvaluatorGRPCPort)
+	evaluatorHTTPPort := ec.cfg.GetInt64(consts.EvaluatorHTTPPort)
 
 	// Evaluator client not initialized. Attempt to initialize GRPC client or HTTP client.
 	grpcAddr := fmt.Sprintf("%s:%d", evaluatorHostName, evaluatorGRPCPort)

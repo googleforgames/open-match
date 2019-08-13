@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal"
+	"open-match.dev/open-match/internal/consts"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
@@ -128,8 +128,8 @@ func TestDoQueryTickets(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			cfg := viper.New()
-			cfg.Set(internal.StatestorePageSize, 1000)
-			cfg.Set(internal.TicketIndices, []string{attribute1, attribute2})
+			cfg.Set(consts.StorePageSize, 1000)
+			cfg.Set(consts.TicketIndices, []string{attribute1, attribute2})
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 			defer closer()
 
@@ -158,21 +158,21 @@ func TestGetPageSize(t *testing.T) {
 		{
 			"set",
 			func(cfg config.Mutable) {
-				cfg.Set(internal.StatestorePageSize, "2156")
+				cfg.Set(consts.StorePageSize, "2156")
 			},
 			2156,
 		},
 		{
 			"low",
 			func(cfg config.Mutable) {
-				cfg.Set(internal.StatestorePageSize, "9")
+				cfg.Set(consts.StorePageSize, "9")
 			},
 			10,
 		},
 		{
 			"high",
 			func(cfg config.Mutable) {
-				cfg.Set(internal.StatestorePageSize, "10001")
+				cfg.Set(consts.StorePageSize, "10001")
 			},
 			10000,
 		},

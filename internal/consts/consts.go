@@ -1,4 +1,4 @@
-package internal
+package consts
 
 const (
 	// Logging settings
@@ -14,14 +14,20 @@ const (
 	BackoffMaxElapsedTime = "backoff.maxElapsedTime"
 
 	// Service settings
-	SwaggerUIPrefix    = "api.swaggerui"
-	BackendPrefix      = "api.backend"
-	FrontendPrefix     = "api.frontend"
-	MmlogicPrefix      = "api.mmlogic"
-	SynchronizerPrefix = "api.synchronizer"
-	EvaluatorPrefix    = "api.evaluator"
+	SwaggerUIHTTPPort = "api.swaggerui.httpport"
 
-	// TODO: Move these configs to api.synchronizer section
+	MmlogicHostName = "api.mmlogic.hostname"
+	MmlogicHTTPPort = "api.mmlogic.httpport"
+	MmlogicGRPCPort = "api.mmlogic.grpcport"
+
+	SynchronizerHostName = "api.synchronizer.hostname"
+	SynchronizerHTTPPort = "api.synchronizer.httpport"
+	SynchronizerGRPCPort = "api.synchronizer.grpcport"
+
+	EvaluatorHostName = "api.evaluator.hostname"
+	EvaluatorHTTPPort = "api.evaluator.httpport"
+	EvaluatorGRPCPort = "api.evaluator.grpcport"
+
 	SynchronizerEnabled              = "synchronizer.enabled"
 	SynchronizerRegistrationMs       = "synchronizer.registrationIntervalMs"
 	SynchronizerProposalCollectionMs = "synchronizer.proposalCollectionIntervalMs"
@@ -31,7 +37,7 @@ const (
 	HTTPPortSuffix = ".httpport"
 
 	// Statestore settings
-	StatestorePageSize = "storage.page.size"
+	StorePageSize = "storage.page.size"
 
 	// Redis settings
 	RedisConnMaxIdle            = "redis.pool.maxIdle"

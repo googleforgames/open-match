@@ -20,8 +20,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/consts"
 	"open-match.dev/open-match/pkg/pb"
 
 	"open-match.dev/open-match/internal/statestore"
@@ -88,11 +88,11 @@ func getPageSize(cfg config.View) int {
 		maxPageSize int = 10000
 	)
 
-	if !cfg.IsSet(internal.StatestorePageSize) {
+	if !cfg.IsSet(consts.StorePageSize) {
 		return defaultPageSize
 	}
 
-	pSize := cfg.GetInt(internal.StatestorePageSize)
+	pSize := cfg.GetInt(consts.StorePageSize)
 	if pSize < minPageSize {
 		logger.Infof("page size %v is lower than the minimum limit of %v", pSize, maxPageSize)
 		pSize = minPageSize

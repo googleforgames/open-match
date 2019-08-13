@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	miniredis "github.com/alicebob/miniredis/v2"
-	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/consts"
 	"open-match.dev/open-match/internal/statestore"
 )
 
@@ -29,18 +29,18 @@ func New(t *testing.T, cfg config.Mutable) func() {
 	if err != nil {
 		t.Fatalf("failed to create miniredis, %v", err)
 	}
-	cfg.Set(internal.RedisHostName, mredis.Host())
-	cfg.Set(internal.RedisPort, mredis.Port())
-	cfg.Set(internal.RedisConnMaxIdle, PoolMaxIdle)
-	cfg.Set(internal.RedisConnMaxActive, PoolMaxActive)
-	cfg.Set(internal.RedisConnIdleTimeout, PoolIdleTimeout)
-	cfg.Set(internal.RedisConnHealthCheckTimeout, PoolHealthCheckTimeout)
-	cfg.Set(internal.RedisIgnoreListTimeToLive, IgnoreListTTL)
-	cfg.Set(internal.BackoffInitInterval, InitialInterval)
-	cfg.Set(internal.BackoffRandFactor, RandFactor)
-	cfg.Set(internal.BackoffMultiplier, Multiplier)
-	cfg.Set(internal.BackoffMaxInterval, MaxInterval)
-	cfg.Set(internal.BackoffMaxElapsedTime, MaxElapsedTime)
+	cfg.Set(consts.RedisHostName, mredis.Host())
+	cfg.Set(consts.RedisPort, mredis.Port())
+	cfg.Set(consts.RedisConnMaxIdle, PoolMaxIdle)
+	cfg.Set(consts.RedisConnMaxActive, PoolMaxActive)
+	cfg.Set(consts.RedisConnIdleTimeout, PoolIdleTimeout)
+	cfg.Set(consts.RedisConnHealthCheckTimeout, PoolHealthCheckTimeout)
+	cfg.Set(consts.RedisIgnoreListTimeToLive, IgnoreListTTL)
+	cfg.Set(consts.BackoffInitInterval, InitialInterval)
+	cfg.Set(consts.BackoffRandFactor, RandFactor)
+	cfg.Set(consts.BackoffMultiplier, Multiplier)
+	cfg.Set(consts.BackoffMaxInterval, MaxInterval)
+	cfg.Set(consts.BackoffMaxElapsedTime, MaxElapsedTime)
 
 	return func() {
 		mredis.Close()

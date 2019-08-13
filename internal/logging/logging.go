@@ -20,16 +20,16 @@ import (
 
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/sirupsen/logrus"
-	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/consts"
 )
 
 // ConfigureLogging sets up open match logrus instance using the logging section of the matchmaker_config.json
 //  - log line format (text[default] or json)
 //  - min log level to include (debug, info [default], warn, error, fatal, panic)
 func ConfigureLogging(cfg config.View) {
-	logrus.SetFormatter(newFormatter(cfg.GetString(internal.LoggingFormat)))
-	level := toLevel(cfg.GetString(internal.LoggingLevel))
+	logrus.SetFormatter(newFormatter(cfg.GetString(consts.LoggingFormat)))
+	level := toLevel(cfg.GetString(consts.LoggingLevel))
 	logrus.SetLevel(level)
 	if isDebugLevel(level) {
 		logrus.Warn("Trace logging level configured. Not recommended for production!")
@@ -68,7 +68,7 @@ func toLevel(level string) logrus.Level {
 
 // IsDebugEnabled returns true if the logging level is debug or more granular.
 func IsDebugEnabled(cfg config.View) bool {
-	return IsDebugLevel(cfg.GetString(internal.LoggingLevel))
+	return IsDebugLevel(cfg.GetString(consts.LoggingLevel))
 }
 
 // IsDebugLevel returns true if the logging level is debug or more granular.

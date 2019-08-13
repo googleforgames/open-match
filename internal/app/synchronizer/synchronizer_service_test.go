@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal"
+	"open-match.dev/open-match/internal/consts"
 	"open-match.dev/open-match/internal/ipb"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
@@ -227,8 +227,8 @@ func runEvaluationTest(ctx context.Context, t *testing.T, tc *testData) {
 	require := require.New(t)
 	// Generate a config view with paths to the manifests
 	cfg := viper.New()
-	cfg.Set(internal.SynchronizerProposalCollectionMs, tc.propInterval)
-	cfg.Set(internal.SynchronizerRegistrationMs, tc.regInterval)
+	cfg.Set(consts.SynchronizerProposalCollectionMs, tc.propInterval)
+	cfg.Set(consts.SynchronizerRegistrationMs, tc.regInterval)
 
 	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()

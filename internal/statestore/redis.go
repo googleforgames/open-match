@@ -26,8 +26,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/consts"
 	"open-match.dev/open-match/internal/set"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -58,37 +58,37 @@ func newRedis(cfg config.View) Service {
 	// Add redis user and password to connection url if they exist
 	redisURL := "redis://"
 	maskedURL := redisURL
-	if cfg.IsSet(internal.RedisPassword) && cfg.GetString(internal.RedisPassword) != "" {
-		redisURL += cfg.GetString(internal.RedisUser) + ":" + cfg.GetString(internal.RedisPassword) + "@"
-		maskedURL += cfg.GetString(internal.RedisUser) + ":******@"
+	if cfg.IsSet(consts.RedisPassword) && cfg.GetString(consts.RedisPassword) != "" {
+		redisURL += cfg.GetString(consts.RedisUser) + ":" + cfg.GetString(consts.RedisPassword) + "@"
+		maskedURL += cfg.GetString(consts.RedisUser) + ":******@"
 	}
-	redisURL += cfg.GetString(internal.RedisHostName) + ":" + cfg.GetString(internal.RedisPort)
-	maskedURL += cfg.GetString(internal.RedisHostName) + ":" + cfg.GetString(internal.RedisPort)
+	redisURL += cfg.GetString(consts.RedisHostName) + ":" + cfg.GetString(consts.RedisPort)
+	maskedURL += cfg.GetString(consts.RedisHostName) + ":" + cfg.GetString(consts.RedisPort)
 
 	redisLogger.WithField("redisURL", maskedURL).Debug("Attempting to connect to Redis")
 
 	pool := &redis.Pool{
-		MaxIdle:     cfg.GetInt(internal.RedisConnMaxIdle),
-		MaxActive:   cfg.GetInt(internal.RedisConnMaxActive),
-		IdleTimeout: cfg.GetDuration(internal.RedisConnIdleTimeout),
+		MaxIdle:     cfg.GetInt(consts.RedisConnMaxIdle),
+		MaxActive:   cfg.GetInt(consts.RedisConnMaxActive),
+		IdleTimeout: cfg.GetDuration(consts.RedisConnIdleTimeout),
 		Wait:        true,
 		DialContext: func(ctx context.Context) (redis.Conn, error) {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			return redis.DialURL(redisURL, redis.DialConnectTimeout(cfg.GetDuration(internal.RedisConnIdleTimeout)), redis.DialReadTimeout(cfg.GetDuration(internal.RedisConnIdleTimeout)))
+			return redis.DialURL(redisURL, redis.DialConnectTimeout(cfg.GetDuration(consts.RedisConnIdleTimeout)), redis.DialReadTimeout(cfg.GetDuration(consts.RedisConnIdleTimeout)))
 		},
 	}
 	healthCheckPool := &redis.Pool{
 		MaxIdle:     1,
 		MaxActive:   2,
-		IdleTimeout: cfg.GetDuration(internal.RedisConnHealthCheckTimeout),
+		IdleTimeout: cfg.GetDuration(consts.RedisConnHealthCheckTimeout),
 		Wait:        true,
 		DialContext: func(ctx context.Context) (redis.Conn, error) {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			return redis.DialURL(redisURL, redis.DialConnectTimeout(cfg.GetDuration(internal.RedisConnHealthCheckTimeout)), redis.DialReadTimeout(cfg.GetDuration(internal.RedisConnHealthCheckTimeout)))
+			return redis.DialURL(redisURL, redis.DialConnectTimeout(cfg.GetDuration(consts.RedisConnHealthCheckTimeout)), redis.DialReadTimeout(cfg.GetDuration(consts.RedisConnHealthCheckTimeout)))
 		},
 	}
 
@@ -162,8 +162,8 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	if rb.cfg.IsSet(internal.RedisExpiration) {
-		redisTTL := rb.cfg.GetInt(internal.RedisExpiration)
+	if rb.cfg.IsSet(consts.RedisExpiration) {
+		redisTTL := rb.cfg.GetInt(consts.RedisExpiration)
 		if redisTTL > 0 {
 			err = redisConn.Send("EXPIRE", ticket.GetId(), redisTTL)
 			if err != nil {
@@ -269,8 +269,8 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 	// Fetch the indices from the configuration.
 	// TODO: Consider adding Open Match specific custom indices in future.
 	var indices []string
-	if rb.cfg.IsSet(internal.TicketIndices) {
-		indices = rb.cfg.GetStringSlice(internal.TicketIndices)
+	if rb.cfg.IsSet(consts.TicketIndices) {
+		indices = rb.cfg.GetStringSlice(consts.TicketIndices)
 	}
 
 	attributesToValue := map[string]float64{}
@@ -360,8 +360,8 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	// Fetch the indices from the configuration.
 	// TODO: Consider adding Open Match specific custom indices in future.
 	var indices []string
-	if rb.cfg.IsSet(internal.TicketIndices) {
-		indices = rb.cfg.GetStringSlice(internal.TicketIndices)
+	if rb.cfg.IsSet(consts.TicketIndices) {
+		indices = rb.cfg.GetStringSlice(consts.TicketIndices)
 	}
 
 	for _, attribute := range indices {
@@ -431,7 +431,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 		}
 	}
 
-	ttl := rb.cfg.GetDuration(internal.RedisIgnoreListTimeToLive)
+	ttl := rb.cfg.GetDuration(consts.RedisIgnoreListTimeToLive)
 	curTime := time.Now()
 	curTimeInt := curTime.UnixNano()
 	startTimeInt := curTime.Add(-ttl).UnixNano()
@@ -644,7 +644,7 @@ func handleConnectionClose(conn *redis.Conn) {
 }
 
 func (rb *redisBackend) newConstantBackoffStrategy() backoff.BackOff {
-	backoffStrat := backoff.NewConstantBackOff(rb.cfg.GetDuration(internal.BackoffInitInterval))
+	backoffStrat := backoff.NewConstantBackOff(rb.cfg.GetDuration(consts.BackoffInitInterval))
 	return backoff.BackOff(backoffStrat)
 }
 
@@ -652,10 +652,10 @@ func (rb *redisBackend) newConstantBackoffStrategy() backoff.BackOff {
 // nolint: unused
 func (rb *redisBackend) newExponentialBackoffStrategy() backoff.BackOff {
 	backoffStrat := backoff.NewExponentialBackOff()
-	backoffStrat.InitialInterval = rb.cfg.GetDuration(internal.BackoffInitInterval)
-	backoffStrat.RandomizationFactor = rb.cfg.GetFloat64(internal.BackoffRandFactor)
-	backoffStrat.Multiplier = rb.cfg.GetFloat64(internal.BackoffMultiplier)
-	backoffStrat.MaxInterval = rb.cfg.GetDuration(internal.BackoffMaxInterval)
-	backoffStrat.MaxElapsedTime = rb.cfg.GetDuration(internal.BackoffMaxElapsedTime)
+	backoffStrat.InitialInterval = rb.cfg.GetDuration(consts.BackoffInitInterval)
+	backoffStrat.RandomizationFactor = rb.cfg.GetFloat64(consts.BackoffRandFactor)
+	backoffStrat.Multiplier = rb.cfg.GetFloat64(consts.BackoffMultiplier)
+	backoffStrat.MaxInterval = rb.cfg.GetDuration(consts.BackoffMaxInterval)
+	backoffStrat.MaxElapsedTime = rb.cfg.GetDuration(consts.BackoffMaxElapsedTime)
 	return backoff.BackOff(backoffStrat)
 }
