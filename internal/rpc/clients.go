@@ -43,7 +43,7 @@ import (
 
 const (
 	// ConfigNameEnableRPCLogging is the config name for enabling RPC logging.
-	ConfigNameEnableRPCLogging = "logging.rpc.enabled"
+	ConfigNameEnableRPCLogging = "logging.rpc"
 	// configNameClientTrustedCertificatePath is the same as the root CA cert that the server trusts.
 	configNameClientTrustedCertificatePath = configNameServerRootCertificatePath
 )
