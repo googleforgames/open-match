@@ -213,7 +213,7 @@ global:
   
   logging:
     rpc:
-      enabled: true
+      enabled: false
 
   # Specifies the location and name of the Open Match cluster-level config volumes.
   # Used in template: `openmatch.volumemounts.configs` and `openmatch.volumes.configs` under `templates/_helpers.tpl` file.
