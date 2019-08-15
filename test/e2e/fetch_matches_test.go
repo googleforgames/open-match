@@ -16,70 +16,15 @@
 package e2e
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
-	internalTesting "open-match.dev/open-match/internal/testing"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
-
-func TestGrpcLimit(t *testing.T) {
-	om, closer := e2e.New(t)
-	defer closer()
-	fe := om.MustFrontendGRPC()
-	be := om.MustBackendGRPC()
-	mmfCfg := om.MustMmfConfigGRPC()
-	ctx := om.Context()
-
-	tickets := internalTesting.GenerateTickets(
-		internalTesting.Property{
-			Name:     "level",
-			Min:      0,
-			Max:      100,
-			Interval: 1,
-		},
-		internalTesting.Property{
-			Name:     "defense",
-			Min:      0,
-			Max:      500,
-			Interval: 1,
-		},
-	)
-
-	// 1. Create a few tickets with delicate designs and hand crafted properties
-	for i := 0; i < len(tickets); i++ {
-		var ctResp *pb.CreateTicketResponse
-		ctResp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: tickets[i]})
-		assert.Nil(t, err)
-		assert.NotNil(t, ctResp)
-		// Assign Open Match ids back to the input tickets
-		*tickets[i] = *ctResp.GetTicket()
-	}
-
-	fmReq := &pb.FetchMatchesRequest{
-		Config: mmfCfg,
-		Profiles: []*pb.MatchProfile{
-			{
-				Name: "test-profile",
-				Pools: []*pb.Pool{
-					{
-						Name:    "all tickets",
-						Filters: []*pb.Filter{{Attribute: "level", Min: 0, Max: 100}, {Attribute: "defense", Min: 0, Max: 500}},
-					},
-				},
-			},
-		},
-	}
-
-	gotFmResp, err := be.FetchMatches(ctx, fmReq)
-	fmt.Printf("Len: %d, Err: %v, Size: %d", len(gotFmResp.GetMatches()), err, gotFmResp.XXX_Size())
-
-}
 
 func TestGameMatchWorkFlow(t *testing.T) {
 	/*

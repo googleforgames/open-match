@@ -19,7 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
@@ -204,18 +204,32 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 		}
 	}()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to read from response body for profile %s: %s", profile.Name, err.Error())
+	dec := json.NewDecoder(resp.Body)
+	proposals := make([]*pb.Match, 0)
+	for {
+		var item struct {
+			Result json.RawMessage        `json:"result"`
+			Error  map[string]interface{} `json:"error"`
+		}
+
+		err := dec.Decode(&item)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, status.Errorf(codes.FailedPrecondition, "failed to decode RunResponse from JSON: %s", err.Error())
+		}
+		if len(item.Error) != 0 {
+			return nil, status.Errorf(codes.FailedPrecondition, "received error message from matchfunction.RunRquest endpoint: item.Error = %#v", item.Error)
+		}
+		resp := &pb.RunResponse{}
+		if err := json.Unmarshal(item.Result, resp); err != nil {
+			return nil, status.Errorf(codes.FailedPrecondition, "failed to execute jsonpb.Unmarshal(%s, &resp): %v.", item.Result, err)
+		}
+		proposals = append(proposals, resp.GetProposal())
 	}
 
-	pbResp := &pb.RunResponse{}
-	err = json.Unmarshal(body, pbResp)
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to unmarshal response body to response pb for profile %s: %s", profile.Name, err.Error())
-	}
-
-	return pbResp.GetProposals(), nil
+	return proposals, nil
 }
 
 // matchesFromGRPCMMF triggers execution of MMFs to fetch match results for each profile.
@@ -224,13 +238,26 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb.MatchFunctionClient) ([]*pb.Match, error) {
 	// TODO: This code calls user code and could hang. We need to add a deadline here
 	// and timeout gracefully to ensure that the ListMatches completes.
-	resp, err := client.Run(ctx, &pb.RunRequest{Profile: profile})
+	stream, err := client.Run(ctx, &pb.RunRequest{Profile: profile})
 	if err != nil {
 		logger.WithError(err).Error("failed to run match function for profile")
 		return nil, err
 	}
 
-	return resp.GetProposals(), nil
+	proposals := make([]*pb.Match, 0)
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			logger.Errorf("%v.Run() error, %v\n", client, err)
+			return nil, err
+		}
+		proposals = append(proposals, resp.GetProposal())
+	}
+
+	return proposals, nil
 }
 
 // AssignTickets sets the specified Assignment on the Tickets for the Ticket
