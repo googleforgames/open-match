@@ -60,12 +60,12 @@ var (
 // streams these results back to the caller.
 // FetchMatches returns nil unless the context is canceled. FetchMatches moves to the next response candidate if it encounters
 // any internal execution failures.
-func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesRequest) (*pb.FetchMatchesResponse, error) {
+func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Backend_FetchMatchesServer) error {
 	if req.GetConfig() == nil {
-		return nil, status.Error(codes.InvalidArgument, ".config is required")
+		return status.Error(codes.InvalidArgument, ".config is required")
 	}
 	if req.GetProfiles() == nil {
-		return nil, status.Error(codes.InvalidArgument, ".profile is required")
+		return status.Error(codes.InvalidArgument, ".profile is required")
 	}
 
 	resultChan := make(chan mmfResult, len(req.GetProfiles()))
@@ -73,28 +73,41 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 	var syncID string
 	var err error
 
-	syncID, err = s.synchronizer.register(ctx)
+	syncID, err = s.synchronizer.register(stream.Context())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = doFetchMatchesReceiveMmfResult(ctx, s.mmfClients, req, resultChan)
+	err = doFetchMatchesReceiveMmfResult(stream.Context(), s.mmfClients, req, resultChan)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	proposals, err := doFetchMatchesValidateProposals(ctx, resultChan, len(req.GetProfiles()))
+	proposals, err := doFetchMatchesValidateProposals(stream.Context(), resultChan, len(req.GetProfiles()))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	results, err := s.synchronizer.evaluate(ctx, syncID, proposals)
+	results, err := s.synchronizer.evaluate(stream.Context(), syncID, proposals)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	telemetry.IncrementCounterN(ctx, mMatchesFetched, len(results))
-	return &pb.FetchMatchesResponse{Matches: results}, nil
+	for _, result := range results {
+		select {
+		case <-stream.Context().Done():
+			return stream.Context().Err()
+		default:
+			err := stream.Send(&pb.FetchMatchesResponse{Match: result})
+			if err != nil {
+				logger.WithError(err).Error("failed to stream back the response")
+				return err
+			}
+		}
+	}
+
+	telemetry.IncrementCounterN(stream.Context(), mMatchesFetched, len(results))
+	return nil
 }
 
 func doFetchMatchesReceiveMmfResult(ctx context.Context, mmfClients *rpc.ClientCache, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {

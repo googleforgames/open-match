@@ -16,6 +16,8 @@
 package e2e
 
 import (
+	"context"
+	"io"
 	"testing"
 	"time"
 
@@ -132,28 +134,23 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	}
 
 	// 2. Call backend.FetchMatches and expects two matches with the following tickets
-	var gotFmResp *pb.FetchMatchesResponse
-	gotFmResp, err = be.FetchMatches(ctx, fmReq)
-	tmpMatches := gotFmResp.GetMatches()
-	assert.Nil(t, err)
-	validateFetchMatchesResponse(t, [][]*pb.Ticket{{ticket2, ticket3, ticket4}, {ticket5}}, gotFmResp)
+	var wantTickets = [][]*pb.Ticket{{ticket2, ticket3, ticket4}, {ticket5}}
+	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 
 	// 3. Call backend.FetchMatches within redis.ignoreLists.ttl seconds and expects it return a match with ticket1 .
-	gotFmResp, err = be.FetchMatches(ctx, fmReq)
-	assert.Nil(t, err)
-	validateFetchMatchesResponse(t, [][]*pb.Ticket{{ticket1}}, gotFmResp)
+	wantTickets = [][]*pb.Ticket{{ticket1}}
+	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 
 	// 4. Wait for redis.ignoreLists.ttl seconds and call backend.FetchMatches the third time, expect the same result as step 2.
 	time.Sleep(statestoreTesting.IgnoreListTTL)
-	gotFmResp, err = be.FetchMatches(ctx, fmReq)
-	assert.Nil(t, err)
-	validateFetchMatchesResponse(t, [][]*pb.Ticket{{ticket2, ticket3, ticket4}, {ticket5}}, gotFmResp)
+	wantTickets = [][]*pb.Ticket{{ticket2, ticket3, ticket4}, {ticket5}}
+	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 
 	// 5. Call backend.AssignTickets to assign DGSs for the tickets in FetchMatches' response
 	var gotAtResp *pb.AssignTicketsResponse
-	for _, match := range tmpMatches {
+	for _, tickets := range wantTickets {
 		tids := []string{}
-		for _, ticket := range match.GetTickets() {
+		for _, ticket := range tickets {
 			tids = append(tids, ticket.GetId())
 		}
 		gotAtResp, err = be.AssignTickets(ctx, &pb.AssignTicketsRequest{TicketIds: tids, Assignment: &pb.Assignment{Connection: "agones-1"}})
@@ -163,9 +160,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 
 	// 6. Call backend.FetchMatches and verify it no longer returns tickets got assigned in the previous step.
 	time.Sleep(statestoreTesting.IgnoreListTTL)
-	gotFmResp, err = be.FetchMatches(ctx, fmReq)
-	assert.Nil(t, err)
-	validateFetchMatchesResponse(t, [][]*pb.Ticket{{ticket1}}, gotFmResp)
+	wantTickets = [][]*pb.Ticket{{ticket1}}
+	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 
 	// 7. Call frontend.DeleteTicket to delete the tickets returned in step 6.
 	var gotDtResp *pb.DeleteTicketResponse
@@ -175,15 +171,25 @@ func TestGameMatchWorkFlow(t *testing.T) {
 
 	// 8. Call backend.FetchMatches and verify the response does not contain the tickets got deleted.
 	time.Sleep(statestoreTesting.IgnoreListTTL)
-	gotFmResp, err = be.FetchMatches(ctx, fmReq)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, len(gotFmResp.GetMatches()))
+	wantTickets = [][]*pb.Ticket{}
+	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 }
 
-func validateFetchMatchesResponse(t *testing.T, wantTickets [][]*pb.Ticket, resp *pb.FetchMatchesResponse) {
-	assert.NotNil(t, resp)
-	assert.Equal(t, len(wantTickets), len(resp.GetMatches()))
-	for _, match := range resp.GetMatches() {
+func validateFetchMatchesResponse(ctx context.Context, t *testing.T, wantTickets [][]*pb.Ticket, be pb.BackendClient, fmReq *pb.FetchMatchesRequest) {
+	stream, err := be.FetchMatches(ctx, fmReq)
+	assert.Nil(t, err)
+	matches := make([]*pb.Match, 0)
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		assert.Nil(t, err)
+		matches = append(matches, resp.GetMatch())
+	}
+
+	assert.Equal(t, len(wantTickets), len(matches))
+	for _, match := range matches {
 		assert.Contains(t, wantTickets, match.GetTickets())
 	}
 }
