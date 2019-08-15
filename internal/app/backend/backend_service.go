@@ -217,14 +217,14 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 			break
 		}
 		if err != nil {
-			return nil, status.Errorf(codes.FailedPrecondition, "failed to decode RunResponse from JSON: %s", err.Error())
+			return nil, status.Errorf(codes.Unavailable, "failed to read response from HTTP JSON stream: %s", err.Error())
 		}
 		if len(item.Error) != 0 {
-			return nil, status.Errorf(codes.FailedPrecondition, "received error message from matchfunction.RunRquest endpoint: item.Error = %#v", item.Error)
+			return nil, item.Error
 		}
 		resp := &pb.RunResponse{}
 		if err := json.Unmarshal(item.Result, resp); err != nil {
-			return nil, status.Errorf(codes.FailedPrecondition, "failed to execute jsonpb.Unmarshal(%s, &resp): %v.", item.Result, err)
+			return nil, status.Errorf(codes.FailedPrecondition, "failed to execute json.Unmarshal(%s, &resp): %v.", item.Result, err)
 		}
 		proposals = append(proposals, resp.GetProposal())
 	}
