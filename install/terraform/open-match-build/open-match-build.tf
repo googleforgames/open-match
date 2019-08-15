@@ -54,7 +54,7 @@ provider "google-beta" {
 
 resource "google_storage_bucket" "ci_artifacts" {
   name     = "artifacts.open-match-build.appspot.com"
-  storage_class = "MULTI_REGIONAL"
+  storage_class = "STANDARD"
   location = "US"
 }
 
@@ -126,6 +126,10 @@ resource "google_container_cluster" "ci_cluster" {
 
     metadata = {
       disable-legacy-endpoints = "true"
+    }
+
+    workload_metadata_config {
+      node_metadata = "GKE_METADATA_SERVER"
     }
 
     tags = ["open-match"]
