@@ -52,6 +52,90 @@ provider "google-beta" {
   region  = "${var.gcp_region}"
 }
 
+resource "google_storage_bucket" "ci_artifacts" {
+  name     = "artifacts.open-match-build.appspot.com"
+  storage_class = "STANDARD"
+  location = "US"
+}
+
+resource "google_container_cluster" "ci_cluster" {
+  provider = "google-beta"
+  name     = "open-match-ci"
+
+  # --zone us-west1-a
+  location = "us-west1-a"
+
+  # Enable IP Aliases. A cluster that uses Alias IPs is called a VPC-native cluster and is the recommended type for new clusters.
+  # https://cloud.google.com/kubernetes-engine/docs/how-to/alias-ips
+  ip_allocation_policy {
+    use_ip_aliases = true
+    cluster_ipv4_cidr_block = "/14"
+    services_ipv4_cidr_block = "/20"
+    create_subnetwork = false
+  }
+
+  # Setting an empty username and password explicitly disables basic auth
+  master_auth {
+    username = ""
+    password = ""
+
+    client_certificate_config {
+      issue_client_certificate = false
+    }
+  }
+
+  # Use Kubernetes-Native logging/monitoring.
+  logging_service    = "logging.googleapis.com"
+  monitoring_service = "monitoring.googleapis.com"
+
+  addons_config {
+    kubernetes_dashboard {
+      disabled = true
+    }
+  }
+
+  initial_node_count = 0
+
+  # https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity
+  workload_identity_config {
+    identity_namespace = "${var.gcp_project_id}.svc.id.goog"
+  }
+
+  # Enable PodSecurityPolicy
+  pod_security_policy_config {
+    enabled = "true"
+  }
+
+  node_config {
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/devstorage.read_only",
+      "https://www.googleapis.com/auth/logging.write",
+      "https://www.googleapis.com/auth/monitoring",
+      "https://www.googleapis.com/auth/service.management.readonly",
+      "https://www.googleapis.com/auth/servicecontrol",
+      "https://www.googleapis.com/auth/trace.append"
+    ]
+
+    disk_size_gb = 50
+
+    disk_type = "pd-standard"
+
+    image_type = "COS_CONTAINERD"
+
+    machine_type = "n1-standard-4"
+
+    metadata = {
+      disable-legacy-endpoints = "true"
+    }
+
+    workload_metadata_config {
+      node_metadata = "GKE_METADATA_SERVER"
+    }
+
+    tags = ["open-match"]
+  }
+}
+
 # The reaper is a tool that scans for orphaned GKE namespaces created by CI and deletes them.
 # The reaper runs as this service account.
 resource "google_service_account" "reaper" {
