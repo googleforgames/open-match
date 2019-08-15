@@ -21,8 +21,6 @@ import (
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
@@ -74,14 +72,14 @@ type MatchFunctionParams struct {
 }
 
 // Run is this harness's implementation of the gRPC call defined in api/matchfunction.proto.
-func (s *matchFunctionService) Run(ctx context.Context, req *pb.RunRequest) (*pb.RunResponse, error) {
-	poolNameToTickets, err := s.getMatchManifest(ctx, req)
+func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
+	poolNameToTickets, err := s.getMatchManifest(stream.Context(), req)
 	if err != nil {
-		return nil, status.Error(codes.Aborted, err.Error())
+		return err
 	}
 
 	// The matchfunction takes in some half-filled/empty rosters, a property bag, and a map[poolNames]tickets to generate match proposals
-	mfView := &MatchFunctionParams{
+	mfParams := &MatchFunctionParams{
 		Logger: logrus.WithFields(logrus.Fields{
 			"app":       "openmatch",
 			"component": "matchfunction.implementation",
@@ -92,14 +90,21 @@ func (s *matchFunctionService) Run(ctx context.Context, req *pb.RunRequest) (*pb
 		PoolNameToTickets: poolNameToTickets,
 	}
 	// Run the customize match function!
-	proposals, err := s.function(mfView)
+	proposals, err := s.function(mfParams)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	logger.WithFields(logrus.Fields{
 		"proposals": proposals,
 	}).Trace("proposals returned by match function")
-	return &pb.RunResponse{Proposals: proposals}, nil
+
+	for _, proposal := range proposals {
+		if err := stream.Send(&pb.RunResponse{Proposal: proposal}); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunctionService, error) {
