@@ -115,7 +115,7 @@ func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Mat
 		results := []*pb.Match{}
 		for {
 			resp, recvErr := stream.Recv()
-			if err == io.EOF {
+			if recvErr == io.EOF {
 				// read done.
 				waitc <- evaluatorResult{results: results, err: nil}
 				return
