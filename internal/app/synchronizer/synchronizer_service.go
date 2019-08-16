@@ -107,7 +107,6 @@ func (s *synchronizerService) EvaluateProposals(stream ipb.Synchronizer_Evaluate
 	}
 
 	results, err := s.doEvaluateProposals(stream.Context(), proposals, id)
-
 	if err != nil {
 		return err
 	}
