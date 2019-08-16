@@ -194,15 +194,21 @@ func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string]
 	// Fetch Matches for each test profile.
 	be := om.MustBackendGRPC()
 	for _, profile := range testProfiles {
-		br, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{
+		brs, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{
 			Config:   fc,
 			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
 		})
-		assert.Nil(t, err)
-		assert.NotNil(t, br)
-		assert.NotNil(t, br.GetMatches())
 
-		for _, match := range br.GetMatches() {
+		for {
+			br, err := brs.Recv()
+			if err == io.EOF {
+				break
+			}
+			assert.Nil(t, err)
+			assert.NotNil(t, br)
+			assert.NotNil(t, br.GetMatch())
+
+			match := br.GetMatch()
 			// Currently, the MMF simply creates a match per pool in the match profile - and populates
 			// the roster with the pool name. Thus validate that for the roster populated in the match
 			// result has all the tickets expected in that pool.
@@ -220,12 +226,13 @@ func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string]
 		}
 
 		// Verify calling fetch matches twice within ttl interval won't yield new results
-		br, err = be.FetchMatches(om.Context(), &pb.FetchMatchesRequest{
+		brs, err = be.FetchMatches(om.Context(), &pb.FetchMatchesRequest{
 			Config:   fc,
 			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
 		})
 
-		assert.Nil(t, br.GetMatches())
-		assert.Nil(t, err)
+		br, err := brs.Recv()
+		assert.Equal(t, err, io.EOF)
+		assert.Nil(t, br)
 	}
 }
