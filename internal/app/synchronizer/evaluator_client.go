@@ -106,7 +106,7 @@ func (ec *evaluatorClient) initialize() error {
 	return nil
 }
 
-func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Match) (results []*pb.Match, err error) {
+func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
 	stream, err := ec.grpcClient.Evaluate(ctx)
 
 	waitc := make(chan evaluatorResult)
@@ -120,7 +120,7 @@ func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Mat
 				waitc <- evaluatorResult{results: results, err: nil}
 				return
 			}
-			if err != nil {
+			if recvErr != nil {
 				waitc <- evaluatorResult{results: nil, err: recvErr}
 				return
 			}
