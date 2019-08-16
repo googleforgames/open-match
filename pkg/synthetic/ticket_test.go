@@ -49,7 +49,7 @@ func TestNormal(t *testing.T) {
 		}
 		v := value.GetNumberValue()
 		if 100 < v && v < 200 {
-			within1stdiv += 1
+			within1stdiv++
 		}
 		if v < 99 || v > 201 {
 			t.Errorf("Value %v outside of clamped limits", v)
@@ -78,8 +78,8 @@ func TestFieldChoice(t *testing.T) {
 			t.Errorf("Expected value to be 1, but got %v", v)
 		}
 
-		choices[field] += 1
-		callCount += 1
+		choices[field]++
+		callCount++
 	}
 
 	f := FieldChoice(map[string]int64{
@@ -124,8 +124,8 @@ func TestValueChoice(t *testing.T) {
 		}
 
 		v := value.GetNumberValue()
-		choices[v] += 1
-		callCount += 1
+		choices[v]++
+		callCount++
 	}
 
 	f := ValueChoice("myfield", []*structpb.Value{
@@ -160,7 +160,7 @@ func TestWeightedChoice(t *testing.T) {
 	choices := make([]int, 5)
 	f := weightedChoice([]int64{1000, 1000, 4000, 3000, 1000})
 	for i := 0; i < 10000; i++ {
-		choices[f()] += 1
+		choices[f()]++
 	}
 
 	if choices[0] < 800 || choices[0] > 1200 {
@@ -206,7 +206,7 @@ func TestBadArtificalLatency(t *testing.T) {
 
 		i := int(v / 10)
 		if i < len(dist) {
-			dist[i] += 1
+			dist[i]++
 		}
 	}
 
