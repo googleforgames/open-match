@@ -77,7 +77,7 @@ message FetchMatchesRequest {
 message FetchMatchesResponse {
   // Result Match for the requested MatchProfile.
   // Note that OpenMatch will validate the proposals, a valid match should contain at least one ticket.
-  repeated Match matches = 1;
+  Match match = 1;
 }
 
 message AssignTicketsRequest {
@@ -97,7 +97,7 @@ service Backend {
   // specified MatchProfiles. Each MatchFunction execution returns a set of
   // proposals which are then evaluated to generate results. FetchMatch method
   // streams these results back to the caller.
-  rpc FetchMatches(FetchMatchesRequest) returns (FetchMatchesResponse) {
+  rpc FetchMatches(FetchMatchesRequest) returns (stream FetchMatchesResponse) {
     option (google.api.http) = {
       post: "/v1/backend/matches:fetch"
       body: "*"
