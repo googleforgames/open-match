@@ -22,11 +22,6 @@ type synchronizerClient struct {
 	m            sync.Mutex
 }
 
-type evaluateProposalsResult struct {
-	results []*pb.Match
-	err     error
-}
-
 // register calls the Register method on Synchronizer service. It only triggers this
 // if the synchronizer is enabled. The first attempt to call the synchronizer service
 // establishes a connection. Consequent requests use the cached connection.
