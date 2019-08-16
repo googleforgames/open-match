@@ -703,7 +703,7 @@ vet:
 	$(GO) vet ./...
 
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
-	GO111MODULE=on $(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
+	-GO111MODULE=on $(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
 
 lint: fmt vet golangci lint-chart terraform-lint
 
