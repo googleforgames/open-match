@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"io"
 	"sync"
 
 	"open-match.dev/open-match/internal/config"
@@ -19,6 +20,11 @@ type synchronizerClient struct {
 	cfg          config.View
 	synchronizer ipb.SynchronizerClient
 	m            sync.Mutex
+}
+
+type evaluateProposalsResult struct {
+	results []*pb.Match
+	err     error
 }
 
 // register calls the Register method on Synchronizer service. It only triggers this
@@ -58,15 +64,35 @@ func (sc *synchronizerClient) evaluate(ctx context.Context, id string, proposals
 		return nil, err
 	}
 
-	resp, err := sc.synchronizer.EvaluateProposals(ctx, &ipb.EvaluateProposalsRequest{
-		Id:      id,
-		Matches: proposals})
-	if err != nil {
-		return nil, err
+	if len(proposals) == 0 {
+		return proposals, nil
 	}
 
-	telemetry.IncrementCounterN(ctx, mMatchEvaluations, len(resp.Matches))
-	return resp.Matches, nil
+	stream, err := sc.synchronizer.EvaluateProposals(ctx)
+	for _, proposal := range proposals {
+		if err = stream.Send(&ipb.EvaluateProposalsRequest{Id: id, Match: proposal}); err != nil {
+			return nil, err
+		}
+	}
+	if err = stream.CloseSend(); err != nil {
+		logger.Errorf("failed to close the send stream: %s", err.Error())
+	}
+
+	results := []*pb.Match{}
+	for {
+		resp, recvErr := stream.Recv()
+		if recvErr == io.EOF {
+			// read done
+			break
+		}
+		if recvErr != nil {
+			return nil, recvErr
+		}
+		results = append(results, resp.GetMatch())
+	}
+
+	telemetry.IncrementCounterN(ctx, mMatchEvaluations, len(results))
+	return results, nil
 }
 
 // initialize attempts to connect to the Sychronizer service. If the connection is

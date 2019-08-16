@@ -40,24 +40,24 @@ func TestFetchMatches(t *testing.T) {
 		wantMatch   []*pb.Match
 		wantCode    codes.Code
 	}{
-		{
-			"expects invalid argument code since request is empty",
-			nil,
-			nil,
-			nil,
-			codes.InvalidArgument,
-		},
-		{
-			"expects unavailable code since there is no mmf being hosted with given function config",
-			&pb.FunctionConfig{
-				Host: "om-matchfunction",
-				Port: int32(54321),
-				Type: pb.FunctionConfig_GRPC,
-			},
-			[]*pb.MatchProfile{{Name: "some name"}},
-			[]*pb.Match{},
-			codes.Unavailable,
-		},
+		// {
+		// 	"expects invalid argument code since request is empty",
+		// 	nil,
+		// 	nil,
+		// 	nil,
+		// 	codes.InvalidArgument,
+		// },
+		// {
+		// 	"expects unavailable code since there is no mmf being hosted with given function config",
+		// 	&pb.FunctionConfig{
+		// 		Host: "om-matchfunction",
+		// 		Port: int32(54321),
+		// 		Type: pb.FunctionConfig_GRPC,
+		// 	},
+		// 	[]*pb.MatchProfile{{Name: "some name"}},
+		// 	[]*pb.Match{},
+		// 	codes.Unavailable,
+		// },
 		{
 			"expects empty response since the store is empty",
 			om.MustMmfConfigGRPC(),
