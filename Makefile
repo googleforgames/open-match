@@ -654,7 +654,7 @@ pkg/pb/%.pb.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSI
 	mv $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/$@ $@
 
 pkg/pb/%.cs: third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION)
-	mkdir -p $(REPOSITORY_ROOT)/build/prototmp/pkg/pb $(REPOSITORY_ROOT)/pkg/pb
+	mkdir -p $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/pkg/pb $(REPOSITORY_ROOT)/pkg/pb
 	$(PROTOC) api/$(shell echo $(*F)| tr A-Z a-z).proto \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--csharp_out=$(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/pkg/pb
@@ -668,7 +668,7 @@ internal/ipb/%.pb.go: internal/api/%.proto third_party/ build/toolchain/bin/prot
 	mv $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/$@ $@
 
 internal/ipb/%.cs: third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION)
-	mkdir -p $(REPOSITORY_ROOT)/build/prototmp/internal/ipb $(REPOSITORY_ROOT)/internal/ipb
+	mkdir -p $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/internal/ipb $(REPOSITORY_ROOT)/internal/ipb
 	$(PROTOC) internal/api/$(shell echo $(*F)| tr A-Z a-z).proto \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--csharp_out=$(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/internal/ipb
