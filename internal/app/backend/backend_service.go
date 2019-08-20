@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -149,9 +150,6 @@ func doFetchMatchesReceiveMmfResult(ctx context.Context, mmfClients *rpc.ClientC
 	for _, profile := range req.GetProfiles() {
 		go func(profile *pb.MatchProfile) {
 			// Get the match results that will be sent.
-			// TODO: The matches returned by the MatchFunction will be sent to the
-			// Evaluator to select results. Until the evaluator is implemented,
-			// we channel all matches as accepted results.
 			switch configType {
 			case pb.FunctionConfig_GRPC:
 				matches, err := matchesFromGRPCMMF(ctx, profile, grpcClient)
@@ -236,7 +234,7 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 			return nil, status.Errorf(codes.Unavailable, "failed to execute matchfunction.Run: %v", item.Error)
 		}
 		resp := &pb.RunResponse{}
-		if err := json.Unmarshal(item.Result, resp); err != nil {
+		if err := jsonpb.UnmarshalString(string(item.Result), resp); err != nil {
 			return nil, status.Errorf(codes.Unavailable, "failed to execute json.Unmarshal(%s, &resp): %v.", item.Result, err)
 		}
 		proposals = append(proposals, resp.GetProposal())

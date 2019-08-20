@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
@@ -301,6 +301,9 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 		}
 	}
 
+	// Add queryable metadata fields to the map
+	attributesToValue["creationTimestamp"] = float64(ticket.GetMetadata().GetCreationTimestamp().GetSeconds())
+
 	err = redisConn.Send("MULTI")
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -363,6 +366,9 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 		indices = rb.cfg.GetStringSlice("ticketIndices")
 	}
 
+	// Also deindex the queryable metadata fields
+	indices = append(indices, "creationTimestamp")
+
 	for _, attribute := range indices {
 		err = redisConn.Send("ZREM", attribute, id)
 		if err != nil {
@@ -389,12 +395,7 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	return nil
 }
 
-// FilterTickets returns the Ticket ids and required attribute key-value pairs for the Tickets meeting the specified filtering criteria.
-// map[ticket.Id]map[attributeName][attributeValue]
-// {
-//  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
-//  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
-// }
+// FilterTickets filter out Tickets meeting the specified filtering criteria and send them using the callback function.
 func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error {
 	var err error
 	var redisConn redis.Conn

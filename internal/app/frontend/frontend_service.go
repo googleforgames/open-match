@@ -17,7 +17,8 @@ package frontend
 import (
 	"context"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
@@ -55,6 +56,10 @@ func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicket
 		return nil, status.Errorf(codes.InvalidArgument, ".ticket is required")
 	}
 
+	if req.GetTicket().GetMetadata() != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "ticket metadata is read-only, metadata is: %v", req.GetTicket().GetMetadata())
+	}
+
 	return doCreateTicket(ctx, req, s.store)
 }
 
@@ -65,7 +70,11 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 		return nil, status.Error(codes.Internal, "failed to clone input ticket proto")
 	}
 
+	ticket.Metadata = &pb.Ticket_Metadata{
+		CreationTimestamp: ptypes.TimestampNow(),
+	}
 	ticket.Id = xid.New().String()
+
 	err := store.CreateTicket(ctx, ticket)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
