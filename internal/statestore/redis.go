@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"

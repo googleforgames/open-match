@@ -15,13 +15,14 @@
 package backend
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -60,12 +61,12 @@ var (
 // streams these results back to the caller.
 // FetchMatches returns nil unless the context is canceled. FetchMatches moves to the next response candidate if it encounters
 // any internal execution failures.
-func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesRequest) (*pb.FetchMatchesResponse, error) {
+func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Backend_FetchMatchesServer) error {
 	if req.GetConfig() == nil {
-		return nil, status.Error(codes.InvalidArgument, ".config is required")
+		return status.Error(codes.InvalidArgument, ".config is required")
 	}
 	if req.GetProfiles() == nil {
-		return nil, status.Error(codes.InvalidArgument, ".profile is required")
+		return status.Error(codes.InvalidArgument, ".profile is required")
 	}
 
 	resultChan := make(chan mmfResult, len(req.GetProfiles()))
@@ -73,28 +74,41 @@ func (s *backendService) FetchMatches(ctx context.Context, req *pb.FetchMatchesR
 	var syncID string
 	var err error
 
-	syncID, err = s.synchronizer.register(ctx)
+	syncID, err = s.synchronizer.register(stream.Context())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = doFetchMatchesReceiveMmfResult(ctx, s.mmfClients, req, resultChan)
+	err = doFetchMatchesReceiveMmfResult(stream.Context(), s.mmfClients, req, resultChan)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	proposals, err := doFetchMatchesValidateProposals(ctx, resultChan, len(req.GetProfiles()))
+	proposals, err := doFetchMatchesValidateProposals(stream.Context(), resultChan, len(req.GetProfiles()))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	results, err := s.synchronizer.evaluate(ctx, syncID, proposals)
+	results, err := s.synchronizer.evaluate(stream.Context(), syncID, proposals)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	telemetry.IncrementCounterN(ctx, mMatchesFetched, len(results))
-	return &pb.FetchMatchesResponse{Matches: results}, nil
+	for _, result := range results {
+		select {
+		case <-stream.Context().Done():
+			return stream.Context().Err()
+		default:
+			err := stream.Send(&pb.FetchMatchesResponse{Match: result})
+			if err != nil {
+				logger.WithError(err).Error("failed to stream back the response")
+				return err
+			}
+		}
+	}
+
+	telemetry.IncrementCounterN(stream.Context(), mMatchesFetched, len(results))
+	return nil
 }
 
 func doFetchMatchesReceiveMmfResult(ctx context.Context, mmfClients *rpc.ClientCache, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
@@ -178,17 +192,13 @@ func doFetchMatchesValidateProposals(ctx context.Context, resultChan <-chan mmfR
 }
 
 func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *http.Client, baseURL string) ([]*pb.Match, error) {
-	jsonProfile, err := json.Marshal(profile)
+	var m jsonpb.Marshaler
+	strReq, err := m.MarshalToString(&pb.RunRequest{Profile: profile})
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal profile pb to string for profile %s: %s", profile.GetName(), err.Error())
 	}
 
-	reqBody, err := json.Marshal(map[string]json.RawMessage{"profile": jsonProfile})
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal request body for profile %s: %s", profile.GetName(), err.Error())
-	}
-
-	req, err := http.NewRequest("POST", baseURL+"/v1/matchfunction:run", bytes.NewBuffer(reqBody))
+	req, err := http.NewRequest("POST", baseURL+"/v1/matchfunction:run", strings.NewReader(strReq))
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "failed to create mmf http request for profile %s: %s", profile.GetName(), err.Error())
 	}
@@ -223,7 +233,7 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 			return nil, status.Errorf(codes.Unavailable, "failed to execute matchfunction.Run: %v", item.Error)
 		}
 		resp := &pb.RunResponse{}
-		if err := json.Unmarshal(item.Result, resp); err != nil {
+		if err := jsonpb.UnmarshalString(string(item.Result), resp); err != nil {
 			return nil, status.Errorf(codes.Unavailable, "failed to execute json.Unmarshal(%s, &resp): %v.", item.Result, err)
 		}
 		proposals = append(proposals, resp.GetProposal())

@@ -53,9 +53,9 @@ provider "google-beta" {
 }
 
 resource "google_storage_bucket" "ci_artifacts" {
-  name     = "artifacts.open-match-build.appspot.com"
+  name          = "artifacts.open-match-build.appspot.com"
   storage_class = "STANDARD"
-  location = "US"
+  location      = "US"
 }
 
 resource "google_container_cluster" "ci_cluster" {
@@ -68,10 +68,10 @@ resource "google_container_cluster" "ci_cluster" {
   # Enable IP Aliases. A cluster that uses Alias IPs is called a VPC-native cluster and is the recommended type for new clusters.
   # https://cloud.google.com/kubernetes-engine/docs/how-to/alias-ips
   ip_allocation_policy {
-    use_ip_aliases = true
-    cluster_ipv4_cidr_block = "/14"
+    use_ip_aliases           = true
+    cluster_ipv4_cidr_block  = "/14"
     services_ipv4_cidr_block = "/20"
-    create_subnetwork = false
+    create_subnetwork        = false
   }
 
   # Setting an empty username and password explicitly disables basic auth

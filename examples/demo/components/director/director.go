@@ -17,6 +17,7 @@ package director
 import (
 	"context"
 	"fmt"
+	"io"
 	"math/rand"
 	"time"
 
@@ -103,12 +104,22 @@ func run(ds *components.DemoShared) {
 			},
 		}
 
-		resp, err := be.FetchMatches(ds.Ctx, req)
+		stream, err := be.FetchMatches(ds.Ctx, req)
 		if err != nil {
 			panic(err)
 		}
 
-		matches = resp.Matches
+		matches := make([]*pb.Match, 0)
+		for {
+			resp, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				panic(err)
+			}
+			matches = append(matches, resp.GetMatch())
+		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
