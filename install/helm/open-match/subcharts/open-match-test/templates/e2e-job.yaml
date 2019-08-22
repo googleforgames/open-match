@@ -40,6 +40,8 @@ spec:
         args:
         - "test"
         - "./test/e2e"
+        - "./internal/testing/e2e/"
+        - "-v"
         - "-race"
         - "-tags"
         - "e2ecluster"

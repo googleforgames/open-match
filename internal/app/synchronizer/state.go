@@ -100,7 +100,6 @@ func (syncState *synchronizerState) resetCycleData() {
 func (syncState *synchronizerState) addProposals(id string, proposals []*pb.Match) error {
 	syncState.stateMutex.Lock()
 	defer syncState.stateMutex.Unlock()
-
 	if !syncState.canAcceptProposal() {
 		return status.Error(codes.DeadlineExceeded, "synchronizer currently not accepting match proposals")
 	}
@@ -164,7 +163,7 @@ func (syncState *synchronizerState) evaluate(ctx context.Context) {
 	for id, data := range syncState.cycleData.idToRequestData {
 		aggregateProposals = append(aggregateProposals, data.proposals...)
 		for _, m := range data.proposals {
-			proposalMap[m.MatchId] = id
+			proposalMap[m.GetMatchId()] = id
 		}
 	}
 
@@ -256,7 +255,7 @@ func (syncState *synchronizerState) proposalCollectionInterval() time.Duration {
 func getMatchIds(matches []*pb.Match) []string {
 	var result []string
 	for _, m := range matches {
-		result = append(result, m.MatchId)
+		result = append(result, m.GetMatchId())
 	}
 	return result
 }
