@@ -15,11 +15,6 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-type evaluatorResult struct {
-	results []*pb.Match
-	err     error
-}
-
 type evaluator interface {
 	evaluate(context.Context, []*pb.Match) ([]*pb.Match, error)
 }
@@ -109,26 +104,6 @@ func (ec *evaluatorClient) initialize() error {
 func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
 	stream, err := ec.grpcClient.Evaluate(ctx)
 
-	waitc := make(chan evaluatorResult)
-	defer close(waitc)
-	go func() {
-		results := []*pb.Match{}
-		for {
-			// TODO: add grpc timeouts for this call.
-			resp, recvErr := stream.Recv()
-			if recvErr == io.EOF {
-				// read done.
-				waitc <- evaluatorResult{results: results, err: nil}
-				return
-			}
-			if recvErr != nil {
-				waitc <- evaluatorResult{results: nil, err: recvErr}
-				return
-			}
-			results = append(results, resp.GetMatch())
-		}
-	}()
-
 	for _, proposal := range proposals {
 		if err = stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
 			return nil, err
@@ -139,8 +114,21 @@ func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Mat
 		logger.Errorf("failed to close the send stream: %s", err.Error())
 	}
 
-	result := <-waitc
-	return result.results, result.err
+	var results = []*pb.Match{}
+	for {
+		// TODO: add grpc timeouts for this call.
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			// read done.
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, resp.GetMatch())
+	}
+
+	return results, nil
 }
 
 func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) (results []*pb.Match, err error) {
