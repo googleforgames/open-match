@@ -17,7 +17,7 @@ package frontend
 import (
 	"context"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
