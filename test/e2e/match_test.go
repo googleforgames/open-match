@@ -17,6 +17,7 @@
 package e2e
 
 import (
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -74,17 +75,31 @@ func TestFetchMatches(t *testing.T) {
 				t.Parallel()
 				ctx := om.Context()
 
-				resp, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{Config: test.fc, Profiles: test.profile})
-				assert.Equal(t, test.wantCode, status.Convert(err).Code())
+				stream, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{Config: test.fc, Profiles: test.profile})
+				assert.Nil(t, err)
+
+				var resp *pb.FetchMatchesResponse
+				var gotMatches []*pb.Match
+				for {
+					resp, err = stream.Recv()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						assert.Equal(t, test.wantCode, status.Convert(err).Code())
+						break
+					}
+					gotMatches = append(gotMatches, &pb.Match{
+						MatchProfile:  resp.GetMatch().GetMatchProfile(),
+						MatchFunction: resp.GetMatch().GetMatchFunction(),
+						Tickets:       resp.GetMatch().GetTickets(),
+						Rosters:       resp.GetMatch().GetRosters(),
+					})
+				}
 
 				if err == nil {
-					for _, match := range resp.Matches {
-						assert.Contains(t, test.wantMatch, &pb.Match{
-							MatchProfile:  match.GetMatchProfile(),
-							MatchFunction: match.GetMatchFunction(),
-							Tickets:       match.GetTickets(),
-							Rosters:       match.GetRosters(),
-						})
+					for _, match := range gotMatches {
+						assert.Contains(t, test.wantMatch, match)
 					}
 				}
 			})

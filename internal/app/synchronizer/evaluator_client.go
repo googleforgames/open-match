@@ -1,14 +1,14 @@
 package synchronizer
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -114,17 +114,13 @@ func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Mat
 
 func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) (results []*pb.Match, err error) {
 	proposalIDs := getMatchIds(proposals)
-	jsonProposals, err := json.Marshal(proposals)
+	var m jsonpb.Marshaler
+	strReq, err := m.MarshalToString(&pb.EvaluateRequest{Matches: proposals})
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal proposals to string for proposals %s: %s", proposalIDs, err.Error())
 	}
 
-	reqBody, err := json.Marshal(map[string]json.RawMessage{"match": jsonProposals})
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal request body for proposals %s: %s", proposalIDs, err.Error())
-	}
-
-	req, err := http.NewRequest("POST", ec.baseURL+"/v1/matches:evaluate", bytes.NewBuffer(reqBody))
+	req, err := http.NewRequest("POST", ec.baseURL+"/v1/matches:evaluate", strings.NewReader(strReq))
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "failed to create evaluator http request for proposals %s: %s", proposalIDs, err.Error())
 	}
@@ -148,7 +144,7 @@ func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Mat
 	}
 
 	pbResp := &pb.EvaluateResponse{}
-	err = json.Unmarshal(body, pbResp)
+	err = jsonpb.UnmarshalString(string(body), pbResp)
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition,
 			"failed to unmarshal response body to response pb for proposals %s: %s", proposalIDs, err.Error())
