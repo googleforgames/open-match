@@ -3,12 +3,10 @@ package synchronizer
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
-	"strings"
 	"sync"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -103,52 +101,37 @@ func (ec *evaluatorClient) initialize() error {
 	return nil
 }
 
-func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Match) (results []*pb.Match, err error) {
-	resp, err := ec.grpcClient.Evaluate(ctx, &pb.EvaluateRequest{Matches: proposals})
-	if err != nil {
-		return nil, err
+func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	stream, err := ec.grpcClient.Evaluate(ctx)
+
+	for _, proposal := range proposals {
+		if err = stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
+			return nil, err
+		}
 	}
 
-	return resp.GetMatches(), nil
+	if err = stream.CloseSend(); err != nil {
+		logger.Errorf("failed to close the send stream: %s", err.Error())
+	}
+
+	var results = []*pb.Match{}
+	for {
+		// TODO: add grpc timeouts for this call.
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			// read done.
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, resp.GetMatch())
+	}
+
+	return results, nil
 }
 
 func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) (results []*pb.Match, err error) {
-	proposalIDs := getMatchIds(proposals)
-	var m jsonpb.Marshaler
-	strReq, err := m.MarshalToString(&pb.EvaluateRequest{Matches: proposals})
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal proposals to string for proposals %s: %s", proposalIDs, err.Error())
-	}
-
-	req, err := http.NewRequest("POST", ec.baseURL+"/v1/matches:evaluate", strings.NewReader(strReq))
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to create evaluator http request for proposals %s: %s", proposalIDs, err.Error())
-	}
-
-	resp, err := ec.httpClient.Do(req.WithContext(ctx))
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get response from evaluator for proposals %s: %s", proposalIDs, err.Error())
-	}
-
-	defer func() {
-		err = resp.Body.Close()
-		if err != nil {
-			evaluatorClientLogger.WithError(err).Warning("failed to close response body read closer")
-		}
-	}()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition,
-			"failed to read from response body for proposals %s: %s", proposalIDs, err.Error())
-	}
-
-	pbResp := &pb.EvaluateResponse{}
-	err = jsonpb.UnmarshalString(string(body), pbResp)
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition,
-			"failed to unmarshal response body to response pb for proposals %s: %s", proposalIDs, err.Error())
-	}
-
-	return pbResp.GetMatches(), nil
+	// TODO: Implement a bidirectional HTTP streaming client in v0.7
+	return nil, nil
 }
