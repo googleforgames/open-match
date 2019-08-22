@@ -103,6 +103,9 @@ func (ec *evaluatorClient) initialize() error {
 
 func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
 	stream, err := ec.grpcClient.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, proposal := range proposals {
 		if err = stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
