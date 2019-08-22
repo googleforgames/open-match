@@ -114,6 +114,7 @@ func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Mat
 	go func() {
 		results := []*pb.Match{}
 		for {
+			// TODO: add grpc timeouts for this call.
 			resp, recvErr := stream.Recv()
 			if recvErr == io.EOF {
 				// read done.
