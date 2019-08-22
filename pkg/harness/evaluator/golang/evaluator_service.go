@@ -16,7 +16,7 @@
 package golang
 
 import (
-	"context"
+	"io"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -57,10 +57,18 @@ type EvaluatorParams struct {
 
 // Evaluate is this harness's implementation of the gRPC call defined in
 // api/evaluator.proto.
-func (s *evaluatorService) Evaluate(ctx context.Context, req *pb.EvaluateRequest) (*pb.EvaluateResponse, error) {
-	logger.WithFields(logrus.Fields{
-		"proposals": req.GetMatches(),
-	}).Debug("matches sent to the evaluator")
+func (s *evaluatorService) Evaluate(stream pb.Evaluator_EvaluateServer) error {
+	var matches = []*pb.Match{}
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		matches = append(matches, req.GetMatch())
+	}
 
 	// Run the customized evaluator!
 	results, err := s.evaluate(&EvaluatorParams{
@@ -68,14 +76,20 @@ func (s *evaluatorService) Evaluate(ctx context.Context, req *pb.EvaluateRequest
 			"app":       "openmatch",
 			"component": "evaluator.implementation",
 		}),
-		Matches: req.GetMatches(),
+		Matches: matches,
 	})
 	if err != nil {
-		return nil, status.Error(codes.Aborted, err.Error())
+		return status.Error(codes.Aborted, err.Error())
+	}
+
+	for _, result := range results {
+		if err := stream.Send(&pb.EvaluateResponse{Match: result}); err != nil {
+			return err
+		}
 	}
 
 	logger.WithFields(logrus.Fields{
 		"results": results,
 	}).Debug("matches accepted by the evaluator")
-	return &pb.EvaluateResponse{Matches: results}, nil
+	return nil
 }

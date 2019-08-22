@@ -56,12 +56,12 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 
 message EvaluateRequest {
   // List of Matches to evaluate.
-  repeated api.Match matches = 1;
+  api.Match match = 1;
 }
 
 message EvaluateResponse {
   // Accepted list of Matches.
-  repeated api.Match matches = 1;
+  api.Match match = 1;
 }
 
 // The service implementing the Evaluator API that is called to evaluate
@@ -69,7 +69,7 @@ message EvaluateResponse {
 service Evaluator {
   // Evaluate accepts a list of proposed matches, evaluates them for quality,
   // collisions etc. and returns matches that should be accepted as results.
-  rpc Evaluate(EvaluateRequest) returns (EvaluateResponse) {
+  rpc Evaluate(stream EvaluateRequest) returns (stream EvaluateResponse) {
     option (google.api.http) = {
       post: "/v1/evaluator/matches:evaluate"
       body: "*"

@@ -27,6 +27,7 @@ require (
 	github.com/alicebob/miniredis/v2 v2.8.1-0.20190618082157-e29950035715
 	github.com/cenkalti/backoff v2.1.1+incompatible
 	github.com/fsnotify/fsnotify v1.4.7
+	github.com/go-logfmt/logfmt v0.4.0 // indirect
 	github.com/golang/protobuf v1.3.1
 	github.com/gomodule/redigo v1.7.1-0.20190322064113-39e2c31b7ca3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
