@@ -97,7 +97,13 @@ func (s *synchronizerService) EvaluateProposals(stream ipb.Synchronizer_Evaluate
 		if err != nil {
 			return err
 		}
-		id = req.GetId()
+
+		if len(id) == 0 {
+			id = req.GetId()
+		} else if req.GetId() != id {
+			return status.Errorf(codes.InvalidArgument, "Proposal ids suppose to be the same in one call, original id: %s, new request: %v", id, req)
+		}
+
 		proposals = append(proposals, req.GetMatch())
 	}
 

@@ -73,7 +73,7 @@ func (sc *synchronizerClient) evaluate(ctx context.Context, id string, proposals
 		logger.Errorf("failed to close the send stream: %s", err.Error())
 	}
 
-	results := []*pb.Match{}
+	var results = []*pb.Match{}
 	for {
 		resp, recvErr := stream.Recv()
 		if recvErr == io.EOF {
