@@ -15,13 +15,14 @@
 package backend
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -191,17 +192,13 @@ func doFetchMatchesValidateProposals(ctx context.Context, resultChan <-chan mmfR
 }
 
 func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *http.Client, baseURL string) ([]*pb.Match, error) {
-	jsonProfile, err := json.Marshal(profile)
+	var m jsonpb.Marshaler
+	strReq, err := m.MarshalToString(&pb.RunRequest{Profile: profile})
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal profile pb to string for profile %s: %s", profile.GetName(), err.Error())
 	}
 
-	reqBody, err := json.Marshal(map[string]json.RawMessage{"profile": jsonProfile})
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal request body for profile %s: %s", profile.GetName(), err.Error())
-	}
-
-	req, err := http.NewRequest("POST", baseURL+"/v1/matchfunction:run", bytes.NewBuffer(reqBody))
+	req, err := http.NewRequest("POST", baseURL+"/v1/matchfunction:run", strings.NewReader(strReq))
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "failed to create mmf http request for profile %s: %s", profile.GetName(), err.Error())
 	}
@@ -236,7 +233,7 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 			return nil, status.Errorf(codes.Unavailable, "failed to execute matchfunction.Run: %v", item.Error)
 		}
 		resp := &pb.RunResponse{}
-		if err := json.Unmarshal(item.Result, resp); err != nil {
+		if err := jsonpb.UnmarshalString(string(item.Result), resp); err != nil {
 			return nil, status.Errorf(codes.Unavailable, "failed to execute json.Unmarshal(%s, &resp): %v.", item.Result, err)
 		}
 		proposals = append(proposals, resp.GetProposal())

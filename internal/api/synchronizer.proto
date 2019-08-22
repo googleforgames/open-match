@@ -64,7 +64,7 @@ message RegisterResponse {
 
 message EvaluateProposalsRequest {
   // List of proposals to evaluate in the current synchronization cycle.
-  repeated api.Match matches = 1;
+  api.Match match = 1;
 
   // Identifier for this request issued during request registration.
   string id = 2;
@@ -72,7 +72,7 @@ message EvaluateProposalsRequest {
 
 message EvaluateProposalsResponse {
   // Results from evaluating proposals for this request.
-  repeated api.Match matches = 1;
+  api.Match match = 1;
 }
 
 // The service implementing the Synchronizer API that synchronizes the evaluation
@@ -94,7 +94,7 @@ service Synchronizer {
   // added to the list of proposals to be evaluated in the current cycle. At the
   //  end of the cycle, the user defined evaluation method is triggered and the
   // matches accepted by it are returned as results.
-  rpc EvaluateProposals(EvaluateProposalsRequest) returns (EvaluateProposalsResponse) {
+  rpc EvaluateProposals(stream EvaluateProposalsRequest) returns (stream EvaluateProposalsResponse) {
     option (google.api.http) = {
       post: "/v1/synchronizer/proposals:evaluate"
       body: "*"

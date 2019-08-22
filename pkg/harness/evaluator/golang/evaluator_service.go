@@ -58,7 +58,7 @@ type EvaluatorParams struct {
 // Evaluate is this harness's implementation of the gRPC call defined in
 // api/evaluator.proto.
 func (s *evaluatorService) Evaluate(stream pb.Evaluator_EvaluateServer) error {
-	matches := make([]*pb.Match, 0)
+	var matches = []*pb.Match{}
 	for {
 		req, err := stream.Recv()
 		if err == io.EOF {

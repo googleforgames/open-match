@@ -31,11 +31,6 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-type evaluatorResult struct {
-	results []*pb.Match
-	err     error
-}
-
 type evaluator interface {
 	evaluate(context.Context, []*pb.Match) ([]*pb.Match, error)
 }
@@ -124,25 +119,9 @@ func (ec *evaluatorClient) initialize() error {
 
 func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
 	stream, err := ec.grpcClient.Evaluate(ctx)
-
-	waitc := make(chan evaluatorResult)
-	defer close(waitc)
-	go func() {
-		results := []*pb.Match{}
-		for {
-			resp, recvErr := stream.Recv()
-			if recvErr == io.EOF {
-				// read done.
-				waitc <- evaluatorResult{results: results, err: nil}
-				return
-			}
-			if recvErr != nil {
-				waitc <- evaluatorResult{results: nil, err: recvErr}
-				return
-			}
-			results = append(results, resp.GetMatch())
-		}
-	}()
+	if err != nil {
+		return nil, err
+	}
 
 	for _, proposal := range proposals {
 		if err = stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
@@ -154,38 +133,46 @@ func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Mat
 		logger.Errorf("failed to close the send stream: %s", err.Error())
 	}
 
-	result := <-waitc
-	return result.results, result.err
+	var results = []*pb.Match{}
+	for {
+		// TODO: add grpc timeouts for this call.
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			// read done.
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, resp.GetMatch())
+	}
+
+	return results, nil
 }
 
-func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) (results []*pb.Match, err error) {
+func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	var err error
 	reqr, reqw := io.Pipe()
 	proposalIDs := getMatchIds(proposals)
-	waitc := make(chan error)
-
-	go func() {
-		var m jsonpb.Marshaler
-		defer close(waitc)
-		defer func() {
-			sendErr := reqw.Close()
-			if sendErr != nil {
-				logger.WithError(sendErr).Warning("failed to close response body read closer")
-			}
-		}()
-
-		for _, proposal := range proposals {
-			buf, sendErr := m.MarshalToString(&pb.EvaluateRequest{Match: proposal})
-			if sendErr != nil {
-				waitc <- status.Errorf(codes.FailedPrecondition, "failed to marshal proposal to string: %s", sendErr.Error())
-				return
-			}
-			_, sendErr = io.WriteString(reqw, buf)
-			if sendErr != nil {
-				waitc <- status.Errorf(codes.FailedPrecondition, "failed to write proto string to io writer: %s", sendErr.Error())
-				return
-			}
+	defer func() {
+		err = reqw.Close()
+		if err != nil {
+			logger.WithError(err).Warning("failed to close response body read closer")
 		}
 	}()
+
+	var m jsonpb.Marshaler
+	for _, proposal := range proposals {
+		var buf string
+		buf, err = m.MarshalToString(&pb.EvaluateRequest{Match: proposal})
+		if err != nil {
+			return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal proposal to string: %s", err.Error())
+		}
+		_, err = io.WriteString(reqw, buf)
+		if err != nil {
+			return nil, status.Errorf(codes.FailedPrecondition, "failed to write proto string to io writer: %s", err.Error())
+		}
+	}
 
 	req, err := http.NewRequest("POST", ec.baseURL+"/v1/evaluator/matches:evaluate", reqr)
 	if err != nil {
@@ -229,8 +216,5 @@ func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Mat
 		got = append(got, resp.GetMatch())
 	}
 
-	if err, ok := <-waitc; ok && err != nil {
-		return nil, err
-	}
 	return got, nil
 }
