@@ -1,12 +1,28 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package synchronizer
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"sync"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -82,7 +98,6 @@ func (ec *evaluatorClient) initialize() error {
 		}).Info("Created a GRPC client for input endpoint.")
 		ec.grpcClient = pb.NewEvaluatorClient(conn)
 		ec.clType = grpcEvaluator
-		return nil
 	}
 
 	evaluatorClientLogger.WithError(err).Errorf("failed to get a GRPC client from the endpoint %v", grpcAddr)
@@ -134,7 +149,93 @@ func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Mat
 	return results, nil
 }
 
-func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) (results []*pb.Match, err error) {
-	// TODO: Implement a bidirectional HTTP streaming client in v0.7
-	return nil, nil
+func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	reqr, reqw := io.Pipe()
+	proposalIDs := getMatchIds(proposals)
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	sc := make(chan error, 1)
+	defer close(sc)
+	go func() {
+		var m jsonpb.Marshaler
+		defer func() {
+			wg.Done()
+			if reqw.Close() != nil {
+				logger.Warning("failed to close response body read closer")
+			}
+		}()
+		for _, proposal := range proposals {
+			buf, err := m.MarshalToString(&pb.EvaluateRequest{Match: proposal})
+			if err != nil {
+				sc <- status.Errorf(codes.FailedPrecondition, "failed to marshal proposal to string: %s", err.Error())
+				return
+			}
+			_, err = io.WriteString(reqw, buf)
+			if err != nil {
+				sc <- status.Errorf(codes.FailedPrecondition, "failed to write proto string to io writer: %s", err.Error())
+				return
+			}
+		}
+	}()
+
+	req, err := http.NewRequest("POST", ec.baseURL+"/v1/evaluator/matches:evaluate", reqr)
+	if err != nil {
+		return nil, status.Errorf(codes.Aborted, "failed to create evaluator http request for proposals %s: %s", proposalIDs, err.Error())
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Transfer-Encoding", "chunked")
+
+	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
+	if err != nil {
+		return nil, status.Errorf(codes.Aborted, "failed to get response from evaluator for proposals %s: %s", proposalIDs, err.Error())
+	}
+	defer func() {
+		if resp.Body.Close() != nil {
+			logger.Warning("failed to close response body read closer")
+		}
+	}()
+
+	wg.Add(1)
+	var results = []*pb.Match{}
+	rc := make(chan error, 1)
+	defer close(rc)
+	go func() {
+		defer wg.Done()
+
+		dec := json.NewDecoder(resp.Body)
+		for {
+			var item struct {
+				Result json.RawMessage        `json:"result"`
+				Error  map[string]interface{} `json:"error"`
+			}
+			err := dec.Decode(&item)
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				rc <- status.Errorf(codes.Unavailable, "failed to read response from HTTP JSON stream: %s", err.Error())
+				return
+			}
+			if len(item.Error) != 0 {
+				rc <- status.Errorf(codes.Unavailable, "failed to execute evaluator.Evaluate: %v", item.Error)
+				return
+			}
+			resp := &pb.EvaluateResponse{}
+			if err = jsonpb.UnmarshalString(string(item.Result), resp); err != nil {
+				rc <- status.Errorf(codes.Unavailable, "failed to execute jsonpb.UnmarshalString(%s, &proposal): %v.", item.Result, err)
+				return
+			}
+			results = append(results, resp.GetMatch())
+		}
+	}()
+
+	wg.Wait()
+	if len(sc) != 0 {
+		return nil, <-sc
+	}
+	if len(rc) != 0 {
+		return nil, <-rc
+	}
+	return results, nil
 }
