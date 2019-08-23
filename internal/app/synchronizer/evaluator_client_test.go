@@ -30,6 +30,7 @@ import (
 	"open-match.dev/open-match/pkg/structs"
 )
 
+// TODO: refactor this test to have it moved to e2e pkg
 func TestEvaluator(t *testing.T) {
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
@@ -83,11 +84,11 @@ func TestEvaluator(t *testing.T) {
 		testMatches []*pb.Match
 		wantMatches []*pb.Match
 	}{
-		// {
-		// 	description: "test empty request returns empty response",
-		// 	testMatches: []*pb.Match{},
-		// 	wantMatches: []*pb.Match{},
-		// },
+		{
+			description: "test empty request returns empty response",
+			testMatches: []*pb.Match{},
+			wantMatches: []*pb.Match{},
+		},
 		{
 			description: "test input matches output when receiving one match",
 			testMatches: []*pb.Match{ticket12Score1},
