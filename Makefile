@@ -196,7 +196,7 @@ endif
 
 GOLANG_PROTOS = pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/mmlogic.pb.go pkg/pb/messages.pb.go pkg/pb/evaluator.pb.go internal/ipb/synchronizer.pb.go pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/mmlogic.pb.gw.go pkg/pb/evaluator.pb.gw.go
 
-CSHARP_PROTOS = pkg/pb/Backend.cs pkg/pb/Frontend.cs pkg/pb/Evaluator.cs pkg/pb/Matchfunction.cs pkg/pb/Messages.cs pkg/pb/Mmlogic.cs internal/ipb/Synchronizer.cs
+CSHARP_PROTOS = pkg/pb/Backend.cs pkg/pb/Frontend.cs pkg/pb/Evaluator.cs pkg/pb/Matchfunction.cs pkg/pb/Messages.cs pkg/pb/Mmlogic.cs
 
 SWAGGER_JSON_DOCS = api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/evaluator.swagger.json
 
@@ -665,13 +665,6 @@ internal/ipb/%.pb.go: internal/api/%.proto third_party/ build/toolchain/bin/prot
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)/build/prototmp
-	mv $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/$@ $@
-
-internal/ipb/%.cs: third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION)
-	mkdir -p $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/internal/ipb $(REPOSITORY_ROOT)/internal/ipb
-	$(PROTOC) internal/api/$(shell echo $(*F)| tr A-Z a-z).proto \
-		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-		--csharp_out=$(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/internal/ipb
 	mv $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/$@ $@
 
 pkg/pb/%.pb.gw.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
