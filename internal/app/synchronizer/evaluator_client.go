@@ -151,28 +151,32 @@ func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Mat
 }
 
 func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
-	var err error
 	reqr, reqw := io.Pipe()
 	proposalIDs := getMatchIds(proposals)
-	defer func() {
-		err = reqw.Close()
-		if err != nil {
-			logger.WithError(err).Warning("failed to close response body read closer")
+	waitc := make(chan error)
+
+	go func() {
+		var m jsonpb.Marshaler
+		defer close(waitc)
+		defer func() {
+			sendErr := reqw.Close()
+			if sendErr != nil {
+				logger.Warning("failed to close response body read closer")
+			}
+		}()
+		for _, proposal := range proposals {
+			buf, sendErr := m.MarshalToString(&pb.EvaluateRequest{Match: proposal})
+			if sendErr != nil {
+				waitc <- status.Errorf(codes.FailedPrecondition, "failed to marshal proposal to string: %s", sendErr.Error())
+				return
+			}
+			_, sendErr = io.WriteString(reqw, buf)
+			if sendErr != nil {
+				waitc <- status.Errorf(codes.FailedPrecondition, "failed to write proto string to io writer: %s", sendErr.Error())
+				return
+			}
 		}
 	}()
-
-	var m jsonpb.Marshaler
-	for _, proposal := range proposals {
-		var buf string
-		buf, err = m.MarshalToString(&pb.EvaluateRequest{Match: proposal})
-		if err != nil {
-			return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal proposal to string: %s", err.Error())
-		}
-		_, err = io.WriteString(reqw, buf)
-		if err != nil {
-			return nil, status.Errorf(codes.FailedPrecondition, "failed to write proto string to io writer: %s", err.Error())
-		}
-	}
 
 	req, err := http.NewRequest("POST", ec.baseURL+"/v1/evaluator/matches:evaluate", reqr)
 	if err != nil {
@@ -186,8 +190,7 @@ func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Mat
 		return nil, status.Errorf(codes.Internal, "failed to get response from evaluator for proposals %s: %s", proposalIDs, err.Error())
 	}
 	defer func() {
-		err = resp.Body.Close()
-		if err != nil {
+		if err = resp.Body.Close(); err != nil {
 			logger.WithError(err).Warning("failed to close response body read closer")
 		}
 	}()
@@ -199,7 +202,7 @@ func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Mat
 			Result json.RawMessage        `json:"result"`
 			Error  map[string]interface{} `json:"error"`
 		}
-		err := dec.Decode(&item)
+		err = dec.Decode(&item)
 		if err == io.EOF {
 			break
 		}
@@ -216,5 +219,8 @@ func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Mat
 		got = append(got, resp.GetMatch())
 	}
 
+	if err, ok := <-waitc; ok && err != nil {
+		return nil, err
+	}
 	return got, nil
 }
