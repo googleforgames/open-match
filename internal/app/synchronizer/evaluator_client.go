@@ -102,7 +102,6 @@ func (ec *evaluatorClient) initialize() error {
 
 	evaluatorClientLogger.WithError(err).Errorf("failed to get a GRPC client from the endpoint %v", grpcAddr)
 	httpAddr := fmt.Sprintf("%s:%d", ec.cfg.GetString("api.evaluator.hostname"), ec.cfg.GetInt64("api.evaluator.httpport"))
-	fmt.Println(httpAddr)
 	client, baseURL, err := rpc.HTTPClientFromEndpoint(ec.cfg, httpAddr)
 	if err != nil {
 		evaluatorClientLogger.WithError(err).Errorf("failed to get a HTTP client from the endpoint %v", httpAddr)
@@ -153,26 +152,28 @@ func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Mat
 func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
 	reqr, reqw := io.Pipe()
 	proposalIDs := getMatchIds(proposals)
-	waitc := make(chan error)
+	var wg sync.WaitGroup
+	wg.Add(1)
 
+	sc := make(chan error, 1)
+	defer close(sc)
 	go func() {
 		var m jsonpb.Marshaler
-		defer close(waitc)
 		defer func() {
-			sendErr := reqw.Close()
-			if sendErr != nil {
+			wg.Done()
+			if reqw.Close() != nil {
 				logger.Warning("failed to close response body read closer")
 			}
 		}()
 		for _, proposal := range proposals {
-			buf, sendErr := m.MarshalToString(&pb.EvaluateRequest{Match: proposal})
-			if sendErr != nil {
-				waitc <- status.Errorf(codes.FailedPrecondition, "failed to marshal proposal to string: %s", sendErr.Error())
+			buf, err := m.MarshalToString(&pb.EvaluateRequest{Match: proposal})
+			if err != nil {
+				sc <- status.Errorf(codes.FailedPrecondition, "failed to marshal proposal to string: %s", err.Error())
 				return
 			}
-			_, sendErr = io.WriteString(reqw, buf)
-			if sendErr != nil {
-				waitc <- status.Errorf(codes.FailedPrecondition, "failed to write proto string to io writer: %s", sendErr.Error())
+			_, err = io.WriteString(reqw, buf)
+			if err != nil {
+				sc <- status.Errorf(codes.FailedPrecondition, "failed to write proto string to io writer: %s", err.Error())
 				return
 			}
 		}
@@ -180,47 +181,61 @@ func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Mat
 
 	req, err := http.NewRequest("POST", ec.baseURL+"/v1/evaluator/matches:evaluate", reqr)
 	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to create evaluator http request for proposals %s: %s", proposalIDs, err.Error())
+		return nil, status.Errorf(codes.Aborted, "failed to create evaluator http request for proposals %s: %s", proposalIDs, err.Error())
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Transfer-Encoding", "chunked")
 
 	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get response from evaluator for proposals %s: %s", proposalIDs, err.Error())
+		return nil, status.Errorf(codes.Aborted, "failed to get response from evaluator for proposals %s: %s", proposalIDs, err.Error())
 	}
 	defer func() {
-		if err = resp.Body.Close(); err != nil {
-			logger.WithError(err).Warning("failed to close response body read closer")
+		if resp.Body.Close() != nil {
+			logger.Warning("failed to close response body read closer")
 		}
 	}()
 
-	var got = []*pb.Match{}
-	dec := json.NewDecoder(resp.Body)
-	for {
-		var item struct {
-			Result json.RawMessage        `json:"result"`
-			Error  map[string]interface{} `json:"error"`
-		}
-		err = dec.Decode(&item)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, status.Errorf(codes.Unavailable, "failed to read response from HTTP JSON stream: %s", err.Error())
-		}
-		if len(item.Error) != 0 {
-			return nil, status.Errorf(codes.Unavailable, "failed to execute evaluator.Evaluate: %v", item.Error)
-		}
-		resp := &pb.EvaluateResponse{}
-		if err := jsonpb.UnmarshalString(string(item.Result), resp); err != nil {
-			return nil, status.Errorf(codes.Unavailable, "failed to execute jsonpb.UnmarshalString(%s, &proposal): %v.", item.Result, err)
-		}
-		got = append(got, resp.GetMatch())
-	}
+	wg.Add(1)
+	var results = []*pb.Match{}
+	rc := make(chan error, 1)
+	defer close(rc)
+	go func() {
+		defer wg.Done()
 
-	if err, ok := <-waitc; ok && err != nil {
-		return nil, err
+		dec := json.NewDecoder(resp.Body)
+		for {
+			var item struct {
+				Result json.RawMessage        `json:"result"`
+				Error  map[string]interface{} `json:"error"`
+			}
+			err := dec.Decode(&item)
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				rc <- status.Errorf(codes.Unavailable, "failed to read response from HTTP JSON stream: %s", err.Error())
+				return
+			}
+			if len(item.Error) != 0 {
+				rc <- status.Errorf(codes.Unavailable, "failed to execute evaluator.Evaluate: %v", item.Error)
+				return
+			}
+			resp := &pb.EvaluateResponse{}
+			if err = jsonpb.UnmarshalString(string(item.Result), resp); err != nil {
+				rc <- status.Errorf(codes.Unavailable, "failed to execute jsonpb.UnmarshalString(%s, &proposal): %v.", item.Result, err)
+				return
+			}
+			results = append(results, resp.GetMatch())
+		}
+	}()
+
+	wg.Wait()
+	if len(sc) != 0 {
+		return nil, <-sc
 	}
-	return got, nil
+	if len(rc) != 0 {
+		return nil, <-rc
+	}
+	return results, nil
 }
