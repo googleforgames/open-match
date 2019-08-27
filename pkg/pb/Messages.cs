@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace Api {
+namespace OpenMatch {
 
   /// <summary>Holder for reflection information generated from api/messages.proto</summary>
   public static partial class MessagesReflection {
@@ -40,18 +40,19 @@ namespace Api {
             "BU1hdGNoEhAKCG1hdGNoX2lkGAEgASgJEhUKDW1hdGNoX3Byb2ZpbGUYAiAB",
             "KAkSFgoObWF0Y2hfZnVuY3Rpb24YAyABKAkSHAoHdGlja2V0cxgEIAMoCzIL",
             "LmFwaS5UaWNrZXQSHAoHcm9zdGVycxgFIAMoCzILLmFwaS5Sb3N0ZXISKwoK",
-            "cHJvcGVydGllcxgGIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RCIlog",
-            "b3Blbi1tYXRjaC5kZXYvb3Blbi1tYXRjaC9wa2cvcGJiBnByb3RvMw=="));
+            "cHJvcGVydGllcxgGIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RCLlog",
+            "b3Blbi1tYXRjaC5kZXYvb3Blbi1tYXRjaC9wa2cvcGKqAglPcGVuTWF0Y2hi",
+            "BnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Rpc.StatusReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.StructReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.Ticket), global::Api.Ticket.Parser, new[]{ "Id", "Properties", "Assignment" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.Assignment), global::Api.Assignment.Parser, new[]{ "Connection", "Properties", "Error" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.Filter), global::Api.Filter.Parser, new[]{ "Attribute", "Max", "Min" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.Pool), global::Api.Pool.Parser, new[]{ "Name", "Filters" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.Roster), global::Api.Roster.Parser, new[]{ "Name", "TicketIds" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.MatchProfile), global::Api.MatchProfile.Parser, new[]{ "Name", "Properties", "Pools", "Rosters" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.Match), global::Api.Match.Parser, new[]{ "MatchId", "MatchProfile", "MatchFunction", "Tickets", "Rosters", "Properties" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Ticket), global::OpenMatch.Ticket.Parser, new[]{ "Id", "Properties", "Assignment" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Assignment), global::OpenMatch.Assignment.Parser, new[]{ "Connection", "Properties", "Error" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Filter), global::OpenMatch.Filter.Parser, new[]{ "Attribute", "Max", "Min" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Pool), global::OpenMatch.Pool.Parser, new[]{ "Name", "Filters" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Roster), global::OpenMatch.Roster.Parser, new[]{ "Name", "TicketIds" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.MatchProfile), global::OpenMatch.MatchProfile.Parser, new[]{ "Name", "Properties", "Pools", "Rosters" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Match), global::OpenMatch.Match.Parser, new[]{ "MatchId", "MatchProfile", "MatchFunction", "Tickets", "Rosters", "Properties" }, null, null, null)
           }));
     }
     #endregion
@@ -76,7 +77,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.MessagesReflection.Descriptor.MessageTypes[0]; }
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -135,12 +136,12 @@ namespace Api {
 
     /// <summary>Field number for the "assignment" field.</summary>
     public const int AssignmentFieldNumber = 3;
-    private global::Api.Assignment assignment_;
+    private global::OpenMatch.Assignment assignment_;
     /// <summary>
     /// Assignment associated with the Ticket.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Api.Assignment Assignment {
+    public global::OpenMatch.Assignment Assignment {
       get { return assignment_; }
       set {
         assignment_ = value;
@@ -236,7 +237,7 @@ namespace Api {
       }
       if (other.assignment_ != null) {
         if (assignment_ == null) {
-          Assignment = new global::Api.Assignment();
+          Assignment = new global::OpenMatch.Assignment();
         }
         Assignment.MergeFrom(other.Assignment);
       }
@@ -264,7 +265,7 @@ namespace Api {
           }
           case 26: {
             if (assignment_ == null) {
-              Assignment = new global::Api.Assignment();
+              Assignment = new global::OpenMatch.Assignment();
             }
             input.ReadMessage(Assignment);
             break;
@@ -287,7 +288,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.MessagesReflection.Descriptor.MessageTypes[1]; }
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -497,7 +498,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.MessagesReflection.Descriptor.MessageTypes[2]; }
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[2]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -691,7 +692,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.MessagesReflection.Descriptor.MessageTypes[3]; }
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[3]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -734,15 +735,15 @@ namespace Api {
 
     /// <summary>Field number for the "filters" field.</summary>
     public const int FiltersFieldNumber = 2;
-    private static readonly pb::FieldCodec<global::Api.Filter> _repeated_filters_codec
-        = pb::FieldCodec.ForMessage(18, global::Api.Filter.Parser);
-    private readonly pbc::RepeatedField<global::Api.Filter> filters_ = new pbc::RepeatedField<global::Api.Filter>();
+    private static readonly pb::FieldCodec<global::OpenMatch.Filter> _repeated_filters_codec
+        = pb::FieldCodec.ForMessage(18, global::OpenMatch.Filter.Parser);
+    private readonly pbc::RepeatedField<global::OpenMatch.Filter> filters_ = new pbc::RepeatedField<global::OpenMatch.Filter>();
     /// <summary>
     /// Set of Filters indicating the filtering criteria. Selected players must
     /// match every Filter.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Api.Filter> Filters {
+    public pbc::RepeatedField<global::OpenMatch.Filter> Filters {
       get { return filters_; }
     }
 
@@ -853,7 +854,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.MessagesReflection.Descriptor.MessageTypes[4]; }
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[4]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1015,7 +1016,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.MessagesReflection.Descriptor.MessageTypes[5]; }
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[5]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1076,24 +1077,24 @@ namespace Api {
 
     /// <summary>Field number for the "pools" field.</summary>
     public const int PoolsFieldNumber = 3;
-    private static readonly pb::FieldCodec<global::Api.Pool> _repeated_pools_codec
-        = pb::FieldCodec.ForMessage(26, global::Api.Pool.Parser);
-    private readonly pbc::RepeatedField<global::Api.Pool> pools_ = new pbc::RepeatedField<global::Api.Pool>();
+    private static readonly pb::FieldCodec<global::OpenMatch.Pool> _repeated_pools_codec
+        = pb::FieldCodec.ForMessage(26, global::OpenMatch.Pool.Parser);
+    private readonly pbc::RepeatedField<global::OpenMatch.Pool> pools_ = new pbc::RepeatedField<global::OpenMatch.Pool>();
     /// <summary>
     /// Set of pools to be queried when generating a match for this MatchProfile.
     /// The pool names can be used in empty Rosters to specify composition of a
     /// match.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Api.Pool> Pools {
+    public pbc::RepeatedField<global::OpenMatch.Pool> Pools {
       get { return pools_; }
     }
 
     /// <summary>Field number for the "rosters" field.</summary>
     public const int RostersFieldNumber = 4;
-    private static readonly pb::FieldCodec<global::Api.Roster> _repeated_rosters_codec
-        = pb::FieldCodec.ForMessage(34, global::Api.Roster.Parser);
-    private readonly pbc::RepeatedField<global::Api.Roster> rosters_ = new pbc::RepeatedField<global::Api.Roster>();
+    private static readonly pb::FieldCodec<global::OpenMatch.Roster> _repeated_rosters_codec
+        = pb::FieldCodec.ForMessage(34, global::OpenMatch.Roster.Parser);
+    private readonly pbc::RepeatedField<global::OpenMatch.Roster> rosters_ = new pbc::RepeatedField<global::OpenMatch.Roster>();
     /// <summary>
     /// Set of Rosters for this match request. Could be empty Rosters used to
     /// indicate the composition of the generated Match or they could be partially
@@ -1101,7 +1102,7 @@ namespace Api {
     /// in progress.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Api.Roster> Rosters {
+    public pbc::RepeatedField<global::OpenMatch.Roster> Rosters {
       get { return rosters_; }
     }
 
@@ -1244,7 +1245,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.MessagesReflection.Descriptor.MessageTypes[6]; }
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[6]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1319,27 +1320,27 @@ namespace Api {
 
     /// <summary>Field number for the "tickets" field.</summary>
     public const int TicketsFieldNumber = 4;
-    private static readonly pb::FieldCodec<global::Api.Ticket> _repeated_tickets_codec
-        = pb::FieldCodec.ForMessage(34, global::Api.Ticket.Parser);
-    private readonly pbc::RepeatedField<global::Api.Ticket> tickets_ = new pbc::RepeatedField<global::Api.Ticket>();
+    private static readonly pb::FieldCodec<global::OpenMatch.Ticket> _repeated_tickets_codec
+        = pb::FieldCodec.ForMessage(34, global::OpenMatch.Ticket.Parser);
+    private readonly pbc::RepeatedField<global::OpenMatch.Ticket> tickets_ = new pbc::RepeatedField<global::OpenMatch.Ticket>();
     /// <summary>
     /// Tickets belonging to this match.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Api.Ticket> Tickets {
+    public pbc::RepeatedField<global::OpenMatch.Ticket> Tickets {
       get { return tickets_; }
     }
 
     /// <summary>Field number for the "rosters" field.</summary>
     public const int RostersFieldNumber = 5;
-    private static readonly pb::FieldCodec<global::Api.Roster> _repeated_rosters_codec
-        = pb::FieldCodec.ForMessage(42, global::Api.Roster.Parser);
-    private readonly pbc::RepeatedField<global::Api.Roster> rosters_ = new pbc::RepeatedField<global::Api.Roster>();
+    private static readonly pb::FieldCodec<global::OpenMatch.Roster> _repeated_rosters_codec
+        = pb::FieldCodec.ForMessage(42, global::OpenMatch.Roster.Parser);
+    private readonly pbc::RepeatedField<global::OpenMatch.Roster> rosters_ = new pbc::RepeatedField<global::OpenMatch.Roster>();
     /// <summary>
     /// Set of Rosters that comprise this Match
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Api.Roster> Rosters {
+    public pbc::RepeatedField<global::OpenMatch.Roster> Rosters {
       get { return rosters_; }
     }
 

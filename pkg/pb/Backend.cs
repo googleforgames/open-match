@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace Api {
+namespace OpenMatch {
 
   /// <summary>Holder for reflection information generated from api/backend.proto</summary>
   public static partial class BackendReflection {
@@ -40,23 +40,23 @@ namespace Api {
             "Y2tlbmQvbWF0Y2hlczpmZXRjaDoBKjABEm0KDUFzc2lnblRpY2tldHMSGS5h",
             "cGkuQXNzaWduVGlja2V0c1JlcXVlc3QaGi5hcGkuQXNzaWduVGlja2V0c1Jl",
             "c3BvbnNlIiWC0+STAh8iGi92MS9iYWNrZW5kL3RpY2tldHM6YXNzaWduOgEq",
-            "Qv4CWiBvcGVuLW1hdGNoLmRldi9vcGVuLW1hdGNoL3BrZy9wYpJB2AISsQEK",
-            "B0JhY2tlbmQiSQoKT3BlbiBNYXRjaBIWaHR0cHM6Ly9vcGVuLW1hdGNoLmRl",
-            "dhojb3Blbi1tYXRjaC1kaXNjdXNzQGdvb2dsZWdyb3Vwcy5jb20qVgoSQXBh",
-            "Y2hlIDIuMCBMaWNlbnNlEkBodHRwczovL2dpdGh1Yi5jb20vZ29vZ2xlZm9y",
-            "Z2FtZXMvb3Blbi1tYXRjaC9ibG9iL21hc3Rlci9MSUNFTlNFMgMxLjAqAgEC",
-            "MhBhcHBsaWNhdGlvbi9qc29uOhBhcHBsaWNhdGlvbi9qc29uUjsKAzQwNBI0",
-            "CipSZXR1cm5lZCB3aGVuIHRoZSByZXNvdXJjZSBkb2VzIG5vdCBleGlzdC4S",
-            "BgoEmgIBB3I9ChhPcGVuIE1hdGNoIERvY3VtZW50YXRpb24SIWh0dHBzOi8v",
-            "b3Blbi1tYXRjaC5kZXYvc2l0ZS9kb2NzL2IGcHJvdG8z"));
+            "QooDWiBvcGVuLW1hdGNoLmRldi9vcGVuLW1hdGNoL3BrZy9wYqoCCU9wZW5N",
+            "YXRjaJJB2AISsQEKB0JhY2tlbmQiSQoKT3BlbiBNYXRjaBIWaHR0cHM6Ly9v",
+            "cGVuLW1hdGNoLmRldhojb3Blbi1tYXRjaC1kaXNjdXNzQGdvb2dsZWdyb3Vw",
+            "cy5jb20qVgoSQXBhY2hlIDIuMCBMaWNlbnNlEkBodHRwczovL2dpdGh1Yi5j",
+            "b20vZ29vZ2xlZm9yZ2FtZXMvb3Blbi1tYXRjaC9ibG9iL21hc3Rlci9MSUNF",
+            "TlNFMgMxLjAqAgECMhBhcHBsaWNhdGlvbi9qc29uOhBhcHBsaWNhdGlvbi9q",
+            "c29uUjsKAzQwNBI0CipSZXR1cm5lZCB3aGVuIHRoZSByZXNvdXJjZSBkb2Vz",
+            "IG5vdCBleGlzdC4SBgoEmgIBB3I9ChhPcGVuIE1hdGNoIERvY3VtZW50YXRp",
+            "b24SIWh0dHBzOi8vb3Blbi1tYXRjaC5kZXYvc2l0ZS9kb2NzL2IGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::Api.MessagesReflection.Descriptor, global::Google.Api.AnnotationsReflection.Descriptor, global::Grpc.Gateway.ProtocGenSwagger.Options.AnnotationsReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::OpenMatch.MessagesReflection.Descriptor, global::Google.Api.AnnotationsReflection.Descriptor, global::Grpc.Gateway.ProtocGenSwagger.Options.AnnotationsReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.FunctionConfig), global::Api.FunctionConfig.Parser, new[]{ "Host", "Port", "Type" }, null, new[]{ typeof(global::Api.FunctionConfig.Types.Type) }, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.FetchMatchesRequest), global::Api.FetchMatchesRequest.Parser, new[]{ "Config", "Profiles" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.FetchMatchesResponse), global::Api.FetchMatchesResponse.Parser, new[]{ "Match" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.AssignTicketsRequest), global::Api.AssignTicketsRequest.Parser, new[]{ "TicketIds", "Assignment" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.AssignTicketsResponse), global::Api.AssignTicketsResponse.Parser, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.FunctionConfig), global::OpenMatch.FunctionConfig.Parser, new[]{ "Host", "Port", "Type" }, null, new[]{ typeof(global::OpenMatch.FunctionConfig.Types.Type) }, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.FetchMatchesRequest), global::OpenMatch.FetchMatchesRequest.Parser, new[]{ "Config", "Profiles" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.FetchMatchesResponse), global::OpenMatch.FetchMatchesResponse.Parser, new[]{ "Match" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.AssignTicketsRequest), global::OpenMatch.AssignTicketsRequest.Parser, new[]{ "TicketIds", "Assignment" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.AssignTicketsResponse), global::OpenMatch.AssignTicketsResponse.Parser, null, null, null, null)
           }));
     }
     #endregion
@@ -75,7 +75,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.BackendReflection.Descriptor.MessageTypes[0]; }
+      get { return global::OpenMatch.BackendReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -127,9 +127,9 @@ namespace Api {
 
     /// <summary>Field number for the "type" field.</summary>
     public const int TypeFieldNumber = 3;
-    private global::Api.FunctionConfig.Types.Type type_ = 0;
+    private global::OpenMatch.FunctionConfig.Types.Type type_ = 0;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Api.FunctionConfig.Types.Type Type {
+    public global::OpenMatch.FunctionConfig.Types.Type Type {
       get { return type_; }
       set {
         type_ = value;
@@ -243,7 +243,7 @@ namespace Api {
             break;
           }
           case 24: {
-            Type = (global::Api.FunctionConfig.Types.Type) input.ReadEnum();
+            Type = (global::OpenMatch.FunctionConfig.Types.Type) input.ReadEnum();
             break;
           }
         }
@@ -272,7 +272,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.BackendReflection.Descriptor.MessageTypes[1]; }
+      get { return global::OpenMatch.BackendReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -301,12 +301,12 @@ namespace Api {
 
     /// <summary>Field number for the "config" field.</summary>
     public const int ConfigFieldNumber = 1;
-    private global::Api.FunctionConfig config_;
+    private global::OpenMatch.FunctionConfig config_;
     /// <summary>
     /// Configuration of the MatchFunction to be executed for the given list of MatchProfiles
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Api.FunctionConfig Config {
+    public global::OpenMatch.FunctionConfig Config {
       get { return config_; }
       set {
         config_ = value;
@@ -315,14 +315,14 @@ namespace Api {
 
     /// <summary>Field number for the "profiles" field.</summary>
     public const int ProfilesFieldNumber = 2;
-    private static readonly pb::FieldCodec<global::Api.MatchProfile> _repeated_profiles_codec
-        = pb::FieldCodec.ForMessage(18, global::Api.MatchProfile.Parser);
-    private readonly pbc::RepeatedField<global::Api.MatchProfile> profiles_ = new pbc::RepeatedField<global::Api.MatchProfile>();
+    private static readonly pb::FieldCodec<global::OpenMatch.MatchProfile> _repeated_profiles_codec
+        = pb::FieldCodec.ForMessage(18, global::OpenMatch.MatchProfile.Parser);
+    private readonly pbc::RepeatedField<global::OpenMatch.MatchProfile> profiles_ = new pbc::RepeatedField<global::OpenMatch.MatchProfile>();
     /// <summary>
     /// MatchProfiles for which this MatchFunction should be executed.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Api.MatchProfile> Profiles {
+    public pbc::RepeatedField<global::OpenMatch.MatchProfile> Profiles {
       get { return profiles_; }
     }
 
@@ -392,7 +392,7 @@ namespace Api {
       }
       if (other.config_ != null) {
         if (config_ == null) {
-          Config = new global::Api.FunctionConfig();
+          Config = new global::OpenMatch.FunctionConfig();
         }
         Config.MergeFrom(other.Config);
       }
@@ -410,7 +410,7 @@ namespace Api {
             break;
           case 10: {
             if (config_ == null) {
-              Config = new global::Api.FunctionConfig();
+              Config = new global::OpenMatch.FunctionConfig();
             }
             input.ReadMessage(Config);
             break;
@@ -433,7 +433,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.BackendReflection.Descriptor.MessageTypes[2]; }
+      get { return global::OpenMatch.BackendReflection.Descriptor.MessageTypes[2]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -461,13 +461,13 @@ namespace Api {
 
     /// <summary>Field number for the "match" field.</summary>
     public const int MatchFieldNumber = 1;
-    private global::Api.Match match_;
+    private global::OpenMatch.Match match_;
     /// <summary>
     /// Result Match for the requested MatchProfile.
     /// Note that OpenMatch will validate the proposals, a valid match should contain at least one ticket.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Api.Match Match {
+    public global::OpenMatch.Match Match {
       get { return match_; }
       set {
         match_ = value;
@@ -536,7 +536,7 @@ namespace Api {
       }
       if (other.match_ != null) {
         if (match_ == null) {
-          Match = new global::Api.Match();
+          Match = new global::OpenMatch.Match();
         }
         Match.MergeFrom(other.Match);
       }
@@ -553,7 +553,7 @@ namespace Api {
             break;
           case 10: {
             if (match_ == null) {
-              Match = new global::Api.Match();
+              Match = new global::OpenMatch.Match();
             }
             input.ReadMessage(Match);
             break;
@@ -572,7 +572,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.BackendReflection.Descriptor.MessageTypes[3]; }
+      get { return global::OpenMatch.BackendReflection.Descriptor.MessageTypes[3]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -614,12 +614,12 @@ namespace Api {
 
     /// <summary>Field number for the "assignment" field.</summary>
     public const int AssignmentFieldNumber = 2;
-    private global::Api.Assignment assignment_;
+    private global::OpenMatch.Assignment assignment_;
     /// <summary>
     /// Assignment to be associated with the Ticket IDs.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Api.Assignment Assignment {
+    public global::OpenMatch.Assignment Assignment {
       get { return assignment_; }
       set {
         assignment_ = value;
@@ -693,7 +693,7 @@ namespace Api {
       ticketIds_.Add(other.ticketIds_);
       if (other.assignment_ != null) {
         if (assignment_ == null) {
-          Assignment = new global::Api.Assignment();
+          Assignment = new global::OpenMatch.Assignment();
         }
         Assignment.MergeFrom(other.Assignment);
       }
@@ -714,7 +714,7 @@ namespace Api {
           }
           case 18: {
             if (assignment_ == null) {
-              Assignment = new global::Api.Assignment();
+              Assignment = new global::OpenMatch.Assignment();
             }
             input.ReadMessage(Assignment);
             break;
@@ -733,7 +733,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.BackendReflection.Descriptor.MessageTypes[4]; }
+      get { return global::OpenMatch.BackendReflection.Descriptor.MessageTypes[4]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

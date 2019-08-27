@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace Api {
+namespace OpenMatch {
 
   /// <summary>Holder for reflection information generated from api/evaluator.proto</summary>
   public static partial class EvaluatorReflection {
@@ -31,21 +31,21 @@ namespace Api {
             "dGVSZXNwb25zZRIbCgdtYXRjaGVzGAEgAygLMgouYXBpLk1hdGNoMm8KCUV2",
             "YWx1YXRvchJiCghFdmFsdWF0ZRIULmFwaS5FdmFsdWF0ZVJlcXVlc3QaFS5h",
             "cGkuRXZhbHVhdGVSZXNwb25zZSIpgtPkkwIjIh4vdjEvZXZhbHVhdG9yL21h",
-            "dGNoZXM6ZXZhbHVhdGU6ASpCgANaIG9wZW4tbWF0Y2guZGV2L29wZW4tbWF0",
-            "Y2gvcGtnL3BikkHaAhKzAQoJRXZhbHVhdG9yIkkKCk9wZW4gTWF0Y2gSFmh0",
-            "dHBzOi8vb3Blbi1tYXRjaC5kZXYaI29wZW4tbWF0Y2gtZGlzY3Vzc0Bnb29n",
-            "bGVncm91cHMuY29tKlYKEkFwYWNoZSAyLjAgTGljZW5zZRJAaHR0cHM6Ly9n",
-            "aXRodWIuY29tL2dvb2dsZWZvcmdhbWVzL29wZW4tbWF0Y2gvYmxvYi9tYXN0",
-            "ZXIvTElDRU5TRTIDMS4wKgIBAjIQYXBwbGljYXRpb24vanNvbjoQYXBwbGlj",
-            "YXRpb24vanNvblI7CgM0MDQSNAoqUmV0dXJuZWQgd2hlbiB0aGUgcmVzb3Vy",
-            "Y2UgZG9lcyBub3QgZXhpc3QuEgYKBJoCAQdyPQoYT3BlbiBNYXRjaCBEb2N1",
-            "bWVudGF0aW9uEiFodHRwczovL29wZW4tbWF0Y2guZGV2L3NpdGUvZG9jcy9i",
-            "BnByb3RvMw=="));
+            "dGNoZXM6ZXZhbHVhdGU6ASpCjANaIG9wZW4tbWF0Y2guZGV2L29wZW4tbWF0",
+            "Y2gvcGtnL3BiqgIJT3Blbk1hdGNokkHaAhKzAQoJRXZhbHVhdG9yIkkKCk9w",
+            "ZW4gTWF0Y2gSFmh0dHBzOi8vb3Blbi1tYXRjaC5kZXYaI29wZW4tbWF0Y2gt",
+            "ZGlzY3Vzc0Bnb29nbGVncm91cHMuY29tKlYKEkFwYWNoZSAyLjAgTGljZW5z",
+            "ZRJAaHR0cHM6Ly9naXRodWIuY29tL2dvb2dsZWZvcmdhbWVzL29wZW4tbWF0",
+            "Y2gvYmxvYi9tYXN0ZXIvTElDRU5TRTIDMS4wKgIBAjIQYXBwbGljYXRpb24v",
+            "anNvbjoQYXBwbGljYXRpb24vanNvblI7CgM0MDQSNAoqUmV0dXJuZWQgd2hl",
+            "biB0aGUgcmVzb3VyY2UgZG9lcyBub3QgZXhpc3QuEgYKBJoCAQdyPQoYT3Bl",
+            "biBNYXRjaCBEb2N1bWVudGF0aW9uEiFodHRwczovL29wZW4tbWF0Y2guZGV2",
+            "L3NpdGUvZG9jcy9iBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::Api.MessagesReflection.Descriptor, global::Google.Api.AnnotationsReflection.Descriptor, global::Grpc.Gateway.ProtocGenSwagger.Options.AnnotationsReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::OpenMatch.MessagesReflection.Descriptor, global::Google.Api.AnnotationsReflection.Descriptor, global::Grpc.Gateway.ProtocGenSwagger.Options.AnnotationsReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.EvaluateRequest), global::Api.EvaluateRequest.Parser, new[]{ "Matches" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.EvaluateResponse), global::Api.EvaluateResponse.Parser, new[]{ "Matches" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.EvaluateRequest), global::OpenMatch.EvaluateRequest.Parser, new[]{ "Matches" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.EvaluateResponse), global::OpenMatch.EvaluateResponse.Parser, new[]{ "Matches" }, null, null, null)
           }));
     }
     #endregion
@@ -60,7 +60,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.EvaluatorReflection.Descriptor.MessageTypes[0]; }
+      get { return global::OpenMatch.EvaluatorReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -88,14 +88,14 @@ namespace Api {
 
     /// <summary>Field number for the "matches" field.</summary>
     public const int MatchesFieldNumber = 1;
-    private static readonly pb::FieldCodec<global::Api.Match> _repeated_matches_codec
-        = pb::FieldCodec.ForMessage(10, global::Api.Match.Parser);
-    private readonly pbc::RepeatedField<global::Api.Match> matches_ = new pbc::RepeatedField<global::Api.Match>();
+    private static readonly pb::FieldCodec<global::OpenMatch.Match> _repeated_matches_codec
+        = pb::FieldCodec.ForMessage(10, global::OpenMatch.Match.Parser);
+    private readonly pbc::RepeatedField<global::OpenMatch.Match> matches_ = new pbc::RepeatedField<global::OpenMatch.Match>();
     /// <summary>
     /// List of Matches to evaluate.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Api.Match> Matches {
+    public pbc::RepeatedField<global::OpenMatch.Match> Matches {
       get { return matches_; }
     }
 
@@ -184,7 +184,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.EvaluatorReflection.Descriptor.MessageTypes[1]; }
+      get { return global::OpenMatch.EvaluatorReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -212,14 +212,14 @@ namespace Api {
 
     /// <summary>Field number for the "matches" field.</summary>
     public const int MatchesFieldNumber = 1;
-    private static readonly pb::FieldCodec<global::Api.Match> _repeated_matches_codec
-        = pb::FieldCodec.ForMessage(10, global::Api.Match.Parser);
-    private readonly pbc::RepeatedField<global::Api.Match> matches_ = new pbc::RepeatedField<global::Api.Match>();
+    private static readonly pb::FieldCodec<global::OpenMatch.Match> _repeated_matches_codec
+        = pb::FieldCodec.ForMessage(10, global::OpenMatch.Match.Parser);
+    private readonly pbc::RepeatedField<global::OpenMatch.Match> matches_ = new pbc::RepeatedField<global::OpenMatch.Match>();
     /// <summary>
     /// Accepted list of Matches.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Api.Match> Matches {
+    public pbc::RepeatedField<global::OpenMatch.Match> Matches {
       get { return matches_; }
     }
 

@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace Api {
+namespace OpenMatch {
 
   /// <summary>Holder for reflection information generated from api/mmlogic.proto</summary>
   public static partial class MmlogicReflection {
@@ -31,21 +31,21 @@ namespace Api {
             "a2V0c1Jlc3BvbnNlEhwKB3RpY2tldHMYASADKAsyCy5hcGkuVGlja2V0MnYK",
             "B01tTG9naWMSawoMUXVlcnlUaWNrZXRzEhguYXBpLlF1ZXJ5VGlja2V0c1Jl",
             "cXVlc3QaGS5hcGkuUXVlcnlUaWNrZXRzUmVzcG9uc2UiJILT5JMCHiIZL3Yx",
-            "L21tbG9naWMvdGlja2V0czpxdWVyeToBKjABQowDWiBvcGVuLW1hdGNoLmRl",
-            "di9vcGVuLW1hdGNoL3BrZy9wYpJB5gISvwEKFU1NIExvZ2ljIChEYXRhIExh",
-            "eWVyKSJJCgpPcGVuIE1hdGNoEhZodHRwczovL29wZW4tbWF0Y2guZGV2GiNv",
-            "cGVuLW1hdGNoLWRpc2N1c3NAZ29vZ2xlZ3JvdXBzLmNvbSpWChJBcGFjaGUg",
-            "Mi4wIExpY2Vuc2USQGh0dHBzOi8vZ2l0aHViLmNvbS9nb29nbGVmb3JnYW1l",
-            "cy9vcGVuLW1hdGNoL2Jsb2IvbWFzdGVyL0xJQ0VOU0UyAzEuMCoCAQIyEGFw",
-            "cGxpY2F0aW9uL2pzb246EGFwcGxpY2F0aW9uL2pzb25SOwoDNDA0EjQKKlJl",
-            "dHVybmVkIHdoZW4gdGhlIHJlc291cmNlIGRvZXMgbm90IGV4aXN0LhIGCgSa",
-            "AgEHcj0KGE9wZW4gTWF0Y2ggRG9jdW1lbnRhdGlvbhIhaHR0cHM6Ly9vcGVu",
-            "LW1hdGNoLmRldi9zaXRlL2RvY3MvYgZwcm90bzM="));
+            "L21tbG9naWMvdGlja2V0czpxdWVyeToBKjABQpgDWiBvcGVuLW1hdGNoLmRl",
+            "di9vcGVuLW1hdGNoL3BrZy9wYqoCCU9wZW5NYXRjaJJB5gISvwEKFU1NIExv",
+            "Z2ljIChEYXRhIExheWVyKSJJCgpPcGVuIE1hdGNoEhZodHRwczovL29wZW4t",
+            "bWF0Y2guZGV2GiNvcGVuLW1hdGNoLWRpc2N1c3NAZ29vZ2xlZ3JvdXBzLmNv",
+            "bSpWChJBcGFjaGUgMi4wIExpY2Vuc2USQGh0dHBzOi8vZ2l0aHViLmNvbS9n",
+            "b29nbGVmb3JnYW1lcy9vcGVuLW1hdGNoL2Jsb2IvbWFzdGVyL0xJQ0VOU0Uy",
+            "AzEuMCoCAQIyEGFwcGxpY2F0aW9uL2pzb246EGFwcGxpY2F0aW9uL2pzb25S",
+            "OwoDNDA0EjQKKlJldHVybmVkIHdoZW4gdGhlIHJlc291cmNlIGRvZXMgbm90",
+            "IGV4aXN0LhIGCgSaAgEHcj0KGE9wZW4gTWF0Y2ggRG9jdW1lbnRhdGlvbhIh",
+            "aHR0cHM6Ly9vcGVuLW1hdGNoLmRldi9zaXRlL2RvY3MvYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::Api.MessagesReflection.Descriptor, global::Google.Api.AnnotationsReflection.Descriptor, global::Grpc.Gateway.ProtocGenSwagger.Options.AnnotationsReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::OpenMatch.MessagesReflection.Descriptor, global::Google.Api.AnnotationsReflection.Descriptor, global::Grpc.Gateway.ProtocGenSwagger.Options.AnnotationsReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.QueryTicketsRequest), global::Api.QueryTicketsRequest.Parser, new[]{ "Pool" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.QueryTicketsResponse), global::Api.QueryTicketsResponse.Parser, new[]{ "Tickets" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.QueryTicketsRequest), global::OpenMatch.QueryTicketsRequest.Parser, new[]{ "Pool" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.QueryTicketsResponse), global::OpenMatch.QueryTicketsResponse.Parser, new[]{ "Tickets" }, null, null, null)
           }));
     }
     #endregion
@@ -60,7 +60,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.MmlogicReflection.Descriptor.MessageTypes[0]; }
+      get { return global::OpenMatch.MmlogicReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -88,12 +88,12 @@ namespace Api {
 
     /// <summary>Field number for the "pool" field.</summary>
     public const int PoolFieldNumber = 1;
-    private global::Api.Pool pool_;
+    private global::OpenMatch.Pool pool_;
     /// <summary>
     /// The Pool representing the set of Filters to be queried.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Api.Pool Pool {
+    public global::OpenMatch.Pool Pool {
       get { return pool_; }
       set {
         pool_ = value;
@@ -162,7 +162,7 @@ namespace Api {
       }
       if (other.pool_ != null) {
         if (pool_ == null) {
-          Pool = new global::Api.Pool();
+          Pool = new global::OpenMatch.Pool();
         }
         Pool.MergeFrom(other.Pool);
       }
@@ -179,7 +179,7 @@ namespace Api {
             break;
           case 10: {
             if (pool_ == null) {
-              Pool = new global::Api.Pool();
+              Pool = new global::OpenMatch.Pool();
             }
             input.ReadMessage(Pool);
             break;
@@ -198,7 +198,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.MmlogicReflection.Descriptor.MessageTypes[1]; }
+      get { return global::OpenMatch.MmlogicReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -226,14 +226,14 @@ namespace Api {
 
     /// <summary>Field number for the "tickets" field.</summary>
     public const int TicketsFieldNumber = 1;
-    private static readonly pb::FieldCodec<global::Api.Ticket> _repeated_tickets_codec
-        = pb::FieldCodec.ForMessage(10, global::Api.Ticket.Parser);
-    private readonly pbc::RepeatedField<global::Api.Ticket> tickets_ = new pbc::RepeatedField<global::Api.Ticket>();
+    private static readonly pb::FieldCodec<global::OpenMatch.Ticket> _repeated_tickets_codec
+        = pb::FieldCodec.ForMessage(10, global::OpenMatch.Ticket.Parser);
+    private readonly pbc::RepeatedField<global::OpenMatch.Ticket> tickets_ = new pbc::RepeatedField<global::OpenMatch.Ticket>();
     /// <summary>
     /// The Tickets that meet the Filter criteria requested by the Pool.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Api.Ticket> Tickets {
+    public pbc::RepeatedField<global::OpenMatch.Ticket> Tickets {
       get { return tickets_; }
     }
 

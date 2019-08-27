@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace Api {
+namespace OpenMatch {
 
   /// <summary>Holder for reflection information generated from api/frontend.proto</summary>
   public static partial class FrontendReflection {
@@ -43,26 +43,26 @@ namespace Api {
             "IhIgL3YxL2Zyb250ZW5kL3RpY2tldHMve3RpY2tldF9pZH0SgQEKDkdldEFz",
             "c2lnbm1lbnRzEhouYXBpLkdldEFzc2lnbm1lbnRzUmVxdWVzdBobLmFwaS5H",
             "ZXRBc3NpZ25tZW50c1Jlc3BvbnNlIjSC0+STAi4SLC92MS9mcm9udGVuZC90",
-            "aWNrZXRzL3t0aWNrZXRfaWR9L2Fzc2lnbm1lbnRzMAFC/wJaIG9wZW4tbWF0",
-            "Y2guZGV2L29wZW4tbWF0Y2gvcGtnL3BikkHZAhKyAQoIRnJvbnRlbmQiSQoK",
-            "T3BlbiBNYXRjaBIWaHR0cHM6Ly9vcGVuLW1hdGNoLmRldhojb3Blbi1tYXRj",
-            "aC1kaXNjdXNzQGdvb2dsZWdyb3Vwcy5jb20qVgoSQXBhY2hlIDIuMCBMaWNl",
-            "bnNlEkBodHRwczovL2dpdGh1Yi5jb20vZ29vZ2xlZm9yZ2FtZXMvb3Blbi1t",
-            "YXRjaC9ibG9iL21hc3Rlci9MSUNFTlNFMgMxLjAqAgECMhBhcHBsaWNhdGlv",
-            "bi9qc29uOhBhcHBsaWNhdGlvbi9qc29uUjsKAzQwNBI0CipSZXR1cm5lZCB3",
-            "aGVuIHRoZSByZXNvdXJjZSBkb2VzIG5vdCBleGlzdC4SBgoEmgIBB3I9ChhP",
-            "cGVuIE1hdGNoIERvY3VtZW50YXRpb24SIWh0dHBzOi8vb3Blbi1tYXRjaC5k",
-            "ZXYvc2l0ZS9kb2NzL2IGcHJvdG8z"));
+            "aWNrZXRzL3t0aWNrZXRfaWR9L2Fzc2lnbm1lbnRzMAFCiwNaIG9wZW4tbWF0",
+            "Y2guZGV2L29wZW4tbWF0Y2gvcGtnL3BiqgIJT3Blbk1hdGNokkHZAhKyAQoI",
+            "RnJvbnRlbmQiSQoKT3BlbiBNYXRjaBIWaHR0cHM6Ly9vcGVuLW1hdGNoLmRl",
+            "dhojb3Blbi1tYXRjaC1kaXNjdXNzQGdvb2dsZWdyb3Vwcy5jb20qVgoSQXBh",
+            "Y2hlIDIuMCBMaWNlbnNlEkBodHRwczovL2dpdGh1Yi5jb20vZ29vZ2xlZm9y",
+            "Z2FtZXMvb3Blbi1tYXRjaC9ibG9iL21hc3Rlci9MSUNFTlNFMgMxLjAqAgEC",
+            "MhBhcHBsaWNhdGlvbi9qc29uOhBhcHBsaWNhdGlvbi9qc29uUjsKAzQwNBI0",
+            "CipSZXR1cm5lZCB3aGVuIHRoZSByZXNvdXJjZSBkb2VzIG5vdCBleGlzdC4S",
+            "BgoEmgIBB3I9ChhPcGVuIE1hdGNoIERvY3VtZW50YXRpb24SIWh0dHBzOi8v",
+            "b3Blbi1tYXRjaC5kZXYvc2l0ZS9kb2NzL2IGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::Api.MessagesReflection.Descriptor, global::Google.Api.AnnotationsReflection.Descriptor, global::Grpc.Gateway.ProtocGenSwagger.Options.AnnotationsReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::OpenMatch.MessagesReflection.Descriptor, global::Google.Api.AnnotationsReflection.Descriptor, global::Grpc.Gateway.ProtocGenSwagger.Options.AnnotationsReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.CreateTicketRequest), global::Api.CreateTicketRequest.Parser, new[]{ "Ticket" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.CreateTicketResponse), global::Api.CreateTicketResponse.Parser, new[]{ "Ticket" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.DeleteTicketRequest), global::Api.DeleteTicketRequest.Parser, new[]{ "TicketId" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.DeleteTicketResponse), global::Api.DeleteTicketResponse.Parser, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.GetTicketRequest), global::Api.GetTicketRequest.Parser, new[]{ "TicketId" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.GetAssignmentsRequest), global::Api.GetAssignmentsRequest.Parser, new[]{ "TicketId" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.GetAssignmentsResponse), global::Api.GetAssignmentsResponse.Parser, new[]{ "Assignment" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.CreateTicketRequest), global::OpenMatch.CreateTicketRequest.Parser, new[]{ "Ticket" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.CreateTicketResponse), global::OpenMatch.CreateTicketResponse.Parser, new[]{ "Ticket" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.DeleteTicketRequest), global::OpenMatch.DeleteTicketRequest.Parser, new[]{ "TicketId" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.DeleteTicketResponse), global::OpenMatch.DeleteTicketResponse.Parser, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.GetTicketRequest), global::OpenMatch.GetTicketRequest.Parser, new[]{ "TicketId" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.GetAssignmentsRequest), global::OpenMatch.GetAssignmentsRequest.Parser, new[]{ "TicketId" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.GetAssignmentsResponse), global::OpenMatch.GetAssignmentsResponse.Parser, new[]{ "Assignment" }, null, null, null)
           }));
     }
     #endregion
@@ -77,7 +77,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.FrontendReflection.Descriptor.MessageTypes[0]; }
+      get { return global::OpenMatch.FrontendReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -105,12 +105,12 @@ namespace Api {
 
     /// <summary>Field number for the "ticket" field.</summary>
     public const int TicketFieldNumber = 1;
-    private global::Api.Ticket ticket_;
+    private global::OpenMatch.Ticket ticket_;
     /// <summary>
     /// Ticket object with the properties of the Ticket to be created.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Api.Ticket Ticket {
+    public global::OpenMatch.Ticket Ticket {
       get { return ticket_; }
       set {
         ticket_ = value;
@@ -179,7 +179,7 @@ namespace Api {
       }
       if (other.ticket_ != null) {
         if (ticket_ == null) {
-          Ticket = new global::Api.Ticket();
+          Ticket = new global::OpenMatch.Ticket();
         }
         Ticket.MergeFrom(other.Ticket);
       }
@@ -196,7 +196,7 @@ namespace Api {
             break;
           case 10: {
             if (ticket_ == null) {
-              Ticket = new global::Api.Ticket();
+              Ticket = new global::OpenMatch.Ticket();
             }
             input.ReadMessage(Ticket);
             break;
@@ -215,7 +215,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.FrontendReflection.Descriptor.MessageTypes[1]; }
+      get { return global::OpenMatch.FrontendReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -243,12 +243,12 @@ namespace Api {
 
     /// <summary>Field number for the "ticket" field.</summary>
     public const int TicketFieldNumber = 1;
-    private global::Api.Ticket ticket_;
+    private global::OpenMatch.Ticket ticket_;
     /// <summary>
     /// Ticket object for the created Ticket - with the ticket ID populated.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Api.Ticket Ticket {
+    public global::OpenMatch.Ticket Ticket {
       get { return ticket_; }
       set {
         ticket_ = value;
@@ -317,7 +317,7 @@ namespace Api {
       }
       if (other.ticket_ != null) {
         if (ticket_ == null) {
-          Ticket = new global::Api.Ticket();
+          Ticket = new global::OpenMatch.Ticket();
         }
         Ticket.MergeFrom(other.Ticket);
       }
@@ -334,7 +334,7 @@ namespace Api {
             break;
           case 10: {
             if (ticket_ == null) {
-              Ticket = new global::Api.Ticket();
+              Ticket = new global::OpenMatch.Ticket();
             }
             input.ReadMessage(Ticket);
             break;
@@ -353,7 +353,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.FrontendReflection.Descriptor.MessageTypes[2]; }
+      get { return global::OpenMatch.FrontendReflection.Descriptor.MessageTypes[2]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -485,7 +485,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.FrontendReflection.Descriptor.MessageTypes[3]; }
+      get { return global::OpenMatch.FrontendReflection.Descriptor.MessageTypes[3]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -586,7 +586,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.FrontendReflection.Descriptor.MessageTypes[4]; }
+      get { return global::OpenMatch.FrontendReflection.Descriptor.MessageTypes[4]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -718,7 +718,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.FrontendReflection.Descriptor.MessageTypes[5]; }
+      get { return global::OpenMatch.FrontendReflection.Descriptor.MessageTypes[5]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -850,7 +850,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.FrontendReflection.Descriptor.MessageTypes[6]; }
+      get { return global::OpenMatch.FrontendReflection.Descriptor.MessageTypes[6]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -878,12 +878,12 @@ namespace Api {
 
     /// <summary>Field number for the "assignment" field.</summary>
     public const int AssignmentFieldNumber = 1;
-    private global::Api.Assignment assignment_;
+    private global::OpenMatch.Assignment assignment_;
     /// <summary>
     /// The updated Ticket object.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Api.Assignment Assignment {
+    public global::OpenMatch.Assignment Assignment {
       get { return assignment_; }
       set {
         assignment_ = value;
@@ -952,7 +952,7 @@ namespace Api {
       }
       if (other.assignment_ != null) {
         if (assignment_ == null) {
-          Assignment = new global::Api.Assignment();
+          Assignment = new global::OpenMatch.Assignment();
         }
         Assignment.MergeFrom(other.Assignment);
       }
@@ -969,7 +969,7 @@ namespace Api {
             break;
           case 10: {
             if (assignment_ == null) {
-              Assignment = new global::Api.Assignment();
+              Assignment = new global::OpenMatch.Assignment();
             }
             input.ReadMessage(Assignment);
             break;

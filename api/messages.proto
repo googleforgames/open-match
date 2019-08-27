@@ -15,6 +15,7 @@
 syntax = "proto3";
 package api;
 option go_package = "open-match.dev/open-match/pkg/pb";
+option csharp_namespace = "OpenMatch";
 
 import "google/rpc/status.proto";
 import "google/protobuf/struct.proto";

@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace Api {
+namespace OpenMatch {
 
   /// <summary>Holder for reflection information generated from api/matchfunction.proto</summary>
   public static partial class MatchfunctionReflection {
@@ -31,20 +31,21 @@ namespace Api {
             "UnVuUmVzcG9uc2USHAoIcHJvcG9zYWwYASABKAsyCi5hcGkuTWF0Y2gyXQoN",
             "TWF0Y2hGdW5jdGlvbhJMCgNSdW4SDy5hcGkuUnVuUmVxdWVzdBoQLmFwaS5S",
             "dW5SZXNwb25zZSIggtPkkwIaIhUvdjEvbWF0Y2hmdW5jdGlvbjpydW46ASow",
-            "AUKFA1ogb3Blbi1tYXRjaC5kZXYvb3Blbi1tYXRjaC9wa2cvcGKSQd8CErgB",
-            "Cg5NYXRjaCBGdW5jdGlvbiJJCgpPcGVuIE1hdGNoEhZodHRwczovL29wZW4t",
-            "bWF0Y2guZGV2GiNvcGVuLW1hdGNoLWRpc2N1c3NAZ29vZ2xlZ3JvdXBzLmNv",
-            "bSpWChJBcGFjaGUgMi4wIExpY2Vuc2USQGh0dHBzOi8vZ2l0aHViLmNvbS9n",
-            "b29nbGVmb3JnYW1lcy9vcGVuLW1hdGNoL2Jsb2IvbWFzdGVyL0xJQ0VOU0Uy",
-            "AzEuMCoCAQIyEGFwcGxpY2F0aW9uL2pzb246EGFwcGxpY2F0aW9uL2pzb25S",
-            "OwoDNDA0EjQKKlJldHVybmVkIHdoZW4gdGhlIHJlc291cmNlIGRvZXMgbm90",
-            "IGV4aXN0LhIGCgSaAgEHcj0KGE9wZW4gTWF0Y2ggRG9jdW1lbnRhdGlvbhIh",
-            "aHR0cHM6Ly9vcGVuLW1hdGNoLmRldi9zaXRlL2RvY3MvYgZwcm90bzM="));
+            "AUKRA1ogb3Blbi1tYXRjaC5kZXYvb3Blbi1tYXRjaC9wa2cvcGKqAglPcGVu",
+            "TWF0Y2iSQd8CErgBCg5NYXRjaCBGdW5jdGlvbiJJCgpPcGVuIE1hdGNoEhZo",
+            "dHRwczovL29wZW4tbWF0Y2guZGV2GiNvcGVuLW1hdGNoLWRpc2N1c3NAZ29v",
+            "Z2xlZ3JvdXBzLmNvbSpWChJBcGFjaGUgMi4wIExpY2Vuc2USQGh0dHBzOi8v",
+            "Z2l0aHViLmNvbS9nb29nbGVmb3JnYW1lcy9vcGVuLW1hdGNoL2Jsb2IvbWFz",
+            "dGVyL0xJQ0VOU0UyAzEuMCoCAQIyEGFwcGxpY2F0aW9uL2pzb246EGFwcGxp",
+            "Y2F0aW9uL2pzb25SOwoDNDA0EjQKKlJldHVybmVkIHdoZW4gdGhlIHJlc291",
+            "cmNlIGRvZXMgbm90IGV4aXN0LhIGCgSaAgEHcj0KGE9wZW4gTWF0Y2ggRG9j",
+            "dW1lbnRhdGlvbhIhaHR0cHM6Ly9vcGVuLW1hdGNoLmRldi9zaXRlL2RvY3Mv",
+            "YgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::Api.MessagesReflection.Descriptor, global::Google.Api.AnnotationsReflection.Descriptor, global::Grpc.Gateway.ProtocGenSwagger.Options.AnnotationsReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::OpenMatch.MessagesReflection.Descriptor, global::Google.Api.AnnotationsReflection.Descriptor, global::Grpc.Gateway.ProtocGenSwagger.Options.AnnotationsReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.RunRequest), global::Api.RunRequest.Parser, new[]{ "Profile" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Api.RunResponse), global::Api.RunResponse.Parser, new[]{ "Proposal" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.RunRequest), global::OpenMatch.RunRequest.Parser, new[]{ "Profile" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.RunResponse), global::OpenMatch.RunResponse.Parser, new[]{ "Proposal" }, null, null, null)
           }));
     }
     #endregion
@@ -59,7 +60,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.MatchfunctionReflection.Descriptor.MessageTypes[0]; }
+      get { return global::OpenMatch.MatchfunctionReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -87,13 +88,13 @@ namespace Api {
 
     /// <summary>Field number for the "profile" field.</summary>
     public const int ProfileFieldNumber = 1;
-    private global::Api.MatchProfile profile_;
+    private global::OpenMatch.MatchProfile profile_;
     /// <summary>
     /// The MatchProfile that describes the Match that this MatchFunction needs to
     /// generate proposals for.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Api.MatchProfile Profile {
+    public global::OpenMatch.MatchProfile Profile {
       get { return profile_; }
       set {
         profile_ = value;
@@ -162,7 +163,7 @@ namespace Api {
       }
       if (other.profile_ != null) {
         if (profile_ == null) {
-          Profile = new global::Api.MatchProfile();
+          Profile = new global::OpenMatch.MatchProfile();
         }
         Profile.MergeFrom(other.Profile);
       }
@@ -179,7 +180,7 @@ namespace Api {
             break;
           case 10: {
             if (profile_ == null) {
-              Profile = new global::Api.MatchProfile();
+              Profile = new global::OpenMatch.MatchProfile();
             }
             input.ReadMessage(Profile);
             break;
@@ -198,7 +199,7 @@ namespace Api {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Api.MatchfunctionReflection.Descriptor.MessageTypes[1]; }
+      get { return global::OpenMatch.MatchfunctionReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -226,13 +227,13 @@ namespace Api {
 
     /// <summary>Field number for the "proposal" field.</summary>
     public const int ProposalFieldNumber = 1;
-    private global::Api.Match proposal_;
+    private global::OpenMatch.Match proposal_;
     /// <summary>
     /// The proposal generated by this MatchFunction Run.
     /// Note that OpenMatch will validate the proposals, a valid match should contain at least one ticket.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Api.Match Proposal {
+    public global::OpenMatch.Match Proposal {
       get { return proposal_; }
       set {
         proposal_ = value;
@@ -301,7 +302,7 @@ namespace Api {
       }
       if (other.proposal_ != null) {
         if (proposal_ == null) {
-          Proposal = new global::Api.Match();
+          Proposal = new global::OpenMatch.Match();
         }
         Proposal.MergeFrom(other.Proposal);
       }
@@ -318,7 +319,7 @@ namespace Api {
             break;
           case 10: {
             if (proposal_ == null) {
-              Proposal = new global::Api.Match();
+              Proposal = new global::OpenMatch.Match();
             }
             input.ReadMessage(Proposal);
             break;
