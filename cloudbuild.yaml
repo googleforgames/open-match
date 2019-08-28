@@ -114,7 +114,7 @@ steps:
 
 - id: 'Build: Docker Images'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'BRANCH_NAME=${BRANCH_NAME}', 'push-images', '-j8']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'push-images', '-j8']
   waitFor: ['Build: Assets']
 
 - id: 'Lint: Format, Vet, Charts'
@@ -132,7 +132,7 @@ steps:
 
 - id: 'Deploy: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
   waitFor: ['Lint: Format, Vet, Charts', 'Test: Deploy Open Match']
   volumes:
   - name: 'go-vol'
