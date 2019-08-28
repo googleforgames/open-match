@@ -49,7 +49,7 @@
 steps:
 - id: 'Docker Image: open-match-build'
   name: gcr.io/kaniko-project/executor
-  args: ['--destination=gcr.io/$PROJECT_ID/open-match-build', '--cache=true', '--cache-ttl=48h', '--dockerfile=Dockerfile.ci', '--build-arg=SHORT_SHA=${SHORT_SHA}', '.']
+  args: ['--destination=gcr.io/$PROJECT_ID/open-match-build', '--cache=true', '--cache-ttl=48h', '--dockerfile=Dockerfile.ci', '.']
   waitFor: ['-']
 
 - id: 'Build: Clean'
@@ -114,7 +114,7 @@ steps:
 
 - id: 'Build: Docker Images'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'push-images', '-j8']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'BRANCH_NAME=${BRANCH_NAME}', 'push-images', '-j8']
   waitFor: ['Build: Assets']
 
 - id: 'Lint: Format, Vet, Charts'
@@ -127,12 +127,12 @@ steps:
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'auth-gke-cluster', 'delete-chart', 'ci-reap-namespaces', 'install-ci-chart']
+  args: ['make', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${SHORT_SHA}', 'OPEN_MATCH_RELEASE_NAME=open-match-${SHORT_SHA}', 'auth-gke-cluster', 'delete-chart', 'ci-reap-namespaces', 'install-ci-chart']
   waitFor: ['Build: Docker Images']
 
 - id: 'Deploy: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
   waitFor: ['Lint: Format, Vet, Charts', 'Test: Deploy Open Match']
   volumes:
   - name: 'go-vol'
@@ -140,7 +140,7 @@ steps:
 
 - id: 'Test: End-to-End Cluster'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'SHORT_SHA=${SHORT_SHA}', 'test-e2e-cluster']
+  args: ['make', 'GOPROXY=off', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${SHORT_SHA}', 'test-e2e-cluster']
   waitFor: ['Test: Deploy Open Match', 'Build: Assets']
   volumes:
   - name: 'go-vol'
@@ -148,7 +148,7 @@ steps:
 
 - id: 'Test: Delete Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GCLOUD_EXTRA_FLAGS=--async', 'SHORT_SHA=${SHORT_SHA}', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
+  args: ['make', 'GCLOUD_EXTRA_FLAGS=--async', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${SHORT_SHA}', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
   waitFor: ['Test: End-to-End Cluster']
 
 artifacts:
