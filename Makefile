@@ -142,7 +142,6 @@ ifdef OPEN_MATCH_CI_MODE
 	export KUBECONFIG = $(HOME)/.kube/config
 	GCLOUD = gcloud --quiet --no-user-output-enabled
 	GKE_CLUSTER_NAME = open-match-ci
-	OPEN_MATCH_RELEASE_NAME = open-match-$(SHORT_SHA)
 	GKE_CLUSTER_FLAGS = --labels open-match-ci=1 --node-labels=open-match-ci=1
 endif
 
