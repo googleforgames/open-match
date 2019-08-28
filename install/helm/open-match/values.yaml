@@ -83,10 +83,16 @@ evaluator: &evaluator
   httpPort: 51508
   replicas: 3
 function: &function
-  hostName: om-function
+- hostName: om-soloduel-function
   grpcPort: 50502
   httpPort: 51502
   replicas: 3
+  image:    openmatch-mmf-go-soloduel
+- hostName: om-pool-function
+  grpcPort: 50502
+  httpPort: 51502
+  replicas: 3
+  image:    openmatch-mmf-go-pool
 
 # Specifies a unified image registry, image tag, and imagePullPolicy for all components defined above.
 image:
@@ -126,7 +132,7 @@ configs:
 # https://github.com/helm/charts/tree/master/stable/redis
 redis:
   fullnameOverride: om-redis
-  usePassword: true
+  usePassword: false
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
   metrics:
