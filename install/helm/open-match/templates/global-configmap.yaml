@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if index .Values "open-match-core" "enabled" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -52,3 +53,4 @@ data:
         privatekey: "{{.Values.global.tls.server.mountPath}}/private.key"
         rootcertificatefile: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
 {{- end -}}
+{{- end }}

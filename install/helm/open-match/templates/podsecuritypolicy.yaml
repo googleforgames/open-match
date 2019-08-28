@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if index .Values "open-match-core" "enabled" }}
 {{- if empty .Values.ci }}
 apiVersion: extensions/v1beta1
 kind: PodSecurityPolicy
@@ -102,4 +103,5 @@ spec:
     - 'downwardAPI'
     # Assume that persistentVolumes set up by the cluster admin are safe to use.
     - 'persistentVolumeClaim'
+{{- end }}
 {{- end }}

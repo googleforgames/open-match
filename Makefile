@@ -375,7 +375,7 @@ install/yaml/: install/yaml/install.yaml install/yaml/01-open-match-core.yaml in
 
 install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace open-match \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
 		--set open-match-customize.enabled=false \
@@ -385,7 +385,7 @@ install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace open-match \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
 		--set open-match-core.enabled=false \
@@ -394,7 +394,7 @@ install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace open-match \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
 		--set open-match-customize.enabled=false \
@@ -405,7 +405,7 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace open-match \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
 		--set open-match-customize.enabled=false \
@@ -416,7 +416,7 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace open-match \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
 		--set open-match-customize.enabled=false \
@@ -427,7 +427,7 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace open-match \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
 		--set open-match-customize.enabled=false \
