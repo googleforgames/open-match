@@ -10,6 +10,8 @@ import (
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -415,6 +417,17 @@ type BackendServer interface {
 	// AssignTickets sets the specified Assignment on the Tickets for the Ticket
 	// IDs passed.
 	AssignTickets(context.Context, *AssignTicketsRequest) (*AssignTicketsResponse, error)
+}
+
+// UnimplementedBackendServer can be embedded to have forward compatible implementations.
+type UnimplementedBackendServer struct {
+}
+
+func (*UnimplementedBackendServer) FetchMatches(req *FetchMatchesRequest, srv Backend_FetchMatchesServer) error {
+	return status.Errorf(codes.Unimplemented, "method FetchMatches not implemented")
+}
+func (*UnimplementedBackendServer) AssignTickets(ctx context.Context, req *AssignTicketsRequest) (*AssignTicketsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AssignTickets not implemented")
 }
 
 func RegisterBackendServer(s *grpc.Server, srv BackendServer) {
