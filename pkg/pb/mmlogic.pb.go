@@ -10,6 +10,8 @@ import (
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -208,6 +210,14 @@ type MmLogicServer interface {
 	// QueryTickets gets the list of Tickets that match every Filter in the
 	// specified Pool.
 	QueryTickets(*QueryTicketsRequest, MmLogic_QueryTicketsServer) error
+}
+
+// UnimplementedMmLogicServer can be embedded to have forward compatible implementations.
+type UnimplementedMmLogicServer struct {
+}
+
+func (*UnimplementedMmLogicServer) QueryTickets(req *QueryTicketsRequest, srv MmLogic_QueryTicketsServer) error {
+	return status.Errorf(codes.Unimplemented, "method QueryTickets not implemented")
 }
 
 func RegisterMmLogicServer(s *grpc.Server, srv MmLogicServer) {

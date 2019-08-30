@@ -10,6 +10,8 @@ import (
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -467,6 +469,23 @@ type FrontendServer interface {
 	// GetAssignments streams matchmaking results from Open Match for the
 	// provided Ticket ID.
 	GetAssignments(*GetAssignmentsRequest, Frontend_GetAssignmentsServer) error
+}
+
+// UnimplementedFrontendServer can be embedded to have forward compatible implementations.
+type UnimplementedFrontendServer struct {
+}
+
+func (*UnimplementedFrontendServer) CreateTicket(ctx context.Context, req *CreateTicketRequest) (*CreateTicketResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateTicket not implemented")
+}
+func (*UnimplementedFrontendServer) DeleteTicket(ctx context.Context, req *DeleteTicketRequest) (*DeleteTicketResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteTicket not implemented")
+}
+func (*UnimplementedFrontendServer) GetTicket(ctx context.Context, req *GetTicketRequest) (*Ticket, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTicket not implemented")
+}
+func (*UnimplementedFrontendServer) GetAssignments(req *GetAssignmentsRequest, srv Frontend_GetAssignmentsServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetAssignments not implemented")
 }
 
 func RegisterFrontendServer(s *grpc.Server, srv FrontendServer) {
