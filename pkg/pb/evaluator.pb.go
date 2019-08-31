@@ -10,6 +10,8 @@ import (
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -205,6 +207,14 @@ type EvaluatorServer interface {
 	// Evaluate accepts a list of proposed matches, evaluates them for quality,
 	// collisions etc. and returns matches that should be accepted as results.
 	Evaluate(Evaluator_EvaluateServer) error
+}
+
+// UnimplementedEvaluatorServer can be embedded to have forward compatible implementations.
+type UnimplementedEvaluatorServer struct {
+}
+
+func (*UnimplementedEvaluatorServer) Evaluate(srv Evaluator_EvaluateServer) error {
+	return status.Errorf(codes.Unimplemented, "method Evaluate not implemented")
 }
 
 func RegisterEvaluatorServer(s *grpc.Server, srv EvaluatorServer) {

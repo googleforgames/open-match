@@ -10,6 +10,8 @@ import (
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -209,6 +211,14 @@ type MatchFunctionServer interface {
 	// This is the function that is executed when by the Open Match backend to
 	// generate Match proposals.
 	Run(*RunRequest, MatchFunction_RunServer) error
+}
+
+// UnimplementedMatchFunctionServer can be embedded to have forward compatible implementations.
+type UnimplementedMatchFunctionServer struct {
+}
+
+func (*UnimplementedMatchFunctionServer) Run(req *RunRequest, srv MatchFunction_RunServer) error {
+	return status.Errorf(codes.Unimplemented, "method Run not implemented")
 }
 
 func RegisterMatchFunctionServer(s *grpc.Server, srv MatchFunctionServer) {
