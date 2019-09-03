@@ -232,7 +232,10 @@ func TestDoAssignTickets(t *testing.T) {
 				}
 				// Make sure tickets are correctly indexed.
 				var wantFilteredTickets []*pb.Ticket
-				err := store.FilterTickets(ctx, []*pb.Filter{{Attribute: fakeProperty, Min: 0, Max: 3}}, 10, func(filterTickets []*pb.Ticket) error {
+				pool := &pb.Pool{
+					Filters: []*pb.Filter{{Attribute: fakeProperty, Min: 0, Max: 3}},
+				}
+				err := store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
 					wantFilteredTickets = filterTickets
 					return nil
 				})
@@ -275,7 +278,10 @@ func TestDoAssignTickets(t *testing.T) {
 
 				// Make sure tickets are deindexed after assignment
 				var wantFilteredTickets []*pb.Ticket
-				store.FilterTickets(ctx, []*pb.Filter{{Attribute: fakeProperty, Min: 0, Max: 2}}, 10, func(filterTickets []*pb.Ticket) error {
+				pool := &pb.Pool{
+					Filters: []*pb.Filter{{Attribute: fakeProperty, Min: 0, Max: 2}},
+				}
+				store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
 					wantFilteredTickets = filterTickets
 					return nil
 				})
