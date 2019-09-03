@@ -43,12 +43,12 @@ type mmlogicService struct {
 // GetPoolTickets gets the list of Tickets that match every Filter in the
 // specified Pool.
 func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.MmLogic_QueryTicketsServer) error {
-	if req.GetPool() == nil {
+	pool := req.GetPool()
+	if pool == nil {
 		return status.Error(codes.InvalidArgument, ".pool is required")
 	}
 
 	ctx := responseServer.Context()
-	poolFilters := req.GetPool().GetFilters()
 	pSize := getPageSize(s.cfg)
 
 	callback := func(tickets []*pb.Ticket) error {
@@ -60,12 +60,12 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 		return nil
 	}
 
-	return doQueryTickets(ctx, poolFilters, pSize, callback, s.store)
+	return doQueryTickets(ctx, pool, pSize, callback, s.store)
 }
 
-func doQueryTickets(ctx context.Context, filters []*pb.Filter, pageSize int, sender func(tickets []*pb.Ticket) error, store statestore.Service) error {
+func doQueryTickets(ctx context.Context, pool *pb.Pool, pageSize int, sender func(tickets []*pb.Ticket) error, store statestore.Service) error {
 	// Send requests to the storage service
-	err := store.FilterTickets(ctx, filters, pageSize, sender)
+	err := store.FilterTickets(ctx, pool, pageSize, sender)
 	if err != nil {
 		logger.WithError(err).Error("Failed to retrieve result from storage service.")
 		return err

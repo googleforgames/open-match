@@ -395,7 +395,7 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 //  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
-func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error {
+func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
 	var err error
 	var redisConn redis.Conn
 	var ticketBytes [][]byte
@@ -411,7 +411,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 	idSet := make([]string, 0)
 
 	// For each filter, do a range query to Redis on Filter.Attribute
-	for i, filter := range filters {
+	for i, filter := range pool.Filters {
 		// Time Complexity O(logN + M), where N is the number of elements in the attribute set
 		// and M is the number of entries being returned.
 		// TODO: discuss if we need a LIMIT for # of queries being returned

@@ -58,7 +58,7 @@ func TestDoQueryTickets(t *testing.T) {
 	tests := []struct {
 		description string
 		sender      func(tickets []*pb.Ticket) error
-		filters     []*pb.Filter
+		pool        *pb.Pool
 		pageSize    int
 		action      func(context.Context, *testing.T, statestore.Service)
 		wantErr     error
@@ -67,11 +67,13 @@ func TestDoQueryTickets(t *testing.T) {
 		{
 			"expect empty response from an empty store",
 			senderGenerator(nil),
-			[]*pb.Filter{
-				{
-					Attribute: attribute1,
-					Min:       0,
-					Max:       10,
+			&pb.Pool{
+				Filters: []*pb.Filter{
+					{
+						Attribute: attribute1,
+						Min:       0,
+						Max:       10,
+					},
 				},
 			},
 			100,
@@ -82,11 +84,13 @@ func TestDoQueryTickets(t *testing.T) {
 		{
 			"expect tickets with attribute1 value in range of [0, 10] (inclusively)",
 			senderGenerator(nil),
-			[]*pb.Filter{
-				{
-					Attribute: attribute1,
-					Min:       0,
-					Max:       10,
+			&pb.Pool{
+				Filters: []*pb.Filter{
+					{
+						Attribute: attribute1,
+						Min:       0,
+						Max:       10,
+					},
 				},
 			},
 			100,
@@ -105,11 +109,13 @@ func TestDoQueryTickets(t *testing.T) {
 		{
 			"expect error from canceled context",
 			senderGenerator(fakeErr),
-			[]*pb.Filter{
-				{
-					Attribute: attribute1,
-					Min:       0,
-					Max:       10,
+			&pb.Pool{
+				Filters: []*pb.Filter{
+					{
+						Attribute: attribute1,
+						Min:       0,
+						Max:       10,
+					},
 				},
 			},
 			100,
@@ -135,7 +141,7 @@ func TestDoQueryTickets(t *testing.T) {
 			ctx := utilTesting.NewContext(t)
 
 			test.action(ctx, t, store)
-			assert.Equal(t, test.wantErr, doQueryTickets(ctx, test.filters, test.pageSize, test.sender, store))
+			assert.Equal(t, test.wantErr, doQueryTickets(ctx, test.pool, test.pageSize, test.sender, store))
 			for _, wantTicket := range test.wantTickets {
 				assert.Contains(t, actualTickets, wantTicket)
 			}
