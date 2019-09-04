@@ -85,8 +85,8 @@ func (is *instrumentedService) DeindexTicket(ctx context.Context, id string) err
 //  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
-func (is *instrumentedService) FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error {
-	return is.s.FilterTickets(ctx, filters, pageSize, func(t []*pb.Ticket) error {
+func (is *instrumentedService) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
+	return is.s.FilterTickets(ctx, pool, pageSize, func(t []*pb.Ticket) error {
 		telemetry.IncrementCounterN(ctx, mStateStoreFilterTickets, len(t))
 		return callback(t)
 	})

@@ -18,6 +18,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"testing"
+	"time"
+
 	miniredis "github.com/alicebob/miniredis/v2"
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
@@ -30,8 +33,6 @@ import (
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/pkg/structs"
-	"testing"
-	"time"
 )
 
 func TestStatestoreSetup(t *testing.T) {
@@ -123,7 +124,13 @@ func TestIgnoreLists(t *testing.T) {
 
 	verifyTickets := func(service Service, expectLen int) {
 		var results []*pb.Ticket
-		service.FilterTickets(ctx, []*pb.Filter{{Attribute: "testindex1", Min: 0, Max: 10}, {Attribute: "testindex2", Min: 0, Max: 10}}, 100, func(tickets []*pb.Ticket) error {
+		pool := &pb.Pool{
+			Filters: []*pb.Filter{
+				{Attribute: "testindex1", Min: 0, Max: 10},
+				{Attribute: "testindex2", Min: 0, Max: 10},
+			},
+		}
+		service.FilterTickets(ctx, pool, 100, func(tickets []*pb.Ticket) error {
 			results = tickets
 			return nil
 		})
@@ -183,20 +190,22 @@ func TestTicketIndexing(t *testing.T) {
 
 	found := make(map[string]struct{})
 
-	filters := []*pb.Filter{
-		{
-			Attribute: "testindex1",
-			Min:       2.5,
-			Max:       8.5,
-		},
-		{
-			Attribute: "testindex2",
-			Min:       0.49,
-			Max:       0.51,
+	pool := &pb.Pool{
+		Filters: []*pb.Filter{
+			{
+				Attribute: "testindex1",
+				Min:       2.5,
+				Max:       8.5,
+			},
+			{
+				Attribute: "testindex2",
+				Min:       0.49,
+				Max:       0.51,
+			},
 		},
 	}
 
-	err = service.FilterTickets(ctx, filters, 2, func(tickets []*pb.Ticket) error {
+	err = service.FilterTickets(ctx, pool, 2, func(tickets []*pb.Ticket) error {
 		assert.True(len(tickets) <= 2)
 		for _, ticket := range tickets {
 			found[ticket.Id] = struct{}{}
