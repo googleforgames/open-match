@@ -17,7 +17,7 @@ apiVersion: v1
 metadata:
   name: {{ .Values.demo.hostName }}
   namespace: {{ .Release.Namespace }}
-  annotations: {{- include "openmatch.chartmeta" . | nindent 2 }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
     component: demo
@@ -37,7 +37,7 @@ kind: Deployment
 metadata:
   name: {{ .Values.demo.hostName }}
   namespace: {{ .Release.Namespace }}
-  annotations: {{- include "openmatch.chartmeta" . | nindent 2 }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
     component: demo
