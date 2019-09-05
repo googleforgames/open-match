@@ -13,7 +13,11 @@
 // limitations under the License.
 
 window.onload = function() {
-  const ws = new WebSocket("ws://" + window.location.host + "/connect");
+  let protocol = "ws://";
+  if (window.location.protocol == "https:") {
+    protocol = "wss://";
+  }
+  const ws = new WebSocket(protocol + window.location.host + "/connect");
 
   ws.onopen = function (event) {
     return false;
