@@ -128,11 +128,6 @@ func (s *synchronizerService) EvaluateProposals(stream ipb.Synchronizer_Evaluate
 
 func (s *synchronizerService) doEvaluateProposals(ctx context.Context, proposals []*gopb.Match, id string) ([]*gopb.Match, error) {
 	syncState := s.state
-
-	logger.WithFields(logrus.Fields{
-		"id":        id,
-		"proposals": getMatchIds(proposals),
-	}).Info("Received request to evaluate propsals")
 	// pendingRequests keeps track of number of requests pending. This is incremented
 	// in addProposals while holding the state mutex. The count should be decremented
 	// only after this request completes.

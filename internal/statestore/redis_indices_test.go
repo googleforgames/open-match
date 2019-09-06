@@ -15,6 +15,7 @@
 package statestore
 
 import (
+	"math"
 	"testing"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -38,7 +39,8 @@ func TestExtractIndexedFields(t *testing.T) {
 				"foo": structs.Number(1),
 			}.S(),
 			expectedValues: map[string]float64{
-				"ri$foo": 1,
+				"allTickets": 0,
+				"ri$foo":     1,
 			},
 		},
 		{
@@ -47,13 +49,17 @@ func TestExtractIndexedFields(t *testing.T) {
 			ticket: structs.Struct{
 				"foo": structs.Number(1),
 			}.S(),
-			expectedValues: map[string]float64{},
+			expectedValues: map[string]float64{
+				"allTickets": 0,
+			},
 		},
 		{
-			description:    "range no value",
-			indices:        []string{"foo"},
-			ticket:         structs.Struct{}.S(),
-			expectedValues: map[string]float64{},
+			description: "range no value",
+			indices:     []string{"foo"},
+			ticket:      structs.Struct{}.S(),
+			expectedValues: map[string]float64{
+				"allTickets": 0,
+			},
 		},
 	}
 
@@ -78,7 +84,13 @@ func TestExtractIndexFilters(t *testing.T) {
 		{
 			description: "empty",
 			pool:        &gopb.Pool{},
-			expected:    []indexFilter{},
+			expected: []indexFilter{
+				{
+					name: "allTickets",
+					min:  math.Inf(-1),
+					max:  math.Inf(1),
+				},
+			},
 		},
 		{
 			description: "range",
@@ -119,7 +131,7 @@ func TestExtractDeindexFilters(t *testing.T) {
 		{
 			description: "range",
 			indices:     []string{"foo"},
-			expected:    []string{"ri$foo"},
+			expected:    []string{"ri$foo", "allTickets"},
 		},
 	}
 
@@ -130,7 +142,7 @@ func TestExtractDeindexFilters(t *testing.T) {
 
 			actual := extractDeindexFilters(cfg)
 
-			assert.Equal(t, test.expected, actual)
+			assert.ElementsMatch(t, test.expected, actual)
 		})
 	}
 }
