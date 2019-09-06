@@ -45,8 +45,6 @@ var (
 	envMappings = map[string]string{
 		"redis.user":                    "REDIS_USER",
 		"redis.password":                "REDIS_PASSWORD",
-		"redis.hostname":                "REDIS_SERVICE_HOST",
-		"redis.port":                    "REDIS_SERVICE_PORT",
 		"redis.pool.maxIdle":            "REDIS_POOL_MAXIDLE",
 		"redis.pool.maxActive":          "REDIS_POOL_MAXACTIVE",
 		"redis.pool.idleTimeout":        "REDIS_POOL_IDLETIMEOUT",

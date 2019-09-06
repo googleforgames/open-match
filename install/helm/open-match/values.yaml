@@ -126,6 +126,7 @@ configs:
 # https://github.com/helm/charts/tree/master/stable/redis
 redis:
   fullnameOverride: om-redis
+  redisPort: 6379
   usePassword: true
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
