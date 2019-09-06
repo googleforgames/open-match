@@ -212,7 +212,7 @@ func (syncState *synchronizerState) trackRegistrationWindow() {
 	time.Sleep(syncState.registrationInterval())
 	syncState.stateMutex.Lock()
 	defer syncState.stateMutex.Unlock()
-	logger.Info("Changing state from requestRegistration to proposalCollection")
+	logger.Infof("Changing state from requestRegistration to proposalCollection after %v", syncState.registrationInterval())
 	syncState.status = statusProposalCollection
 	go syncState.trackProposalWindow()
 }
@@ -221,7 +221,7 @@ func (syncState *synchronizerState) trackProposalWindow() {
 	time.Sleep(syncState.proposalCollectionInterval())
 	syncState.stateMutex.Lock()
 	defer syncState.stateMutex.Unlock()
-	logger.Info("Changing status from proposalCollection to evaluation")
+	logger.Infof("Changing status from proposalCollection to evaluation after %v", syncState.proposalCollectionInterval())
 	syncState.status = statusEvaluation
 	syncState.evaluate(context.Background())
 }
