@@ -94,6 +94,6 @@ func extractDeindexFilters(cfg config.View) []string {
 }
 
 func rangeIndexName(attribute string) string {
-	// ri = range index
+	// ri stands for range index
 	return "ri$" + url.QueryEscape(attribute)
 }
