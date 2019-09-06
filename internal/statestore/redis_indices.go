@@ -16,7 +16,7 @@ package statestore
 
 import (
 	"math"
-	"net/url"
+	"strings"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/sirupsen/logrus"
@@ -24,14 +24,8 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-type indexedFields struct {
-	values map[string]float64
-}
-
-func extractIndexedFields(cfg config.View, t *pb.Ticket) indexedFields {
-	result := indexedFields{
-		values: make(map[string]float64),
-	}
+func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
+	result := make(map[string]float64)
 
 	var indices []string
 	if cfg.IsSet("ticketIndices") {
@@ -49,7 +43,7 @@ func extractIndexedFields(cfg config.View, t *pb.Ticket) indexedFields {
 
 		switch v.Kind.(type) {
 		case *structpb.Value_NumberValue:
-			result.values[rangeIndexName(attribute)] = v.GetNumberValue()
+			result[rangeIndexName(attribute)] = v.GetNumberValue()
 		default:
 			redisLogger.WithFields(logrus.Fields{
 				"attribute": attribute,
@@ -57,7 +51,7 @@ func extractIndexedFields(cfg config.View, t *pb.Ticket) indexedFields {
 		}
 	}
 
-	result.values[allTickets] = 0
+	result[allTickets] = 0
 
 	return result
 }
@@ -89,27 +83,21 @@ func extractIndexFilters(p *pb.Pool) []indexFilter {
 	return filters
 }
 
-func extractDeindexFilters(cfg config.View) []string {
-	var indices []string
-	if cfg.IsSet("ticketIndices") {
-		indices = cfg.GetStringSlice("ticketIndices")
-	}
-
-	result := []string{allTickets}
-
-	for _, index := range indices {
-		result = append(result, rangeIndexName(index))
-	}
-
-	return result
-}
-
 // The following are constants and functions for determining the names of
-// indexes.  Different index types have different prefixes to avoid any
+// indices.  Different index types have different prefixes to avoid any
 // name collision.
 const allTickets = "allTickets"
 
 func rangeIndexName(attribute string) string {
 	// ri stands for range index
-	return "ri$" + url.QueryEscape(attribute)
+	return "ri$" + indexEscape(attribute)
+}
+
+func indexCacheName(id string) string {
+	// ic stands for index cache
+	return "ic$" + indexEscape(id)
+}
+
+func indexEscape(s string) string {
+	return strings.ReplaceAll(s, "$", "$$")
 }

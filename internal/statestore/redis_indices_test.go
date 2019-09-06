@@ -70,7 +70,7 @@ func TestExtractIndexedFields(t *testing.T) {
 
 			actual := extractIndexedFields(cfg, &pb.Ticket{Properties: test.ticket})
 
-			assert.Equal(t, test.expectedValues, actual.values)
+			assert.Equal(t, test.expectedValues, actual)
 		})
 	}
 }
@@ -118,31 +118,6 @@ func TestExtractIndexFilters(t *testing.T) {
 			actual := extractIndexFilters(test.pool)
 
 			assert.Equal(t, test.expected, actual)
-		})
-	}
-}
-
-func TestExtractDeindexFilters(t *testing.T) {
-	tests := []struct {
-		description string
-		indices     []string
-		expected    []string
-	}{
-		{
-			description: "range",
-			indices:     []string{"foo"},
-			expected:    []string{"ri$foo", "allTickets"},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			cfg := viper.New()
-			cfg.Set("ticketIndices", test.indices)
-
-			actual := extractDeindexFilters(cfg)
-
-			assert.ElementsMatch(t, test.expected, actual)
 		})
 	}
 }

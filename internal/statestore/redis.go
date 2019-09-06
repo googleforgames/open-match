@@ -275,7 +275,25 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	for k, v := range indexedFields.values {
+	{
+		command := make([]interface{}, 0, 1+len(indexedFields))
+		command = append(command, indexCacheName(ticket.Id))
+		for index := range indexedFields {
+			command = append(command, index)
+		}
+		err = redisConn.Send("SADD", command...)
+		if err != nil {
+			redisLogger.WithFields(logrus.Fields{
+				"cmd":     "SADD",
+				"ticket":  ticket.GetId(),
+				"error":   err.Error(),
+				"indices": command[1:],
+			}).Error("failed to set ticket's indices")
+			return status.Errorf(codes.Internal, "%v", err)
+		}
+	}
+
+	for k, v := range indexedFields {
 		// Index the attribute by value.
 		err = redisConn.Send("ZADD", k, v, ticket.GetId())
 		if err != nil {
@@ -312,6 +330,22 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	}
 	defer handleConnectionClose(&redisConn)
 
+	indices, err := redis.Strings(redisConn.Do("SMEMBERS", indexCacheName(id)))
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"SMEMBERS": "MULTI",
+			"error":    err.Error(),
+			"ticket":   id,
+		}).Error("failed to retrieve ticket's indexed fields")
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	fmt.Println("LOOK HERE", id, len(indices), indices) // DO NOT SUBMIT
+
+	if len(indices) == 0 {
+		return nil
+	}
+
 	err = redisConn.Send("MULTI")
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -321,17 +355,27 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	for _, attribute := range extractDeindexFilters(rb.cfg) {
-		err = redisConn.Send("ZREM", attribute, id)
+	for _, index := range indices {
+		err = redisConn.Send("ZREM", index, id)
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
-				"cmd":       "ZREM",
-				"attribute": attribute,
-				"id":        id,
-				"error":     err.Error(),
-			}).Error("failed to deindex attribute")
+				"cmd":   "ZREM",
+				"index": index,
+				"id":    id,
+				"error": err.Error(),
+			}).Error("failed to deindex the ticket")
 			return status.Errorf(codes.Internal, "%v", err)
 		}
+	}
+
+	err = redisConn.Send("DEL", indexCacheName(id))
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"cmd":   "DEL",
+			"id":    id,
+			"error": err.Error(),
+		}).Error("failed to remove ticket's indexed fields")
+		return status.Errorf(codes.Internal, "%v", err)
 	}
 
 	_, err = redisConn.Do("EXEC")
