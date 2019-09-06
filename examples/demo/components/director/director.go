@@ -109,7 +109,6 @@ func run(ds *components.DemoShared) {
 			panic(err)
 		}
 
-		matches := make([]*pb.Match, 0)
 		for {
 			resp, err := stream.Recv()
 			if err == io.EOF {
