@@ -45,8 +45,7 @@ require (
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.3.0
 	go.opencensus.io v0.22.0
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
-	golang.org/x/tools v0.0.0-20190906203814-12febf440ab1 // indirect
+	golang.org/x/net v0.0.0-20190522155817-f3200d17e092
 	google.golang.org/genproto v0.0.0-20190611190212-a7e196e89fd3
 	google.golang.org/grpc v1.21.1
 	gopkg.in/inf.v0 v0.9.1 // indirect
