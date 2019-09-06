@@ -62,28 +62,28 @@ func TestMinimatch(t *testing.T) {
 	testPools := map[string]*pb.Pool{
 		e2e.Map1BeginnerPool: {
 			Name: e2e.Map1BeginnerPool,
-			Filters: []*pb.Filter{
+			FloatRangeFilters: []*pb.FloatRangeFilter{
 				{Attribute: e2e.SkillAttribute, Min: 0, Max: 5},
 				{Attribute: e2e.Map1Attribute, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map1AdvancedPool: {
 			Name: e2e.Map1AdvancedPool,
-			Filters: []*pb.Filter{
+			FloatRangeFilters: []*pb.FloatRangeFilter{
 				{Attribute: e2e.SkillAttribute, Min: 6, Max: 10},
 				{Attribute: e2e.Map1Attribute, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map2BeginnerPool: {
 			Name: e2e.Map2BeginnerPool,
-			Filters: []*pb.Filter{
+			FloatRangeFilters: []*pb.FloatRangeFilter{
 				{Attribute: e2e.SkillAttribute, Min: 0, Max: 5},
 				{Attribute: e2e.Map2Attribute, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map2AdvancedPool: {
 			Name: e2e.Map2AdvancedPool,
-			Filters: []*pb.Filter{
+			FloatRangeFilters: []*pb.FloatRangeFilter{
 				{Attribute: e2e.SkillAttribute, Min: 6, Max: 10},
 				{Attribute: e2e.Map2Attribute, Max: math.MaxFloat64},
 			},

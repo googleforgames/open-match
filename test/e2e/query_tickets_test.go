@@ -51,7 +51,7 @@ func TestQueryTickets(t *testing.T) {
 			description: "expects response with no tickets since the store is empty",
 			preAction:   func(_ context.Context, _ pb.FrontendClient, _ *testing.T) {},
 			pool: &pb.Pool{
-				Filters: []*pb.Filter{{
+				FloatRangeFilters: []*pb.FloatRangeFilter{{
 					Attribute: "ok",
 				}},
 			},
@@ -74,7 +74,7 @@ func TestQueryTickets(t *testing.T) {
 				}
 			},
 			pool: &pb.Pool{
-				Filters: []*pb.Filter{{
+				FloatRangeFilters: []*pb.FloatRangeFilter{{
 					Attribute: e2e.SkillAttribute,
 				}},
 			},
@@ -97,7 +97,7 @@ func TestQueryTickets(t *testing.T) {
 				}
 			},
 			pool: &pb.Pool{
-				Filters: []*pb.Filter{{
+				FloatRangeFilters: []*pb.FloatRangeFilter{{
 					Attribute: e2e.Map1Attribute,
 					Min:       1,
 					Max:       3,
@@ -127,7 +127,7 @@ func TestQueryTickets(t *testing.T) {
 			},
 
 			pool: &pb.Pool{
-				Filters: []*pb.Filter{{
+				FloatRangeFilters: []*pb.FloatRangeFilter{{
 					Attribute: e2e.Map1Attribute,
 					Min:       2,
 					Max:       6,

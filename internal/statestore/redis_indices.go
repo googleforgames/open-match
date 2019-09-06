@@ -64,7 +64,7 @@ type indexFilter struct {
 func extractIndexFilters(p *pb.Pool) []indexFilter {
 	filters := make([]indexFilter, 0)
 
-	for _, f := range p.Filters {
+	for _, f := range p.FloatRangeFilters {
 		filters = append(filters, indexFilter{
 			name: rangeIndexName(f.Attribute),
 			min:  f.Min,

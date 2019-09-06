@@ -95,8 +95,8 @@ func TestExtractIndexFilters(t *testing.T) {
 		{
 			description: "range",
 			pool: &pb.Pool{
-				Filters: []*pb.Filter{
-					&pb.Filter{
+				FloatRangeFilters: []*pb.FloatRangeFilter{
+					&pb.FloatRangeFilter{
 						Attribute: "foo",
 						Min:       -1,
 						Max:       1,
