@@ -17,7 +17,6 @@ package statestore
 import (
 	"math"
 	"net/url"
-	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/sirupsen/logrus"
@@ -58,7 +57,7 @@ func extractIndexedFields(cfg config.View, t *pb.Ticket) indexedFields {
 		}
 	}
 
-	result[allTickets] = float64(time.Now().UnixNano())
+	result.values[allTickets] = 0
 
 	return result
 }
@@ -83,7 +82,7 @@ func extractIndexFilters(p *pb.Pool) []indexFilter {
 		filters = []indexFilter{{
 			name: allTickets,
 			min:  math.Inf(-1),
-			min:  math.Inf(1),
+			max:  math.Inf(1),
 		}}
 	}
 
