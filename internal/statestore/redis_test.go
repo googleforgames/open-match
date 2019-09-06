@@ -188,7 +188,7 @@ func TestTicketIndexing(t *testing.T) {
 	err = service.DeindexTicket(ctx, "ticket.no.6")
 	assert.Nil(err)
 
-	found := make(map[string]struct{})
+	found := []string{}
 
 	pool := &pb.Pool{
 		Filters: []*pb.Filter{
@@ -208,17 +208,19 @@ func TestTicketIndexing(t *testing.T) {
 	err = service.FilterTickets(ctx, pool, 2, func(tickets []*pb.Ticket) error {
 		assert.True(len(tickets) <= 2)
 		for _, ticket := range tickets {
-			found[ticket.Id] = struct{}{}
+			found = append(found, ticket.Id)
 		}
 		return nil
 	})
 	assert.Nil(err)
 
-	assert.Equal(len(found), 4)
-	assert.Contains(found, "ticket.no.3")
-	assert.Contains(found, "ticket.no.4")
-	assert.Contains(found, "ticket.no.7")
-	assert.Contains(found, "ticket.no.8")
+	expected := []string{
+		"ticket.no.3",
+		"ticket.no.4",
+		"ticket.no.7",
+		"ticket.no.8",
+	}
+	assert.ElementsMatch(expected, found)
 }
 
 func TestGetAssignmentBeforeSet(t *testing.T) {
