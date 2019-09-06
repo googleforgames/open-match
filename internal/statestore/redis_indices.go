@@ -15,6 +15,7 @@
 package statestore
 
 import (
+	"math"
 	"net/url"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -56,6 +57,8 @@ func extractIndexedFields(cfg config.View, t *pb.Ticket) indexedFields {
 		}
 	}
 
+	result.values[allTickets] = 0
+
 	return result
 }
 
@@ -75,6 +78,14 @@ func extractIndexFilters(p *pb.Pool) []indexFilter {
 		})
 	}
 
+	if len(filters) == 0 {
+		filters = []indexFilter{{
+			name: allTickets,
+			min:  math.Inf(-1),
+			max:  math.Inf(1),
+		}}
+	}
+
 	return filters
 }
 
@@ -84,7 +95,7 @@ func extractDeindexFilters(cfg config.View) []string {
 		indices = cfg.GetStringSlice("ticketIndices")
 	}
 
-	var result []string
+	result := []string{allTickets}
 
 	for _, index := range indices {
 		result = append(result, rangeIndexName(index))
@@ -92,6 +103,11 @@ func extractDeindexFilters(cfg config.View) []string {
 
 	return result
 }
+
+// The following are constants and functions for determining the names of
+// indexes.  Different index types have different prefixes to avoid any
+// name collision.
+const allTickets = "allTickets"
 
 func rangeIndexName(attribute string) string {
 	// ri stands for range index
