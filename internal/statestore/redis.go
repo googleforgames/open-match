@@ -340,8 +340,6 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	fmt.Println("LOOK HERE", id, len(indices), indices) // DO NOT SUBMIT
-
 	if len(indices) == 0 {
 		return nil
 	}

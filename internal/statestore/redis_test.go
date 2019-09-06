@@ -220,7 +220,6 @@ func TestTicketIndexing(t *testing.T) {
 		"ticket.no.7",
 		"ticket.no.8",
 	}
-	fmt.Println(found) // DO NOT SUBMIT
 	assert.ElementsMatch(expected, found)
 }
 
