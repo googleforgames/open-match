@@ -154,7 +154,7 @@
         }
       }
     },
-    "apiFilter": {
+    "apiFloatRangeFilter": {
       "type": "object",
       "properties": {
         "attribute": {
@@ -172,7 +172,7 @@
           "description": "Minimum value. Defaults to 0."
         }
       },
-      "description": "A hard filter used to query a subset of Tickets meeting the filtering\ncriteria."
+      "title": "Filters numerical values to only those within a range.\n  attribute: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {\"foo\": true}\n  {\"foo\": [7.5]}\n  {}"
     },
     "apiFunctionConfig": {
       "type": "object",
@@ -269,10 +269,10 @@
           "type": "string",
           "description": "A developer-chosen human-readable name for this Pool."
         },
-        "filters": {
+        "float_range_filters": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiFilter"
+            "$ref": "#/definitions/apiFloatRangeFilter"
           },
           "description": "Set of Filters indicating the filtering criteria. Selected players must\nmatch every Filter."
         }

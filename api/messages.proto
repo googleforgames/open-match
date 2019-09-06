@@ -52,9 +52,22 @@ message Assignment {
   google.rpc.Status error = 3;
 }
 
-// A hard filter used to query a subset of Tickets meeting the filtering
-// criteria.
-message Filter {
+// Filters numerical values to only those within a range.
+//   attribute: "foo"
+//   max: 10
+//   min: 5
+// matches:
+//   {"foo": 5}
+//   {"foo": 7.5}
+//   {"foo": 10}
+// does not match:
+//   {"foo": 4}
+//   {"foo": 10.01}
+//   {"foo": "7.5"}
+//   {"foo": true}
+//   {"foo": [7.5]}
+//   {}
+message FloatRangeFilter {
   // Name of the ticket attribute this Filter operates on.
   string attribute = 1;
 
@@ -71,7 +84,7 @@ message Pool {
 
   // Set of Filters indicating the filtering criteria. Selected players must
   // match every Filter.
-  repeated Filter filters = 2;
+  repeated FloatRangeFilter float_range_filters = 2;
 }
 
 // A Roster is a named collection of Ticket IDs. It exists so that a Tickets
