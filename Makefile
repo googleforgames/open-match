@@ -379,6 +379,7 @@ install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-customize.enabled=false \
 		--set open-match-telemetry.enabled=false \
 		--set open-match-demo.enabled=false \
+		--set workaround=false \
 		install/helm/open-match > install/yaml/01-open-match-core.yaml
 
 install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -430,6 +431,7 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set global.image.tag=$(TAG) \
 		--set open-match-customize.enabled=false \
 		--set open-match-demo.enabled=false \
+		--set workaround=false \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
