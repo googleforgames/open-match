@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
@@ -35,8 +35,8 @@ func TestInsecureStartStop(t *testing.T) {
 
 	params := NewServerParamsFromListeners(grpcLh, httpLh)
 	params.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterFrontendServer(s, ff)
-	}, pb.RegisterFrontendHandlerFromEndpoint)
+		gopb.RegisterFrontendServer(s, ff)
+	}, gopb.RegisterFrontendHandlerFromEndpoint)
 	s := newInsecureServer(grpcLh, httpLh)
 	defer s.stop()
 	waitForStart, err := s.start(params)

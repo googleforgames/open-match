@@ -25,7 +25,7 @@ import (
 	"open-match.dev/open-match/internal/telemetry"
 	shellTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 	"os"
 	"testing"
@@ -98,8 +98,8 @@ func runGrpcClientTests(t *testing.T, assert *assert.Assertions, cfg config.View
 	// Serve a fake frontend server and wait for its full start up
 	ff := &shellTesting.FakeFrontend{}
 	rpcParams.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterFrontendServer(s, ff)
-	}, pb.RegisterFrontendHandlerFromEndpoint)
+		gopb.RegisterFrontendServer(s, ff)
+	}, gopb.RegisterFrontendHandlerFromEndpoint)
 
 	s := &Server{}
 	defer s.Stop()
@@ -114,8 +114,8 @@ func runGrpcClientTests(t *testing.T, assert *assert.Assertions, cfg config.View
 
 	// Confirm the client works as expected
 	ctx := utilTesting.NewContext(t)
-	feClient := pb.NewFrontendClient(grpcConn)
-	grpcResp, err := feClient.CreateTicket(ctx, &pb.CreateTicketRequest{})
+	feClient := gopb.NewFrontendClient(grpcConn)
+	grpcResp, err := feClient.CreateTicket(ctx, &gopb.CreateTicketRequest{})
 	assert.Nil(err)
 	assert.NotNil(grpcResp)
 }
@@ -124,8 +124,8 @@ func runHTTPClientTests(assert *assert.Assertions, cfg config.View, rpcParams *S
 	// Serve a fake frontend server and wait for its full start up
 	ff := &shellTesting.FakeFrontend{}
 	rpcParams.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterFrontendServer(s, ff)
-	}, pb.RegisterFrontendHandlerFromEndpoint)
+		gopb.RegisterFrontendServer(s, ff)
+	}, gopb.RegisterFrontendHandlerFromEndpoint)
 	s := &Server{}
 	defer s.Stop()
 	waitForStart, err := s.Start(rpcParams)

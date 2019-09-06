@@ -192,7 +192,7 @@ else
 	endif
 endif
 
-GOLANG_PROTOS = pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/mmlogic.pb.go pkg/pb/messages.pb.go pkg/pb/evaluator.pb.go internal/ipb/synchronizer.pb.go pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/mmlogic.pb.gw.go pkg/pb/evaluator.pb.gw.go
+GOLANG_PROTOS = pkg/gopb/backend.pb.go pkg/gopb/frontend.pb.go pkg/gopb/matchfunction.pb.go pkg/gopb/mmlogic.pb.go pkg/gopb/messages.pb.go pkg/gopb/evaluator.pb.go internal/ipb/synchronizer.pb.go pkg/gopb/backend.pb.gw.go pkg/gopb/frontend.pb.gw.go pkg/gopb/matchfunction.pb.gw.go pkg/gopb/mmlogic.pb.gw.go pkg/gopb/evaluator.pb.gw.go
 
 SWAGGER_JSON_DOCS = api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/evaluator.swagger.json
 
@@ -642,8 +642,8 @@ all-protos: $(ALL_PROTOS)
 # support methods for directing it to the correct location that's not the proto
 # file's location.  So instead put it in a tempororary directory, then move it
 # out.
-pkg/pb/%.pb.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
-	mkdir -p $(REPOSITORY_ROOT)/build/prototmp $(REPOSITORY_ROOT)/pkg/pb
+pkg/gopb/%.pb.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	mkdir -p $(REPOSITORY_ROOT)/build/prototmp $(REPOSITORY_ROOT)/pkg/gopb
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)/build/prototmp
@@ -656,8 +656,8 @@ internal/ipb/%.pb.go: internal/api/%.proto third_party/ build/toolchain/bin/prot
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)/build/prototmp
 	mv $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/$@ $@
 
-pkg/pb/%.pb.gw.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
-	mkdir -p $(REPOSITORY_ROOT)/build/prototmp $(REPOSITORY_ROOT)/pkg/pb
+pkg/gopb/%.pb.gw.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
+	mkdir -p $(REPOSITORY_ROOT)/build/prototmp $(REPOSITORY_ROOT)/pkg/gopb
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
    		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)/build/prototmp
@@ -669,12 +669,12 @@ api/%.swagger.json: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXT
 		--swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
-pkg/pb/backend.pb.go: pkg/pb/messages.pb.go
-pkg/pb/frontend.pb.go: pkg/pb/messages.pb.go
-pkg/pb/matchfunction.pb.go: pkg/pb/messages.pb.go
-pkg/pb/mmlogic.pb.go: pkg/pb/messages.pb.go
-pkg/pb/evaluator.pb.go: pkg/pb/messages.pb.go
-internal/ipb/synchronizer.pb.go: pkg/pb/messages.pb.go
+pkg/gopb/backend.pb.go: pkg/gopb/messages.pb.go
+pkg/gopb/frontend.pb.go: pkg/gopb/messages.pb.go
+pkg/gopb/matchfunction.pb.go: pkg/gopb/messages.pb.go
+pkg/gopb/mmlogic.pb.go: pkg/gopb/messages.pb.go
+pkg/gopb/evaluator.pb.go: pkg/gopb/messages.pb.go
+internal/ipb/synchronizer.pb.go: pkg/gopb/messages.pb.go
 
 build: assets
 	$(GO) build ./...
@@ -743,36 +743,36 @@ example-binaries: example-mmf-binaries example-evaluator-binaries
 example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION) examples/functions/golang/pool/pool$(EXE_EXTENSION)
 example-evaluator-binaries: examples/evaluator/golang/simple/simple$(EXE_EXTENSION)
 
-examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): pkg/gopb/mmlogic.pb.go pkg/gopb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/gopb/matchfunction.pb.go pkg/gopb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
 
-examples/functions/golang/pool/pool$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+examples/functions/golang/pool/pool$(EXE_EXTENSION): pkg/gopb/mmlogic.pb.go pkg/gopb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/gopb/matchfunction.pb.go pkg/gopb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/pool; $(GO_BUILD_COMMAND)
 
-examples/evaluator/golang/simple/simple$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
+examples/evaluator/golang/simple/simple$(EXE_EXTENSION): pkg/gopb/evaluator.pb.go pkg/gopb/evaluator.pb.gw.go api/evaluator.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/evaluator/golang/simple; $(GO_BUILD_COMMAND)
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION) tools/reaper/reaper$(EXE_EXTENSION)
 
-cmd/backend/backend$(EXE_EXTENSION): pkg/pb/backend.pb.go pkg/pb/backend.pb.gw.go api/backend.swagger.json
+cmd/backend/backend$(EXE_EXTENSION): pkg/gopb/backend.pb.go pkg/gopb/backend.pb.gw.go api/backend.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/backend; $(GO_BUILD_COMMAND)
 
-cmd/frontend/frontend$(EXE_EXTENSION): pkg/pb/frontend.pb.go pkg/pb/frontend.pb.gw.go api/frontend.swagger.json
+cmd/frontend/frontend$(EXE_EXTENSION): pkg/gopb/frontend.pb.go pkg/gopb/frontend.pb.gw.go api/frontend.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/frontend; $(GO_BUILD_COMMAND)
 
-cmd/mmlogic/mmlogic$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+cmd/mmlogic/mmlogic$(EXE_EXTENSION): pkg/gopb/mmlogic.pb.go pkg/gopb/mmlogic.pb.gw.go api/mmlogic.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/mmlogic; $(GO_BUILD_COMMAND)
 
 cmd/synchronizer/synchronizer$(EXE_EXTENSION): internal/ipb/synchronizer.pb.go
 	cd $(REPOSITORY_ROOT)/cmd/synchronizer; $(GO_BUILD_COMMAND)
 
 # Note: This list of dependencies is long but only add file references here. If you add a .PHONY dependency make will always rebuild it.
-cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/backend.pb.go pkg/pb/backend.pb.gw.go api/backend.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/frontend.pb.go pkg/pb/frontend.pb.gw.go api/frontend.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/messages.pb.go
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/gopb/backend.pb.go pkg/gopb/backend.pb.gw.go api/backend.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/gopb/frontend.pb.go pkg/gopb/frontend.pb.gw.go api/frontend.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/gopb/mmlogic.pb.go pkg/gopb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/gopb/evaluator.pb.go pkg/gopb/evaluator.pb.gw.go api/evaluator.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/gopb/matchfunction.pb.go pkg/gopb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/gopb/messages.pb.go
 cmd/minimatch/minimatch$(EXE_EXTENSION): internal/ipb/synchronizer.pb.go
 	cd $(REPOSITORY_ROOT)/cmd/minimatch; $(GO_BUILD_COMMAND)
 
@@ -841,7 +841,7 @@ ci-reap-namespaces: build/toolchain/bin/reaper$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: GOLANG_TEST_COUNT = 5
-presubmit: clean update-deps third_party/ assets lint build install-toolchain test md-test terraform-test
+presubmit: clean assets update-deps third_party/ lint build install-toolchain test md-test terraform-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -871,7 +871,7 @@ clean-secrets:
 	rm -rf $(OPEN_MATCH_SECRETS_DIR)
 
 clean-protos:
-	rm -rf $(REPOSITORY_ROOT)/pkg/pb/
+	rm -rf $(REPOSITORY_ROOT)/pkg/gopb/
 	rm -rf $(REPOSITORY_ROOT)/internal/ipb/
 
 clean-binaries:

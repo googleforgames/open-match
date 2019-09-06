@@ -29,7 +29,7 @@ import (
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	"open-match.dev/open-match/pkg/structs"
 )
 
@@ -40,13 +40,13 @@ func TestDoCreateTickets(t *testing.T) {
 	tests := []struct {
 		description string
 		preAction   func(cancel context.CancelFunc)
-		ticket      *pb.Ticket
+		ticket      *gopb.Ticket
 		wantCode    codes.Code
 	}{
 		{
 			description: "expect error with canceled context",
 			preAction:   func(cancel context.CancelFunc) { cancel() },
-			ticket: &pb.Ticket{
+			ticket: &gopb.Ticket{
 				Properties: structs.Struct{
 					"test-property": structs.Number(1),
 				}.S(),
@@ -56,7 +56,7 @@ func TestDoCreateTickets(t *testing.T) {
 		{
 			description: "expect normal return with default context",
 			preAction:   func(_ context.CancelFunc) {},
-			ticket: &pb.Ticket{
+			ticket: &gopb.Ticket{
 				Properties: structs.Struct{
 					"test-property": structs.Number(1),
 				}.S(),
@@ -73,7 +73,7 @@ func TestDoCreateTickets(t *testing.T) {
 			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
 			test.preAction(cancel)
 
-			res, err := doCreateTicket(ctx, &pb.CreateTicketRequest{Ticket: test.ticket}, store)
+			res, err := doCreateTicket(ctx, &gopb.CreateTicketRequest{Ticket: test.ticket}, store)
 			assert.Equal(t, test.wantCode, status.Convert(err).Code())
 			if err == nil {
 				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetTicket().GetId())
@@ -86,12 +86,12 @@ func TestDoCreateTickets(t *testing.T) {
 }
 
 func TestDoGetAssignments(t *testing.T) {
-	testTicket := &pb.Ticket{
+	testTicket := &gopb.Ticket{
 		Id: "test-id",
 	}
 
-	senderGenerator := func(tmp []*pb.Assignment, stopCount int) func(*pb.Assignment) error {
-		return func(assignment *pb.Assignment) error {
+	senderGenerator := func(tmp []*gopb.Assignment, stopCount int) func(*gopb.Assignment) error {
+		return func(assignment *gopb.Assignment) error {
 			tmp = append(tmp, assignment)
 			if len(tmp) == stopCount {
 				return errors.New("some error")
@@ -102,19 +102,19 @@ func TestDoGetAssignments(t *testing.T) {
 
 	tests := []struct {
 		description     string
-		preAction       func(context.Context, *testing.T, statestore.Service, []*pb.Assignment, *sync.WaitGroup)
+		preAction       func(context.Context, *testing.T, statestore.Service, []*gopb.Assignment, *sync.WaitGroup)
 		wantCode        codes.Code
-		wantAssignments []*pb.Assignment
+		wantAssignments []*gopb.Assignment
 	}{
 		{
 			description:     "expect error because ticket id does not exist",
-			preAction:       func(_ context.Context, _ *testing.T, _ statestore.Service, _ []*pb.Assignment, _ *sync.WaitGroup) {},
+			preAction:       func(_ context.Context, _ *testing.T, _ statestore.Service, _ []*gopb.Assignment, _ *sync.WaitGroup) {},
 			wantCode:        codes.NotFound,
-			wantAssignments: []*pb.Assignment{},
+			wantAssignments: []*gopb.Assignment{},
 		},
 		{
 			description: "expect two assignment reads from preAction writes and fail in grpc aborted code",
-			preAction: func(ctx context.Context, t *testing.T, store statestore.Service, wantAssignments []*pb.Assignment, wg *sync.WaitGroup) {
+			preAction: func(ctx context.Context, t *testing.T, store statestore.Service, wantAssignments []*gopb.Assignment, wg *sync.WaitGroup) {
 				assert.Nil(t, store.CreateTicket(ctx, testTicket))
 
 				go func(wg *sync.WaitGroup) {
@@ -126,7 +126,7 @@ func TestDoGetAssignments(t *testing.T) {
 				}(wg)
 			},
 			wantCode:        codes.Aborted,
-			wantAssignments: []*pb.Assignment{{Connection: "1"}, {Connection: "2"}},
+			wantAssignments: []*gopb.Assignment{{Connection: "1"}, {Connection: "2"}},
 		},
 	}
 
@@ -140,7 +140,7 @@ func TestDoGetAssignments(t *testing.T) {
 
 			ctx := utilTesting.NewContext(t)
 
-			gotAssignments := []*pb.Assignment{}
+			gotAssignments := []*gopb.Assignment{}
 
 			test.preAction(ctx, t, store, test.wantAssignments, &wg)
 			err := doGetAssignments(ctx, testTicket.GetId(), senderGenerator(gotAssignments, len(test.wantAssignments)), store)
@@ -155,7 +155,7 @@ func TestDoGetAssignments(t *testing.T) {
 }
 
 func TestDoDeleteTicket(t *testing.T) {
-	fakeTicket := &pb.Ticket{
+	fakeTicket := &gopb.Ticket{
 		Id: "1",
 		Properties: structs.Struct{
 			"test-property": structs.Number(1),
@@ -203,7 +203,7 @@ func TestDoDeleteTicket(t *testing.T) {
 }
 
 func TestDoGetTicket(t *testing.T) {
-	fakeTicket := &pb.Ticket{
+	fakeTicket := &gopb.Ticket{
 		Id: "1",
 		Properties: structs.Struct{
 			"test-property": structs.Number(1),
@@ -213,7 +213,7 @@ func TestDoGetTicket(t *testing.T) {
 	tests := []struct {
 		description string
 		preAction   func(context.Context, context.CancelFunc, statestore.Service)
-		wantTicket  *pb.Ticket
+		wantTicket  *gopb.Ticket
 		wantCode    codes.Code
 	}{
 		{

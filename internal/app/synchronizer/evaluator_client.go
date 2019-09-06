@@ -28,11 +28,11 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 type evaluator interface {
-	evaluate(context.Context, []*pb.Match) ([]*pb.Match, error)
+	evaluate(context.Context, []*gopb.Match) ([]*gopb.Match, error)
 }
 
 type clientType int
@@ -54,7 +54,7 @@ var (
 type evaluatorClient struct {
 	clType     clientType
 	cfg        config.View
-	grpcClient pb.EvaluatorClient
+	grpcClient gopb.EvaluatorClient
 	httpClient *http.Client
 	baseURL    string
 	m          sync.Mutex
@@ -62,7 +62,7 @@ type evaluatorClient struct {
 
 // evaluate method triggers execution of user evaluation function. It initializes the configured
 // GRPC or HTTP client. If the client was already initialized, initialize is a no-op.
-func (ec *evaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) (result []*pb.Match, err error) {
+func (ec *evaluatorClient) evaluate(ctx context.Context, proposals []*gopb.Match) (result []*gopb.Match, err error) {
 	if err := ec.initialize(); err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (ec *evaluatorClient) initialize() error {
 		evaluatorClientLogger.WithFields(logrus.Fields{
 			"endpoint": grpcAddr,
 		}).Info("Created a GRPC client for input endpoint.")
-		ec.grpcClient = pb.NewEvaluatorClient(conn)
+		ec.grpcClient = gopb.NewEvaluatorClient(conn)
 		ec.clType = grpcEvaluator
 	}
 
@@ -116,14 +116,14 @@ func (ec *evaluatorClient) initialize() error {
 	return nil
 }
 
-func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*gopb.Match) ([]*gopb.Match, error) {
 	stream, err := ec.grpcClient.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, proposal := range proposals {
-		if err = stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
+		if err = stream.Send(&gopb.EvaluateRequest{Match: proposal}); err != nil {
 			return nil, err
 		}
 	}
@@ -132,7 +132,7 @@ func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Mat
 		logger.Errorf("failed to close the send stream: %s", err.Error())
 	}
 
-	var results = []*pb.Match{}
+	var results = []*gopb.Match{}
 	for {
 		// TODO: add grpc timeouts for this call.
 		resp, err := stream.Recv()
@@ -149,7 +149,7 @@ func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Mat
 	return results, nil
 }
 
-func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*gopb.Match) ([]*gopb.Match, error) {
 	reqr, reqw := io.Pipe()
 	proposalIDs := getMatchIds(proposals)
 	var wg sync.WaitGroup
@@ -166,7 +166,7 @@ func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Mat
 			}
 		}()
 		for _, proposal := range proposals {
-			buf, err := m.MarshalToString(&pb.EvaluateRequest{Match: proposal})
+			buf, err := m.MarshalToString(&gopb.EvaluateRequest{Match: proposal})
 			if err != nil {
 				sc <- status.Errorf(codes.FailedPrecondition, "failed to marshal proposal to string: %s", err.Error())
 				return
@@ -197,7 +197,7 @@ func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Mat
 	}()
 
 	wg.Add(1)
-	var results = []*pb.Match{}
+	var results = []*gopb.Match{}
 	rc := make(chan error, 1)
 	defer close(rc)
 	go func() {
@@ -221,9 +221,9 @@ func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Mat
 				rc <- status.Errorf(codes.Unavailable, "failed to execute evaluator.Evaluate: %v", item.Error)
 				return
 			}
-			resp := &pb.EvaluateResponse{}
+			resp := &gopb.EvaluateResponse{}
 			if err = jsonpb.UnmarshalString(string(item.Result), resp); err != nil {
-				rc <- status.Errorf(codes.Unavailable, "failed to execute jsonpb.UnmarshalString(%s, &proposal): %v.", item.Result, err)
+				rc <- status.Errorf(codes.Unavailable, "failed to execute jsongopb.UnmarshalString(%s, &proposal): %v.", item.Result, err)
 				return
 			}
 			results = append(results, resp.GetMatch())

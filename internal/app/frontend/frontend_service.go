@@ -25,7 +25,7 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/internal/telemetry"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 // frontendService implements the Frontend service that is used to create
@@ -49,7 +49,7 @@ var (
 // CreateTicket will create a new ticket, assign an id to it and put it in state
 // storage. It will index the Ticket attributes based on the indexing configuration.
 // Indexing a Ticket adds the it to the pool of Tickets considered for matchmaking.
-func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
+func (s *frontendService) CreateTicket(ctx context.Context, req *gopb.CreateTicketRequest) (*gopb.CreateTicketResponse, error) {
 	// Perform input validation.
 	if req.GetTicket() == nil {
 		return nil, status.Errorf(codes.InvalidArgument, ".ticket is required")
@@ -58,9 +58,9 @@ func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicket
 	return doCreateTicket(ctx, req, s.store)
 }
 
-func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store statestore.Service) (*pb.CreateTicketResponse, error) {
+func doCreateTicket(ctx context.Context, req *gopb.CreateTicketRequest, store statestore.Service) (*gopb.CreateTicketResponse, error) {
 	// Generate a ticket id and create a Ticket in state storage
-	ticket, ok := proto.Clone(req.Ticket).(*pb.Ticket)
+	ticket, ok := proto.Clone(req.Ticket).(*gopb.Ticket)
 	if !ok {
 		return nil, status.Error(codes.Internal, "failed to clone input ticket proto")
 	}
@@ -85,7 +85,7 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 	}
 
 	telemetry.IncrementCounter(ctx, mTicketsCreated)
-	return &pb.CreateTicketResponse{Ticket: ticket}, nil
+	return &gopb.CreateTicketResponse{Ticket: ticket}, nil
 }
 
 // DeleteTicket removes the Ticket from state storage and from corresponding
@@ -93,13 +93,13 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 // Deleting a ticket immediately stops the ticket from being
 // considered for future matchmaking requests, yet when the ticket itself will be deleted
 // is undeterministic. Users may still be able to assign/get a ticket after calling DeleteTicket on it.
-func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*pb.DeleteTicketResponse, error) {
+func (s *frontendService) DeleteTicket(ctx context.Context, req *gopb.DeleteTicketRequest) (*gopb.DeleteTicketResponse, error) {
 	err := doDeleteTicket(ctx, req.GetTicketId(), s.store)
 	if err != nil {
 		return nil, err
 	}
 	telemetry.IncrementCounter(ctx, mTicketsDeleted)
-	return &pb.DeleteTicketResponse{}, nil
+	return &gopb.DeleteTicketResponse{}, nil
 }
 
 func doDeleteTicket(ctx context.Context, id string, store statestore.Service) error {
@@ -131,12 +131,12 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 }
 
 // GetTicket returns the Ticket associated with the specified Ticket id.
-func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketRequest) (*pb.Ticket, error) {
+func (s *frontendService) GetTicket(ctx context.Context, req *gopb.GetTicketRequest) (*gopb.Ticket, error) {
 	telemetry.IncrementCounter(ctx, mTicketsRetrieved)
 	return doGetTickets(ctx, req.GetTicketId(), s.store)
 }
 
-func doGetTickets(ctx context.Context, id string, store statestore.Service) (*pb.Ticket, error) {
+func doGetTickets(ctx context.Context, id string, store statestore.Service) (*gopb.Ticket, error) {
 	ticket, err := store.GetTicket(ctx, id)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
@@ -151,28 +151,28 @@ func doGetTickets(ctx context.Context, id string, store statestore.Service) (*pb
 
 // GetTicketUpdates streams matchmaking results from Open Match for the
 // provided Ticket id.
-func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream pb.Frontend_GetAssignmentsServer) error {
+func (s *frontendService) GetAssignments(req *gopb.GetAssignmentsRequest, stream gopb.Frontend_GetAssignmentsServer) error {
 	ctx := stream.Context()
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			sender := func(assignment *pb.Assignment) error {
+			sender := func(assignment *gopb.Assignment) error {
 				telemetry.IncrementCounter(ctx, mTicketAssignmentsRetrieved)
-				return stream.Send(&pb.GetAssignmentsResponse{Assignment: assignment})
+				return stream.Send(&gopb.GetAssignmentsResponse{Assignment: assignment})
 			}
 			return doGetAssignments(ctx, req.GetTicketId(), sender, s.store)
 		}
 	}
 }
 
-func doGetAssignments(ctx context.Context, id string, sender func(*pb.Assignment) error, store statestore.Service) error {
-	var currAssignment *pb.Assignment
+func doGetAssignments(ctx context.Context, id string, sender func(*gopb.Assignment) error, store statestore.Service) error {
+	var currAssignment *gopb.Assignment
 	var ok bool
-	callback := func(assignment *pb.Assignment) error {
+	callback := func(assignment *gopb.Assignment) error {
 		if (currAssignment == nil && assignment != nil) || !proto.Equal(currAssignment, assignment) {
-			currAssignment, ok = proto.Clone(assignment).(*pb.Assignment)
+			currAssignment, ok = proto.Clone(assignment).(*gopb.Assignment)
 			if !ok {
 				return status.Error(codes.Internal, "failed to cast the assignment object")
 			}

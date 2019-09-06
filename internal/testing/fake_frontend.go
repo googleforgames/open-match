@@ -20,7 +20,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 // FakeFrontend is an empty gRPC handler.
@@ -32,24 +32,24 @@ type FakeFrontend struct {
 // for the attributes defined as indices the matchmakaking config. If the
 // attributes exist and are valid integers, they will be indexed. Creating a
 // ticket adds the Ticket to the pool of Tickets considered for matchmaking.
-func (s *FakeFrontend) CreateTicket(ctx context.Context, req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
-	return &pb.CreateTicketResponse{}, nil
+func (s *FakeFrontend) CreateTicket(ctx context.Context, req *gopb.CreateTicketRequest) (*gopb.CreateTicketResponse, error) {
+	return &gopb.CreateTicketResponse{}, nil
 }
 
 // DeleteTicket removes the Ticket from state storage and from corresponding
 // configured indices. Deleting the ticket stops the ticket from being
 // considered for future matchmaking requests.
-func (s *FakeFrontend) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*pb.DeleteTicketResponse, error) {
+func (s *FakeFrontend) DeleteTicket(ctx context.Context, req *gopb.DeleteTicketRequest) (*gopb.DeleteTicketResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
 // GetTicket fetches the ticket associated with the specified Ticket id.
-func (s *FakeFrontend) GetTicket(ctx context.Context, req *pb.GetTicketRequest) (*pb.Ticket, error) {
+func (s *FakeFrontend) GetTicket(ctx context.Context, req *gopb.GetTicketRequest) (*gopb.Ticket, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
 // GetAssignments streams matchmaking results from Open Match for the
 // provided Ticket id.
-func (s *FakeFrontend) GetAssignments(req *pb.GetAssignmentsRequest, stream pb.Frontend_GetAssignmentsServer) error {
+func (s *FakeFrontend) GetAssignments(req *gopb.GetAssignmentsRequest, stream gopb.Frontend_GetAssignmentsServer) error {
 	return status.Error(codes.Unimplemented, "not implemented")
 }

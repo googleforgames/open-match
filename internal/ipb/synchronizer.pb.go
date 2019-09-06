@@ -13,7 +13,7 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 	math "math"
-	pb "open-match.dev/open-match/pkg/pb"
+	gopb "open-match.dev/open-match/pkg/gopb"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -100,7 +100,7 @@ func (m *RegisterResponse) GetId() string {
 
 type EvaluateProposalsRequest struct {
 	// List of proposals to evaluate in the current synchronization cycle.
-	Match *pb.Match `protobuf:"bytes,1,opt,name=match,proto3" json:"match,omitempty"`
+	Match *gopb.Match `protobuf:"bytes,1,opt,name=match,proto3" json:"match,omitempty"`
 	// Identifier for this request issued during request registration.
 	Id                   string   `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -133,7 +133,7 @@ func (m *EvaluateProposalsRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_EvaluateProposalsRequest proto.InternalMessageInfo
 
-func (m *EvaluateProposalsRequest) GetMatch() *pb.Match {
+func (m *EvaluateProposalsRequest) GetMatch() *gopb.Match {
 	if m != nil {
 		return m.Match
 	}
@@ -149,10 +149,10 @@ func (m *EvaluateProposalsRequest) GetId() string {
 
 type EvaluateProposalsResponse struct {
 	// Results from evaluating proposals for this request.
-	Match                *pb.Match `protobuf:"bytes,1,opt,name=match,proto3" json:"match,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
-	XXX_unrecognized     []byte    `json:"-"`
-	XXX_sizecache        int32     `json:"-"`
+	Match                *gopb.Match `protobuf:"bytes,1,opt,name=match,proto3" json:"match,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
 }
 
 func (m *EvaluateProposalsResponse) Reset()         { *m = EvaluateProposalsResponse{} }
@@ -180,7 +180,7 @@ func (m *EvaluateProposalsResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_EvaluateProposalsResponse proto.InternalMessageInfo
 
-func (m *EvaluateProposalsResponse) GetMatch() *pb.Match {
+func (m *EvaluateProposalsResponse) GetMatch() *gopb.Match {
 	if m != nil {
 		return m.Match
 	}

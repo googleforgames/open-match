@@ -25,7 +25,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/testing/e2e"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	"open-match.dev/open-match/pkg/structs"
 )
 
@@ -36,14 +36,14 @@ func TestAssignTickets(t *testing.T) {
 	be := om.MustBackendGRPC()
 	ctx := om.Context()
 
-	ctResp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	ctResp, err := fe.CreateTicket(ctx, &gopb.CreateTicketRequest{Ticket: &gopb.Ticket{}})
 	assert.Nil(t, err)
 
 	var tt = []struct {
 		description    string
 		ticketIds      []string
-		assignment     *pb.Assignment
-		wantAssignment *pb.Assignment
+		assignment     *gopb.Assignment
+		wantAssignment *gopb.Assignment
 		wantCode       codes.Code
 	}{
 		{
@@ -63,22 +63,22 @@ func TestAssignTickets(t *testing.T) {
 		{
 			"expects not found code since ticket id does not exist in the statestore",
 			[]string{"2"},
-			&pb.Assignment{Connection: "localhost"},
+			&gopb.Assignment{Connection: "localhost"},
 			nil,
 			codes.NotFound,
 		},
 		{
 			"expects not found code since ticket id 'unknown id' does not exist in the statestore",
 			[]string{ctResp.GetTicket().GetId(), "unknown id"},
-			&pb.Assignment{Connection: "localhost"},
+			&gopb.Assignment{Connection: "localhost"},
 			nil,
 			codes.NotFound,
 		},
 		{
 			"expects ok code",
 			[]string{ctResp.GetTicket().GetId()},
-			&pb.Assignment{Connection: "localhost"},
-			&pb.Assignment{Connection: "localhost"},
+			&gopb.Assignment{Connection: "localhost"},
+			&gopb.Assignment{Connection: "localhost"},
 			codes.OK,
 		},
 	}
@@ -89,13 +89,13 @@ func TestAssignTickets(t *testing.T) {
 			t.Run(test.description, func(t *testing.T) {
 				t.Parallel()
 				ctx := om.Context()
-				_, err := be.AssignTickets(ctx, &pb.AssignTicketsRequest{TicketIds: test.ticketIds, Assignment: test.assignment})
+				_, err := be.AssignTickets(ctx, &gopb.AssignTicketsRequest{TicketIds: test.ticketIds, Assignment: test.assignment})
 				assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
 				// If assign ticket succeeds, validate the assignment
 				if err == nil {
 					for _, id := range test.ticketIds {
-						gtResp, err := fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: id})
+						gtResp, err := fe.GetTicket(ctx, &gopb.GetTicketRequest{TicketId: id})
 						assert.Nil(t, err)
 						// grpc will write something to the reserved fields of this protobuf object, so we have to do comparisons fields by fields.
 						assert.Equal(t, test.wantAssignment.GetConnection(), gtResp.GetAssignment().GetConnection())
@@ -118,17 +118,17 @@ func TestTicketLifeCycle(t *testing.T) {
 	assert.NotNil(fe)
 	ctx := om.Context()
 
-	ticket := &pb.Ticket{
+	ticket := &gopb.Ticket{
 		Properties: structs.Struct{
 			"test-property": structs.Number(1),
 		}.S(),
-		Assignment: &pb.Assignment{
+		Assignment: &gopb.Assignment{
 			Connection: "test-tbd",
 		},
 	}
 
 	// Create a ticket, validate that it got an id and set its id in the expected ticket.
-	resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
+	resp, err := fe.CreateTicket(ctx, &gopb.CreateTicketRequest{Ticket: ticket})
 	assert.NotNil(resp)
 	assert.Nil(err)
 	want := resp.Ticket
@@ -138,19 +138,19 @@ func TestTicketLifeCycle(t *testing.T) {
 	validateTicket(t, resp.GetTicket(), ticket)
 
 	// Fetch the ticket and validate that it is identical to the expected ticket.
-	gotTicket, err := fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: ticket.GetId()})
+	gotTicket, err := fe.GetTicket(ctx, &gopb.GetTicketRequest{TicketId: ticket.GetId()})
 	assert.NotNil(gotTicket)
 	assert.Nil(err)
 	validateTicket(t, gotTicket, ticket)
 
 	// Delete the ticket and validate that it was actually deleted.
-	_, err = fe.DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: ticket.GetId()})
+	_, err = fe.DeleteTicket(ctx, &gopb.DeleteTicketRequest{TicketId: ticket.GetId()})
 	assert.Nil(err)
 	validateDelete(ctx, t, fe, ticket.GetId())
 }
 
 // validateTicket validates that the fetched ticket is identical to the expected ticket.
-func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
+func validateTicket(t *testing.T, got *gopb.Ticket, want *gopb.Ticket) {
 	assert.Equal(t, got.GetId(), want.GetId())
 	assert.Equal(t, got.GetProperties().GetFields()["test-property"].GetNumberValue(), want.GetProperties().GetFields()["test-property"].GetNumberValue())
 	assert.Equal(t, got.GetAssignment().GetConnection(), want.GetAssignment().GetConnection())
@@ -160,7 +160,7 @@ func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
 
 // validateDelete validates that the ticket is actually deleted from the state storage.
 // Given that delete is async, this method retries fetch every 100ms up to 5 seconds.
-func validateDelete(ctx context.Context, t *testing.T, fe pb.FrontendClient, id string) {
+func validateDelete(ctx context.Context, t *testing.T, fe gopb.FrontendClient, id string) {
 	start := time.Now()
 	for {
 		if time.Since(start) > 5*time.Second {
@@ -168,7 +168,7 @@ func validateDelete(ctx context.Context, t *testing.T, fe pb.FrontendClient, id 
 		}
 
 		// Attempt to fetch the ticket every 100ms
-		_, err := fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: id})
+		_, err := fe.GetTicket(ctx, &gopb.GetTicketRequest{TicketId: id})
 		if err != nil {
 			// Only failure to fetch with NotFound should be considered as success.
 			assert.Equal(t, status.Code(err), codes.NotFound)

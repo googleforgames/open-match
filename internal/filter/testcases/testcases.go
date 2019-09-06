@@ -19,15 +19,15 @@ import (
 	"math"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	"open-match.dev/open-match/pkg/structs"
 )
 
 // TestCase defines a single filtering test case to run.
 type TestCase struct {
 	Name   string
-	Ticket *pb.Ticket
-	Filter *pb.Filter
+	Ticket *gopb.Ticket
+	Filter *gopb.Filter
 }
 
 // IncludedTestCases returns a list of test cases where using the given filter,
@@ -47,13 +47,13 @@ func ExcludedTestCases() []TestCase {
 	return []TestCase{
 		{
 			"missingField",
-			&pb.Ticket{
+			&gopb.Ticket{
 				// Using struct literals without helper for degenerate cases only.
 				Properties: &structpb.Struct{
 					Fields: map[string]*structpb.Value{},
 				},
 			},
-			&pb.Filter{
+			&gopb.Filter{
 				Attribute: "field",
 				Min:       5,
 				Max:       5,
@@ -62,13 +62,13 @@ func ExcludedTestCases() []TestCase {
 
 		{
 			"missingFieldsMap",
-			&pb.Ticket{
+			&gopb.Ticket{
 				// Using struct literals without helper for degenerate cases only.
 				Properties: &structpb.Struct{
 					Fields: nil,
 				},
 			},
-			&pb.Filter{
+			&gopb.Filter{
 				Attribute: "field",
 				Min:       5,
 				Max:       5,
@@ -77,11 +77,11 @@ func ExcludedTestCases() []TestCase {
 
 		{
 			"missingProperties",
-			&pb.Ticket{
+			&gopb.Ticket{
 				// Using struct literals without helper for degenerate cases only.
 				Properties: nil,
 			},
-			&pb.Filter{
+			&gopb.Filter{
 				Attribute: "field",
 				Min:       5,
 				Max:       5,
@@ -99,12 +99,12 @@ func ExcludedTestCases() []TestCase {
 func simpleRangeTest(name string, value, min, max float64) TestCase {
 	return TestCase{
 		name,
-		&pb.Ticket{
+		&gopb.Ticket{
 			Properties: structs.Struct{
 				"field": structs.Number(value),
 			}.S(),
 		},
-		&pb.Filter{
+		&gopb.Filter{
 			Attribute: "field",
 			Min:       min,
 			Max:       max,

@@ -33,7 +33,7 @@ import (
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/util"
-	pb "open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 type clusterOM struct {
@@ -52,48 +52,48 @@ func (com *clusterOM) withT(t *testing.T) OM {
 	}
 }
 
-func (com *clusterOM) MustFrontendGRPC() pb.FrontendClient {
+func (com *clusterOM) MustFrontendGRPC() gopb.FrontendClient {
 	conn, err := com.getGRPCClientFromServiceName("om-frontend")
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
 	com.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewFrontendClient(conn)
+	return gopb.NewFrontendClient(conn)
 }
 
-func (com *clusterOM) MustBackendGRPC() pb.BackendClient {
+func (com *clusterOM) MustBackendGRPC() gopb.BackendClient {
 	conn, err := com.getGRPCClientFromServiceName("om-backend")
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
 	com.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewBackendClient(conn)
+	return gopb.NewBackendClient(conn)
 }
 
-func (com *clusterOM) MustMmLogicGRPC() pb.MmLogicClient {
+func (com *clusterOM) MustMmLogicGRPC() gopb.MmLogicClient {
 	conn, err := com.getGRPCClientFromServiceName("om-mmlogic")
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
 	com.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewMmLogicClient(conn)
+	return gopb.NewMmLogicClient(conn)
 }
 
-func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {
+func (com *clusterOM) MustMmfConfigGRPC() *gopb.FunctionConfig {
 	host, port := com.getGRPCAddressFromServiceName("om-matchfunction")
-	return &pb.FunctionConfig{
+	return &gopb.FunctionConfig{
 		Host: host,
 		Port: port,
-		Type: pb.FunctionConfig_GRPC,
+		Type: gopb.FunctionConfig_GRPC,
 	}
 }
 
-func (com *clusterOM) MustMmfConfigHTTP() *pb.FunctionConfig {
+func (com *clusterOM) MustMmfConfigHTTP() *gopb.FunctionConfig {
 	host, port := com.getHTTPAddressFromServiceName("om-matchfunction")
-	return &pb.FunctionConfig{
+	return &gopb.FunctionConfig{
 		Host: host,
 		Port: port,
-		Type: pb.FunctionConfig_REST,
+		Type: gopb.FunctionConfig_REST,
 	}
 }
 

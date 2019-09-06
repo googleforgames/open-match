@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"time"
 
+	"open-match.dev/open-match/pkg/gopb"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
-	"open-match.dev/open-match/pkg/pb"
 )
 
 var (
@@ -31,12 +31,12 @@ var (
 )
 
 // MakeMatches is where your custom matchmaking logic lives.
-func MakeMatches(p *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
+func MakeMatches(p *mmfHarness.MatchFunctionParams) ([]*gopb.Match, error) {
 	// This simple match function does the following things
 	// 1. Deduplicates the tickets from the pools into a single list.
 	// 2. Groups players into 1v1 matches.
 
-	tickets := map[string]*pb.Ticket{}
+	tickets := map[string]*gopb.Ticket{}
 
 	for _, pool := range p.PoolNameToTickets {
 		for _, ticket := range pool {
@@ -44,25 +44,25 @@ func MakeMatches(p *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 		}
 	}
 
-	var matches []*pb.Match
+	var matches []*gopb.Match
 
 	t := time.Now().Format("2006-01-02T15:04:05.00")
 
-	thisMatch := make([]*pb.Ticket, 0, 2)
+	thisMatch := make([]*gopb.Ticket, 0, 2)
 	matchNum := 0
 
 	for _, ticket := range tickets {
 		thisMatch = append(thisMatch, ticket)
 
 		if len(thisMatch) >= 2 {
-			matches = append(matches, &pb.Match{
+			matches = append(matches, &gopb.Match{
 				MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", p.ProfileName, t, matchNum),
 				MatchProfile:  p.ProfileName,
 				MatchFunction: matchName,
 				Tickets:       thisMatch,
 			})
 
-			thisMatch = make([]*pb.Ticket, 0, 2)
+			thisMatch = make([]*gopb.Ticket, 0, 2)
 			matchNum++
 		}
 	}

@@ -28,7 +28,7 @@ import (
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	internalTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 func TestDoQueryTickets(t *testing.T) {
@@ -37,11 +37,11 @@ func TestDoQueryTickets(t *testing.T) {
 		attribute2 = "spd"
 	)
 
-	var actualTickets []*pb.Ticket
+	var actualTickets []*gopb.Ticket
 	fakeErr := errors.New("some error")
 
-	senderGenerator := func(err error) func(tickets []*pb.Ticket) error {
-		return func(tickets []*pb.Ticket) error {
+	senderGenerator := func(err error) func(tickets []*gopb.Ticket) error {
+		return func(tickets []*gopb.Ticket) error {
 			if err != nil {
 				return err
 			}
@@ -57,18 +57,18 @@ func TestDoQueryTickets(t *testing.T) {
 
 	tests := []struct {
 		description string
-		sender      func(tickets []*pb.Ticket) error
-		pool        *pb.Pool
+		sender      func(tickets []*gopb.Ticket) error
+		pool        *gopb.Pool
 		pageSize    int
 		action      func(context.Context, *testing.T, statestore.Service)
 		wantErr     error
-		wantTickets []*pb.Ticket
+		wantTickets []*gopb.Ticket
 	}{
 		{
 			"expect empty response from an empty store",
 			senderGenerator(nil),
-			&pb.Pool{
-				Filters: []*pb.Filter{
+			&gopb.Pool{
+				Filters: []*gopb.Filter{
 					{
 						Attribute: attribute1,
 						Min:       0,
@@ -84,8 +84,8 @@ func TestDoQueryTickets(t *testing.T) {
 		{
 			"expect tickets with attribute1 value in range of [0, 10] (inclusively)",
 			senderGenerator(nil),
-			&pb.Pool{
-				Filters: []*pb.Filter{
+			&gopb.Pool{
+				Filters: []*gopb.Filter{
 					{
 						Attribute: attribute1,
 						Min:       0,
@@ -109,8 +109,8 @@ func TestDoQueryTickets(t *testing.T) {
 		{
 			"expect error from canceled context",
 			senderGenerator(fakeErr),
-			&pb.Pool{
-				Filters: []*pb.Filter{
+			&gopb.Pool{
+				Filters: []*gopb.Filter{
 					{
 						Attribute: attribute1,
 						Min:       0,

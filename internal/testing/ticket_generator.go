@@ -18,7 +18,7 @@ package testing
 import (
 	"fmt"
 
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	"open-match.dev/open-match/pkg/structs"
 )
 
@@ -31,12 +31,12 @@ type Property struct {
 }
 
 // GenerateTickets takes in two property manifests to generate tickets with two fake properties for testing.
-func GenerateTickets(manifest1, manifest2 Property) []*pb.Ticket {
-	testTickets := make([]*pb.Ticket, 0)
+func GenerateTickets(manifest1, manifest2 Property) []*gopb.Ticket {
+	testTickets := make([]*gopb.Ticket, 0)
 
 	for i := manifest1.Min; i < manifest1.Max; i += manifest1.Interval {
 		for j := manifest2.Min; j < manifest2.Max; j += manifest2.Interval {
-			testTickets = append(testTickets, &pb.Ticket{
+			testTickets = append(testTickets, &gopb.Ticket{
 				Id: fmt.Sprintf("%s%f-%s%f", manifest1.Name, i, manifest2.Name, j),
 				Properties: structs.Struct{
 					manifest1.Name: structs.Number(i),

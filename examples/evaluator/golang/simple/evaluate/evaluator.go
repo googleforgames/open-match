@@ -16,19 +16,19 @@ package evaluate
 
 import (
 	"open-match.dev/open-match/examples"
+	"open-match.dev/open-match/pkg/gopb"
 	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
-	"open-match.dev/open-match/pkg/pb"
 )
 
 // Evaluate is where your custom evaluation logic lives.
 // This sample evaluator sorts and deduplicates the input matches.
-func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
-	scoreInDescendingOrder := func(a, b *pb.Match) bool {
+func Evaluate(p *harness.EvaluatorParams) ([]*gopb.Match, error) {
+	scoreInDescendingOrder := func(a, b *gopb.Match) bool {
 		return a.GetProperties().GetFields()[examples.MatchScore].GetNumberValue() > b.GetProperties().GetFields()[examples.MatchScore].GetNumberValue()
 	}
 	by(scoreInDescendingOrder).Sort(p.Matches)
 
-	results := []*pb.Match{}
+	results := []*gopb.Match{}
 	dedup := map[string]bool{}
 
 	for _, match := range p.Matches {
@@ -43,7 +43,7 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 	return results, nil
 }
 
-func isNonCollidingMatch(match *pb.Match, validTickets map[string]bool) bool {
+func isNonCollidingMatch(match *gopb.Match, validTickets map[string]bool) bool {
 	for _, ticket := range match.GetTickets() {
 		id := ticket.GetId()
 		if _, ok := validTickets[id]; ok {

@@ -17,7 +17,7 @@ package mmf
 import (
 	"testing"
 
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +27,7 @@ import (
 func TestMakeMatchesDeduplicate(t *testing.T) {
 	assert := assert.New(t)
 
-	poolNameToTickets := map[string][]*pb.Ticket{
+	poolNameToTickets := map[string][]*gopb.Ticket{
 		"pool1": {{Id: "1"}},
 		"pool2": {{Id: "1"}},
 	}
@@ -35,7 +35,7 @@ func TestMakeMatchesDeduplicate(t *testing.T) {
 	p := &mmfHarness.MatchFunctionParams{
 		Logger:            &logrus.Entry{},
 		ProfileName:       "test-profile",
-		Rosters:           []*pb.Roster{},
+		Rosters:           []*gopb.Roster{},
 		PoolNameToTickets: poolNameToTickets,
 	}
 
@@ -47,7 +47,7 @@ func TestMakeMatchesDeduplicate(t *testing.T) {
 func TestMakeMatches(t *testing.T) {
 	assert := assert.New(t)
 
-	poolNameToTickets := map[string][]*pb.Ticket{
+	poolNameToTickets := map[string][]*gopb.Ticket{
 		"pool1": {{Id: "1"}, {Id: "2"}, {Id: "3"}},
 		"pool2": {{Id: "4"}},
 		"pool3": {{Id: "5"}, {Id: "6"}, {Id: "7"}},
@@ -56,7 +56,7 @@ func TestMakeMatches(t *testing.T) {
 	p := &mmfHarness.MatchFunctionParams{
 		Logger:            &logrus.Entry{},
 		ProfileName:       "test-profile",
-		Rosters:           []*pb.Roster{},
+		Rosters:           []*gopb.Roster{},
 		PoolNameToTickets: poolNameToTickets,
 	}
 

@@ -23,7 +23,7 @@ import (
 
 	"open-match.dev/open-match/examples/demo/components"
 	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 func Run(ds *components.DemoShared) {
@@ -43,7 +43,7 @@ func isContextDone(ctx context.Context) bool {
 
 type status struct {
 	Status        string
-	LatestMatches []*pb.Match
+	LatestMatches []*gopb.Match
 }
 
 func run(ds *components.DemoShared) {
@@ -71,27 +71,27 @@ func run(ds *components.DemoShared) {
 		panic(err)
 	}
 	defer conn.Close()
-	be := pb.NewBackendClient(conn)
+	be := gopb.NewBackendClient(conn)
 
 	//////////////////////////////////////////////////////////////////////////////
 	s.Status = "Match Match: Sending Request"
 	ds.Update(s)
 
-	var matches []*pb.Match
+	var matches []*gopb.Match
 	{
-		req := &pb.FetchMatchesRequest{
-			Config: &pb.FunctionConfig{
+		req := &gopb.FetchMatchesRequest{
+			Config: &gopb.FunctionConfig{
 				Host: ds.Cfg.GetString("api.functions.hostname"),
 				Port: int32(ds.Cfg.GetInt("api.functions.grpcport")),
-				Type: pb.FunctionConfig_GRPC,
+				Type: gopb.FunctionConfig_GRPC,
 			},
-			Profiles: []*pb.MatchProfile{
+			Profiles: []*gopb.MatchProfile{
 				{
 					Name: "1v1",
-					Pools: []*pb.Pool{
+					Pools: []*gopb.Pool{
 						{
 							Name: "Everyone",
-							Filters: []*pb.Filter{
+							Filters: []*gopb.Filter{
 								{
 									Attribute: "mode.demo",
 									Min:       -100,
@@ -137,9 +137,9 @@ func run(ds *components.DemoShared) {
 			ids = append(ids, t.Id)
 		}
 
-		req := &pb.AssignTicketsRequest{
+		req := &gopb.AssignTicketsRequest{
 			TicketIds: ids,
-			Assignment: &pb.Assignment{
+			Assignment: &gopb.Assignment{
 				Connection: fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),
 			},
 		}

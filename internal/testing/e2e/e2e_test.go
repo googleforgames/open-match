@@ -17,7 +17,7 @@ package e2e
 import (
 	"testing"
 
-	pb "open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	"open-match.dev/open-match/pkg/structs"
 )
 
@@ -50,8 +50,8 @@ func TestCreateTicket(t *testing.T) {
 	om, closer := New(t)
 	defer closer()
 	fe := om.MustFrontendGRPC()
-	resp, err := fe.CreateTicket(om.Context(), &pb.CreateTicketRequest{
-		Ticket: &pb.Ticket{
+	resp, err := fe.CreateTicket(om.Context(), &gopb.CreateTicketRequest{
+		Ticket: &gopb.Ticket{
 			Properties: structs.Struct{
 				"test-property": structs.Number(1),
 			}.S(),

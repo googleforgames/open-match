@@ -2,11 +2,11 @@
 // source: api/evaluator.proto
 
 /*
-Package pb is a reverse proxy.
+Package gopb is a reverse proxy.
 
 It translates gRPC into RESTful JSON APIs.
 */
-package pb
+package gopb
 
 import (
 	"context"

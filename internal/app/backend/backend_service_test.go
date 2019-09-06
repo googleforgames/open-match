@@ -28,7 +28,7 @@ import (
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	"open-match.dev/open-match/pkg/structs"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
@@ -41,22 +41,22 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 		t.Fatalf("cannot create TLS keys: %s", err)
 	}
 	secureCfg.Set("api.tls.rootCertificateFile", pub)
-	restFuncCfg := &pb.FetchMatchesRequest{
-		Config:   &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_REST},
-		Profiles: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
+	restFuncCfg := &gopb.FetchMatchesRequest{
+		Config:   &gopb.FunctionConfig{Host: "om-test", Port: 54321, Type: gopb.FunctionConfig_REST},
+		Profiles: []*gopb.MatchProfile{{Name: "1"}, {Name: "2"}},
 	}
-	grpcFuncCfg := &pb.FetchMatchesRequest{
-		Config:   &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_GRPC},
-		Profiles: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
+	grpcFuncCfg := &gopb.FetchMatchesRequest{
+		Config:   &gopb.FunctionConfig{Host: "om-test", Port: 54321, Type: gopb.FunctionConfig_GRPC},
+		Profiles: []*gopb.MatchProfile{{Name: "1"}, {Name: "2"}},
 	}
-	unsupporteFuncCfg := &pb.FetchMatchesRequest{
-		Config:   &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: 3},
-		Profiles: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
+	unsupporteFuncCfg := &gopb.FetchMatchesRequest{
+		Config:   &gopb.FunctionConfig{Host: "om-test", Port: 54321, Type: 3},
+		Profiles: []*gopb.MatchProfile{{Name: "1"}, {Name: "2"}},
 	}
 
 	tests := []struct {
 		description string
-		req         *pb.FetchMatchesRequest
+		req         *gopb.FetchMatchesRequest
 		wantErr     error
 		cfg         config.View
 	}{
@@ -107,7 +107,7 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 	tests := []struct {
 		description string
 		preAction   func(chan mmfResult, context.CancelFunc)
-		wantMatches []*pb.Match
+		wantMatches []*gopb.Match
 		wantCode    codes.Code
 	}{
 		{
@@ -124,7 +124,7 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 		{
 			description: "test the filter can return an error when one of the mmfResult contains an error",
 			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1", Tickets: []*pb.Ticket{{Id: "123"}}}}, err: nil}
+				mmfChan <- mmfResult{matches: []*gopb.Match{{MatchId: "1", Tickets: []*gopb.Ticket{{Id: "123"}}}}, err: nil}
 				mmfChan <- mmfResult{matches: nil, err: status.Error(codes.Unknown, "some error")}
 			},
 			wantMatches: nil,
@@ -133,19 +133,19 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 		{
 			description: "test the filter can return an error when one of the mmf calls return match with empty tickets",
 			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1"}}, err: nil}
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "2"}}, err: nil}
+				mmfChan <- mmfResult{matches: []*gopb.Match{{MatchId: "1"}}, err: nil}
+				mmfChan <- mmfResult{matches: []*gopb.Match{{MatchId: "2"}}, err: nil}
 			},
-			wantMatches: []*pb.Match{{MatchId: "1"}, {MatchId: "2"}},
+			wantMatches: []*gopb.Match{{MatchId: "1"}, {MatchId: "2"}},
 			wantCode:    codes.FailedPrecondition,
 		},
 		{
 			description: "test the filter can return proposals when all mmfResults are valid",
 			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1", Tickets: []*pb.Ticket{{Id: "123"}}}}, err: nil}
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "2", Tickets: []*pb.Ticket{{Id: "321"}}}}, err: nil}
+				mmfChan <- mmfResult{matches: []*gopb.Match{{MatchId: "1", Tickets: []*gopb.Ticket{{Id: "123"}}}}, err: nil}
+				mmfChan <- mmfResult{matches: []*gopb.Match{{MatchId: "2", Tickets: []*gopb.Ticket{{Id: "321"}}}}, err: nil}
 			},
-			wantMatches: []*pb.Match{{MatchId: "1", Tickets: []*pb.Ticket{{Id: "123"}}}, {MatchId: "2", Tickets: []*pb.Ticket{{Id: "321"}}}},
+			wantMatches: []*gopb.Match{{MatchId: "1", Tickets: []*gopb.Ticket{{Id: "123"}}}, {MatchId: "2", Tickets: []*gopb.Ticket{{Id: "321"}}}},
 			wantCode:    codes.OK,
 		},
 	}
@@ -171,7 +171,7 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 
 func TestDoAssignTickets(t *testing.T) {
 	fakeProperty := "test-property"
-	fakeTickets := []*pb.Ticket{
+	fakeTickets := []*gopb.Ticket{
 		{
 			Id: "1",
 			Properties: structs.Struct{
@@ -189,18 +189,18 @@ func TestDoAssignTickets(t *testing.T) {
 	tests := []struct {
 		description    string
 		preAction      func(context.Context, context.CancelFunc, statestore.Service)
-		req            *pb.AssignTicketsRequest
+		req            *gopb.AssignTicketsRequest
 		wantCode       codes.Code
-		wantAssignment *pb.Assignment
+		wantAssignment *gopb.Assignment
 	}{
 		{
 			description: "expect unavailable code since context is canceled before being called",
 			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
 				cancel()
 			},
-			req: &pb.AssignTicketsRequest{
+			req: &gopb.AssignTicketsRequest{
 				TicketIds:  []string{"1"},
-				Assignment: &pb.Assignment{},
+				Assignment: &gopb.Assignment{},
 			},
 			wantCode: codes.Unavailable,
 		},
@@ -209,15 +209,15 @@ func TestDoAssignTickets(t *testing.T) {
 			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
 				cancel()
 			},
-			req:      &pb.AssignTicketsRequest{},
+			req:      &gopb.AssignTicketsRequest{},
 			wantCode: codes.InvalidArgument,
 		},
 		{
 			description: "expect not found code since ticket does not exist",
 			preAction:   func(_ context.Context, _ context.CancelFunc, _ statestore.Service) {},
-			req: &pb.AssignTicketsRequest{
+			req: &gopb.AssignTicketsRequest{
 				TicketIds: []string{"1", "2"},
-				Assignment: &pb.Assignment{
+				Assignment: &gopb.Assignment{
 					Connection: "123",
 				},
 			},
@@ -231,25 +231,25 @@ func TestDoAssignTickets(t *testing.T) {
 					store.IndexTicket(ctx, fakeTicket)
 				}
 				// Make sure tickets are correctly indexed.
-				var wantFilteredTickets []*pb.Ticket
-				pool := &pb.Pool{
-					Filters: []*pb.Filter{{Attribute: fakeProperty, Min: 0, Max: 3}},
+				var wantFilteredTickets []*gopb.Ticket
+				pool := &gopb.Pool{
+					Filters: []*gopb.Filter{{Attribute: fakeProperty, Min: 0, Max: 3}},
 				}
-				err := store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
+				err := store.FilterTickets(ctx, pool, 10, func(filterTickets []*gopb.Ticket) error {
 					wantFilteredTickets = filterTickets
 					return nil
 				})
 				assert.Nil(t, err)
 				assert.Equal(t, len(fakeTickets), len(wantFilteredTickets))
 			},
-			req: &pb.AssignTicketsRequest{
+			req: &gopb.AssignTicketsRequest{
 				TicketIds: []string{"1", "2"},
-				Assignment: &pb.Assignment{
+				Assignment: &gopb.Assignment{
 					Connection: "123",
 				},
 			},
 			wantCode: codes.OK,
-			wantAssignment: &pb.Assignment{
+			wantAssignment: &gopb.Assignment{
 				Connection: "123",
 			},
 		},
@@ -277,11 +277,11 @@ func TestDoAssignTickets(t *testing.T) {
 				}
 
 				// Make sure tickets are deindexed after assignment
-				var wantFilteredTickets []*pb.Ticket
-				pool := &pb.Pool{
-					Filters: []*pb.Filter{{Attribute: fakeProperty, Min: 0, Max: 2}},
+				var wantFilteredTickets []*gopb.Ticket
+				pool := &gopb.Pool{
+					Filters: []*gopb.Filter{{Attribute: fakeProperty, Min: 0, Max: 2}},
 				}
-				store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
+				store.FilterTickets(ctx, pool, 10, func(filterTickets []*gopb.Ticket) error {
 					wantFilteredTickets = filterTickets
 					return nil
 				})

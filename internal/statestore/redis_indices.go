@@ -20,14 +20,14 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 type indexedFields struct {
 	values map[string]float64
 }
 
-func extractIndexedFields(cfg config.View, t *pb.Ticket) indexedFields {
+func extractIndexedFields(cfg config.View, t *gopb.Ticket) indexedFields {
 	result := indexedFields{
 		values: make(map[string]float64),
 	}
@@ -64,7 +64,7 @@ type indexFilter struct {
 	min, max float64
 }
 
-func extractIndexFilters(p *pb.Pool) []indexFilter {
+func extractIndexFilters(p *gopb.Pool) []indexFilter {
 	filters := make([]indexFilter, 0)
 
 	for _, f := range p.Filters {

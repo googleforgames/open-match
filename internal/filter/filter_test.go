@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"open-match.dev/open-match/internal/filter/testcases"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	"open-match.dev/open-match/pkg/structs"
 )
 
@@ -27,7 +27,7 @@ import (
 // all specific Filter and Ticket Property interaction.
 
 func TestFilter(t *testing.T) {
-	tickets := []*pb.Ticket{
+	tickets := []*gopb.Ticket{
 		{
 			Id: "good",
 			Properties: structs.Struct{
@@ -61,7 +61,7 @@ func TestFilter(t *testing.T) {
 		},
 	}
 
-	filters := []*pb.Filter{
+	filters := []*gopb.Filter{
 		{
 			Attribute: "field1",
 			Min:       0,
@@ -86,11 +86,11 @@ func TestFilter(t *testing.T) {
 }
 
 func TestInFilters(t *testing.T) {
-	ticket := &pb.Ticket{
+	ticket := &gopb.Ticket{
 		Id: "good",
 	}
 
-	filters := []*pb.Filter{}
+	filters := []*gopb.Filter{}
 
 	passed := InFilters(ticket, filters)
 

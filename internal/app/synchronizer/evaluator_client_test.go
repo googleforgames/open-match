@@ -25,8 +25,8 @@ import (
 	simple "open-match.dev/open-match/examples/evaluator/golang/simple/evaluate"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
+	"open-match.dev/open-match/pkg/gopb"
 	evalHarness "open-match.dev/open-match/pkg/harness/evaluator/golang"
-	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/pkg/structs"
 )
 
@@ -43,37 +43,37 @@ func TestEvaluator(t *testing.T) {
 	cfg.Set("api.evaluator.grpcport", tc.GetGRPCPort())
 	cfg.Set("api.evaluator.httpport", tc.GetHTTPPort())
 
-	ticket1 := &pb.Ticket{Id: "1"}
-	ticket2 := &pb.Ticket{Id: "2"}
-	ticket3 := &pb.Ticket{Id: "3"}
+	ticket1 := &gopb.Ticket{Id: "1"}
+	ticket2 := &gopb.Ticket{Id: "2"}
+	ticket3 := &gopb.Ticket{Id: "3"}
 
-	ticket12Score1 := &pb.Match{
+	ticket12Score1 := &gopb.Match{
 		MatchId: "12",
-		Tickets: []*pb.Ticket{ticket1, ticket2},
+		Tickets: []*gopb.Ticket{ticket1, ticket2},
 		Properties: structs.Struct{
 			examples.MatchScore: structs.Number(1),
 		}.S(),
 	}
 
-	ticket12Score10 := &pb.Match{
+	ticket12Score10 := &gopb.Match{
 		MatchId: "21",
-		Tickets: []*pb.Ticket{ticket2, ticket1},
+		Tickets: []*gopb.Ticket{ticket2, ticket1},
 		Properties: structs.Struct{
 			examples.MatchScore: structs.Number(10),
 		}.S(),
 	}
 
-	ticket123Score5 := &pb.Match{
+	ticket123Score5 := &gopb.Match{
 		MatchId: "123",
-		Tickets: []*pb.Ticket{ticket1, ticket2, ticket3},
+		Tickets: []*gopb.Ticket{ticket1, ticket2, ticket3},
 		Properties: structs.Struct{
 			examples.MatchScore: structs.Number(5),
 		}.S(),
 	}
 
-	ticket3Score50 := &pb.Match{
+	ticket3Score50 := &gopb.Match{
 		MatchId: "3",
-		Tickets: []*pb.Ticket{ticket3},
+		Tickets: []*gopb.Ticket{ticket3},
 		Properties: structs.Struct{
 			examples.MatchScore: structs.Number(50),
 		}.S(),
@@ -81,33 +81,33 @@ func TestEvaluator(t *testing.T) {
 
 	tests := []struct {
 		description string
-		testMatches []*pb.Match
-		wantMatches []*pb.Match
+		testMatches []*gopb.Match
+		wantMatches []*gopb.Match
 	}{
 		{
 			description: "test empty request returns empty response",
-			testMatches: []*pb.Match{},
-			wantMatches: []*pb.Match{},
+			testMatches: []*gopb.Match{},
+			wantMatches: []*gopb.Match{},
 		},
 		{
 			description: "test input matches output when receiving one match",
-			testMatches: []*pb.Match{ticket12Score1},
-			wantMatches: []*pb.Match{ticket12Score1},
+			testMatches: []*gopb.Match{ticket12Score1},
+			wantMatches: []*gopb.Match{ticket12Score1},
 		},
 		{
 			description: "test deduplicates and expect the one with higher score",
-			testMatches: []*pb.Match{ticket12Score1, ticket12Score10},
-			wantMatches: []*pb.Match{ticket12Score10},
+			testMatches: []*gopb.Match{ticket12Score1, ticket12Score10},
+			wantMatches: []*gopb.Match{ticket12Score10},
 		},
 		{
 			description: "test first returns matches with higher score",
-			testMatches: []*pb.Match{ticket123Score5, ticket12Score10},
-			wantMatches: []*pb.Match{ticket12Score10},
+			testMatches: []*gopb.Match{ticket123Score5, ticket12Score10},
+			wantMatches: []*gopb.Match{ticket12Score10},
 		},
 		{
 			description: "test evaluator returns two matches with the highest score",
-			testMatches: []*pb.Match{ticket12Score1, ticket12Score10, ticket123Score5, ticket3Score50},
-			wantMatches: []*pb.Match{ticket12Score10, ticket3Score50},
+			testMatches: []*gopb.Match{ticket12Score1, ticket12Score10, ticket123Score5, ticket3Score50},
+			wantMatches: []*gopb.Match{ticket12Score10, ticket3Score50},
 		},
 	}
 
@@ -131,7 +131,7 @@ func TestEvaluator(t *testing.T) {
 
 }
 
-func contains(matches []*pb.Match, match *pb.Match) bool {
+func contains(matches []*gopb.Match, match *gopb.Match) bool {
 	for _, m := range matches {
 		if proto.Equal(m, match) {
 			return true

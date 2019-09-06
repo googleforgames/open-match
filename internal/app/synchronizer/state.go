@@ -24,7 +24,7 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 type synchronizerStatus int
@@ -47,8 +47,8 @@ var (
 // The requestData holds the state of each pending request for evaluation. The
 // lifespan of this data is same as the lifespan of a request.
 type requestData struct {
-	proposals []*pb.Match // Proposals added by the request for evaluation.
-	results   []*pb.Match // Results from evaluation of the proposals.
+	proposals []*gopb.Match // Proposals added by the request for evaluation.
+	results   []*gopb.Match // Results from evaluation of the proposals.
 }
 
 // synchronizerData holds the state for a synchronization cycle. This data is
@@ -97,7 +97,7 @@ func (syncState *synchronizerState) resetCycleData() {
 	}
 }
 
-func (syncState *synchronizerState) addProposals(id string, proposals []*pb.Match) error {
+func (syncState *synchronizerState) addProposals(id string, proposals []*gopb.Match) error {
 	syncState.stateMutex.Lock()
 	defer syncState.stateMutex.Unlock()
 	if !syncState.canAcceptProposal() {
@@ -117,7 +117,7 @@ func (syncState *synchronizerState) addProposals(id string, proposals []*pb.Matc
 	syncState.cycleData.pendingRequests.Add(1)
 
 	// Copy the proposals being added to the request data for the specified id.
-	syncState.cycleData.idToRequestData[id].proposals = make([]*pb.Match, len(proposals))
+	syncState.cycleData.idToRequestData[id].proposals = make([]*gopb.Match, len(proposals))
 	copy(syncState.cycleData.idToRequestData[id].proposals, proposals)
 	return nil
 }
@@ -126,9 +126,9 @@ func (syncState *synchronizerState) canAcceptProposal() bool {
 	return syncState.status == statusProposalCollection || syncState.status == statusRequestRegistration
 }
 
-func (syncState *synchronizerState) fetchResults(id string) ([]*pb.Match, error) {
+func (syncState *synchronizerState) fetchResults(id string) ([]*gopb.Match, error) {
 	t := time.Now()
-	var results []*pb.Match
+	var results []*gopb.Match
 
 	// fetchMatches will block till evaluation is in progress. The resultsReady channel
 	// is closed only when evaluation is complete. This is used to signal all waiting
@@ -141,7 +141,7 @@ func (syncState *synchronizerState) fetchResults(id string) ([]*pb.Match, error)
 		return nil, syncState.cycleData.evalError
 	}
 
-	results = make([]*pb.Match, len(syncState.cycleData.idToRequestData[id].results))
+	results = make([]*gopb.Match, len(syncState.cycleData.idToRequestData[id].results))
 	copy(results, syncState.cycleData.idToRequestData[id].results)
 	logger.WithFields(logrus.Fields{
 		"id":      id,
@@ -158,7 +158,7 @@ func (syncState *synchronizerState) fetchResults(id string) ([]*pb.Match, error)
 // synchronizer state to idle.
 // NOTE: This method is always called while holding the synchronizer state mutex.
 func (syncState *synchronizerState) evaluate(ctx context.Context) {
-	aggregateProposals := []*pb.Match{}
+	aggregateProposals := []*gopb.Match{}
 	proposalMap := make(map[string]string)
 	for id, data := range syncState.cycleData.idToRequestData {
 		aggregateProposals = append(aggregateProposals, data.proposals...)
@@ -252,7 +252,7 @@ func (syncState *synchronizerState) proposalCollectionInterval() time.Duration {
 	return syncState.cfg.GetDuration(name)
 }
 
-func getMatchIds(matches []*pb.Match) []string {
+func getMatchIds(matches []*gopb.Match) []string {
 	var result []string
 	for _, m := range matches {
 		result = append(result, m.GetMatchId())

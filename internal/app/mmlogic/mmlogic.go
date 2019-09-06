@@ -19,7 +19,7 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 // BindService creates the mmlogic service and binds it to the serving harness.
@@ -32,8 +32,8 @@ func BindService(p *rpc.ServerParams, cfg config.View) error {
 	p.AddHealthCheckFunc(service.store.HealthCheck)
 
 	p.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterMmLogicServer(s, service)
-	}, pb.RegisterMmLogicHandlerFromEndpoint)
+		gopb.RegisterMmLogicServer(s, service)
+	}, gopb.RegisterMmLogicHandlerFromEndpoint)
 
 	return nil
 }

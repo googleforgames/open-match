@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/internal/statestore"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 func TestFakeStatestore(t *testing.T) {
@@ -32,7 +32,7 @@ func TestFakeStatestore(t *testing.T) {
 	s := statestore.New(cfg)
 	ctx := utilTesting.NewContext(t)
 
-	ticket := &pb.Ticket{
+	ticket := &gopb.Ticket{
 		Id: "abc",
 	}
 	assert.Nil(s.CreateTicket(ctx, ticket))

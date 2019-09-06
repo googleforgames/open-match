@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"open-match.dev/open-match/examples"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +29,7 @@ import (
 func TestMakeMatches(t *testing.T) {
 	assert := assert.New(t)
 
-	tickets := []*pb.Ticket{
+	tickets := []*gopb.Ticket{
 		{
 			Id: "1",
 			Properties: structs.Struct{
@@ -59,7 +59,7 @@ func TestMakeMatches(t *testing.T) {
 		},
 	}
 
-	poolNameToTickets := map[string][]*pb.Ticket{
+	poolNameToTickets := map[string][]*gopb.Ticket{
 		"pool1": tickets[:2],
 		"pool2": tickets[2:],
 	}
@@ -67,7 +67,7 @@ func TestMakeMatches(t *testing.T) {
 	p := &mmfHarness.MatchFunctionParams{
 		Logger:            &logrus.Entry{},
 		ProfileName:       "test-profile",
-		Rosters:           []*pb.Roster{},
+		Rosters:           []*gopb.Roster{},
 		PoolNameToTickets: poolNameToTickets,
 	}
 
@@ -75,9 +75,9 @@ func TestMakeMatches(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(len(matches), 2)
 
-	actual := []*pb.Match{}
+	actual := []*gopb.Match{}
 	for _, match := range matches {
-		actual = append(actual, &pb.Match{
+		actual = append(actual, &gopb.Match{
 			MatchProfile:  match.MatchProfile,
 			MatchFunction: match.MatchFunction,
 			Tickets:       match.Tickets,
@@ -86,17 +86,17 @@ func TestMakeMatches(t *testing.T) {
 		})
 	}
 
-	matchGen := func(poolName string, tickets []*pb.Ticket) *pb.Match {
+	matchGen := func(poolName string, tickets []*gopb.Ticket) *gopb.Match {
 		tids := []string{}
 		for _, ticket := range tickets {
 			tids = append(tids, ticket.GetId())
 		}
 
-		return &pb.Match{
+		return &gopb.Match{
 			MatchProfile:  p.ProfileName,
 			MatchFunction: matchName,
 			Tickets:       tickets,
-			Rosters:       []*pb.Roster{{Name: poolName, TicketIds: tids}},
+			Rosters:       []*gopb.Roster{{Name: poolName, TicketIds: tids}},
 			Properties: structs.Struct{
 				examples.MatchScore: structs.Number(scoreCalculator(tickets)),
 			}.S(),

@@ -29,9 +29,9 @@ import (
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/internal/util"
+	"open-match.dev/open-match/pkg/gopb"
 	evalHarness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
-	pb "open-match.dev/open-match/pkg/pb"
 )
 
 type inmemoryOM struct {
@@ -61,37 +61,37 @@ func createZygote(m *testing.M) (OM, error) {
 	return &inmemoryOM{}, nil
 }
 
-func (iom *inmemoryOM) MustFrontendGRPC() pb.FrontendClient {
+func (iom *inmemoryOM) MustFrontendGRPC() gopb.FrontendClient {
 	conn := iom.mainTc.MustGRPC()
 	iom.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewFrontendClient(conn)
+	return gopb.NewFrontendClient(conn)
 }
 
-func (iom *inmemoryOM) MustBackendGRPC() pb.BackendClient {
+func (iom *inmemoryOM) MustBackendGRPC() gopb.BackendClient {
 	conn := iom.mainTc.MustGRPC()
 	iom.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewBackendClient(conn)
+	return gopb.NewBackendClient(conn)
 }
 
-func (iom *inmemoryOM) MustMmLogicGRPC() pb.MmLogicClient {
+func (iom *inmemoryOM) MustMmLogicGRPC() gopb.MmLogicClient {
 	conn := iom.mainTc.MustGRPC()
 	iom.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewMmLogicClient(conn)
+	return gopb.NewMmLogicClient(conn)
 }
 
-func (iom *inmemoryOM) MustMmfConfigGRPC() *pb.FunctionConfig {
-	return &pb.FunctionConfig{
+func (iom *inmemoryOM) MustMmfConfigGRPC() *gopb.FunctionConfig {
+	return &gopb.FunctionConfig{
 		Host: iom.mmfTc.GetHostname(),
 		Port: int32(iom.mmfTc.GetGRPCPort()),
-		Type: pb.FunctionConfig_GRPC,
+		Type: gopb.FunctionConfig_GRPC,
 	}
 }
 
-func (iom *inmemoryOM) MustMmfConfigHTTP() *pb.FunctionConfig {
-	return &pb.FunctionConfig{
+func (iom *inmemoryOM) MustMmfConfigHTTP() *gopb.FunctionConfig {
+	return &gopb.FunctionConfig{
 		Host: iom.mmfTc.GetHostname(),
 		Port: int32(iom.mmfTc.GetHTTPPort()),
-		Type: pb.FunctionConfig_REST,
+		Type: gopb.FunctionConfig_REST,
 	}
 }
 

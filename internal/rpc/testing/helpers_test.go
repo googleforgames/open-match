@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
@@ -46,14 +46,14 @@ func runMustServeTest(t *testing.T, mustServeFunc func(*testing.T, func(*rpc.Ser
 	ff := &shellTesting.FakeFrontend{}
 	tc := mustServeFunc(t, func(spf *rpc.ServerParams) {
 		spf.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterFrontendServer(s, ff)
-		}, pb.RegisterFrontendHandlerFromEndpoint)
+			gopb.RegisterFrontendServer(s, ff)
+		}, gopb.RegisterFrontendHandlerFromEndpoint)
 	})
 	defer tc.Close()
 
 	conn := tc.MustGRPC()
-	c := pb.NewFrontendClient(conn)
-	resp, err := c.CreateTicket(tc.Context(), &pb.CreateTicketRequest{})
+	c := gopb.NewFrontendClient(conn)
+	resp, err := c.CreateTicket(tc.Context(), &gopb.CreateTicketRequest{})
 	assert.Nil(err)
 	assert.NotNil(resp)
 

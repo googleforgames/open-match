@@ -25,7 +25,7 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/statestore"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 // The service implementing the Synchronizer API that synchronizes the evaluation
@@ -88,7 +88,7 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 // matches accepted by it are returned as results.
 func (s *synchronizerService) EvaluateProposals(stream ipb.Synchronizer_EvaluateProposalsServer) error {
 	var id string
-	var proposals = []*pb.Match{}
+	var proposals = []*gopb.Match{}
 	for {
 		req, err := stream.Recv()
 		if err == io.EOF {
@@ -126,7 +126,7 @@ func (s *synchronizerService) EvaluateProposals(stream ipb.Synchronizer_Evaluate
 	return nil
 }
 
-func (s *synchronizerService) doEvaluateProposals(ctx context.Context, proposals []*pb.Match, id string) ([]*pb.Match, error) {
+func (s *synchronizerService) doEvaluateProposals(ctx context.Context, proposals []*gopb.Match, id string) ([]*gopb.Match, error) {
 	syncState := s.state
 
 	logger.WithFields(logrus.Fields{

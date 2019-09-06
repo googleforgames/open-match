@@ -24,7 +24,7 @@ import (
 	"open-match.dev/open-match/examples/demo/updater"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	"open-match.dev/open-match/pkg/structs"
 )
 
@@ -52,7 +52,7 @@ func isContextDone(ctx context.Context) bool {
 
 type status struct {
 	Status     string
-	Assignment *pb.Assignment
+	Assignment *gopb.Assignment
 }
 
 func runScenario(ctx context.Context, cfg config.View, name string, update updater.SetFunc) {
@@ -86,7 +86,7 @@ func runScenario(ctx context.Context, cfg config.View, name string, update updat
 		panic(err)
 	}
 	defer conn.Close()
-	fe := pb.NewFrontendClient(conn)
+	fe := gopb.NewFrontendClient(conn)
 
 	//////////////////////////////////////////////////////////////////////////////
 	s.Status = "Creating Open Match Ticket"
@@ -94,8 +94,8 @@ func runScenario(ctx context.Context, cfg config.View, name string, update updat
 
 	var ticketId string
 	{
-		req := &pb.CreateTicketRequest{
-			Ticket: &pb.Ticket{
+		req := &gopb.CreateTicketRequest{
+			Ticket: &gopb.Ticket{
 				Properties: structs.Struct{
 					"name":      structs.String(name),
 					"mode.demo": structs.Number(1),
@@ -114,9 +114,9 @@ func runScenario(ctx context.Context, cfg config.View, name string, update updat
 	s.Status = fmt.Sprintf("Waiting match with ticket Id %s", ticketId)
 	update(s)
 
-	var assignment *pb.Assignment
+	var assignment *gopb.Assignment
 	{
-		req := &pb.GetAssignmentsRequest{
+		req := &gopb.GetAssignmentsRequest{
 			TicketId: ticketId,
 		}
 

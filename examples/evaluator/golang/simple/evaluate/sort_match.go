@@ -17,20 +17,20 @@ package evaluate
 import (
 	"sort"
 
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 // by is the type of a "less" function that defines the ordering of its Planet arguments.
-type by func(p1, p2 *pb.Match) bool
+type by func(p1, p2 *gopb.Match) bool
 
 // matchSorter joins a By function and a slice of Matches to be sorted.
 type matchSorter struct {
-	matches []*pb.Match
-	by      func(a, b *pb.Match) bool // Closure used in the Less method.
+	matches []*gopb.Match
+	by      func(a, b *gopb.Match) bool // Closure used in the Less method.
 }
 
 // Sort is a method on the function type, By, that sorts the argument slice according to the function.
-func (by by) Sort(matches []*pb.Match) {
+func (by by) Sort(matches []*gopb.Match) {
 	sort.Sort(&matchSorter{
 		matches: matches,
 		by:      by, // The Sort method's receiver is the function (closure) that defines the sort order.

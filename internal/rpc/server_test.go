@@ -23,7 +23,7 @@ import (
 	"open-match.dev/open-match/internal/telemetry"
 	shellTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	"strings"
 	"testing"
 	"time"
@@ -37,8 +37,8 @@ func TestStartStopServer(t *testing.T) {
 
 	params := NewServerParamsFromListeners(grpcLh, httpLh)
 	params.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterFrontendServer(s, ff)
-	}, pb.RegisterFrontendHandlerFromEndpoint)
+		gopb.RegisterFrontendServer(s, ff)
+	}, gopb.RegisterFrontendHandlerFromEndpoint)
 	s := &Server{}
 	defer s.Stop()
 
@@ -65,8 +65,8 @@ func TestMustServeForever(t *testing.T) {
 
 	params := NewServerParamsFromListeners(grpcLh, httpLh)
 	params.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterFrontendServer(s, ff)
-	}, pb.RegisterFrontendHandlerFromEndpoint)
+		gopb.RegisterFrontendServer(s, ff)
+	}, gopb.RegisterFrontendHandlerFromEndpoint)
 	serveUntilKilledFunc, stopServingFunc, err := startServingIndefinitely(params)
 	assert.Nil(err)
 	go func() {
@@ -82,8 +82,8 @@ func TestMustServeForever(t *testing.T) {
 
 func runGrpcWithProxyTests(t *testing.T, assert *assert.Assertions, s grpcServerWithProxy, conn *grpc.ClientConn, httpClient *http.Client, endpoint string) {
 	ctx := utilTesting.NewContext(t)
-	feClient := pb.NewFrontendClient(conn)
-	grpcResp, err := feClient.CreateTicket(ctx, &pb.CreateTicketRequest{})
+	feClient := gopb.NewFrontendClient(conn)
+	grpcResp, err := feClient.CreateTicket(ctx, &gopb.CreateTicketRequest{})
 	assert.Nil(err)
 	assert.NotNil(grpcResp)
 

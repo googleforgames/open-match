@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 
 	"open-match.dev/open-match/internal/statestore"
 )
@@ -42,7 +42,7 @@ type mmlogicService struct {
 
 // GetPoolTickets gets the list of Tickets that match every Filter in the
 // specified Pool.
-func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.MmLogic_QueryTicketsServer) error {
+func (s *mmlogicService) QueryTickets(req *gopb.QueryTicketsRequest, responseServer gopb.MmLogic_QueryTicketsServer) error {
 	pool := req.GetPool()
 	if pool == nil {
 		return status.Error(codes.InvalidArgument, ".pool is required")
@@ -51,8 +51,8 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 	ctx := responseServer.Context()
 	pSize := getPageSize(s.cfg)
 
-	callback := func(tickets []*pb.Ticket) error {
-		err := responseServer.Send(&pb.QueryTicketsResponse{Tickets: tickets})
+	callback := func(tickets []*gopb.Ticket) error {
+		err := responseServer.Send(&gopb.QueryTicketsResponse{Tickets: tickets})
 		if err != nil {
 			logger.WithError(err).Error("Failed to send Redis response to grpc server")
 			return status.Errorf(codes.Aborted, err.Error())
@@ -63,7 +63,7 @@ func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServe
 	return doQueryTickets(ctx, pool, pSize, callback, s.store)
 }
 
-func doQueryTickets(ctx context.Context, pool *pb.Pool, pageSize int, sender func(tickets []*pb.Ticket) error, store statestore.Service) error {
+func doQueryTickets(ctx context.Context, pool *gopb.Pool, pageSize int, sender func(tickets []*gopb.Ticket) error, store statestore.Service) error {
 	// Send requests to the storage service
 	err := store.FilterTickets(ctx, pool, pageSize, sender)
 	if err != nil {

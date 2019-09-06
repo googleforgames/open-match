@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"open-match.dev/open-match/internal/telemetry"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 var (
@@ -50,13 +50,13 @@ func (is *instrumentedService) HealthCheck(ctx context.Context) error {
 }
 
 // CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
-func (is *instrumentedService) CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
+func (is *instrumentedService) CreateTicket(ctx context.Context, ticket *gopb.Ticket) error {
 	telemetry.IncrementCounter(ctx, mStateStoreCreateTicket)
 	return is.s.CreateTicket(ctx, ticket)
 }
 
 // GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
-func (is *instrumentedService) GetTicket(ctx context.Context, id string) (*pb.Ticket, error) {
+func (is *instrumentedService) GetTicket(ctx context.Context, id string) (*gopb.Ticket, error) {
 	telemetry.IncrementCounter(ctx, mStateStoreGetTicket)
 	return is.s.GetTicket(ctx, id)
 }
@@ -68,7 +68,7 @@ func (is *instrumentedService) DeleteTicket(ctx context.Context, id string) erro
 }
 
 // IndexTicket indexes the Ticket id for the configured index fields.
-func (is *instrumentedService) IndexTicket(ctx context.Context, ticket *pb.Ticket) error {
+func (is *instrumentedService) IndexTicket(ctx context.Context, ticket *gopb.Ticket) error {
 	telemetry.IncrementCounter(ctx, mStateStoreIndexTicket)
 	return is.s.IndexTicket(ctx, ticket)
 }
@@ -85,8 +85,8 @@ func (is *instrumentedService) DeindexTicket(ctx context.Context, id string) err
 //  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
-func (is *instrumentedService) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
-	return is.s.FilterTickets(ctx, pool, pageSize, func(t []*pb.Ticket) error {
+func (is *instrumentedService) FilterTickets(ctx context.Context, pool *gopb.Pool, pageSize int, callback func([]*gopb.Ticket) error) error {
+	return is.s.FilterTickets(ctx, pool, pageSize, func(t []*gopb.Ticket) error {
 		telemetry.IncrementCounterN(ctx, mStateStoreFilterTickets, len(t))
 		return callback(t)
 	})
@@ -96,14 +96,14 @@ func (is *instrumentedService) FilterTickets(ctx context.Context, pool *pb.Pool,
 // This function guarantees if any of the input ids does not exists, the state of the storage service won't be altered.
 // However, since Redis does not support transaction roll backs (see https://redis.io/topics/transactions), some of the
 // assignment fields might be partially updated if this function encounters an error halfway through the execution.
-func (is *instrumentedService) UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error {
+func (is *instrumentedService) UpdateAssignments(ctx context.Context, ids []string, assignment *gopb.Assignment) error {
 	telemetry.IncrementCounter(ctx, mStateStoreUpdateAssignments)
 	return is.s.UpdateAssignments(ctx, ids, assignment)
 }
 
 // GetAssignments returns the assignment associated with the input ticket id
-func (is *instrumentedService) GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error {
-	return is.s.GetAssignments(ctx, id, func(a *pb.Assignment) error {
+func (is *instrumentedService) GetAssignments(ctx context.Context, id string, callback func(*gopb.Assignment) error) error {
+	return is.s.GetAssignments(ctx, id, func(a *gopb.Assignment) error {
 		telemetry.IncrementCounter(ctx, mStateStoreGetAssignments)
 		return callback(a)
 	})

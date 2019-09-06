@@ -25,7 +25,7 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/testing/e2e"
 
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 func TestFetchMatches(t *testing.T) {
@@ -36,9 +36,9 @@ func TestFetchMatches(t *testing.T) {
 
 	var tt = []struct {
 		description string
-		fc          *pb.FunctionConfig
-		profile     []*pb.MatchProfile
-		wantMatch   []*pb.Match
+		fc          *gopb.FunctionConfig
+		profile     []*gopb.MatchProfile
+		wantMatch   []*gopb.Match
 		wantCode    codes.Code
 	}{
 		{
@@ -50,20 +50,20 @@ func TestFetchMatches(t *testing.T) {
 		},
 		{
 			"expects unavailable code since there is no mmf being hosted with given function config",
-			&pb.FunctionConfig{
+			&gopb.FunctionConfig{
 				Host: "om-matchfunction",
 				Port: int32(54321),
-				Type: pb.FunctionConfig_GRPC,
+				Type: gopb.FunctionConfig_GRPC,
 			},
-			[]*pb.MatchProfile{{Name: "some name"}},
-			[]*pb.Match{},
+			[]*gopb.MatchProfile{{Name: "some name"}},
+			[]*gopb.Match{},
 			codes.Unavailable,
 		},
 		{
 			"expects empty response since the store is empty",
 			om.MustMmfConfigGRPC(),
-			[]*pb.MatchProfile{{Name: "some name"}},
-			[]*pb.Match{},
+			[]*gopb.MatchProfile{{Name: "some name"}},
+			[]*gopb.Match{},
 			codes.OK,
 		},
 	}
@@ -75,11 +75,11 @@ func TestFetchMatches(t *testing.T) {
 				t.Parallel()
 				ctx := om.Context()
 
-				stream, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{Config: test.fc, Profiles: test.profile})
+				stream, err := be.FetchMatches(ctx, &gopb.FetchMatchesRequest{Config: test.fc, Profiles: test.profile})
 				assert.Nil(t, err)
 
-				var resp *pb.FetchMatchesResponse
-				var gotMatches []*pb.Match
+				var resp *gopb.FetchMatchesResponse
+				var gotMatches []*gopb.Match
 				for {
 					resp, err = stream.Recv()
 					if err == io.EOF {
@@ -89,7 +89,7 @@ func TestFetchMatches(t *testing.T) {
 						assert.Equal(t, test.wantCode, status.Convert(err).Code())
 						break
 					}
-					gotMatches = append(gotMatches, &pb.Match{
+					gotMatches = append(gotMatches, &gopb.Match{
 						MatchProfile:  resp.GetMatch().GetMatchProfile(),
 						MatchFunction: resp.GetMatch().GetMatchFunction(),
 						Tickets:       resp.GetMatch().GetTickets(),

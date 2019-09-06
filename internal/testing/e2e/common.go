@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	pb "open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 var (
@@ -33,17 +33,17 @@ var (
 // OM is the interface for communicating with Open Match.
 type OM interface {
 	// MustFrontendGRPC returns a gRPC client to frontend server.
-	MustFrontendGRPC() pb.FrontendClient
+	MustFrontendGRPC() gopb.FrontendClient
 	// MustBackendGRPC returns a gRPC client to backend server.
-	MustBackendGRPC() pb.BackendClient
+	MustBackendGRPC() gopb.BackendClient
 	// MustMmLogicGRPC returns a gRPC client to mmlogic server.
-	MustMmLogicGRPC() pb.MmLogicClient
+	MustMmLogicGRPC() gopb.MmLogicClient
 	// HealthCheck probes the cluster for readiness.
 	HealthCheck() error
 	// MustMmfConfigGRPC returns a grpc match function config for backend server.
-	MustMmfConfigGRPC() *pb.FunctionConfig
+	MustMmfConfigGRPC() *gopb.FunctionConfig
 	// MustMmfConfigHTTP returns a http match function config for backend server.
-	MustMmfConfigHTTP() *pb.FunctionConfig
+	MustMmfConfigHTTP() *gopb.FunctionConfig
 	// Context provides a context to call remote methods.
 	Context() context.Context
 

@@ -23,7 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 var (
@@ -41,14 +41,14 @@ var (
 //			A structure that defines the resources that are available to the match function.
 //			Developers can choose to add context to the structure such that match function has the ability
 //			to cancel a stream response/request or to limit match function by sharing a static and protected view.
-type MatchFunction func(*MatchFunctionParams) ([]*pb.Match, error)
+type MatchFunction func(*MatchFunctionParams) ([]*gopb.Match, error)
 
-// matchFunctionService implements pb.MatchFunctionServer, the server generated
-// by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
+// matchFunctionService implements gopb.MatchFunctionServer, the server generated
+// by compiling the protobuf, by fulfilling the gopb.MatchFunctionServer interface.
 type matchFunctionService struct {
 	cfg           config.View
 	function      MatchFunction
-	mmlogicClient pb.MmLogicClient
+	mmlogicClient gopb.MmLogicClient
 }
 
 // MatchFunctionParams : This harness example defines a protected view for the match function.
@@ -67,12 +67,12 @@ type MatchFunctionParams struct {
 	Logger            *logrus.Entry
 	ProfileName       string
 	Properties        *structpb.Struct
-	Rosters           []*pb.Roster
-	PoolNameToTickets map[string][]*pb.Ticket
+	Rosters           []*gopb.Roster
+	PoolNameToTickets map[string][]*gopb.Ticket
 }
 
 // Run is this harness's implementation of the gRPC call defined in api/matchfunction.proto.
-func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
+func (s *matchFunctionService) Run(req *gopb.RunRequest, stream gopb.MatchFunction_RunServer) error {
 	poolNameToTickets, err := s.getMatchManifest(stream.Context(), req)
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 	}).Trace("proposals returned by match function")
 
 	for _, proposal := range proposals {
-		if err := stream.Send(&pb.RunResponse{Proposal: proposal}); err != nil {
+		if err := stream.Send(&gopb.RunResponse{Proposal: proposal}); err != nil {
 			return err
 		}
 	}
@@ -114,24 +114,24 @@ func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunct
 		return nil, err
 	}
 
-	mmfService := &matchFunctionService{cfg: cfg, function: fs.Func, mmlogicClient: pb.NewMmLogicClient(conn)}
+	mmfService := &matchFunctionService{cfg: cfg, function: fs.Func, mmlogicClient: gopb.NewMmLogicClient(conn)}
 	return mmfService, nil
 }
 
 // getMatchManifest fetches all the data needed from the mmlogic API.
-func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.RunRequest) (map[string][]*pb.Ticket, error) {
-	poolNameToTickets := make(map[string][]*pb.Ticket)
+func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *gopb.RunRequest) (map[string][]*gopb.Ticket, error) {
+	poolNameToTickets := make(map[string][]*gopb.Ticket)
 	filterPools := req.GetProfile().GetPools()
 
 	for _, pool := range filterPools {
-		qtClient, err := s.mmlogicClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
+		qtClient, err := s.mmlogicClient.QueryTickets(ctx, &gopb.QueryTicketsRequest{Pool: pool})
 		if err != nil {
 			logger.WithError(err).Error("Failed to get queryTicketClient from mmlogic.")
 			return nil, err
 		}
 
 		// Aggregate tickets by poolName
-		poolTickets := make([]*pb.Ticket, 0)
+		poolTickets := make([]*gopb.Ticket, 0)
 		for {
 			qtResponse, err := qtClient.Recv()
 			if err == io.EOF {

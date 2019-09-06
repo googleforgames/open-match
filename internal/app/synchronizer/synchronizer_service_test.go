@@ -28,30 +28,30 @@ import (
 	"open-match.dev/open-match/internal/ipb"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 type testEvaluatorClient struct {
-	evalFunc func(context.Context, []*pb.Match) ([]*pb.Match, error)
+	evalFunc func(context.Context, []*gopb.Match) ([]*gopb.Match, error)
 }
 
-func (s *testEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+func (s *testEvaluatorClient) evaluate(ctx context.Context, proposals []*gopb.Match) ([]*gopb.Match, error) {
 	return s.evalFunc(ctx, proposals)
 }
 
 type testCallData struct {
 	registerDelay        int
 	evaluateDelay        int
-	proposals            []*pb.Match
+	proposals            []*gopb.Match
 	evaluationrErrorCode codes.Code
-	wantResults          []*pb.Match
+	wantResults          []*gopb.Match
 }
 
 type testEvaluatorData struct {
 	callCount int
 	eval      evaluator
 	evalErr   error
-	results   [][]*pb.Match
+	results   [][]*gopb.Match
 }
 
 type testData struct {
@@ -64,9 +64,9 @@ type testData struct {
 
 func TestSynchronizerService(t *testing.T) {
 	// Generate some test matches to be used in the test data.
-	tm := []*pb.Match{}
+	tm := []*gopb.Match{}
 	for i := 0; i < 30; i++ {
-		tm = append(tm, &pb.Match{MatchId: xid.New().String()})
+		tm = append(tm, &gopb.Match{MatchId: xid.New().String()})
 	}
 
 	testCases := []*testData{
@@ -83,7 +83,7 @@ func TestSynchronizerService(t *testing.T) {
 				},
 			},
 			testEvaluator: &testEvaluatorData{
-				results: [][]*pb.Match{tm[0:10]},
+				results: [][]*gopb.Match{tm[0:10]},
 			},
 			regInterval:  "500ms",
 			propInterval: "500ms",
@@ -93,17 +93,17 @@ func TestSynchronizerService(t *testing.T) {
 			testCalls: []*testCallData{
 				{
 					proposals:     tm[0:5],
-					wantResults:   []*pb.Match{tm[0], tm[2]},
+					wantResults:   []*gopb.Match{tm[0], tm[2]},
 					evaluateDelay: 200,
 				},
 				{
 					proposals:     tm[5:10],
-					wantResults:   []*pb.Match{tm[5], tm[8], tm[9]},
+					wantResults:   []*gopb.Match{tm[5], tm[8], tm[9]},
 					evaluateDelay: 1200,
 				},
 			},
 			testEvaluator: &testEvaluatorData{
-				results: [][]*pb.Match{{tm[0], tm[2], tm[5], tm[8], tm[9]}},
+				results: [][]*gopb.Match{{tm[0], tm[2], tm[5], tm[8], tm[9]}},
 			},
 			regInterval:  "1000ms",
 			propInterval: "1000ms",
@@ -122,7 +122,7 @@ func TestSynchronizerService(t *testing.T) {
 				},
 			},
 			testEvaluator: &testEvaluatorData{
-				results: [][]*pb.Match{tm[0:5]},
+				results: [][]*gopb.Match{tm[0:5]},
 			},
 			regInterval:  "200ms",
 			propInterval: "200ms",
@@ -141,7 +141,7 @@ func TestSynchronizerService(t *testing.T) {
 				},
 			},
 			testEvaluator: &testEvaluatorData{
-				results: [][]*pb.Match{tm[0:5], tm[5:10]},
+				results: [][]*gopb.Match{tm[0:5], tm[5:10]},
 			},
 			regInterval:  "200ms",
 			propInterval: "1000ms",
@@ -173,7 +173,7 @@ func TestSynchronizerService(t *testing.T) {
 				},
 			},
 			testEvaluator: &testEvaluatorData{
-				results: [][]*pb.Match{{}, tm[10:20]},
+				results: [][]*gopb.Match{{}, tm[10:20]},
 			},
 			regInterval:  "2000ms",
 			propInterval: "100ms",
@@ -202,7 +202,7 @@ func TestSynchronizerService(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			ctx := utilTesting.NewContext(t)
 			tc.testEvaluator.eval = &testEvaluatorClient{
-				evalFunc: func(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+				evalFunc: func(ctx context.Context, proposals []*gopb.Match) ([]*gopb.Match, error) {
 					if tc.testEvaluator.evalErr != nil {
 						return nil, tc.testEvaluator.evalErr
 					}

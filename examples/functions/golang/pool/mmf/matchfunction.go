@@ -22,8 +22,8 @@ package mmf
 import (
 	"github.com/rs/xid"
 	"open-match.dev/open-match/examples"
+	"open-match.dev/open-match/pkg/gopb"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
-	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/pkg/structs"
 )
 
@@ -36,22 +36,22 @@ var (
 // The goal of this function is to generate predictable matches that can be validated without flakyness.
 // This match function loops through all the pools and generates one match per pool aggregating all players
 // in that pool in the generated match.
-func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
-	var result []*pb.Match
+func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*gopb.Match, error) {
+	var result []*gopb.Match
 	for pool, tickets := range params.PoolNameToTickets {
 		if len(tickets) != 0 {
-			roster := &pb.Roster{Name: pool}
+			roster := &gopb.Roster{Name: pool}
 
 			for _, ticket := range tickets {
 				roster.TicketIds = append(roster.GetTicketIds(), ticket.GetId())
 			}
 
-			result = append(result, &pb.Match{
+			result = append(result, &gopb.Match{
 				MatchId:       xid.New().String(),
 				MatchProfile:  params.ProfileName,
 				MatchFunction: matchName,
 				Tickets:       tickets,
-				Rosters:       []*pb.Roster{roster},
+				Rosters:       []*gopb.Roster{roster},
 				Properties: structs.Struct{
 					examples.MatchScore: structs.Number(scoreCalculator(tickets)),
 				}.S(),
@@ -63,7 +63,7 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 }
 
 // This match function defines the quality of a match as the sum of the attribute values of all tickets per match
-func scoreCalculator(tickets []*pb.Ticket) float64 {
+func scoreCalculator(tickets []*gopb.Ticket) float64 {
 	matchScore := 0.0
 	for _, ticket := range tickets {
 		for _, v := range ticket.GetProperties().GetFields() {

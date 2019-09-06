@@ -31,7 +31,7 @@ import (
 	"open-match.dev/open-match/internal/telemetry"
 	internalTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	"open-match.dev/open-match/pkg/structs"
 )
 
@@ -57,12 +57,12 @@ func TestTicketLifecycle(t *testing.T) {
 
 	// Initialize test data
 	id := xid.New().String()
-	ticket := &pb.Ticket{
+	ticket := &gopb.Ticket{
 		Id: id,
 		Properties: structs.Struct{
 			"testindex1": structs.Number(42),
 		}.S(),
-		Assignment: &pb.Assignment{
+		Assignment: &gopb.Assignment{
 			Connection: "test-tbd",
 		},
 	}
@@ -123,14 +123,14 @@ func TestIgnoreLists(t *testing.T) {
 	}
 
 	verifyTickets := func(service Service, expectLen int) {
-		var results []*pb.Ticket
-		pool := &pb.Pool{
-			Filters: []*pb.Filter{
+		var results []*gopb.Ticket
+		pool := &gopb.Pool{
+			Filters: []*gopb.Filter{
 				{Attribute: "testindex1", Min: 0, Max: 10},
 				{Attribute: "testindex2", Min: 0, Max: 10},
 			},
 		}
-		service.FilterTickets(ctx, pool, 100, func(tickets []*pb.Ticket) error {
+		service.FilterTickets(ctx, pool, 100, func(tickets []*gopb.Ticket) error {
 			results = tickets
 			return nil
 		})
@@ -162,13 +162,13 @@ func TestTicketIndexing(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		id := fmt.Sprintf("ticket.no.%d", i)
 
-		ticket := &pb.Ticket{
+		ticket := &gopb.Ticket{
 			Id: id,
 			Properties: structs.Struct{
 				"testindex1": structs.Number(float64(i)),
 				"testindex2": structs.Number(0.5),
 			}.S(),
-			Assignment: &pb.Assignment{
+			Assignment: &gopb.Assignment{
 				Connection: "test-tbd",
 			},
 		}
@@ -190,8 +190,8 @@ func TestTicketIndexing(t *testing.T) {
 
 	found := make(map[string]struct{})
 
-	pool := &pb.Pool{
-		Filters: []*pb.Filter{
+	pool := &gopb.Pool{
+		Filters: []*gopb.Filter{
 			{
 				Attribute: "testindex1",
 				Min:       2.5,
@@ -205,7 +205,7 @@ func TestTicketIndexing(t *testing.T) {
 		},
 	}
 
-	err = service.FilterTickets(ctx, pool, 2, func(tickets []*pb.Ticket) error {
+	err = service.FilterTickets(ctx, pool, 2, func(tickets []*gopb.Ticket) error {
 		assert.True(len(tickets) <= 2)
 		for _, ticket := range tickets {
 			found[ticket.Id] = struct{}{}
@@ -231,9 +231,9 @@ func TestGetAssignmentBeforeSet(t *testing.T) {
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
-	var assignmentResp *pb.Assignment
+	var assignmentResp *gopb.Assignment
 
-	err := service.GetAssignments(ctx, "id", func(assignment *pb.Assignment) error {
+	err := service.GetAssignments(ctx, "id", func(assignment *gopb.Assignment) error {
 		assignmentResp = assignment
 		return nil
 	})
@@ -252,17 +252,17 @@ func TestUpdateAssignmentFatal(t *testing.T) {
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
-	var assignmentResp *pb.Assignment
+	var assignmentResp *gopb.Assignment
 
 	// Now create a ticket in the state store service
-	err := service.CreateTicket(ctx, &pb.Ticket{
+	err := service.CreateTicket(ctx, &gopb.Ticket{
 		Id:         "1",
-		Assignment: &pb.Assignment{Connection: "2"},
+		Assignment: &gopb.Assignment{Connection: "2"},
 	})
 	assert.Nil(err)
 
 	// Try to update the assignmets with the ticket created and some non-existed tickets
-	err = service.UpdateAssignments(ctx, []string{"1", "2", "3"}, &pb.Assignment{Connection: "localhost"})
+	err = service.UpdateAssignments(ctx, []string{"1", "2", "3"}, &gopb.Assignment{Connection: "localhost"})
 	// UpdateAssignment failed because the ticket does not exists
 	assert.Equal(codes.NotFound, status.Convert(err).Code())
 	assert.Nil(assignmentResp)
@@ -278,18 +278,18 @@ func TestGetAssignmentNormal(t *testing.T) {
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
-	err := service.CreateTicket(ctx, &pb.Ticket{
+	err := service.CreateTicket(ctx, &gopb.Ticket{
 		Id:         "1",
-		Assignment: &pb.Assignment{Connection: "2"},
+		Assignment: &gopb.Assignment{Connection: "2"},
 	})
 	assert.Nil(err)
 
-	var assignmentResp *pb.Assignment
+	var assignmentResp *gopb.Assignment
 	ctx, cancel := context.WithCancel(ctx)
 	callbackCount := 0
 	returnedErr := errors.New("some errors")
 
-	err = service.GetAssignments(ctx, "1", func(assignment *pb.Assignment) error {
+	err = service.GetAssignments(ctx, "1", func(assignment *gopb.Assignment) error {
 		assignmentResp = assignment
 
 		if callbackCount == 5 {
@@ -320,18 +320,18 @@ func TestUpdateAssignmentNormal(t *testing.T) {
 	ctx := utilTesting.NewContext(t)
 
 	// Create a ticket without assignment
-	err := service.CreateTicket(ctx, &pb.Ticket{
+	err := service.CreateTicket(ctx, &gopb.Ticket{
 		Id: "1",
 	})
 	assert.Nil(err)
 	// Create a ticket already with an assignment
-	err = service.CreateTicket(ctx, &pb.Ticket{
+	err = service.CreateTicket(ctx, &gopb.Ticket{
 		Id:         "3",
-		Assignment: &pb.Assignment{Connection: "4"},
+		Assignment: &gopb.Assignment{Connection: "4"},
 	})
 	assert.Nil(err)
 
-	fakeAssignment := &pb.Assignment{Connection: "Halo"}
+	fakeAssignment := &gopb.Assignment{Connection: "Halo"}
 	err = service.UpdateAssignments(ctx, []string{"1", "3"}, fakeAssignment)
 	assert.Nil(err)
 	// Verify the transaction behavior of the UpdateAssignment.

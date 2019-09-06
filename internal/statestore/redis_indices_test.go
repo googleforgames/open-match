@@ -20,7 +20,7 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	"open-match.dev/open-match/pkg/structs"
 )
 
@@ -62,7 +62,7 @@ func TestExtractIndexedFields(t *testing.T) {
 			cfg := viper.New()
 			cfg.Set("ticketIndices", test.indices)
 
-			actual := extractIndexedFields(cfg, &pb.Ticket{Properties: test.ticket})
+			actual := extractIndexedFields(cfg, &gopb.Ticket{Properties: test.ticket})
 
 			assert.Equal(t, test.expectedValues, actual.values)
 		})
@@ -72,19 +72,19 @@ func TestExtractIndexedFields(t *testing.T) {
 func TestExtractIndexFilters(t *testing.T) {
 	tests := []struct {
 		description string
-		pool        *pb.Pool
+		pool        *gopb.Pool
 		expected    []indexFilter
 	}{
 		{
 			description: "empty",
-			pool:        &pb.Pool{},
+			pool:        &gopb.Pool{},
 			expected:    []indexFilter{},
 		},
 		{
 			description: "range",
-			pool: &pb.Pool{
-				Filters: []*pb.Filter{
-					&pb.Filter{
+			pool: &gopb.Pool{
+				Filters: []*gopb.Filter{
+					{
 						Attribute: "foo",
 						Min:       -1,
 						Max:       1,

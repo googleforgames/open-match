@@ -27,7 +27,7 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/set"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 var (
@@ -125,7 +125,7 @@ func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
 }
 
 // CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
-func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
+func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *gopb.Ticket) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
@@ -190,7 +190,7 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 }
 
 // GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
-func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, error) {
+func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*gopb.Ticket, error) {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return nil, err
@@ -222,7 +222,7 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 		return nil, status.Error(codes.NotFound, msg)
 	}
 
-	ticket := &pb.Ticket{}
+	ticket := &gopb.Ticket{}
 	err = proto.Unmarshal(value, ticket)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -257,7 +257,7 @@ func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) error {
 }
 
 // IndexTicket indexes the Ticket id for the configured index fields.
-func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) error {
+func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *gopb.Ticket) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
@@ -353,7 +353,7 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 //  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
-func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
+func (rb *redisBackend) FilterTickets(ctx context.Context, pool *gopb.Pool, pageSize int, callback func([]*gopb.Ticket) error) error {
 	var err error
 	var redisConn redis.Conn
 	var ticketBytes [][]byte
@@ -412,11 +412,11 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 			return status.Errorf(codes.Internal, "%v", err)
 		}
 
-		tickets := make([]*pb.Ticket, 0, len(page))
+		tickets := make([]*gopb.Ticket, 0, len(page))
 		for i, b := range ticketBytes {
 			// Tickets may be deleted by the time we read it from redis.
 			if b != nil {
-				t := &pb.Ticket{}
+				t := &gopb.Ticket{}
 				err = proto.Unmarshal(b, t)
 				if err != nil {
 					redisLogger.WithFields(logrus.Fields{
@@ -446,7 +446,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 // This function guarantees if any of the input ids does not exists, the state of the storage service won't be altered.
 // However, since Redis does not support transaction roll backs (see https://redis.io/topics/transactions), some of the
 // assignment fields might be partially updated if this function encounters an error halfway through the execution.
-func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error {
+func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, assignment *gopb.Assignment) error {
 	if assignment == nil {
 		return status.Error(codes.InvalidArgument, "assignment is nil")
 	}
@@ -463,13 +463,13 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 	}
 
 	// Sanity check to make sure all inputs ids are valid
-	tickets := []*pb.Ticket{}
+	tickets := []*gopb.Ticket{}
 	for _, id := range ids {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			var ticket *pb.Ticket
+			var ticket *gopb.Ticket
 			ticket, err = rb.GetTicket(ctx, id)
 			if err != nil {
 				redisLogger.WithError(err).Errorf("failed to get ticket %s from redis when updating assignments", id)
@@ -484,7 +484,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			assignmentCopy, ok := proto.Clone(assignment).(*pb.Assignment)
+			assignmentCopy, ok := proto.Clone(assignment).(*gopb.Assignment)
 			if !ok {
 				redisLogger.Error("failed to cast assignment object")
 				return status.Error(codes.Internal, "failed to cast to the assignment object")
@@ -511,7 +511,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 }
 
 // GetAssignments returns the assignment associated with the input ticket id
-func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error {
+func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback func(*gopb.Assignment) error) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
@@ -519,7 +519,7 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 	defer handleConnectionClose(&redisConn)
 
 	backoffOperation := func() error {
-		var ticket *pb.Ticket
+		var ticket *gopb.Ticket
 		ticket, err = rb.GetTicket(ctx, id)
 		if err != nil {
 			redisLogger.WithError(err).Errorf("failed to get ticket %s when executing get assignments", id)

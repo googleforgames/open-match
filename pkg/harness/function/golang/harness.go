@@ -20,7 +20,7 @@ import (
 	"open-match.dev/open-match/internal/app"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 // FunctionSettings is a collection of parameters used to customize matchfunction views.
@@ -43,8 +43,8 @@ func BindService(p *rpc.ServerParams, cfg config.View, fs *FunctionSettings) err
 	}
 
 	p.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterMatchFunctionServer(s, service)
-	}, pb.RegisterMatchFunctionHandlerFromEndpoint)
+		gopb.RegisterMatchFunctionServer(s, service)
+	}, gopb.RegisterMatchFunctionHandlerFromEndpoint)
 
 	return nil
 }

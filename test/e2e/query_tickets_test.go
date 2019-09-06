@@ -27,21 +27,21 @@ import (
 	"google.golang.org/grpc/status"
 	internalTesting "open-match.dev/open-match/internal/testing"
 	"open-match.dev/open-match/internal/testing/e2e"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 func TestQueryTickets(t *testing.T) {
 	tests := []struct {
 		description   string
-		pool          *pb.Pool
-		preAction     func(context.Context, pb.FrontendClient, *testing.T)
+		pool          *gopb.Pool
+		preAction     func(context.Context, gopb.FrontendClient, *testing.T)
 		wantCode      codes.Code
-		wantTickets   []*pb.Ticket
+		wantTickets   []*gopb.Ticket
 		wantPageCount int
 	}{
 		{
 			description:   "expects invalid argument code since pool is empty",
-			preAction:     func(_ context.Context, _ pb.FrontendClient, _ *testing.T) {},
+			preAction:     func(_ context.Context, _ gopb.FrontendClient, _ *testing.T) {},
 			pool:          nil,
 			wantCode:      codes.InvalidArgument,
 			wantTickets:   nil,
@@ -49,9 +49,9 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			description: "expects response with no tickets since the store is empty",
-			preAction:   func(_ context.Context, _ pb.FrontendClient, _ *testing.T) {},
-			pool: &pb.Pool{
-				Filters: []*pb.Filter{{
+			preAction:   func(_ context.Context, _ gopb.FrontendClient, _ *testing.T) {},
+			pool: &gopb.Pool{
+				Filters: []*gopb.Filter{{
 					Attribute: "ok",
 				}},
 			},
@@ -61,20 +61,20 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			description: "expects response with no tickets since all tickets in the store are filtered out",
-			preAction: func(ctx context.Context, fe pb.FrontendClient, t *testing.T) {
+			preAction: func(ctx context.Context, fe gopb.FrontendClient, t *testing.T) {
 				tickets := internalTesting.GenerateTickets(
 					internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
 					internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
 				)
 
 				for _, ticket := range tickets {
-					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
+					resp, err := fe.CreateTicket(ctx, &gopb.CreateTicketRequest{Ticket: ticket})
 					assert.NotNil(t, resp)
 					assert.Nil(t, err)
 				}
 			},
-			pool: &pb.Pool{
-				Filters: []*pb.Filter{{
+			pool: &gopb.Pool{
+				Filters: []*gopb.Filter{{
 					Attribute: e2e.SkillAttribute,
 				}},
 			},
@@ -84,20 +84,20 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			description: "expects response with 5 tickets with e2e.Map1Attribute=2 and e2e.Map2Attribute in range of [0,10)",
-			preAction: func(ctx context.Context, fe pb.FrontendClient, t *testing.T) {
+			preAction: func(ctx context.Context, fe gopb.FrontendClient, t *testing.T) {
 				tickets := internalTesting.GenerateTickets(
 					internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
 					internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
 				)
 
 				for _, ticket := range tickets {
-					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
+					resp, err := fe.CreateTicket(ctx, &gopb.CreateTicketRequest{Ticket: ticket})
 					assert.NotNil(t, resp)
 					assert.Nil(t, err)
 				}
 			},
-			pool: &pb.Pool{
-				Filters: []*pb.Filter{{
+			pool: &gopb.Pool{
+				Filters: []*gopb.Filter{{
 					Attribute: e2e.Map1Attribute,
 					Min:       1,
 					Max:       3,
@@ -113,21 +113,21 @@ func TestQueryTickets(t *testing.T) {
 		{
 			// Test inclusive filters and paging works as expected
 			description: "expects response with 15 tickets with e2e.Map1Attribute=2,4,6 and e2e.Map2Attribute=[0,10)",
-			preAction: func(ctx context.Context, fe pb.FrontendClient, t *testing.T) {
+			preAction: func(ctx context.Context, fe gopb.FrontendClient, t *testing.T) {
 				tickets := internalTesting.GenerateTickets(
 					internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
 					internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
 				)
 
 				for _, ticket := range tickets {
-					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
+					resp, err := fe.CreateTicket(ctx, &gopb.CreateTicketRequest{Ticket: ticket})
 					assert.NotNil(t, resp)
 					assert.Nil(t, err)
 				}
 			},
 
-			pool: &pb.Pool{
-				Filters: []*pb.Filter{{
+			pool: &gopb.Pool{
+				Filters: []*gopb.Filter{{
 					Attribute: e2e.Map1Attribute,
 					Min:       2,
 					Max:       6,
@@ -157,10 +157,10 @@ func TestQueryTickets(t *testing.T) {
 
 				test.preAction(ctx, fe, t)
 
-				stream, err := mml.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: test.pool})
+				stream, err := mml.QueryTickets(ctx, &gopb.QueryTicketsRequest{Pool: test.pool})
 				assert.Nil(t, err)
 
-				var actualTickets []*pb.Ticket
+				var actualTickets []*gopb.Ticket
 
 				for {
 					resp, err := stream.Recv()

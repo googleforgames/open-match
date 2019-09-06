@@ -25,7 +25,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	shellTesting "open-match.dev/open-match/internal/testing"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 
@@ -95,8 +95,8 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 
 	serverParams := NewServerParamsFromListeners(tp.grpcLh, tp.proxyLh)
 	serverParams.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterFrontendServer(s, ff)
-	}, pb.RegisterFrontendHandlerFromEndpoint)
+		gopb.RegisterFrontendServer(s, ff)
+	}, gopb.RegisterFrontendHandlerFromEndpoint)
 
 	serverParams.SetTLSConfiguration(tp.rootPublicCertificateFileData, tp.publicCertificateFileData, tp.privateKeyFileData)
 	s := newTLSServer(serverParams.grpcListener, serverParams.grpcProxyListener)

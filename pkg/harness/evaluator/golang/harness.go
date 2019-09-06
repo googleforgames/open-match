@@ -20,7 +20,7 @@ import (
 	"open-match.dev/open-match/internal/app"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 // RunEvaluator is a hook for the main() method in the main executable.
@@ -33,8 +33,8 @@ func RunEvaluator(eval Evaluator) {
 // BindService creates the evaluator service to the server Params.
 func BindService(p *rpc.ServerParams, cfg config.View, eval Evaluator) error {
 	p.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterEvaluatorServer(s, &evaluatorService{cfg: cfg, evaluate: eval})
-	}, pb.RegisterEvaluatorHandlerFromEndpoint)
+		gopb.RegisterEvaluatorServer(s, &evaluatorService{cfg: cfg, evaluate: eval})
+	}, gopb.RegisterEvaluatorHandlerFromEndpoint)
 
 	return nil
 }

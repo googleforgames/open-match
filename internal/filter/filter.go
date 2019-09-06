@@ -19,12 +19,12 @@ package filter
 
 import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 // Filter returns all of the passed tickets which are included by all the passed filters.
-func Filter(tickets []*pb.Ticket, filters []*pb.Filter) []*pb.Ticket {
-	var result []*pb.Ticket
+func Filter(tickets []*gopb.Ticket, filters []*gopb.Filter) []*gopb.Ticket {
+	var result []*gopb.Ticket
 
 	for _, t := range tickets {
 		if InFilters(t, filters) {
@@ -36,7 +36,7 @@ func Filter(tickets []*pb.Ticket, filters []*pb.Filter) []*pb.Ticket {
 }
 
 // InFilters returns if the given ticket is included in all of the passed filters.
-func InFilters(ticket *pb.Ticket, filters []*pb.Filter) bool {
+func InFilters(ticket *gopb.Ticket, filters []*gopb.Filter) bool {
 	for _, f := range filters {
 		if !InFilter(ticket, f) {
 			return false
@@ -46,7 +46,7 @@ func InFilters(ticket *pb.Ticket, filters []*pb.Filter) bool {
 }
 
 // InFilter returns if the given ticket is included in the given filter.
-func InFilter(ticket *pb.Ticket, filter *pb.Filter) bool {
+func InFilter(ticket *gopb.Ticket, filter *gopb.Filter) bool {
 	if ticket.GetProperties().GetFields() == nil {
 		return false
 	}

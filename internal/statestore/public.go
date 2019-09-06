@@ -19,7 +19,7 @@ import (
 
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/telemetry"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 )
 
 // Service is a generic interface for talking to a storage backend.
@@ -28,28 +28,28 @@ type Service interface {
 	HealthCheck(ctx context.Context) error
 
 	// CreateTicket creates a new Ticket in the state storage. This method fails if the Ticket already exists.
-	CreateTicket(ctx context.Context, ticket *pb.Ticket) error
+	CreateTicket(ctx context.Context, ticket *gopb.Ticket) error
 
 	// GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
-	GetTicket(ctx context.Context, id string) (*pb.Ticket, error)
+	GetTicket(ctx context.Context, id string) (*gopb.Ticket, error)
 
 	// DeleteTicket removes the Ticket with the specified id from state storage. This method succeeds if the Ticket does not exist.
 	DeleteTicket(ctx context.Context, id string) error
 
 	// IndexTicket indexes the Ticket id for the configured index fields.
-	IndexTicket(ctx context.Context, ticket *pb.Ticket) error
+	IndexTicket(ctx context.Context, ticket *gopb.Ticket) error
 
 	// DeindexTicket removes the indexing for the specified Ticket. Only the indexes are removed but the Ticket continues to exist.
 	DeindexTicket(ctx context.Context, id string) error
 
 	// FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria.
-	FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error
+	FilterTickets(ctx context.Context, pool *gopb.Pool, pageSize int, callback func([]*gopb.Ticket) error) error
 
 	// UpdateAssignments update the match assignments for the input ticket ids
-	UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error
+	UpdateAssignments(ctx context.Context, ids []string, assignment *gopb.Assignment) error
 
 	// GetAssignments returns the assignment associated with the input ticket id
-	GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error
+	GetAssignments(ctx context.Context, id string, callback func(*gopb.Assignment) error) error
 
 	// AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
 	AddTicketsToIgnoreList(ctx context.Context, ids []string) error

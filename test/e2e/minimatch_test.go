@@ -26,13 +26,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/internal/testing/e2e"
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/pkg/gopb"
 	"open-match.dev/open-match/pkg/structs"
 )
 
 type testProfile struct {
 	name  string
-	pools []*pb.Pool
+	pools []*gopb.Pool
 }
 
 type testTicket struct {
@@ -59,31 +59,31 @@ func TestMinimatch(t *testing.T) {
 
 	// The Pools that are used for testing. Currently, each pool simply represents
 	// a combination of the attributes indexed on a ticket.
-	testPools := map[string]*pb.Pool{
+	testPools := map[string]*gopb.Pool{
 		e2e.Map1BeginnerPool: {
 			Name: e2e.Map1BeginnerPool,
-			Filters: []*pb.Filter{
+			Filters: []*gopb.Filter{
 				{Attribute: e2e.SkillAttribute, Min: 0, Max: 5},
 				{Attribute: e2e.Map1Attribute, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map1AdvancedPool: {
 			Name: e2e.Map1AdvancedPool,
-			Filters: []*pb.Filter{
+			Filters: []*gopb.Filter{
 				{Attribute: e2e.SkillAttribute, Min: 6, Max: 10},
 				{Attribute: e2e.Map1Attribute, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map2BeginnerPool: {
 			Name: e2e.Map2BeginnerPool,
-			Filters: []*pb.Filter{
+			Filters: []*gopb.Filter{
 				{Attribute: e2e.SkillAttribute, Min: 0, Max: 5},
 				{Attribute: e2e.Map2Attribute, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map2AdvancedPool: {
 			Name: e2e.Map2AdvancedPool,
-			Filters: []*pb.Filter{
+			Filters: []*gopb.Filter{
 				{Attribute: e2e.SkillAttribute, Min: 6, Max: 10},
 				{Attribute: e2e.Map2Attribute, Max: math.MaxFloat64},
 			},
@@ -94,20 +94,20 @@ func TestMinimatch(t *testing.T) {
 	// the current MMF returns a match per pool in the profile - so each profile should
 	// output two matches that are comprised of tickets belonging to that pool.
 	sourceProfiles := []testProfile{
-		{name: "", pools: []*pb.Pool{testPools[e2e.Map1BeginnerPool], testPools[e2e.Map1AdvancedPool]}},
-		{name: "", pools: []*pb.Pool{testPools[e2e.Map2BeginnerPool], testPools[e2e.Map2AdvancedPool]}},
+		{name: "", pools: []*gopb.Pool{testPools[e2e.Map1BeginnerPool], testPools[e2e.Map1AdvancedPool]}},
+		{name: "", pools: []*gopb.Pool{testPools[e2e.Map2BeginnerPool], testPools[e2e.Map2AdvancedPool]}},
 	}
 
 	tests := []struct {
-		fcGen       func(e2e.OM) *pb.FunctionConfig
+		fcGen       func(e2e.OM) *gopb.FunctionConfig
 		description string
 	}{
 		{
-			func(om e2e.OM) *pb.FunctionConfig { return om.MustMmfConfigGRPC() },
+			func(om e2e.OM) *gopb.FunctionConfig { return om.MustMmfConfigGRPC() },
 			"grpc config",
 		},
 		{
-			func(om e2e.OM) *pb.FunctionConfig { return om.MustMmfConfigHTTP() },
+			func(om e2e.OM) *gopb.FunctionConfig { return om.MustMmfConfigHTTP() },
 			"http config",
 		},
 	}
@@ -134,7 +134,7 @@ func TestMinimatch(t *testing.T) {
 				// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids
 				// to expected player pools.
 				for i, td := range testTickets {
-					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{
+					resp, err := fe.CreateTicket(ctx, &gopb.CreateTicketRequest{Ticket: &gopb.Ticket{
 						Properties: structs.Struct{
 							e2e.SkillAttribute: structs.Number(td.skill),
 							td.mapValue:        structs.Number(float64(time.Now().Unix())),
@@ -151,11 +151,11 @@ func TestMinimatch(t *testing.T) {
 
 				// Query tickets for each pool
 				for _, pool := range testPools {
-					qtstr, err := mml.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
+					qtstr, err := mml.QueryTickets(ctx, &gopb.QueryTicketsRequest{Pool: pool})
 					assert.Nil(t, err)
 					assert.NotNil(t, qtstr)
 
-					var tickets []*pb.Ticket
+					var tickets []*gopb.Ticket
 					for {
 						qtresp, err := qtstr.Recv()
 						if err == io.EOF {
@@ -190,18 +190,18 @@ func TestMinimatch(t *testing.T) {
 	})
 }
 
-func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string][]string, testProfiles []testProfile, om e2e.OM, fc *pb.FunctionConfig) {
+func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string][]string, testProfiles []testProfile, om e2e.OM, fc *gopb.FunctionConfig) {
 	// Fetch Matches for each test profile.
 	be := om.MustBackendGRPC()
 	for _, profile := range testProfiles {
-		stream, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{
+		stream, err := be.FetchMatches(ctx, &gopb.FetchMatchesRequest{
 			Config:   fc,
-			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
+			Profiles: []*gopb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
 		})
 		assert.Nil(t, err)
 
 		for {
-			var resp *pb.FetchMatchesResponse
+			var resp *gopb.FetchMatchesResponse
 			resp, err = stream.Recv()
 			if err == io.EOF {
 				break
@@ -228,9 +228,9 @@ func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string]
 		}
 
 		// Verify calling fetch matches twice within ttl interval won't yield new results
-		stream, err = be.FetchMatches(om.Context(), &pb.FetchMatchesRequest{
+		stream, err = be.FetchMatches(om.Context(), &gopb.FetchMatchesRequest{
 			Config:   fc,
-			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
+			Profiles: []*gopb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
 		})
 		assert.Nil(t, err)
 
