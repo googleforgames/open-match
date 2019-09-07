@@ -125,7 +125,7 @@ func TestIgnoreLists(t *testing.T) {
 	verifyTickets := func(service Service, expectLen int) {
 		var results []*pb.Ticket
 		pool := &pb.Pool{
-			Filters: []*pb.Filter{
+			FloatRangeFilters: []*pb.FloatRangeFilter{
 				{Attribute: "testindex1", Min: 0, Max: 10},
 				{Attribute: "testindex2", Min: 0, Max: 10},
 			},
@@ -191,7 +191,7 @@ func TestTicketIndexing(t *testing.T) {
 	found := []string{}
 
 	pool := &pb.Pool{
-		Filters: []*pb.Filter{
+		FloatRangeFilters: []*pb.FloatRangeFilter{
 			{
 				Attribute: "testindex1",
 				Min:       2.5,

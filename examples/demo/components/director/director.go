@@ -91,7 +91,7 @@ func run(ds *components.DemoShared) {
 					Pools: []*pb.Pool{
 						{
 							Name: "Everyone",
-							Filters: []*pb.Filter{
+							FloatRangeFilters: []*pb.FloatRangeFilter{
 								{
 									Attribute: "mode.demo",
 									Min:       -100,
