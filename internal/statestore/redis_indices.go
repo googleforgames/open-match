@@ -24,6 +24,14 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+// This file translates between the Open Match API's concept of fields and
+// filters to a concept compatible with redis.  All indicies in redis are,
+// for simplicity, sorted sets.  The following translations are used:
+// Float values to range indicies use the float value directly, with filters
+// doing direct lookups on those ranges.
+// Boolean values with bool equals indicies turn true and false into 1 and 0.
+// Filters on bool equality use ranges limited to only 1s or only 0s.
+
 func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 	result := make(map[string]float64)
 
