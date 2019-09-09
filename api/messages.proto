@@ -80,14 +80,15 @@ message FloatRangeFilter {
 
 // Filters boolean values.
 //   attribute: "foo"
-//   value: true
+//   value: false
 // matches:
-//   {"foo": true}
+//   {"foo": false}
 // does not match:
+//   {"foo": true}
 //   {"foo": "bar"}
 //   {"foo": 1}
-//   {"foo": "true"}
-//   {"foo": [true]}
+//   {"foo": "false"}
+//   {"foo": [false]}
 //   {}
 message BoolEqualsFilter {
   string attribute = 1;
