@@ -85,6 +85,7 @@ data:
     redis:
       hostname: {{ .Values.redis.fullnameOverride }}-master.{{ .Release.Namespace }}.svc.cluster.local
       port: {{ .Values.redis.redisPort }}
+      user: {{ .Values.redis.user }}
       pool:
         maxIdle: 3
         maxActive: 0

@@ -17,6 +17,7 @@ package statestore
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -56,9 +57,11 @@ func newRedis(cfg config.View) Service {
 	// Add redis user and password to connection url if they exist
 	redisURL := "redis://"
 	maskedURL := redisURL
-	if cfg.IsSet("redis.password") && cfg.GetString("redis.password") != "" {
-		redisURL += cfg.GetString("redis.user") + ":" + cfg.GetString("redis.password") + "@"
-		maskedURL += cfg.GetString("redis.user") + ":******@"
+
+	// REDIS_PASSWORD is injected by the Redis docker image
+	if pw, ok := os.LookupEnv("REDIS_PASSWORD"); ok {
+		redisURL += fmt.Sprintf("%s:%s@", cfg.GetString("redis.user"), pw)
+		maskedURL += fmt.Sprintf("%s:%s@", cfg.GetString("redis.user"), "**********")
 	}
 	redisURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
 	maskedURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
