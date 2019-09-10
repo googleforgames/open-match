@@ -44,7 +44,20 @@ func TestExtractIndexedFields(t *testing.T) {
 			},
 		},
 		{
-			description: "range no index",
+			description: "bools",
+			indices:     []string{"t", "f"},
+			ticket: structs.Struct{
+				"t": structs.Bool(true),
+				"f": structs.Bool(false),
+			}.S(),
+			expectedValues: map[string]float64{
+				"allTickets": 0,
+				"bi$t":       1,
+				"bi$f":       0,
+			},
+		},
+		{
+			description: "no index",
 			indices:     []string{},
 			ticket: structs.Struct{
 				"foo": structs.Number(1),
@@ -54,7 +67,7 @@ func TestExtractIndexedFields(t *testing.T) {
 			},
 		},
 		{
-			description: "range no value",
+			description: "no value",
 			indices:     []string{"foo"},
 			ticket:      structs.Struct{}.S(),
 			expectedValues: map[string]float64{
@@ -108,6 +121,42 @@ func TestExtractIndexFilters(t *testing.T) {
 					name: "ri$foo",
 					min:  -1,
 					max:  1,
+				},
+			},
+		},
+		{
+			description: "bool false",
+			pool: &pb.Pool{
+				BoolEqualsFilters: []*pb.BoolEqualsFilter{
+					&pb.BoolEqualsFilter{
+						Attribute: "foo",
+						Value:     false,
+					},
+				},
+			},
+			expected: []indexFilter{
+				{
+					name: "bi$foo",
+					min:  -0.5,
+					max:  0.5,
+				},
+			},
+		},
+		{
+			description: "bool true",
+			pool: &pb.Pool{
+				BoolEqualsFilters: []*pb.BoolEqualsFilter{
+					&pb.BoolEqualsFilter{
+						Attribute: "foo",
+						Value:     true,
+					},
+				},
+			},
+			expected: []indexFilter{
+				{
+					name: "bi$foo",
+					min:  0.5,
+					max:  1.5,
 				},
 			},
 		},

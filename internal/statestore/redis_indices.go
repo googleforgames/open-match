@@ -24,6 +24,14 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+// This file translates between the Open Match API's concept of fields and
+// filters to a concept compatible with redis.  All indicies in redis are,
+// for simplicity, sorted sets.  The following translations are used:
+// Float values to range indicies use the float value directly, with filters
+// doing direct lookups on those ranges.
+// Boolean values with bool equals indicies turn true and false into 1 and 0.
+// Filters on bool equality use ranges limited to only 1s or only 0s.
+
 func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 	result := make(map[string]float64)
 
@@ -44,6 +52,12 @@ func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 		switch v.Kind.(type) {
 		case *structpb.Value_NumberValue:
 			result[rangeIndexName(attribute)] = v.GetNumberValue()
+		case *structpb.Value_BoolValue:
+			value := float64(0)
+			if v.GetBoolValue() {
+				value = 1
+			}
+			result[boolIndexName(attribute)] = value
 		default:
 			redisLogger.WithFields(logrus.Fields{
 				"attribute": attribute,
@@ -72,6 +86,20 @@ func extractIndexFilters(p *pb.Pool) []indexFilter {
 		})
 	}
 
+	for _, f := range p.BoolEqualsFilters {
+		min := -0.5
+		max := 0.5
+		if f.Value {
+			min = 0.5
+			max = 1.5
+		}
+		filters = append(filters, indexFilter{
+			name: boolIndexName(f.Attribute),
+			min:  min,
+			max:  max,
+		})
+	}
+
 	if len(filters) == 0 {
 		filters = []indexFilter{{
 			name: allTickets,
@@ -91,6 +119,11 @@ const allTickets = "allTickets"
 func rangeIndexName(attribute string) string {
 	// ri stands for range index
 	return "ri$" + indexEscape(attribute)
+}
+
+func boolIndexName(attribute string) string {
+	// bi stands for bool index
+	return "bi$" + indexEscape(attribute)
 }
 
 func indexCacheName(id string) string {
