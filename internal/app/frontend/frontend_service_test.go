@@ -44,16 +44,6 @@ func TestDoCreateTickets(t *testing.T) {
 		wantCode    codes.Code
 	}{
 		{
-			description: "expect precondition error since open-match does not support properties other than number",
-			preAction:   func(_ context.CancelFunc) {},
-			ticket: &pb.Ticket{
-				Properties: structs.Struct{
-					"test-property": structs.String("string"),
-				}.S(),
-			},
-			wantCode: codes.FailedPrecondition,
-		},
-		{
 			description: "expect error with canceled context",
 			preAction:   func(cancel context.CancelFunc) { cancel() },
 			ticket: &pb.Ticket{

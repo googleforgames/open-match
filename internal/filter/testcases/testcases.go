@@ -27,7 +27,7 @@ import (
 type TestCase struct {
 	Name   string
 	Ticket *pb.Ticket
-	Filter *pb.Filter
+	Filter *pb.FloatRangeFilter
 }
 
 // IncludedTestCases returns a list of test cases where using the given filter,
@@ -53,7 +53,7 @@ func ExcludedTestCases() []TestCase {
 					Fields: map[string]*structpb.Value{},
 				},
 			},
-			&pb.Filter{
+			&pb.FloatRangeFilter{
 				Attribute: "field",
 				Min:       5,
 				Max:       5,
@@ -68,7 +68,7 @@ func ExcludedTestCases() []TestCase {
 					Fields: nil,
 				},
 			},
-			&pb.Filter{
+			&pb.FloatRangeFilter{
 				Attribute: "field",
 				Min:       5,
 				Max:       5,
@@ -81,7 +81,7 @@ func ExcludedTestCases() []TestCase {
 				// Using struct literals without helper for degenerate cases only.
 				Properties: nil,
 			},
-			&pb.Filter{
+			&pb.FloatRangeFilter{
 				Attribute: "field",
 				Min:       5,
 				Max:       5,
@@ -104,7 +104,7 @@ func simpleRangeTest(name string, value, min, max float64) TestCase {
 				"field": structs.Number(value),
 			}.S(),
 		},
-		&pb.Filter{
+		&pb.FloatRangeFilter{
 			Attribute: "field",
 			Min:       min,
 			Max:       max,

@@ -21,7 +21,6 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/protobuf/proto"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
@@ -265,41 +264,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 	}
 	defer handleConnectionClose(&redisConn)
 
-	// Fetch the indices from the configuration.
-	// TODO: Consider adding Open Match specific custom indices in future.
-	var indices []string
-	if rb.cfg.IsSet("ticketIndices") {
-		indices = rb.cfg.GetStringSlice("ticketIndices")
-	}
-
-	attributesToValue := map[string]float64{}
-	// Loop through all attributes we want to index.
-	for _, attribute := range indices {
-		// TODO: Currently, Open Match supports specifying attributes as JSON properties on Tickets.
-		// Alternatives for populating this information in proto fields are being considered.
-		// Also, we need to add Ticket creation time to either the ticket or index.
-		// Meta characters bein specified in JSON property keys is currently not supported.
-		v, ok := ticket.GetProperties().GetFields()[attribute]
-
-		// If this attribute wasn't provided, continue to the next attribute to index.
-		if !ok {
-			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute}).Trace("Couldn't find index in Ticket Properties")
-			continue
-		}
-
-		switch v.Kind.(type) {
-		case *structpb.Value_NumberValue:
-			attributesToValue[attribute] = v.GetNumberValue()
-		default:
-			// TODO: we currently dont support anything but numeric values,
-			// yet we are investigating whether it is possible to have generic typed value supports in the future.
-			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute,
-			}).Warning("Attribute not a number.")
-			return status.Errorf(codes.FailedPrecondition, "open-match does not support given value type.")
-		}
-	}
+	indexedFields := extractIndexedFields(rb.cfg, ticket)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
@@ -310,7 +275,25 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	for k, v := range attributesToValue {
+	{
+		command := make([]interface{}, 0, 1+len(indexedFields))
+		command = append(command, indexCacheName(ticket.Id))
+		for index := range indexedFields {
+			command = append(command, index)
+		}
+		err = redisConn.Send("SADD", command...)
+		if err != nil {
+			redisLogger.WithFields(logrus.Fields{
+				"cmd":     "SADD",
+				"ticket":  ticket.GetId(),
+				"error":   err.Error(),
+				"indices": command[1:],
+			}).Error("failed to set ticket's indices")
+			return status.Errorf(codes.Internal, "%v", err)
+		}
+	}
+
+	for k, v := range indexedFields {
 		// Index the attribute by value.
 		err = redisConn.Send("ZADD", k, v, ticket.GetId())
 		if err != nil {
@@ -347,6 +330,20 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	}
 	defer handleConnectionClose(&redisConn)
 
+	indices, err := redis.Strings(redisConn.Do("SMEMBERS", indexCacheName(id)))
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"SMEMBERS": "MULTI",
+			"error":    err.Error(),
+			"ticket":   id,
+		}).Error("failed to retrieve ticket's indexed fields")
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	if len(indices) == 0 {
+		return nil
+	}
+
 	err = redisConn.Send("MULTI")
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -356,24 +353,27 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	// Fetch the indices from the configuration.
-	// TODO: Consider adding Open Match specific custom indices in future.
-	var indices []string
-	if rb.cfg.IsSet("ticketIndices") {
-		indices = rb.cfg.GetStringSlice("ticketIndices")
-	}
-
-	for _, attribute := range indices {
-		err = redisConn.Send("ZREM", attribute, id)
+	for _, index := range indices {
+		err = redisConn.Send("ZREM", index, id)
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
-				"cmd":       "ZREM",
-				"attribute": attribute,
-				"id":        id,
-				"error":     err.Error(),
-			}).Error("failed to deindex attribute")
+				"cmd":   "ZREM",
+				"index": index,
+				"id":    id,
+				"error": err.Error(),
+			}).Error("failed to deindex the ticket")
 			return status.Errorf(codes.Internal, "%v", err)
 		}
+	}
+
+	err = redisConn.Send("DEL", indexCacheName(id))
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"cmd":   "DEL",
+			"id":    id,
+			"error": err.Error(),
+		}).Error("failed to remove ticket's indexed fields")
+		return status.Errorf(codes.Internal, "%v", err)
 	}
 
 	_, err = redisConn.Do("EXEC")
@@ -411,14 +411,14 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 	idSet := make([]string, 0)
 
 	// For each filter, do a range query to Redis on Filter.Attribute
-	for i, filter := range pool.Filters {
+	for i, filter := range extractIndexFilters(pool) {
 		// Time Complexity O(logN + M), where N is the number of elements in the attribute set
 		// and M is the number of entries being returned.
 		// TODO: discuss if we need a LIMIT for # of queries being returned
-		idsInFilter, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.Attribute, filter.Min, filter.Max))
+		idsInFilter, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.name, filter.min, filter.max))
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
-				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f", filter.Attribute, filter.Min, filter.Max),
+				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f", filter.name, filter.min, filter.max),
 			}).WithError(err).Error("Failed to lookup index.")
 			return status.Errorf(codes.Internal, "%v", err)
 		}

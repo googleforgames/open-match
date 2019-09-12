@@ -91,7 +91,7 @@ func run(ds *components.DemoShared) {
 					Pools: []*pb.Pool{
 						{
 							Name: "Everyone",
-							Filters: []*pb.Filter{
+							FloatRangeFilters: []*pb.FloatRangeFilter{
 								{
 									Attribute: "mode.demo",
 									Min:       -100,
@@ -109,7 +109,6 @@ func run(ds *components.DemoShared) {
 			panic(err)
 		}
 
-		matches := make([]*pb.Match, 0)
 		for {
 			resp, err := stream.Recv()
 			if err == io.EOF {

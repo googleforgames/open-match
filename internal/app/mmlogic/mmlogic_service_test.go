@@ -68,7 +68,7 @@ func TestDoQueryTickets(t *testing.T) {
 			"expect empty response from an empty store",
 			senderGenerator(nil),
 			&pb.Pool{
-				Filters: []*pb.Filter{
+				FloatRangeFilters: []*pb.FloatRangeFilter{
 					{
 						Attribute: attribute1,
 						Min:       0,
@@ -85,7 +85,7 @@ func TestDoQueryTickets(t *testing.T) {
 			"expect tickets with attribute1 value in range of [0, 10] (inclusively)",
 			senderGenerator(nil),
 			&pb.Pool{
-				Filters: []*pb.Filter{
+				FloatRangeFilters: []*pb.FloatRangeFilter{
 					{
 						Attribute: attribute1,
 						Min:       0,
@@ -110,7 +110,7 @@ func TestDoQueryTickets(t *testing.T) {
 			"expect error from canceled context",
 			senderGenerator(fakeErr),
 			&pb.Pool{
-				Filters: []*pb.Filter{
+				FloatRangeFilters: []*pb.FloatRangeFilter{
 					{
 						Attribute: attribute1,
 						Min:       0,

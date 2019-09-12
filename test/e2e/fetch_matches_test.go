@@ -113,20 +113,20 @@ func TestGameMatchWorkFlow(t *testing.T) {
 				Name: "test-profile",
 				Pools: []*pb.Pool{
 					{
-						Name:    "ticket12",
-						Filters: []*pb.Filter{{Attribute: "level", Min: 0, Max: 6}, {Attribute: "defense", Min: 0, Max: 100}},
+						Name:              "ticket12",
+						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 0, Max: 6}, {Attribute: "defense", Min: 0, Max: 100}},
 					},
 					{
-						Name:    "ticket23",
-						Filters: []*pb.Filter{{Attribute: "level", Min: 3, Max: 10}, {Attribute: "defense", Min: 0, Max: 100}},
+						Name:              "ticket23",
+						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 3, Max: 10}, {Attribute: "defense", Min: 0, Max: 100}},
 					},
 					{
-						Name:    "ticket5",
-						Filters: []*pb.Filter{{Attribute: "level", Min: 0, Max: 100}, {Attribute: "defense", Min: 17, Max: 25}},
+						Name:              "ticket5",
+						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 0, Max: 100}, {Attribute: "defense", Min: 17, Max: 25}},
 					},
 					{
-						Name:    "ticket234",
-						Filters: []*pb.Filter{{Attribute: "level", Min: 3, Max: 17}, {Attribute: "defense", Min: 3, Max: 17}},
+						Name:              "ticket234",
+						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 3, Max: 17}, {Attribute: "defense", Min: 3, Max: 17}},
 					},
 				},
 			},
