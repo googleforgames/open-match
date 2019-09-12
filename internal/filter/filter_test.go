@@ -61,7 +61,7 @@ func TestFilter(t *testing.T) {
 		},
 	}
 
-	filters := []*pb.Filter{
+	filters := []*pb.FloatRangeFilter{
 		{
 			Attribute: "field1",
 			Min:       0,
@@ -90,7 +90,7 @@ func TestInFilters(t *testing.T) {
 		Id: "good",
 	}
 
-	filters := []*pb.Filter{}
+	filters := []*pb.FloatRangeFilter{}
 
 	passed := InFilters(ticket, filters)
 

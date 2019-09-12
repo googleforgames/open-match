@@ -15,6 +15,7 @@
 package statestore
 
 import (
+	"math"
 	"testing"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -38,22 +39,40 @@ func TestExtractIndexedFields(t *testing.T) {
 				"foo": structs.Number(1),
 			}.S(),
 			expectedValues: map[string]float64{
-				"ri$foo": 1,
+				"allTickets": 0,
+				"ri$foo":     1,
 			},
 		},
 		{
-			description: "range no index",
+			description: "bools",
+			indices:     []string{"t", "f"},
+			ticket: structs.Struct{
+				"t": structs.Bool(true),
+				"f": structs.Bool(false),
+			}.S(),
+			expectedValues: map[string]float64{
+				"allTickets": 0,
+				"bi$t":       1,
+				"bi$f":       0,
+			},
+		},
+		{
+			description: "no index",
 			indices:     []string{},
 			ticket: structs.Struct{
 				"foo": structs.Number(1),
 			}.S(),
-			expectedValues: map[string]float64{},
+			expectedValues: map[string]float64{
+				"allTickets": 0,
+			},
 		},
 		{
-			description:    "range no value",
-			indices:        []string{"foo"},
-			ticket:         structs.Struct{}.S(),
-			expectedValues: map[string]float64{},
+			description: "no value",
+			indices:     []string{"foo"},
+			ticket:      structs.Struct{}.S(),
+			expectedValues: map[string]float64{
+				"allTickets": 0,
+			},
 		},
 	}
 
@@ -64,7 +83,7 @@ func TestExtractIndexedFields(t *testing.T) {
 
 			actual := extractIndexedFields(cfg, &pb.Ticket{Properties: test.ticket})
 
-			assert.Equal(t, test.expectedValues, actual.values)
+			assert.Equal(t, test.expectedValues, actual)
 		})
 	}
 }
@@ -78,13 +97,19 @@ func TestExtractIndexFilters(t *testing.T) {
 		{
 			description: "empty",
 			pool:        &pb.Pool{},
-			expected:    []indexFilter{},
+			expected: []indexFilter{
+				{
+					name: "allTickets",
+					min:  math.Inf(-1),
+					max:  math.Inf(1),
+				},
+			},
 		},
 		{
 			description: "range",
 			pool: &pb.Pool{
-				Filters: []*pb.Filter{
-					&pb.Filter{
+				FloatRangeFilters: []*pb.FloatRangeFilter{
+					&pb.FloatRangeFilter{
 						Attribute: "foo",
 						Min:       -1,
 						Max:       1,
@@ -99,36 +124,47 @@ func TestExtractIndexFilters(t *testing.T) {
 				},
 			},
 		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			actual := extractIndexFilters(test.pool)
-
-			assert.Equal(t, test.expected, actual)
-		})
-	}
-}
-
-func TestExtractDeindexFilters(t *testing.T) {
-	tests := []struct {
-		description string
-		indices     []string
-		expected    []string
-	}{
 		{
-			description: "range",
-			indices:     []string{"foo"},
-			expected:    []string{"ri$foo"},
+			description: "bool false",
+			pool: &pb.Pool{
+				BoolEqualsFilters: []*pb.BoolEqualsFilter{
+					&pb.BoolEqualsFilter{
+						Attribute: "foo",
+						Value:     false,
+					},
+				},
+			},
+			expected: []indexFilter{
+				{
+					name: "bi$foo",
+					min:  -0.5,
+					max:  0.5,
+				},
+			},
+		},
+		{
+			description: "bool true",
+			pool: &pb.Pool{
+				BoolEqualsFilters: []*pb.BoolEqualsFilter{
+					&pb.BoolEqualsFilter{
+						Attribute: "foo",
+						Value:     true,
+					},
+				},
+			},
+			expected: []indexFilter{
+				{
+					name: "bi$foo",
+					min:  0.5,
+					max:  1.5,
+				},
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			cfg := viper.New()
-			cfg.Set("ticketIndices", test.indices)
-
-			actual := extractDeindexFilters(cfg)
+			actual := extractIndexFilters(test.pool)
 
 			assert.Equal(t, test.expected, actual)
 		})
