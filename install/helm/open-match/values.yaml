@@ -128,6 +128,8 @@ redis:
   fullnameOverride: om-redis
   redisPort: 6379
   usePassword: true
+  usePasswordFile: true
+  secretMountPath: /opt/bitnami/redis/secrets
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
   metrics:

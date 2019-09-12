@@ -79,12 +79,14 @@ spec:
       volumes:
         {{- include "openmatch.volumes.configs" . | nindent 8}}
         {{- include "openmatch.volumes.tls" . | nindent 8}}
+        {{- include "openmatch.volumes.withredis" . | nindent 8}}
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:
       - name: {{ .Values.backend.hostName }}
         volumeMounts:
           {{- include "openmatch.volumemounts.configs" . | nindent 10 }}
           {{- include "openmatch.volumemounts.tls" . | nindent 10 }}
+          {{- include "openmatch.volumemounts.withredis" . | nindent 10}}
         image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.backend.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
         ports:
         - name: grpc
@@ -92,6 +94,5 @@ spec:
         - name: http
           containerPort: {{ .Values.backend.httpPort }}
         {{- include "openmatch.container.common" . | nindent 8 }}
-        {{- include "openmatch.container.withredis" . | nindent 8 }}
         {{- include "kubernetes.probe" (dict "port" .Values.backend.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
 {{- end }}

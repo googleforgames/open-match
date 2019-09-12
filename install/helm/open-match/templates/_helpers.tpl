@@ -83,15 +83,19 @@ resources:
 {{- end -}}
 {{- end -}}
 
-{{- define "openmatch.container.withredis" -}}
-env:
+{{- define "openmatch.volumemounts.withredis" -}}
 {{- if .Values.redis.usePassword }}
-- name: REDIS_PASSWORD
-  valueFrom:
-    secretKeyRef:
-      name: {{ .Values.redis.fullnameOverride }}
-      key: redis-password
-{{- end}}
+- name: redis-password
+  mountPath: {{ .Values.redis.secretMountPath }}
+{{- end -}}
+{{- end -}}
+
+{{- define "openmatch.volumes.withredis" -}}
+{{- if .Values.redis.usePassword }}
+- name: redis-password
+  secret:
+    secretName: {{ .Values.redis.fullnameOverride }}
+{{- end -}}
 {{- end -}}
 
 {{- define "kubernetes.probe" -}}

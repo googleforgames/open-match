@@ -17,7 +17,7 @@ package statestore
 import (
 	"context"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -58,9 +58,14 @@ func newRedis(cfg config.View) Service {
 	redisURL := "redis://"
 	maskedURL := redisURL
 
-	// REDIS_PASSWORD is injected by the Redis docker image
-	if pw, ok := os.LookupEnv("REDIS_PASSWORD"); ok {
-		redisURL += fmt.Sprintf("%s:%s@", cfg.GetString("redis.user"), pw)
+	passwordFile := cfg.GetString("redis.passwordPath")
+	if len(passwordFile) > 0 {
+		redisLogger.Debugf("loading Redis password from file %s", passwordFile)
+		passwordData, err := ioutil.ReadFile(passwordFile)
+		if err != nil {
+			redisLogger.Fatalf("cannot read Redis password from file %s, desc: %s", passwordFile, err.Error())
+		}
+		redisURL += fmt.Sprintf("%s:%s@", cfg.GetString("redis.user"), string(passwordData))
 		maskedURL += fmt.Sprintf("%s:%s@", cfg.GetString("redis.user"), "**********")
 	}
 	redisURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
