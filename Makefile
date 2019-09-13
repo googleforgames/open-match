@@ -979,6 +979,10 @@ proxy:
 update-deps:
 	$(GO) mod tidy
 
+build-csharp:
+	docker build -t csharp $(REPOSITORY_ROOT)/csharp/OpenMatch
+	(cd $(REPOSITORY_ROOT)/csharp/OpenMatch; docker cp $(shell docker create csharp):/app/. ./.)
+
 third_party/: third_party/google/api third_party/protoc-gen-swagger/options third_party/swaggerui/
 
 third_party/google/api:
