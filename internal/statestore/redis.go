@@ -17,6 +17,7 @@ package statestore
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -56,9 +57,16 @@ func newRedis(cfg config.View) Service {
 	// Add redis user and password to connection url if they exist
 	redisURL := "redis://"
 	maskedURL := redisURL
-	if cfg.IsSet("redis.password") && cfg.GetString("redis.password") != "" {
-		redisURL += cfg.GetString("redis.user") + ":" + cfg.GetString("redis.password") + "@"
-		maskedURL += cfg.GetString("redis.user") + ":******@"
+
+	passwordFile := cfg.GetString("redis.passwordPath")
+	if len(passwordFile) > 0 {
+		redisLogger.Debugf("loading Redis password from file %s", passwordFile)
+		passwordData, err := ioutil.ReadFile(passwordFile)
+		if err != nil {
+			redisLogger.Fatalf("cannot read Redis password from file %s, desc: %s", passwordFile, err.Error())
+		}
+		redisURL += fmt.Sprintf("%s:%s@", cfg.GetString("redis.user"), string(passwordData))
+		maskedURL += fmt.Sprintf("%s:%s@", cfg.GetString("redis.user"), "**********")
 	}
 	redisURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
 	maskedURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
