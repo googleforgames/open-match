@@ -127,6 +127,7 @@ configs:
 redis:
   fullnameOverride: om-redis
   redisPort: 6379
+  zrangeByScoreLimit: 1000
   usePassword: true
   usePasswordFile: true
   secretMountPath: /opt/bitnami/redis/secrets
