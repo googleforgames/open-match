@@ -422,7 +422,6 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 	for i, filter := range extractIndexFilters(pool) {
 		// Time Complexity O(logN + M), where N is the number of elements in the attribute set
 		// and M is the number of entries being returned.
-		// TODO: discuss if we need a LIMIT for # of queries being returned
 		var optLimit string
 		if rb.cfg.IsSet("redis.zrangeByScoreLimit") {
 			optLimit = fmt.Sprintf("LIMIT 0 %d", rb.cfg.GetInt("redis.zrangeByScoreLimit"))
