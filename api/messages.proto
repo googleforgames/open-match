@@ -67,6 +67,7 @@ message Assignment {
 //   {"foo": "7.5"}
 //   {"foo": true}
 //   {"foo": [7.5]}
+//   {"foo": null}
 //   {}
 message FloatRangeFilter {
   // Name of the ticket attribute this Filter operates on.
@@ -90,6 +91,7 @@ message FloatRangeFilter {
 //   {"foo": 1}
 //   {"foo": "false"}
 //   {"foo": [false]}
+//   {"foo": null}
 //   {}
 message BoolEqualsFilter {
   string attribute = 1;
@@ -107,6 +109,7 @@ message BoolEqualsFilter {
 //   {"foo": true}
 //   {"foo": 5}
 //   {"foo": ["bar"]}
+//   {"foo": null}
 //   {}
 message StringEqualsFilter {
   string attribute = 1;

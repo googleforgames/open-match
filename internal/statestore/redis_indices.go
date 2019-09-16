@@ -31,6 +31,8 @@ import (
 // doing direct lookups on those ranges.
 // Boolean values with bool equals indicies turn true and false into 1 and 0.
 // Filters on bool equality use ranges limited to only 1s or only 0s.
+// Strings values are indexed by a unique attribute/value pair with value 0.
+// Filters are strings look up that attribute/value pair.
 
 func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 	result := make(map[string]float64)
@@ -63,7 +65,7 @@ func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 		default:
 			redisLogger.WithFields(logrus.Fields{
 				"attribute": attribute,
-			}).Warning("Attribute indexed but is not a number.")
+			}).Warning("Attribute indexed but is not an expected type.")
 		}
 	}
 

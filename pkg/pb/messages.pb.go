@@ -163,6 +163,7 @@ func (m *Assignment) GetError() *status.Status {
 //   {"foo": "7.5"}
 //   {"foo": true}
 //   {"foo": [7.5]}
+//   {"foo": null}
 //   {}
 type FloatRangeFilter struct {
 	// Name of the ticket attribute this Filter operates on.
@@ -233,6 +234,7 @@ func (m *FloatRangeFilter) GetMin() float64 {
 //   {"foo": 1}
 //   {"foo": "false"}
 //   {"foo": [false]}
+//   {"foo": null}
 //   {}
 type BoolEqualsFilter struct {
 	Attribute            string   `protobuf:"bytes,1,opt,name=attribute,proto3" json:"attribute,omitempty"`
@@ -291,6 +293,7 @@ func (m *BoolEqualsFilter) GetValue() bool {
 //   {"foo": true}
 //   {"foo": 5}
 //   {"foo": ["bar"]}
+//   {"foo": null}
 //   {}
 type StringEqualsFilter struct {
 	Attribute            string   `protobuf:"bytes,1,opt,name=attribute,proto3" json:"attribute,omitempty"`
