@@ -422,14 +422,15 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 	for i, filter := range extractIndexFilters(pool) {
 		// Time Complexity O(logN + M), where N is the number of elements in the attribute set
 		// and M is the number of entries being returned.
-		var optLimit string
+		optLimit := -1
 		if rb.cfg.IsSet("redis.zrangeByScoreLimit") {
-			optLimit = fmt.Sprintf("LIMIT 0 %d", rb.cfg.GetInt("redis.zrangeByScoreLimit"))
+			optLimit = rb.cfg.GetInt("redis.zrangeByScoreLimit")
 		}
-		idsInFilter, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.name, filter.min, filter.max, optLimit))
+
+		idsInFilter, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.name, filter.min, filter.max, "LIMIT", 0, optLimit))
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
-				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f", filter.name, filter.min, filter.max),
+				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f LIMIT 0 %d", filter.name, filter.min, filter.max, optLimit),
 			}).WithError(err).Error("Failed to lookup index.")
 			return status.Errorf(codes.Internal, "%v", err)
 		}
