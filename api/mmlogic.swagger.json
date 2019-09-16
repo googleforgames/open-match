@@ -77,6 +77,19 @@
       },
       "description": "An Assignment object represents the assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
     },
+    "apiBoolEqualsFilter": {
+      "type": "object",
+      "properties": {
+        "attribute": {
+          "type": "string"
+        },
+        "value": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      },
+      "title": "Filters boolean values.\n  attribute: \"foo\"\n  value: false\nmatches:\n  {\"foo\": false}\ndoes not match:\n  {\"foo\": true}\n  {\"foo\": \"bar\"}\n  {\"foo\": 1}\n  {\"foo\": \"false\"}\n  {\"foo\": [false]}\n  {}"
+    },
     "apiFloatRangeFilter": {
       "type": "object",
       "properties": {
@@ -110,6 +123,12 @@
             "$ref": "#/definitions/apiFloatRangeFilter"
           },
           "description": "Set of Filters indicating the filtering criteria. Selected players must\nmatch every Filter."
+        },
+        "bool_equals_filters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiBoolEqualsFilter"
+          }
         }
       }
     },
