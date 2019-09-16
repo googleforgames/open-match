@@ -13,7 +13,7 @@
 // limitations under the License.
 
 syntax = "proto3";
-package api.internal;
+package openmatch.internal;
 option go_package = "open-match.dev/open-match/internal/ipb";
 
 import "api/messages.proto";
@@ -64,7 +64,7 @@ message RegisterResponse {
 
 message EvaluateProposalsRequest {
   // List of proposals to evaluate in the current synchronization cycle.
-  api.Match match = 1;
+  openmatch.Match match = 1;
 
   // Identifier for this request issued during request registration.
   string id = 2;
@@ -72,7 +72,7 @@ message EvaluateProposalsRequest {
 
 message EvaluateProposalsResponse {
   // Results from evaluating proposals for this request.
-  api.Match match = 1;
+  openmatch.Match match = 1;
 }
 
 // The service implementing the Synchronizer API that synchronizes the evaluation

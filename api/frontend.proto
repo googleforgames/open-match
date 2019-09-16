@@ -13,7 +13,7 @@
 // limitations under the License.
 
 syntax = "proto3";
-package api;
+package openmatch;
 option go_package = "open-match.dev/open-match/pkg/pb";
 option csharp_namespace = "OpenMatch";
 

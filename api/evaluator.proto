@@ -13,7 +13,7 @@
 // limitations under the License.
 
 syntax = "proto3";
-package api;
+package openmatch;
 option go_package = "open-match.dev/open-match/pkg/pb";
 option csharp_namespace = "OpenMatch";
 
@@ -57,12 +57,12 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 
 message EvaluateRequest {
   // List of Matches to evaluate.
-  api.Match match = 1;
+  Match match = 1;
 }
 
 message EvaluateResponse {
   // Accepted list of Matches.
-  api.Match match = 1;
+  Match match = 1;
 }
 
 // The service implementing the Evaluator API that is called to evaluate
