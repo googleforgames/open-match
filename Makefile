@@ -322,7 +322,10 @@ build/chart/index.yaml.$(YEAR_MONTH_DAY): build/chart/index.yaml
 
 build/chart/: build/chart/index.yaml build/chart/index.yaml.$(YEAR_MONTH_DAY)
 
-install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
+install-chart-prerequisite: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	$(KUBECTL) apply -f install/gke-metadata-server-workaround.yaml
+
+install-large-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=600 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -334,7 +337,7 @@ install-large-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-
 		--set global.logging.rpc.enabled=true \
 		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
+install-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) --install --wait --debug install/helm/open-match \
 		--timeout=400 \
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
@@ -342,7 +345,7 @@ install-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/
 		--set global.image.tag=$(TAG) \
 		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 
-install-ci-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
+install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	# Ignore errors result from reruning a failed build
 	-$(KUBECTL) create clusterrolebinding default-view-$(OPEN_MATCH_KUBERNETES_NAMESPACE) --clusterrole=view --serviceaccount=$(OPEN_MATCH_KUBERNETES_NAMESPACE):default
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) --install --wait --debug install/helm/open-match \
