@@ -106,6 +106,25 @@ message Pool {
   repeated FloatRangeFilter float_range_filters = 2;
 
   repeated BoolEqualsFilter bool_equals_filters = 3;
+
+  repeated StringEqualsFilter string_equals_filters = 4;
+}
+
+// Filters strings exactly equaling a value.
+//   attribute: "foo"
+//   value: "bar"
+// matches:
+//   {"foo": "bar"}
+// does not match:
+//   {"foo": "baz"}
+//   {"foo": true}
+//   {"foo": 5}
+//   {"foo": ["bar"]}
+//   {}
+message StringEqualsFilter {
+  string attribute = 1;
+
+  string value = 2;
 }
 
 // A Roster is a named collection of Ticket IDs. It exists so that a Tickets

@@ -58,6 +58,8 @@ func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 				value = 1
 			}
 			result[boolIndexName(attribute)] = value
+		case *structpb.Value_StringValue:
+			result[stringIndexName(attribute, v.GetStringValue())] = 0
 		default:
 			redisLogger.WithFields(logrus.Fields{
 				"attribute": attribute,
@@ -100,6 +102,14 @@ func extractIndexFilters(p *pb.Pool) []indexFilter {
 		})
 	}
 
+	for _, f := range p.StringEqualsFilters {
+		filters = append(filters, indexFilter{
+			name: stringIndexName(f.Attribute, f.Value),
+			min:  0,
+			max:  0,
+		})
+	}
+
 	if len(filters) == 0 {
 		filters = []indexFilter{{
 			name: allTickets,
@@ -124,6 +134,11 @@ func rangeIndexName(attribute string) string {
 func boolIndexName(attribute string) string {
 	// bi stands for bool index
 	return "bi$" + indexEscape(attribute)
+}
+
+func stringIndexName(attribute string, value string) string {
+	// si stands for string index
+	return "si$" + indexEscape(attribute) + "$v" + indexEscape(value)
 }
 
 func indexCacheName(id string) string {
