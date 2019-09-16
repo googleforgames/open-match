@@ -323,7 +323,7 @@ build/chart/index.yaml.$(YEAR_MONTH_DAY): build/chart/index.yaml
 build/chart/: build/chart/index.yaml build/chart/index.yaml.$(YEAR_MONTH_DAY)
 
 install-chart-prerequisite: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) apply -f install/open-match-metadata-server.yaml
+	$(KUBECTL) apply -f install/gke-metadata-server-workaround.yaml
 
 install-large-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) --install --wait --debug install/helm/open-match \
@@ -367,7 +367,6 @@ dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) delete --purge $(OPEN_MATCH_RELEASE_NAME)
-	-$(KUBECTL) delete rolebinding -n kube-system gce:podsecuritypolicy:gke-metadata-server-workaround
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheuses.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd servicemonitors.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
