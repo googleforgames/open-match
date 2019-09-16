@@ -97,19 +97,6 @@ message BoolEqualsFilter {
   bool value = 2;
 }
 
-message Pool {
-  // A developer-chosen human-readable name for this Pool.
-  string name = 1;
-
-  // Set of Filters indicating the filtering criteria. Selected players must
-  // match every Filter.
-  repeated FloatRangeFilter float_range_filters = 2;
-
-  repeated BoolEqualsFilter bool_equals_filters = 3;
-
-  repeated StringEqualsFilter string_equals_filters = 4;
-}
-
 // Filters strings exactly equaling a value.
 //   attribute: "foo"
 //   value: "bar"
@@ -125,6 +112,19 @@ message StringEqualsFilter {
   string attribute = 1;
 
   string value = 2;
+}
+
+message Pool {
+  // A developer-chosen human-readable name for this Pool.
+  string name = 1;
+
+  // Set of Filters indicating the filtering criteria. Selected players must
+  // match every Filter.
+  repeated FloatRangeFilter float_range_filters = 2;
+
+  repeated BoolEqualsFilter bool_equals_filters = 3;
+
+  repeated StringEqualsFilter string_equals_filters = 4;
 }
 
 // A Roster is a named collection of Ticket IDs. It exists so that a Tickets
