@@ -129,11 +129,7 @@
       },
       "description": "An Assignment object represents the assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
     },
-<<<<<<< HEAD
     "openmatchBoolEqualsFilter": {
-=======
-    "apiBoolEqualsFilter": {
->>>>>>> 86b8cb5aa8c4ded64c74a3844d2d49f03e0251c3
       "type": "object",
       "properties": {
         "attribute": {
@@ -144,13 +140,9 @@
           "format": "boolean"
         }
       },
-      "title": "Filters boolean values.\n  attribute: \"foo\"\n  value: false\nmatches:\n  {\"foo\": false}\ndoes not match:\n  {\"foo\": true}\n  {\"foo\": \"bar\"}\n  {\"foo\": 1}\n  {\"foo\": \"false\"}\n  {\"foo\": [false]}\n  {}"
+      "title": "Filters boolean values.\n  attribute: \"foo\"\n  value: false\nmatches:\n  {\"foo\": false}\ndoes not match:\n  {\"foo\": true}\n  {\"foo\": \"bar\"}\n  {\"foo\": 1}\n  {\"foo\": \"false\"}\n  {\"foo\": [false]}\n  {\"foo\": null}\n  {}"
     },
-<<<<<<< HEAD
     "openmatchFetchMatchesRequest": {
-=======
-    "apiFetchMatchesRequest": {
->>>>>>> 86b8cb5aa8c4ded64c74a3844d2d49f03e0251c3
       "type": "object",
       "properties": {
         "config": {
@@ -193,7 +185,7 @@
           "description": "Minimum value. Defaults to 0."
         }
       },
-      "title": "Filters numerical values to only those within a range.\n  attribute: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {\"foo\": true}\n  {\"foo\": [7.5]}\n  {}"
+      "title": "Filters numerical values to only those within a range.\n  attribute: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {\"foo\": true}\n  {\"foo\": [7.5]}\n  {\"foo\": null}\n  {}"
     },
     "openmatchFunctionConfig": {
       "type": "object",
@@ -300,11 +292,13 @@
         "bool_equals_filters": {
           "type": "array",
           "items": {
-<<<<<<< HEAD
             "$ref": "#/definitions/openmatchBoolEqualsFilter"
-=======
-            "$ref": "#/definitions/apiBoolEqualsFilter"
->>>>>>> 86b8cb5aa8c4ded64c74a3844d2d49f03e0251c3
+          }
+        },
+        "string_equals_filters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/openmatchStringEqualsFilter"
           }
         }
       }
@@ -325,6 +319,18 @@
         }
       },
       "description": "A Roster is a named collection of Ticket IDs. It exists so that a Tickets\nassociated with a Match can be labelled to belong to a team, sub-team etc. It\ncan also be used to represent the current state of a Match in scenarios such\nas backfill, join-in-progress etc."
+    },
+    "openmatchStringEqualsFilter": {
+      "type": "object",
+      "properties": {
+        "attribute": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "title": "Filters strings exactly equaling a value.\n  attribute: \"foo\"\n  value: \"bar\"\nmatches:\n  {\"foo\": \"bar\"}\ndoes not match:\n  {\"foo\": \"baz\"}\n  {\"foo\": true}\n  {\"foo\": 5}\n  {\"foo\": [\"bar\"]}\n  {\"foo\": null}\n  {}"
     },
     "openmatchTicket": {
       "type": "object",
