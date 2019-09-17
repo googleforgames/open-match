@@ -17,7 +17,6 @@
 package e2e
 
 import (
-	"context"
 	"io"
 	"testing"
 
@@ -261,14 +260,6 @@ func TestQueryTickets(t *testing.T) {
 		},
 	}
 
-	doCreateTicket := func(ctx context.Context, fe pb.FrontendClient, tickets []*pb.Ticket, t *testing.T) {
-		for _, ticket := range tickets {
-			resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
-			assert.NotNil(t, resp)
-			assert.Nil(t, err)
-		}
-	}
-
 	t.Run("TestQueryTickets", func(t *testing.T) {
 		for _, test := range tests {
 			test := test
@@ -282,7 +273,11 @@ func TestQueryTickets(t *testing.T) {
 				pageCounts := 0
 				ctx := om.Context()
 
-				doCreateTicket(ctx, fe, test.gotTickets, t)
+				for _, ticket := range test.gotTickets {
+					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
+					assert.NotNil(t, resp)
+					assert.Nil(t, err)
+				}
 
 				stream, err := mml.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: test.pool})
 				assert.Nil(t, err)
