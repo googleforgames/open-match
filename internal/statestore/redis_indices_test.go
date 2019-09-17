@@ -21,6 +21,8 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/pkg/structs"
 )
@@ -102,11 +104,14 @@ func TestExtractIndexedFields(t *testing.T) {
 func TestExtractIndexFilters(t *testing.T) {
 	tests := []struct {
 		description string
+		indices     []string
 		pool        *pb.Pool
 		expected    []indexFilter
+		err         error
 	}{
 		{
 			description: "empty",
+			indices:     []string{},
 			pool:        &pb.Pool{},
 			expected: []indexFilter{
 				{
@@ -115,9 +120,11 @@ func TestExtractIndexFilters(t *testing.T) {
 					max:  math.Inf(1),
 				},
 			},
+			err: nil,
 		},
 		{
 			description: "range",
+			indices:     []string{"foo"},
 			pool: &pb.Pool{
 				FloatRangeFilters: []*pb.FloatRangeFilter{
 					&pb.FloatRangeFilter{
@@ -134,9 +141,11 @@ func TestExtractIndexFilters(t *testing.T) {
 					max:  1,
 				},
 			},
+			err: nil,
 		},
 		{
 			description: "bool false",
+			indices:     []string{"foo"},
 			pool: &pb.Pool{
 				BoolEqualsFilters: []*pb.BoolEqualsFilter{
 					&pb.BoolEqualsFilter{
@@ -152,9 +161,11 @@ func TestExtractIndexFilters(t *testing.T) {
 					max:  0.5,
 				},
 			},
+			err: nil,
 		},
 		{
 			description: "bool true",
+			indices:     []string{"foo"},
 			pool: &pb.Pool{
 				BoolEqualsFilters: []*pb.BoolEqualsFilter{
 					&pb.BoolEqualsFilter{
@@ -170,9 +181,11 @@ func TestExtractIndexFilters(t *testing.T) {
 					max:  1.5,
 				},
 			},
+			err: nil,
 		},
 		{
 			description: "string equals",
+			indices:     []string{"foo"},
 			pool: &pb.Pool{
 				StringEqualsFilters: []*pb.StringEqualsFilter{
 					&pb.StringEqualsFilter{
@@ -188,14 +201,72 @@ func TestExtractIndexFilters(t *testing.T) {
 					max:  0,
 				},
 			},
+			err: nil,
+		},
+		{
+			description: "range missing index",
+			indices:     []string{},
+			pool: &pb.Pool{
+				FloatRangeFilters: []*pb.FloatRangeFilter{
+					&pb.FloatRangeFilter{
+						Attribute: "foo",
+						Min:       -1,
+						Max:       1,
+					},
+				},
+			},
+			expected: nil,
+			err: status.Errorf(
+				codes.FailedPrecondition,
+				"Attribute foo requested in filter, but it is not configured as an index."),
+		},
+		{
+			description: "bool missing index",
+			indices:     []string{},
+			pool: &pb.Pool{
+				BoolEqualsFilters: []*pb.BoolEqualsFilter{
+					&pb.BoolEqualsFilter{
+						Attribute: "foo",
+						Value:     true,
+					},
+				},
+			},
+			expected: nil,
+			err: status.Errorf(
+				codes.FailedPrecondition,
+				"Attribute foo requested in filter, but it is not configured as an index."),
+		},
+		{
+			description: "string missing index",
+			indices:     []string{},
+			pool: &pb.Pool{
+				StringEqualsFilters: []*pb.StringEqualsFilter{
+					&pb.StringEqualsFilter{
+						Attribute: "foo",
+						Value:     "bar",
+					},
+				},
+			},
+			expected: nil,
+			err: status.Errorf(
+				codes.FailedPrecondition,
+				"Attribute foo requested in filter, but it is not configured as an index."),
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			actual := extractIndexFilters(test.pool)
+			cfg := viper.New()
+			cfg.Set("ticketIndices", test.indices)
+
+			actual, err := extractIndexFilters(cfg, test.pool)
 
 			assert.Equal(t, test.expected, actual)
+			if test.err == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.Equal(t, err, test.err)
+			}
 		})
 	}
 }

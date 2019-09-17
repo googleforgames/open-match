@@ -20,6 +20,8 @@ import (
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -79,10 +81,30 @@ type indexFilter struct {
 	min, max float64
 }
 
-func extractIndexFilters(p *pb.Pool) []indexFilter {
+func extractIndexFilters(cfg config.View, p *pb.Pool) ([]indexFilter, error) {
+	indices := make(map[string]struct{})
+	if cfg.IsSet("ticketIndices") {
+		for _, index := range cfg.GetStringSlice("ticketIndices") {
+			indices[index] = struct{}{}
+		}
+	}
+
+	checkIndex := func(attribute string) error {
+		if _, ok := indices[attribute]; !ok {
+			return status.Errorf(
+				codes.FailedPrecondition,
+				"Attribute %s requested in filter, but it is not configured as an index.",
+				attribute)
+		}
+		return nil
+	}
+
 	filters := make([]indexFilter, 0)
 
 	for _, f := range p.FloatRangeFilters {
+		if err := checkIndex(f.Attribute); err != nil {
+			return nil, err
+		}
 		filters = append(filters, indexFilter{
 			name: rangeIndexName(f.Attribute),
 			min:  f.Min,
@@ -91,6 +113,9 @@ func extractIndexFilters(p *pb.Pool) []indexFilter {
 	}
 
 	for _, f := range p.BoolEqualsFilters {
+		if err := checkIndex(f.Attribute); err != nil {
+			return nil, err
+		}
 		min := -0.5
 		max := 0.5
 		if f.Value {
@@ -105,6 +130,9 @@ func extractIndexFilters(p *pb.Pool) []indexFilter {
 	}
 
 	for _, f := range p.StringEqualsFilters {
+		if err := checkIndex(f.Attribute); err != nil {
+			return nil, err
+		}
 		filters = append(filters, indexFilter{
 			name: stringIndexName(f.Attribute, f.Value),
 			min:  0,
@@ -120,7 +148,7 @@ func extractIndexFilters(p *pb.Pool) []indexFilter {
 		}}
 	}
 
-	return filters
+	return filters, nil
 }
 
 // The following are constants and functions for determining the names of

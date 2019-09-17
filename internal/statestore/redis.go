@@ -418,8 +418,13 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 	// A set of playerIds that satisfies all filters
 	idSet := make([]string, 0)
 
+	indices, err := extractIndexFilters(rb.cfg, pool)
+	if err != nil {
+		return err
+	}
+
 	// For each filter, do a range query to Redis on Filter.Attribute
-	for i, filter := range extractIndexFilters(pool) {
+	for i, filter := range indices {
 		// Time Complexity O(logN + M), where N is the number of elements in the attribute set
 		// and M is the number of entries being returned.
 		// TODO: discuss if we need a LIMIT for # of queries being returned
