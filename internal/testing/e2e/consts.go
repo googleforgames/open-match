@@ -18,32 +18,27 @@ var (
 	zygote OM
 
 	// Indices covers all ticketIndices that will be used in the e2e test
-	// Please update #L394 in the Makefile if you need to add new indices to the e2e tests.
-	// TODO: Unify these indices
-	Indices = []string{SkillAttribute, Map1Attribute, Map2Attribute, LevelIndex, DefenseIndex, BoolIndex, StringIndex}
+	// Please update the ticketIndices in the helm chart for in-cluster end-to-end test if you need to add new indices.
+	Indices = []string{FloatRangeIndex1, FloatRangeIndex2, FloatRangeIndex3, BoolIndex1, StringIndex1}
 )
 
 const (
-	// Map1BeginnerPool is an index.
+	// Map1BeginnerPool is a pool name.
 	Map1BeginnerPool = "map1beginner"
-	// Map1AdvancedPool is an index.
+	// Map1AdvancedPool is pool name.
 	Map1AdvancedPool = "map1advanced"
-	// Map2BeginnerPool is an index.
+	// Map2BeginnerPool is pool name.
 	Map2BeginnerPool = "map2beginner"
-	// Map2AdvancedPool is an index.
+	// Map2AdvancedPool is pool name.
 	Map2AdvancedPool = "map2advanced"
-	// SkillAttribute is an index.
-	SkillAttribute = "skill"
-	// Map1Attribute is an index.
-	Map1Attribute = "map1"
-	// Map2Attribute is an index.
-	Map2Attribute = "map2"
-	// LevelIndex is an index
-	LevelIndex = "level"
-	// DefenseIndex is an index
-	DefenseIndex = "defense"
-	// BoolIndex is an index used to test BoolEqualsFilter
-	BoolIndex = "bool"
-	// StringIndex is an index used to test StringEqualsFilter
-	StringIndex = "string"
+	// FloatRangeAttribute1 is an index used to test FloatRangeFilter.
+	FloatRangeIndex1 = "skill"
+	// FloatRangeAttribute2 is an index used to test FloatRangeFilter.
+	FloatRangeIndex2 = "level"
+	// FloatRangeAttribute3 is an index used to test FloatRangeFilter.
+	FloatRangeIndex3 = "defense"
+	// BoolIndex1 is an index used to test BoolEqualsFilter
+	BoolIndex1 = "bool"
+	// StringIndex1 is an index used to test StringEqualsFilter
+	StringIndex1 = "string"
 )
