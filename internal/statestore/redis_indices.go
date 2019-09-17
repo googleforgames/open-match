@@ -31,6 +31,8 @@ import (
 // doing direct lookups on those ranges.
 // Boolean values with bool equals indicies turn true and false into 1 and 0.
 // Filters on bool equality use ranges limited to only 1s or only 0s.
+// Strings values are indexed by a unique attribute/value pair with value 0.
+// Filters are strings look up that attribute/value pair.
 
 func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 	result := make(map[string]float64)
@@ -58,10 +60,12 @@ func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 				value = 1
 			}
 			result[boolIndexName(attribute)] = value
+		case *structpb.Value_StringValue:
+			result[stringIndexName(attribute, v.GetStringValue())] = 0
 		default:
 			redisLogger.WithFields(logrus.Fields{
 				"attribute": attribute,
-			}).Warning("Attribute indexed but is not a number.")
+			}).Warning("Attribute indexed but is not an expected type.")
 		}
 	}
 
@@ -100,6 +104,14 @@ func extractIndexFilters(p *pb.Pool) []indexFilter {
 		})
 	}
 
+	for _, f := range p.StringEqualsFilters {
+		filters = append(filters, indexFilter{
+			name: stringIndexName(f.Attribute, f.Value),
+			min:  0,
+			max:  0,
+		})
+	}
+
 	if len(filters) == 0 {
 		filters = []indexFilter{{
 			name: allTickets,
@@ -124,6 +136,11 @@ func rangeIndexName(attribute string) string {
 func boolIndexName(attribute string) string {
 	// bi stands for bool index
 	return "bi$" + indexEscape(attribute)
+}
+
+func stringIndexName(attribute string, value string) string {
+	// si stands for string index
+	return "si$" + indexEscape(attribute) + "$v" + indexEscape(value)
 }
 
 func indexCacheName(id string) string {

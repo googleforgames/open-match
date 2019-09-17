@@ -32,7 +32,7 @@
           "200": {
             "description": "A successful response.(streaming responses)",
             "schema": {
-              "$ref": "#/x-stream-definitions/apiFetchMatchesResponse"
+              "$ref": "#/x-stream-definitions/openmatchFetchMatchesResponse"
             }
           },
           "404": {
@@ -48,7 +48,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiFetchMatchesRequest"
+              "$ref": "#/definitions/openmatchFetchMatchesRequest"
             }
           }
         ],
@@ -65,7 +65,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiAssignTicketsResponse"
+              "$ref": "#/definitions/openmatchAssignTicketsResponse"
             }
           },
           "404": {
@@ -81,7 +81,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiAssignTicketsRequest"
+              "$ref": "#/definitions/openmatchAssignTicketsRequest"
             }
           }
         ],
@@ -92,7 +92,7 @@
     }
   },
   "definitions": {
-    "apiAssignTicketsRequest": {
+    "openmatchAssignTicketsRequest": {
       "type": "object",
       "properties": {
         "ticket_ids": {
@@ -103,15 +103,15 @@
           "description": "List of Ticket IDs for which the Assignment is to be made."
         },
         "assignment": {
-          "$ref": "#/definitions/apiAssignment",
+          "$ref": "#/definitions/openmatchAssignment",
           "description": "Assignment to be associated with the Ticket IDs."
         }
       }
     },
-    "apiAssignTicketsResponse": {
+    "openmatchAssignTicketsResponse": {
       "type": "object"
     },
-    "apiAssignment": {
+    "openmatchAssignment": {
       "type": "object",
       "properties": {
         "connection": {
@@ -129,32 +129,45 @@
       },
       "description": "An Assignment object represents the assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
     },
-    "apiFetchMatchesRequest": {
+    "openmatchBoolEqualsFilter": {
+      "type": "object",
+      "properties": {
+        "attribute": {
+          "type": "string"
+        },
+        "value": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      },
+      "title": "Filters boolean values.\n  attribute: \"foo\"\n  value: false\nmatches:\n  {\"foo\": false}\ndoes not match:\n  {\"foo\": true}\n  {\"foo\": \"bar\"}\n  {\"foo\": 1}\n  {\"foo\": \"false\"}\n  {\"foo\": [false]}\n  {\"foo\": null}\n  {}"
+    },
+    "openmatchFetchMatchesRequest": {
       "type": "object",
       "properties": {
         "config": {
-          "$ref": "#/definitions/apiFunctionConfig",
+          "$ref": "#/definitions/openmatchFunctionConfig",
           "title": "Configuration of the MatchFunction to be executed for the given list of MatchProfiles"
         },
         "profiles": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiMatchProfile"
+            "$ref": "#/definitions/openmatchMatchProfile"
           },
           "description": "MatchProfiles for which this MatchFunction should be executed."
         }
       }
     },
-    "apiFetchMatchesResponse": {
+    "openmatchFetchMatchesResponse": {
       "type": "object",
       "properties": {
         "match": {
-          "$ref": "#/definitions/apiMatch",
+          "$ref": "#/definitions/openmatchMatch",
           "description": "Result Match for the requested MatchProfile.\nNote that OpenMatch will validate the proposals, a valid match should contain at least one ticket."
         }
       }
     },
-    "apiFloatRangeFilter": {
+    "openmatchFloatRangeFilter": {
       "type": "object",
       "properties": {
         "attribute": {
@@ -172,9 +185,9 @@
           "description": "Minimum value. Defaults to 0."
         }
       },
-      "title": "Filters numerical values to only those within a range.\n  attribute: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {\"foo\": true}\n  {\"foo\": [7.5]}\n  {}"
+      "title": "Filters numerical values to only those within a range.\n  attribute: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {\"foo\": true}\n  {\"foo\": [7.5]}\n  {\"foo\": null}\n  {}"
     },
-    "apiFunctionConfig": {
+    "openmatchFunctionConfig": {
       "type": "object",
       "properties": {
         "host": {
@@ -185,12 +198,12 @@
           "format": "int32"
         },
         "type": {
-          "$ref": "#/definitions/apiFunctionConfigType"
+          "$ref": "#/definitions/openmatchFunctionConfigType"
         }
       },
       "description": "Configuration for the Match Function to be triggered by Open Match to\ngenerate proposals."
     },
-    "apiFunctionConfigType": {
+    "openmatchFunctionConfigType": {
       "type": "string",
       "enum": [
         "GRPC",
@@ -198,7 +211,7 @@
       ],
       "default": "GRPC"
     },
-    "apiMatch": {
+    "openmatchMatch": {
       "type": "object",
       "properties": {
         "match_id": {
@@ -216,14 +229,14 @@
         "tickets": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiTicket"
+            "$ref": "#/definitions/openmatchTicket"
           },
           "description": "Tickets belonging to this match."
         },
         "rosters": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiRoster"
+            "$ref": "#/definitions/openmatchRoster"
           },
           "title": "Set of Rosters that comprise this Match"
         },
@@ -234,7 +247,7 @@
       },
       "description": "A Match is used to represent a completed match object. It can be generated by\na MatchFunction as a proposal or can be returned by OpenMatch as a result in\nresponse to the FetchMatches call.\nWhen a match is returned by the FetchMatches call, it should contain at least \none ticket to be considered as valid."
     },
-    "apiMatchProfile": {
+    "openmatchMatchProfile": {
       "type": "object",
       "properties": {
         "name": {
@@ -248,21 +261,21 @@
         "pools": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiPool"
+            "$ref": "#/definitions/openmatchPool"
           },
           "description": "Set of pools to be queried when generating a match for this MatchProfile.\nThe pool names can be used in empty Rosters to specify composition of a\nmatch."
         },
         "rosters": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiRoster"
+            "$ref": "#/definitions/openmatchRoster"
           },
           "description": "Set of Rosters for this match request. Could be empty Rosters used to\nindicate the composition of the generated Match or they could be partially\npre-populated Ticket list to be used in scenarios such as backfill / join\nin progress."
         }
       },
       "description": "A MatchProfile is Open Match's representation of a Match specification. It is\nused to indicate the criteria for selecting players for a match. A\nMatchProfile is the input to the API to get matches and is passed to the\nMatchFunction. It contains all the information required by the MatchFunction\nto generate match proposals."
     },
-    "apiPool": {
+    "openmatchPool": {
       "type": "object",
       "properties": {
         "name": {
@@ -272,13 +285,25 @@
         "float_range_filters": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiFloatRangeFilter"
+            "$ref": "#/definitions/openmatchFloatRangeFilter"
           },
           "description": "Set of Filters indicating the filtering criteria. Selected players must\nmatch every Filter."
+        },
+        "bool_equals_filters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/openmatchBoolEqualsFilter"
+          }
+        },
+        "string_equals_filters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/openmatchStringEqualsFilter"
+          }
         }
       }
     },
-    "apiRoster": {
+    "openmatchRoster": {
       "type": "object",
       "properties": {
         "name": {
@@ -295,7 +320,19 @@
       },
       "description": "A Roster is a named collection of Ticket IDs. It exists so that a Tickets\nassociated with a Match can be labelled to belong to a team, sub-team etc. It\ncan also be used to represent the current state of a Match in scenarios such\nas backfill, join-in-progress etc."
     },
-    "apiTicket": {
+    "openmatchStringEqualsFilter": {
+      "type": "object",
+      "properties": {
+        "attribute": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "title": "Filters strings exactly equaling a value.\n  attribute: \"foo\"\n  value: \"bar\"\nmatches:\n  {\"foo\": \"bar\"}\ndoes not match:\n  {\"foo\": \"baz\"}\n  {\"foo\": true}\n  {\"foo\": 5}\n  {\"foo\": [\"bar\"]}\n  {\"foo\": null}\n  {}"
+    },
+    "openmatchTicket": {
       "type": "object",
       "properties": {
         "id": {
@@ -307,7 +344,7 @@
           "description": "Properties contains custom info about the ticket.  Top level values can be\nused in indexing and filtering to find tickets."
         },
         "assignment": {
-          "$ref": "#/definitions/apiAssignment",
+          "$ref": "#/definitions/openmatchAssignment",
           "description": "Assignment associated with the Ticket."
         }
       },
@@ -386,17 +423,17 @@
     }
   },
   "x-stream-definitions": {
-    "apiFetchMatchesResponse": {
+    "openmatchFetchMatchesResponse": {
       "type": "object",
       "properties": {
         "result": {
-          "$ref": "#/definitions/apiFetchMatchesResponse"
+          "$ref": "#/definitions/openmatchFetchMatchesResponse"
         },
         "error": {
           "$ref": "#/definitions/runtimeStreamError"
         }
       },
-      "title": "Stream result of apiFetchMatchesResponse"
+      "title": "Stream result of openmatchFetchMatchesResponse"
     }
   },
   "externalDocs": {

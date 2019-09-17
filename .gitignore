@@ -119,6 +119,7 @@ cmd/swaggerui/swaggerui
 tools/certgen/certgen
 examples/demo/demo
 examples/functions/golang/soloduel/soloduel
+examples/functions/golang/rosterbased/rosterbased
 examples/functions/golang/pool/pool
 examples/evaluator/golang/simple/simple
 tools/reaper/reaper

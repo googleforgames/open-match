@@ -57,6 +57,17 @@ func TestExtractIndexedFields(t *testing.T) {
 			},
 		},
 		{
+			description: "string",
+			indices:     []string{"foo"},
+			ticket: structs.Struct{
+				"foo": structs.String("bar"),
+			}.S(),
+			expectedValues: map[string]float64{
+				"allTickets":  0,
+				"si$foo$vbar": 0,
+			},
+		},
+		{
 			description: "no index",
 			indices:     []string{},
 			ticket: structs.Struct{
@@ -160,6 +171,24 @@ func TestExtractIndexFilters(t *testing.T) {
 				},
 			},
 		},
+		{
+			description: "string equals",
+			pool: &pb.Pool{
+				StringEqualsFilters: []*pb.StringEqualsFilter{
+					&pb.StringEqualsFilter{
+						Attribute: "foo",
+						Value:     "bar",
+					},
+				},
+			},
+			expected: []indexFilter{
+				{
+					name: "si$foo$vbar",
+					min:  0,
+					max:  0,
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -168,5 +197,21 @@ func TestExtractIndexFilters(t *testing.T) {
 
 			assert.Equal(t, test.expected, actual)
 		})
+	}
+}
+
+func TestNameCollision(t *testing.T) {
+	names := []string{
+		rangeIndexName("foo"),
+		boolIndexName("foo"),
+		stringIndexName("foo", "bar"),
+		indexCacheName("foo"),
+		stringIndexName("$v", ""),
+		stringIndexName("", "$v"),
+	}
+	for i := 0; i < len(names); i++ {
+		for j := i + 1; j < len(names); j++ {
+			assert.NotEqual(t, names[i], names[j])
+		}
 	}
 }

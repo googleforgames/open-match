@@ -13,7 +13,7 @@
 // limitations under the License.
 
 syntax = "proto3";
-package api;
+package openmatch;
 option go_package = "open-match.dev/open-match/pkg/pb";
 option csharp_namespace = "OpenMatch";
 
@@ -67,6 +67,7 @@ message Assignment {
 //   {"foo": "7.5"}
 //   {"foo": true}
 //   {"foo": [7.5]}
+//   {"foo": null}
 //   {}
 message FloatRangeFilter {
   // Name of the ticket attribute this Filter operates on.
@@ -90,11 +91,30 @@ message FloatRangeFilter {
 //   {"foo": 1}
 //   {"foo": "false"}
 //   {"foo": [false]}
+//   {"foo": null}
 //   {}
 message BoolEqualsFilter {
   string attribute = 1;
 
   bool value = 2;
+}
+
+// Filters strings exactly equaling a value.
+//   attribute: "foo"
+//   value: "bar"
+// matches:
+//   {"foo": "bar"}
+// does not match:
+//   {"foo": "baz"}
+//   {"foo": true}
+//   {"foo": 5}
+//   {"foo": ["bar"]}
+//   {"foo": null}
+//   {}
+message StringEqualsFilter {
+  string attribute = 1;
+
+  string value = 2;
 }
 
 message Pool {
@@ -106,6 +126,8 @@ message Pool {
   repeated FloatRangeFilter float_range_filters = 2;
 
   repeated BoolEqualsFilter bool_equals_filters = 3;
+
+  repeated StringEqualsFilter string_equals_filters = 4;
 }
 
 // A Roster is a named collection of Ticket IDs. It exists so that a Tickets
