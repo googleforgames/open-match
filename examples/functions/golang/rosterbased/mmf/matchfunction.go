@@ -26,105 +26,94 @@ import (
 )
 
 var (
-	matchName = "roster-based-matchfunction"
+	matchName       = "roster-based-matchfunction"
 	emptyRosterSpot = "EMPTY_ROSTER_SPOT"
-	logger    = logrus.WithFields(logrus.Fields{
+	logger          = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
 		"component": "mmf.rosterbased",
 	})
 )
 
-// MakeMatches is where your custom matchmaking logic lives.
 func MakeMatches(p *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
-	// This simple match function does the following things
-	// 1. Deduplicates the tickets from the pools into a single list.
-	// 2. Groups players into 1v1 matches.
-	start := time.Now()
-
+	// This roster based match function expects the match profile to have a
+	// populated roster specifying the empty slots for each pool name and also
+	// have the ticket pools referenced in the roster. It generates matches by
+	// populating players from the specified pools into rosters.
 	wantTickets, err := wantPoolTickets(p.Rosters)
 	if err != nil {
 		return nil, err
 	}
 
-	if !sufficientPlayers(p.PoolNameToTickets, wantTickets) {
-		return nil, status.Error(codes.InvalidArgument, "Tickets map does not contain sufficient tickets to make a match")
-	}
-
 	var matches []*pb.Match
-	matchNum := 0
-	poolTickets := p.PoolNameToTickets
-	t := time.Now().Format("2006-01-02T15:04:05.00")
 	for {
 		insufficientTickets := false
 		matchTickets := []*pb.Ticket{}
-		// Populate 5 players from each pool in a match. If either pool runs out of tickets, exit.
-		for poolName, pool := range poolTickets {
-			if len(pool) < 5 {
-				logger.Infof("Insufficient tickets in Pool %v. Cannot make match.", poolName)
+		matchRosters := []*pb.Roster{}
+		// Loop through each pool wanted in the rosters and pick the number of
+		// wanted players from the respective Pool.
+		for poolName, want := range wantTickets {
+			have, ok := p.PoolNameToTickets[poolName]
+			if !ok {
+				// A wanted Pool was not found in the Pools specified in the profile.
 				insufficientTickets = true
 				break
 			}
 
-			matchTickets = append(matchTickets, pool[0:5]...)
-			poolTickets[poolName] = pool[5:]
+			if len(have) < want {
+				// The Pool in the profile has fewer tickets than what the roster needs.
+				insufficientTickets = true
+				break
+			}
+
+			// Populate the wanted tickets from the Tickets in the corresponding Pool.
+			matchTickets = append(matchTickets, have[0:want]...)
+			p.PoolNameToTickets[poolName] = have[want:]
+			var ids []string
+			for _, ticket := range matchTickets {
+				ids = append(ids, ticket.Id)
+			}
+
+			matchRosters = append(matchRosters, &pb.Roster{
+				Name:      poolName,
+				TicketIds: ids,
+			})
 		}
 
 		if insufficientTickets {
+			// Ran out of Tickets. Matches cannot be created from the remaining Tickets.
 			break
 		}
 
-		// We have ranged over all pools, sufficient tickets for the match - create one.
 		matches = append(matches, &pb.Match{
-			MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", p.ProfileName, t, matchNum),
+			MatchId:       fmt.Sprintf("profile-%v-time-%v", p.ProfileName, time.Now().Format("2006-01-02T15:04:05.00")),
 			MatchProfile:  p.ProfileName,
 			MatchFunction: matchName,
 			Tickets:       matchTickets,
+			Rosters:       matchRosters,
 		})
 	}
 
-	logger.Infof("function execution took %v, returned %v matches", time.Since(start), len(matches))
 	return matches, nil
 }
 
-func sufficientPlayers(haveTickets map[string][]*pb.Ticket, wantTickets map[string]int) bool {
-	for name, tickets := range haveTickets {
-		if val, ok := wantTickets[name]; ok {
-			// Pool in the profile found in the roster, validate that we have sufficient tickets. 
-			if val > len(tickets) {
-				// Tickets returned for this Pool are fewer than the empty slots for this Pool in the Roster.
-				return false
-			}
-
-			// Pool is present in Roster and sufficient tickets present.
-			delete(wantTickets, name)
-		}
-	}
-
-	if len(wantTickets) != 0 {
-		// There are some rosters that did not have any Pool in the profile.
-		return false
-	}
-
-	return true
-}
-
-// wantPoolTickets returns a map of Pool name to number of empty ticket slots for that Pool.
-func wantPoolTickets(rosters []*pb.Roster) (map [string]int, error) {
+// wantPoolTickets parses the roster to return a map of the Pool name to the
+// number of empty roster slots for that Pool.
+func wantPoolTickets(rosters []*pb.Roster) (map[string]int, error) {
 	wantTickets := make(map[string]int)
 	for _, r := range rosters {
 		if _, ok := wantTickets[r.Name]; ok {
 			// We do not expect multiple Roster Pools to have the same name.
-			logger.Errorf("multiple rosters with same name not supported by this mmf")
-			return nil, status.Error(codes.InvalidArgument, "multiple rosters with same name not supported by this mmf")
+			logger.Errorf("multiple rosters with same name not supported")
+			return nil, status.Error(codes.InvalidArgument, "multiple rosters with same name not supported")
 		}
-	
+
 		wantTickets[r.Name] = 0
 		for _, slot := range r.TicketIds {
-			if slot == "emptyRosterSpot" {
+			if slot == emptyRosterSpot {
 				wantTickets[r.Name] = wantTickets[r.Name] + 1
 			}
 		}
 	}
-	
+
 	return wantTickets, nil
 }
