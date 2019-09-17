@@ -34,3 +34,14 @@ data:
     testConfig:
       profile: "{{ .Values.testConfig.profile }}"
       concurrentCreates: "{{ .Values.testConfig.concurrentCreates }}"
+      regions:
+      {{- range .Values.testConfig.regions }}
+        - {{ . }}
+      {{- end }}
+      characters:
+      {{- range .Values.testConfig.characters }}
+        - {{ . }}
+      {{- end }}
+      minRating: "{{ .Values.testConfig.minRating }}"
+      maxRating: "{{ .Values.testConfig.maxRating }}"
+      
