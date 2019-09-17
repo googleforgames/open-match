@@ -117,6 +117,7 @@ TERRAFORM = $(TOOLCHAIN_BIN)/terraform$(EXE_EXTENSION)
 SKAFFOLD = $(TOOLCHAIN_BIN)/skaffold$(EXE_EXTENSION)
 CERTGEN = $(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION)
 GOLANGCI = $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
+DOTNET = $(TOOLCHAIN_DIR)/dotnet/dotnet$(EXE_EXTENSION)
 CHART_TESTING = $(TOOLCHAIN_BIN)/ct$(EXE_EXTENSION)
 GCLOUD = gcloud --quiet
 OPEN_MATCH_CHART_NAME = open-match
@@ -162,6 +163,7 @@ ifeq ($(OS),Windows_NT)
 	GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-windows-amd64.zip
 	KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-windows-amd64
 	TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_windows_amd64.zip
+	DOTNET_PACKAGE = https://download.visualstudio.microsoft.com/download/pr/8ac3e8b7-9918-4e0c-b1be-5aa3e6afd00f/0be99c6ab9362b3c47050cdd50cba846/dotnet-sdk-2.2.402-win-x64.zip
 	CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_windows_amd64.zip
 	SED_REPLACE = sed -i
 else
@@ -175,6 +177,7 @@ else
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64.tar.gz
 		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-linux-amd64
 		TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_linux_amd64.zip
+		DOTNET_PACKAGE = https://download.visualstudio.microsoft.com/download/pr/46411df1-f625-45c8-b5e7-08ab736d3daa/0fbc446088b471b0a483f42eb3cbf7a2/dotnet-sdk-2.2.402-linux-x64.tar.gz
 		CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_linux_amd64.tar.gz
 		SED_REPLACE = sed -i
 	endif
@@ -187,6 +190,7 @@ else
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-darwin-amd64.tar.gz
 		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-darwin-amd64
 		TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_darwin_amd64.zip
+		DOTNET_PACKAGE = https://download.visualstudio.microsoft.com/download/pr/2079de3a-714b-4fa5-840f-70e898b393ef/d631b5018560873ac350d692290881db/dotnet-sdk-2.2.402-osx-x64.tar.gz
 		CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_darwin_amd64.tar.gz
 		SED_REPLACE = sed -i ''
 	endif
@@ -532,6 +536,16 @@ build/toolchain/bin/terraform$(EXE_EXTENSION):
 	cd $(TOOLCHAIN_DIR)/temp-terraform && curl -Lo terraform.zip $(TERRAFORM_PACKAGE) && unzip -j -q -o terraform.zip
 	mv $(TOOLCHAIN_DIR)/temp-terraform/terraform$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/terraform$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-terraform/
+
+build/toolchain/dotnet/:
+	mkdir -p $(TOOLCHAIN_DIR)/dotnet
+ifeq ($(suffix $(DOTNET_PACKAGE)),.zip)
+	cd $(TOOLCHAIN_DIR)/dotnet && curl -Lo dotnet.zip $(DOTNET_PACKAGE) && unzip -j -q -o dotnet.zip
+	rm -rf $(TOOLCHAIN_DIR)/dotnet.zip
+else
+	cd $(TOOLCHAIN_DIR)/dotnet && curl -Lo dotnet.tar.gz $(DOTNET_PACKAGE) && tar xzf dotnet.tar.gz --strip-components 1
+	rm -rf $(TOOLCHAIN_DIR)/dotnet.tar.gz
+endif
 
 build/toolchain/python/:
 	virtualenv --python=python3 $(TOOLCHAIN_DIR)/python/
@@ -1006,6 +1020,9 @@ proxy:
 
 update-deps:
 	$(GO) mod tidy
+
+build-csharp: build/toolchain/dotnet/
+	(cd $(REPOSITORY_ROOT)/csharp/OpenMatch && $(DOTNET) build -o . && rm -rf obj/ *.pdb *.deps.json)
 
 third_party/: third_party/google/api third_party/protoc-gen-swagger/options third_party/swaggerui/
 
