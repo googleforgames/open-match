@@ -15,10 +15,17 @@
 package frontend
 
 import (
+	"context"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/examples/scale/tickets"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
+	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 var (
@@ -39,10 +46,48 @@ func Run() {
 	}
 
 	logging.ConfigureLogging(cfg)
+	doCreate(cfg)
+}
 
-	// TODO: This is a placeholder - add the actual implementation.
+func doCreate(cfg config.View) {
 	concurrent := cfg.GetInt("testConfig.concurrent-creates")
-	for i := 0; i <= concurrent; i++ {
-		_ = tickets.Ticket(cfg)
+	conn, err := rpc.GRPCClientFromConfig(cfg, "api.frontend")
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatal("failed to get Frontend connection")
+	}
+
+	defer conn.Close()
+	fe := pb.NewFrontendClient(conn)
+
+	var created uint64
+	var failed uint64
+	start := time.Now()
+	for {
+		var wg sync.WaitGroup
+		for i := 0; i <= concurrent; i++ {
+			wg.Add(1)
+			go func(wg *sync.WaitGroup) {
+				defer wg.Done()
+				req := &pb.CreateTicketRequest{
+					Ticket: tickets.Ticket(cfg),
+				}
+
+				if _, err := fe.CreateTicket(context.Background(), req); err != nil {
+					logger.WithFields(logrus.Fields{
+						"error": err.Error(),
+					}).Error("failed to create a ticket.")
+					atomic.AddUint64(&failed, 1)
+					return
+				}
+
+				atomic.AddUint64(&created, 1)
+			}(&wg)
+		}
+
+		// Wait for all concurrent creates to complete.
+		wg.Wait()
+		logger.Infof("%v tickets created, %v failed in %v", created, failed, time.Since(start))
 	}
 }
