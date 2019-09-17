@@ -19,8 +19,28 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+// greedyProfiles generates a single profile that has only one Pool that has a single
+// filter which covers the entire range of player ranks, thereby pulling in the entire
+// player population during each profile execution.
 func greedyProfiles(cfg config.View) []*pb.MatchProfile {
-	// TODO - Implement logic to generate profiles
-	_ = cfg
-	return []*pb.MatchProfile{}
+	return []*pb.MatchProfile{
+		{
+			Name: "greedy",
+			Pools: []*pb.Pool{
+				{
+					Name: "all",
+					FloatRangeFilters: []*pb.FloatRangeFilter{
+						{
+							Attribute: "mmr.rating",
+							Min:       float64(cfg.GetInt("testConfig.minRating")),
+							Max:       float64(cfg.GetInt("testConfig.maxRating")),
+						},
+					},
+				},
+			},
+			Rosters: []*pb.Roster{
+				makeRosterSlots("all", cfg.GetInt("testConfig.ticketsPerMatch")),
+			},
+		},
+	}
 }

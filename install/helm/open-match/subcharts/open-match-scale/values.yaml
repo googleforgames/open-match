@@ -47,4 +47,11 @@ testConfig:
     - char.knight
   minRating: 0
   maxRating: 100
-  
+  ticketsPerMatch: 8
+  multifilter:
+    rangeSize: 10
+    rangeOverlap: 5
+  multipool:
+    rangeSize: 10
+    rangeOverlap: 5
+    characterCount: 4

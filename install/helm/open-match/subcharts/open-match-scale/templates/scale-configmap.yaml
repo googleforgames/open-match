@@ -44,4 +44,11 @@ data:
       {{- end }}
       minRating: "{{ .Values.testConfig.minRating }}"
       maxRating: "{{ .Values.testConfig.maxRating }}"
-      
+      ticketsPerMatch: "{{ .Values.testConfig.ticketsPerMatch }}"
+      multifilter:
+        rangeSize: "{{ .Values.testConfig.multifilter.rangeSize }}"
+        rangeOverlap: "{{ .Values.testConfig.multifilter.rangeOverlap }}"
+      multipool:
+        rangeSize: "{{ .Values.testConfig.multipool.rangeSize }}"
+        rangeOverlap: "{{ .Values.testConfig.multipool.rangeOverlap }}"
+        characterCount: "{{ .Values.testConfig.multipool.characterCount }}"
