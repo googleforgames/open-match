@@ -32,7 +32,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiCreateTicketResponse"
+              "$ref": "#/definitions/openmatchCreateTicketResponse"
             }
           },
           "404": {
@@ -48,7 +48,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiCreateTicketRequest"
+              "$ref": "#/definitions/openmatchCreateTicketRequest"
             }
           }
         ],
@@ -65,7 +65,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiTicket"
+              "$ref": "#/definitions/openmatchTicket"
             }
           },
           "404": {
@@ -95,7 +95,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiDeleteTicketResponse"
+              "$ref": "#/definitions/openmatchDeleteTicketResponse"
             }
           },
           "404": {
@@ -127,7 +127,7 @@
           "200": {
             "description": "A successful response.(streaming responses)",
             "schema": {
-              "$ref": "#/x-stream-definitions/apiGetAssignmentsResponse"
+              "$ref": "#/x-stream-definitions/openmatchGetAssignmentsResponse"
             }
           },
           "404": {
@@ -153,7 +153,7 @@
     }
   },
   "definitions": {
-    "apiAssignment": {
+    "openmatchAssignment": {
       "type": "object",
       "properties": {
         "connection": {
@@ -171,37 +171,37 @@
       },
       "description": "An Assignment object represents the assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
     },
-    "apiCreateTicketRequest": {
+    "openmatchCreateTicketRequest": {
       "type": "object",
       "properties": {
         "ticket": {
-          "$ref": "#/definitions/apiTicket",
+          "$ref": "#/definitions/openmatchTicket",
           "description": "Ticket object with the properties of the Ticket to be created."
         }
       }
     },
-    "apiCreateTicketResponse": {
+    "openmatchCreateTicketResponse": {
       "type": "object",
       "properties": {
         "ticket": {
-          "$ref": "#/definitions/apiTicket",
+          "$ref": "#/definitions/openmatchTicket",
           "description": "Ticket object for the created Ticket - with the ticket ID populated."
         }
       }
     },
-    "apiDeleteTicketResponse": {
+    "openmatchDeleteTicketResponse": {
       "type": "object"
     },
-    "apiGetAssignmentsResponse": {
+    "openmatchGetAssignmentsResponse": {
       "type": "object",
       "properties": {
         "assignment": {
-          "$ref": "#/definitions/apiAssignment",
+          "$ref": "#/definitions/openmatchAssignment",
           "description": "The updated Ticket object."
         }
       }
     },
-    "apiTicket": {
+    "openmatchTicket": {
       "type": "object",
       "properties": {
         "id": {
@@ -213,7 +213,7 @@
           "description": "Properties contains custom info about the ticket.  Top level values can be\nused in indexing and filtering to find tickets."
         },
         "assignment": {
-          "$ref": "#/definitions/apiAssignment",
+          "$ref": "#/definitions/openmatchAssignment",
           "description": "Assignment associated with the Ticket."
         }
       },
@@ -292,17 +292,17 @@
     }
   },
   "x-stream-definitions": {
-    "apiGetAssignmentsResponse": {
+    "openmatchGetAssignmentsResponse": {
       "type": "object",
       "properties": {
         "result": {
-          "$ref": "#/definitions/apiGetAssignmentsResponse"
+          "$ref": "#/definitions/openmatchGetAssignmentsResponse"
         },
         "error": {
           "$ref": "#/definitions/runtimeStreamError"
         }
       },
-      "title": "Stream result of apiGetAssignmentsResponse"
+      "title": "Stream result of openmatchGetAssignmentsResponse"
     }
   },
   "externalDocs": {

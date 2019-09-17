@@ -117,6 +117,7 @@ TERRAFORM = $(TOOLCHAIN_BIN)/terraform$(EXE_EXTENSION)
 SKAFFOLD = $(TOOLCHAIN_BIN)/skaffold$(EXE_EXTENSION)
 CERTGEN = $(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION)
 GOLANGCI = $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
+DOTNET = $(TOOLCHAIN_DIR)/dotnet/dotnet$(EXE_EXTENSION)
 CHART_TESTING = $(TOOLCHAIN_BIN)/ct$(EXE_EXTENSION)
 GCLOUD = gcloud --quiet
 OPEN_MATCH_CHART_NAME = open-match
@@ -162,6 +163,7 @@ ifeq ($(OS),Windows_NT)
 	GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-windows-amd64.zip
 	KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-windows-amd64
 	TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_windows_amd64.zip
+	DOTNET_PACKAGE = https://download.visualstudio.microsoft.com/download/pr/8ac3e8b7-9918-4e0c-b1be-5aa3e6afd00f/0be99c6ab9362b3c47050cdd50cba846/dotnet-sdk-2.2.402-win-x64.zip
 	CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_windows_amd64.zip
 	SED_REPLACE = sed -i
 else
@@ -175,6 +177,7 @@ else
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64.tar.gz
 		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-linux-amd64
 		TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_linux_amd64.zip
+		DOTNET_PACKAGE = https://download.visualstudio.microsoft.com/download/pr/46411df1-f625-45c8-b5e7-08ab736d3daa/0fbc446088b471b0a483f42eb3cbf7a2/dotnet-sdk-2.2.402-linux-x64.tar.gz
 		CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_linux_amd64.tar.gz
 		SED_REPLACE = sed -i
 	endif
@@ -187,6 +190,7 @@ else
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-darwin-amd64.tar.gz
 		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-darwin-amd64
 		TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_darwin_amd64.zip
+		DOTNET_PACKAGE = https://download.visualstudio.microsoft.com/download/pr/2079de3a-714b-4fa5-840f-70e898b393ef/d631b5018560873ac350d692290881db/dotnet-sdk-2.2.402-osx-x64.tar.gz
 		CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_darwin_amd64.tar.gz
 		SED_REPLACE = sed -i ''
 	endif
@@ -202,7 +206,7 @@ ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS)
 CMDS = $(notdir $(wildcard cmd/*))
 
 # Names of the individual images, ommiting the openmatch prefix.
-IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool evaluator-go-simple reaper stress-frontend base-build
+IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool mmf-go-rosterbased evaluator-go-simple reaper stress-frontend base-build
 
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
@@ -213,7 +217,7 @@ local-cloud-build: gcloud
 
 ################################################################################
 ## #############################################################################
-## Image commands: 
+## Image commands:
 ## These commands are auto-generated based on a complete list of images.  All
 ## folders in cmd/ are turned into an image using Dockerfile.cmd.  Additional
 ## images are specified by the IMAGES variable.  Image commands ommit the
@@ -241,6 +245,9 @@ $(foreach CMD,$(CMDS),build-$(CMD)-image): build-%-image: docker build-base-buil
 
 build-mmf-go-soloduel-image: docker build-base-build-image
 	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
+
+build-mmf-go-rosterbased-image: docker build-base-build-image
+	docker build -f examples/functions/golang/rosterbased/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-rosterbased:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-rosterbased:$(ALTERNATE_TAG) .
 
 build-mmf-go-pool-image: docker build-base-build-image
 	docker build -f examples/functions/golang/pool/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG) .
@@ -277,7 +284,7 @@ endif
 #######################################
 ## retag-images / retag-<image name>-image: publishes images on the public
 ## container registry.  Used for publishing releases.
-## 
+##
 retag-images: $(foreach IMAGE,$(IMAGES),retag-$(IMAGE)-image)
 
 retag-%-image: SOURCE_REGISTRY = gcr.io/$(OPEN_MATCH_BUILD_PROJECT_ID)
@@ -343,6 +350,24 @@ install-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSIO
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
+		--set global.gcpProjectId=$(GCP_PROJECT_ID)
+
+install-scale-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
+	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) --install --wait --debug install/helm/open-match \
+		--timeout=600 \
+		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+		--set global.image.registry=$(REGISTRY) \
+		--set global.image.tag=$(TAG) \
+		--set open-match-core.enabled=true \
+		--set open-match-telemetry.enabled=true \
+		--set open-match-demo.enabled=false \
+		--set open-match-customize.enabled=true \
+		--set open-match-customize.function.image=openmatch-mmf-go-rosterbased\
+		--set global.telemetry.grafana.enabled=true \
+		--set global.telemetry.jaeger.enabled=true \
+		--set global.telemetry.prometheus.enabled=true \
+		--set open-match-scale.enabled=true \
+		--set global.logging.rpc.enabled=true \
 		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
@@ -512,6 +537,16 @@ build/toolchain/bin/terraform$(EXE_EXTENSION):
 	mv $(TOOLCHAIN_DIR)/temp-terraform/terraform$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/terraform$(EXE_EXTENSION)
 	rm -rf $(TOOLCHAIN_DIR)/temp-terraform/
 
+build/toolchain/dotnet/:
+	mkdir -p $(TOOLCHAIN_DIR)/dotnet
+ifeq ($(suffix $(DOTNET_PACKAGE)),.zip)
+	cd $(TOOLCHAIN_DIR)/dotnet && curl -Lo dotnet.zip $(DOTNET_PACKAGE) && unzip -j -q -o dotnet.zip
+	rm -rf $(TOOLCHAIN_DIR)/dotnet.zip
+else
+	cd $(TOOLCHAIN_DIR)/dotnet && curl -Lo dotnet.tar.gz $(DOTNET_PACKAGE) && tar xzf dotnet.tar.gz --strip-components 1
+	rm -rf $(TOOLCHAIN_DIR)/dotnet.tar.gz
+endif
+
 build/toolchain/python/:
 	virtualenv --python=python3 $(TOOLCHAIN_DIR)/python/
 	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
@@ -542,7 +577,7 @@ build/toolchain/bin/certgen$(EXE_EXTENSION): tools/certgen/certgen$(EXE_EXTENSIO
 build/toolchain/bin/reaper$(EXE_EXTENSION): tools/reaper/reaper$(EXE_EXTENSION)
 	mkdir -p $(TOOLCHAIN_BIN)
 	cp -f $(REPOSITORY_ROOT)/tools/reaper/reaper$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/reaper$(EXE_EXTENSION)
- 
+
 push-helm-ci: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	$(HELM) init --service-account tiller --force-upgrade --client-only
 
@@ -681,7 +716,7 @@ internal/ipb/synchronizer.pb.go: pkg/pb/messages.pb.go
 
 build: assets
 	$(GO) build ./...
-	$(GO) build -tags e2ecluster ./... 
+	$(GO) build -tags e2ecluster ./...
 
 test: $(ALL_PROTOS) tls-certs third_party/
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./...
@@ -743,11 +778,14 @@ service-binaries: cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE
 service-binaries: cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/synchronizer/synchronizer$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries example-evaluator-binaries
-example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION) examples/functions/golang/pool/pool$(EXE_EXTENSION)
+example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION) examples/functions/golang/pool/pool$(EXE_EXTENSION)  examples/functions/golang/rosterbased/rosterbased$(EXE_EXTENSION)
 example-evaluator-binaries: examples/evaluator/golang/simple/simple$(EXE_EXTENSION)
 
 examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
+
+examples/functions/golang/rosterbased/rosterbased$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+	cd $(REPOSITORY_ROOT)/examples/functions/golang/rosterbased; $(GO_BUILD_COMMAND)
 
 examples/functions/golang/pool/pool$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/pool; $(GO_BUILD_COMMAND)
@@ -884,6 +922,7 @@ clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/rosterbased/rosterbased$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/pool/pool$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/simple/evaluator$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/swaggerui/swaggerui$(EXE_EXTENSION)
@@ -981,6 +1020,9 @@ proxy:
 
 update-deps:
 	$(GO) mod tidy
+
+build-csharp: build/toolchain/dotnet/
+	(cd $(REPOSITORY_ROOT)/csharp/OpenMatch && $(DOTNET) build -o . && rm -rf obj/ *.pdb *.deps.json)
 
 third_party/: third_party/google/api third_party/protoc-gen-swagger/options third_party/swaggerui/
 
