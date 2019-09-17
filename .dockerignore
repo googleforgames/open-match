@@ -18,6 +18,7 @@
 *.exe
 *.exe~
 *.dll
+*.nupkg
 *.so
 *.dylib
 
