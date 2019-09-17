@@ -50,7 +50,7 @@ func TestDoQueryTickets(t *testing.T) {
 		}
 	}
 
-	testTickets := internalTesting.GenerateTickets(
+	testTickets := internalTesting.GenerateFloatRangeTickets(
 		internalTesting.Property{Name: attribute1, Min: 0, Max: 20, Interval: 5},
 		internalTesting.Property{Name: attribute2, Min: 0, Max: 20, Interval: 5},
 	)
@@ -101,7 +101,7 @@ func TestDoQueryTickets(t *testing.T) {
 				}
 			},
 			nil,
-			internalTesting.GenerateTickets(
+			internalTesting.GenerateFloatRangeTickets(
 				internalTesting.Property{Name: attribute1, Min: 0, Max: 10.1, Interval: 5},
 				internalTesting.Property{Name: attribute2, Min: 0, Max: 20, Interval: 5},
 			),
