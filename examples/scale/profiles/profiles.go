@@ -23,7 +23,7 @@ import (
 var (
 	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "scale-backend.profiles",
+		"component": "scale.profiles",
 	})
 
 	// Greedy config type is used to pick profiles that pull in all players.
@@ -32,6 +32,8 @@ var (
 	MultiFilter = "multifilter"
 	// MultiPool config type is used to pick profiles that have multiple Pools with multiple filters each.
 	MultiPool = "multipool"
+	// emptyRosterSpot is the string that represents an empty slot on a Roster.
+	emptyRosterSpot = "EMPTY_ROSTER_SPOT"
 )
 
 // Generate generates test profiles for scale demo
