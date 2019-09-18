@@ -17,16 +17,17 @@
 package e2e
 
 import (
-	"context"
 	"io"
 	"testing"
 
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	internalTesting "open-match.dev/open-match/internal/testing"
 	"open-match.dev/open-match/internal/testing/e2e"
+	e2eTesting "open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -34,14 +35,13 @@ func TestQueryTickets(t *testing.T) {
 	tests := []struct {
 		description   string
 		pool          *pb.Pool
-		preAction     func(context.Context, pb.FrontendClient, *testing.T)
+		gotTickets    []*pb.Ticket
 		wantCode      codes.Code
 		wantTickets   []*pb.Ticket
 		wantPageCount int
 	}{
 		{
 			description:   "expects invalid argument code since pool is empty",
-			preAction:     func(_ context.Context, _ pb.FrontendClient, _ *testing.T) {},
 			pool:          nil,
 			wantCode:      codes.InvalidArgument,
 			wantTickets:   nil,
@@ -49,7 +49,7 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			description: "expects response with no tickets since the store is empty",
-			preAction:   func(_ context.Context, _ pb.FrontendClient, _ *testing.T) {},
+			gotTickets:  []*pb.Ticket{},
 			pool: &pb.Pool{
 				FloatRangeFilters: []*pb.FloatRangeFilter{{
 					Attribute: "ok",
@@ -61,18 +61,10 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			description: "expects response with no tickets since all tickets in the store are filtered out",
-			preAction: func(ctx context.Context, fe pb.FrontendClient, t *testing.T) {
-				tickets := internalTesting.GenerateTickets(
-					internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
-					internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
-				)
-
-				for _, ticket := range tickets {
-					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
-					assert.NotNil(t, resp)
-					assert.Nil(t, err)
-				}
-			},
+			gotTickets: internalTesting.GenerateFloatRangeTickets(
+				internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
+			),
 			pool: &pb.Pool{
 				FloatRangeFilters: []*pb.FloatRangeFilter{{
 					Attribute: e2e.SkillAttribute,
@@ -84,18 +76,10 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			description: "expects response with 5 tickets with e2e.Map1Attribute=2 and e2e.Map2Attribute in range of [0,10)",
-			preAction: func(ctx context.Context, fe pb.FrontendClient, t *testing.T) {
-				tickets := internalTesting.GenerateTickets(
-					internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
-					internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
-				)
-
-				for _, ticket := range tickets {
-					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
-					assert.NotNil(t, resp)
-					assert.Nil(t, err)
-				}
-			},
+			gotTickets: internalTesting.GenerateFloatRangeTickets(
+				internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
+			),
 			pool: &pb.Pool{
 				FloatRangeFilters: []*pb.FloatRangeFilter{{
 					Attribute: e2e.Map1Attribute,
@@ -104,7 +88,7 @@ func TestQueryTickets(t *testing.T) {
 				}},
 			},
 			wantCode: codes.OK,
-			wantTickets: internalTesting.GenerateTickets(
+			wantTickets: internalTesting.GenerateFloatRangeTickets(
 				internalTesting.Property{Name: e2e.Map1Attribute, Min: 2, Max: 3, Interval: 2},
 				internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
 			),
@@ -113,19 +97,10 @@ func TestQueryTickets(t *testing.T) {
 		{
 			// Test inclusive filters and paging works as expected
 			description: "expects response with 15 tickets with e2e.Map1Attribute=2,4,6 and e2e.Map2Attribute=[0,10)",
-			preAction: func(ctx context.Context, fe pb.FrontendClient, t *testing.T) {
-				tickets := internalTesting.GenerateTickets(
-					internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
-					internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
-				)
-
-				for _, ticket := range tickets {
-					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
-					assert.NotNil(t, resp)
-					assert.Nil(t, err)
-				}
-			},
-
+			gotTickets: internalTesting.GenerateFloatRangeTickets(
+				internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
+			),
 			pool: &pb.Pool{
 				FloatRangeFilters: []*pb.FloatRangeFilter{{
 					Attribute: e2e.Map1Attribute,
@@ -134,11 +109,154 @@ func TestQueryTickets(t *testing.T) {
 				}},
 			},
 			wantCode: codes.OK,
-			wantTickets: internalTesting.GenerateTickets(
+			wantTickets: internalTesting.GenerateFloatRangeTickets(
 				internalTesting.Property{Name: e2e.Map1Attribute, Min: 2, Max: 7, Interval: 2},
 				internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
 			),
 			wantPageCount: 2,
+		},
+		{
+			// Test BoolEquals can ignore falsely typed values mapped to bool index
+			description: "expects 1 ticket with property e2eTesting.BoolIndex maps to true",
+			gotTickets: []*pb.Ticket{
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.BoolIndex: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+						},
+					},
+				},
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.BoolIndex: {Kind: &structpb.Value_BoolValue{BoolValue: false}},
+						},
+					},
+				},
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.BoolIndex: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+						},
+					},
+				},
+			},
+			pool: &pb.Pool{
+				BoolEqualsFilters: []*pb.BoolEqualsFilter{{
+					Attribute: e2e.BoolIndex,
+					Value:     true,
+				}},
+			},
+			wantCode: codes.OK,
+			wantTickets: []*pb.Ticket{
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.BoolIndex: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+						},
+					},
+				},
+			},
+			wantPageCount: 1,
+		},
+		{
+			// Test StringEquals works as expected
+			description: "expects 1 ticket with property e2eTesting.BoolIndex maps to true",
+			gotTickets: []*pb.Ticket{
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.StringIndex: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+						},
+					},
+				},
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.StringIndex: {Kind: &structpb.Value_StringValue{StringValue: "false"}},
+						},
+					},
+				},
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.StringIndex: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+						},
+					},
+				},
+			},
+			pool: &pb.Pool{
+				StringEqualsFilters: []*pb.StringEqualsFilter{
+					{
+						Attribute: e2e.StringIndex,
+						Value:     "true",
+					},
+				},
+			},
+			wantCode: codes.OK,
+			wantTickets: []*pb.Ticket{
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.StringIndex: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+						},
+					},
+				},
+			},
+			wantPageCount: 1,
+		},
+		{
+			// Test all tickets
+			description: "expects all 3 tickets with no filters",
+			gotTickets: []*pb.Ticket{
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.StringIndex: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+						},
+					},
+				},
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.BoolIndex: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+						},
+					},
+				},
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.Map1Attribute: {Kind: &structpb.Value_NumberValue{NumberValue: 100}},
+						},
+					},
+				},
+			},
+			pool:     &pb.Pool{},
+			wantCode: codes.OK,
+			wantTickets: []*pb.Ticket{
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.StringIndex: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+						},
+					},
+				},
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.BoolIndex: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+						},
+					},
+				},
+				{
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							e2eTesting.Map1Attribute: {Kind: &structpb.Value_NumberValue{NumberValue: 100}},
+						},
+					},
+				},
+			},
+			wantPageCount: 1,
 		},
 	}
 
@@ -155,7 +273,11 @@ func TestQueryTickets(t *testing.T) {
 				pageCounts := 0
 				ctx := om.Context()
 
-				test.preAction(ctx, fe, t)
+				for _, ticket := range test.gotTickets {
+					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
+					assert.NotNil(t, resp)
+					assert.Nil(t, err)
+				}
 
 				stream, err := mml.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: test.pool})
 				assert.Nil(t, err)

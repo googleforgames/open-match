@@ -19,7 +19,8 @@ var (
 
 	// Indices covers all ticketIndices that will be used in the e2e test
 	// Please update #L394 in the Makefile if you need to add new indices to the e2e tests.
-	Indices = []string{SkillAttribute, Map1Attribute, Map2Attribute, LevelIndex, DefenseIndex}
+	// TODO: Unify these indices
+	Indices = []string{SkillAttribute, Map1Attribute, Map2Attribute, LevelIndex, DefenseIndex, BoolIndex, StringIndex}
 )
 
 const (
@@ -41,4 +42,8 @@ const (
 	LevelIndex = "level"
 	// DefenseIndex is an index
 	DefenseIndex = "defense"
+	// BoolIndex is an index used to test BoolEqualsFilter
+	BoolIndex = "bool"
+	// StringIndex is an index used to test StringEqualsFilter
+	StringIndex = "string"
 )
