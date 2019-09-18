@@ -52,7 +52,7 @@
 # If you want information on how to edit this file checkout,
 # http://makefiletutorial.com/
 
-BASE_VERSION = 0.0.0-dev
+BASE_VERSION = 0.7.0-rc.1
 SHORT_SHA = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(SHORT_SHA)
@@ -884,7 +884,7 @@ ci-reap-namespaces: build/toolchain/bin/reaper$(EXE_EXTENSION)
 presubmit: GOLANG_TEST_COUNT = 5
 presubmit: clean update-deps third_party/ assets lint build install-toolchain test md-test terraform-test
 
-build/release/: presubmit clean-install-yaml install/yaml/
+build/release/: clean-install-yaml update-chart-deps install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
 	cp $(REPOSITORY_ROOT)/install/yaml/* $(BUILD_DIR)/release/
 

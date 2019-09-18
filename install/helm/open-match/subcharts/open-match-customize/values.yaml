@@ -26,7 +26,7 @@ evaluator:
 
 image:
   registry: gcr.io/open-match-public-images
-  tag: 0.0.0-dev
+  tag: 0.7.0-rc.1
   pullPolicy: Always
 
 configs:
