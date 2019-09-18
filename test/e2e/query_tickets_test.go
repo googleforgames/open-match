@@ -52,7 +52,7 @@ func TestQueryTickets(t *testing.T) {
 			gotTickets:  []*pb.Ticket{},
 			pool: &pb.Pool{
 				FloatRangeFilters: []*pb.FloatRangeFilter{{
-					Attribute: "ok",
+					Attribute: e2e.Map1Attribute,
 				}},
 			},
 			wantCode:      codes.OK,
