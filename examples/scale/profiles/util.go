@@ -34,7 +34,7 @@ type rangeConfig struct {
 	rangeOverlap int
 }
 
-// makeRosterSlots generates a roster with the specified name and with the 
+// makeRosterSlots generates a roster with the specified name and with the
 // specified number of empty roster slots.
 func makeRosterSlots(name string, count int) *pb.Roster {
 	roster := &pb.Roster{
@@ -48,13 +48,13 @@ func makeRosterSlots(name string, count int) *pb.Roster {
 	return roster
 }
 
-// makeRangeFilters generates multiple filters over a given range based on 
+// makeRangeFilters generates multiple filters over a given range based on
 // the size of the range and the overlap specified for the filters.
 func makeRangeFilters(config *rangeConfig) []*rangeFilter {
 	var filters []*rangeFilter
 	r := config.min
 	for r <= config.max {
-		max := r+config.rangeSize
+		max := r + config.rangeSize
 		if max > config.max {
 			r = config.max
 		}
@@ -64,7 +64,7 @@ func makeRangeFilters(config *rangeConfig) []*rangeFilter {
 			min:  r,
 			max:  max,
 		})
-	
+
 		r = r + 1 + (config.rangeSize - config.rangeOverlap)
 	}
 

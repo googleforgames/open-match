@@ -91,7 +91,7 @@ function: &function
 # Specifies a unified image registry, image tag, and imagePullPolicy for all components defined above.
 image:
   registry: gcr.io/open-match-public-images
-  tag: 0.0.0-dev
+  tag: 0.7.0-rc.1
   pullPolicy: Always
 
 # Specifies the supported customizable indices per Match
