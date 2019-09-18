@@ -80,7 +80,7 @@ func (com *clusterOM) MustMmLogicGRPC() pb.MmLogicClient {
 }
 
 func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {
-	host, port := com.getGRPCAddressFromServiceName("om-matchfunction")
+	host, port := com.getGRPCAddressFromServiceName("om-function")
 	return &pb.FunctionConfig{
 		Host: host,
 		Port: port,
@@ -89,7 +89,7 @@ func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {
 }
 
 func (com *clusterOM) MustMmfConfigHTTP() *pb.FunctionConfig {
-	host, port := com.getHTTPAddressFromServiceName("om-matchfunction")
+	host, port := com.getHTTPAddressFromServiceName("om-function")
 	return &pb.FunctionConfig{
 		Host: host,
 		Port: port,
