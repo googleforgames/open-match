@@ -110,7 +110,7 @@ func TestIgnoreLists(t *testing.T) {
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
-	tickets := internalTesting.GenerateTickets(
+	tickets := internalTesting.GenerateFloatRangeTickets(
 		internalTesting.Property{Name: "testindex1", Min: 0, Max: 10, Interval: 2},
 		internalTesting.Property{Name: "testindex2", Min: 0, Max: 10, Interval: 2},
 	)

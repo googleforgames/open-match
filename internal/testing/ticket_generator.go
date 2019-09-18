@@ -31,7 +31,7 @@ type Property struct {
 }
 
 // GenerateTickets takes in two property manifests to generate tickets with two fake properties for testing.
-func GenerateTickets(manifest1, manifest2 Property) []*pb.Ticket {
+func GenerateFloatRangeTickets(manifest1, manifest2 Property) []*pb.Ticket {
 	testTickets := make([]*pb.Ticket, 0)
 
 	for i := manifest1.Min; i < manifest1.Max; i += manifest1.Interval {
