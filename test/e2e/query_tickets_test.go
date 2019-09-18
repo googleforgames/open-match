@@ -75,6 +75,21 @@ func TestQueryTickets(t *testing.T) {
 			wantPageCount: 0,
 		},
 		{
+			description: "expects error because using a bad index",
+			gotTickets: internalTesting.GenerateFloatRangeTickets(
+				internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
+			),
+			pool: &pb.Pool{
+				FloatRangeFilters: []*pb.FloatRangeFilter{{
+					Attribute: "notarealindexthisshouldn'twork",
+				}},
+			},
+			wantCode:      codes.FailedPrecondition,
+			wantTickets:   nil,
+			wantPageCount: 0,
+		},
+		{
 			description: "expects response with 5 tickets with e2e.Map1Attribute=2 and e2e.Map2Attribute in range of [0,10)",
 			gotTickets: internalTesting.GenerateFloatRangeTickets(
 				internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
