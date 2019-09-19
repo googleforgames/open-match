@@ -33,4 +33,7 @@ dependencies:
     version: 0.0.0-dev
     condition: open-match-test.enabled
     repository: "file://./subcharts/open-match-test"
-
+  - name: open-match-scale
+    version: 0.0.0-dev
+    condition: open-match-scale.enabled
+    repository: "file://./subcharts/open-match-scale"
