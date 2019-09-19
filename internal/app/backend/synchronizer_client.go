@@ -5,10 +5,13 @@ import (
 	"io"
 	"sync"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/telemetry"
+	"open-match.dev/open-match/internal/util"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -59,8 +62,9 @@ func (sc *synchronizerClient) evaluate(ctx context.Context, id string, proposals
 		return nil, err
 	}
 
-	if len(proposals) == 0 {
-		return proposals, nil
+	ctx, err := util.AppendSynchronizerContextID(ctx, id)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
 	stream, err := sc.synchronizer.EvaluateProposals(ctx)
@@ -69,6 +73,7 @@ func (sc *synchronizerClient) evaluate(ctx context.Context, id string, proposals
 			return nil, err
 		}
 	}
+
 	if err = stream.CloseSend(); err != nil {
 		logger.Errorf("failed to close the send stream: %s", err.Error())
 	}
