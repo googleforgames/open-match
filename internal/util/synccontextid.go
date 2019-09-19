@@ -33,7 +33,7 @@ func AppendSynchronizerContextID(ctx context.Context, id string) (context.Contex
 		values := getSynchronizerContextIDFromMetadata(md)
 		if len(values) == 1 {
 			if values[0] != id {
-				return ctx, errors.New("request already has a synchronizer context id")
+				return ctx, errors.New("request already has a different synchronizer context id")
 			}
 
 			return ctx, nil
