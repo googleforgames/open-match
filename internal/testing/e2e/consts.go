@@ -19,7 +19,7 @@ var (
 
 	// Indices covers all ticketIndices that will be used in the e2e test
 	// Please update the ticketIndices in the helm chart for in-cluster end-to-end test if you need to add new indices.
-	Indices = []string{FloatRangeIndex1, FloatRangeIndex2, FloatRangeIndex3, BoolIndex1, StringIndex1}
+	Indices = []string{AttributeMMR, AttributeLevel, AttributeDefense, ModeDemo, RoleCleric}
 )
 
 const (
@@ -31,14 +31,14 @@ const (
 	Map2BeginnerPool = "map2beginner"
 	// Map2AdvancedPool is pool name.
 	Map2AdvancedPool = "map2advanced"
-	// FloatRangeIndex1 is an index used to test FloatRangeFilter.
-	FloatRangeIndex1 = "attribute.mmr"
-	// FloatRangeIndex2 is an index used to test FloatRangeFilter.
-	FloatRangeIndex2 = "attribute.level"
-	// FloatRangeIndex3 is an index used to test FloatRangeFilter.
-	FloatRangeIndex3 = "attribute.defense"
-	// BoolIndex1 is an index used to test BoolEqualsFilter
-	BoolIndex1 = "mode.demo"
-	// StringIndex1 is an index used to test StringEqualsFilter
-	StringIndex1 = "char.cleric"
+	// AttributeMMR is an index used to test FloatRangeFilter.
+	AttributeMMR = "attribute.mmr"
+	// AttributeLevel is an index used to test FloatRangeFilter.
+	AttributeLevel = "attribute.level"
+	// AttributeDefense is an index used to test FloatRangeFilter.
+	AttributeDefense = "attribute.defense"
+	// ModeDemo is an index used to test BoolEqualsFilter
+	ModeDemo = "mode.demo"
+	// RoleCleric is an index used to test StringEqualsFilter
+	RoleCleric = "char.cleric"
 )
