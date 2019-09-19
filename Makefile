@@ -380,7 +380,7 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 		--set global.image.tag=$(TAG) \
 		--set open-match-test.enabled=true \
 		--set open-match-demo.enabled=false \
-		--set open-match-customize.enabled=false \
+		--set open-match-customize.function.image=openmatch-mmf-go-pool \
 		--set global.gcpProjectId=$(GCP_PROJECT_ID) \
 		--set ci=true
 
