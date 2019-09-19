@@ -75,8 +75,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket1 := &pb.Ticket{
 		Properties: &structpb.Struct{
 			Fields: map[string]*structpb.Value{
-				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+				"mmr.rating": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+				"mode.demo":  {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
 			},
 		},
 	}
@@ -84,8 +84,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket2 := &pb.Ticket{
 		Properties: &structpb.Struct{
 			Fields: map[string]*structpb.Value{
-				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
-				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
+				"mmr.rating": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
+				"mode.demo":  {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
 			},
 		},
 	}
@@ -93,8 +93,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket3 := &pb.Ticket{
 		Properties: &structpb.Struct{
 			Fields: map[string]*structpb.Value{
-				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
-				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
+				"mmr.rating": {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
+				"mode.demo":  {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
 			},
 		},
 	}
@@ -102,8 +102,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket4 := &pb.Ticket{
 		Properties: &structpb.Struct{
 			Fields: map[string]*structpb.Value{
-				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 15}},
-				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 15}},
+				"mmr.rating": {Kind: &structpb.Value_NumberValue{NumberValue: 15}},
+				"mode.demo":  {Kind: &structpb.Value_NumberValue{NumberValue: 15}},
 			},
 		},
 	}
@@ -111,8 +111,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket5 := &pb.Ticket{
 		Properties: &structpb.Struct{
 			Fields: map[string]*structpb.Value{
-				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 20}},
-				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 20}},
+				"mmr.rating": {Kind: &structpb.Value_NumberValue{NumberValue: 20}},
+				"mode.demo":  {Kind: &structpb.Value_NumberValue{NumberValue: 20}},
 			},
 		},
 	}
@@ -138,19 +138,19 @@ func TestGameMatchWorkFlow(t *testing.T) {
 				Pools: []*pb.Pool{
 					{
 						Name:              "ticket12",
-						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 0, Max: 6}, {Attribute: "defense", Min: 0, Max: 100}},
+						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 0, Max: 6}, {Attribute: "mode.demo", Min: 0, Max: 100}},
 					},
 					{
 						Name:              "ticket23",
-						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 3, Max: 10}, {Attribute: "defense", Min: 0, Max: 100}},
+						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 3, Max: 10}, {Attribute: "mode.demo", Min: 0, Max: 100}},
 					},
 					{
 						Name:              "ticket5",
-						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 0, Max: 100}, {Attribute: "defense", Min: 17, Max: 25}},
+						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 0, Max: 100}, {Attribute: "mode.demo", Min: 17, Max: 25}},
 					},
 					{
 						Name:              "ticket234",
-						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 3, Max: 17}, {Attribute: "defense", Min: 3, Max: 17}},
+						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 3, Max: 17}, {Attribute: "mode.demo", Min: 3, Max: 17}},
 					},
 				},
 			},
