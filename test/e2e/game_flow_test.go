@@ -75,8 +75,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket1 := &pb.Ticket{
 		Properties: &structpb.Struct{
 			Fields: map[string]*structpb.Value{
-				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+				"mmr.rating": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+				"defense":    {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
 			},
 		},
 	}
