@@ -32,13 +32,13 @@ const (
 	// Map2AdvancedPool is pool name.
 	Map2AdvancedPool = "map2advanced"
 	// FloatRangeIndex1 is an index used to test FloatRangeFilter.
-	FloatRangeIndex1 = "skill"
+	FloatRangeIndex1 = "role.dps"
 	// FloatRangeIndex2 is an index used to test FloatRangeFilter.
-	FloatRangeIndex2 = "level"
+	FloatRangeIndex2 = "role.support"
 	// FloatRangeIndex3 is an index used to test FloatRangeFilter.
-	FloatRangeIndex3 = "defense"
+	FloatRangeIndex3 = "role.tank"
 	// BoolIndex1 is an index used to test BoolEqualsFilter
-	BoolIndex1 = "bool"
+	BoolIndex1 = "mode.demo"
 	// StringIndex1 is an index used to test StringEqualsFilter
-	StringIndex1 = "string"
+	StringIndex1 = "region.europe-east1"
 )
