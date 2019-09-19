@@ -77,11 +77,11 @@ data:
       enabled: true
       registrationIntervalMs: 3000ms
       proposalCollectionIntervalMs: 2000ms
-    
+
     storage:
       page:
         size: 10000
-    
+
     redis:
       hostname: {{ .Values.redis.fullnameOverride }}-master.{{ .Release.Namespace }}.svc.cluster.local
       port: {{ .Values.redis.redisPort }}
@@ -95,9 +95,9 @@ data:
         idleTimeout: 60s
         healthCheckTimeout: 100ms
       ignoreLists:
-        ttl: 1000ms
+        ttl: 60000ms
       expiration: 43200
-    
+
     ticketIndices:
     {{- range .Values.ticketIndices }}
       - {{ . }}
