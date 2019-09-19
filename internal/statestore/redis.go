@@ -215,7 +215,12 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 
 		// Return NotFound if redigo did not find the ticket in storage.
 		if err == redis.ErrNil {
-			return nil, status.Errorf(codes.NotFound, "%v", err)
+			msg := fmt.Sprintf("Ticket id:%s not found", id)
+			redisLogger.WithFields(logrus.Fields{
+				"key": id,
+				"cmd": "GET",
+			}).Error(msg)
+			return nil, status.Error(codes.NotFound, msg)
 		}
 
 		return nil, status.Errorf(codes.Internal, "%v", err)
