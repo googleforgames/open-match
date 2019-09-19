@@ -45,10 +45,12 @@ func MakeMatches(p *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 	}
 
 	var matches []*pb.Match
+	count := 0
 	for {
 		insufficientTickets := false
 		matchTickets := []*pb.Ticket{}
 		matchRosters := []*pb.Roster{}
+
 		// Loop through each pool wanted in the rosters and pick the number of
 		// wanted players from the respective Pool.
 		for poolName, want := range wantTickets {
@@ -85,12 +87,14 @@ func MakeMatches(p *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 		}
 
 		matches = append(matches, &pb.Match{
-			MatchId:       fmt.Sprintf("profile-%v-time-%v", p.ProfileName, time.Now().Format("2006-01-02T15:04:05.00")),
+			MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.ProfileName, time.Now().Format("2006-01-02T15:04:05.00"), count),
 			MatchProfile:  p.ProfileName,
 			MatchFunction: matchName,
 			Tickets:       matchTickets,
 			Rosters:       matchRosters,
 		})
+
+		count++
 	}
 
 	return matches, nil
