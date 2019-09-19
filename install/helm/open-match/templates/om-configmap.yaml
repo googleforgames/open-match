@@ -95,7 +95,7 @@ data:
         idleTimeout: 60s
         healthCheckTimeout: 100ms
       ignoreLists:
-        ttl: 1000ms
+        ttl: 60000ms
       expiration: 43200
 
     ticketIndices:
