@@ -90,7 +90,6 @@ func TestQueryTickets(t *testing.T) {
 			wantPageCount: 0,
 		},
 		{
-			description: "expects response with 5 tickets with e2e.Map1Attribute=2 and e2e.Map2Attribute in range of [0,10)",
 			description: "expects response with 5 tickets with e2e.FloatRangeAttribute1=2 and e2e.FloatRangeAttribute2 in range of [0,10)",
 			gotTickets: internalTesting.GenerateFloatRangeTickets(
 				internalTesting.Property{Name: e2e.AttributeMMR, Min: 0, Max: 10, Interval: 2},
