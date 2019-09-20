@@ -51,8 +51,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket1 := &pb.Ticket{
 		Properties: &structpb.Struct{
 			Fields: map[string]*structpb.Value{
-				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+				e2e.AttributeMMR:   {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+				e2e.AttributeLevel: {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
 			},
 		},
 	}
@@ -60,8 +60,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket2 := &pb.Ticket{
 		Properties: &structpb.Struct{
 			Fields: map[string]*structpb.Value{
-				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
-				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
+				e2e.AttributeMMR:   {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
+				e2e.AttributeLevel: {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
 			},
 		},
 	}
@@ -69,8 +69,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket3 := &pb.Ticket{
 		Properties: &structpb.Struct{
 			Fields: map[string]*structpb.Value{
-				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
-				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
+				e2e.AttributeMMR:   {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
+				e2e.AttributeLevel: {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
 			},
 		},
 	}
@@ -78,8 +78,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket4 := &pb.Ticket{
 		Properties: &structpb.Struct{
 			Fields: map[string]*structpb.Value{
-				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 15}},
-				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 15}},
+				e2e.AttributeMMR:   {Kind: &structpb.Value_NumberValue{NumberValue: 15}},
+				e2e.AttributeLevel: {Kind: &structpb.Value_NumberValue{NumberValue: 15}},
 			},
 		},
 	}
@@ -87,8 +87,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket5 := &pb.Ticket{
 		Properties: &structpb.Struct{
 			Fields: map[string]*structpb.Value{
-				"level":   {Kind: &structpb.Value_NumberValue{NumberValue: 20}},
-				"defense": {Kind: &structpb.Value_NumberValue{NumberValue: 20}},
+				e2e.AttributeMMR:   {Kind: &structpb.Value_NumberValue{NumberValue: 20}},
+				e2e.AttributeLevel: {Kind: &structpb.Value_NumberValue{NumberValue: 20}},
 			},
 		},
 	}
@@ -114,19 +114,19 @@ func TestGameMatchWorkFlow(t *testing.T) {
 				Pools: []*pb.Pool{
 					{
 						Name:              "ticket12",
-						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 0, Max: 6}, {Attribute: "defense", Min: 0, Max: 100}},
+						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: e2e.AttributeMMR, Min: 0, Max: 6}, {Attribute: e2e.AttributeLevel, Min: 0, Max: 100}},
 					},
 					{
 						Name:              "ticket23",
-						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 3, Max: 10}, {Attribute: "defense", Min: 0, Max: 100}},
+						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: e2e.AttributeMMR, Min: 3, Max: 10}, {Attribute: e2e.AttributeLevel, Min: 0, Max: 100}},
 					},
 					{
 						Name:              "ticket5",
-						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 0, Max: 100}, {Attribute: "defense", Min: 17, Max: 25}},
+						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: e2e.AttributeMMR, Min: 0, Max: 100}, {Attribute: e2e.AttributeLevel, Min: 17, Max: 25}},
 					},
 					{
 						Name:              "ticket234",
-						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: "level", Min: 3, Max: 17}, {Attribute: "defense", Min: 3, Max: 17}},
+						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: e2e.AttributeMMR, Min: 3, Max: 17}, {Attribute: e2e.AttributeLevel, Min: 3, Max: 17}},
 					},
 				},
 			},
