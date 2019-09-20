@@ -16,6 +16,8 @@
 # with their default values.
 
 # https://github.com/golangci/golangci-lint#config-file
+service:
+  golangci-lint-version: 1.18.0
 
 # options for analysis running
 run:
