@@ -126,3 +126,6 @@ tools/reaper/reaper
 
 # Secrets Directories
 install/helm/open-match/secrets/
+
+# Helm tar charts
+install/helm/open-match/charts/
