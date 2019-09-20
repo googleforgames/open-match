@@ -178,6 +178,7 @@ linters:
     - gofmt
     - interfacer # deprecated - "A tool that suggests interfaces is prone to bad suggestions"
     - gochecknoglobals
+    - funlen
 
 #linters:
 #  enable-all: true
