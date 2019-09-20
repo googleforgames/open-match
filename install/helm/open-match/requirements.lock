@@ -14,5 +14,8 @@ dependencies:
 - name: open-match-test
   repository: file://./subcharts/open-match-test
   version: 0.0.0-dev
-digest: sha256:14faae8b59e808749ad29fc675a009daf72a3d0f22bcb7b954ba92660cb60779
-generated: "2019-08-02T15:52:25.299281406-07:00"
+- name: open-match-scale
+  repository: file://./subcharts/open-match-scale
+  version: 0.0.0-dev
+digest: sha256:58df48dae8d884f81dc06a3a2150082d68b271fc204abb19da12d1bf892647e1
+generated: "2019-09-18T01:18:15.939673104-07:00"

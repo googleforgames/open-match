@@ -27,7 +27,7 @@ type Service interface {
 	// HealthCheck indicates if the database is reachable.
 	HealthCheck(ctx context.Context) error
 
-	// CreateTicket creates a new Ticket in the state storage. This method fails if the Ticket already exists.
+	// CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
 	CreateTicket(ctx context.Context, ticket *pb.Ticket) error
 
 	// GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.

@@ -48,12 +48,12 @@ func TestMinimatch(t *testing.T) {
 
 	// Tickets used for testing. The id will be populated once the Tickets are created.
 	sourceTickets := []testTicket{
-		{skill: 1, mapValue: e2e.Map1Attribute, targetPool: e2e.Map1BeginnerPool},
-		{skill: 5, mapValue: e2e.Map1Attribute, targetPool: e2e.Map1BeginnerPool},
-		{skill: 8, mapValue: e2e.Map1Attribute, targetPool: e2e.Map1AdvancedPool},
-		{skill: 0, mapValue: e2e.Map2Attribute, targetPool: e2e.Map2BeginnerPool},
-		{skill: 6, mapValue: e2e.Map2Attribute, targetPool: e2e.Map2AdvancedPool},
-		{skill: 10, mapValue: e2e.Map2Attribute, targetPool: e2e.Map2AdvancedPool},
+		{skill: 1, mapValue: e2e.AttributeMMR, targetPool: e2e.Map1BeginnerPool},
+		{skill: 5, mapValue: e2e.AttributeMMR, targetPool: e2e.Map1BeginnerPool},
+		{skill: 8, mapValue: e2e.AttributeMMR, targetPool: e2e.Map1AdvancedPool},
+		{skill: 0, mapValue: e2e.AttributeLevel, targetPool: e2e.Map2BeginnerPool},
+		{skill: 6, mapValue: e2e.AttributeLevel, targetPool: e2e.Map2AdvancedPool},
+		{skill: 10, mapValue: e2e.AttributeLevel, targetPool: e2e.Map2AdvancedPool},
 		{skill: 10, mapValue: "non-indexable-map"},
 	}
 
@@ -63,29 +63,29 @@ func TestMinimatch(t *testing.T) {
 		e2e.Map1BeginnerPool: {
 			Name: e2e.Map1BeginnerPool,
 			FloatRangeFilters: []*pb.FloatRangeFilter{
-				{Attribute: e2e.SkillAttribute, Min: 0, Max: 5},
-				{Attribute: e2e.Map1Attribute, Max: math.MaxFloat64},
+				{Attribute: e2e.AttributeDefense, Min: 0, Max: 5},
+				{Attribute: e2e.AttributeMMR, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map1AdvancedPool: {
 			Name: e2e.Map1AdvancedPool,
 			FloatRangeFilters: []*pb.FloatRangeFilter{
-				{Attribute: e2e.SkillAttribute, Min: 6, Max: 10},
-				{Attribute: e2e.Map1Attribute, Max: math.MaxFloat64},
+				{Attribute: e2e.AttributeDefense, Min: 6, Max: 10},
+				{Attribute: e2e.AttributeMMR, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map2BeginnerPool: {
 			Name: e2e.Map2BeginnerPool,
 			FloatRangeFilters: []*pb.FloatRangeFilter{
-				{Attribute: e2e.SkillAttribute, Min: 0, Max: 5},
-				{Attribute: e2e.Map2Attribute, Max: math.MaxFloat64},
+				{Attribute: e2e.AttributeDefense, Min: 0, Max: 5},
+				{Attribute: e2e.AttributeLevel, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map2AdvancedPool: {
 			Name: e2e.Map2AdvancedPool,
 			FloatRangeFilters: []*pb.FloatRangeFilter{
-				{Attribute: e2e.SkillAttribute, Min: 6, Max: 10},
-				{Attribute: e2e.Map2Attribute, Max: math.MaxFloat64},
+				{Attribute: e2e.AttributeDefense, Min: 6, Max: 10},
+				{Attribute: e2e.AttributeLevel, Max: math.MaxFloat64},
 			},
 		},
 	}
@@ -136,8 +136,8 @@ func TestMinimatch(t *testing.T) {
 				for i, td := range testTickets {
 					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{
 						Properties: structs.Struct{
-							e2e.SkillAttribute: structs.Number(td.skill),
-							td.mapValue:        structs.Number(float64(time.Now().Unix())),
+							e2e.AttributeDefense: structs.Number(td.skill),
+							td.mapValue:          structs.Number(float64(time.Now().Unix())),
 						}.S(),
 					}})
 
