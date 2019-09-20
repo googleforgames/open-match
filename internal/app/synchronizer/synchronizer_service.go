@@ -25,6 +25,7 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/internal/util"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -87,29 +88,24 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 //  end of the cycle, the user defined evaluation method is triggered and the
 // matches accepted by it are returned as results.
 func (s *synchronizerService) EvaluateProposals(stream ipb.Synchronizer_EvaluateProposalsServer) error {
-	var id string
+	ctx := stream.Context()
+	id := util.GetSynchronizerContextID(ctx)
+	if len(id) == 0 {
+		return status.Errorf(codes.Internal, "synchronizer context id should be an non-empty string")
+	}
+
 	var proposals = []*pb.Match{}
 	for {
 		req, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
+
 		if err != nil {
 			return err
 		}
 
-		if len(id) == 0 {
-			id = req.GetId()
-		} else if req.GetId() != id {
-			return status.Errorf(codes.InvalidArgument, "Proposal ids suppose to be the same in one call, original id: %s, new request: %v", id, req)
-		}
-
 		proposals = append(proposals, req.GetMatch())
-	}
-
-	if len(id) == 0 {
-		logger.WithFields(logrus.Fields{"proposals": proposals}).Error("id should be an non-empty string")
-		return status.Errorf(codes.Unknown, "id should be an non-empty string")
 	}
 
 	results, err := s.doEvaluateProposals(stream.Context(), proposals, id)
