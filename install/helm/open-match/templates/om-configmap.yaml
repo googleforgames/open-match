@@ -95,7 +95,7 @@ data:
         idleTimeout: 60s
         healthCheckTimeout: 100ms
       ignoreLists:
-        ttl: 60000ms
+        ttl: {{ .Values.redis.ignoreLists.ttl }}
       expiration: 43200
 
     ticketIndices:

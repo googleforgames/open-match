@@ -378,6 +378,7 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
+		--set redis.ignoreLists.ttl=1000ms \
 		--set open-match-test.enabled=true \
 		--set open-match-demo.enabled=false \
 		--set open-match-customize.function.image=openmatch-mmf-go-pool \

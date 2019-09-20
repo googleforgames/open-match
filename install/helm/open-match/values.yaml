@@ -132,6 +132,8 @@ redis:
   usePassword: true
   usePasswordFile: true
   secretMountPath: /opt/bitnami/redis/secrets
+  ignoreLists:
+    ttl: 60000ms
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
   metrics:
