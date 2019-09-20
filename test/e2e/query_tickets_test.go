@@ -62,12 +62,12 @@ func TestQueryTickets(t *testing.T) {
 		{
 			description: "expects response with no tickets since all tickets in the store are filtered out",
 			gotTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
-				internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.AttributeMMR, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.AttributeLevel, Min: 0, Max: 10, Interval: 2},
 			),
 			pool: &pb.Pool{
 				FloatRangeFilters: []*pb.FloatRangeFilter{{
-					Attribute: e2e.SkillAttribute,
+					Attribute: e2e.AttributeDefense,
 				}},
 			},
 			wantCode:      codes.OK,
@@ -75,75 +75,75 @@ func TestQueryTickets(t *testing.T) {
 			wantPageCount: 0,
 		},
 		{
-			description: "expects response with 5 tickets with e2e.Map1Attribute=2 and e2e.Map2Attribute in range of [0,10)",
+			description: "expects response with 5 tickets with e2e.FloatRangeAttribute1=2 and e2e.FloatRangeAttribute2 in range of [0,10)",
 			gotTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
-				internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.AttributeMMR, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.AttributeLevel, Min: 0, Max: 10, Interval: 2},
 			),
 			pool: &pb.Pool{
 				FloatRangeFilters: []*pb.FloatRangeFilter{{
-					Attribute: e2e.Map1Attribute,
+					Attribute: e2e.AttributeMMR,
 					Min:       1,
 					Max:       3,
 				}},
 			},
 			wantCode: codes.OK,
 			wantTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.Map1Attribute, Min: 2, Max: 3, Interval: 2},
-				internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.AttributeMMR, Min: 2, Max: 3, Interval: 2},
+				internalTesting.Property{Name: e2e.AttributeLevel, Min: 0, Max: 10, Interval: 2},
 			),
 			wantPageCount: 1,
 		},
 		{
 			// Test inclusive filters and paging works as expected
-			description: "expects response with 15 tickets with e2e.Map1Attribute=2,4,6 and e2e.Map2Attribute=[0,10)",
+			description: "expects response with 15 tickets with e2e.FloatRangeAttribute1=2,4,6 and e2e.FloatRangeAttribute2=[0,10)",
 			gotTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
-				internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.AttributeMMR, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.AttributeLevel, Min: 0, Max: 10, Interval: 2},
 			),
 			pool: &pb.Pool{
 				FloatRangeFilters: []*pb.FloatRangeFilter{{
-					Attribute: e2e.Map1Attribute,
+					Attribute: e2e.AttributeMMR,
 					Min:       2,
 					Max:       6,
 				}},
 			},
 			wantCode: codes.OK,
 			wantTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.Map1Attribute, Min: 2, Max: 7, Interval: 2},
-				internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.AttributeMMR, Min: 2, Max: 7, Interval: 2},
+				internalTesting.Property{Name: e2e.AttributeLevel, Min: 0, Max: 10, Interval: 2},
 			),
 			wantPageCount: 2,
 		},
 		{
 			// Test BoolEquals can ignore falsely typed values mapped to bool index
-			description: "expects 1 ticket with property e2eTesting.BoolIndex maps to true",
+			description: "expects 1 ticket with property e2eTesting.ModeDemo maps to true",
 			gotTickets: []*pb.Ticket{
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.BoolIndex: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+							e2eTesting.ModeDemo: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
 						},
 					},
 				},
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.BoolIndex: {Kind: &structpb.Value_BoolValue{BoolValue: false}},
+							e2eTesting.ModeDemo: {Kind: &structpb.Value_BoolValue{BoolValue: false}},
 						},
 					},
 				},
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.BoolIndex: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+							e2eTesting.ModeDemo: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
 						},
 					},
 				},
 			},
 			pool: &pb.Pool{
 				BoolEqualsFilters: []*pb.BoolEqualsFilter{{
-					Attribute: e2e.BoolIndex,
+					Attribute: e2e.ModeDemo,
 					Value:     true,
 				}},
 			},
@@ -152,7 +152,7 @@ func TestQueryTickets(t *testing.T) {
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.BoolIndex: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+							e2eTesting.ModeDemo: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
 						},
 					},
 				},
@@ -161,26 +161,26 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			// Test StringEquals works as expected
-			description: "expects 1 ticket with property e2eTesting.BoolIndex maps to true",
+			description: "expects 1 ticket with property e2eTesting.ModeDemo maps to true",
 			gotTickets: []*pb.Ticket{
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.StringIndex: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+							e2eTesting.RoleCleric: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
 						},
 					},
 				},
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.StringIndex: {Kind: &structpb.Value_StringValue{StringValue: "false"}},
+							e2eTesting.RoleCleric: {Kind: &structpb.Value_StringValue{StringValue: "false"}},
 						},
 					},
 				},
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.StringIndex: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+							e2eTesting.RoleCleric: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
 						},
 					},
 				},
@@ -188,7 +188,7 @@ func TestQueryTickets(t *testing.T) {
 			pool: &pb.Pool{
 				StringEqualsFilters: []*pb.StringEqualsFilter{
 					{
-						Attribute: e2e.StringIndex,
+						Attribute: e2e.RoleCleric,
 						Value:     "true",
 					},
 				},
@@ -198,7 +198,7 @@ func TestQueryTickets(t *testing.T) {
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.StringIndex: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+							e2eTesting.RoleCleric: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
 						},
 					},
 				},
@@ -212,21 +212,21 @@ func TestQueryTickets(t *testing.T) {
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.StringIndex: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+							e2eTesting.RoleCleric: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
 						},
 					},
 				},
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.BoolIndex: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+							e2eTesting.ModeDemo: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
 						},
 					},
 				},
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.Map1Attribute: {Kind: &structpb.Value_NumberValue{NumberValue: 100}},
+							e2eTesting.AttributeMMR: {Kind: &structpb.Value_NumberValue{NumberValue: 100}},
 						},
 					},
 				},
@@ -237,21 +237,21 @@ func TestQueryTickets(t *testing.T) {
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.StringIndex: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+							e2eTesting.RoleCleric: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
 						},
 					},
 				},
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.BoolIndex: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+							e2eTesting.ModeDemo: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
 						},
 					},
 				},
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.Map1Attribute: {Kind: &structpb.Value_NumberValue{NumberValue: 100}},
+							e2eTesting.AttributeMMR: {Kind: &structpb.Value_NumberValue{NumberValue: 100}},
 						},
 					},
 				},

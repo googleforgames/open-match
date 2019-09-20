@@ -367,7 +367,7 @@ install-scale-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
 		--set open-match-scale.enabled=true \
-		--set global.logging.rpc.enabled=true \
+		--set global.logging.rpc.enabled=false \
 		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
