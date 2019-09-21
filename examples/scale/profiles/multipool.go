@@ -29,18 +29,18 @@ func multipoolProfiles(cfg config.View) []*pb.MatchProfile {
 	characters := cfg.GetStringSlice("testConfig.characters")
 	regions := cfg.GetStringSlice("testConfig.regions")
 	ratingFilters := makeRangeFilters(&rangeConfig{
-		name: "Rating",
-		min: cfg.GetInt("testConfig.minRating"),
-		max: cfg.GetInt("testConfig.maxRating"),
-		rangeSize: cfg.GetInt("testConfig.multipool.rangeSize"),
+		name:         "Rating",
+		min:          cfg.GetInt("testConfig.minRating"),
+		max:          cfg.GetInt("testConfig.maxRating"),
+		rangeSize:    cfg.GetInt("testConfig.multipool.rangeSize"),
 		rangeOverlap: cfg.GetInt("testConfig.multipool.rangeOverlap"),
 	})
 
 	latencyFilters := makeRangeFilters(&rangeConfig{
-		name: "Latency",
-		min: 0,
-		max: 100,
-		rangeSize: 70,
+		name:         "Latency",
+		min:          0,
+		max:          100,
+		rangeSize:    70,
 		rangeOverlap: 0,
 	})
 
