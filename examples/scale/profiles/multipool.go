@@ -62,7 +62,7 @@ func multipoolProfiles(cfg config.View) []*pb.MatchProfile {
 								Max:       math.MaxFloat64,
 							},
 							{
-								Attribute: "mmr.rating",
+								Attribute: "attribute.mmr",
 								Min:       float64(rating.min),
 								Max:       float64(rating.max),
 							},

@@ -31,7 +31,7 @@ func greedyProfiles(cfg config.View) []*pb.MatchProfile {
 					Name: "all",
 					FloatRangeFilters: []*pb.FloatRangeFilter{
 						{
-							Attribute: "mmr.rating",
+							Attribute: "attribute.mmr",
 							Min:       float64(cfg.GetInt("testConfig.minRating")),
 							Max:       float64(cfg.GetInt("testConfig.maxRating")),
 						},
