@@ -298,5 +298,9 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 		}
 	}
 
+	if err = store.DeleteTicketsFromIgnoreList(ctx, req.GetTicketIds()); err != nil {
+		logger.WithError(err).Errorf("failed to delete tickets %v from the ignorelist", req.GetTicketIds())
+	}
+
 	return nil
 }
