@@ -19,6 +19,8 @@ import (
 
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/internal/testing/e2e"
+
 )
 
 // multifilterProfiles generates a multiple profiles, each containing a single Pool
@@ -53,7 +55,7 @@ func multifilterProfiles(cfg config.View) []*pb.MatchProfile {
 					Name: poolName,
 					FloatRangeFilters: []*pb.FloatRangeFilter{
 						{
-							Attribute: "attribute.mmr",
+							Attribute: e2e.AttributeMMR,
 							Min:       float64(rating.min),
 							Max:       float64(rating.max),
 						},

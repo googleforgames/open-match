@@ -16,13 +16,14 @@ package tickets
 
 import (
 	"math/rand"
-	"time"
 
 	"open-match.dev/open-match/internal/config"
 
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/pkg/structs"
+	"open-match.dev/open-match/internal/testing/e2e"
+
 )
 
 var (
@@ -41,9 +42,9 @@ func Ticket(cfg config.View) *pb.Ticket {
 	latencyMap := latency(regions)
 	ticket := &pb.Ticket{
 		Properties: structs.Struct{
-			"attribute.mmr": structs.Number(normalDist(40, min, max, 20)),
+			e2e.AttributeMMR: structs.Number(normalDist(40, min, max, 20)),
 			// TODO: Use string attribute value for the character attribute.
-			characters[rand.Intn(len(characters))]: structs.Number(float64(time.Now().Unix())),
+			e2e.Role: structs.String(characters[rand.Intn(len(characters))]),
 		}.S(),
 	}
 
