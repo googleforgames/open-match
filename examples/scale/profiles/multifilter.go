@@ -18,9 +18,8 @@ import (
 	"fmt"
 
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/internal/testing/e2e"
-
+	"open-match.dev/open-match/pkg/pb"
 )
 
 // multifilterProfiles generates a multiple profiles, each containing a single Pool
