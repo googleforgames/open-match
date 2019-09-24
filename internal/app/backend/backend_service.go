@@ -99,7 +99,8 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		case <-stream.Context().Done():
 			return stream.Context().Err()
 		default:
-			err := stream.Send(&pb.FetchMatchesResponse{Match: result})
+			err = stream.Send(&pb.FetchMatchesResponse{Match: result})
+			telemetry.IncrementCounter(stream.Context(), mMatchesFetched)
 			if err != nil {
 				logger.WithError(err).Error("failed to stream back the response")
 				return err
@@ -107,7 +108,8 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		}
 	}
 
-	telemetry.IncrementCounterN(stream.Context(), mMatchesFetched, len(results))
+	//logger.Infof("Got results of len %d", len(results))
+	//telemetry.IncrementCounterN(context.Background(), mMatchesFetched, len(results))
 	return nil
 }
 
