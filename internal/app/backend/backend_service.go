@@ -108,8 +108,6 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		}
 	}
 
-	//logger.Infof("Got results of len %d", len(results))
-	//telemetry.IncrementCounterN(context.Background(), mMatchesFetched, len(results))
 	return nil
 }
 
