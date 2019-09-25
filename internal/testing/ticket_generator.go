@@ -30,7 +30,7 @@ type Property struct {
 	Interval float64
 }
 
-// GenerateTickets takes in two property manifests to generate tickets with two fake properties for testing.
+// GenerateFloatRangeTickets takes in two property manifests to generate tickets with two fake properties for testing.
 func GenerateFloatRangeTickets(manifest1, manifest2 Property) []*pb.Ticket {
 	testTickets := make([]*pb.Ticket, 0)
 
