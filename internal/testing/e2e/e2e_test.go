@@ -25,7 +25,7 @@ func TestServiceHealth(t *testing.T) {
 	om, closer := New(t)
 	defer closer()
 	if err := om.HealthCheck(); err != nil {
-		t.Errorf("cannot create ticket, %s", err)
+		t.Errorf("cluster health checks failed, %s", err)
 	}
 }
 
