@@ -53,7 +53,7 @@ func multifilterProfiles(cfg config.View) []*pb.MatchProfile {
 					Name: poolName,
 					FloatRangeFilters: []*pb.FloatRangeFilter{
 						{
-							Attribute: "mmr.rating",
+							Attribute: "attribute.mmr",
 							Min:       float64(rating.min),
 							Max:       float64(rating.max),
 						},

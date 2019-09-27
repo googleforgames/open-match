@@ -41,7 +41,7 @@ func Ticket(cfg config.View) *pb.Ticket {
 	latencyMap := latency(regions)
 	ticket := &pb.Ticket{
 		Properties: structs.Struct{
-			"mmr.rating": structs.Number(normalDist(40, min, max, 20)),
+			"attribute.mmr": structs.Number(normalDist(40, min, max, 20)),
 			// TODO: Use string attribute value for the character attribute.
 			characters[rand.Intn(len(characters))]: structs.Number(float64(time.Now().Unix())),
 		}.S(),

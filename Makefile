@@ -65,7 +65,7 @@ HELM_VERSION = 2.14.1
 KUBECTL_VERSION = 1.14.3
 SKAFFOLD_VERSION = latest
 MINIKUBE_VERSION = latest
-GOLANGCI_VERSION = 1.17.1
+GOLANGCI_VERSION = 1.18.0
 KIND_VERSION = 0.4.0
 SWAGGERUI_VERSION = 3.23.0
 TERRAFORM_VERSION = 0.12.3
@@ -739,7 +739,7 @@ vet:
 	$(GO) vet ./...
 
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
-	-GO111MODULE=on $(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
+	GO111MODULE=on $(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
 
 lint: fmt vet golangci lint-chart terraform-lint
 
