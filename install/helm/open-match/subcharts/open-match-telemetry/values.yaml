@@ -18,7 +18,7 @@
 
 image:
   registry: gcr.io/open-match-public-images
-  tag: 0.7.0-rc.1
+  tag: 0.7.0
   pullPolicy: Always
 
 # https://github.com/helm/charts/tree/master/stable/prometheus

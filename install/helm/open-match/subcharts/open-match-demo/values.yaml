@@ -25,7 +25,7 @@ demo:
 
 image:
   registry: gcr.io/open-match-public-images
-  tag: 0.7.0-rc.1
+  tag: 0.7.0
   pullPolicy: Always
 
 # TODO: Split tls configs into a separate config file. For now Open Match assumes core components share the same secure mode

@@ -163,7 +163,7 @@ artifacts:
             - install/yaml/05-jaeger-chart.yaml
 
 substitutions:
-    _OM_VERSION: "0.7.0-rc.1"
+    _OM_VERSION: "0.7.0"
     _GCB_POST_SUBMIT: "0"
     _GCB_LATEST_VERSION: "undefined"
 logsBucket: 'gs://open-match-build-logs/'
