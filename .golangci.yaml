@@ -16,6 +16,8 @@
 # with their default values.
 
 # https://github.com/golangci/golangci-lint#config-file
+service:
+  golangci-lint-version: 1.18.0
 
 # options for analysis running
 run:
@@ -178,6 +180,7 @@ linters:
     - gofmt
     - interfacer # deprecated - "A tool that suggests interfaces is prone to bad suggestions"
     - gochecknoglobals
+    - funlen
 
 #linters:
 #  enable-all: true
