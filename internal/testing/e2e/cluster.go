@@ -143,7 +143,7 @@ func (com *clusterOM) HealthCheck() error {
 		return errors.Wrap(err, "cannot get pods list")
 	}
 	for _, pod := range podList.Items {
-		if pod.Status.Phase != corev1.PodRunning {
+		if app, ok := pod.ObjectMeta.Labels["app"]; ok && app == "open-match" && pod.Status.Phase != corev1.PodRunning {
 			return errors.Errorf("pod %+v is not running.", pod)
 		}
 	}

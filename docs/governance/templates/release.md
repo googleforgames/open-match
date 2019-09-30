@@ -7,16 +7,17 @@ Check the [README](https://github.com/googleforgames/open-match/tree/release-{ve
 Release Notes
 -------------
 
-{ insert enhancements from the changelog and/or security and breaking changes }
+**Feature Highlights**
+{ highlight here the most notable changes and themes at a high level}
 
 **Breaking Changes**
- * API Changed #PR
-
-**Enhancements**
- * New Harness #PR
+{ detail any behaviors or API surfaces which worked in a previous version which will no longer work correctly }
 
 **Security Fixes**
- * Reduced privileges required for MMF. #PR
+{ list any changes which fix vulnerabilities in open match }
+
+**Enhancements**
+{ go into details on improvements and changes }
 
 See [CHANGELOG](https://github.com/googleforgames/open-match/blob/release-{version}/CHANGELOG.md) for more details on changes.
 
