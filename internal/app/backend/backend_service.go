@@ -298,5 +298,11 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 		}
 	}
 
+	if err = store.DeleteTicketsFromIgnoreList(ctx, req.GetTicketIds()); err != nil {
+		logger.WithFields(logrus.Fields{
+			"ticket_ids": req.GetTicketIds(),
+		}).Error(err)
+	}
+
 	return nil
 }

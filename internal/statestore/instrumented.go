@@ -22,15 +22,16 @@ import (
 )
 
 var (
-	mStateStoreCreateTicket           = telemetry.Counter("statestore/createticket", "tickets created")
-	mStateStoreGetTicket              = telemetry.Counter("statestore/getticket", "tickets retrieve")
-	mStateStoreDeleteTicket           = telemetry.Counter("statestore/deleteticket", "tickets deleted")
-	mStateStoreIndexTicket            = telemetry.Counter("statestore/indexticket", "tickets indexed")
-	mStateStoreDeindexTicket          = telemetry.Counter("statestore/deindexticket", "tickets deindexed")
-	mStateStoreFilterTickets          = telemetry.Counter("statestore/filterticket", "tickets that were filtered and returned")
-	mStateStoreUpdateAssignments      = telemetry.Counter("statestore/updateassignment", "tickets assigned")
-	mStateStoreGetAssignments         = telemetry.Counter("statestore/getassignments", "ticket assigned retrieved")
-	mStateStoreAddTicketsToIgnoreList = telemetry.Counter("statestore/addticketstoignorelist", "tickets moved to ignore list")
+	mStateStoreCreateTicket               = telemetry.Counter("statestore/createticket", "tickets created")
+	mStateStoreGetTicket                  = telemetry.Counter("statestore/getticket", "tickets retrieve")
+	mStateStoreDeleteTicket               = telemetry.Counter("statestore/deleteticket", "tickets deleted")
+	mStateStoreIndexTicket                = telemetry.Counter("statestore/indexticket", "tickets indexed")
+	mStateStoreDeindexTicket              = telemetry.Counter("statestore/deindexticket", "tickets deindexed")
+	mStateStoreFilterTickets              = telemetry.Counter("statestore/filterticket", "tickets that were filtered and returned")
+	mStateStoreUpdateAssignments          = telemetry.Counter("statestore/updateassignment", "tickets assigned")
+	mStateStoreGetAssignments             = telemetry.Counter("statestore/getassignments", "ticket assigned retrieved")
+	mStateStoreAddTicketsToIgnoreList     = telemetry.Counter("statestore/addticketstoignorelist", "tickets moved to ignore list")
+	mStateStoreDeleteTicketFromIgnoreList = telemetry.Counter("statestore/deleteticketfromignorelist", "tickets removed from ignore list")
 )
 
 // instrumentedService is a wrapper for a statestore service that provides instrumentation (metrics and tracing) of the database.
@@ -109,8 +110,14 @@ func (is *instrumentedService) GetAssignments(ctx context.Context, id string, ca
 	})
 }
 
-// AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
+// AddTicketsToIgnoreList appends new proposed tickets to the proposed sorted set with current timestamp
 func (is *instrumentedService) AddTicketsToIgnoreList(ctx context.Context, ids []string) error {
 	telemetry.IncrementCounterN(ctx, mStateStoreAddTicketsToIgnoreList, len(ids))
 	return is.s.AddTicketsToIgnoreList(ctx, ids)
+}
+
+// DeleteTicketsFromIgnoreList deletes tickets from the proposed sorted set
+func (is *instrumentedService) DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) error {
+	telemetry.IncrementCounterN(ctx, mStateStoreDeleteTicketFromIgnoreList, len(ids))
+	return is.s.DeleteTicketsFromIgnoreList(ctx, ids)
 }
