@@ -16,6 +16,7 @@ package profiles
 
 import (
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -31,7 +32,7 @@ func greedyProfiles(cfg config.View) []*pb.MatchProfile {
 					Name: "all",
 					FloatRangeFilters: []*pb.FloatRangeFilter{
 						{
-							Attribute: "attribute.mmr",
+							Attribute: e2e.AttributeMMR,
 							Min:       float64(cfg.GetInt("testConfig.minRating")),
 							Max:       float64(cfg.GetInt("testConfig.maxRating")),
 						},

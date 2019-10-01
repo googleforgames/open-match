@@ -19,6 +19,7 @@ import (
 	"math"
 
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -62,7 +63,7 @@ func multipoolProfiles(cfg config.View) []*pb.MatchProfile {
 								Max:       math.MaxFloat64,
 							},
 							{
-								Attribute: "attribute.mmr",
+								Attribute: e2e.AttributeMMR,
 								Min:       float64(rating.min),
 								Max:       float64(rating.max),
 							},
