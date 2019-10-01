@@ -43,8 +43,8 @@ testConfig:
     - region.europe-west3
     - region.europe-west4
   characters:
-    - char.cleric
-    - char.knight
+    - cleric
+    - knight
   minRating: 0
   maxRating: 100
   ticketsPerMatch: 8

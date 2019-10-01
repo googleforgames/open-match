@@ -117,7 +117,7 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			// Test BoolEquals can ignore falsely typed values mapped to bool index
-			description: "expects 1 ticket with property e2eTesting.ModeDemo maps to true",
+			description: "expects 1 ticket with property e2eTesting.ModeDemo maps to boolValue: true",
 			gotTickets: []*pb.Ticket{
 				{
 					Properties: &structpb.Struct{
@@ -161,26 +161,26 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			// Test StringEquals works as expected
-			description: "expects 1 ticket with property e2eTesting.ModeDemo maps to true",
+			description: "expects 1 ticket with property e2eTesting.Role maps to warrior",
 			gotTickets: []*pb.Ticket{
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.RoleCleric: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+							e2eTesting.Role: {Kind: &structpb.Value_StringValue{StringValue: "warrior"}},
 						},
 					},
 				},
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.RoleCleric: {Kind: &structpb.Value_StringValue{StringValue: "false"}},
+							e2eTesting.Role: {Kind: &structpb.Value_StringValue{StringValue: "rogue"}},
 						},
 					},
 				},
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.RoleCleric: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+							e2eTesting.Role: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
 						},
 					},
 				},
@@ -188,8 +188,8 @@ func TestQueryTickets(t *testing.T) {
 			pool: &pb.Pool{
 				StringEqualsFilters: []*pb.StringEqualsFilter{
 					{
-						Attribute: e2e.RoleCleric,
-						Value:     "true",
+						Attribute: e2e.Role,
+						Value:     "warrior",
 					},
 				},
 			},
@@ -198,7 +198,7 @@ func TestQueryTickets(t *testing.T) {
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.RoleCleric: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+							e2eTesting.Role: {Kind: &structpb.Value_StringValue{StringValue: "warrior"}},
 						},
 					},
 				},
@@ -207,12 +207,12 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			// Test all tickets
-			description: "expects all 3 tickets with no filters",
+			description: "expects all 3 tickets when passing in a pool with no filters",
 			gotTickets: []*pb.Ticket{
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.RoleCleric: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+							e2eTesting.Role: {Kind: &structpb.Value_StringValue{StringValue: "warrior"}},
 						},
 					},
 				},
@@ -237,7 +237,7 @@ func TestQueryTickets(t *testing.T) {
 				{
 					Properties: &structpb.Struct{
 						Fields: map[string]*structpb.Value{
-							e2eTesting.RoleCleric: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+							e2eTesting.Role: {Kind: &structpb.Value_StringValue{StringValue: "warrior"}},
 						},
 					},
 				},

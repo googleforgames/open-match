@@ -19,7 +19,7 @@ var (
 
 	// Indices covers all ticketIndices that will be used in the e2e test
 	// Please update the ticketIndices in the helm chart for in-cluster end-to-end test if you need to add new indices.
-	Indices = []string{AttributeMMR, AttributeLevel, AttributeDefense, ModeDemo, RoleCleric}
+	Indices = []string{AttributeMMR, AttributeLevel, AttributeDefense, ModeDemo, Role}
 )
 
 const (
@@ -39,6 +39,6 @@ const (
 	AttributeDefense = "attribute.defense"
 	// ModeDemo is an index used to test BoolEqualsFilter
 	ModeDemo = "mode.demo"
-	// RoleCleric is an index used to test StringEqualsFilter
-	RoleCleric = "char.cleric"
+	// Role is an index used to test StringEqualsFilter
+	Role = "char"
 )
