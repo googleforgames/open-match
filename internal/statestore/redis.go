@@ -606,7 +606,7 @@ func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to pipeline commands for AddProposedTickets")
+		redisLogger.WithError(err).Error("failed to pipeline commands for AddTicketsToIgnoreList")
 		return status.Error(codes.Internal, err.Error())
 	}
 
@@ -623,7 +623,43 @@ func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string
 	// Run pipelined Redis commands.
 	_, err = redisConn.Do("EXEC")
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to execute pipelined commands for AddProposedTickets")
+		redisLogger.WithError(err).Error("failed to execute pipelined commands for AddTicketsToIgnoreList")
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	return nil
+}
+
+// DeleteTicketsFromIgnoreList deletes tickets from the proposed sorted set
+func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	redisConn, err := rb.connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer handleConnectionClose(&redisConn)
+
+	err = redisConn.Send("MULTI")
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to pipeline commands for DeleteTicketsFromIgnoreList")
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	for _, id := range ids {
+		err = redisConn.Send("ZREM", "proposed_ticket_ids", id)
+		if err != nil {
+			redisLogger.WithError(err).Error("failed to delete proposed tickets from ignore list")
+			return status.Error(codes.Internal, err.Error())
+		}
+	}
+
+	// Run pipelined Redis commands.
+	_, err = redisConn.Do("EXEC")
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to execute pipelined commands for DeleteTicketsFromIgnoreList")
 		return status.Error(codes.Internal, err.Error())
 	}
 

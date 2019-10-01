@@ -99,7 +99,8 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		case <-stream.Context().Done():
 			return stream.Context().Err()
 		default:
-			err := stream.Send(&pb.FetchMatchesResponse{Match: result})
+			err = stream.Send(&pb.FetchMatchesResponse{Match: result})
+			telemetry.IncrementCounter(stream.Context(), mMatchesFetched)
 			if err != nil {
 				logger.WithError(err).Error("failed to stream back the response")
 				return err
@@ -107,7 +108,6 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		}
 	}
 
-	telemetry.IncrementCounterN(stream.Context(), mMatchesFetched, len(results))
 	return nil
 }
 
@@ -296,6 +296,12 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 		if err != nil {
 			logger.WithError(err).Errorf("failed to deindex ticket %s after updating the assignments", id)
 		}
+	}
+
+	if err = store.DeleteTicketsFromIgnoreList(ctx, req.GetTicketIds()); err != nil {
+		logger.WithFields(logrus.Fields{
+			"ticket_ids": req.GetTicketIds(),
+		}).Error(err)
 	}
 
 	return nil
