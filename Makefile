@@ -65,7 +65,7 @@ HELM_VERSION = 2.14.1
 KUBECTL_VERSION = 1.14.3
 SKAFFOLD_VERSION = latest
 MINIKUBE_VERSION = latest
-GOLANGCI_VERSION = 1.17.1
+GOLANGCI_VERSION = 1.18.0
 KIND_VERSION = 0.4.0
 SWAGGERUI_VERSION = 3.23.0
 TERRAFORM_VERSION = 0.12.3
@@ -651,7 +651,7 @@ get-kind-kubeconfig: build/toolchain/bin/kind$(EXE_EXTENSION)
 delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(KIND) delete cluster
 
-create-gke-cluster: GKE_VERSION = 1.13.6 # gcloud beta container get-server-config --zone us-central1-a
+create-gke-cluster: GKE_VERSION = 1.13.9-gke.3 # gcloud beta container get-server-config --zone us-west1-a
 create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
@@ -724,7 +724,7 @@ test: $(ALL_PROTOS) tls-certs third_party/
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
 test-e2e-cluster: all-protos tls-certs third_party/
-	-$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 150s
+	-$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 200s
 	$(KUBECTL) logs job/e2e-job -n $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 	$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 0
 
@@ -740,7 +740,7 @@ vet:
 	$(GO) vet ./...
 
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
-	-GO111MODULE=on $(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
+	GO111MODULE=on $(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
 
 lint: fmt vet golangci lint-chart terraform-lint
 
@@ -883,7 +883,7 @@ ci-reap-namespaces: build/toolchain/bin/reaper$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: GOLANG_TEST_COUNT = 5
-presubmit: clean update-deps third_party/ assets lint build install-toolchain test md-test terraform-test
+presubmit: clean third_party/ assets update-deps lint build install-toolchain test md-test terraform-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/

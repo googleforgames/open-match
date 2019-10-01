@@ -122,7 +122,7 @@ git push origin release-0.5
 **Note: This step is performed by the person who starts the release. It is
 only required once.**
 - [ ] Create the next [version milestone](https://github.com/googleforgames/open-match/milestones) and use [semantic versioning](https://semver.org/) when naming it to be consistent with the [Go community](https://blog.golang.org/versioning-proposal).
-- [ ] Create a *draft* [release](https://github.com/googleforgames/open-match/releases).
+- [ ] Create a *draft* [release](https://github.com/googleforgames/open-match/releases).  Note that github has both "Pre-release" and "draft" as different concepts for a release.  Until the release is finalized, only use "Save draft", and do not use "Publish release".
 - [ ] Use the [release template](https://github.com/googleforgames/open-match/blob/master/docs/governance/templates/release.md)
   - [ ] `Tag` = v{version}. Example: v0.5.0. Append -rc.# for release candidates. Example: v0.5.0-rc.1.
   - [ ] `Target` = release-X.Y. Example: release-0.5.
@@ -148,7 +148,12 @@ TODO: Add guidelines for labeling issues.
 - [ ] If this is a new minor version in the newest major version then run `./docs/governance/templates/release.sh {source version tag} latest`.
 - [ ] Copy the files from `build/release/` generated from `make release` to the release draft you created.  You can drag and drop the files using the Github UI.
 - [ ] Open the [`README.md`](readme-deploy) update the version references and submit. (Release candidates can ignore this step.)
-- [ ] Publish the [Release](om-release) in Github.
+
+## Finalize
+
+- [ ] Save the release as a draft.
+- [ ] Circulate the draft release to active contributors.  Where reasonable, get everyone's ok on the release notes before continuing.
+- [ ] Publish the [Release](om-release) in Github.  This will notify repository watchers.
 
 ## Announce
 

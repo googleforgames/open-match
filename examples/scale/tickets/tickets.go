@@ -16,11 +16,11 @@ package tickets
 
 import (
 	"math/rand"
-	"time"
 
 	"open-match.dev/open-match/internal/config"
 
 	"github.com/sirupsen/logrus"
+	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/pkg/structs"
 )
@@ -36,14 +36,14 @@ var (
 func Ticket(cfg config.View) *pb.Ticket {
 	characters := cfg.GetStringSlice("testConfig.characters")
 	regions := cfg.GetStringSlice("testConfig.regions")
-	min:= cfg.GetFloat64("testConfig.minRating")
-	max:= cfg.GetFloat64("testConfig.maxRating")
+	min := cfg.GetFloat64("testConfig.minRating")
+	max := cfg.GetFloat64("testConfig.maxRating")
 	latencyMap := latency(regions)
 	ticket := &pb.Ticket{
 		Properties: structs.Struct{
-			"mmr.rating":             structs.Number(normalDist(40, min, max, 20)),
+			e2e.AttributeMMR: structs.Number(normalDist(40, min, max, 20)),
 			// TODO: Use string attribute value for the character attribute.
-			characters[rand.Intn(len(characters))]: structs.Number(float64(time.Now().Unix())),
+			e2e.Role: structs.String(characters[rand.Intn(len(characters))]),
 		}.S(),
 	}
 
@@ -53,7 +53,8 @@ func Ticket(cfg config.View) *pb.Ticket {
 
 	return ticket
 }
-// latency generates a latency mapping of each region to a latency value. It picks 
+
+// latency generates a latency mapping of each region to a latency value. It picks
 // one region with latency between 0ms to 100ms and sets latencies to all other regions
 // to a value between 100ms to 300ms.
 func latency(regions []string) map[string]float64 {

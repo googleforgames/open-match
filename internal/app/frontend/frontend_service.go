@@ -122,7 +122,13 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 				"error": err.Error(),
 				"id":    id,
 			}).Error("failed to delete the ticket")
-			return
+		}
+		err = store.DeleteTicketsFromIgnoreList(context.Background(), []string{id})
+		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"error": err.Error(),
+				"id":    id,
+			}).Error("failed to delete the ticket from ignorelist")
 		}
 		// TODO: If other redis queues are implemented or we have custom index fields
 		// created by Open Match, those need to be cleaned up here.

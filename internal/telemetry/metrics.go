@@ -40,7 +40,7 @@ func SetGauge(ctx context.Context, s *stats.Int64Measure, n int, tags ...tag.Mut
 
 // Counter creates a counter metric.
 func Counter(name string, description string, tags ...tag.Key) *stats.Int64Measure {
-	s := stats.Int64(name, "Count of "+description+".", "1")
+	s := stats.Int64(name, "Count of "+description+".", stats.UnitDimensionless)
 	counterView(s, tags...)
 	return s
 }
@@ -52,11 +52,10 @@ func IncrementCounter(ctx context.Context, s *stats.Int64Measure, tags ...tag.Mu
 
 // IncrementCounterN increases a metric by n.
 func IncrementCounterN(ctx context.Context, s *stats.Int64Measure, n int, tags ...tag.Mutator) {
-	mCtx, err := tag.New(ctx, tags...)
-	if err != nil {
+	if err := stats.RecordWithTags(ctx, tags, s.M(int64(n))); err != nil {
+		logger.WithError(err).Infof("cannot record stat with tags %#v", tags)
 		return
 	}
-	stats.Record(mCtx, s.M(int64(n)))
 }
 
 // gaugeView converts the measurement into a view for a gauge metric.
