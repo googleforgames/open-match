@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/set"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -36,6 +37,7 @@ var (
 		"app":       "openmatch",
 		"component": "statestore.redis",
 	})
+	mRedisConnLatencyMs = telemetry.HistogramWithBounds("redis/connectlatency", "latency to get a redis connection", "ms", []float64{0, 50, 200, 400, 1000, 10000})
 )
 
 type redisBackend struct {
@@ -121,6 +123,7 @@ func (rb *redisBackend) HealthCheck(ctx context.Context) error {
 }
 
 func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
+	startTime := time.Now()
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -128,6 +131,7 @@ func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
 		}).Error("failed to connect to redis")
 		return nil, status.Errorf(codes.Unavailable, "%v", err)
 	}
+	telemetry.IncrementCounterN(ctx, mRedisConnLatencyMs, time.Since(startTime).Milliseconds())
 
 	return redisConn, nil
 }
