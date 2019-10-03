@@ -72,7 +72,8 @@ message Assignment {
   // Error when finding an Assignment for this Ticket.
   google.rpc.Status error = 3;
 
-  // Other details to be sent to the clients.
+  // Customized information to be sent to the clients.  Optional, depending on
+  // what callers are expecting.
   google.protobuf.Any details = 4;
 }
 
@@ -117,6 +118,7 @@ message FloatRangeFilter {
 //   {"foo": [false]}
 //   {"foo": null}
 //   {}
+// TODO: Remove
 message BoolEqualsFilter {
   string attribute = 1;
 
@@ -142,6 +144,7 @@ message StringEqualsFilter {
   string value = 2;
 }
 
+// Filters to the tag being present on the search_fields.
 message TagPresentFilter {
   string tag = 1;
 }
