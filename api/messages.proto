@@ -50,7 +50,7 @@ message Ticket {
 // when specifying filters.
 message SearchFields {
   // Float arguments.  Filterable on ranges.
-  map<string, float64> fargs = 1;
+  map<string, double> fargs = 1;
  
   // String arguments.  Filterable on equality.
   map<string, string> sargs = 2;
