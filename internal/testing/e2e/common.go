@@ -21,6 +21,8 @@ import (
 	"os"
 	"testing"
 
+	"google.golang.org/grpc/resolver"
+
 	pb "open-match.dev/open-match/pkg/pb"
 )
 
@@ -60,6 +62,7 @@ func New(t *testing.T) (OM, func()) {
 
 // RunMain provides the setup and teardown for Open Match e2e tests.
 func RunMain(m *testing.M) {
+	resolver.SetDefaultScheme("passthrough")
 	var exitCode int
 	z, err := createZygote(m)
 	if err != nil {

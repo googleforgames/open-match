@@ -37,8 +37,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"open-match.dev/open-match/internal/config"
+	"google.golang.org/grpc/balancer/roundrobin"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/telemetry"
+	"google.golang.org/grpc/resolver"
 )
 
 const (
@@ -62,6 +64,10 @@ type ClientParams struct {
 	EnableRPCLogging        bool
 	EnableRPCPayloadLogging bool
 	EnableMetrics           bool
+}
+
+func init() {
+	resolver.SetDefaultScheme("dns")
 }
 
 func (p *ClientParams) usingTLS() bool {
@@ -298,6 +304,7 @@ func newGRPCDialOptions(enableMetrics bool, enableRPCLogging bool, enableRPCPayl
 	opts := []grpc.DialOption{
 		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(si...)),
 		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(ui...)),
+		grpc.WithBalancerName(roundrobin.Name),
 	}
 	if enableMetrics {
 		opts = append(opts, grpc.WithStatsHandler(new(ocgrpc.ClientHandler)))
