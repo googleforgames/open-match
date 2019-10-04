@@ -18,13 +18,12 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"time"
 	"net/http"
 	"net/http/httputil"
+	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
-	"google.golang.org/grpc/keepalive"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -34,6 +33,7 @@ import (
 	"go.opencensus.io/plugin/ochttp"
 	"go.opencensus.io/plugin/ochttp/propagation/b3"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/signal"
@@ -310,7 +310,7 @@ func newGRPCServerOptions(params *ServerParams) []grpc.ServerOption {
 			// connection storms.
 			MaxConnectionAge: 1 * time.Minute,
 			// MaxConnectionAgeGrace is an additive period after MaxConnectionAge after
-    		// which the connection will be forcibly closed.
+			// which the connection will be forcibly closed.
 			MaxConnectionAgeGrace: 5 * time.Second,
 		}),
 	}

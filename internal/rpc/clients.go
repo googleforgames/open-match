@@ -35,12 +35,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ochttp"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"open-match.dev/open-match/internal/config"
 	"google.golang.org/grpc/balancer/roundrobin"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/resolver"
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/telemetry"
-	"google.golang.org/grpc/resolver"
 )
 
 const (
