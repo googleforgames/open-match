@@ -39,7 +39,7 @@ docker pull gcr.io/open-match-public-images/openmatch-mmf-go-soloduel:{version}
 docker pull gcr.io/open-match-public-images/openmatch-mmf-go-pool:{version}
 
 # Test Clients
-docker pull gcr.io/open-match-public-images/openmatch-demo:{version}
+docker pull gcr.io/open-match-public-images/openmatch-demo-first-match:{version}
 ```
 
 _This software is currently alpha, and subject to change. Not to be used in production systems._
@@ -57,5 +57,5 @@ kubectl create namespace open-match
 # Install Open Match and monitoring services.
 kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/install.yaml --namespace open-match
 # Install the demo.
-kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/install-demo.yaml --namespace open-match
+kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/02-open-match-demo.yaml --namespace open-match
 ```
