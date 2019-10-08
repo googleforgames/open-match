@@ -44,7 +44,7 @@ type Ticket struct {
 	// with specific values.
 	SearchFields *SearchFields `protobuf:"bytes,4,opt,name=search_fields,json=searchFields,proto3" json:"search_fields,omitempty"`
 	// Customized information to be used by the Match Making Function.  Optional,
-	// depending on the requirements of hte MMF.
+	// depending on the requirements of the MMF.
 	Extension            *any.Any `protobuf:"bytes,5,opt,name=extension,proto3" json:"extension,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
