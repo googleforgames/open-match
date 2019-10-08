@@ -41,8 +41,12 @@ message Ticket {
   // Assignment associated with the Ticket.
   Assignment assignment = 3;
 
+  // Values visible to Open Match which can be used when querying for tickets
+  // with specific values.
   SearchFields search_fields = 4;
 
+  // Customized information to be used by the Match Making Function.  Optional,
+  // depending on the requirements of hte MMF.
   google.protobuf.Any mmf_input = 5;
 }
 
