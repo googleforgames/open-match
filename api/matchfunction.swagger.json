@@ -66,10 +66,6 @@
           "type": "string",
           "description": "Connection information for this Assignment."
         },
-        "properties": {
-          "type": "object",
-          "title": "Other details to be sent to the players.\nTODO: Deprecate and remove this field"
-        },
         "error": {
           "$ref": "#/definitions/rpcStatus",
           "description": "Error when finding an Assignment for this Ticket."
@@ -143,10 +139,6 @@
           },
           "title": "Set of Rosters that comprise this Match"
         },
-        "properties": {
-          "type": "object",
-          "description": "Match properties for this Match. Open Match does not interpret this field.\nTODO: Deprecate and remove."
-        },
         "evaluation_input": {
           "$ref": "#/definitions/protobufAny",
           "description": "Customized information for the evaluator.  Optional, depending on the\nrequirements of the configured evaluator."
@@ -164,10 +156,6 @@
         "name": {
           "type": "string",
           "description": "Name of this match profile."
-        },
-        "properties": {
-          "type": "object",
-          "description": "Set of properties associated with this MatchProfile. (Optional)\nOpen Match does not interpret these properties but passes them through to\nthe MatchFunction.\nTODO: Deprecate and remove."
         },
         "pools": {
           "type": "array",
