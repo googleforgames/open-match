@@ -1,4 +1,3 @@
-// +build !e2ecluster
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +26,31 @@ import (
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
+
+func TestServiceHealth(t *testing.T) {
+	om, closer := e2e.New(t)
+	defer closer()
+	if err := om.HealthCheck(); err != nil {
+		t.Errorf("cluster health checks failed, %s", err)
+	}
+}
+
+func TestGetClients(t *testing.T) {
+	om, closer := e2e.New(t)
+	defer closer()
+
+	if c := om.MustFrontendGRPC(); c == nil {
+		t.Error("cannot get frontend client")
+	}
+
+	if c := om.MustBackendGRPC(); c == nil {
+		t.Error("cannot get backend client")
+	}
+
+	if c := om.MustMmLogicGRPC(); c == nil {
+		t.Error("cannot get mmlogic client")
+	}
+}
 
 func TestGameMatchWorkFlow(t *testing.T) {
 	/*

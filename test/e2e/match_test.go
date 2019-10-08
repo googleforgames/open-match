@@ -51,7 +51,7 @@ func TestFetchMatches(t *testing.T) {
 		{
 			"expects unavailable code since there is no mmf being hosted with given function config",
 			&pb.FunctionConfig{
-				Host: "om-matchfunction",
+				Host: "om-function",
 				Port: int32(54321),
 				Type: pb.FunctionConfig_GRPC,
 			},
