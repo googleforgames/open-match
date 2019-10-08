@@ -74,7 +74,7 @@ message Assignment {
 
   // Customized information to be sent to the clients.  Optional, depending on
   // what callers are expecting.
-  google.protobuf.Any handling_output = 4;
+  google.protobuf.Any fe_output = 4;
 }
 
 // Filters numerical values to only those within a range.
@@ -241,5 +241,5 @@ message Match {
   // Customized information for how the caller of FetchMatches should handle
   // this match.  Optional, depending on the requirements of the FetchMatches
   // caller.
-  google.protobuf.Any handling_output = 8;
+  google.protobuf.Any be_output = 8;
 }
