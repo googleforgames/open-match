@@ -37,6 +37,10 @@ import (
 func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 	result := make(map[string]float64)
 
+	for arg, value := range t.GetSearchFields().GetStringArgs() {
+		result[stringIndexName(arg, value)] = 0
+	}
+
 	var indices []string
 	if cfg.IsSet("ticketIndices") {
 		indices = cfg.GetStringSlice("ticketIndices")
@@ -60,8 +64,6 @@ func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 				value = 1
 			}
 			result[boolIndexName(attribute)] = value
-		case *structpb.Value_StringValue:
-			result[stringIndexName(attribute, v.GetStringValue())] = 0
 		default:
 			redisLogger.WithFields(logrus.Fields{
 				"attribute": attribute,

@@ -134,9 +134,9 @@ func TestQueryTickets(t *testing.T) {
 					},
 				},
 				{
-					Properties: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							e2eTesting.ModeDemo: {Kind: &structpb.Value_StringValue{StringValue: "true"}},
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							e2eTesting.ModeDemo: "true",
 						},
 					},
 				},
@@ -164,16 +164,16 @@ func TestQueryTickets(t *testing.T) {
 			description: "expects 1 ticket with property e2eTesting.Role maps to warrior",
 			gotTickets: []*pb.Ticket{
 				{
-					Properties: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							e2eTesting.Role: {Kind: &structpb.Value_StringValue{StringValue: "warrior"}},
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							e2eTesting.Role: "warrior",
 						},
 					},
 				},
 				{
-					Properties: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							e2eTesting.Role: {Kind: &structpb.Value_StringValue{StringValue: "rogue"}},
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							e2eTesting.Role: "rogue",
 						},
 					},
 				},
@@ -196,9 +196,10 @@ func TestQueryTickets(t *testing.T) {
 			wantCode: codes.OK,
 			wantTickets: []*pb.Ticket{
 				{
-					Properties: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							e2eTesting.Role: {Kind: &structpb.Value_StringValue{StringValue: "warrior"}},
+
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							e2eTesting.Role: "warrior",
 						},
 					},
 				},
@@ -210,9 +211,9 @@ func TestQueryTickets(t *testing.T) {
 			description: "expects all 3 tickets when passing in a pool with no filters",
 			gotTickets: []*pb.Ticket{
 				{
-					Properties: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							e2eTesting.Role: {Kind: &structpb.Value_StringValue{StringValue: "warrior"}},
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							e2eTesting.Role: "warrior",
 						},
 					},
 				},
@@ -235,9 +236,9 @@ func TestQueryTickets(t *testing.T) {
 			wantCode: codes.OK,
 			wantTickets: []*pb.Ticket{
 				{
-					Properties: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							e2eTesting.Role: {Kind: &structpb.Value_StringValue{StringValue: "warrior"}},
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							e2eTesting.Role: "warrior",
 						},
 					},
 				},
