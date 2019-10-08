@@ -37,10 +37,8 @@ import (
 func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 	result := make(map[string]float64)
 
-	if m := t.GetSearchFields().GetStringArgs(); m != nil {
-		for arg, value := range m {
-			result[stringIndexName(arg, value)] = 0
-		}
+	for arg, value := range t.GetSearchFields().GetStringArgs() {
+		result[stringIndexName(arg, value)] = 0
 	}
 
 	var indices []string
