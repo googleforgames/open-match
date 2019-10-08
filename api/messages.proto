@@ -46,7 +46,7 @@ message Ticket {
   SearchFields search_fields = 4;
 
   // Customized information to be used by the Match Making Function.  Optional,
-  // depending on the requirements of hte MMF.
+  // depending on the requirements of the MMF.
   google.protobuf.Any extension = 5;
 }
 
