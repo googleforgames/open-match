@@ -25,7 +25,6 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 func Run(ds *components.DemoShared) {
@@ -95,12 +94,7 @@ func runScenario(ctx context.Context, cfg config.View, name string, update updat
 	var ticketId string
 	{
 		req := &pb.CreateTicketRequest{
-			Ticket: &pb.Ticket{
-				Properties: structs.Struct{
-					"name":      structs.String(name),
-					"mode.demo": structs.Number(1),
-				}.S(),
-			},
+			Ticket: &pb.Ticket{},
 		}
 
 		resp, err := fe.CreateTicket(ctx, req)
