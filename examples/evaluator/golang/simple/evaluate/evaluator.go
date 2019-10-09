@@ -56,17 +56,17 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 	ticketsUsed := map[string]struct{}{}
 
 outer:
-	for _, match := range matches {
-		for _, ticket := range match.match.GetTickets() {
+	for _, matchExt := range matches {
+		for _, ticket := range matchExt.match.GetTickets() {
 			if _, ok := ticketsUsed[ticket.Id]; ok {
 				continue outer
 			}
 		}
 
-		for _, ticket := range match.match.GetTickets() {
+		for _, ticket := range matchExt.match.GetTickets() {
 			ticketsUsed[ticket.Id] = struct{}{}
 		}
-		results = append(results, match.match)
+		results = append(results, matchExt.match)
 	}
 
 	return results, nil
