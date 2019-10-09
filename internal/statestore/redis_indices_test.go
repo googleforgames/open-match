@@ -29,13 +29,14 @@ func TestExtractIndexedFields(t *testing.T) {
 	tests := []struct {
 		description    string
 		indices        []string
-		ticket         *structpb.Struct
+		properties     *structpb.Struct
+		searchFields   *pb.SearchFields
 		expectedValues map[string]float64
 	}{
 		{
 			description: "range",
 			indices:     []string{"foo"},
-			ticket: structs.Struct{
+			properties: structs.Struct{
 				"foo": structs.Number(1),
 			}.S(),
 			expectedValues: map[string]float64{
@@ -46,7 +47,7 @@ func TestExtractIndexedFields(t *testing.T) {
 		{
 			description: "bools",
 			indices:     []string{"t", "f"},
-			ticket: structs.Struct{
+			properties: structs.Struct{
 				"t": structs.Bool(true),
 				"f": structs.Bool(false),
 			}.S(),
@@ -59,9 +60,11 @@ func TestExtractIndexedFields(t *testing.T) {
 		{
 			description: "string",
 			indices:     []string{"foo"},
-			ticket: structs.Struct{
-				"foo": structs.String("bar"),
-			}.S(),
+			searchFields: &pb.SearchFields{
+				StringArgs: map[string]string{
+					"foo": "bar",
+				},
+			},
 			expectedValues: map[string]float64{
 				"allTickets":  0,
 				"si$foo$vbar": 0,
@@ -70,7 +73,7 @@ func TestExtractIndexedFields(t *testing.T) {
 		{
 			description: "no index",
 			indices:     []string{},
-			ticket: structs.Struct{
+			properties: structs.Struct{
 				"foo": structs.Number(1),
 			}.S(),
 			expectedValues: map[string]float64{
@@ -80,7 +83,7 @@ func TestExtractIndexedFields(t *testing.T) {
 		{
 			description: "no value",
 			indices:     []string{"foo"},
-			ticket:      structs.Struct{}.S(),
+			properties:  structs.Struct{}.S(),
 			expectedValues: map[string]float64{
 				"allTickets": 0,
 			},
@@ -92,7 +95,8 @@ func TestExtractIndexedFields(t *testing.T) {
 			cfg := viper.New()
 			cfg.Set("ticketIndices", test.indices)
 
-			actual := extractIndexedFields(cfg, &pb.Ticket{Properties: test.ticket})
+			ticket := &pb.Ticket{Properties: test.properties, SearchFields: test.searchFields}
+			actual := extractIndexedFields(cfg, ticket)
 
 			assert.Equal(t, test.expectedValues, actual)
 		})
