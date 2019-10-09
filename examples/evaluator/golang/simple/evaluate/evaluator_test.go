@@ -17,12 +17,21 @@ package evaluate
 import (
 	"testing"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/assert"
-	"open-match.dev/open-match/examples"
 	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
+
+func MustAny(m proto.Message) *any.Any {
+	result, err := ptypes.MarshalAny(m)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
 
 func TestEvaluate(t *testing.T) {
 	ticket1 := &pb.Ticket{Id: "1"}
@@ -31,30 +40,30 @@ func TestEvaluate(t *testing.T) {
 
 	ticket12Score1 := &pb.Match{
 		Tickets: []*pb.Ticket{ticket1, ticket2},
-		Properties: structs.Struct{
-			examples.MatchScore: structs.Number(1),
-		}.S(),
+		Extension: MustAny(&pb.DefaultEvaluationCriteria{
+			Score: 1,
+		}),
 	}
 
 	ticket12Score10 := &pb.Match{
 		Tickets: []*pb.Ticket{ticket2, ticket1},
-		Properties: structs.Struct{
-			examples.MatchScore: structs.Number(10),
-		}.S(),
+		Extension: MustAny(&pb.DefaultEvaluationCriteria{
+			Score: 10,
+		}),
 	}
 
 	ticket123Score5 := &pb.Match{
 		Tickets: []*pb.Ticket{ticket1, ticket2, ticket3},
-		Properties: structs.Struct{
-			examples.MatchScore: structs.Number(5),
-		}.S(),
+		Extension: MustAny(&pb.DefaultEvaluationCriteria{
+			Score: 5,
+		}),
 	}
 
 	ticket3Score50 := &pb.Match{
 		Tickets: []*pb.Ticket{ticket3},
-		Properties: structs.Struct{
-			examples.MatchScore: structs.Number(50),
-		}.S(),
+		Extension: MustAny(&pb.DefaultEvaluationCriteria{
+			Score: 50,
+		}),
 	}
 
 	tests := []struct {

@@ -20,11 +20,11 @@
 package mmf
 
 import (
+	"github.com/golang/protobuf/ptypes"
+	"github.com/pkg/errors"
 	"github.com/rs/xid"
-	"open-match.dev/open-match/examples"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 var (
@@ -46,15 +46,20 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 				roster.TicketIds = append(roster.GetTicketIds(), ticket.GetId())
 			}
 
+			ext, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
+				Score: scoreCalculator(tickets),
+			})
+			if err != nil {
+				return nil, errors.Wrap(err, "Failed to marshal DefaultEvaluationCriteria.")
+			}
+
 			result = append(result, &pb.Match{
 				MatchId:       xid.New().String(),
 				MatchProfile:  params.ProfileName,
 				MatchFunction: matchName,
 				Tickets:       tickets,
 				Rosters:       []*pb.Roster{roster},
-				Properties: structs.Struct{
-					examples.MatchScore: structs.Number(scoreCalculator(tickets)),
-				}.S(),
+				Extension:     ext,
 			})
 		}
 	}

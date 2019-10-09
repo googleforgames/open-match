@@ -15,7 +15,11 @@
 package evaluate
 
 import (
-	"open-match.dev/open-match/examples"
+	"math"
+	"sort"
+
+	"github.com/golang/protobuf/ptypes"
+	"github.com/sirupsen/logrus"
 	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -23,32 +27,66 @@ import (
 // Evaluate is where your custom evaluation logic lives.
 // This sample evaluator sorts and deduplicates the input matches.
 func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
-	scoreInDescendingOrder := func(a, b *pb.Match) bool {
-		return a.GetProperties().GetFields()[examples.MatchScore].GetNumberValue() > b.GetProperties().GetFields()[examples.MatchScore].GetNumberValue()
+	matches := make(matcheExts, 0, len(p.Matches))
+	for _, match := range p.Matches {
+		// Evaluation criteria is optional, but sort it lower than any matches which
+		// provided criteria.
+		ext := &pb.DefaultEvaluationCriteria{
+			Score: math.Inf(-1),
+		}
+		if match.Extension != nil {
+			err := ptypes.UnmarshalAny(match.Extension, ext)
+			if err != nil {
+				p.Logger.WithFields(logrus.Fields{
+					"match_id": match.MatchId,
+					"error":    err,
+				}).Error("Failed to unmarshal match's DefaultEvaluationCriteria.  Rejecting match.")
+				continue
+			}
+		}
+		matches = append(matches, &matchExt{
+			match: match,
+			ext:   ext,
+		})
 	}
-	by(scoreInDescendingOrder).Sort(p.Matches)
+
+	sort.Sort(matches)
 
 	results := []*pb.Match{}
-	dedup := map[string]bool{}
+	ticketsUsed := map[string]struct{}{}
 
-	for _, match := range p.Matches {
-		if isNonCollidingMatch(match, dedup) {
-			for _, ticket := range match.GetTickets() {
-				dedup[ticket.GetId()] = true
+outer:
+	for _, match := range matches {
+		for _, ticket := range match.match.GetTickets() {
+			if _, ok := ticketsUsed[ticket.Id]; ok {
+				continue outer
 			}
-			results = append(results, match)
 		}
+
+		for _, ticket := range match.match.GetTickets() {
+			ticketsUsed[ticket.Id] = struct{}{}
+		}
+		results = append(results, match.match)
 	}
 
 	return results, nil
 }
 
-func isNonCollidingMatch(match *pb.Match, validTickets map[string]bool) bool {
-	for _, ticket := range match.GetTickets() {
-		id := ticket.GetId()
-		if _, ok := validTickets[id]; ok {
-			return false
-		}
-	}
-	return true
+type matchExt struct {
+	match *pb.Match
+	ext   *pb.DefaultEvaluationCriteria
+}
+
+type matcheExts []*matchExt
+
+func (matches matcheExts) Len() int {
+	return len(matches)
+}
+
+func (matches matcheExts) Swap(i, j int) {
+	matches[i], matches[j] = matches[j], matches[i]
+}
+
+func (matches matcheExts) Less(i, j int) bool {
+	return matches[i].ext.Score > matches[j].ext.Score
 }

@@ -67,6 +67,10 @@
           "type": "string",
           "description": "Connection information for this Assignment."
         },
+        "properties": {
+          "type": "object",
+          "title": "Other details to be sent to the players.\nTODO: Deprecate and remove this field"
+        },
         "error": {
           "$ref": "#/definitions/rpcStatus",
           "description": "Error when finding an Assignment for this Ticket."
@@ -124,6 +128,10 @@
             "$ref": "#/definitions/openmatchRoster"
           },
           "title": "Set of Rosters that comprise this Match"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Match properties for this Match. Open Match does not interpret this field.\nTODO: Deprecate and remove."
         },
         "evaluation_input": {
           "$ref": "#/definitions/protobufAny",
