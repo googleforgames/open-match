@@ -33,7 +33,7 @@ type matchInp struct {
 // This sample evaluator sorts and deduplicates the input matches.
 func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 	matches := make([]*matchInp, 0, len(p.Matches))
-	nilEvlautionInputs = 0
+	nilEvlautionInputs := 0
 
 	for _, m := range p.Matches {
 		// Evaluation criteria is optional, but sort it lower than any matches which
