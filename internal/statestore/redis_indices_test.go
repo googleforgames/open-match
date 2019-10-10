@@ -34,11 +34,21 @@ func TestExtractIndexedFields(t *testing.T) {
 		expectedValues map[string]float64
 	}{
 		{
-			description: "range",
+			description: "range deprecated",
 			indices:     []string{"foo"},
 			properties: structs.Struct{
 				"foo": structs.Number(1),
 			}.S(),
+			expectedValues: map[string]float64{
+				"allTickets": 0,
+				"ri$foo":     1,
+			},
+		},
+		{
+			description: "range",
+			searchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{"foo": 1},
+			},
 			expectedValues: map[string]float64{
 				"allTickets": 0,
 				"ri$foo":     1,
@@ -91,7 +101,6 @@ func TestExtractIndexedFields(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			cfg := viper.New()
-			cfg.Set("ticketIndices", test.indices)
 
 			ticket := &pb.Ticket{Properties: test.properties, SearchFields: test.searchFields}
 			actual := extractIndexedFields(cfg, ticket)
