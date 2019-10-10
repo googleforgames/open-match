@@ -32,7 +32,6 @@ import (
 	internalTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestStatestoreSetup(t *testing.T) {
@@ -59,9 +58,11 @@ func TestTicketLifecycle(t *testing.T) {
 	id := xid.New().String()
 	ticket := &pb.Ticket{
 		Id: id,
-		Properties: structs.Struct{
-			"testindex1": structs.Number(42),
-		}.S(),
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"testindex1": 42,
+			},
+		},
 		Assignment: &pb.Assignment{
 			Connection: "test-tbd",
 		},
@@ -89,7 +90,7 @@ func TestTicketLifecycle(t *testing.T) {
 	assert.Nil(err)
 	assert.NotNil(result)
 	assert.Equal(ticket.Id, result.Id)
-	assert.Equal(ticket.Properties.Fields["testindex1"].GetNumberValue(), result.Properties.Fields["testindex1"].GetNumberValue())
+	assert.Equal(ticket.SearchFields.DoubleArgs["testindex1"], result.SearchFields.DoubleArgs["testindex1"])
 	assert.Equal(ticket.Assignment.Connection, result.Assignment.Connection)
 
 	// Validate Ticket deletion
@@ -164,10 +165,12 @@ func TestTicketIndexing(t *testing.T) {
 
 		ticket := &pb.Ticket{
 			Id: id,
-			Properties: structs.Struct{
-				"testindex1": structs.Number(float64(i)),
-				"testindex2": structs.Number(0.5),
-			}.S(),
+			SearchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{
+					"testindex1": float64(i),
+					"testindex2": 0.5,
+				},
+			},
 			Assignment: &pb.Assignment{
 				Connection: "test-tbd",
 			},

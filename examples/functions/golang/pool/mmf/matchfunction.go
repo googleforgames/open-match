@@ -66,8 +66,8 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 func scoreCalculator(tickets []*pb.Ticket) float64 {
 	matchScore := 0.0
 	for _, ticket := range tickets {
-		for _, v := range ticket.GetProperties().GetFields() {
-			matchScore += v.GetNumberValue()
+		for _, v := range ticket.GetSearchFields().GetDoubleArgs() {
+			matchScore += v
 		}
 	}
 	return matchScore

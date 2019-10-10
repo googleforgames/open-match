@@ -18,8 +18,6 @@ import (
 	"math"
 	"strings"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -35,6 +33,7 @@ import (
 // Filters are strings look up that attribute/value pair.
 
 func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
+	// TODO: Remove cfg variable as part of removing indicies configuration.
 	result := make(map[string]float64)
 
 	for arg, value := range t.GetSearchFields().GetDoubleArgs() {
@@ -47,30 +46,6 @@ func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 
 	for _, tag := range t.GetSearchFields().GetTags() {
 		result[tagIndexName(tag)] = 0
-	}
-
-	var indices []string
-	if cfg.IsSet("ticketIndices") {
-		indices = cfg.GetStringSlice("ticketIndices")
-	}
-
-	for _, attribute := range indices {
-		v, ok := t.GetProperties().GetFields()[attribute]
-
-		if !ok {
-			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute}).Trace("Couldn't find index in Ticket Properties")
-			continue
-		}
-
-		switch v.Kind.(type) {
-		case *structpb.Value_NumberValue:
-			result[rangeIndexName(attribute)] = v.GetNumberValue()
-		default:
-			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute,
-			}).Warning("Attribute indexed but is not an expected type.")
-		}
 	}
 
 	result[allTickets] = 0
