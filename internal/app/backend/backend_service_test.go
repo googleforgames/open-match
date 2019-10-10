@@ -29,7 +29,6 @@ import (
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 
@@ -174,15 +173,19 @@ func TestDoAssignTickets(t *testing.T) {
 	fakeTickets := []*pb.Ticket{
 		{
 			Id: "1",
-			Properties: structs.Struct{
-				fakeProperty: structs.Number(1),
-			}.S(),
+			SearchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{
+					fakeProperty: 1,
+				},
+			},
 		},
 		{
 			Id: "2",
-			Properties: structs.Struct{
-				fakeProperty: structs.Number(2),
-			}.S(),
+			SearchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{
+					fakeProperty: 2,
+				},
+			},
 		},
 	}
 

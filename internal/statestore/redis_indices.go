@@ -18,8 +18,6 @@ import (
 	"math"
 	"strings"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -29,13 +27,19 @@ import (
 // for simplicity, sorted sets.  The following translations are used:
 // Float values to range indicies use the float value directly, with filters
 // doing direct lookups on those ranges.
-// Boolean values with bool equals indicies turn true and false into 1 and 0.
-// Filters on bool equality use ranges limited to only 1s or only 0s.
+// Tags indicate presence in the set.  The value used is 0.  Filters on tags
+// look up that set.
 // Strings values are indexed by a unique attribute/value pair with value 0.
 // Filters are strings look up that attribute/value pair.
 
 func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
+	// TODO: Remove cfg variable as part of removing indicies configuration.
+	_ = cfg
 	result := make(map[string]float64)
+
+	for arg, value := range t.GetSearchFields().GetDoubleArgs() {
+		result[rangeIndexName(arg)] = value
+	}
 
 	for arg, value := range t.GetSearchFields().GetStringArgs() {
 		result[stringIndexName(arg, value)] = 0
@@ -43,30 +47,6 @@ func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 
 	for _, tag := range t.GetSearchFields().GetTags() {
 		result[tagIndexName(tag)] = 0
-	}
-
-	var indices []string
-	if cfg.IsSet("ticketIndices") {
-		indices = cfg.GetStringSlice("ticketIndices")
-	}
-
-	for _, attribute := range indices {
-		v, ok := t.GetProperties().GetFields()[attribute]
-
-		if !ok {
-			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute}).Trace("Couldn't find index in Ticket Properties")
-			continue
-		}
-
-		switch v.Kind.(type) {
-		case *structpb.Value_NumberValue:
-			result[rangeIndexName(attribute)] = v.GetNumberValue()
-		default:
-			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute,
-			}).Warning("Attribute indexed but is not an expected type.")
-		}
 	}
 
 	result[allTickets] = 0

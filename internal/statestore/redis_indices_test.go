@@ -18,27 +18,22 @@ import (
 	"math"
 	"testing"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestExtractIndexedFields(t *testing.T) {
 	tests := []struct {
 		description    string
-		indices        []string
-		properties     *structpb.Struct
 		searchFields   *pb.SearchFields
 		expectedValues map[string]float64
 	}{
 		{
 			description: "range",
-			indices:     []string{"foo"},
-			properties: structs.Struct{
-				"foo": structs.Number(1),
-			}.S(),
+			searchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{"foo": 1},
+			},
 			expectedValues: map[string]float64{
 				"allTickets": 0,
 				"ri$foo":     1,
@@ -46,7 +41,6 @@ func TestExtractIndexedFields(t *testing.T) {
 		},
 		{
 			description: "tag",
-			indices:     []string{},
 			searchFields: &pb.SearchFields{
 				Tags: []string{"foo"},
 			},
@@ -57,7 +51,6 @@ func TestExtractIndexedFields(t *testing.T) {
 		},
 		{
 			description: "string",
-			indices:     []string{},
 			searchFields: &pb.SearchFields{
 				StringArgs: map[string]string{
 					"foo": "bar",
@@ -69,19 +62,7 @@ func TestExtractIndexedFields(t *testing.T) {
 			},
 		},
 		{
-			description: "no index",
-			indices:     []string{},
-			properties: structs.Struct{
-				"foo": structs.Number(1),
-			}.S(),
-			expectedValues: map[string]float64{
-				"allTickets": 0,
-			},
-		},
-		{
 			description: "no value",
-			indices:     []string{"foo"},
-			properties:  structs.Struct{}.S(),
 			expectedValues: map[string]float64{
 				"allTickets": 0,
 			},
@@ -91,10 +72,8 @@ func TestExtractIndexedFields(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			cfg := viper.New()
-			cfg.Set("ticketIndices", test.indices)
 
-			ticket := &pb.Ticket{Properties: test.properties, SearchFields: test.searchFields}
-			actual := extractIndexedFields(cfg, ticket)
+			actual := extractIndexedFields(cfg, &pb.Ticket{SearchFields: test.searchFields})
 
 			assert.Equal(t, test.expectedValues, actual)
 		})
