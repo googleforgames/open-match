@@ -17,13 +17,12 @@ package clients
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc"
 	"math/rand"
 	"time"
 
 	"open-match.dev/open-match/examples/demo/components"
 	"open-match.dev/open-match/examples/demo/updater"
-	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/pkg/structs"
 )
@@ -35,7 +34,7 @@ func Run(ds *components.DemoShared) {
 		name := fmt.Sprintf("fakeplayer_%d", i)
 		go func() {
 			for !isContextDone(ds.Ctx) {
-				runScenario(ds.Ctx, ds.Cfg, name, u.ForField(name))
+				runScenario(ds.Ctx, name, u.ForField(name))
 			}
 		}()
 	}
@@ -55,7 +54,7 @@ type status struct {
 	Assignment *pb.Assignment
 }
 
-func runScenario(ctx context.Context, cfg config.View, name string, update updater.SetFunc) {
+func runScenario(ctx context.Context, name string, update updater.SetFunc) {
 	defer func() {
 		r := recover()
 		if r != nil {
@@ -81,7 +80,13 @@ func runScenario(ctx context.Context, cfg config.View, name string, update updat
 	s.Status = "Connecting to Open Match frontend"
 	update(s)
 
-	conn, err := rpc.GRPCClientFromConfig(cfg, "api.frontend")
+	/*
+		Create a gRPC insecure client for Open Match's Frontend service. Use FQDN (Fully Qualified Domain Name) to establish cross-namespace connection.
+		- Checkout https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/ if you are curious about Kubernetes's FQDN.
+		- Checkout https://open-match.dev/site/docs/guides/tls/ for how you can enable TLS transport encryption in Open Match.
+		- Checkout https://open-match.dev/site/docs/guides/api/ for the list of default in-cluster hostnames and endpoints of Open Match's public services.
+	*/
+	conn, err := grpc.Dial("om-frontend.open-match.svc.cluster.local:50504", grpc.WithInsecure())
 	if err != nil {
 		panic(err)
 	}
