@@ -27,7 +27,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 type testProfile struct {
@@ -135,10 +134,12 @@ func TestMinimatch(t *testing.T) {
 				// to expected player pools.
 				for i, td := range testTickets {
 					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{
-						Properties: structs.Struct{
-							e2e.AttributeDefense: structs.Number(td.skill),
-							td.mapValue:          structs.Number(float64(time.Now().Unix())),
-						}.S(),
+						SearchFields: &pb.SearchFields{
+							DoubleArgs: map[string]float64{
+								e2e.AttributeDefense: td.skill,
+								td.mapValue:          float64(time.Now().Unix()),
+							},
+						},
 					}})
 
 					assert.NotNil(t, resp)
