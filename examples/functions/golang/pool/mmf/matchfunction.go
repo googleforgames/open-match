@@ -46,7 +46,7 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 				roster.TicketIds = append(roster.GetTicketIds(), ticket.GetId())
 			}
 
-			ext, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
+			evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
 				Score: scoreCalculator(tickets),
 			})
 			if err != nil {
@@ -54,12 +54,12 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 			}
 
 			result = append(result, &pb.Match{
-				MatchId:       xid.New().String(),
-				MatchProfile:  params.ProfileName,
-				MatchFunction: matchName,
-				Tickets:       tickets,
-				Rosters:       []*pb.Roster{roster},
-				Extension:     ext,
+				MatchId:         xid.New().String(),
+				MatchProfile:    params.ProfileName,
+				MatchFunction:   matchName,
+				Tickets:         tickets,
+				Rosters:         []*pb.Roster{roster},
+				EvaluationInput: evaluationInput,
 			})
 		}
 	}

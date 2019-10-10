@@ -25,7 +25,7 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-func MustAny(m proto.Message) *any.Any {
+func mustAny(m proto.Message) *any.Any {
 	result, err := ptypes.MarshalAny(m)
 	if err != nil {
 		panic(err)
@@ -40,28 +40,28 @@ func TestEvaluate(t *testing.T) {
 
 	ticket12Score1 := &pb.Match{
 		Tickets: []*pb.Ticket{ticket1, ticket2},
-		Extension: MustAny(&pb.DefaultEvaluationCriteria{
+		EvaluationInput: mustAny(&pb.DefaultEvaluationCriteria{
 			Score: 1,
 		}),
 	}
 
 	ticket12Score10 := &pb.Match{
 		Tickets: []*pb.Ticket{ticket2, ticket1},
-		Extension: MustAny(&pb.DefaultEvaluationCriteria{
+		EvaluationInput: mustAny(&pb.DefaultEvaluationCriteria{
 			Score: 10,
 		}),
 	}
 
 	ticket123Score5 := &pb.Match{
 		Tickets: []*pb.Ticket{ticket1, ticket2, ticket3},
-		Extension: MustAny(&pb.DefaultEvaluationCriteria{
+		EvaluationInput: mustAny(&pb.DefaultEvaluationCriteria{
 			Score: 5,
 		}),
 	}
 
 	ticket3Score50 := &pb.Match{
 		Tickets: []*pb.Ticket{ticket3},
-		Extension: MustAny(&pb.DefaultEvaluationCriteria{
+		EvaluationInput: mustAny(&pb.DefaultEvaluationCriteria{
 			Score: 50,
 		}),
 	}

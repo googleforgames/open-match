@@ -78,11 +78,12 @@ func TestMakeMatches(t *testing.T) {
 	actual := []*pb.Match{}
 	for _, match := range matches {
 		actual = append(actual, &pb.Match{
-			MatchProfile:  match.MatchProfile,
-			MatchFunction: match.MatchFunction,
-			Tickets:       match.Tickets,
-			Rosters:       match.Rosters,
-			Extension:     match.Extension,
+			MatchProfile:    match.MatchProfile,
+			MatchFunction:   match.MatchFunction,
+			Tickets:         match.Tickets,
+			Rosters:         match.Rosters,
+			EvaluationInput: match.EvaluationInput,
+			Extension:       match.Extension,
 		})
 	}
 
@@ -92,7 +93,7 @@ func TestMakeMatches(t *testing.T) {
 			tids = append(tids, ticket.GetId())
 		}
 
-		ext, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
+		evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
 			Score: scoreCalculator(tickets),
 		})
 		if err != nil {
@@ -100,11 +101,11 @@ func TestMakeMatches(t *testing.T) {
 		}
 
 		return &pb.Match{
-			MatchProfile:  p.ProfileName,
-			MatchFunction: matchName,
-			Tickets:       tickets,
-			Rosters:       []*pb.Roster{{Name: poolName, TicketIds: tids}},
-			Extension:     ext,
+			MatchProfile:    p.ProfileName,
+			MatchFunction:   matchName,
+			Tickets:         tickets,
+			Rosters:         []*pb.Roster{{Name: poolName, TicketIds: tids}},
+			EvaluationInput: evaluationInput,
 		}
 	}
 

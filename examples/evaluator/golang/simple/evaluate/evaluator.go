@@ -24,69 +24,69 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+type matchInp struct {
+	match *pb.Match
+	inp   *pb.DefaultEvaluationCriteria
+}
+
 // Evaluate is where your custom evaluation logic lives.
 // This sample evaluator sorts and deduplicates the input matches.
 func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
-	matches := make(matcheExts, 0, len(p.Matches))
-	for _, match := range p.Matches {
+	matches := make([]*matchInp, 0, len(p.Matches))
+	for _, m := range p.Matches {
 		// Evaluation criteria is optional, but sort it lower than any matches which
 		// provided criteria.
-		ext := &pb.DefaultEvaluationCriteria{
+		inp := &pb.DefaultEvaluationCriteria{
 			Score: math.Inf(-1),
 		}
-		if match.Extension != nil {
-			err := ptypes.UnmarshalAny(match.Extension, ext)
+		if m.EvaluationInput != nil {
+			err := ptypes.UnmarshalAny(m.EvaluationInput, inp)
 			if err != nil {
 				p.Logger.WithFields(logrus.Fields{
-					"match_id": match.MatchId,
+					"match_id": m.MatchId,
 					"error":    err,
 				}).Error("Failed to unmarshal match's DefaultEvaluationCriteria.  Rejecting match.")
 				continue
 			}
 		}
-		matches = append(matches, &matchExt{
-			match: match,
-			ext:   ext,
+		matches = append(matches, &matchInp{
+			match: m,
+			inp:   inp,
 		})
 	}
 
-	sort.Sort(matches)
+	sort.Sort(byScore(matches))
 
 	results := []*pb.Match{}
 	ticketsUsed := map[string]struct{}{}
 
-outer:
-	for _, matchExt := range matches {
-		for _, ticket := range matchExt.match.GetTickets() {
-			if _, ok := ticketsUsed[ticket.Id]; ok {
-				continue outer
+loopPotentialMatches:
+	for _, m := range matches {
+		for _, t := range m.match.GetTickets() {
+			if _, ok := ticketsUsed[t.Id]; ok {
+				continue loopPotentialMatches
 			}
 		}
 
-		for _, ticket := range matchExt.match.GetTickets() {
-			ticketsUsed[ticket.Id] = struct{}{}
+		for _, t := range m.match.GetTickets() {
+			ticketsUsed[t.Id] = struct{}{}
 		}
-		results = append(results, matchExt.match)
+		results = append(results, m.match)
 	}
 
 	return results, nil
 }
 
-type matchExt struct {
-	match *pb.Match
-	ext   *pb.DefaultEvaluationCriteria
+type byScore []*matchInp
+
+func (m byScore) Len() int {
+	return len(m)
 }
 
-type matcheExts []*matchExt
-
-func (matches matcheExts) Len() int {
-	return len(matches)
+func (m byScore) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
 }
 
-func (matches matcheExts) Swap(i, j int) {
-	matches[i], matches[j] = matches[j], matches[i]
-}
-
-func (matches matcheExts) Less(i, j int) bool {
-	return matches[i].ext.Score > matches[j].ext.Score
+func (m byScore) Less(i, j int) bool {
+	return m[i].inp.Score > m[j].inp.Score
 }

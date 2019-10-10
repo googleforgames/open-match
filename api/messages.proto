@@ -227,9 +227,3 @@ message Match {
   // caller.
   google.protobuf.Any extension = 8;
 }
-
-// A DefaultEvaluationCriteria is used for a match's evaluation_input when using
-// the default evaluator.
-message DefaultEvaluationCriteria {
-  double score = 1;
-}
