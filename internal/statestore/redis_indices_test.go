@@ -45,21 +45,19 @@ func TestExtractIndexedFields(t *testing.T) {
 			},
 		},
 		{
-			description: "bools",
-			indices:     []string{"t", "f"},
-			properties: structs.Struct{
-				"t": structs.Bool(true),
-				"f": structs.Bool(false),
-			}.S(),
+			description: "tag",
+			indices:     []string{},
+			searchFields: &pb.SearchFields{
+				Tags: []string{"foo"},
+			},
 			expectedValues: map[string]float64{
 				"allTickets": 0,
-				"bi$t":       1,
-				"bi$f":       0,
+				"ti$foo":     0,
 			},
 		},
 		{
 			description: "string",
-			indices:     []string{"foo"},
+			indices:     []string{},
 			searchFields: &pb.SearchFields{
 				StringArgs: map[string]string{
 					"foo": "bar",
@@ -140,38 +138,19 @@ func TestExtractIndexFilters(t *testing.T) {
 			},
 		},
 		{
-			description: "bool false",
+			description: "tag",
 			pool: &pb.Pool{
-				BoolEqualsFilters: []*pb.BoolEqualsFilter{
+				TagPresentFilters: []*pb.TagPresentFilter{
 					{
-						Attribute: "foo",
-						Value:     false,
+						Tag: "foo",
 					},
 				},
 			},
 			expected: []indexFilter{
 				{
-					name: "bi$foo",
-					min:  -0.5,
-					max:  0.5,
-				},
-			},
-		},
-		{
-			description: "bool true",
-			pool: &pb.Pool{
-				BoolEqualsFilters: []*pb.BoolEqualsFilter{
-					{
-						Attribute: "foo",
-						Value:     true,
-					},
-				},
-			},
-			expected: []indexFilter{
-				{
-					name: "bi$foo",
-					min:  0.5,
-					max:  1.5,
+					name: "ti$foo",
+					min:  0,
+					max:  0,
 				},
 			},
 		},
@@ -207,7 +186,7 @@ func TestExtractIndexFilters(t *testing.T) {
 func TestNameCollision(t *testing.T) {
 	names := []string{
 		rangeIndexName("foo"),
-		boolIndexName("foo"),
+		tagIndexName("foo"),
 		stringIndexName("foo", "bar"),
 		indexCacheName("foo"),
 		stringIndexName("$v", ""),

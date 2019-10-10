@@ -106,26 +106,6 @@ message FloatRangeFilter {
   double min = 3;
 }
 
-// Filters boolean values.
-//   attribute: "foo"
-//   value: false
-// matches:
-//   {"foo": false}
-// does not match:
-//   {"foo": true}
-//   {"foo": "bar"}
-//   {"foo": 1}
-//   {"foo": "false"}
-//   {"foo": [false]}
-//   {"foo": null}
-//   {}
-// TODO: Remove
-message BoolEqualsFilter {
-  string attribute = 1;
-
-  bool value = 2;
-}
-
 // Filters strings exactly equaling a value.
 //   attribute: "foo"
 //   value: "bar"
@@ -162,12 +142,12 @@ message Pool {
   // match every Filter.
   repeated FloatRangeFilter float_range_filters = 2;
 
-  // TODO: Remove BoolEqualsFilter
-  repeated BoolEqualsFilter bool_equals_filters = 3;
-
   repeated StringEqualsFilter string_equals_filters = 4;
 
   repeated TagPresentFilter tag_present_filters = 5;
+
+  // Deprecated fields.
+  reserved 3;
 }
 
 // A Roster is a named collection of Ticket IDs. It exists so that a Tickets
