@@ -34,6 +34,7 @@ import (
 
 func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
 	// TODO: Remove cfg variable as part of removing indicies configuration.
+	_ = cfg
 	result := make(map[string]float64)
 
 	for arg, value := range t.GetSearchFields().GetDoubleArgs() {
