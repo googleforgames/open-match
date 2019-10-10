@@ -27,7 +27,7 @@ import (
 // for simplicity, sorted sets.  The following translations are used:
 // Float values to range indicies use the float value directly, with filters
 // doing direct lookups on those ranges.
-// Tags indicate presense in the set.  The value used is 0.  Filters on tags
+// Tags indicate presence in the set.  The value used is 0.  Filters on tags
 // look up that set.
 // Strings values are indexed by a unique attribute/value pair with value 0.
 // Filters are strings look up that attribute/value pair.
