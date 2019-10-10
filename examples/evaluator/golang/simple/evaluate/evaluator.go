@@ -33,13 +33,17 @@ type matchInp struct {
 // This sample evaluator sorts and deduplicates the input matches.
 func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 	matches := make([]*matchInp, 0, len(p.Matches))
+	nilEvlautionInputs = 0
+
 	for _, m := range p.Matches {
 		// Evaluation criteria is optional, but sort it lower than any matches which
 		// provided criteria.
 		inp := &pb.DefaultEvaluationCriteria{
 			Score: math.Inf(-1),
 		}
-		if m.EvaluationInput != nil {
+		if m.EvaluationInput == nil {
+			nilEvlautionInputs++
+		} else {
 			err := ptypes.UnmarshalAny(m.EvaluationInput, inp)
 			if err != nil {
 				p.Logger.WithFields(logrus.Fields{
@@ -53,6 +57,12 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 			match: m,
 			inp:   inp,
 		})
+	}
+
+	if nilEvlautionInputs > 0 {
+		p.Logger.WithFields(logrus.Fields{
+			"count": nilEvlautionInputs,
+		}).Info("Some matches don't have the optional field evaluation_input set.")
 	}
 
 	sort.Sort(byScore(matches))
