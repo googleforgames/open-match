@@ -27,8 +27,8 @@ import (
 // for simplicity, sorted sets.  The following translations are used:
 // Float values to range indicies use the float value directly, with filters
 // doing direct lookups on those ranges.
-// Boolean values with bool equals indicies turn true and false into 1 and 0.
-// Filters on bool equality use ranges limited to only 1s or only 0s.
+// Tags indicate presense in the set.  The value used is 0.  Filters on tags
+// look up that set.
 // Strings values are indexed by a unique attribute/value pair with value 0.
 // Filters are strings look up that attribute/value pair.
 

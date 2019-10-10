@@ -62,7 +62,9 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 	return result, nil
 }
 
-// This match function defines the quality of a match as the sum of the attribute values of all tickets per match
+// This match function defines the quality of a match as the sum of the Double
+// Args values of all tickets per match.  This is for testing purposes, and not
+// an example of a good score calculation.
 func scoreCalculator(tickets []*pb.Ticket) float64 {
 	matchScore := 0.0
 	for _, ticket := range tickets {
