@@ -67,24 +67,34 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 
 	sort.Sort(byScore(matches))
 
-	results := []*pb.Match{}
-	ticketsUsed := map[string]struct{}{}
-
-loopPotentialMatches:
-	for _, m := range matches {
-		for _, t := range m.match.GetTickets() {
-			if _, ok := ticketsUsed[t.Id]; ok {
-				continue loopPotentialMatches
-			}
-		}
-
-		for _, t := range m.match.GetTickets() {
-			ticketsUsed[t.Id] = struct{}{}
-		}
-		results = append(results, m.match)
+	d := decollider{
+		ticketsUsed: map[string]struct{}{},
 	}
 
-	return results, nil
+	for _, m := range matches {
+		d.maybeAdd(m)
+	}
+
+	return d.results, nil
+}
+
+type decollider struct {
+	results     []*pb.Match
+	ticketsUsed map[string]struct{}
+}
+
+func (d *decollider) maybeAdd(m *matchInp) {
+	for _, t := range m.match.GetTickets() {
+		if _, ok := d.ticketsUsed[t.Id]; ok {
+			return
+		}
+	}
+
+	for _, t := range m.match.GetTickets() {
+		d.ticketsUsed[t.Id] = struct{}{}
+	}
+
+	d.results = append(d.results, m.match)
 }
 
 type byScore []*matchInp
