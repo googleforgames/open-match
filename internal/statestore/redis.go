@@ -281,7 +281,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 	}
 	defer handleConnectionClose(&redisConn)
 
-	indexedFields := extractIndexedFields(rb.cfg, ticket)
+	indexedFields := extractIndexedFields(ticket)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {

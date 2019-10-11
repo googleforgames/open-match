@@ -16,10 +16,6 @@ package e2e
 
 var (
 	zygote OM
-
-	// Indices covers all ticketIndices that will be used in the e2e test
-	// Please update the ticketIndices in the helm chart for in-cluster end-to-end test if you need to add new indices.
-	Indices = []string{AttributeMMR, AttributeLevel, AttributeDefense, ModeDemo, Role}
 )
 
 const (
