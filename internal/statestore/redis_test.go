@@ -390,7 +390,6 @@ func createRedis(t *testing.T) (config.View, func()) {
 	cfg.Set("backoff.maxInterval", 300*time.Millisecond)
 	cfg.Set("backoff.maxElapsedTime", 100*time.Millisecond)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, true)
-	cfg.Set("ticketIndices", []string{"testindex1", "testindex2"})
 
 	return cfg, func() { mredis.Close() }
 }

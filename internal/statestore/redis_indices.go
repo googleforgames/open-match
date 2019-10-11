@@ -18,7 +18,6 @@ import (
 	"math"
 	"strings"
 
-	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -32,9 +31,7 @@ import (
 // Strings values are indexed by a unique attribute/value pair with value 0.
 // Filters are strings look up that attribute/value pair.
 
-func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
-	// TODO: Remove cfg variable as part of removing indicies configuration.
-	_ = cfg
+func extractIndexedFields(t *pb.Ticket) map[string]float64 {
 	result := make(map[string]float64)
 
 	for arg, value := range t.GetSearchFields().GetDoubleArgs() {
