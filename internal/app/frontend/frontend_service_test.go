@@ -30,7 +30,6 @@ import (
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestDoCreateTickets(t *testing.T) {
@@ -46,9 +45,11 @@ func TestDoCreateTickets(t *testing.T) {
 			description: "expect error with canceled context",
 			preAction:   func(cancel context.CancelFunc) { cancel() },
 			ticket: &pb.Ticket{
-				Properties: structs.Struct{
-					"test-property": structs.Number(1),
-				}.S(),
+				SearchFields: &pb.SearchFields{
+					DoubleArgs: map[string]float64{
+						"test-arg": 1,
+					},
+				},
 			},
 			wantCode: codes.Unavailable,
 		},
@@ -56,9 +57,11 @@ func TestDoCreateTickets(t *testing.T) {
 			description: "expect normal return with default context",
 			preAction:   func(_ context.CancelFunc) {},
 			ticket: &pb.Ticket{
-				Properties: structs.Struct{
-					"test-property": structs.Number(1),
-				}.S(),
+				SearchFields: &pb.SearchFields{
+					DoubleArgs: map[string]float64{
+						"test-arg": 1,
+					},
+				},
 			},
 			wantCode: codes.OK,
 		},
@@ -78,7 +81,7 @@ func TestDoCreateTickets(t *testing.T) {
 				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetTicket().GetId())
 				assert.True(t, matched)
 				assert.Nil(t, err)
-				assert.Equal(t, test.ticket.GetProperties().GetFields()["test-property"].GetNumberValue(), res.GetTicket().GetProperties().GetFields()["test-property"].GetNumberValue())
+				assert.Equal(t, test.ticket.SearchFields.DoubleArgs["test-arg"], res.Ticket.SearchFields.DoubleArgs["test-arg"])
 			}
 		})
 	}
@@ -156,9 +159,11 @@ func TestDoGetAssignments(t *testing.T) {
 func TestDoDeleteTicket(t *testing.T) {
 	fakeTicket := &pb.Ticket{
 		Id: "1",
-		Properties: structs.Struct{
-			"test-property": structs.Number(1),
-		}.S(),
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"test-arg": 1,
+			},
+		},
 	}
 
 	tests := []struct {
@@ -204,9 +209,11 @@ func TestDoDeleteTicket(t *testing.T) {
 func TestDoGetTicket(t *testing.T) {
 	fakeTicket := &pb.Ticket{
 		Id: "1",
-		Properties: structs.Struct{
-			"test-property": structs.Number(1),
-		}.S(),
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"test-arg": 1,
+			},
+		},
 	}
 
 	tests := []struct {
@@ -251,12 +258,7 @@ func TestDoGetTicket(t *testing.T) {
 
 			if err == nil {
 				assert.Equal(t, test.wantTicket.GetId(), ticket.GetId())
-
-				for wantK, wantV := range test.wantTicket.GetProperties().GetFields() {
-					actualV, ok := ticket.GetProperties().GetFields()[wantK]
-					assert.True(t, ok)
-					assert.Equal(t, wantV.GetKind(), actualV.GetKind())
-				}
+				assert.Equal(t, test.wantTicket.SearchFields.DoubleArgs, ticket.SearchFields.DoubleArgs)
 			}
 		})
 	}
