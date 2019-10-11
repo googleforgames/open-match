@@ -66,7 +66,7 @@ func run(ds *components.DemoShared) {
 	s.Status = "Connecting to backend"
 	ds.Update(s)
 
-	// Create a gRPC insecure client for Open Match's Backend service. Use FQDN (Fully Qualified Domain Name) to establish cross-namespace connection.
+	// See https://open-match.dev/site/docs/guides/api/
 	conn, err := grpc.Dial("om-backend.open-match.svc.cluster.local:50505", grpc.WithInsecure())
 	if err != nil {
 		panic(err)

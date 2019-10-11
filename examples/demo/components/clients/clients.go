@@ -80,7 +80,7 @@ func runScenario(ctx context.Context, name string, update updater.SetFunc) {
 	s.Status = "Connecting to Open Match frontend"
 	update(s)
 
-	// Create a gRPC insecure client for Open Match's Frontend service. Use FQDN (Fully Qualified Domain Name) to establish cross-namespace connection.
+	// See https://open-match.dev/site/docs/guides/api/
 	conn, err := grpc.Dial("om-frontend.open-match.svc.cluster.local:50504", grpc.WithInsecure())
 	if err != nil {
 		panic(err)
