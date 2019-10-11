@@ -22,7 +22,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 var (
@@ -40,15 +39,18 @@ func Ticket(cfg config.View) *pb.Ticket {
 	max := cfg.GetFloat64("testConfig.maxRating")
 	latencyMap := latency(regions)
 	ticket := &pb.Ticket{
-		Properties: structs.Struct{
-			e2e.AttributeMMR: structs.Number(normalDist(40, min, max, 20)),
-			// TODO: Use string attribute value for the character attribute.
-			e2e.Role: structs.String(characters[rand.Intn(len(characters))]),
-		}.S(),
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				e2e.AttributeMMR: normalDist(40, min, max, 20),
+			},
+			StringArgs: map[string]string{
+				e2e.Role: characters[rand.Intn(len(characters))],
+			},
+		},
 	}
 
 	for _, r := range regions {
-		ticket.Properties.Fields[r] = structs.Number(latencyMap[r])
+		ticket.SearchFields.DoubleArgs[r] = latencyMap[r]
 	}
 
 	return ticket

@@ -20,7 +20,6 @@ import (
 	"io"
 	"testing"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -168,13 +167,6 @@ func TestQueryTickets(t *testing.T) {
 						},
 					},
 				},
-				{
-					Properties: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							e2eTesting.Role: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
-						},
-					},
-				},
 			},
 			pool: &pb.Pool{
 				StringEqualsFilters: []*pb.StringEqualsFilter{
@@ -209,16 +201,16 @@ func TestQueryTickets(t *testing.T) {
 					},
 				},
 				{
-					Properties: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							e2eTesting.ModeDemo: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+					SearchFields: &pb.SearchFields{
+						Tags: []string{
+							e2eTesting.ModeDemo,
 						},
 					},
 				},
 				{
-					Properties: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							e2eTesting.AttributeMMR: {Kind: &structpb.Value_NumberValue{NumberValue: 100}},
+					SearchFields: &pb.SearchFields{
+						DoubleArgs: map[string]float64{
+							e2eTesting.AttributeMMR: 100,
 						},
 					},
 				},
@@ -234,16 +226,16 @@ func TestQueryTickets(t *testing.T) {
 					},
 				},
 				{
-					Properties: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							e2eTesting.ModeDemo: {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+					SearchFields: &pb.SearchFields{
+						Tags: []string{
+							e2eTesting.ModeDemo,
 						},
 					},
 				},
 				{
-					Properties: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							e2eTesting.AttributeMMR: {Kind: &structpb.Value_NumberValue{NumberValue: 100}},
+					SearchFields: &pb.SearchFields{
+						DoubleArgs: map[string]float64{
+							e2eTesting.AttributeMMR: 100,
 						},
 					},
 				},
@@ -297,7 +289,7 @@ func TestQueryTickets(t *testing.T) {
 				// If this fact changes, we might need an ugly nested for loop to do the validness checks.
 				for i := 0; i < len(actualTickets); i++ {
 					assert.Equal(t, test.wantTickets[i].GetAssignment(), actualTickets[i].GetAssignment())
-					assert.Equal(t, test.wantTickets[i].GetProperties(), actualTickets[i].GetProperties())
+					assert.Equal(t, test.wantTickets[i].GetSearchFields(), actualTickets[i].GetSearchFields())
 				}
 				assert.Equal(t, test.wantPageCount, pageCounts)
 			})

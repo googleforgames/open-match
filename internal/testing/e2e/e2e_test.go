@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	pb "open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestServiceHealth(t *testing.T) {
@@ -52,9 +51,11 @@ func TestCreateTicket(t *testing.T) {
 	fe := om.MustFrontendGRPC()
 	resp, err := fe.CreateTicket(om.Context(), &pb.CreateTicketRequest{
 		Ticket: &pb.Ticket{
-			Properties: structs.Struct{
-				"test-property": structs.Number(1),
-			}.S(),
+			SearchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{
+					"test-property": 1,
+				},
+			},
 		},
 	})
 	if err != nil {
