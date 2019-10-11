@@ -66,6 +66,7 @@ type ClientParams struct {
 	EnableMetrics           bool
 }
 
+// nolint:gochecknoinits
 func init() {
 	resolver.SetDefaultScheme("dns")
 }

@@ -181,7 +181,6 @@ linters:
     - interfacer # deprecated - "A tool that suggests interfaces is prone to bad suggestions"
     - gochecknoglobals
     - funlen
-    - gochecknoinits
 
 #linters:
 #  enable-all: true
