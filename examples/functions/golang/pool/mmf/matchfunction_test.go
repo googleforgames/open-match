@@ -23,7 +23,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestMakeMatches(t *testing.T) {
@@ -32,30 +31,38 @@ func TestMakeMatches(t *testing.T) {
 	tickets := []*pb.Ticket{
 		{
 			Id: "1",
-			Properties: structs.Struct{
-				"level":   structs.Number(10),
-				"defense": structs.Number(100),
-			}.S(),
+			SearchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{
+					"level":   10,
+					"defense": 100,
+				},
+			},
 		},
 		{
 			Id: "2",
-			Properties: structs.Struct{
-				"level":  structs.Number(10),
-				"attack": structs.Number(50),
-			}.S(),
+			SearchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{
+					"level":   10,
+					"defense": 50,
+				},
+			},
 		},
 		{
 			Id: "3",
-			Properties: structs.Struct{
-				"level": structs.Number(10),
-				"speed": structs.Number(522),
-			}.S(),
+			SearchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{
+					"level":   10,
+					"defense": 522,
+				},
+			},
 		}, {
 			Id: "4",
-			Properties: structs.Struct{
-				"level": structs.Number(10),
-				"mana":  structs.Number(1),
-			}.S(),
+			SearchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{
+					"level": 10,
+					"mana":  1,
+				},
+			},
 		},
 	}
 
