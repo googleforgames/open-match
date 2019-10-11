@@ -96,11 +96,7 @@ image:
 
 # Specifies the supported customizable indices per Match
 ticketIndices:
-- char.cleric
-- char.knight
-- char.paladin
-- map.aleroth
-- map.oasis
+- char
 - attribute.mmr
 - attribute.level
 - attribute.defense
@@ -112,9 +108,6 @@ ticketIndices:
 - region.europe-west2
 - region.europe-west3
 - region.europe-west4
-- role.dps
-- role.support
-- role.tank
 
 # Specifies the location and name of the Open Match application-level config volumes.
   # Used in template: `openmatch.volumemounts.configs` and `openmatch.volumes.configs` under `templates/_helpers.tpl` file.
@@ -132,6 +125,8 @@ redis:
   usePassword: true
   usePasswordFile: true
   secretMountPath: /opt/bitnami/redis/secrets
+  ignoreLists:
+    ttl: 60000ms
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
   metrics:

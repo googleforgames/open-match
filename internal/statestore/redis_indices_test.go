@@ -18,69 +18,51 @@ import (
 	"math"
 	"testing"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestExtractIndexedFields(t *testing.T) {
 	tests := []struct {
 		description    string
-		indices        []string
-		ticket         *structpb.Struct
+		searchFields   *pb.SearchFields
 		expectedValues map[string]float64
 	}{
 		{
 			description: "range",
-			indices:     []string{"foo"},
-			ticket: structs.Struct{
-				"foo": structs.Number(1),
-			}.S(),
+			searchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{"foo": 1},
+			},
 			expectedValues: map[string]float64{
 				"allTickets": 0,
 				"ri$foo":     1,
 			},
 		},
 		{
-			description: "bools",
-			indices:     []string{"t", "f"},
-			ticket: structs.Struct{
-				"t": structs.Bool(true),
-				"f": structs.Bool(false),
-			}.S(),
+			description: "tag",
+			searchFields: &pb.SearchFields{
+				Tags: []string{"foo"},
+			},
 			expectedValues: map[string]float64{
 				"allTickets": 0,
-				"bi$t":       1,
-				"bi$f":       0,
+				"ti$foo":     0,
 			},
 		},
 		{
 			description: "string",
-			indices:     []string{"foo"},
-			ticket: structs.Struct{
-				"foo": structs.String("bar"),
-			}.S(),
+			searchFields: &pb.SearchFields{
+				StringArgs: map[string]string{
+					"foo": "bar",
+				},
+			},
 			expectedValues: map[string]float64{
 				"allTickets":  0,
 				"si$foo$vbar": 0,
 			},
 		},
 		{
-			description: "no index",
-			indices:     []string{},
-			ticket: structs.Struct{
-				"foo": structs.Number(1),
-			}.S(),
-			expectedValues: map[string]float64{
-				"allTickets": 0,
-			},
-		},
-		{
 			description: "no value",
-			indices:     []string{"foo"},
-			ticket:      structs.Struct{}.S(),
 			expectedValues: map[string]float64{
 				"allTickets": 0,
 			},
@@ -90,9 +72,8 @@ func TestExtractIndexedFields(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			cfg := viper.New()
-			cfg.Set("ticketIndices", test.indices)
 
-			actual := extractIndexedFields(cfg, &pb.Ticket{Properties: test.ticket})
+			actual := extractIndexedFields(cfg, &pb.Ticket{SearchFields: test.searchFields})
 
 			assert.Equal(t, test.expectedValues, actual)
 		})
@@ -120,7 +101,7 @@ func TestExtractIndexFilters(t *testing.T) {
 			description: "range",
 			pool: &pb.Pool{
 				FloatRangeFilters: []*pb.FloatRangeFilter{
-					&pb.FloatRangeFilter{
+					{
 						Attribute: "foo",
 						Min:       -1,
 						Max:       1,
@@ -136,38 +117,19 @@ func TestExtractIndexFilters(t *testing.T) {
 			},
 		},
 		{
-			description: "bool false",
+			description: "tag",
 			pool: &pb.Pool{
-				BoolEqualsFilters: []*pb.BoolEqualsFilter{
-					&pb.BoolEqualsFilter{
-						Attribute: "foo",
-						Value:     false,
+				TagPresentFilters: []*pb.TagPresentFilter{
+					{
+						Tag: "foo",
 					},
 				},
 			},
 			expected: []indexFilter{
 				{
-					name: "bi$foo",
-					min:  -0.5,
-					max:  0.5,
-				},
-			},
-		},
-		{
-			description: "bool true",
-			pool: &pb.Pool{
-				BoolEqualsFilters: []*pb.BoolEqualsFilter{
-					&pb.BoolEqualsFilter{
-						Attribute: "foo",
-						Value:     true,
-					},
-				},
-			},
-			expected: []indexFilter{
-				{
-					name: "bi$foo",
-					min:  0.5,
-					max:  1.5,
+					name: "ti$foo",
+					min:  0,
+					max:  0,
 				},
 			},
 		},
@@ -175,7 +137,7 @@ func TestExtractIndexFilters(t *testing.T) {
 			description: "string equals",
 			pool: &pb.Pool{
 				StringEqualsFilters: []*pb.StringEqualsFilter{
-					&pb.StringEqualsFilter{
+					{
 						Attribute: "foo",
 						Value:     "bar",
 					},
@@ -203,7 +165,7 @@ func TestExtractIndexFilters(t *testing.T) {
 func TestNameCollision(t *testing.T) {
 	names := []string{
 		rangeIndexName("foo"),
-		boolIndexName("foo"),
+		tagIndexName("foo"),
 		stringIndexName("foo", "bar"),
 		indexCacheName("foo"),
 		stringIndexName("$v", ""),

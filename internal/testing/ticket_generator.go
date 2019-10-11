@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 // Property defines the required fields that we need to generate tickets for testing.
@@ -30,7 +29,7 @@ type Property struct {
 	Interval float64
 }
 
-// GenerateTickets takes in two property manifests to generate tickets with two fake properties for testing.
+// GenerateFloatRangeTickets takes in two property manifests to generate tickets with two fake properties for testing.
 func GenerateFloatRangeTickets(manifest1, manifest2 Property) []*pb.Ticket {
 	testTickets := make([]*pb.Ticket, 0)
 
@@ -38,10 +37,12 @@ func GenerateFloatRangeTickets(manifest1, manifest2 Property) []*pb.Ticket {
 		for j := manifest2.Min; j < manifest2.Max; j += manifest2.Interval {
 			testTickets = append(testTickets, &pb.Ticket{
 				Id: fmt.Sprintf("%s%f-%s%f", manifest1.Name, i, manifest2.Name, j),
-				Properties: structs.Struct{
-					manifest1.Name: structs.Number(i),
-					manifest2.Name: structs.Number(j),
-				}.S(),
+				SearchFields: &pb.SearchFields{
+					DoubleArgs: map[string]float64{
+						manifest1.Name: i,
+						manifest2.Name: j,
+					},
+				},
 			})
 		}
 	}

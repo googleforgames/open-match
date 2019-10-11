@@ -12,4 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package e2e
+syntax = "proto3";
+package openmatch;
+option go_package = "open-match.dev/open-match/pkg/pb";
+option csharp_namespace = "OpenMatch";
+
+// A DefaultEvaluationCriteria is used for a match's evaluation_input when using
+// the default evaluator.
+message DefaultEvaluationCriteria {
+  double score = 1;
+}

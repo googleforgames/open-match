@@ -18,8 +18,6 @@ import (
 	"math"
 	"strings"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -29,44 +27,26 @@ import (
 // for simplicity, sorted sets.  The following translations are used:
 // Float values to range indicies use the float value directly, with filters
 // doing direct lookups on those ranges.
-// Boolean values with bool equals indicies turn true and false into 1 and 0.
-// Filters on bool equality use ranges limited to only 1s or only 0s.
+// Tags indicate presence in the set.  The value used is 0.  Filters on tags
+// look up that set.
 // Strings values are indexed by a unique attribute/value pair with value 0.
 // Filters are strings look up that attribute/value pair.
 
 func extractIndexedFields(cfg config.View, t *pb.Ticket) map[string]float64 {
+	// TODO: Remove cfg variable as part of removing indicies configuration.
+	_ = cfg
 	result := make(map[string]float64)
 
-	var indices []string
-	if cfg.IsSet("ticketIndices") {
-		indices = cfg.GetStringSlice("ticketIndices")
+	for arg, value := range t.GetSearchFields().GetDoubleArgs() {
+		result[rangeIndexName(arg)] = value
 	}
 
-	for _, attribute := range indices {
-		v, ok := t.GetProperties().GetFields()[attribute]
+	for arg, value := range t.GetSearchFields().GetStringArgs() {
+		result[stringIndexName(arg, value)] = 0
+	}
 
-		if !ok {
-			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute}).Trace("Couldn't find index in Ticket Properties")
-			continue
-		}
-
-		switch v.Kind.(type) {
-		case *structpb.Value_NumberValue:
-			result[rangeIndexName(attribute)] = v.GetNumberValue()
-		case *structpb.Value_BoolValue:
-			value := float64(0)
-			if v.GetBoolValue() {
-				value = 1
-			}
-			result[boolIndexName(attribute)] = value
-		case *structpb.Value_StringValue:
-			result[stringIndexName(attribute, v.GetStringValue())] = 0
-		default:
-			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute,
-			}).Warning("Attribute indexed but is not an expected type.")
-		}
+	for _, tag := range t.GetSearchFields().GetTags() {
+		result[tagIndexName(tag)] = 0
 	}
 
 	result[allTickets] = 0
@@ -90,17 +70,11 @@ func extractIndexFilters(p *pb.Pool) []indexFilter {
 		})
 	}
 
-	for _, f := range p.BoolEqualsFilters {
-		min := -0.5
-		max := 0.5
-		if f.Value {
-			min = 0.5
-			max = 1.5
-		}
+	for _, f := range p.TagPresentFilters {
 		filters = append(filters, indexFilter{
-			name: boolIndexName(f.Attribute),
-			min:  min,
-			max:  max,
+			name: tagIndexName(f.Tag),
+			min:  0,
+			max:  0,
 		})
 	}
 
@@ -133,9 +107,9 @@ func rangeIndexName(attribute string) string {
 	return "ri$" + indexEscape(attribute)
 }
 
-func boolIndexName(attribute string) string {
-	// bi stands for bool index
-	return "bi$" + indexEscape(attribute)
+func tagIndexName(attribute string) string {
+	// ti stands for tag index
+	return "ti$" + indexEscape(attribute)
 }
 
 func stringIndexName(attribute string, value string) string {

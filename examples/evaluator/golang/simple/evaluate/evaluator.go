@@ -15,40 +15,98 @@
 package evaluate
 
 import (
-	"open-match.dev/open-match/examples"
+	"math"
+	"sort"
+
+	"github.com/golang/protobuf/ptypes"
+	"github.com/sirupsen/logrus"
 	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 	"open-match.dev/open-match/pkg/pb"
 )
 
+type matchInp struct {
+	match *pb.Match
+	inp   *pb.DefaultEvaluationCriteria
+}
+
 // Evaluate is where your custom evaluation logic lives.
 // This sample evaluator sorts and deduplicates the input matches.
 func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
-	scoreInDescendingOrder := func(a, b *pb.Match) bool {
-		return a.GetProperties().GetFields()[examples.MatchScore].GetNumberValue() > b.GetProperties().GetFields()[examples.MatchScore].GetNumberValue()
-	}
-	by(scoreInDescendingOrder).Sort(p.Matches)
+	matches := make([]*matchInp, 0, len(p.Matches))
+	nilEvlautionInputs := 0
 
-	results := []*pb.Match{}
-	dedup := map[string]bool{}
-
-	for _, match := range p.Matches {
-		if isNonCollidingMatch(match, dedup) {
-			for _, ticket := range match.GetTickets() {
-				dedup[ticket.GetId()] = true
-			}
-			results = append(results, match)
+	for _, m := range p.Matches {
+		// Evaluation criteria is optional, but sort it lower than any matches which
+		// provided criteria.
+		inp := &pb.DefaultEvaluationCriteria{
+			Score: math.Inf(-1),
 		}
+		if m.EvaluationInput == nil {
+			nilEvlautionInputs++
+		} else {
+			err := ptypes.UnmarshalAny(m.EvaluationInput, inp)
+			if err != nil {
+				p.Logger.WithFields(logrus.Fields{
+					"match_id": m.MatchId,
+					"error":    err,
+				}).Error("Failed to unmarshal match's DefaultEvaluationCriteria.  Rejecting match.")
+				continue
+			}
+		}
+		matches = append(matches, &matchInp{
+			match: m,
+			inp:   inp,
+		})
 	}
 
-	return results, nil
+	if nilEvlautionInputs > 0 {
+		p.Logger.WithFields(logrus.Fields{
+			"count": nilEvlautionInputs,
+		}).Info("Some matches don't have the optional field evaluation_input set.")
+	}
+
+	sort.Sort(byScore(matches))
+
+	d := decollider{
+		ticketsUsed: map[string]struct{}{},
+	}
+
+	for _, m := range matches {
+		d.maybeAdd(m)
+	}
+
+	return d.results, nil
 }
 
-func isNonCollidingMatch(match *pb.Match, validTickets map[string]bool) bool {
-	for _, ticket := range match.GetTickets() {
-		id := ticket.GetId()
-		if _, ok := validTickets[id]; ok {
-			return false
+type decollider struct {
+	results     []*pb.Match
+	ticketsUsed map[string]struct{}
+}
+
+func (d *decollider) maybeAdd(m *matchInp) {
+	for _, t := range m.match.GetTickets() {
+		if _, ok := d.ticketsUsed[t.Id]; ok {
+			return
 		}
 	}
-	return true
+
+	for _, t := range m.match.GetTickets() {
+		d.ticketsUsed[t.Id] = struct{}{}
+	}
+
+	d.results = append(d.results, m.match)
+}
+
+type byScore []*matchInp
+
+func (m byScore) Len() int {
+	return len(m)
+}
+
+func (m byScore) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+func (m byScore) Less(i, j int) bool {
+	return m[i].inp.Score > m[j].inp.Score
 }

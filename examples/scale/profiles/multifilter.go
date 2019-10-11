@@ -18,29 +18,30 @@ import (
 	"fmt"
 
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 // multifilterProfiles generates a multiple profiles, each containing a single Pool
-// that specifies multiple filters to pick a partitioned player population. Note 
+// that specifies multiple filters to pick a partitioned player population. Note
 // that across all the profiles returned, the entire population is covered and given
 // the overlapping nature of filters, multiple profiles returned by this method may
 // match to the same set of players.
 func multifilterProfiles(cfg config.View) []*pb.MatchProfile {
 	regions := cfg.GetStringSlice("testConfig.regions")
 	ratingFilters := makeRangeFilters(&rangeConfig{
-		name: "Rating",
-		min: cfg.GetInt("testConfig.minRating"),
-		max: cfg.GetInt("testConfig.maxRating"),
-		rangeSize: cfg.GetInt("testConfig.multifilter.rangeSize"),
+		name:         "Rating",
+		min:          cfg.GetInt("testConfig.minRating"),
+		max:          cfg.GetInt("testConfig.maxRating"),
+		rangeSize:    cfg.GetInt("testConfig.multifilter.rangeSize"),
 		rangeOverlap: cfg.GetInt("testConfig.multifilter.rangeOverlap"),
 	})
 
 	latencyFilters := makeRangeFilters(&rangeConfig{
-		name: "Latency",
-		min: 0,
-		max: 100,
-		rangeSize: 70,
+		name:         "Latency",
+		min:          0,
+		max:          100,
+		rangeSize:    70,
 		rangeOverlap: 0,
 	})
 
@@ -53,7 +54,7 @@ func multifilterProfiles(cfg config.View) []*pb.MatchProfile {
 					Name: poolName,
 					FloatRangeFilters: []*pb.FloatRangeFilter{
 						{
-							Attribute: "mmr.rating",
+							Attribute: e2e.AttributeMMR,
 							Min:       float64(rating.min),
 							Max:       float64(rating.max),
 						},
