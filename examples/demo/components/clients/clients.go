@@ -80,12 +80,7 @@ func runScenario(ctx context.Context, name string, update updater.SetFunc) {
 	s.Status = "Connecting to Open Match frontend"
 	update(s)
 
-	/*
-		Create a gRPC insecure client for Open Match's Frontend service. Use FQDN (Fully Qualified Domain Name) to establish cross-namespace connection.
-		- Checkout https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/ if you are curious about Kubernetes's FQDN.
-		- Checkout https://open-match.dev/site/docs/guides/tls/ for how you can enable TLS transport encryption in Open Match.
-		- Checkout https://open-match.dev/site/docs/guides/api/ for the list of default in-cluster hostnames and endpoints of Open Match's public services.
-	*/
+	// Create a gRPC insecure client for Open Match's Frontend service. Use FQDN (Fully Qualified Domain Name) to establish cross-namespace connection.
 	conn, err := grpc.Dial("om-frontend.open-match.svc.cluster.local:50504", grpc.WithInsecure())
 	if err != nil {
 		panic(err)
