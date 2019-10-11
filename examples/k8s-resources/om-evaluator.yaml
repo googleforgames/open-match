@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: om-evaluator
+  namespace: open-match
+spec:
+  containers:
+  - name: om-evaluator
+    image: "gcr.io/open-match-build/openmatch-evaluator-go-simple"
+    imagePullPolicy: Always
+    ports:
+    - name: grpc
+      containerPort: 50508
+    - name: http
+      containerPort: 51508
+  hostname: om-evaluator
