@@ -17,9 +17,9 @@ package mmf
 import (
 	"testing"
 
-	"open-match.dev/open-match/examples"
 	"open-match.dev/open-match/pkg/pb"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
@@ -78,11 +78,12 @@ func TestMakeMatches(t *testing.T) {
 	actual := []*pb.Match{}
 	for _, match := range matches {
 		actual = append(actual, &pb.Match{
-			MatchProfile:  match.MatchProfile,
-			MatchFunction: match.MatchFunction,
-			Tickets:       match.Tickets,
-			Rosters:       match.Rosters,
-			Properties:    match.Properties,
+			MatchProfile:    match.MatchProfile,
+			MatchFunction:   match.MatchFunction,
+			Tickets:         match.Tickets,
+			Rosters:         match.Rosters,
+			EvaluationInput: match.EvaluationInput,
+			Extension:       match.Extension,
 		})
 	}
 
@@ -92,14 +93,19 @@ func TestMakeMatches(t *testing.T) {
 			tids = append(tids, ticket.GetId())
 		}
 
+		evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
+			Score: scoreCalculator(tickets),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		return &pb.Match{
-			MatchProfile:  p.ProfileName,
-			MatchFunction: matchName,
-			Tickets:       tickets,
-			Rosters:       []*pb.Roster{{Name: poolName, TicketIds: tids}},
-			Properties: structs.Struct{
-				examples.MatchScore: structs.Number(scoreCalculator(tickets)),
-			}.S(),
+			MatchProfile:    p.ProfileName,
+			MatchFunction:   matchName,
+			Tickets:         tickets,
+			Rosters:         []*pb.Roster{{Name: poolName, TicketIds: tids}},
+			EvaluationInput: evaluationInput,
 		}
 	}
 
