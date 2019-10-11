@@ -20,11 +20,11 @@
 package mmf
 
 import (
+	"github.com/golang/protobuf/ptypes"
+	"github.com/pkg/errors"
 	"github.com/rs/xid"
-	"open-match.dev/open-match/examples"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 var (
@@ -46,15 +46,20 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 				roster.TicketIds = append(roster.GetTicketIds(), ticket.GetId())
 			}
 
+			evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
+				Score: scoreCalculator(tickets),
+			})
+			if err != nil {
+				return nil, errors.Wrap(err, "Failed to marshal DefaultEvaluationCriteria.")
+			}
+
 			result = append(result, &pb.Match{
-				MatchId:       xid.New().String(),
-				MatchProfile:  params.ProfileName,
-				MatchFunction: matchName,
-				Tickets:       tickets,
-				Rosters:       []*pb.Roster{roster},
-				Properties: structs.Struct{
-					examples.MatchScore: structs.Number(scoreCalculator(tickets)),
-				}.S(),
+				MatchId:         xid.New().String(),
+				MatchProfile:    params.ProfileName,
+				MatchFunction:   matchName,
+				Tickets:         tickets,
+				Rosters:         []*pb.Roster{roster},
+				EvaluationInput: evaluationInput,
 			})
 		}
 	}
@@ -62,12 +67,14 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 	return result, nil
 }
 
-// This match function defines the quality of a match as the sum of the attribute values of all tickets per match
+// This match function defines the quality of a match as the sum of the Double
+// Args values of all tickets per match.  This is for testing purposes, and not
+// an example of a good score calculation.
 func scoreCalculator(tickets []*pb.Ticket) float64 {
 	matchScore := 0.0
 	for _, ticket := range tickets {
-		for _, v := range ticket.GetProperties().GetFields() {
-			matchScore += v.GetNumberValue()
+		for _, v := range ticket.GetSearchFields().GetDoubleArgs() {
+			matchScore += v
 		}
 	}
 	return matchScore

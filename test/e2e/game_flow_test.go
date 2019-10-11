@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/internal/testing/e2e"
@@ -55,7 +54,7 @@ func TestGetClients(t *testing.T) {
 func TestGameMatchWorkFlow(t *testing.T) {
 	/*
 		This end to end test does the following things step by step
-		1. Create a few tickets with delicate designs and hand crafted properties
+		1. Create a few tickets with delicate designs and hand crafted search fields
 		2. Call backend.FetchMatches and verify it returns expected matches.
 		3. Call backend.FetchMatches within redis.ignoreLists.ttl seconds and expects it return a match with duplicate tickets in step 2.
 		4. Wait for redis.ignoreLists.ttl seconds and call backend.FetchMatches the third time, expect the same result as step 2.
@@ -73,46 +72,46 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ctx := om.Context()
 
 	ticket1 := &pb.Ticket{
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				e2e.AttributeMMR:   {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
-				e2e.AttributeLevel: {Kind: &structpb.Value_NumberValue{NumberValue: 1}},
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				e2e.AttributeMMR:   1,
+				e2e.AttributeLevel: 1,
 			},
 		},
 	}
 
 	ticket2 := &pb.Ticket{
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				e2e.AttributeMMR:   {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
-				e2e.AttributeLevel: {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				e2e.AttributeMMR:   5,
+				e2e.AttributeLevel: 5,
 			},
 		},
 	}
 
 	ticket3 := &pb.Ticket{
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				e2e.AttributeMMR:   {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
-				e2e.AttributeLevel: {Kind: &structpb.Value_NumberValue{NumberValue: 10}},
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				e2e.AttributeMMR:   10,
+				e2e.AttributeLevel: 10,
 			},
 		},
 	}
 
 	ticket4 := &pb.Ticket{
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				e2e.AttributeMMR:   {Kind: &structpb.Value_NumberValue{NumberValue: 15}},
-				e2e.AttributeLevel: {Kind: &structpb.Value_NumberValue{NumberValue: 15}},
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				e2e.AttributeMMR:   15,
+				e2e.AttributeLevel: 15,
 			},
 		},
 	}
 
 	ticket5 := &pb.Ticket{
-		Properties: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				e2e.AttributeMMR:   {Kind: &structpb.Value_NumberValue{NumberValue: 20}},
-				e2e.AttributeLevel: {Kind: &structpb.Value_NumberValue{NumberValue: 20}},
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				e2e.AttributeMMR:   20,
+				e2e.AttributeLevel: 20,
 			},
 		},
 	}
@@ -120,7 +119,7 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	tickets := []*pb.Ticket{ticket1, ticket2, ticket3, ticket4, ticket5}
 
 	var err error
-	// 1. Create a few tickets with delicate designs and hand crafted properties
+	// 1. Create a few tickets with delicate designs and hand crafted search fields
 	for i := 0; i < len(tickets); i++ {
 		var ctResp *pb.CreateTicketResponse
 		ctResp, err = fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: tickets[i]})
