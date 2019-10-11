@@ -68,34 +68,25 @@
         },
         "properties": {
           "type": "object",
-          "description": "Other details to be sent to the players."
+          "title": "Other details to be sent to the players.\nTODO: Deprecate and remove this field"
         },
         "error": {
           "$ref": "#/definitions/rpcStatus",
           "description": "Error when finding an Assignment for this Ticket."
+        },
+        "extension": {
+          "$ref": "#/definitions/protobufAny",
+          "description": "Customized information to be sent to the clients.  Optional, depending on\nwhat callers are expecting."
         }
       },
       "description": "An Assignment object represents the assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
-    },
-    "openmatchBoolEqualsFilter": {
-      "type": "object",
-      "properties": {
-        "attribute": {
-          "type": "string"
-        },
-        "value": {
-          "type": "boolean",
-          "format": "boolean"
-        }
-      },
-      "title": "Filters boolean values.\n  attribute: \"foo\"\n  value: false\nmatches:\n  {\"foo\": false}\ndoes not match:\n  {\"foo\": true}\n  {\"foo\": \"bar\"}\n  {\"foo\": 1}\n  {\"foo\": \"false\"}\n  {\"foo\": [false]}\n  {\"foo\": null}\n  {}"
     },
     "openmatchFloatRangeFilter": {
       "type": "object",
       "properties": {
         "attribute": {
           "type": "string",
-          "description": "Name of the ticket attribute this Filter operates on."
+          "title": "Name of the ticket attribute this Filter operates on.\nTODO: rename double_args"
         },
         "max": {
           "type": "number",
@@ -108,7 +99,7 @@
           "description": "Minimum value. Defaults to 0."
         }
       },
-      "title": "Filters numerical values to only those within a range.\n  attribute: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {\"foo\": true}\n  {\"foo\": [7.5]}\n  {\"foo\": null}\n  {}"
+      "title": "Filters numerical values to only those within a range.\n  attribute: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {}"
     },
     "openmatchPool": {
       "type": "object",
@@ -124,16 +115,16 @@
           },
           "description": "Set of Filters indicating the filtering criteria. Selected players must\nmatch every Filter."
         },
-        "bool_equals_filters": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/openmatchBoolEqualsFilter"
-          }
-        },
         "string_equals_filters": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/openmatchStringEqualsFilter"
+          }
+        },
+        "tag_present_filters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/openmatchTagPresentFilter"
           }
         }
       }
@@ -159,17 +150,55 @@
         }
       }
     },
+    "openmatchSearchFields": {
+      "type": "object",
+      "properties": {
+        "double_args": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "format": "double"
+          },
+          "description": "Float arguments.  Filterable on ranges."
+        },
+        "string_args": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "String arguments.  Filterable on equality."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Filterable on presence or absence of given value."
+        }
+      },
+      "description": "Search fields are the fields which Open Match is aware of, and can be used\nwhen specifying filters."
+    },
     "openmatchStringEqualsFilter": {
       "type": "object",
       "properties": {
         "attribute": {
-          "type": "string"
+          "type": "string",
+          "title": "TODO: rename string_args"
         },
         "value": {
           "type": "string"
         }
       },
-      "title": "Filters strings exactly equaling a value.\n  attribute: \"foo\"\n  value: \"bar\"\nmatches:\n  {\"foo\": \"bar\"}\ndoes not match:\n  {\"foo\": \"baz\"}\n  {\"foo\": true}\n  {\"foo\": 5}\n  {\"foo\": [\"bar\"]}\n  {\"foo\": null}\n  {}"
+      "title": "Filters strings exactly equaling a value.\n  attribute: \"foo\"\n  value: \"bar\"\nmatches:\n  {\"foo\": \"bar\"}\ndoes not match:\n  {\"foo\": \"baz\"}\n  {\"bar\": \"foo\"}\n  {}"
+    },
+    "openmatchTagPresentFilter": {
+      "type": "object",
+      "properties": {
+        "tag": {
+          "type": "string"
+        }
+      },
+      "title": "Filters to the tag being present on the search_fields.\n  tag: \"foo\"\nmatches:\n  [\"foo\"]\n  [\"bar\",\"foo\"]\ndoes not match:\n  [\"bar\"]\n  []"
     },
     "openmatchTicket": {
       "type": "object",
@@ -180,11 +209,19 @@
         },
         "properties": {
           "type": "object",
-          "description": "Properties contains custom info about the ticket.  Top level values can be\nused in indexing and filtering to find tickets."
+          "description": "Properties contains custom info about the ticket.  Top level values can be\nused in indexing and filtering to find tickets.\nTODO: Deprecate and remove this field."
         },
         "assignment": {
           "$ref": "#/definitions/openmatchAssignment",
           "description": "Assignment associated with the Ticket."
+        },
+        "search_fields": {
+          "$ref": "#/definitions/openmatchSearchFields",
+          "description": "Values visible to Open Match which can be used when querying for tickets\nwith specific values."
+        },
+        "extension": {
+          "$ref": "#/definitions/protobufAny",
+          "description": "Customized information to be used by the Match Making Function.  Optional,\ndepending on the requirements of the MMF."
         }
       },
       "description": "A Ticket is a basic matchmaking entity in Open Match. In order to enter\nmatchmaking using Open Match, the client should generate a Ticket, passing in\nthe properties to be associated with this Ticket. Open Match will generate an\nID for a Ticket during creation. A Ticket could be used to represent an\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\nof properties. Open Match stores the Ticket in state storage and enables an\nAssignment to be associated with this Ticket."

@@ -26,7 +26,6 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 func TestAssignTickets(t *testing.T) {
@@ -99,7 +98,6 @@ func TestAssignTickets(t *testing.T) {
 						assert.Nil(t, err)
 						// grpc will write something to the reserved fields of this protobuf object, so we have to do comparisons fields by fields.
 						assert.Equal(t, test.wantAssignment.GetConnection(), gtResp.GetAssignment().GetConnection())
-						assert.Equal(t, test.wantAssignment.GetProperties(), gtResp.GetAssignment().GetProperties())
 						assert.Equal(t, test.wantAssignment.GetError(), gtResp.GetAssignment().GetError())
 					}
 				}
@@ -119,9 +117,11 @@ func TestTicketLifeCycle(t *testing.T) {
 	ctx := om.Context()
 
 	ticket := &pb.Ticket{
-		Properties: structs.Struct{
-			"test-property": structs.Number(1),
-		}.S(),
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"test-property": 1,
+			},
+		},
 		Assignment: &pb.Assignment{
 			Connection: "test-tbd",
 		},
@@ -152,9 +152,8 @@ func TestTicketLifeCycle(t *testing.T) {
 // validateTicket validates that the fetched ticket is identical to the expected ticket.
 func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
 	assert.Equal(t, got.GetId(), want.GetId())
-	assert.Equal(t, got.GetProperties().GetFields()["test-property"].GetNumberValue(), want.GetProperties().GetFields()["test-property"].GetNumberValue())
+	assert.Equal(t, got.SearchFields.DoubleArgs["test-property"], want.SearchFields.DoubleArgs["test-property"])
 	assert.Equal(t, got.GetAssignment().GetConnection(), want.GetAssignment().GetConnection())
-	assert.Equal(t, got.GetAssignment().GetProperties(), want.GetAssignment().GetProperties())
 	assert.Equal(t, got.GetAssignment().GetError(), want.GetAssignment().GetError())
 }
 

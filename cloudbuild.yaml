@@ -49,7 +49,7 @@
 steps:
 - id: 'Docker Image: open-match-build'
   name: gcr.io/kaniko-project/executor
-  args: ['--destination=gcr.io/$PROJECT_ID/open-match-build', '--cache=true', '--cache-ttl=48h', '--dockerfile=Dockerfile.ci', '.']
+  args: ['--destination=gcr.io/$PROJECT_ID/open-match-build', '--cache=true', '--cache-ttl=48h', '--dockerfile=Dockerfile.ci']
   waitFor: ['-']
 
 - id: 'Build: Clean'

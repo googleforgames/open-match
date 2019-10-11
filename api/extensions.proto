@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package components
+syntax = "proto3";
+package openmatch;
+option go_package = "open-match.dev/open-match/pkg/pb";
+option csharp_namespace = "OpenMatch";
 
-import (
-	"context"
-
-	"open-match.dev/open-match/examples/demo/updater"
-)
-
-type DemoShared struct {
-	Ctx    context.Context
-	Update updater.SetFunc
+// A DefaultEvaluationCriteria is used for a match's evaluation_input when using
+// the default evaluator.
+message DefaultEvaluationCriteria {
+  double score = 1;
 }
