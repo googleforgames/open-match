@@ -98,21 +98,21 @@ func (com *clusterOM) MustMmfConfigHTTP() *pb.FunctionConfig {
 }
 
 func (com *clusterOM) getAddressFromServiceName(serviceName, portName string) (string, int32) {
-	svc, err := com.kubeClient.CoreV1().Services(com.namespace).Get(serviceName, metav1.GetOptions{})
+	endpoints, err := com.kubeClient.CoreV1().Endpoints(com.namespace).Get(serviceName, metav1.GetOptions{})
 	if err != nil {
 		com.t.Fatalf("cannot get service definition for %s, %s", serviceName, err.Error())
 	}
-	if len(svc.Spec.Ports) == 0 {
-		com.t.Fatalf("service %s does not have an available ContainerPort", serviceName)
+	if len(endpoints.Subsets) == 0 || len(endpoints.Subsets[0].Addresses) {
+		com.t.Fatalf("service %s does not have an available endpoint", serviceName)
 	}
 
 	var port int32
-	for _, servicePort := range svc.Spec.Ports {
-		if servicePort.Name == portName {
+	for _, endpointsPort := range endpoints.Subsets[0].Ports {
+		if endpointsPort.Name == portName {
 			port = servicePort.Port
 		}
 	}
-	return svc.Spec.ClusterIP, port
+	return endpoints.Subsets[0].Addresses[0].IP, port
 }
 
 func (com *clusterOM) getGRPCAddressFromServiceName(serviceName string) (string, int32) {
