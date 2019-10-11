@@ -57,7 +57,7 @@ func IncrementCounter(ctx context.Context, s *stats.Int64Measure, tags ...tag.Mu
 	IncrementCounterN(ctx, s, 1, tags...)
 }
 
-// IncrementCounterN increases a metric by n.
+// IncrementCounterN record one measurement at once with given tags.
 func IncrementCounterN(ctx context.Context, s *stats.Int64Measure, n int64, tags ...tag.Mutator) {
 	if err := stats.RecordWithTags(ctx, tags, s.M(n)); err != nil {
 		logger.WithError(err).Infof("cannot record stat with tags %#v", tags)
