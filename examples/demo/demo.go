@@ -20,37 +20,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
 	"open-match.dev/open-match/examples/demo/bytesub"
 	"open-match.dev/open-match/examples/demo/components"
 	"open-match.dev/open-match/examples/demo/updater"
-	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/telemetry"
-)
-
-var (
-	logger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "examples.demo",
-	})
 )
 
 // Run starts the provided components, and hosts a webserver for observing the
 // output of those components.
 func Run(comps map[string]func(*components.DemoShared)) {
-	cfg, err := config.Read()
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("cannot read configuration.")
-	}
-	logging.ConfigureLogging(cfg)
-
-	logger.Info("Initializing Server")
+	log.Print("Initializing Server")
 
 	fileServe := http.FileServer(http.Dir("/app/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fileServe))
@@ -79,17 +62,16 @@ func Run(comps map[string]func(*components.DemoShared)) {
 		bs.Subscribe(ws.Request().Context(), ws)
 	}))
 
-	logger.Info("Starting Server")
+	log.Print("Starting Server")
 
 	for name, f := range comps {
 		go f(&components.DemoShared{
 			Ctx:    context.Background(),
-			Cfg:    cfg,
 			Update: u.ForField(name),
 		})
 	}
 
-	address := fmt.Sprintf(":%d", cfg.GetInt("api.demo.httpport"))
-	err = http.ListenAndServe(address, nil)
-	logger.WithError(err).Warning("HTTP server closed.")
+	address := fmt.Sprintf(":%d", 51507)
+	err := http.ListenAndServe(address, nil)
+	log.Printf("HTTP server closed: %s", err.Error())
 }

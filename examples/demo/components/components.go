@@ -18,11 +18,9 @@ import (
 	"context"
 
 	"open-match.dev/open-match/examples/demo/updater"
-	"open-match.dev/open-match/internal/config"
 )
 
 type DemoShared struct {
 	Ctx    context.Context
-	Cfg    config.View
 	Update updater.SetFunc
 }
