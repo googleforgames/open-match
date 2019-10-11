@@ -88,7 +88,7 @@ func (is *instrumentedService) DeindexTicket(ctx context.Context, id string) err
 // }
 func (is *instrumentedService) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
 	return is.s.FilterTickets(ctx, pool, pageSize, func(t []*pb.Ticket) error {
-		telemetry.IncrementCounterN(ctx, mStateStoreFilterTickets, len(t))
+		telemetry.IncrementCounterN(ctx, mStateStoreFilterTickets, int64(len(t)))
 		return callback(t)
 	})
 }
@@ -112,12 +112,12 @@ func (is *instrumentedService) GetAssignments(ctx context.Context, id string, ca
 
 // AddTicketsToIgnoreList appends new proposed tickets to the proposed sorted set with current timestamp
 func (is *instrumentedService) AddTicketsToIgnoreList(ctx context.Context, ids []string) error {
-	telemetry.IncrementCounterN(ctx, mStateStoreAddTicketsToIgnoreList, len(ids))
+	telemetry.IncrementCounterN(ctx, mStateStoreAddTicketsToIgnoreList, int64(len(ids)))
 	return is.s.AddTicketsToIgnoreList(ctx, ids)
 }
 
 // DeleteTicketsFromIgnoreList deletes tickets from the proposed sorted set
 func (is *instrumentedService) DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) error {
-	telemetry.IncrementCounterN(ctx, mStateStoreDeleteTicketFromIgnoreList, len(ids))
+	telemetry.IncrementCounterN(ctx, mStateStoreDeleteTicketFromIgnoreList, int64(len(ids)))
 	return is.s.DeleteTicketsFromIgnoreList(ctx, ids)
 }

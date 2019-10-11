@@ -279,7 +279,7 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 		return nil, err
 	}
 
-	telemetry.IncrementCounterN(ctx, mTicketsAssigned, len(req.TicketIds))
+	telemetry.IncrementCounterN(ctx, mTicketsAssigned, int64(len(req.TicketIds)))
 	return &pb.AssignTicketsResponse{}, nil
 }
 
