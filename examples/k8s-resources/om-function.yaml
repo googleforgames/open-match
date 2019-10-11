@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: om-function
+  namespace: open-match
+spec:
+  containers:
+  - name: om-function
+    image: "gcr.io/open-match-build/openmatch-mmf-go-soloduel"
+    imagePullPolicy: Always
+    ports:
+    - name: grpc
+      containerPort: 50502
+    - name: http
+      containerPort: 51502
+  hostname: om-function
