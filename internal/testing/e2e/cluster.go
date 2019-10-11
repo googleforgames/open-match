@@ -102,14 +102,14 @@ func (com *clusterOM) getAddressFromServiceName(serviceName, portName string) (s
 	if err != nil {
 		com.t.Fatalf("cannot get service definition for %s, %s", serviceName, err.Error())
 	}
-	if len(endpoints.Subsets) == 0 || len(endpoints.Subsets[0].Addresses) {
+	if len(endpoints.Subsets) == 0 || len(endpoints.Subsets[0].Addresses) == 0 {
 		com.t.Fatalf("service %s does not have an available endpoint", serviceName)
 	}
 
 	var port int32
 	for _, endpointsPort := range endpoints.Subsets[0].Ports {
 		if endpointsPort.Name == portName {
-			port = servicePort.Port
+			port = endpointsPort.Port
 		}
 	}
 	return endpoints.Subsets[0].Addresses[0].IP, port
