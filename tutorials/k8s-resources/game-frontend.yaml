@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: game-frontend
+  namespace: open-match
+spec:
+  containers:
+  - name: game-frontend
+    image: "some public images"
+    imagePullPolicy: Always
+  hostname: game-frontend

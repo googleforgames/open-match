@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: director
+  namespace: open-match
+spec:
+  containers:
+  - name: director
+    image: "some public images"
+    imagePullPolicy: Always
+  hostname: director
