@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: game-frontend
+  name: om-director
   namespace: open-match
 spec:
   containers:
-  - name: game-frontend
+  - name: om-director
     image: "some public images"
     imagePullPolicy: Always
-  hostname: game-frontend
+  hostname: om-director

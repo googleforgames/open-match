@@ -1,0 +1,61 @@
+# This file contains the sample minimal pod definitions for all of the components that one may need to use Open Match as a match maker.
+# You can find the same pod definitions within the sub-folders under the /tutorials/ directory
+# Run `kubectl apply -f matchmaker.yaml` to deploy these definitions. 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: om-director
+  namespace: open-match
+spec:
+  containers:
+  - name: om-director
+    image: "some public images"
+    imagePullPolicy: Always
+  hostname: om-director
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: om-game-frontend
+  namespace: open-match
+spec:
+  containers:
+  - name: om-game-frontend
+    image: "some public images"
+    imagePullPolicy: Always
+  hostname: om-game-frontend
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: om-evaluator
+  namespace: open-match
+spec:
+  containers:
+  - name: om-evaluator
+    image: "gcr.io/open-match-build/openmatch-evaluator-go-simple"
+    imagePullPolicy: Always
+    ports:
+    - name: grpc
+      containerPort: 50508
+    - name: http
+      containerPort: 51508
+  hostname: om-evaluator
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: om-function
+  namespace: open-match
+spec:
+  containers:
+  - name: om-function
+    image: "gcr.io/open-match-build/openmatch-mmf-go-soloduel"
+    imagePullPolicy: Always
+    ports:
+    - name: grpc
+      containerPort: 50502
+    - name: http
+      containerPort: 51502
+  hostname: om-function
