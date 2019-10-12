@@ -1,4 +1,4 @@
-This folder provides a minimal Dockerfile to build a sample game-frontend for Open Match tutorials
+This folder provides a minimal Dockerfile and k8s resource definition to build a sample game-frontend for Open Match tutorials.
 
 To build your director image, run:
 ```
