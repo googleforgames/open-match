@@ -30,7 +30,7 @@ var ErrNotFound = errors.New("Message type not found in extensions.")
 // found.  Within Open Match, such extension fields are invalid.
 var ErrMultipleFound = errors.New("Message type found multiple times in extensions.")
 
-// Finds the any value which matches the passed message's type.
+// Unmarshal finds the any value which matches the passed message's type.
 // Returns ErrNotFound if the given type isn't found.
 func Unmarshal(exts []*any.Any, pb proto.Message) error {
 	var a *any.Any
