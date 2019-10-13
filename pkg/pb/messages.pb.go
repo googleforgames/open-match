@@ -42,6 +42,7 @@ type Ticket struct {
 	// Customized information not inspected by Open Match, to be used by the match
 	// making function, evaluator, and components making calls to Open Match.
 	// Optional, depending on the requirements of the connected systems.
+	// Only one extension per any type is allowed.
 	Extensions           []*any.Any `protobuf:"bytes,5,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
@@ -171,6 +172,7 @@ type Assignment struct {
 	// Customized information not inspected by Open Match, to be used by the match
 	// making function, evaluator, and components making calls to Open Match.
 	// Optional, depending on the requirements of the connected systems.
+	// Only one extension per any type is allowed.
 	Extensions           []*any.Any `protobuf:"bytes,4,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
@@ -538,6 +540,7 @@ type MatchProfile struct {
 	// Customized information not inspected by Open Match, to be used by the match
 	// making function, evaluator, and components making calls to Open Match.
 	// Optional, depending on the requirements of the connected systems.
+	// Only one extension per any type is allowed.
 	Extensions           []*any.Any `protobuf:"bytes,5,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
@@ -616,6 +619,7 @@ type Match struct {
 	// Customized information not inspected by Open Match, to be used by the match
 	// making function, evaluator, and components making calls to Open Match.
 	// Optional, depending on the requirements of the connected systems.
+	// Only one extension per any type is allowed.
 	Extensions           []*any.Any `protobuf:"bytes,8,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`

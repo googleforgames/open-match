@@ -43,6 +43,7 @@ message Ticket {
   // Customized information not inspected by Open Match, to be used by the match
   // making function, evaluator, and components making calls to Open Match.
   // Optional, depending on the requirements of the connected systems.
+  // Only one extension per any type is allowed.
   repeated google.protobuf.Any extensions = 5;
 
   // Deprecated fields.
@@ -74,6 +75,7 @@ message Assignment {
   // Customized information not inspected by Open Match, to be used by the match
   // making function, evaluator, and components making calls to Open Match.
   // Optional, depending on the requirements of the connected systems.
+  // Only one extension per any type is allowed.
   repeated google.protobuf.Any extensions = 4;
 
   // Deprecated fields.
@@ -184,6 +186,7 @@ message MatchProfile {
   // Customized information not inspected by Open Match, to be used by the match
   // making function, evaluator, and components making calls to Open Match.
   // Optional, depending on the requirements of the connected systems.
+  // Only one extension per any type is allowed.
   repeated google.protobuf.Any extensions = 5;
 
   // Deprecated fields.
@@ -214,6 +217,7 @@ message Match {
   // Customized information not inspected by Open Match, to be used by the match
   // making function, evaluator, and components making calls to Open Match.
   // Optional, depending on the requirements of the connected systems.
+  // Only one extension per any type is allowed.
   repeated google.protobuf.Any extensions = 8;
 
   // Deprecated fields.
