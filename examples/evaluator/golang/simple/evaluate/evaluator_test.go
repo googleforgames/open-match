@@ -17,9 +17,6 @@ package evaluate
 import (
 	"testing"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/pkg/ext"
 	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
