@@ -59,8 +59,8 @@ type MatchFunctionParams struct {
 	// 'Name' from the MatchProfile.
 	ProfileName string
 
-	// 'Extension' from the MatchProfile.
-	Extension *any.Any
+	// 'Extensions' from the MatchProfile.
+	Extensions []*any.Any
 
 	// An array of Rosters. By convention, your input Roster contains players already in
 	// the match, and the names of pools to search when trying to fill an empty slot.
@@ -84,7 +84,7 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 			"component": "matchfunction.implementation",
 		}),
 		ProfileName:       req.GetProfile().GetName(),
-		Extension:         req.GetProfile().GetExtension(),
+		Extensions:        req.GetProfile().GetExtensions(),
 		Rosters:           req.GetProfile().GetRosters(),
 		PoolNameToTickets: poolNameToTickets,
 	}

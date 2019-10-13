@@ -20,9 +20,9 @@
 package mmf
 
 import (
-	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	"github.com/rs/xid"
+	"open-match.dev/open-match/pkg/ext"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -46,7 +46,7 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 				roster.TicketIds = append(roster.GetTicketIds(), ticket.GetId())
 			}
 
-			evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
+			extensions, err := ext.MarshalMany(&pb.DefaultEvaluationCriteria{
 				Score: scoreCalculator(tickets),
 			})
 			if err != nil {
@@ -54,12 +54,12 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 			}
 
 			result = append(result, &pb.Match{
-				MatchId:         xid.New().String(),
-				MatchProfile:    params.ProfileName,
-				MatchFunction:   matchName,
-				Tickets:         tickets,
-				Rosters:         []*pb.Roster{roster},
-				EvaluationInput: evaluationInput,
+				MatchId:       xid.New().String(),
+				MatchProfile:  params.ProfileName,
+				MatchFunction: matchName,
+				Tickets:       tickets,
+				Rosters:       []*pb.Roster{roster},
+				Extensions:    extensions,
 			})
 		}
 	}

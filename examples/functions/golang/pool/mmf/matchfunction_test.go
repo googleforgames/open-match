@@ -17,12 +17,11 @@ package mmf
 import (
 	"testing"
 
-	"open-match.dev/open-match/pkg/pb"
-
-	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"open-match.dev/open-match/pkg/ext"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 func TestMakeMatches(t *testing.T) {
@@ -85,12 +84,11 @@ func TestMakeMatches(t *testing.T) {
 	actual := []*pb.Match{}
 	for _, match := range matches {
 		actual = append(actual, &pb.Match{
-			MatchProfile:    match.MatchProfile,
-			MatchFunction:   match.MatchFunction,
-			Tickets:         match.Tickets,
-			Rosters:         match.Rosters,
-			EvaluationInput: match.EvaluationInput,
-			Extension:       match.Extension,
+			MatchProfile:  match.MatchProfile,
+			MatchFunction: match.MatchFunction,
+			Tickets:       match.Tickets,
+			Rosters:       match.Rosters,
+			Extensions:    match.Extensions,
 		})
 	}
 
@@ -100,7 +98,7 @@ func TestMakeMatches(t *testing.T) {
 			tids = append(tids, ticket.GetId())
 		}
 
-		evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
+		extensions, err := ext.MarshalMany(&pb.DefaultEvaluationCriteria{
 			Score: scoreCalculator(tickets),
 		})
 		if err != nil {
@@ -108,11 +106,11 @@ func TestMakeMatches(t *testing.T) {
 		}
 
 		return &pb.Match{
-			MatchProfile:    p.ProfileName,
-			MatchFunction:   matchName,
-			Tickets:         tickets,
-			Rosters:         []*pb.Roster{{Name: poolName, TicketIds: tids}},
-			EvaluationInput: evaluationInput,
+			MatchProfile:  p.ProfileName,
+			MatchFunction: matchName,
+			Tickets:       tickets,
+			Rosters:       []*pb.Roster{{Name: poolName, TicketIds: tids}},
+			Extensions:    extensions,
 		}
 	}
 

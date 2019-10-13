@@ -164,8 +164,11 @@
           "$ref": "#/definitions/rpcStatus",
           "description": "Error when finding an Assignment for this Ticket."
         },
-        "extension": {
-          "$ref": "#/definitions/protobufAny",
+        "extensions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          },
           "description": "Customized information to be sent to the clients.  Optional, depending on\nwhat callers are expecting."
         }
       },
@@ -244,8 +247,11 @@
           "$ref": "#/definitions/openmatchSearchFields",
           "description": "Values visible to Open Match which can be used when querying for tickets\nwith specific values."
         },
-        "extension": {
-          "$ref": "#/definitions/protobufAny",
+        "extensions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          },
           "description": "Customized information to be used by the Match Making Function.  Optional,\ndepending on the requirements of the MMF."
         }
       },

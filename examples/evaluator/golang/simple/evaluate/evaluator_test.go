@@ -21,6 +21,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/assert"
+	"open-match.dev/open-match/pkg/ext"
 	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -40,28 +41,28 @@ func TestEvaluate(t *testing.T) {
 
 	ticket12Score1 := &pb.Match{
 		Tickets: []*pb.Ticket{ticket1, ticket2},
-		EvaluationInput: mustAny(&pb.DefaultEvaluationCriteria{
+		Extensions: ext.MustMarshalMany(&pb.DefaultEvaluationCriteria{
 			Score: 1,
 		}),
 	}
 
 	ticket12Score10 := &pb.Match{
 		Tickets: []*pb.Ticket{ticket2, ticket1},
-		EvaluationInput: mustAny(&pb.DefaultEvaluationCriteria{
+		Extensions: ext.MustMarshalMany(&pb.DefaultEvaluationCriteria{
 			Score: 10,
 		}),
 	}
 
 	ticket123Score5 := &pb.Match{
 		Tickets: []*pb.Ticket{ticket1, ticket2, ticket3},
-		EvaluationInput: mustAny(&pb.DefaultEvaluationCriteria{
+		Extensions: ext.MustMarshalMany(&pb.DefaultEvaluationCriteria{
 			Score: 5,
 		}),
 	}
 
 	ticket3Score50 := &pb.Match{
 		Tickets: []*pb.Ticket{ticket3},
-		EvaluationInput: mustAny(&pb.DefaultEvaluationCriteria{
+		Extensions: ext.MustMarshalMany(&pb.DefaultEvaluationCriteria{
 			Score: 50,
 		}),
 	}

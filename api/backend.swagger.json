@@ -122,8 +122,11 @@
           "$ref": "#/definitions/rpcStatus",
           "description": "Error when finding an Assignment for this Ticket."
         },
-        "extension": {
-          "$ref": "#/definitions/protobufAny",
+        "extensions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          },
           "description": "Customized information to be sent to the clients.  Optional, depending on\nwhat callers are expecting."
         }
       },
@@ -227,12 +230,11 @@
           },
           "title": "Set of Rosters that comprise this Match"
         },
-        "evaluation_input": {
-          "$ref": "#/definitions/protobufAny",
-          "description": "Customized information for the evaluator.  Optional, depending on the\nrequirements of the configured evaluator."
-        },
-        "extension": {
-          "$ref": "#/definitions/protobufAny",
+        "extensions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          },
           "description": "Customized information for how the caller of FetchMatches should handle\nthis match.  Optional, depending on the requirements of the FetchMatches\ncaller."
         }
       },
@@ -259,8 +261,11 @@
           },
           "description": "Set of Rosters for this match request. Could be empty Rosters used to\nindicate the composition of the generated Match or they could be partially\npre-populated Ticket list to be used in scenarios such as backfill / join\nin progress."
         },
-        "extension": {
-          "$ref": "#/definitions/protobufAny",
+        "extensions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          },
           "description": "Customized information on how the match function should run.  Optional,\ndepending on the requirements of the match function."
         }
       },
@@ -376,8 +381,11 @@
           "$ref": "#/definitions/openmatchSearchFields",
           "description": "Values visible to Open Match which can be used when querying for tickets\nwith specific values."
         },
-        "extension": {
-          "$ref": "#/definitions/protobufAny",
+        "extensions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          },
           "description": "Customized information to be used by the Match Making Function.  Optional,\ndepending on the requirements of the MMF."
         }
       },

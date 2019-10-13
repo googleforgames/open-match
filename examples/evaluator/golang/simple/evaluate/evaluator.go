@@ -18,8 +18,8 @@ import (
 	"math"
 	"sort"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
+	"open-match.dev/open-match/pkg/ext"
 	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -41,18 +41,17 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 		inp := &pb.DefaultEvaluationCriteria{
 			Score: math.Inf(-1),
 		}
-		if m.EvaluationInput == nil {
+		err := ext.Unmarshal(m.Extensions, inp)
+		if err == ext.ErrNotFound {
 			nilEvlautionInputs++
-		} else {
-			err := ptypes.UnmarshalAny(m.EvaluationInput, inp)
-			if err != nil {
-				p.Logger.WithFields(logrus.Fields{
-					"match_id": m.MatchId,
-					"error":    err,
-				}).Error("Failed to unmarshal match's DefaultEvaluationCriteria.  Rejecting match.")
-				continue
-			}
+		} else if err != nil {
+			p.Logger.WithFields(logrus.Fields{
+				"match_id": m.MatchId,
+				"error":    err,
+			}).Error("Failed to unmarshal match's DefaultEvaluationCriteria.  Rejecting match.")
+			continue
 		}
+
 		matches = append(matches, &matchInp{
 			match: m,
 			inp:   inp,

@@ -42,7 +42,7 @@ message Ticket {
 
   // Customized information to be used by the Match Making Function.  Optional,
   // depending on the requirements of the MMF.
-  google.protobuf.Any extension = 5;
+  repeated google.protobuf.Any extensions = 5;
 
   // Deprecated fields.
   reserved 2;
@@ -72,7 +72,7 @@ message Assignment {
 
   // Customized information to be sent to the clients.  Optional, depending on
   // what callers are expecting.
-  google.protobuf.Any extension = 4;
+  repeated google.protobuf.Any extensions = 4;
 
   // Deprecated fields.
   reserved 2;
@@ -181,7 +181,7 @@ message MatchProfile {
 
   // Customized information on how the match function should run.  Optional,
   // depending on the requirements of the match function.
-  google.protobuf.Any extension = 5;
+  repeated google.protobuf.Any extensions = 5;
 
   // Deprecated fields.
   reserved 2;
@@ -208,15 +208,11 @@ message Match {
   // Set of Rosters that comprise this Match
   repeated Roster rosters = 5;
 
-  // Customized information for the evaluator.  Optional, depending on the
-  // requirements of the configured evaluator.
-  google.protobuf.Any evaluation_input = 7;
-
   // Customized information for how the caller of FetchMatches should handle
   // this match.  Optional, depending on the requirements of the FetchMatches
   // caller.
-  google.protobuf.Any extension = 8;
+  repeated google.protobuf.Any extensions = 8;
 
   // Deprecated fields.
-  reserved 6;
+  reserved 6, 7;
 }
