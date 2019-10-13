@@ -40,8 +40,9 @@ message Ticket {
   // with specific values.
   SearchFields search_fields = 4;
 
-  // Customized information to be used by the Match Making Function.  Optional,
-  // depending on the requirements of the MMF.
+  // Customized information not inspected by Open Match, to be used by the match
+  // making function, evaluator, and components making calls to Open Match.
+  // Optional, depending on the requirements of the connected systems.
   repeated google.protobuf.Any extensions = 5;
 
   // Deprecated fields.
@@ -70,8 +71,9 @@ message Assignment {
   // Error when finding an Assignment for this Ticket.
   google.rpc.Status error = 3;
 
-  // Customized information to be sent to the clients.  Optional, depending on
-  // what callers are expecting.
+  // Customized information not inspected by Open Match, to be used by the match
+  // making function, evaluator, and components making calls to Open Match.
+  // Optional, depending on the requirements of the connected systems.
   repeated google.protobuf.Any extensions = 4;
 
   // Deprecated fields.
@@ -179,8 +181,9 @@ message MatchProfile {
   // in progress.
   repeated Roster rosters = 4;
 
-  // Customized information on how the match function should run.  Optional,
-  // depending on the requirements of the match function.
+  // Customized information not inspected by Open Match, to be used by the match
+  // making function, evaluator, and components making calls to Open Match.
+  // Optional, depending on the requirements of the connected systems.
   repeated google.protobuf.Any extensions = 5;
 
   // Deprecated fields.
@@ -208,9 +211,9 @@ message Match {
   // Set of Rosters that comprise this Match
   repeated Roster rosters = 5;
 
-  // Customized information for how the caller of FetchMatches should handle
-  // this match.  Optional, depending on the requirements of the FetchMatches
-  // caller.
+  // Customized information not inspected by Open Match, to be used by the match
+  // making function, evaluator, and components making calls to Open Match.
+  // Optional, depending on the requirements of the connected systems.
   repeated google.protobuf.Any extensions = 8;
 
   // Deprecated fields.

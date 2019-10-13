@@ -39,8 +39,9 @@ type Ticket struct {
 	// Values visible to Open Match which can be used when querying for tickets
 	// with specific values.
 	SearchFields *SearchFields `protobuf:"bytes,4,opt,name=search_fields,json=searchFields,proto3" json:"search_fields,omitempty"`
-	// Customized information to be used by the Match Making Function.  Optional,
-	// depending on the requirements of the MMF.
+	// Customized information not inspected by Open Match, to be used by the match
+	// making function, evaluator, and components making calls to Open Match.
+	// Optional, depending on the requirements of the connected systems.
 	Extensions           []*any.Any `protobuf:"bytes,5,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
@@ -167,8 +168,9 @@ type Assignment struct {
 	Connection string `protobuf:"bytes,1,opt,name=connection,proto3" json:"connection,omitempty"`
 	// Error when finding an Assignment for this Ticket.
 	Error *status.Status `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
-	// Customized information to be sent to the clients.  Optional, depending on
-	// what callers are expecting.
+	// Customized information not inspected by Open Match, to be used by the match
+	// making function, evaluator, and components making calls to Open Match.
+	// Optional, depending on the requirements of the connected systems.
 	Extensions           []*any.Any `protobuf:"bytes,4,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
@@ -533,8 +535,9 @@ type MatchProfile struct {
 	// pre-populated Ticket list to be used in scenarios such as backfill / join
 	// in progress.
 	Rosters []*Roster `protobuf:"bytes,4,rep,name=rosters,proto3" json:"rosters,omitempty"`
-	// Customized information on how the match function should run.  Optional,
-	// depending on the requirements of the match function.
+	// Customized information not inspected by Open Match, to be used by the match
+	// making function, evaluator, and components making calls to Open Match.
+	// Optional, depending on the requirements of the connected systems.
 	Extensions           []*any.Any `protobuf:"bytes,5,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
@@ -610,9 +613,9 @@ type Match struct {
 	Tickets []*Ticket `protobuf:"bytes,4,rep,name=tickets,proto3" json:"tickets,omitempty"`
 	// Set of Rosters that comprise this Match
 	Rosters []*Roster `protobuf:"bytes,5,rep,name=rosters,proto3" json:"rosters,omitempty"`
-	// Customized information for how the caller of FetchMatches should handle
-	// this match.  Optional, depending on the requirements of the FetchMatches
-	// caller.
+	// Customized information not inspected by Open Match, to be used by the match
+	// making function, evaluator, and components making calls to Open Match.
+	// Optional, depending on the requirements of the connected systems.
 	Extensions           []*any.Any `protobuf:"bytes,8,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`

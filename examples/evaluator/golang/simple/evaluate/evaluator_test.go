@@ -26,14 +26,6 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-func mustAny(m proto.Message) *any.Any {
-	result, err := ptypes.MarshalAny(m)
-	if err != nil {
-		panic(err)
-	}
-	return result
-}
-
 func TestEvaluate(t *testing.T) {
 	ticket1 := &pb.Ticket{Id: "1"}
 	ticket2 := &pb.Ticket{Id: "2"}
