@@ -94,21 +94,6 @@ image:
   tag: 0.0.0-dev
   pullPolicy: Always
 
-# Specifies the supported customizable indices per Match
-ticketIndices:
-- char
-- attribute.mmr
-- attribute.level
-- attribute.defense
-- mode.battleroyale
-- mode.ctf
-- mode.demo
-- region.europe-east1
-- region.europe-west1
-- region.europe-west2
-- region.europe-west3
-- region.europe-west4
-
 # Specifies the location and name of the Open Match application-level config volumes.
   # Used in template: `openmatch.volumemounts.configs` and `openmatch.volumes.configs` under `templates/_helpers.tpl` file.
 configs:

@@ -41,7 +41,7 @@ func Ticket(cfg config.View) *pb.Ticket {
 	ticket := &pb.Ticket{
 		SearchFields: &pb.SearchFields{
 			DoubleArgs: map[string]float64{
-				e2e.AttributeMMR: normalDist(40, min, max, 20),
+				e2e.DoubleArgMMR: normalDist(40, min, max, 20),
 			},
 			StringArgs: map[string]string{
 				e2e.Role: characters[rand.Intn(len(characters))],

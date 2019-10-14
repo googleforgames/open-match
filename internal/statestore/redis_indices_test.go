@@ -18,7 +18,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -71,9 +70,7 @@ func TestExtractIndexedFields(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			cfg := viper.New()
-
-			actual := extractIndexedFields(cfg, &pb.Ticket{SearchFields: test.searchFields})
+			actual := extractIndexedFields(&pb.Ticket{SearchFields: test.searchFields})
 
 			assert.Equal(t, test.expectedValues, actual)
 		})
@@ -100,9 +97,9 @@ func TestExtractIndexFilters(t *testing.T) {
 		{
 			description: "range",
 			pool: &pb.Pool{
-				FloatRangeFilters: []*pb.FloatRangeFilter{
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{
 					{
-						Attribute: "foo",
+						DoubleArg: "foo",
 						Min:       -1,
 						Max:       1,
 					},
@@ -138,7 +135,7 @@ func TestExtractIndexFilters(t *testing.T) {
 			pool: &pb.Pool{
 				StringEqualsFilters: []*pb.StringEqualsFilter{
 					{
-						Attribute: "foo",
+						StringArg: "foo",
 						Value:     "bar",
 					},
 				},

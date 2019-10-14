@@ -74,8 +74,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket1 := &pb.Ticket{
 		SearchFields: &pb.SearchFields{
 			DoubleArgs: map[string]float64{
-				e2e.AttributeMMR:   1,
-				e2e.AttributeLevel: 1,
+				e2e.DoubleArgMMR:   1,
+				e2e.DoubleArgLevel: 1,
 			},
 		},
 	}
@@ -83,8 +83,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket2 := &pb.Ticket{
 		SearchFields: &pb.SearchFields{
 			DoubleArgs: map[string]float64{
-				e2e.AttributeMMR:   5,
-				e2e.AttributeLevel: 5,
+				e2e.DoubleArgMMR:   5,
+				e2e.DoubleArgLevel: 5,
 			},
 		},
 	}
@@ -92,8 +92,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket3 := &pb.Ticket{
 		SearchFields: &pb.SearchFields{
 			DoubleArgs: map[string]float64{
-				e2e.AttributeMMR:   10,
-				e2e.AttributeLevel: 10,
+				e2e.DoubleArgMMR:   10,
+				e2e.DoubleArgLevel: 10,
 			},
 		},
 	}
@@ -101,8 +101,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket4 := &pb.Ticket{
 		SearchFields: &pb.SearchFields{
 			DoubleArgs: map[string]float64{
-				e2e.AttributeMMR:   15,
-				e2e.AttributeLevel: 15,
+				e2e.DoubleArgMMR:   15,
+				e2e.DoubleArgLevel: 15,
 			},
 		},
 	}
@@ -110,8 +110,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	ticket5 := &pb.Ticket{
 		SearchFields: &pb.SearchFields{
 			DoubleArgs: map[string]float64{
-				e2e.AttributeMMR:   20,
-				e2e.AttributeLevel: 20,
+				e2e.DoubleArgMMR:   20,
+				e2e.DoubleArgLevel: 20,
 			},
 		},
 	}
@@ -136,20 +136,20 @@ func TestGameMatchWorkFlow(t *testing.T) {
 				Name: "test-profile",
 				Pools: []*pb.Pool{
 					{
-						Name:              "ticket12",
-						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: e2e.AttributeMMR, Min: 0, Max: 6}, {Attribute: e2e.AttributeLevel, Min: 0, Max: 100}},
+						Name:               "ticket12",
+						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 6}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
 					},
 					{
-						Name:              "ticket23",
-						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: e2e.AttributeMMR, Min: 3, Max: 10}, {Attribute: e2e.AttributeLevel, Min: 0, Max: 100}},
+						Name:               "ticket23",
+						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 10}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
 					},
 					{
-						Name:              "ticket5",
-						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: e2e.AttributeMMR, Min: 0, Max: 100}, {Attribute: e2e.AttributeLevel, Min: 17, Max: 25}},
+						Name:               "ticket5",
+						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 100}, {DoubleArg: e2e.DoubleArgLevel, Min: 17, Max: 25}},
 					},
 					{
-						Name:              "ticket234",
-						FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: e2e.AttributeMMR, Min: 3, Max: 17}, {Attribute: e2e.AttributeLevel, Min: 3, Max: 17}},
+						Name:               "ticket234",
+						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 17}, {DoubleArg: e2e.DoubleArgLevel, Min: 3, Max: 17}},
 					},
 				},
 			},
