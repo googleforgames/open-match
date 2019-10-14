@@ -68,6 +68,10 @@ type ClientParams struct {
 
 // nolint:gochecknoinits
 func init() {
+	// Using gRPC's DNS resolver to create clients.
+	// This is a workaround for load balancing gRPC applications under k8s environments.
+	// See https://kubernetes.io/blog/2018/11/07/grpc-load-balancing-on-kubernetes-without-tears/ for more details.
+	// https://godoc.org/google.golang.org/grpc/resolver#SetDefaultScheme
 	resolver.SetDefaultScheme("dns")
 }
 
