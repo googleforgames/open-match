@@ -100,7 +100,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 			return stream.Context().Err()
 		default:
 			err = stream.Send(&pb.FetchMatchesResponse{Match: result})
-			telemetry.IncrementCounter(stream.Context(), mMatchesFetched)
+			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
 			if err != nil {
 				logger.WithError(err).Error("failed to stream back the response")
 				return err
@@ -279,7 +279,7 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 		return nil, err
 	}
 
-	telemetry.IncrementCounterN(ctx, mTicketsAssigned, int64(len(req.TicketIds)))
+	telemetry.RecordNUnitMeasurement(ctx, mTicketsAssigned, int64(len(req.TicketIds)))
 	return &pb.AssignTicketsResponse{}, nil
 }
 

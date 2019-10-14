@@ -84,7 +84,7 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 		return nil, err
 	}
 
-	telemetry.IncrementCounter(ctx, mTicketsCreated)
+	telemetry.RecordUnitMeasurement(ctx, mTicketsCreated)
 	return &pb.CreateTicketResponse{Ticket: ticket}, nil
 }
 
@@ -98,7 +98,7 @@ func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicket
 	if err != nil {
 		return nil, err
 	}
-	telemetry.IncrementCounter(ctx, mTicketsDeleted)
+	telemetry.RecordUnitMeasurement(ctx, mTicketsDeleted)
 	return &pb.DeleteTicketResponse{}, nil
 }
 
@@ -138,7 +138,7 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 
 // GetTicket returns the Ticket associated with the specified Ticket id.
 func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketRequest) (*pb.Ticket, error) {
-	telemetry.IncrementCounter(ctx, mTicketsRetrieved)
+	telemetry.RecordUnitMeasurement(ctx, mTicketsRetrieved)
 	return doGetTickets(ctx, req.GetTicketId(), s.store)
 }
 
@@ -165,7 +165,7 @@ func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream p
 			return ctx.Err()
 		default:
 			sender := func(assignment *pb.Assignment) error {
-				telemetry.IncrementCounter(ctx, mTicketAssignmentsRetrieved)
+				telemetry.RecordUnitMeasurement(ctx, mTicketAssignmentsRetrieved)
 				return stream.Send(&pb.GetAssignmentsResponse{Assignment: assignment})
 			}
 			return doGetAssignments(ctx, req.GetTicketId(), sender, s.store)

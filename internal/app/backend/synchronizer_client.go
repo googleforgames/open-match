@@ -91,7 +91,7 @@ func (sc *synchronizerClient) evaluate(ctx context.Context, id string, proposals
 		results = append(results, resp.GetMatch())
 	}
 
-	telemetry.IncrementCounterN(ctx, mMatchEvaluations, int64(len(results)))
+	telemetry.RecordNUnitMeasurement(ctx, mMatchEvaluations, int64(len(results)))
 	return results, nil
 }
 

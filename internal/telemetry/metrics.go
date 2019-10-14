@@ -52,13 +52,13 @@ func HistogramWithBounds(name string, description string, unit string, bounds []
 	return s
 }
 
-// IncrementCounter +1's the counter metric.
-func IncrementCounter(ctx context.Context, s *stats.Int64Measure, tags ...tag.Mutator) {
-	IncrementCounterN(ctx, s, 1, tags...)
+// RecordUnitMeasurement records one measurement unit with given tags.
+func RecordUnitMeasurement(ctx context.Context, s *stats.Int64Measure, tags ...tag.Mutator) {
+	RecordNUnitMeasurement(ctx, s, 1, tags...)
 }
 
-// IncrementCounterN record one measurement at once with given tags.
-func IncrementCounterN(ctx context.Context, s *stats.Int64Measure, n int64, tags ...tag.Mutator) {
+// RecordNUnitMeasurement records N measurement units at once with given tags.
+func RecordNUnitMeasurement(ctx context.Context, s *stats.Int64Measure, n int64, tags ...tag.Mutator) {
 	if err := stats.RecordWithTags(ctx, tags, s.M(n)); err != nil {
 		logger.WithError(err).Infof("cannot record stat with tags %#v", tags)
 		return
