@@ -54,8 +54,8 @@ To deploy Open Match in your Kubernetes cluster run the following commands:
 kubectl create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(YOUR_KUBERNETES_USER_NAME)
 # Place all Open Match components in their own namespace.
 kubectl create namespace open-match
-# Install Open Match and monitoring services.
-kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/install.yaml --namespace open-match
+# Install Open Match services.
+kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/01-open-match-core.yaml --namespace open-match
 # Install the demo.
 kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/02-open-match-demo.yaml --namespace open-match
 ```
