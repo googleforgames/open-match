@@ -35,7 +35,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ochttp"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/balancer/roundrobin"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/resolver"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/telemetry"
@@ -62,6 +64,15 @@ type ClientParams struct {
 	EnableRPCLogging        bool
 	EnableRPCPayloadLogging bool
 	EnableMetrics           bool
+}
+
+// nolint:gochecknoinits
+func init() {
+	// Using gRPC's DNS resolver to create clients.
+	// This is a workaround for load balancing gRPC applications under k8s environments.
+	// See https://kubernetes.io/blog/2018/11/07/grpc-load-balancing-on-kubernetes-without-tears/ for more details.
+	// https://godoc.org/google.golang.org/grpc/resolver#SetDefaultScheme
+	resolver.SetDefaultScheme("dns")
 }
 
 func (p *ClientParams) usingTLS() bool {
@@ -298,6 +309,7 @@ func newGRPCDialOptions(enableMetrics bool, enableRPCLogging bool, enableRPCPayl
 	opts := []grpc.DialOption{
 		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(si...)),
 		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(ui...)),
+		grpc.WithBalancerName(roundrobin.Name),
 	}
 	if enableMetrics {
 		opts = append(opts, grpc.WithStatsHandler(new(ocgrpc.ClientHandler)))

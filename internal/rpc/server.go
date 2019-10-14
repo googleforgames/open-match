@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
@@ -32,6 +33,7 @@ import (
 	"go.opencensus.io/plugin/ochttp"
 	"go.opencensus.io/plugin/ochttp/propagation/b3"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/signal"
@@ -300,7 +302,18 @@ func instrumentHTTPHandler(handler http.Handler, params *ServerParams) http.Hand
 }
 
 func newGRPCServerOptions(params *ServerParams) []grpc.ServerOption {
-	opts := []grpc.ServerOption{}
+	opts := []grpc.ServerOption{
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			// MaxConnectionAge is a duration for the maximum amount of time a
+			// connection may exist before it will be closed by sending a GoAway. A
+			// random jitter of +/-10% will be added to MaxConnectionAge to spread out
+			// connection storms.
+			MaxConnectionAge: 1 * time.Minute,
+			// MaxConnectionAgeGrace is an additive period after MaxConnectionAge after
+			// which the connection will be forcibly closed.
+			MaxConnectionAgeGrace: 5 * time.Second,
+		}),
+	}
 	si := []grpc.StreamServerInterceptor{
 		grpc_recovery.StreamServerInterceptor(),
 		grpc_validator.StreamServerInterceptor(),
