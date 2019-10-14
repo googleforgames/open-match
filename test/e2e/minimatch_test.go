@@ -47,44 +47,44 @@ func TestMinimatch(t *testing.T) {
 
 	// Tickets used for testing. The id will be populated once the Tickets are created.
 	sourceTickets := []testTicket{
-		{skill: 1, mapValue: e2e.AttributeMMR, targetPool: e2e.Map1BeginnerPool},
-		{skill: 5, mapValue: e2e.AttributeMMR, targetPool: e2e.Map1BeginnerPool},
-		{skill: 8, mapValue: e2e.AttributeMMR, targetPool: e2e.Map1AdvancedPool},
-		{skill: 0, mapValue: e2e.AttributeLevel, targetPool: e2e.Map2BeginnerPool},
-		{skill: 6, mapValue: e2e.AttributeLevel, targetPool: e2e.Map2AdvancedPool},
-		{skill: 10, mapValue: e2e.AttributeLevel, targetPool: e2e.Map2AdvancedPool},
+		{skill: 1, mapValue: e2e.DoubleArgMMR, targetPool: e2e.Map1BeginnerPool},
+		{skill: 5, mapValue: e2e.DoubleArgMMR, targetPool: e2e.Map1BeginnerPool},
+		{skill: 8, mapValue: e2e.DoubleArgMMR, targetPool: e2e.Map1AdvancedPool},
+		{skill: 0, mapValue: e2e.DoubleArgLevel, targetPool: e2e.Map2BeginnerPool},
+		{skill: 6, mapValue: e2e.DoubleArgLevel, targetPool: e2e.Map2AdvancedPool},
+		{skill: 10, mapValue: e2e.DoubleArgLevel, targetPool: e2e.Map2AdvancedPool},
 		{skill: 10, mapValue: "non-indexable-map"},
 	}
 
 	// The Pools that are used for testing. Currently, each pool simply represents
-	// a combination of the attributes indexed on a ticket.
+	// a combination of the DoubleArgs indexed on a ticket.
 	testPools := map[string]*pb.Pool{
 		e2e.Map1BeginnerPool: {
 			Name: e2e.Map1BeginnerPool,
-			FloatRangeFilters: []*pb.FloatRangeFilter{
-				{Attribute: e2e.AttributeDefense, Min: 0, Max: 5},
-				{Attribute: e2e.AttributeMMR, Max: math.MaxFloat64},
+			DoubleRangeFilters: []*pb.DoubleRangeFilter{
+				{DoubleArg: e2e.DoubleArgDefense, Min: 0, Max: 5},
+				{DoubleArg: e2e.DoubleArgMMR, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map1AdvancedPool: {
 			Name: e2e.Map1AdvancedPool,
-			FloatRangeFilters: []*pb.FloatRangeFilter{
-				{Attribute: e2e.AttributeDefense, Min: 6, Max: 10},
-				{Attribute: e2e.AttributeMMR, Max: math.MaxFloat64},
+			DoubleRangeFilters: []*pb.DoubleRangeFilter{
+				{DoubleArg: e2e.DoubleArgDefense, Min: 6, Max: 10},
+				{DoubleArg: e2e.DoubleArgMMR, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map2BeginnerPool: {
 			Name: e2e.Map2BeginnerPool,
-			FloatRangeFilters: []*pb.FloatRangeFilter{
-				{Attribute: e2e.AttributeDefense, Min: 0, Max: 5},
-				{Attribute: e2e.AttributeLevel, Max: math.MaxFloat64},
+			DoubleRangeFilters: []*pb.DoubleRangeFilter{
+				{DoubleArg: e2e.DoubleArgDefense, Min: 0, Max: 5},
+				{DoubleArg: e2e.DoubleArgLevel, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map2AdvancedPool: {
 			Name: e2e.Map2AdvancedPool,
-			FloatRangeFilters: []*pb.FloatRangeFilter{
-				{Attribute: e2e.AttributeDefense, Min: 6, Max: 10},
-				{Attribute: e2e.AttributeLevel, Max: math.MaxFloat64},
+			DoubleRangeFilters: []*pb.DoubleRangeFilter{
+				{DoubleArg: e2e.DoubleArgDefense, Min: 6, Max: 10},
+				{DoubleArg: e2e.DoubleArgLevel, Max: math.MaxFloat64},
 			},
 		},
 	}
@@ -136,7 +136,7 @@ func TestMinimatch(t *testing.T) {
 					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{
 						SearchFields: &pb.SearchFields{
 							DoubleArgs: map[string]float64{
-								e2e.AttributeDefense: td.skill,
+								e2e.DoubleArgDefense: td.skill,
 								td.mapValue:          float64(time.Now().Unix()),
 							},
 						},

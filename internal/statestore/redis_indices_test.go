@@ -97,9 +97,9 @@ func TestExtractIndexFilters(t *testing.T) {
 		{
 			description: "range",
 			pool: &pb.Pool{
-				FloatRangeFilters: []*pb.FloatRangeFilter{
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{
 					{
-						Attribute: "foo",
+						DoubleArg: "foo",
 						Min:       -1,
 						Max:       1,
 					},
@@ -135,7 +135,7 @@ func TestExtractIndexFilters(t *testing.T) {
 			pool: &pb.Pool{
 				StringEqualsFilters: []*pb.StringEqualsFilter{
 					{
-						Attribute: "foo",
+						StringArg: "foo",
 						Value:     "bar",
 					},
 				},

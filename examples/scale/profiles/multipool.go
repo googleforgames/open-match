@@ -55,20 +55,20 @@ func multipoolProfiles(cfg config.View) []*pb.MatchProfile {
 					poolName := fmt.Sprintf("%s_%s_%s_%s", region, rating.name, latency.name, character)
 					p := &pb.Pool{
 						Name: poolName,
-						FloatRangeFilters: []*pb.FloatRangeFilter{
-							// TODO: Use StringEqualsFilter for the character attribute.
+						DoubleRangeFilters: []*pb.DoubleRangeFilter{
+							// TODO: Use StringEqualsFilter for the character args.
 							{
-								Attribute: character,
+								DoubleArg: character,
 								Min:       0,
 								Max:       math.MaxFloat64,
 							},
 							{
-								Attribute: e2e.AttributeMMR,
+								DoubleArg: e2e.DoubleArgMMR,
 								Min:       float64(rating.min),
 								Max:       float64(rating.max),
 							},
 							{
-								Attribute: region,
+								DoubleArg: region,
 								Min:       float64(latency.min),
 								Max:       float64(latency.max),
 							},

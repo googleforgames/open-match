@@ -236,7 +236,7 @@ func TestDoAssignTickets(t *testing.T) {
 				// Make sure tickets are correctly indexed.
 				var wantFilteredTickets []*pb.Ticket
 				pool := &pb.Pool{
-					FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: fakeProperty, Min: 0, Max: 3}},
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: fakeProperty, Min: 0, Max: 3}},
 				}
 				err := store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
 					wantFilteredTickets = filterTickets
@@ -281,7 +281,7 @@ func TestDoAssignTickets(t *testing.T) {
 				// Make sure tickets are deindexed after assignment
 				var wantFilteredTickets []*pb.Ticket
 				pool := &pb.Pool{
-					FloatRangeFilters: []*pb.FloatRangeFilter{{Attribute: fakeProperty, Min: 0, Max: 2}},
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: fakeProperty, Min: 0, Max: 2}},
 				}
 				store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
 					wantFilteredTickets = filterTickets

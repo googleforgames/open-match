@@ -52,14 +52,14 @@ func multifilterProfiles(cfg config.View) []*pb.MatchProfile {
 				poolName := fmt.Sprintf("%s_%s_%s", region, rating.name, latency.name)
 				p := &pb.Pool{
 					Name: poolName,
-					FloatRangeFilters: []*pb.FloatRangeFilter{
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{
 						{
-							Attribute: e2e.AttributeMMR,
+							DoubleArg: e2e.DoubleArgMMR,
 							Min:       float64(rating.min),
 							Max:       float64(rating.max),
 						},
 						{
-							Attribute: region,
+							DoubleArg: region,
 							Min:       float64(latency.min),
 							Max:       float64(latency.max),
 						},

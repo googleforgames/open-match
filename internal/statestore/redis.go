@@ -311,16 +311,16 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 	}
 
 	for k, v := range indexedFields {
-		// Index the attribute by value.
+		// Index the DoubleArg by value.
 		err = redisConn.Send("ZADD", k, v, ticket.GetId())
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
 				"cmd":       "ZADD",
-				"attribute": k,
+				"DoubleArg": k,
 				"value":     v,
 				"ticket":    ticket.GetId(),
 				"error":     err.Error(),
-			}).Error("failed to index ticket attribute")
+			}).Error("failed to index ticket DoubleArg")
 			return status.Errorf(codes.Internal, "%v", err)
 		}
 	}
@@ -406,8 +406,8 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	return nil
 }
 
-// FilterTickets returns the Ticket ids and required attribute key-value pairs for the Tickets meeting the specified filtering criteria.
-// map[ticket.Id]map[attributeName][attributeValue]
+// FilterTickets returns the Ticket ids and required DoubleArg key-value pairs for the Tickets meeting the specified filtering criteria.
+// map[ticket.Id]map[DoubleArgName][DoubleArgValue]
 // {
 //  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
@@ -427,9 +427,9 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 	// A set of playerIds that satisfies all filters
 	idSet := make([]string, 0)
 
-	// For each filter, do a range query to Redis on Filter.Attribute
+	// For each filter, do a range query to Redis on Filter.DoubleArg
 	for i, filter := range extractIndexFilters(pool) {
-		// Time Complexity O(logN + M), where N is the number of elements in the attribute set
+		// Time Complexity O(logN + M), where N is the number of elements in the DoubleArg set
 		// and M is the number of entries being returned.
 		// TODO: discuss if we need a LIMIT for # of queries being returned
 		idsInFilter, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.name, filter.min, filter.max))
@@ -616,7 +616,7 @@ func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string
 
 	currentTime := time.Now().UnixNano()
 	for _, id := range ids {
-		// Index the attribute by value.
+		// Index the DoubleArg by value.
 		err = redisConn.Send("ZADD", "proposed_ticket_ids", currentTime, id)
 		if err != nil {
 			redisLogger.WithError(err).Error("failed to append proposed tickets to redis")

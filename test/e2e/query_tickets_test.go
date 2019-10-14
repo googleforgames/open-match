@@ -50,8 +50,8 @@ func TestQueryTickets(t *testing.T) {
 			description: "expects response with no tickets since the store is empty",
 			gotTickets:  []*pb.Ticket{},
 			pool: &pb.Pool{
-				FloatRangeFilters: []*pb.FloatRangeFilter{{
-					Attribute: "ok",
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{{
+					DoubleArg: "ok",
 				}},
 			},
 			wantCode:      codes.OK,
@@ -61,12 +61,12 @@ func TestQueryTickets(t *testing.T) {
 		{
 			description: "expects response with no tickets since all tickets in the store are filtered out",
 			gotTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.AttributeMMR, Min: 0, Max: 10, Interval: 2},
-				internalTesting.Property{Name: e2e.AttributeLevel, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
 			),
 			pool: &pb.Pool{
-				FloatRangeFilters: []*pb.FloatRangeFilter{{
-					Attribute: e2e.AttributeDefense,
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{{
+					DoubleArg: e2e.DoubleArgDefense,
 				}},
 			},
 			wantCode:      codes.OK,
@@ -74,43 +74,43 @@ func TestQueryTickets(t *testing.T) {
 			wantPageCount: 0,
 		},
 		{
-			description: "expects response with 5 tickets with e2e.FloatRangeAttribute1=2 and e2e.FloatRangeAttribute2 in range of [0,10)",
+			description: "expects response with 5 tickets with e2e.FloatRangeDoubleArg1=2 and e2e.FloatRangeDoubleArg2 in range of [0,10)",
 			gotTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.AttributeMMR, Min: 0, Max: 10, Interval: 2},
-				internalTesting.Property{Name: e2e.AttributeLevel, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
 			),
 			pool: &pb.Pool{
-				FloatRangeFilters: []*pb.FloatRangeFilter{{
-					Attribute: e2e.AttributeMMR,
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{{
+					DoubleArg: e2e.DoubleArgMMR,
 					Min:       1,
 					Max:       3,
 				}},
 			},
 			wantCode: codes.OK,
 			wantTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.AttributeMMR, Min: 2, Max: 3, Interval: 2},
-				internalTesting.Property{Name: e2e.AttributeLevel, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 2, Max: 3, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
 			),
 			wantPageCount: 1,
 		},
 		{
 			// Test inclusive filters and paging works as expected
-			description: "expects response with 15 tickets with e2e.FloatRangeAttribute1=2,4,6 and e2e.FloatRangeAttribute2=[0,10)",
+			description: "expects response with 15 tickets with e2e.FloatRangeDoubleArg1=2,4,6 and e2e.FloatRangeDoubleArg2=[0,10)",
 			gotTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.AttributeMMR, Min: 0, Max: 10, Interval: 2},
-				internalTesting.Property{Name: e2e.AttributeLevel, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
 			),
 			pool: &pb.Pool{
-				FloatRangeFilters: []*pb.FloatRangeFilter{{
-					Attribute: e2e.AttributeMMR,
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{{
+					DoubleArg: e2e.DoubleArgMMR,
 					Min:       2,
 					Max:       6,
 				}},
 			},
 			wantCode: codes.OK,
 			wantTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.AttributeMMR, Min: 2, Max: 7, Interval: 2},
-				internalTesting.Property{Name: e2e.AttributeLevel, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 2, Max: 7, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
 			),
 			wantPageCount: 2,
 		},
@@ -171,7 +171,7 @@ func TestQueryTickets(t *testing.T) {
 			pool: &pb.Pool{
 				StringEqualsFilters: []*pb.StringEqualsFilter{
 					{
-						Attribute: e2e.Role,
+						StringArg: e2e.Role,
 						Value:     "warrior",
 					},
 				},
@@ -210,7 +210,7 @@ func TestQueryTickets(t *testing.T) {
 				{
 					SearchFields: &pb.SearchFields{
 						DoubleArgs: map[string]float64{
-							e2eTesting.AttributeMMR: 100,
+							e2eTesting.DoubleArgMMR: 100,
 						},
 					},
 				},
@@ -235,7 +235,7 @@ func TestQueryTickets(t *testing.T) {
 				{
 					SearchFields: &pb.SearchFields{
 						DoubleArgs: map[string]float64{
-							e2eTesting.AttributeMMR: 100,
+							e2eTesting.DoubleArgMMR: 100,
 						},
 					},
 				},
