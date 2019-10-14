@@ -19,7 +19,7 @@ import (
 	"context"
 	"io"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
@@ -51,23 +51,22 @@ type matchFunctionService struct {
 	mmlogicClient pb.MmLogicClient
 }
 
-// MatchFunctionParams : This harness example defines a protected view for the match function.
-//  - logger:
-//			A logger used to generate error/debug logs
-//  - profileName
-//			The name of profile
-//  - properties:
-//			'Properties' of a MatchObject.
-//  - rosters:
-//			An array of Rosters. By convention, your input Roster contains players already in
-//          the match, and the names of pools to search when trying to fill an empty slot.
-//  - poolNameToTickets:
-//			A map that contains mappings from pool name to a list of tickets that satisfied the filters in the pool
+// MatchFunctionParams is a protected view for the match function.
 type MatchFunctionParams struct {
-	Logger            *logrus.Entry
-	ProfileName       string
-	Properties        *structpb.Struct
-	Rosters           []*pb.Roster
+	// Logger is used to generate error/debug logs
+	Logger *logrus.Entry
+
+	// 'Name' from the MatchProfile.
+	ProfileName string
+
+	// 'Extension' from the MatchProfile.
+	Extension *any.Any
+
+	// An array of Rosters. By convention, your input Roster contains players already in
+	// the match, and the names of pools to search when trying to fill an empty slot.
+	Rosters []*pb.Roster
+
+	// A map that contains mappings from pool name to a list of tickets that satisfied the filters in the pool
 	PoolNameToTickets map[string][]*pb.Ticket
 }
 
@@ -85,7 +84,7 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 			"component": "matchfunction.implementation",
 		}),
 		ProfileName:       req.GetProfile().GetName(),
-		Properties:        req.GetProfile().GetProperties(),
+		Extension:         req.GetProfile().GetExtension(),
 		Rosters:           req.GetProfile().GetRosters(),
 		PoolNameToTickets: poolNameToTickets,
 	}

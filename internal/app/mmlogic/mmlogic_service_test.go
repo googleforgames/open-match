@@ -33,8 +33,8 @@ import (
 
 func TestDoQueryTickets(t *testing.T) {
 	const (
-		attribute1 = "level"
-		attribute2 = "spd"
+		DoubleArg1 = "level"
+		DoubleArg2 = "spd"
 	)
 
 	var actualTickets []*pb.Ticket
@@ -51,8 +51,8 @@ func TestDoQueryTickets(t *testing.T) {
 	}
 
 	testTickets := internalTesting.GenerateFloatRangeTickets(
-		internalTesting.Property{Name: attribute1, Min: 0, Max: 20, Interval: 5},
-		internalTesting.Property{Name: attribute2, Min: 0, Max: 20, Interval: 5},
+		internalTesting.Property{Name: DoubleArg1, Min: 0, Max: 20, Interval: 5},
+		internalTesting.Property{Name: DoubleArg2, Min: 0, Max: 20, Interval: 5},
 	)
 
 	tests := []struct {
@@ -68,9 +68,9 @@ func TestDoQueryTickets(t *testing.T) {
 			"expect empty response from an empty store",
 			senderGenerator(nil),
 			&pb.Pool{
-				FloatRangeFilters: []*pb.FloatRangeFilter{
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{
 					{
-						Attribute: attribute1,
+						DoubleArg: DoubleArg1,
 						Min:       0,
 						Max:       10,
 					},
@@ -82,12 +82,12 @@ func TestDoQueryTickets(t *testing.T) {
 			nil,
 		},
 		{
-			"expect tickets with attribute1 value in range of [0, 10] (inclusively)",
+			"expect tickets with DoubleArg1 value in range of [0, 10] (inclusively)",
 			senderGenerator(nil),
 			&pb.Pool{
-				FloatRangeFilters: []*pb.FloatRangeFilter{
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{
 					{
-						Attribute: attribute1,
+						DoubleArg: DoubleArg1,
 						Min:       0,
 						Max:       10,
 					},
@@ -102,17 +102,17 @@ func TestDoQueryTickets(t *testing.T) {
 			},
 			nil,
 			internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: attribute1, Min: 0, Max: 10.1, Interval: 5},
-				internalTesting.Property{Name: attribute2, Min: 0, Max: 20, Interval: 5},
+				internalTesting.Property{Name: DoubleArg1, Min: 0, Max: 10.1, Interval: 5},
+				internalTesting.Property{Name: DoubleArg2, Min: 0, Max: 20, Interval: 5},
 			),
 		},
 		{
 			"expect error from canceled context",
 			senderGenerator(fakeErr),
 			&pb.Pool{
-				FloatRangeFilters: []*pb.FloatRangeFilter{
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{
 					{
-						Attribute: attribute1,
+						DoubleArg: DoubleArg1,
 						Min:       0,
 						Max:       10,
 					},
@@ -134,7 +134,6 @@ func TestDoQueryTickets(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			cfg := viper.New()
 			cfg.Set("storage.page.size", 1000)
-			cfg.Set("ticketIndices", []string{attribute1, attribute2})
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 			defer closer()
 

@@ -16,10 +16,6 @@ package e2e
 
 var (
 	zygote OM
-
-	// Indices covers all ticketIndices that will be used in the e2e test
-	// Please update the ticketIndices in the helm chart for in-cluster end-to-end test if you need to add new indices.
-	Indices = []string{AttributeMMR, AttributeLevel, AttributeDefense, ModeDemo, Role}
 )
 
 const (
@@ -31,12 +27,12 @@ const (
 	Map2BeginnerPool = "map2beginner"
 	// Map2AdvancedPool is pool name.
 	Map2AdvancedPool = "map2advanced"
-	// AttributeMMR is an index used to test FloatRangeFilter.
-	AttributeMMR = "attribute.mmr"
-	// AttributeLevel is an index used to test FloatRangeFilter.
-	AttributeLevel = "attribute.level"
-	// AttributeDefense is an index used to test FloatRangeFilter.
-	AttributeDefense = "attribute.defense"
+	// DoubleArgMMR is an index used to test DoubleRangeFilter.
+	DoubleArgMMR = "attribute.mmr"
+	// DoubleArgLevel is an index used to test DoubleRangeFilter.
+	DoubleArgLevel = "attribute.level"
+	// DoubleArgDefense is an index used to test DoubleRangeFilter.
+	DoubleArgDefense = "attribute.defense"
 	// ModeDemo is an index used to test BoolEqualsFilter
 	ModeDemo = "mode.demo"
 	// Role is an index used to test StringEqualsFilter

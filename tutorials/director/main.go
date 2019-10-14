@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package examples defines the constants that some of the examples may share.
-package examples
+package main
 
-const (
-	MatchScore = "match_score"
-)
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, director")
+}

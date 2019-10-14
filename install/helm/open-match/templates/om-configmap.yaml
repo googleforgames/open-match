@@ -97,9 +97,4 @@ data:
       ignoreLists:
         ttl: {{ .Values.redis.ignoreLists.ttl }}
       expiration: 43200
-
-    ticketIndices:
-    {{- range .Values.ticketIndices }}
-      - {{ . }}
-    {{- end }}
 {{- end }}

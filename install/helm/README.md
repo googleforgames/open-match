@@ -17,12 +17,6 @@ You may control the behavior of Open Match by overriding the configs in `install
 # 2. Configs under the subchart name - e.g. `open-match-test` only affects the settings in that subchart.
 # 3. Otherwise, the configs are for core components (templates in the parent chart) only.
 
-# Setup Open Match with customized ticket indices
-ticketIndices:
-+ - myfirstindice
-+ - mysecondice
-+ - ...
-
 # Overrides spec.type of a specific Kubernetes Service
 # Equivalent helm cli flag --set swaggerui.portType=LoadBalancer
 swaggerui:
