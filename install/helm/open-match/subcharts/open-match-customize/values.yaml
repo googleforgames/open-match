@@ -18,10 +18,12 @@
 
 function:
   replicas: 3
+  portType: ClusterIP
   image: openmatch-mmf-go-soloduel
 
 evaluator:
   replicas: 3
+  portType: ClusterIP
   image: openmatch-evaluator-go-simple
 
 image:
