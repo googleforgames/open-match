@@ -129,6 +129,26 @@
       },
       "description": "An Assignment object represents the assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
     },
+    "openmatchDoubleRangeFilter": {
+      "type": "object",
+      "properties": {
+        "double_arg": {
+          "type": "string",
+          "description": "Name of the ticket's search_fields.double_args this Filter operates on."
+        },
+        "max": {
+          "type": "number",
+          "format": "double",
+          "description": "Maximum value. Defaults to positive infinity (any value above minv)."
+        },
+        "min": {
+          "type": "number",
+          "format": "double",
+          "description": "Minimum value. Defaults to 0."
+        }
+      },
+      "title": "Filters numerical values to only those within a range.\n  double_arg: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {}"
+    },
     "openmatchFetchMatchesRequest": {
       "type": "object",
       "properties": {
@@ -153,26 +173,6 @@
           "description": "Result Match for the requested MatchProfile.\nNote that OpenMatch will validate the proposals, a valid match should contain at least one ticket."
         }
       }
-    },
-    "openmatchFloatRangeFilter": {
-      "type": "object",
-      "properties": {
-        "attribute": {
-          "type": "string",
-          "title": "Name of the ticket attribute this Filter operates on.\nTODO: rename double_args"
-        },
-        "max": {
-          "type": "number",
-          "format": "double",
-          "description": "Maximum value. Defaults to positive infinity (any value above minv)."
-        },
-        "min": {
-          "type": "number",
-          "format": "double",
-          "description": "Minimum value. Defaults to 0."
-        }
-      },
-      "title": "Filters numerical values to only those within a range.\n  attribute: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {}"
     },
     "openmatchFunctionConfig": {
       "type": "object",
@@ -273,10 +273,10 @@
           "type": "string",
           "description": "A developer-chosen human-readable name for this Pool."
         },
-        "float_range_filters": {
+        "double_range_filters": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/openmatchFloatRangeFilter"
+            "$ref": "#/definitions/openmatchDoubleRangeFilter"
           },
           "description": "Set of Filters indicating the filtering criteria. Selected players must\nmatch every Filter."
         },
@@ -342,15 +342,15 @@
     "openmatchStringEqualsFilter": {
       "type": "object",
       "properties": {
-        "attribute": {
+        "string_arg": {
           "type": "string",
-          "title": "TODO: rename string_args"
+          "description": "Name of the ticket's search_fields.string_args this Filter operates on."
         },
         "value": {
           "type": "string"
         }
       },
-      "title": "Filters strings exactly equaling a value.\n  attribute: \"foo\"\n  value: \"bar\"\nmatches:\n  {\"foo\": \"bar\"}\ndoes not match:\n  {\"foo\": \"baz\"}\n  {\"bar\": \"foo\"}\n  {}"
+      "title": "Filters strings exactly equaling a value.\n  string_arg: \"foo\"\n  value: \"bar\"\nmatches:\n  {\"foo\": \"bar\"}\ndoes not match:\n  {\"foo\": \"baz\"}\n  {\"bar\": \"foo\"}\n  {}"
     },
     "openmatchTagPresentFilter": {
       "type": "object",

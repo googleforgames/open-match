@@ -79,7 +79,7 @@ message Assignment {
 }
 
 // Filters numerical values to only those within a range.
-//   attribute: "foo"
+//   double_arg: "foo"
 //   max: 10
 //   min: 5
 // matches:
@@ -91,10 +91,9 @@ message Assignment {
 //   {"foo": 10.01}
 //   {"foo": "7.5"}
 //   {}
-message FloatRangeFilter {
-  // Name of the ticket attribute this Filter operates on.
-  // TODO: rename double_args
-  string attribute = 1;
+message DoubleRangeFilter {
+  // Name of the ticket's search_fields.double_args this Filter operates on.
+  string double_arg = 1;
 
   // Maximum value. Defaults to positive infinity (any value above minv).
   double max = 2;
@@ -104,7 +103,7 @@ message FloatRangeFilter {
 }
 
 // Filters strings exactly equaling a value.
-//   attribute: "foo"
+//   string_arg: "foo"
 //   value: "bar"
 // matches:
 //   {"foo": "bar"}
@@ -113,8 +112,8 @@ message FloatRangeFilter {
 //   {"bar": "foo"}
 //   {}
 message StringEqualsFilter {
-  // TODO: rename string_args
-  string attribute = 1;
+  // Name of the ticket's search_fields.string_args this Filter operates on.
+  string string_arg = 1;
 
   string value = 2;
 }
@@ -137,7 +136,7 @@ message Pool {
 
   // Set of Filters indicating the filtering criteria. Selected players must
   // match every Filter.
-  repeated FloatRangeFilter float_range_filters = 2;
+  repeated DoubleRangeFilter double_range_filters = 2;
 
   repeated StringEqualsFilter string_equals_filters = 4;
 

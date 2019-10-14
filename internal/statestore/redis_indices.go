@@ -28,8 +28,8 @@ import (
 // doing direct lookups on those ranges.
 // Tags indicate presence in the set.  The value used is 0.  Filters on tags
 // look up that set.
-// Strings values are indexed by a unique attribute/value pair with value 0.
-// Filters are strings look up that attribute/value pair.
+// Strings values are indexed by a unique DoubleArg/value pair with value 0.
+// Filters are strings look up that DoubleArg/value pair.
 
 func extractIndexedFields(t *pb.Ticket) map[string]float64 {
 	result := make(map[string]float64)
@@ -59,9 +59,9 @@ type indexFilter struct {
 func extractIndexFilters(p *pb.Pool) []indexFilter {
 	filters := make([]indexFilter, 0)
 
-	for _, f := range p.FloatRangeFilters {
+	for _, f := range p.DoubleRangeFilters {
 		filters = append(filters, indexFilter{
-			name: rangeIndexName(f.Attribute),
+			name: rangeIndexName(f.DoubleArg),
 			min:  f.Min,
 			max:  f.Max,
 		})
@@ -77,7 +77,7 @@ func extractIndexFilters(p *pb.Pool) []indexFilter {
 
 	for _, f := range p.StringEqualsFilters {
 		filters = append(filters, indexFilter{
-			name: stringIndexName(f.Attribute, f.Value),
+			name: stringIndexName(f.StringArg, f.Value),
 			min:  0,
 			max:  0,
 		})
@@ -99,19 +99,19 @@ func extractIndexFilters(p *pb.Pool) []indexFilter {
 // name collision.
 const allTickets = "allTickets"
 
-func rangeIndexName(attribute string) string {
+func rangeIndexName(arg string) string {
 	// ri stands for range index
-	return "ri$" + indexEscape(attribute)
+	return "ri$" + indexEscape(arg)
 }
 
-func tagIndexName(attribute string) string {
+func tagIndexName(arg string) string {
 	// ti stands for tag index
-	return "ti$" + indexEscape(attribute)
+	return "ti$" + indexEscape(arg)
 }
 
-func stringIndexName(attribute string, value string) string {
+func stringIndexName(arg string, value string) string {
 	// si stands for string index
-	return "si$" + indexEscape(attribute) + "$v" + indexEscape(value)
+	return "si$" + indexEscape(arg) + "$v" + indexEscape(value)
 }
 
 func indexCacheName(id string) string {
