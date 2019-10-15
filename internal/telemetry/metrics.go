@@ -22,7 +22,7 @@ import (
 	"go.opencensus.io/tag"
 )
 
-// Gauge creates a gauge metric.
+// Gauge creates a gauge metric to be recorded with dimensionless unit.
 func Gauge(name string, description string, tags ...tag.Key) *stats.Int64Measure {
 	s := stats.Int64(name, description, "1")
 	gaugeView(s, tags...)
@@ -38,26 +38,26 @@ func SetGauge(ctx context.Context, s *stats.Int64Measure, n int64, tags ...tag.M
 	stats.Record(mCtx, s.M(n))
 }
 
-// Counter creates a counter metric.
+// Counter creates a counter metric to be recorded with dimensionless unit.
 func Counter(name string, description string, tags ...tag.Key) *stats.Int64Measure {
 	s := stats.Int64(name, "Count of "+description+".", stats.UnitDimensionless)
 	counterView(s, tags...)
 	return s
 }
 
-// HistogramWithBounds creates a prometheus histogram metric with specified bounds.
+// HistogramWithBounds creates a prometheus histogram metric to be recorded with specified bounds and metric type.
 func HistogramWithBounds(name string, description string, unit string, bounds []float64, tags ...tag.Key) *stats.Int64Measure {
 	s := stats.Int64(name, description, unit)
 	histogramView(s, bounds, tags...)
 	return s
 }
 
-// RecordUnitMeasurement records one measurement unit with given tags.
+// RecordUnitMeasurement records a data point using the input metric by one unit with given tags.
 func RecordUnitMeasurement(ctx context.Context, s *stats.Int64Measure, tags ...tag.Mutator) {
 	RecordNUnitMeasurement(ctx, s, 1, tags...)
 }
 
-// RecordNUnitMeasurement records N measurement units at once with given tags.
+// RecordNUnitMeasurement records a data point using the input metric by N units with given tags.
 func RecordNUnitMeasurement(ctx context.Context, s *stats.Int64Measure, n int64, tags ...tag.Mutator) {
 	if err := stats.RecordWithTags(ctx, tags, s.M(n)); err != nil {
 		logger.WithError(err).Infof("cannot record stat with tags %#v", tags)
