@@ -14,7 +14,8 @@ module open-match.dev/open-match
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-go 1.12
+// When updating Go version, update Dockerfile.ci, Dockerfile.base-build, and go.mod
+go 1.13.1
 
 require (
 	cloud.google.com/go v0.40.0 // indirect
