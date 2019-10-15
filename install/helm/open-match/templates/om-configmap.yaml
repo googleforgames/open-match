@@ -90,7 +90,7 @@ data:
       passwordPath: {{ .Values.redis.secretMountPath }}/redis-password
 {{- end }}
       pool:
-        maxIdle: 3
+        maxIdle: 5000
         maxActive: 0
         idleTimeout: 60s
         healthCheckTimeout: 100ms
