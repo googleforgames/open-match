@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-// Also update go.mod when changing go version.
+// When updating Go version, update Dockerfile.ci, Dockerfile.base-build, and go.mod
 FROM golang:1.13.1
 ENV GO111MODULE=on
 
