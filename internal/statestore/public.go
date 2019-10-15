@@ -27,7 +27,7 @@ type Service interface {
 	// HealthCheck indicates if the database is reachable.
 	HealthCheck(ctx context.Context) error
 
-	// CreateTicket creates a new Ticket in the state storage. This method fails if the Ticket already exists.
+	// CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
 	CreateTicket(ctx context.Context, ticket *pb.Ticket) error
 
 	// GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
@@ -43,7 +43,7 @@ type Service interface {
 	DeindexTicket(ctx context.Context, id string) error
 
 	// FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria.
-	FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error
+	FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error
 
 	// UpdateAssignments update the match assignments for the input ticket ids
 	UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error
@@ -53,6 +53,9 @@ type Service interface {
 
 	// AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
 	AddTicketsToIgnoreList(ctx context.Context, ids []string) error
+
+	// DeleteTicketsFromIgnoreList deletes tickets from the proposed sorted set
+	DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) error
 
 	// Closes the connection to the underlying storage.
 	Close() error

@@ -29,7 +29,6 @@ import (
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 
@@ -174,15 +173,19 @@ func TestDoAssignTickets(t *testing.T) {
 	fakeTickets := []*pb.Ticket{
 		{
 			Id: "1",
-			Properties: structs.Struct{
-				fakeProperty: structs.Number(1),
-			}.S(),
+			SearchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{
+					fakeProperty: 1,
+				},
+			},
 		},
 		{
 			Id: "2",
-			Properties: structs.Struct{
-				fakeProperty: structs.Number(2),
-			}.S(),
+			SearchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{
+					fakeProperty: 2,
+				},
+			},
 		},
 	}
 
@@ -232,7 +235,10 @@ func TestDoAssignTickets(t *testing.T) {
 				}
 				// Make sure tickets are correctly indexed.
 				var wantFilteredTickets []*pb.Ticket
-				err := store.FilterTickets(ctx, []*pb.Filter{{Attribute: fakeProperty, Min: 0, Max: 3}}, 10, func(filterTickets []*pb.Ticket) error {
+				pool := &pb.Pool{
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: fakeProperty, Min: 0, Max: 3}},
+				}
+				err := store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
 					wantFilteredTickets = filterTickets
 					return nil
 				})
@@ -256,7 +262,6 @@ func TestDoAssignTickets(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
 			cfg := viper.New()
-			cfg.Set("ticketIndices", []string{fakeProperty})
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 			defer closer()
 
@@ -275,7 +280,10 @@ func TestDoAssignTickets(t *testing.T) {
 
 				// Make sure tickets are deindexed after assignment
 				var wantFilteredTickets []*pb.Ticket
-				store.FilterTickets(ctx, []*pb.Filter{{Attribute: fakeProperty, Min: 0, Max: 2}}, 10, func(filterTickets []*pb.Ticket) error {
+				pool := &pb.Pool{
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: fakeProperty, Min: 0, Max: 2}},
+				}
+				store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
 					wantFilteredTickets = filterTickets
 					return nil
 				})

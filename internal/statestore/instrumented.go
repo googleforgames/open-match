@@ -22,15 +22,16 @@ import (
 )
 
 var (
-	mStateStoreCreateTicket           = telemetry.Counter("statestore/createticket", "tickets created")
-	mStateStoreGetTicket              = telemetry.Counter("statestore/getticket", "tickets retrieve")
-	mStateStoreDeleteTicket           = telemetry.Counter("statestore/deleteticket", "tickets deleted")
-	mStateStoreIndexTicket            = telemetry.Counter("statestore/indexticket", "tickets indexed")
-	mStateStoreDeindexTicket          = telemetry.Counter("statestore/deindexticket", "tickets deindexed")
-	mStateStoreFilterTickets          = telemetry.Counter("statestore/filterticket", "tickets that were filtered and returned")
-	mStateStoreUpdateAssignments      = telemetry.Counter("statestore/updateassignment", "tickets assigned")
-	mStateStoreGetAssignments         = telemetry.Counter("statestore/getassignments", "ticket assigned retrieved")
-	mStateStoreAddTicketsToIgnoreList = telemetry.Counter("statestore/addticketstoignorelist", "tickets moved to ignore list")
+	mStateStoreCreateTicket               = telemetry.Counter("statestore/createticket", "tickets created")
+	mStateStoreGetTicket                  = telemetry.Counter("statestore/getticket", "tickets retrieve")
+	mStateStoreDeleteTicket               = telemetry.Counter("statestore/deleteticket", "tickets deleted")
+	mStateStoreIndexTicket                = telemetry.Counter("statestore/indexticket", "tickets indexed")
+	mStateStoreDeindexTicket              = telemetry.Counter("statestore/deindexticket", "tickets deindexed")
+	mStateStoreFilterTickets              = telemetry.Counter("statestore/filterticket", "tickets that were filtered and returned")
+	mStateStoreUpdateAssignments          = telemetry.Counter("statestore/updateassignment", "tickets assigned")
+	mStateStoreGetAssignments             = telemetry.Counter("statestore/getassignments", "ticket assigned retrieved")
+	mStateStoreAddTicketsToIgnoreList     = telemetry.Counter("statestore/addticketstoignorelist", "tickets moved to ignore list")
+	mStateStoreDeleteTicketFromIgnoreList = telemetry.Counter("statestore/deleteticketfromignorelist", "tickets removed from ignore list")
 )
 
 // instrumentedService is a wrapper for a statestore service that provides instrumentation (metrics and tracing) of the database.
@@ -85,9 +86,9 @@ func (is *instrumentedService) DeindexTicket(ctx context.Context, id string) err
 //  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
-func (is *instrumentedService) FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error {
-	return is.s.FilterTickets(ctx, filters, pageSize, func(t []*pb.Ticket) error {
-		telemetry.IncrementCounterN(ctx, mStateStoreFilterTickets, len(t))
+func (is *instrumentedService) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
+	return is.s.FilterTickets(ctx, pool, pageSize, func(t []*pb.Ticket) error {
+		telemetry.IncrementCounterN(ctx, mStateStoreFilterTickets, int64(len(t)))
 		return callback(t)
 	})
 }
@@ -109,8 +110,14 @@ func (is *instrumentedService) GetAssignments(ctx context.Context, id string, ca
 	})
 }
 
-// AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
+// AddTicketsToIgnoreList appends new proposed tickets to the proposed sorted set with current timestamp
 func (is *instrumentedService) AddTicketsToIgnoreList(ctx context.Context, ids []string) error {
-	telemetry.IncrementCounterN(ctx, mStateStoreAddTicketsToIgnoreList, len(ids))
+	telemetry.IncrementCounterN(ctx, mStateStoreAddTicketsToIgnoreList, int64(len(ids)))
 	return is.s.AddTicketsToIgnoreList(ctx, ids)
+}
+
+// DeleteTicketsFromIgnoreList deletes tickets from the proposed sorted set
+func (is *instrumentedService) DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) error {
+	telemetry.IncrementCounterN(ctx, mStateStoreDeleteTicketFromIgnoreList, int64(len(ids)))
+	return is.s.DeleteTicketsFromIgnoreList(ctx, ids)
 }

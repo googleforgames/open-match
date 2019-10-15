@@ -16,6 +16,7 @@
 *.exe
 *.exe~
 *.dll
+*.nupkg
 *.so
 *.dylib
 
@@ -118,9 +119,13 @@ cmd/swaggerui/swaggerui
 tools/certgen/certgen
 examples/demo/demo
 examples/functions/golang/soloduel/soloduel
+examples/functions/golang/rosterbased/rosterbased
 examples/functions/golang/pool/pool
 examples/evaluator/golang/simple/simple
 tools/reaper/reaper
 
 # Secrets Directories
 install/helm/open-match/secrets/
+
+# Helm tar charts
+install/helm/open-match/charts/

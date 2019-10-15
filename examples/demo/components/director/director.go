@@ -17,11 +17,12 @@ package director
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc"
+	"io"
 	"math/rand"
 	"time"
 
 	"open-match.dev/open-match/examples/demo/components"
-	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -65,7 +66,8 @@ func run(ds *components.DemoShared) {
 	s.Status = "Connecting to backend"
 	ds.Update(s)
 
-	conn, err := rpc.GRPCClientFromConfig(ds.Cfg, "api.backend")
+	// See https://open-match.dev/site/docs/guides/api/
+	conn, err := grpc.Dial("om-backend.open-match.svc.cluster.local:50505", grpc.WithInsecure())
 	if err != nil {
 		panic(err)
 	}
@@ -80,8 +82,8 @@ func run(ds *components.DemoShared) {
 	{
 		req := &pb.FetchMatchesRequest{
 			Config: &pb.FunctionConfig{
-				Host: ds.Cfg.GetString("api.functions.hostname"),
-				Port: int32(ds.Cfg.GetInt("api.functions.grpcport")),
+				Host: "om-function.open-match.svc.cluster.local",
+				Port: 50502,
 				Type: pb.FunctionConfig_GRPC,
 			},
 			Profiles: []*pb.MatchProfile{
@@ -90,25 +92,27 @@ func run(ds *components.DemoShared) {
 					Pools: []*pb.Pool{
 						{
 							Name: "Everyone",
-							Filters: []*pb.Filter{
-								{
-									Attribute: "mode.demo",
-									Min:       -100,
-									Max:       100,
-								},
-							},
 						},
 					},
 				},
 			},
 		}
 
-		resp, err := be.FetchMatches(ds.Ctx, req)
+		stream, err := be.FetchMatches(ds.Ctx, req)
 		if err != nil {
 			panic(err)
 		}
 
-		matches = resp.Matches
+		for {
+			resp, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				panic(err)
+			}
+			matches = append(matches, resp.GetMatch())
+		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////////

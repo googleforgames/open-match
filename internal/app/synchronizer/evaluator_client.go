@@ -1,14 +1,28 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package synchronizer
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"sync"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -84,7 +98,6 @@ func (ec *evaluatorClient) initialize() error {
 		}).Info("Created a GRPC client for input endpoint.")
 		ec.grpcClient = pb.NewEvaluatorClient(conn)
 		ec.clType = grpcEvaluator
-		return nil
 	}
 
 	evaluatorClientLogger.WithError(err).Errorf("failed to get a GRPC client from the endpoint %v", grpcAddr)
@@ -103,56 +116,126 @@ func (ec *evaluatorClient) initialize() error {
 	return nil
 }
 
-func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Match) (results []*pb.Match, err error) {
-	resp, err := ec.grpcClient.Evaluate(ctx, &pb.EvaluateRequest{Matches: proposals})
+func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	stream, err := ec.grpcClient.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.GetMatches(), nil
+	for _, proposal := range proposals {
+		if err = stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
+			return nil, err
+		}
+	}
+
+	if err = stream.CloseSend(); err != nil {
+		logger.Errorf("failed to close the send stream: %s", err.Error())
+	}
+
+	var results = []*pb.Match{}
+	for {
+		// TODO: add grpc timeouts for this call.
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			// read done.
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, resp.GetMatch())
+	}
+
+	return results, nil
 }
 
-func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) (results []*pb.Match, err error) {
+func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	reqr, reqw := io.Pipe()
 	proposalIDs := getMatchIds(proposals)
-	jsonProposals, err := json.Marshal(proposals)
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal proposals to string for proposals %s: %s", proposalIDs, err.Error())
-	}
+	var wg sync.WaitGroup
+	wg.Add(1)
 
-	reqBody, err := json.Marshal(map[string]json.RawMessage{"match": jsonProposals})
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal request body for proposals %s: %s", proposalIDs, err.Error())
-	}
-
-	req, err := http.NewRequest("POST", ec.baseURL+"/v1/matches:evaluate", bytes.NewBuffer(reqBody))
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to create evaluator http request for proposals %s: %s", proposalIDs, err.Error())
-	}
-
-	resp, err := ec.httpClient.Do(req.WithContext(ctx))
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get response from evaluator for proposals %s: %s", proposalIDs, err.Error())
-	}
-
-	defer func() {
-		err = resp.Body.Close()
-		if err != nil {
-			evaluatorClientLogger.WithError(err).Warning("failed to close response body read closer")
+	sc := make(chan error, 1)
+	defer close(sc)
+	go func() {
+		var m jsonpb.Marshaler
+		defer func() {
+			wg.Done()
+			if reqw.Close() != nil {
+				logger.Warning("failed to close response body read closer")
+			}
+		}()
+		for _, proposal := range proposals {
+			buf, err := m.MarshalToString(&pb.EvaluateRequest{Match: proposal})
+			if err != nil {
+				sc <- status.Errorf(codes.FailedPrecondition, "failed to marshal proposal to string: %s", err.Error())
+				return
+			}
+			_, err = io.WriteString(reqw, buf)
+			if err != nil {
+				sc <- status.Errorf(codes.FailedPrecondition, "failed to write proto string to io writer: %s", err.Error())
+				return
+			}
 		}
 	}()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	req, err := http.NewRequest("POST", ec.baseURL+"/v1/evaluator/matches:evaluate", reqr)
 	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition,
-			"failed to read from response body for proposals %s: %s", proposalIDs, err.Error())
+		return nil, status.Errorf(codes.Aborted, "failed to create evaluator http request for proposals %s: %s", proposalIDs, err.Error())
 	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Transfer-Encoding", "chunked")
 
-	pbResp := &pb.EvaluateResponse{}
-	err = json.Unmarshal(body, pbResp)
+	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
 	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition,
-			"failed to unmarshal response body to response pb for proposals %s: %s", proposalIDs, err.Error())
+		return nil, status.Errorf(codes.Aborted, "failed to get response from evaluator for proposals %s: %s", proposalIDs, err.Error())
 	}
+	defer func() {
+		if resp.Body.Close() != nil {
+			logger.Warning("failed to close response body read closer")
+		}
+	}()
 
-	return pbResp.GetMatches(), nil
+	wg.Add(1)
+	var results = []*pb.Match{}
+	rc := make(chan error, 1)
+	defer close(rc)
+	go func() {
+		defer wg.Done()
+
+		dec := json.NewDecoder(resp.Body)
+		for {
+			var item struct {
+				Result json.RawMessage        `json:"result"`
+				Error  map[string]interface{} `json:"error"`
+			}
+			err := dec.Decode(&item)
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				rc <- status.Errorf(codes.Unavailable, "failed to read response from HTTP JSON stream: %s", err.Error())
+				return
+			}
+			if len(item.Error) != 0 {
+				rc <- status.Errorf(codes.Unavailable, "failed to execute evaluator.Evaluate: %v", item.Error)
+				return
+			}
+			resp := &pb.EvaluateResponse{}
+			if err = jsonpb.UnmarshalString(string(item.Result), resp); err != nil {
+				rc <- status.Errorf(codes.Unavailable, "failed to execute jsonpb.UnmarshalString(%s, &proposal): %v.", item.Result, err)
+				return
+			}
+			results = append(results, resp.GetMatch())
+		}
+	}()
+
+	wg.Wait()
+	if len(sc) != 0 {
+		return nil, <-sc
+	}
+	if len(rc) != 0 {
+		return nil, <-rc
+	}
+	return results, nil
 }

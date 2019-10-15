@@ -27,6 +27,11 @@ spec:
     app: {{ template "openmatch.name" . }}
     component: evaluator
     release: {{ .Release.Name }}
+{{- $portType := coalesce .Values.global.kubernetes.service.portType .Values.evaluator.portType -}}
+{{- if eq $portType "ClusterIP" }}
+  clusterIP: None
+{{- end }}
+  type: {{ $portType }}
   ports:
   - name: grpc
     protocol: TCP

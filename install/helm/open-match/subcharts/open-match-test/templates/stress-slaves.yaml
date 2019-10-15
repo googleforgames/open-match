@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if .Values.stresstest.enabled }}
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
@@ -51,3 +52,4 @@ spec:
         - "--host=http://{{ .Values.frontend.hostName }}:{{ .Values.frontend.httpPort }}"
         - "--slave"
         - "--master-host={{ .Values.stresstest.masterName }}"
+{{- end }}

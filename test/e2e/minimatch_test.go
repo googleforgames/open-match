@@ -27,7 +27,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
 )
 
 type testProfile struct {
@@ -48,44 +47,44 @@ func TestMinimatch(t *testing.T) {
 
 	// Tickets used for testing. The id will be populated once the Tickets are created.
 	sourceTickets := []testTicket{
-		{skill: 1, mapValue: e2e.Map1Attribute, targetPool: e2e.Map1BeginnerPool},
-		{skill: 5, mapValue: e2e.Map1Attribute, targetPool: e2e.Map1BeginnerPool},
-		{skill: 8, mapValue: e2e.Map1Attribute, targetPool: e2e.Map1AdvancedPool},
-		{skill: 0, mapValue: e2e.Map2Attribute, targetPool: e2e.Map2BeginnerPool},
-		{skill: 6, mapValue: e2e.Map2Attribute, targetPool: e2e.Map2AdvancedPool},
-		{skill: 10, mapValue: e2e.Map2Attribute, targetPool: e2e.Map2AdvancedPool},
+		{skill: 1, mapValue: e2e.DoubleArgMMR, targetPool: e2e.Map1BeginnerPool},
+		{skill: 5, mapValue: e2e.DoubleArgMMR, targetPool: e2e.Map1BeginnerPool},
+		{skill: 8, mapValue: e2e.DoubleArgMMR, targetPool: e2e.Map1AdvancedPool},
+		{skill: 0, mapValue: e2e.DoubleArgLevel, targetPool: e2e.Map2BeginnerPool},
+		{skill: 6, mapValue: e2e.DoubleArgLevel, targetPool: e2e.Map2AdvancedPool},
+		{skill: 10, mapValue: e2e.DoubleArgLevel, targetPool: e2e.Map2AdvancedPool},
 		{skill: 10, mapValue: "non-indexable-map"},
 	}
 
 	// The Pools that are used for testing. Currently, each pool simply represents
-	// a combination of the attributes indexed on a ticket.
+	// a combination of the DoubleArgs indexed on a ticket.
 	testPools := map[string]*pb.Pool{
 		e2e.Map1BeginnerPool: {
 			Name: e2e.Map1BeginnerPool,
-			Filters: []*pb.Filter{
-				{Attribute: e2e.SkillAttribute, Min: 0, Max: 5},
-				{Attribute: e2e.Map1Attribute, Max: math.MaxFloat64},
+			DoubleRangeFilters: []*pb.DoubleRangeFilter{
+				{DoubleArg: e2e.DoubleArgDefense, Min: 0, Max: 5},
+				{DoubleArg: e2e.DoubleArgMMR, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map1AdvancedPool: {
 			Name: e2e.Map1AdvancedPool,
-			Filters: []*pb.Filter{
-				{Attribute: e2e.SkillAttribute, Min: 6, Max: 10},
-				{Attribute: e2e.Map1Attribute, Max: math.MaxFloat64},
+			DoubleRangeFilters: []*pb.DoubleRangeFilter{
+				{DoubleArg: e2e.DoubleArgDefense, Min: 6, Max: 10},
+				{DoubleArg: e2e.DoubleArgMMR, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map2BeginnerPool: {
 			Name: e2e.Map2BeginnerPool,
-			Filters: []*pb.Filter{
-				{Attribute: e2e.SkillAttribute, Min: 0, Max: 5},
-				{Attribute: e2e.Map2Attribute, Max: math.MaxFloat64},
+			DoubleRangeFilters: []*pb.DoubleRangeFilter{
+				{DoubleArg: e2e.DoubleArgDefense, Min: 0, Max: 5},
+				{DoubleArg: e2e.DoubleArgLevel, Max: math.MaxFloat64},
 			},
 		},
 		e2e.Map2AdvancedPool: {
 			Name: e2e.Map2AdvancedPool,
-			Filters: []*pb.Filter{
-				{Attribute: e2e.SkillAttribute, Min: 6, Max: 10},
-				{Attribute: e2e.Map2Attribute, Max: math.MaxFloat64},
+			DoubleRangeFilters: []*pb.DoubleRangeFilter{
+				{DoubleArg: e2e.DoubleArgDefense, Min: 6, Max: 10},
+				{DoubleArg: e2e.DoubleArgLevel, Max: math.MaxFloat64},
 			},
 		},
 	}
@@ -135,10 +134,12 @@ func TestMinimatch(t *testing.T) {
 				// to expected player pools.
 				for i, td := range testTickets {
 					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{
-						Properties: structs.Struct{
-							e2e.SkillAttribute: structs.Number(td.skill),
-							td.mapValue:        structs.Number(float64(time.Now().Unix())),
-						}.S(),
+						SearchFields: &pb.SearchFields{
+							DoubleArgs: map[string]float64{
+								e2e.DoubleArgDefense: td.skill,
+								td.mapValue:          float64(time.Now().Unix()),
+							},
+						},
 					}})
 
 					assert.NotNil(t, resp)
@@ -194,15 +195,23 @@ func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string]
 	// Fetch Matches for each test profile.
 	be := om.MustBackendGRPC()
 	for _, profile := range testProfiles {
-		br, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{
+		stream, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{
 			Config:   fc,
 			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
 		})
 		assert.Nil(t, err)
-		assert.NotNil(t, br)
-		assert.NotNil(t, br.GetMatches())
 
-		for _, match := range br.GetMatches() {
+		for {
+			var resp *pb.FetchMatchesResponse
+			resp, err = stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			assert.Nil(t, err)
+			assert.NotNil(t, resp)
+			assert.NotNil(t, resp.GetMatch())
+
+			match := resp.GetMatch()
 			// Currently, the MMF simply creates a match per pool in the match profile - and populates
 			// the roster with the pool name. Thus validate that for the roster populated in the match
 			// result has all the tickets expected in that pool.
@@ -220,12 +229,14 @@ func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string]
 		}
 
 		// Verify calling fetch matches twice within ttl interval won't yield new results
-		br, err = be.FetchMatches(om.Context(), &pb.FetchMatchesRequest{
+		stream, err = be.FetchMatches(om.Context(), &pb.FetchMatchesRequest{
 			Config:   fc,
 			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
 		})
-
-		assert.Nil(t, br.GetMatches())
 		assert.Nil(t, err)
+
+		br, err := stream.Recv()
+		assert.Equal(t, err, io.EOF)
+		assert.Nil(t, br)
 	}
 }

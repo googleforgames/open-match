@@ -17,17 +17,18 @@ package statestore
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/gogo/protobuf/proto"
-	structpb "github.com/golang/protobuf/ptypes/struct"
+	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/set"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -36,6 +37,7 @@ var (
 		"app":       "openmatch",
 		"component": "statestore.redis",
 	})
+	mRedisConnLatencyMs = telemetry.HistogramWithBounds("redis/connectlatency", "latency to get a redis connection", "ms", []float64{0, 50, 200, 500, 1000, 2000, 4000, 10000})
 )
 
 type redisBackend struct {
@@ -57,9 +59,16 @@ func newRedis(cfg config.View) Service {
 	// Add redis user and password to connection url if they exist
 	redisURL := "redis://"
 	maskedURL := redisURL
-	if cfg.IsSet("redis.password") && cfg.GetString("redis.password") != "" {
-		redisURL += cfg.GetString("redis.user") + ":" + cfg.GetString("redis.password") + "@"
-		maskedURL += cfg.GetString("redis.user") + ":******@"
+
+	passwordFile := cfg.GetString("redis.passwordPath")
+	if len(passwordFile) > 0 {
+		redisLogger.Debugf("loading Redis password from file %s", passwordFile)
+		passwordData, err := ioutil.ReadFile(passwordFile)
+		if err != nil {
+			redisLogger.Fatalf("cannot read Redis password from file %s, desc: %s", passwordFile, err.Error())
+		}
+		redisURL += fmt.Sprintf("%s:%s@", cfg.GetString("redis.user"), string(passwordData))
+		maskedURL += fmt.Sprintf("%s:%s@", cfg.GetString("redis.user"), "**********")
 	}
 	redisURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
 	maskedURL += cfg.GetString("redis.hostname") + ":" + cfg.GetString("redis.port")
@@ -114,6 +123,7 @@ func (rb *redisBackend) HealthCheck(ctx context.Context) error {
 }
 
 func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
+	startTime := time.Now()
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -121,6 +131,7 @@ func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
 		}).Error("failed to connect to redis")
 		return nil, status.Errorf(codes.Unavailable, "%v", err)
 	}
+	telemetry.IncrementCounterN(ctx, mRedisConnLatencyMs, time.Since(startTime).Milliseconds())
 
 	return redisConn, nil
 }
@@ -208,7 +219,12 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 
 		// Return NotFound if redigo did not find the ticket in storage.
 		if err == redis.ErrNil {
-			return nil, status.Errorf(codes.NotFound, "%v", err)
+			msg := fmt.Sprintf("Ticket id:%s not found", id)
+			redisLogger.WithFields(logrus.Fields{
+				"key": id,
+				"cmd": "GET",
+			}).Error(msg)
+			return nil, status.Error(codes.NotFound, msg)
 		}
 
 		return nil, status.Errorf(codes.Internal, "%v", err)
@@ -265,41 +281,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 	}
 	defer handleConnectionClose(&redisConn)
 
-	// Fetch the indices from the configuration.
-	// TODO: Consider adding Open Match specific custom indices in future.
-	var indices []string
-	if rb.cfg.IsSet("ticketIndices") {
-		indices = rb.cfg.GetStringSlice("ticketIndices")
-	}
-
-	attributesToValue := map[string]float64{}
-	// Loop through all attributes we want to index.
-	for _, attribute := range indices {
-		// TODO: Currently, Open Match supports specifying attributes as JSON properties on Tickets.
-		// Alternatives for populating this information in proto fields are being considered.
-		// Also, we need to add Ticket creation time to either the ticket or index.
-		// Meta characters bein specified in JSON property keys is currently not supported.
-		v, ok := ticket.GetProperties().GetFields()[attribute]
-
-		// If this attribute wasn't provided, continue to the next attribute to index.
-		if !ok {
-			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute}).Trace("Couldn't find index in Ticket Properties")
-			continue
-		}
-
-		switch v.Kind.(type) {
-		case *structpb.Value_NumberValue:
-			attributesToValue[attribute] = v.GetNumberValue()
-		default:
-			// TODO: we currently dont support anything but numeric values,
-			// yet we are investigating whether it is possible to have generic typed value supports in the future.
-			redisLogger.WithFields(logrus.Fields{
-				"attribute": attribute,
-			}).Warning("Attribute not a number.")
-			return status.Errorf(codes.FailedPrecondition, "open-match does not support given value type.")
-		}
-	}
+	indexedFields := extractIndexedFields(ticket)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
@@ -310,17 +292,35 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	for k, v := range attributesToValue {
-		// Index the attribute by value.
+	{
+		command := make([]interface{}, 0, 1+len(indexedFields))
+		command = append(command, indexCacheName(ticket.Id))
+		for index := range indexedFields {
+			command = append(command, index)
+		}
+		err = redisConn.Send("SADD", command...)
+		if err != nil {
+			redisLogger.WithFields(logrus.Fields{
+				"cmd":     "SADD",
+				"ticket":  ticket.GetId(),
+				"error":   err.Error(),
+				"indices": command[1:],
+			}).Error("failed to set ticket's indices")
+			return status.Errorf(codes.Internal, "%v", err)
+		}
+	}
+
+	for k, v := range indexedFields {
+		// Index the DoubleArg by value.
 		err = redisConn.Send("ZADD", k, v, ticket.GetId())
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
 				"cmd":       "ZADD",
-				"attribute": k,
+				"DoubleArg": k,
 				"value":     v,
 				"ticket":    ticket.GetId(),
 				"error":     err.Error(),
-			}).Error("failed to index ticket attribute")
+			}).Error("failed to index ticket DoubleArg")
 			return status.Errorf(codes.Internal, "%v", err)
 		}
 	}
@@ -347,6 +347,20 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	}
 	defer handleConnectionClose(&redisConn)
 
+	indices, err := redis.Strings(redisConn.Do("SMEMBERS", indexCacheName(id)))
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"SMEMBERS": "MULTI",
+			"error":    err.Error(),
+			"ticket":   id,
+		}).Error("failed to retrieve ticket's indexed fields")
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	if len(indices) == 0 {
+		return nil
+	}
+
 	err = redisConn.Send("MULTI")
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -356,24 +370,27 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	// Fetch the indices from the configuration.
-	// TODO: Consider adding Open Match specific custom indices in future.
-	var indices []string
-	if rb.cfg.IsSet("ticketIndices") {
-		indices = rb.cfg.GetStringSlice("ticketIndices")
-	}
-
-	for _, attribute := range indices {
-		err = redisConn.Send("ZREM", attribute, id)
+	for _, index := range indices {
+		err = redisConn.Send("ZREM", index, id)
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
-				"cmd":       "ZREM",
-				"attribute": attribute,
-				"id":        id,
-				"error":     err.Error(),
-			}).Error("failed to deindex attribute")
+				"cmd":   "ZREM",
+				"index": index,
+				"id":    id,
+				"error": err.Error(),
+			}).Error("failed to deindex the ticket")
 			return status.Errorf(codes.Internal, "%v", err)
 		}
+	}
+
+	err = redisConn.Send("DEL", indexCacheName(id))
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"cmd":   "DEL",
+			"id":    id,
+			"error": err.Error(),
+		}).Error("failed to remove ticket's indexed fields")
+		return status.Errorf(codes.Internal, "%v", err)
 	}
 
 	_, err = redisConn.Do("EXEC")
@@ -389,13 +406,13 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	return nil
 }
 
-// FilterTickets returns the Ticket ids and required attribute key-value pairs for the Tickets meeting the specified filtering criteria.
-// map[ticket.Id]map[attributeName][attributeValue]
+// FilterTickets returns the Ticket ids and required DoubleArg key-value pairs for the Tickets meeting the specified filtering criteria.
+// map[ticket.Id]map[DoubleArgName][DoubleArgValue]
 // {
 //  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
-func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter, pageSize int, callback func([]*pb.Ticket) error) error {
+func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
 	var err error
 	var redisConn redis.Conn
 	var ticketBytes [][]byte
@@ -410,15 +427,15 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, filters []*pb.Filter,
 	// A set of playerIds that satisfies all filters
 	idSet := make([]string, 0)
 
-	// For each filter, do a range query to Redis on Filter.Attribute
-	for i, filter := range filters {
-		// Time Complexity O(logN + M), where N is the number of elements in the attribute set
+	// For each filter, do a range query to Redis on Filter.DoubleArg
+	for i, filter := range extractIndexFilters(pool) {
+		// Time Complexity O(logN + M), where N is the number of elements in the DoubleArg set
 		// and M is the number of entries being returned.
 		// TODO: discuss if we need a LIMIT for # of queries being returned
-		idsInFilter, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.Attribute, filter.Min, filter.Max))
+		idsInFilter, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.name, filter.min, filter.max))
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
-				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f", filter.Attribute, filter.Min, filter.Max),
+				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f", filter.name, filter.min, filter.max),
 			}).WithError(err).Error("Failed to lookup index.")
 			return status.Errorf(codes.Internal, "%v", err)
 		}
@@ -593,13 +610,13 @@ func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to pipeline commands for AddProposedTickets")
+		redisLogger.WithError(err).Error("failed to pipeline commands for AddTicketsToIgnoreList")
 		return status.Error(codes.Internal, err.Error())
 	}
 
 	currentTime := time.Now().UnixNano()
 	for _, id := range ids {
-		// Index the attribute by value.
+		// Index the DoubleArg by value.
 		err = redisConn.Send("ZADD", "proposed_ticket_ids", currentTime, id)
 		if err != nil {
 			redisLogger.WithError(err).Error("failed to append proposed tickets to redis")
@@ -610,7 +627,43 @@ func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string
 	// Run pipelined Redis commands.
 	_, err = redisConn.Do("EXEC")
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to execute pipelined commands for AddProposedTickets")
+		redisLogger.WithError(err).Error("failed to execute pipelined commands for AddTicketsToIgnoreList")
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	return nil
+}
+
+// DeleteTicketsFromIgnoreList deletes tickets from the proposed sorted set
+func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	redisConn, err := rb.connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer handleConnectionClose(&redisConn)
+
+	err = redisConn.Send("MULTI")
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to pipeline commands for DeleteTicketsFromIgnoreList")
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	for _, id := range ids {
+		err = redisConn.Send("ZREM", "proposed_ticket_ids", id)
+		if err != nil {
+			redisLogger.WithError(err).Error("failed to delete proposed tickets from ignore list")
+			return status.Error(codes.Internal, err.Error())
+		}
+	}
+
+	// Run pipelined Redis commands.
+	_, err = redisConn.Do("EXEC")
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to execute pipelined commands for DeleteTicketsFromIgnoreList")
 		return status.Error(codes.Internal, err.Error())
 	}
 

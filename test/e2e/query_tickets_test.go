@@ -17,7 +17,6 @@
 package e2e
 
 import (
-	"context"
 	"io"
 	"testing"
 
@@ -27,6 +26,7 @@ import (
 	"google.golang.org/grpc/status"
 	internalTesting "open-match.dev/open-match/internal/testing"
 	"open-match.dev/open-match/internal/testing/e2e"
+	e2eTesting "open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -34,14 +34,13 @@ func TestQueryTickets(t *testing.T) {
 	tests := []struct {
 		description   string
 		pool          *pb.Pool
-		preAction     func(context.Context, pb.FrontendClient, *testing.T)
+		gotTickets    []*pb.Ticket
 		wantCode      codes.Code
 		wantTickets   []*pb.Ticket
 		wantPageCount int
 	}{
 		{
 			description:   "expects invalid argument code since pool is empty",
-			preAction:     func(_ context.Context, _ pb.FrontendClient, _ *testing.T) {},
 			pool:          nil,
 			wantCode:      codes.InvalidArgument,
 			wantTickets:   nil,
@@ -49,10 +48,10 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			description: "expects response with no tickets since the store is empty",
-			preAction:   func(_ context.Context, _ pb.FrontendClient, _ *testing.T) {},
+			gotTickets:  []*pb.Ticket{},
 			pool: &pb.Pool{
-				Filters: []*pb.Filter{{
-					Attribute: "ok",
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{{
+					DoubleArg: "ok",
 				}},
 			},
 			wantCode:      codes.OK,
@@ -61,21 +60,13 @@ func TestQueryTickets(t *testing.T) {
 		},
 		{
 			description: "expects response with no tickets since all tickets in the store are filtered out",
-			preAction: func(ctx context.Context, fe pb.FrontendClient, t *testing.T) {
-				tickets := internalTesting.GenerateTickets(
-					internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
-					internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
-				)
-
-				for _, ticket := range tickets {
-					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
-					assert.NotNil(t, resp)
-					assert.Nil(t, err)
-				}
-			},
+			gotTickets: internalTesting.GenerateFloatRangeTickets(
+				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
+			),
 			pool: &pb.Pool{
-				Filters: []*pb.Filter{{
-					Attribute: e2e.SkillAttribute,
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{{
+					DoubleArg: e2e.DoubleArgDefense,
 				}},
 			},
 			wantCode:      codes.OK,
@@ -83,62 +74,173 @@ func TestQueryTickets(t *testing.T) {
 			wantPageCount: 0,
 		},
 		{
-			description: "expects response with 5 tickets with e2e.Map1Attribute=2 and e2e.Map2Attribute in range of [0,10)",
-			preAction: func(ctx context.Context, fe pb.FrontendClient, t *testing.T) {
-				tickets := internalTesting.GenerateTickets(
-					internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
-					internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
-				)
-
-				for _, ticket := range tickets {
-					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
-					assert.NotNil(t, resp)
-					assert.Nil(t, err)
-				}
-			},
+			description: "expects response with 5 tickets with e2e.FloatRangeDoubleArg1=2 and e2e.FloatRangeDoubleArg2 in range of [0,10)",
+			gotTickets: internalTesting.GenerateFloatRangeTickets(
+				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
+			),
 			pool: &pb.Pool{
-				Filters: []*pb.Filter{{
-					Attribute: e2e.Map1Attribute,
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{{
+					DoubleArg: e2e.DoubleArgMMR,
 					Min:       1,
 					Max:       3,
 				}},
 			},
 			wantCode: codes.OK,
-			wantTickets: internalTesting.GenerateTickets(
-				internalTesting.Property{Name: e2e.Map1Attribute, Min: 2, Max: 3, Interval: 2},
-				internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
+			wantTickets: internalTesting.GenerateFloatRangeTickets(
+				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 2, Max: 3, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
 			),
 			wantPageCount: 1,
 		},
 		{
 			// Test inclusive filters and paging works as expected
-			description: "expects response with 15 tickets with e2e.Map1Attribute=2,4,6 and e2e.Map2Attribute=[0,10)",
-			preAction: func(ctx context.Context, fe pb.FrontendClient, t *testing.T) {
-				tickets := internalTesting.GenerateTickets(
-					internalTesting.Property{Name: e2e.Map1Attribute, Min: 0, Max: 10, Interval: 2},
-					internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
-				)
-
-				for _, ticket := range tickets {
-					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
-					assert.NotNil(t, resp)
-					assert.Nil(t, err)
-				}
-			},
-
+			description: "expects response with 15 tickets with e2e.FloatRangeDoubleArg1=2,4,6 and e2e.FloatRangeDoubleArg2=[0,10)",
+			gotTickets: internalTesting.GenerateFloatRangeTickets(
+				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 0, Max: 10, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
+			),
 			pool: &pb.Pool{
-				Filters: []*pb.Filter{{
-					Attribute: e2e.Map1Attribute,
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{{
+					DoubleArg: e2e.DoubleArgMMR,
 					Min:       2,
 					Max:       6,
 				}},
 			},
 			wantCode: codes.OK,
-			wantTickets: internalTesting.GenerateTickets(
-				internalTesting.Property{Name: e2e.Map1Attribute, Min: 2, Max: 7, Interval: 2},
-				internalTesting.Property{Name: e2e.Map2Attribute, Min: 0, Max: 10, Interval: 2},
+			wantTickets: internalTesting.GenerateFloatRangeTickets(
+				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 2, Max: 7, Interval: 2},
+				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
 			),
 			wantPageCount: 2,
+		},
+		{
+			description: "expects 1 ticket with tag e2eTesting.ModeDemo",
+			gotTickets: []*pb.Ticket{
+				{
+					SearchFields: &pb.SearchFields{
+						Tags: []string{
+							e2eTesting.ModeDemo,
+						},
+					},
+				},
+				{
+					SearchFields: &pb.SearchFields{
+						Tags: []string{
+							"Foo",
+						},
+					},
+				},
+			},
+			pool: &pb.Pool{
+				TagPresentFilters: []*pb.TagPresentFilter{{
+					Tag: e2e.ModeDemo,
+				}},
+			},
+			wantCode: codes.OK,
+			wantTickets: []*pb.Ticket{
+				{
+					SearchFields: &pb.SearchFields{
+						Tags: []string{
+							e2eTesting.ModeDemo,
+						},
+					},
+				},
+			},
+			wantPageCount: 1,
+		},
+		{
+			// Test StringEquals works as expected
+			description: "expects 1 ticket with property e2eTesting.Role maps to warrior",
+			gotTickets: []*pb.Ticket{
+				{
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							e2eTesting.Role: "warrior",
+						},
+					},
+				},
+				{
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							e2eTesting.Role: "rogue",
+						},
+					},
+				},
+			},
+			pool: &pb.Pool{
+				StringEqualsFilters: []*pb.StringEqualsFilter{
+					{
+						StringArg: e2e.Role,
+						Value:     "warrior",
+					},
+				},
+			},
+			wantCode: codes.OK,
+			wantTickets: []*pb.Ticket{
+				{
+
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							e2eTesting.Role: "warrior",
+						},
+					},
+				},
+			},
+			wantPageCount: 1,
+		},
+		{
+			// Test all tickets
+			description: "expects all 3 tickets when passing in a pool with no filters",
+			gotTickets: []*pb.Ticket{
+				{
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							e2eTesting.Role: "warrior",
+						},
+					},
+				},
+				{
+					SearchFields: &pb.SearchFields{
+						Tags: []string{
+							e2eTesting.ModeDemo,
+						},
+					},
+				},
+				{
+					SearchFields: &pb.SearchFields{
+						DoubleArgs: map[string]float64{
+							e2eTesting.DoubleArgMMR: 100,
+						},
+					},
+				},
+			},
+			pool:     &pb.Pool{},
+			wantCode: codes.OK,
+			wantTickets: []*pb.Ticket{
+				{
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							e2eTesting.Role: "warrior",
+						},
+					},
+				},
+				{
+					SearchFields: &pb.SearchFields{
+						Tags: []string{
+							e2eTesting.ModeDemo,
+						},
+					},
+				},
+				{
+					SearchFields: &pb.SearchFields{
+						DoubleArgs: map[string]float64{
+							e2eTesting.DoubleArgMMR: 100,
+						},
+					},
+				},
+			},
+			wantPageCount: 1,
 		},
 	}
 
@@ -155,7 +257,11 @@ func TestQueryTickets(t *testing.T) {
 				pageCounts := 0
 				ctx := om.Context()
 
-				test.preAction(ctx, fe, t)
+				for _, ticket := range test.gotTickets {
+					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
+					assert.NotNil(t, resp)
+					assert.Nil(t, err)
+				}
 
 				stream, err := mml.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: test.pool})
 				assert.Nil(t, err)
@@ -183,7 +289,7 @@ func TestQueryTickets(t *testing.T) {
 				// If this fact changes, we might need an ugly nested for loop to do the validness checks.
 				for i := 0; i < len(actualTickets); i++ {
 					assert.Equal(t, test.wantTickets[i].GetAssignment(), actualTickets[i].GetAssignment())
-					assert.Equal(t, test.wantTickets[i].GetProperties(), actualTickets[i].GetProperties())
+					assert.Equal(t, test.wantTickets[i].GetSearchFields(), actualTickets[i].GetSearchFields())
 				}
 				assert.Equal(t, test.wantPageCount, pageCounts)
 			})

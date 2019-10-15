@@ -2,12 +2,16 @@ package backend
 
 import (
 	"context"
+	"io"
 	"sync"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/telemetry"
+	"open-match.dev/open-match/internal/util"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -58,15 +62,37 @@ func (sc *synchronizerClient) evaluate(ctx context.Context, id string, proposals
 		return nil, err
 	}
 
-	resp, err := sc.synchronizer.EvaluateProposals(ctx, &ipb.EvaluateProposalsRequest{
-		Id:      id,
-		Matches: proposals})
+	ctx, err := util.AppendSynchronizerContextID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
-	telemetry.IncrementCounterN(ctx, mMatchEvaluations, len(resp.Matches))
-	return resp.Matches, nil
+	stream, err := sc.synchronizer.EvaluateProposals(ctx)
+	for _, proposal := range proposals {
+		if err = stream.Send(&ipb.EvaluateProposalsRequest{Id: id, Match: proposal}); err != nil {
+			return nil, err
+		}
+	}
+
+	if err = stream.CloseSend(); err != nil {
+		logger.Errorf("failed to close the send stream: %s", err.Error())
+	}
+
+	var results = []*pb.Match{}
+	for {
+		resp, recvErr := stream.Recv()
+		if recvErr == io.EOF {
+			// read done
+			break
+		}
+		if recvErr != nil {
+			return nil, recvErr
+		}
+		results = append(results, resp.GetMatch())
+	}
+
+	telemetry.IncrementCounterN(ctx, mMatchEvaluations, int64(len(results)))
+	return results, nil
 }
 
 // initialize attempts to connect to the Sychronizer service. If the connection is

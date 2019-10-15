@@ -17,7 +17,7 @@ apiVersion: v1
 metadata:
   name: {{ .Values.demo.hostName }}
   namespace: {{ .Release.Namespace }}
-  annotations: {{- include "openmatch.chartmeta" . | nindent 2 }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
     component: demo
@@ -37,7 +37,7 @@ kind: Deployment
 metadata:
   name: {{ .Values.demo.hostName }}
   namespace: {{ .Release.Namespace }}
-  annotations: {{- include "openmatch.chartmeta" . | nindent 2 }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
     component: demo
@@ -68,6 +68,7 @@ spec:
           {{- include "openmatch.volumemounts.configs" . | nindent 10 }}
           {{- include "openmatch.volumemounts.tls" . | nindent 10 }}
         image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.demo.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - name: http
           containerPort: {{ .Values.demo.httpPort }}

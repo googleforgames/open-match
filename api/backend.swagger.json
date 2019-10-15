@@ -30,9 +30,9 @@
         "operationId": "FetchMatches",
         "responses": {
           "200": {
-            "description": "A successful response.",
+            "description": "A successful response.(streaming responses)",
             "schema": {
-              "$ref": "#/definitions/apiFetchMatchesResponse"
+              "$ref": "#/x-stream-definitions/openmatchFetchMatchesResponse"
             }
           },
           "404": {
@@ -48,7 +48,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiFetchMatchesRequest"
+              "$ref": "#/definitions/openmatchFetchMatchesRequest"
             }
           }
         ],
@@ -65,7 +65,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiAssignTicketsResponse"
+              "$ref": "#/definitions/openmatchAssignTicketsResponse"
             }
           },
           "404": {
@@ -81,7 +81,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiAssignTicketsRequest"
+              "$ref": "#/definitions/openmatchAssignTicketsRequest"
             }
           }
         ],
@@ -92,7 +92,7 @@
     }
   },
   "definitions": {
-    "apiAssignTicketsRequest": {
+    "openmatchAssignTicketsRequest": {
       "type": "object",
       "properties": {
         "ticket_ids": {
@@ -103,66 +103,38 @@
           "description": "List of Ticket IDs for which the Assignment is to be made."
         },
         "assignment": {
-          "$ref": "#/definitions/apiAssignment",
+          "$ref": "#/definitions/openmatchAssignment",
           "description": "Assignment to be associated with the Ticket IDs."
         }
       }
     },
-    "apiAssignTicketsResponse": {
+    "openmatchAssignTicketsResponse": {
       "type": "object"
     },
-    "apiAssignment": {
+    "openmatchAssignment": {
       "type": "object",
       "properties": {
         "connection": {
           "type": "string",
           "description": "Connection information for this Assignment."
         },
-        "properties": {
-          "$ref": "#/definitions/protobufStruct",
-          "description": "Other details to be sent to the players."
-        },
         "error": {
           "$ref": "#/definitions/rpcStatus",
           "description": "Error when finding an Assignment for this Ticket."
+        },
+        "extension": {
+          "$ref": "#/definitions/protobufAny",
+          "description": "Customized information to be sent to the clients.  Optional, depending on\nwhat callers are expecting."
         }
       },
       "description": "An Assignment object represents the assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
     },
-    "apiFetchMatchesRequest": {
+    "openmatchDoubleRangeFilter": {
       "type": "object",
       "properties": {
-        "config": {
-          "$ref": "#/definitions/apiFunctionConfig",
-          "title": "Configuration of the MatchFunction to be executed for the given list of MatchProfiles"
-        },
-        "profiles": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/apiMatchProfile"
-          },
-          "description": "MatchProfiles for which this MatchFunction should be executed."
-        }
-      }
-    },
-    "apiFetchMatchesResponse": {
-      "type": "object",
-      "properties": {
-        "matches": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/apiMatch"
-          },
-          "description": "Result Match for the requested MatchProfile.\nNote that OpenMatch will validate the proposals, a valid match should contain at least one ticket."
-        }
-      }
-    },
-    "apiFilter": {
-      "type": "object",
-      "properties": {
-        "attribute": {
+        "double_arg": {
           "type": "string",
-          "description": "Name of the ticket attribute this Filter operates on."
+          "description": "Name of the ticket's search_fields.double_args this Filter operates on."
         },
         "max": {
           "type": "number",
@@ -175,9 +147,34 @@
           "description": "Minimum value. Defaults to 0."
         }
       },
-      "description": "A hard filter used to query a subset of Tickets meeting the filtering\ncriteria."
+      "title": "Filters numerical values to only those within a range.\n  double_arg: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {}"
     },
-    "apiFunctionConfig": {
+    "openmatchFetchMatchesRequest": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "$ref": "#/definitions/openmatchFunctionConfig",
+          "title": "Configuration of the MatchFunction to be executed for the given list of MatchProfiles"
+        },
+        "profiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/openmatchMatchProfile"
+          },
+          "description": "MatchProfiles for which this MatchFunction should be executed."
+        }
+      }
+    },
+    "openmatchFetchMatchesResponse": {
+      "type": "object",
+      "properties": {
+        "match": {
+          "$ref": "#/definitions/openmatchMatch",
+          "description": "Result Match for the requested MatchProfile.\nNote that OpenMatch will validate the proposals, a valid match should contain at least one ticket."
+        }
+      }
+    },
+    "openmatchFunctionConfig": {
       "type": "object",
       "properties": {
         "host": {
@@ -188,12 +185,12 @@
           "format": "int32"
         },
         "type": {
-          "$ref": "#/definitions/apiFunctionConfigType"
+          "$ref": "#/definitions/openmatchFunctionConfigType"
         }
       },
       "description": "Configuration for the Match Function to be triggered by Open Match to\ngenerate proposals."
     },
-    "apiFunctionConfigType": {
+    "openmatchFunctionConfigType": {
       "type": "string",
       "enum": [
         "GRPC",
@@ -201,7 +198,7 @@
       ],
       "default": "GRPC"
     },
-    "apiMatch": {
+    "openmatchMatch": {
       "type": "object",
       "properties": {
         "match_id": {
@@ -219,69 +216,85 @@
         "tickets": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiTicket"
+            "$ref": "#/definitions/openmatchTicket"
           },
           "description": "Tickets belonging to this match."
         },
         "rosters": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiRoster"
+            "$ref": "#/definitions/openmatchRoster"
           },
           "title": "Set of Rosters that comprise this Match"
         },
-        "properties": {
-          "$ref": "#/definitions/protobufStruct",
-          "description": "Match properties for this Match. Open Match does not interpret this field."
+        "evaluation_input": {
+          "$ref": "#/definitions/protobufAny",
+          "description": "Customized information for the evaluator.  Optional, depending on the\nrequirements of the configured evaluator."
+        },
+        "extension": {
+          "$ref": "#/definitions/protobufAny",
+          "description": "Customized information for how the caller of FetchMatches should handle\nthis match.  Optional, depending on the requirements of the FetchMatches\ncaller."
         }
       },
       "description": "A Match is used to represent a completed match object. It can be generated by\na MatchFunction as a proposal or can be returned by OpenMatch as a result in\nresponse to the FetchMatches call.\nWhen a match is returned by the FetchMatches call, it should contain at least \none ticket to be considered as valid."
     },
-    "apiMatchProfile": {
+    "openmatchMatchProfile": {
       "type": "object",
       "properties": {
         "name": {
           "type": "string",
           "description": "Name of this match profile."
         },
-        "properties": {
-          "$ref": "#/definitions/protobufStruct",
-          "description": "Set of properties associated with this MatchProfile. (Optional)\nOpen Match does not interpret these properties but passes them through to\nthe MatchFunction."
-        },
         "pools": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiPool"
+            "$ref": "#/definitions/openmatchPool"
           },
           "description": "Set of pools to be queried when generating a match for this MatchProfile.\nThe pool names can be used in empty Rosters to specify composition of a\nmatch."
         },
         "rosters": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiRoster"
+            "$ref": "#/definitions/openmatchRoster"
           },
           "description": "Set of Rosters for this match request. Could be empty Rosters used to\nindicate the composition of the generated Match or they could be partially\npre-populated Ticket list to be used in scenarios such as backfill / join\nin progress."
+        },
+        "extension": {
+          "$ref": "#/definitions/protobufAny",
+          "description": "Customized information on how the match function should run.  Optional,\ndepending on the requirements of the match function."
         }
       },
       "description": "A MatchProfile is Open Match's representation of a Match specification. It is\nused to indicate the criteria for selecting players for a match. A\nMatchProfile is the input to the API to get matches and is passed to the\nMatchFunction. It contains all the information required by the MatchFunction\nto generate match proposals."
     },
-    "apiPool": {
+    "openmatchPool": {
       "type": "object",
       "properties": {
         "name": {
           "type": "string",
           "description": "A developer-chosen human-readable name for this Pool."
         },
-        "filters": {
+        "double_range_filters": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiFilter"
+            "$ref": "#/definitions/openmatchDoubleRangeFilter"
           },
           "description": "Set of Filters indicating the filtering criteria. Selected players must\nmatch every Filter."
+        },
+        "string_equals_filters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/openmatchStringEqualsFilter"
+          }
+        },
+        "tag_present_filters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/openmatchTagPresentFilter"
+          }
         }
       }
     },
-    "apiRoster": {
+    "openmatchRoster": {
       "type": "object",
       "properties": {
         "name": {
@@ -298,20 +311,74 @@
       },
       "description": "A Roster is a named collection of Ticket IDs. It exists so that a Tickets\nassociated with a Match can be labelled to belong to a team, sub-team etc. It\ncan also be used to represent the current state of a Match in scenarios such\nas backfill, join-in-progress etc."
     },
-    "apiTicket": {
+    "openmatchSearchFields": {
+      "type": "object",
+      "properties": {
+        "double_args": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "format": "double"
+          },
+          "description": "Float arguments.  Filterable on ranges."
+        },
+        "string_args": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "String arguments.  Filterable on equality."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Filterable on presence or absence of given value."
+        }
+      },
+      "description": "Search fields are the fields which Open Match is aware of, and can be used\nwhen specifying filters."
+    },
+    "openmatchStringEqualsFilter": {
+      "type": "object",
+      "properties": {
+        "string_arg": {
+          "type": "string",
+          "description": "Name of the ticket's search_fields.string_args this Filter operates on."
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "title": "Filters strings exactly equaling a value.\n  string_arg: \"foo\"\n  value: \"bar\"\nmatches:\n  {\"foo\": \"bar\"}\ndoes not match:\n  {\"foo\": \"baz\"}\n  {\"bar\": \"foo\"}\n  {}"
+    },
+    "openmatchTagPresentFilter": {
+      "type": "object",
+      "properties": {
+        "tag": {
+          "type": "string"
+        }
+      },
+      "title": "Filters to the tag being present on the search_fields.\n  tag: \"foo\"\nmatches:\n  [\"foo\"]\n  [\"bar\",\"foo\"]\ndoes not match:\n  [\"bar\"]\n  []"
+    },
+    "openmatchTicket": {
       "type": "object",
       "properties": {
         "id": {
           "type": "string",
           "description": "The Ticket ID generated by Open Match."
         },
-        "properties": {
-          "$ref": "#/definitions/protobufStruct",
-          "description": "Properties contains custom info about the ticket.  Top level values can be\nused in indexing and filtering to find tickets."
-        },
         "assignment": {
-          "$ref": "#/definitions/apiAssignment",
+          "$ref": "#/definitions/openmatchAssignment",
           "description": "Assignment associated with the Ticket."
+        },
+        "search_fields": {
+          "$ref": "#/definitions/openmatchSearchFields",
+          "description": "Values visible to Open Match which can be used when querying for tickets\nwith specific values."
+        },
+        "extension": {
+          "$ref": "#/definitions/protobufAny",
+          "description": "Customized information to be used by the Match Making Function.  Optional,\ndepending on the requirements of the MMF."
         }
       },
       "description": "A Ticket is a basic matchmaking entity in Open Match. In order to enter\nmatchmaking using Open Match, the client should generate a Ticket, passing in\nthe properties to be associated with this Ticket. Open Match will generate an\nID for a Ticket during creation. A Ticket could be used to represent an\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\nof properties. Open Match stores the Ticket in state storage and enables an\nAssignment to be associated with this Ticket."
@@ -330,72 +397,6 @@
         }
       },
       "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(\u0026foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := \u0026pb.Foo{...}\n     any, err := ptypes.MarshalAny(foo)\n     ...\n     foo := \u0026pb.Foo{}\n     if err := ptypes.UnmarshalAny(any, foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": \u003cstring\u003e,\n      \"lastName\": \u003cstring\u003e\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
-    },
-    "protobufListValue": {
-      "type": "object",
-      "properties": {
-        "values": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/protobufValue"
-          },
-          "description": "Repeated field of dynamically typed values."
-        }
-      },
-      "description": "`ListValue` is a wrapper around a repeated field of values.\n\nThe JSON representation for `ListValue` is JSON array."
-    },
-    "protobufNullValue": {
-      "type": "string",
-      "enum": [
-        "NULL_VALUE"
-      ],
-      "default": "NULL_VALUE",
-      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
-    },
-    "protobufStruct": {
-      "type": "object",
-      "properties": {
-        "fields": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/protobufValue"
-          },
-          "description": "Unordered map of dynamically typed values."
-        }
-      },
-      "description": "`Struct` represents a structured data value, consisting of fields\nwhich map to dynamically typed values. In some languages, `Struct`\nmight be supported by a native representation. For example, in\nscripting languages like JS a struct is represented as an\nobject. The details of that representation are described together\nwith the proto support for the language.\n\nThe JSON representation for `Struct` is JSON object."
-    },
-    "protobufValue": {
-      "type": "object",
-      "properties": {
-        "null_value": {
-          "$ref": "#/definitions/protobufNullValue",
-          "description": "Represents a null value."
-        },
-        "number_value": {
-          "type": "number",
-          "format": "double",
-          "description": "Represents a double value."
-        },
-        "string_value": {
-          "type": "string",
-          "description": "Represents a string value."
-        },
-        "bool_value": {
-          "type": "boolean",
-          "format": "boolean",
-          "description": "Represents a boolean value."
-        },
-        "struct_value": {
-          "$ref": "#/definitions/protobufStruct",
-          "description": "Represents a structured value."
-        },
-        "list_value": {
-          "$ref": "#/definitions/protobufListValue",
-          "description": "Represents a repeated `Value`."
-        }
-      },
-      "description": "`Value` represents a dynamically typed value which can be either\nnull, a number, a string, a boolean, a recursive struct value, or a\nlist of values. A producer of value is expected to set one of that\nvariants, absence of any variant indicates an error.\n\nThe JSON representation for `Value` is JSON value."
     },
     "rpcStatus": {
       "type": "object",
@@ -419,6 +420,45 @@
       },
       "description": "- Simple to use and understand for most users\n- Flexible enough to meet unexpected needs\n\n# Overview\n\nThe `Status` message contains three pieces of data: error code, error\nmessage, and error details. The error code should be an enum value of\n[google.rpc.Code][google.rpc.Code], but it may accept additional error codes\nif needed.  The error message should be a developer-facing English message\nthat helps developers *understand* and *resolve* the error. If a localized\nuser-facing error message is needed, put the localized message in the error\ndetails or localize it in the client. The optional error details may contain\narbitrary information about the error. There is a predefined set of error\ndetail types in the package `google.rpc` that can be used for common error\nconditions.\n\n# Language mapping\n\nThe `Status` message is the logical representation of the error model, but it\nis not necessarily the actual wire format. When the `Status` message is\nexposed in different client libraries and different wire protocols, it can be\nmapped differently. For example, it will likely be mapped to some exceptions\nin Java, but more likely mapped to some error codes in C.\n\n# Other uses\n\nThe error model and the `Status` message can be used in a variety of\nenvironments, either with or without APIs, to provide a\nconsistent developer experience across different environments.\n\nExample uses of this error model include:\n\n- Partial errors. If a service needs to return partial errors to the client,\n    it may embed the `Status` in the normal response to indicate the partial\n    errors.\n\n- Workflow errors. A typical workflow has multiple steps. Each step may\n    have a `Status` message for error reporting.\n\n- Batch operations. If a client uses batch request and batch response, the\n    `Status` message should be used directly inside batch response, one for\n    each error sub-response.\n\n- Asynchronous operations. If an API call embeds asynchronous operation\n    results in its response, the status of those operations should be\n    represented directly using the `Status` message.\n\n- Logging. If some API errors are stored in logs, the message `Status` could\n    be used directly after any stripping needed for security/privacy reasons.",
       "title": "The `Status` type defines a logical error model that is suitable for\ndifferent programming environments, including REST APIs and RPC APIs. It is\nused by [gRPC](https://github.com/grpc). The error model is designed to be:"
+    },
+    "runtimeStreamError": {
+      "type": "object",
+      "properties": {
+        "grpc_code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "http_code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "http_status": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  },
+  "x-stream-definitions": {
+    "openmatchFetchMatchesResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/openmatchFetchMatchesResponse"
+        },
+        "error": {
+          "$ref": "#/definitions/runtimeStreamError"
+        }
+      },
+      "title": "Stream result of openmatchFetchMatchesResponse"
     }
   },
   "externalDocs": {

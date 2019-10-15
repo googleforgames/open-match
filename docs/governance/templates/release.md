@@ -7,16 +7,17 @@ Check the [README](https://github.com/googleforgames/open-match/tree/release-{ve
 Release Notes
 -------------
 
-{ insert enhancements from the changelog and/or security and breaking changes }
+**Feature Highlights**
+{ highlight here the most notable changes and themes at a high level}
 
 **Breaking Changes**
- * API Changed #PR
-
-**Enhancements**
- * New Harness #PR
+{ detail any behaviors or API surfaces which worked in a previous version which will no longer work correctly }
 
 **Security Fixes**
- * Reduced privileges required for MMF. #PR
+{ list any changes which fix vulnerabilities in open match }
+
+**Enhancements**
+{ go into details on improvements and changes }
 
 See [CHANGELOG](https://github.com/googleforgames/open-match/blob/release-{version}/CHANGELOG.md) for more details on changes.
 
@@ -38,7 +39,7 @@ docker pull gcr.io/open-match-public-images/openmatch-mmf-go-soloduel:{version}
 docker pull gcr.io/open-match-public-images/openmatch-mmf-go-pool:{version}
 
 # Test Clients
-docker pull gcr.io/open-match-public-images/openmatch-demo:{version}
+docker pull gcr.io/open-match-public-images/openmatch-demo-first-match:{version}
 ```
 
 _This software is currently alpha, and subject to change. Not to be used in production systems._
@@ -53,8 +54,8 @@ To deploy Open Match in your Kubernetes cluster run the following commands:
 kubectl create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(YOUR_KUBERNETES_USER_NAME)
 # Place all Open Match components in their own namespace.
 kubectl create namespace open-match
-# Install Open Match and monitoring services.
-kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/install.yaml --namespace open-match
+# Install Open Match services.
+kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/01-open-match-core.yaml --namespace open-match
 # Install the demo.
-kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/install-demo.yaml --namespace open-match
+kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/02-open-match-demo.yaml --namespace open-match
 ```

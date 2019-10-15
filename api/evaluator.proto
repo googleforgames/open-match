@@ -13,8 +13,9 @@
 // limitations under the License.
 
 syntax = "proto3";
-package api;
+package openmatch;
 option go_package = "open-match.dev/open-match/pkg/pb";
+option csharp_namespace = "OpenMatch";
 
 import "api/messages.proto";
 import "google/api/annotations.proto";
@@ -56,12 +57,12 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 
 message EvaluateRequest {
   // List of Matches to evaluate.
-  repeated api.Match matches = 1;
+  Match match = 1;
 }
 
 message EvaluateResponse {
   // Accepted list of Matches.
-  repeated api.Match matches = 1;
+  Match match = 1;
 }
 
 // The service implementing the Evaluator API that is called to evaluate
@@ -69,7 +70,7 @@ message EvaluateResponse {
 service Evaluator {
   // Evaluate accepts a list of proposed matches, evaluates them for quality,
   // collisions etc. and returns matches that should be accepted as results.
-  rpc Evaluate(EvaluateRequest) returns (EvaluateResponse) {
+  rpc Evaluate(stream EvaluateRequest) returns (stream EvaluateResponse) {
     option (google.api.http) = {
       post: "/v1/evaluator/matches:evaluate"
       body: "*"

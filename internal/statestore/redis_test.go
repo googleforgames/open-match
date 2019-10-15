@@ -18,6 +18,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"testing"
+	"time"
+
 	miniredis "github.com/alicebob/miniredis/v2"
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
@@ -29,9 +32,6 @@ import (
 	internalTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/pkg/structs"
-	"testing"
-	"time"
 )
 
 func TestStatestoreSetup(t *testing.T) {
@@ -58,9 +58,11 @@ func TestTicketLifecycle(t *testing.T) {
 	id := xid.New().String()
 	ticket := &pb.Ticket{
 		Id: id,
-		Properties: structs.Struct{
-			"testindex1": structs.Number(42),
-		}.S(),
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"testindex1": 42,
+			},
+		},
 		Assignment: &pb.Assignment{
 			Connection: "test-tbd",
 		},
@@ -88,7 +90,7 @@ func TestTicketLifecycle(t *testing.T) {
 	assert.Nil(err)
 	assert.NotNil(result)
 	assert.Equal(ticket.Id, result.Id)
-	assert.Equal(ticket.Properties.Fields["testindex1"].GetNumberValue(), result.Properties.Fields["testindex1"].GetNumberValue())
+	assert.Equal(ticket.SearchFields.DoubleArgs["testindex1"], result.SearchFields.DoubleArgs["testindex1"])
 	assert.Equal(ticket.Assignment.Connection, result.Assignment.Connection)
 
 	// Validate Ticket deletion
@@ -109,7 +111,7 @@ func TestIgnoreLists(t *testing.T) {
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
-	tickets := internalTesting.GenerateTickets(
+	tickets := internalTesting.GenerateFloatRangeTickets(
 		internalTesting.Property{Name: "testindex1", Min: 0, Max: 10, Interval: 2},
 		internalTesting.Property{Name: "testindex2", Min: 0, Max: 10, Interval: 2},
 	)
@@ -123,7 +125,13 @@ func TestIgnoreLists(t *testing.T) {
 
 	verifyTickets := func(service Service, expectLen int) {
 		var results []*pb.Ticket
-		service.FilterTickets(ctx, []*pb.Filter{{Attribute: "testindex1", Min: 0, Max: 10}, {Attribute: "testindex2", Min: 0, Max: 10}}, 100, func(tickets []*pb.Ticket) error {
+		pool := &pb.Pool{
+			DoubleRangeFilters: []*pb.DoubleRangeFilter{
+				{DoubleArg: "testindex1", Min: 0, Max: 10},
+				{DoubleArg: "testindex2", Min: 0, Max: 10},
+			},
+		}
+		service.FilterTickets(ctx, pool, 100, func(tickets []*pb.Ticket) error {
 			results = tickets
 			return nil
 		})
@@ -157,10 +165,12 @@ func TestTicketIndexing(t *testing.T) {
 
 		ticket := &pb.Ticket{
 			Id: id,
-			Properties: structs.Struct{
-				"testindex1": structs.Number(float64(i)),
-				"testindex2": structs.Number(0.5),
-			}.S(),
+			SearchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{
+					"testindex1": float64(i),
+					"testindex2": 0.5,
+				},
+			},
 			Assignment: &pb.Assignment{
 				Connection: "test-tbd",
 			},
@@ -181,35 +191,39 @@ func TestTicketIndexing(t *testing.T) {
 	err = service.DeindexTicket(ctx, "ticket.no.6")
 	assert.Nil(err)
 
-	found := make(map[string]struct{})
+	found := []string{}
 
-	filters := []*pb.Filter{
-		{
-			Attribute: "testindex1",
-			Min:       2.5,
-			Max:       8.5,
-		},
-		{
-			Attribute: "testindex2",
-			Min:       0.49,
-			Max:       0.51,
+	pool := &pb.Pool{
+		DoubleRangeFilters: []*pb.DoubleRangeFilter{
+			{
+				DoubleArg: "testindex1",
+				Min:       2.5,
+				Max:       8.5,
+			},
+			{
+				DoubleArg: "testindex2",
+				Min:       0.49,
+				Max:       0.51,
+			},
 		},
 	}
 
-	err = service.FilterTickets(ctx, filters, 2, func(tickets []*pb.Ticket) error {
+	err = service.FilterTickets(ctx, pool, 2, func(tickets []*pb.Ticket) error {
 		assert.True(len(tickets) <= 2)
 		for _, ticket := range tickets {
-			found[ticket.Id] = struct{}{}
+			found = append(found, ticket.Id)
 		}
 		return nil
 	})
 	assert.Nil(err)
 
-	assert.Equal(len(found), 4)
-	assert.Contains(found, "ticket.no.3")
-	assert.Contains(found, "ticket.no.4")
-	assert.Contains(found, "ticket.no.7")
-	assert.Contains(found, "ticket.no.8")
+	expected := []string{
+		"ticket.no.3",
+		"ticket.no.4",
+		"ticket.no.7",
+		"ticket.no.8",
+	}
+	assert.ElementsMatch(expected, found)
 }
 
 func TestGetAssignmentBeforeSet(t *testing.T) {
@@ -376,7 +390,6 @@ func createRedis(t *testing.T) (config.View, func()) {
 	cfg.Set("backoff.maxInterval", 300*time.Millisecond)
 	cfg.Set("backoff.maxElapsedTime", 100*time.Millisecond)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, true)
-	cfg.Set("ticketIndices", []string{"testindex1", "testindex2"})
 
 	return cfg, func() { mredis.Close() }
 }

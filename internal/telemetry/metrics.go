@@ -30,18 +30,25 @@ func Gauge(name string, description string, tags ...tag.Key) *stats.Int64Measure
 }
 
 // SetGauge sets the value of the metric
-func SetGauge(ctx context.Context, s *stats.Int64Measure, n int, tags ...tag.Mutator) {
+func SetGauge(ctx context.Context, s *stats.Int64Measure, n int64, tags ...tag.Mutator) {
 	mCtx, err := tag.New(ctx, tags...)
 	if err != nil {
 		return
 	}
-	stats.Record(mCtx, s.M(int64(n)))
+	stats.Record(mCtx, s.M(n))
 }
 
 // Counter creates a counter metric.
 func Counter(name string, description string, tags ...tag.Key) *stats.Int64Measure {
-	s := stats.Int64(name, "Count of "+description+".", "1")
+	s := stats.Int64(name, "Count of "+description+".", stats.UnitDimensionless)
 	counterView(s, tags...)
+	return s
+}
+
+// HistogramWithBounds creates a prometheus histogram metric with specified bounds.
+func HistogramWithBounds(name string, description string, unit string, bounds []float64, tags ...tag.Key) *stats.Int64Measure {
+	s := stats.Int64(name, description, unit)
+	histogramView(s, bounds, tags...)
 	return s
 }
 
@@ -50,13 +57,28 @@ func IncrementCounter(ctx context.Context, s *stats.Int64Measure, tags ...tag.Mu
 	IncrementCounterN(ctx, s, 1, tags...)
 }
 
-// IncrementCounterN increases a metric by n.
-func IncrementCounterN(ctx context.Context, s *stats.Int64Measure, n int, tags ...tag.Mutator) {
-	mCtx, err := tag.New(ctx, tags...)
-	if err != nil {
+// IncrementCounterN record one measurement at once with given tags.
+func IncrementCounterN(ctx context.Context, s *stats.Int64Measure, n int64, tags ...tag.Mutator) {
+	if err := stats.RecordWithTags(ctx, tags, s.M(n)); err != nil {
+		logger.WithError(err).Infof("cannot record stat with tags %#v", tags)
 		return
 	}
-	stats.Record(mCtx, s.M(int64(n)))
+}
+
+// histogramView converts the measurement into a view for a histogram metric.
+func histogramView(s *stats.Int64Measure, bounds []float64, tags ...tag.Key) *view.View {
+	v := &view.View{
+		Name:        s.Name(),
+		Measure:     s,
+		Description: s.Description(),
+		Aggregation: view.Distribution(bounds...),
+		TagKeys:     tags,
+	}
+	err := view.Register(v)
+	if err != nil {
+		logger.WithError(err).Infof("cannot register view for metric: %s, it will not be reported", s.Name())
+	}
+	return v
 }
 
 // gaugeView converts the measurement into a view for a gauge metric.

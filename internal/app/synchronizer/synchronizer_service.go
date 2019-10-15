@@ -16,12 +16,17 @@ package synchronizer
 
 import (
 	"context"
+	"io"
 
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/internal/util"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 // The service implementing the Synchronizer API that synchronizes the evaluation
@@ -82,17 +87,47 @@ func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterReq
 // added to the list of proposals to be evaluated in the current cycle. At the
 //  end of the cycle, the user defined evaluation method is triggered and the
 // matches accepted by it are returned as results.
-func (s *synchronizerService) EvaluateProposals(ctx context.Context, req *ipb.EvaluateProposalsRequest) (*ipb.EvaluateProposalsResponse, error) {
-	syncState := s.state
+func (s *synchronizerService) EvaluateProposals(stream ipb.Synchronizer_EvaluateProposalsServer) error {
+	ctx := stream.Context()
+	id := util.GetSynchronizerContextID(ctx)
+	if len(id) == 0 {
+		return status.Errorf(codes.Internal, "synchronizer context id should be an non-empty string")
+	}
 
-	logger.WithFields(logrus.Fields{
-		"id":        req.GetId(),
-		"proposals": getMatchIds(req.GetMatches()),
-	}).Info("Received request to evaluate propsals")
+	var proposals = []*pb.Match{}
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return err
+		}
+
+		proposals = append(proposals, req.GetMatch())
+	}
+
+	results, err := s.doEvaluateProposals(stream.Context(), proposals, id)
+	if err != nil {
+		return err
+	}
+
+	for _, result := range results {
+		if err = stream.Send(&ipb.EvaluateProposalsResponse{Match: result}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *synchronizerService) doEvaluateProposals(ctx context.Context, proposals []*pb.Match, id string) ([]*pb.Match, error) {
+	syncState := s.state
 	// pendingRequests keeps track of number of requests pending. This is incremented
 	// in addProposals while holding the state mutex. The count should be decremented
 	// only after this request completes.
-	err := syncState.addProposals(req.Id, req.Matches)
+	err := syncState.addProposals(id, proposals)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +140,7 @@ func (s *synchronizerService) EvaluateProposals(ctx context.Context, req *ipb.Ev
 	// state of the synchronizer itself (since multiple concurrent of these can
 	// be in progress). The evaluation routine tracks the completion of all of
 	// these and then changes the state of the synchronizer to idle.
-	results, err := syncState.fetchResults(req.Id)
+	results, err := syncState.fetchResults(id)
 	if err != nil {
 		return nil, err
 	}
@@ -121,5 +156,5 @@ func (s *synchronizerService) EvaluateProposals(ctx context.Context, req *ipb.Ev
 		return nil, err
 	}
 
-	return &ipb.EvaluateProposalsResponse{Matches: results}, nil
+	return results, nil
 }

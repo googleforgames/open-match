@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if .Values.stresstest.enabled }}
 kind: Service
 apiVersion: v1
 metadata:
@@ -104,4 +105,5 @@ spec:
         - "-t{{ .Values.stresstest.duration }}"
         - "--expect-slaves={{ .Values.stresstest.replicas }}"
         - "--csv=stress_user{{ .Values.stresstest.clients }}"
+{{- end }}
 {{- end }}
