@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:latest
+// Also update go.mod when changing go version.
+FROM golang:1.13.1
 ENV GO111MODULE=on
 
 WORKDIR /go/src/open-match.dev/open-match
