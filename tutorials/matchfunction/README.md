@@ -1,16 +1,22 @@
 This folder provides a minimal Dockerfile and k8s resource definition to build a sample match function for Open Match tutorials.
 
-To build your director image, run:
+Run the command below to define a variable for your personal container registry in your current terminal session
 ```
-docker build -t $(YOUR_PERSONAL_REGISTRY)/om-function .
+# Example - replace open-match-public-images with your personal registry ID
+YOUR_PERSONAL_REGISTRY=gcr.io/open-match-public-images
 ```
 
-To push your director image, run:
+To build your match function image, run:
 ```
-docker push $(YOUR_PERSONAL_REGISTRY)/om-function
+docker build -t $YOUR_PERSONAL_REGISTRY/om-function .
+```
+
+To push your match function image, run:
+```
+docker push $YOUR_PERSONAL_REGISTRY/om-function
 ```
 
 To deploy your Docker image into your Kubernetes cluster, run:
 ```
-kubectl apply -f om-function.yaml
+sed "s|registry_placeholder|$YOUR_PERSONAL_REGISTRY|g" om-function.yaml | kubectl apply -f -
 ```

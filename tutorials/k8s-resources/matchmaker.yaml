@@ -24,7 +24,7 @@ metadata:
 spec:
   containers:
   - name: om-director
-    image: "some public images"
+    image: registry_placeholder/om-director:latest
     imagePullPolicy: Always
   hostname: om-director
 ---
@@ -36,7 +36,7 @@ metadata:
 spec:
   containers:
   - name: om-game-frontend
-    image: "some public images"
+    image: registry_placeholder/om-game-frontend:latest
     imagePullPolicy: Always
   hostname: om-game-frontend
 ---
@@ -48,7 +48,7 @@ metadata:
 spec:
   containers:
   - name: om-evaluator
-    image: "gcr.io/open-match-build/openmatch-evaluator-go-simple"
+    image: registry_placeholder/om-evaluator:latest
     imagePullPolicy: Always
     ports:
     - name: grpc
@@ -65,7 +65,7 @@ metadata:
 spec:
   containers:
   - name: om-function
-    image: "gcr.io/open-match-build/openmatch-mmf-go-soloduel"
+    image: registry_placeholder/om-function:latest
     imagePullPolicy: Always
     ports:
     - name: grpc

@@ -20,7 +20,7 @@ metadata:
 spec:
   containers:
   - name: om-evaluator
-    image: "gcr.io/open-match-build/openmatch-evaluator-go-simple"
+    image: registry_placeholder/om-evaluator:latest
     imagePullPolicy: Always
     ports:
     - name: grpc
