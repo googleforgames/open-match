@@ -47,7 +47,7 @@ swaggerui: &swaggerui
   hostName: om-swaggerui
   httpPort: 51500
   portType: ClusterIP
-  replicas: 3
+  replicas: 1
   image: openmatch-swaggerui
 mmlogic: &mmlogic
   hostName: om-mmlogic
@@ -116,6 +116,16 @@ redis:
     disableCommands: [] # don't disable 'FLUSH-' commands
   metrics:
     enabled: true
+  cluster:
+    slaveCount: 2
+  # Redis may require some changes in the kernel of the host machine to work as expected, 
+  # in particular increasing the somaxconn value and disabling transparent huge pages.
+  # TODO: disable THP - requires priviledged service account, blocked by current PSP setup.
+  # https://github.com/helm/charts/tree/master/stable/redis#host-kernel-settings
+  securityContext:
+    sysctls:
+    - name: net.core.somaxconn
+      value: "10000"
 
 ###############################################################################################################################
 #                               Open Match configurations for the subcharts
