@@ -14,10 +14,45 @@
 
 {{- if index .Values "open-match-core" "enabled" }}
 {{- if empty .Values.ci }}
+# om-redis-podsecuritypolicy is the least restricted PSP used to create privileged pods to disable THP in host kernel.
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: om-podsecuritypolicy
+  name: om-redis-podsecuritypolicy
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    {{- include "openmatch.chartmeta" . | nindent 4 }}
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: '*'
+spec:
+  privileged: true
+  allowPrivilegeEscalation: true
+  allowedCapabilities:
+  - '*'
+  volumes:
+  - '*'
+  hostNetwork: true
+  hostPorts:
+  # Redis
+  - min: 6379
+    max: 6379
+  - min: 9121
+    max: 9121
+  hostIPC: true
+  hostPID: true
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+---
+# om-core-podsecuritypolicy does not allow creating privileged pods and restrict binded pods to use the specified port ranges.
+apiVersion: extensions/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: om-core-podsecuritypolicy
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -42,11 +77,6 @@ spec:
     max: 50510
   - min: 51500
     max: 51510
-  # Redis
-  - min: 6379
-    max: 6379
-  - min: 9121
-    max: 9121
   # Cassandra
   - min: 7000
     max: 7001
