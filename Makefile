@@ -408,6 +408,7 @@ install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-customize.enabled=false \
 		--set open-match-telemetry.enabled=false \
 		--set open-match-demo.enabled=false \
+		--set template=true \
 		install/helm/open-match > install/yaml/01-open-match-core.yaml
 
 install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -417,6 +418,7 @@ install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set global.image.tag=$(TAG) \
 		--set open-match-core.enabled=false \
 		--set open-match-telemetry.enabled=false \
+		--set template=true \
 		install/helm/open-match > install/yaml/02-open-match-demo.yaml
 
 install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -428,6 +430,7 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
 		--set global.telemetry.prometheus.enabled=true \
+		--set template=true \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
 install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -439,6 +442,7 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
 		--set global.telemetry.grafana.enabled=true \
+		--set template=true \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
 
 install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -450,6 +454,7 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
 		--set global.telemetry.jaeger.enabled=true \
+		--set template=true \
 		install/helm/open-match > install/yaml/05-jaeger-chart.yaml
 
 install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -462,6 +467,7 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
+		--set template=true \
 		install/helm/open-match > install/yaml/install.yaml
 
 set-redis-password:
