@@ -22,11 +22,11 @@ import (
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 )
 
-func TestIncrementCounter(t *testing.T) {
+func TestRecordUnitMeasurement(t *testing.T) {
 	ctx := utilTesting.NewContext(t)
 	c := Counter("telemetry/fake_metric", "fake")
-	IncrementCounter(ctx, c)
-	IncrementCounter(ctx, c)
+	RecordUnitMeasurement(ctx, c)
+	RecordUnitMeasurement(ctx, c)
 }
 
 func TestDoubleMetric(t *testing.T) {
