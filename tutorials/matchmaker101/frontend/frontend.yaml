@@ -15,16 +15,11 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: om-evaluator
-  namespace: open-match
+  name: mm101-tutorial-frontend
+  namespace: mm101-tutorial
 spec:
   containers:
-  - name: om-evaluator
-    image: registry_placeholder/om-evaluator:latest
+  - name: mm101-tutorial-frontend
+    image: REGISTRY_PLACEHOLDER/mm101-tutorial-frontend:latest
     imagePullPolicy: Always
-    ports:
-    - name: grpc
-      containerPort: 50508
-    - name: http
-      containerPort: 51508
-  hostname: om-evaluator
+  hostname: mm101-tutorial-frontend
