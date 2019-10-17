@@ -20,6 +20,6 @@ metadata:
 spec:
   containers:
   - name: om-director
-    image: "some public images"
+    image: registry_placeholder/om-director:latest
     imagePullPolicy: Always
   hostname: om-director

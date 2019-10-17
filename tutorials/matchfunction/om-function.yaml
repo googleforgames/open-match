@@ -20,7 +20,7 @@ metadata:
 spec:
   containers:
   - name: om-function
-    image: "gcr.io/open-match-build/openmatch-mmf-go-soloduel"
+    image: registry_placeholder/om-function:latest
     imagePullPolicy: Always
     ports:
     - name: grpc

@@ -20,6 +20,6 @@ metadata:
 spec:
   containers:
   - name: om-game-frontend
-    image: "some public images"
+    image: registry_placeholder/om-game-frontend:latest
     imagePullPolicy: Always
   hostname: om-game-frontend

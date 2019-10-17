@@ -1,16 +1,22 @@
 This folder provides a minimal Dockerfile and k8s resource definition to build a sample game-frontend for Open Match tutorials.
 
-To build your director image, run:
+Run the command below to define a variable for your personal container registry in your current terminal session
 ```
-docker build -t $(YOUR_PERSONAL_REGISTRY)/om-game-frontend .
+# Specify your Registry URL here.
+REGISTRY=[YOUR_REGISTRY_URL]
 ```
 
-To push your director image, run:
+To build your game-frontend image, run:
 ```
-docker push $(YOUR_PERSONAL_REGISTRY)/om-game-frontend
+docker build -t $REGISTRY/om-game-frontend .
+```
+
+To push your game-frontend image, run:
+```
+docker push $REGISTRY/om-game-frontend
 ```
 
 To deploy your Docker image into your Kubernetes cluster, run:
 ```
-kubectl apply -f om-game-frontend.yaml
+sed "s|registry_placeholder|$REGISTRY|g" om-game-frontend.yaml | kubectl apply -f -
 ```
