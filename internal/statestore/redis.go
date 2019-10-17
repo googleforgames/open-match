@@ -131,7 +131,7 @@ func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
 		}).Error("failed to connect to redis")
 		return nil, status.Errorf(codes.Unavailable, "%v", err)
 	}
-	telemetry.IncrementCounterN(ctx, mRedisConnLatencyMs, time.Since(startTime).Milliseconds())
+	telemetry.RecordNUnitMeasurement(ctx, mRedisConnLatencyMs, time.Since(startTime).Milliseconds())
 
 	return redisConn, nil
 }
