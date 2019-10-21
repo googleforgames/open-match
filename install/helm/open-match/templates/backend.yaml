@@ -48,12 +48,12 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   scaleTargetRef:
-    apiVersion: extensions/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
     name: {{ .Values.backend.hostName }}
   {{- include "openmatch.HorizontalPodAutoscaler.spec.common" . | nindent 2 }}
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.backend.hostName }}

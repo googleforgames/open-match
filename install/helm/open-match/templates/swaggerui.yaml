@@ -33,7 +33,7 @@ spec:
     protocol: TCP
     port: {{ .Values.swaggerui.httpPort }}
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.swaggerui.hostName }}
