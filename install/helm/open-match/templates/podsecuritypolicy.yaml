@@ -14,7 +14,7 @@
 
 {{- if index .Values "open-match-core" "enabled" }}
 {{- if empty .Values.ci }}
-apiVersion: extensions/v1beta1
+apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
   name: om-podsecuritypolicy
