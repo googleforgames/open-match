@@ -59,6 +59,15 @@ message RunRequest {
   // The MatchProfile that describes the Match that this MatchFunction needs to
   // generate proposals for.
   MatchProfile profile = 1;
+
+  message PoolTickets {
+    string pool_name = 1;
+    repeated Ticket tickets = 2;
+  }
+
+  // If the match function config specifies ticket hydration, this result includes
+  // tickets belonging to each pool present int he MatchProfile.
+  repeated PoolTickets pool_ticket_map = 2;
 }
 
 message RunResponse {

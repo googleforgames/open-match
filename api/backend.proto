@@ -61,6 +61,7 @@ message FunctionConfig {
   string host = 1;
   int32 port = 2;
   Type type = 3;
+  bool hydrate_tickets = 4;
   enum Type {
     GRPC = 0;
     REST = 1;
