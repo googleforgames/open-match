@@ -198,9 +198,11 @@ endif
 
 GOLANG_PROTOS = pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/mmlogic.pb.go pkg/pb/messages.pb.go pkg/pb/extensions.pb.go pkg/pb/evaluator.pb.go internal/ipb/synchronizer.pb.go pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/mmlogic.pb.gw.go pkg/pb/evaluator.pb.gw.go
 
+CSHARP_PROTOS = csharp/OpenMatch/Backend.cs csharp/OpenMatch/Frontend.cs csharp/OpenMatch/Evaluator.cs csharp/OpenMatch/Matchfunction.cs csharp/OpenMatch/Messages.cs csharp/OpenMatch/Mmlogic.cs
+
 SWAGGER_JSON_DOCS = api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/evaluator.swagger.json
 
-ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS)
+ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS) $(CSHARP_PROTOS)
 
 # CMDS is a list of all folders in cmd/
 CMDS = $(notdir $(wildcard cmd/*))
@@ -694,6 +696,24 @@ pkg/pb/%.pb.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSI
 		--go_out=plugins=grpc:$(REPOSITORY_ROOT)/build/prototmp
 	mv $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/$@ $@
 
+csharp/OpenMatch/Annotations.cs:
+	$(PROTOC) third_party/protoc-gen-swagger/options/annotations.proto \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--plugin=protoc-gen-grpc=grpc_csharp_plugin \
+		--csharp_out=$(REPOSITORY_ROOT)/csharp/OpenMatch
+
+csharp/OpenMatch/Openapiv2.cs:
+	$(PROTOC) third_party/protoc-gen-swagger/options/openapiv2.proto \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--plugin=protoc-gen-grpc=grpc_csharp_plugin \
+		--csharp_out=$(REPOSITORY_ROOT)/csharp/OpenMatch/
+
+csharp/OpenMatch/%.cs: third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION)
+	$(PROTOC) api/$(shell echo $(*F)| tr A-Z a-z).proto \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+		--plugin=protoc-gen-grpc=grpc_csharp_plugin \
+		--csharp_out=$(REPOSITORY_ROOT)/csharp/OpenMatch
+
 internal/ipb/%.pb.go: internal/api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	mkdir -p $(REPOSITORY_ROOT)/build/prototmp $(REPOSITORY_ROOT)/internal/ipb
 	$(PROTOC) $< \
@@ -919,6 +939,8 @@ clean-secrets:
 	rm -rf $(OPEN_MATCH_SECRETS_DIR)
 
 clean-protos:
+	rm -rf $(REPOSITORY_ROOT)/build/prototmp/
+	rm -rf $(REPOSITORY_ROOT)/csharp/OpenMatch/*.cs
 	rm -rf $(REPOSITORY_ROOT)/pkg/pb/
 	rm -rf $(REPOSITORY_ROOT)/internal/ipb/
 
@@ -1028,8 +1050,8 @@ proxy:
 update-deps:
 	$(GO) mod tidy
 
-build-csharp: build/toolchain/dotnet/
-	(cd $(REPOSITORY_ROOT)/csharp/OpenMatch && $(DOTNET) build -o . && rm -rf obj/ *.pdb *.deps.json)
+build-csharp: build/toolchain/dotnet/ csharp/OpenMatch/Annotations.cs csharp/OpenMatch/Openapiv2.cs
+	(cd $(REPOSITORY_ROOT)/csharp/OpenMatch && $(DOTNET) build -o .)
 
 third_party/: third_party/google/api third_party/protoc-gen-swagger/options third_party/swaggerui/
 

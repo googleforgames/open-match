@@ -50,6 +50,8 @@ detritus/
 
 # Dotnet Core ignores
 *.swp
+*.pdb
+*.deps.json
 *.*~
 project.lock.json
 .DS_Store
@@ -80,6 +82,7 @@ bld/
 msbuild.log
 msbuild.err
 msbuild.wrn
+csharp/OpenMatch/obj
 
 # Visual Studio 2015
 .vs/
