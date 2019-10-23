@@ -72,7 +72,7 @@ steps:
 
 - id: 'Build: Initialize Toolchain'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'install-toolchain', 'push-helm-ci']
+  args: ['make', 'install-toolchain']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -148,7 +148,7 @@ steps:
 
 - id: 'Test: Delete Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GCLOUD_EXTRA_FLAGS=--async', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${SHORT_SHA}', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
+  args: ['make', 'GCLOUD_EXTRA_FLAGS=--async', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${SHORT_SHA}', 'OPEN_MATCH_RELEASE_NAME=open-match-${SHORT_SHA}', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
   waitFor: ['Test: End-to-End Cluster']
 
 artifacts:
