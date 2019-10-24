@@ -27,6 +27,8 @@ spec:
         component: e2e-job
         release: {{ .Release.Name }}
     spec:
+      serviceAccountName: open-match-test-service
+      automountServiceAccountToken: true
       containers:
       - image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.e2etest.image }}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
         name: e2e-job
