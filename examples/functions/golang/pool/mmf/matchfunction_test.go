@@ -20,6 +20,7 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
@@ -85,12 +86,11 @@ func TestMakeMatches(t *testing.T) {
 	actual := []*pb.Match{}
 	for _, match := range matches {
 		actual = append(actual, &pb.Match{
-			MatchProfile:    match.MatchProfile,
-			MatchFunction:   match.MatchFunction,
-			Tickets:         match.Tickets,
-			Rosters:         match.Rosters,
-			EvaluationInput: match.EvaluationInput,
-			Extension:       match.Extension,
+			MatchProfile:  match.MatchProfile,
+			MatchFunction: match.MatchFunction,
+			Tickets:       match.Tickets,
+			Rosters:       match.Rosters,
+			Extensions:    match.Extensions,
 		})
 	}
 
@@ -108,11 +108,13 @@ func TestMakeMatches(t *testing.T) {
 		}
 
 		return &pb.Match{
-			MatchProfile:    p.ProfileName,
-			MatchFunction:   matchName,
-			Tickets:         tickets,
-			Rosters:         []*pb.Roster{{Name: poolName, TicketIds: tids}},
-			EvaluationInput: evaluationInput,
+			MatchProfile:  p.ProfileName,
+			MatchFunction: matchName,
+			Tickets:       tickets,
+			Rosters:       []*pb.Roster{{Name: poolName, TicketIds: tids}},
+			Extensions: map[string]*any.Any{
+				"evaluation_input": evaluationInput,
+			},
 		}
 	}
 

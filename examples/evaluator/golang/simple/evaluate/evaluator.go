@@ -41,10 +41,9 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 		inp := &pb.DefaultEvaluationCriteria{
 			Score: math.Inf(-1),
 		}
-		if m.EvaluationInput == nil {
-			nilEvlautionInputs++
-		} else {
-			err := ptypes.UnmarshalAny(m.EvaluationInput, inp)
+
+		if a, ok := m.Extensions["evaluation_input"]; ok {
+			err := ptypes.UnmarshalAny(a, inp)
 			if err != nil {
 				p.Logger.WithFields(logrus.Fields{
 					"match_id": m.MatchId,
@@ -52,6 +51,8 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 				}).Error("Failed to unmarshal match's DefaultEvaluationCriteria.  Rejecting match.")
 				continue
 			}
+		} else {
+			nilEvlautionInputs++
 		}
 		matches = append(matches, &matchInp{
 			match: m,
