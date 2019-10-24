@@ -9,9 +9,6 @@ metadata:
     component: e2e-job
     release: {{ .Release.Name }}
 spec:
-  selector:
-    app: {{ template "openmatch.name" . }}
-    component: e2e-job
   # Specifies the number of retries before marking this job failed. Defaults to 6 if not specified.
   backoffLimit: 3
   # Specifies the desired number of successfully finished pods the job should be run with.
