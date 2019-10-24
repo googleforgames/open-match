@@ -153,3 +153,22 @@ grafana:
         url: http://open-match-prometheus-server.{{ .Release.Namespace }}.svc.cluster.local:80/
         access: proxy
         isDefault: true
+
+jaeger:
+  # Configs for the cassandra schema job
+  schema:
+    pullPolicy: Always
+    mode: prod
+    activeDeadlineSeconds: 200
+  cassandra:
+    image:
+      tag: latest
+    config:
+      cluster_size: 2
+    resources:
+      requests:
+        memory: 4Gi
+        cpu: 2
+      limits:
+        memory: 4Gi
+        cpu: 2

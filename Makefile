@@ -100,6 +100,7 @@ GO111MODULE = on
 GOLANG_TEST_COUNT = 1
 SWAGGERUI_PORT = 51500
 PROMETHEUS_PORT = 9090
+JAEGER_QUERY_PORT = 16686
 GRAFANA_PORT = 3000
 LOCUST_PORT = 8089
 FRONTEND_PORT = 51504
@@ -1015,6 +1016,10 @@ proxy-synchronizer: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Synchronizer Trace: http://localhost:$(SYNCHRONIZER_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=synchronizer,release=$(OPEN_MATCH_RELEASE_NAME)" --output jsonpath='{.items[0].metadata.name}') $(SYNCHRONIZER_PORT):51506 $(PORT_FORWARD_ADDRESS_FLAG)
 
+proxy-jaeger: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	@echo "Jaeger Query Frontend: http://localhost:16686"
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app.kubernetes.io/name=jaeger,app.kubernetes.io/component=query" --output jsonpath='{.items[0].metadata.name}') $(JAEGER_QUERY_PORT):16686 $(PORT_FORWARD_ADDRESS_FLAG)
+
 proxy-grafana: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "User: admin"
 	@echo "Password: openmatch"
@@ -1040,7 +1045,7 @@ proxy-locust: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
-proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-synchronizer proxy-ui proxy-dashboard proxy-demo
+proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-synchronizer proxy-ui proxy-dashboard proxy-demo proxy-jaeger
 
 proxy:
 	# This is an exception case where we'll call recursive make.
