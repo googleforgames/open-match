@@ -21,7 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
+	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -29,12 +29,37 @@ var (
 	matchName       = "roster-based-matchfunction"
 	emptyRosterSpot = "EMPTY_ROSTER_SPOT"
 	logger          = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
+		"app":       "matchfunction",
 		"component": "mmf.rosterbased",
 	})
 )
 
-func MakeMatches(p *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
+// Run is this harness's implementation of the gRPC call defined in api/matchfunction.proto.
+func (s *MatchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
+	poolTickets, err := matchfunction.FetchPoolTickets(stream.Context(), s.mmlogicClient, req)
+	if err != nil {
+		return err
+	}
+
+	// Run the customize match function!
+	proposals, err := makeMatches(req.GetProfile(), poolTickets)
+	if err != nil {
+		return err
+	}
+	logger.WithFields(logrus.Fields{
+		"proposals": proposals,
+	}).Trace("proposals returned by match function")
+
+	for _, proposal := range proposals {
+		if err := stream.Send(&pb.RunResponse{Proposal: proposal}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
 	// This roster based match function expects the match profile to have a
 	// populated roster specifying the empty slots for each pool name and also
 	// have the ticket pools referenced in the roster. It generates matches by
@@ -54,7 +79,7 @@ func MakeMatches(p *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 		// Loop through each pool wanted in the rosters and pick the number of
 		// wanted players from the respective Pool.
 		for poolName, want := range wantTickets {
-			have, ok := p.PoolNameToTickets[poolName]
+			have, ok := poolTickets[poolName]
 			if !ok {
 				// A wanted Pool was not found in the Pools specified in the profile.
 				insufficientTickets = true
@@ -69,7 +94,7 @@ func MakeMatches(p *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 
 			// Populate the wanted tickets from the Tickets in the corresponding Pool.
 			matchTickets = append(matchTickets, have[0:want]...)
-			p.PoolNameToTickets[poolName] = have[want:]
+			poolTickets[poolName] = have[want:]
 			var ids []string
 			for _, ticket := range matchTickets {
 				ids = append(ids, ticket.Id)
@@ -87,8 +112,8 @@ func MakeMatches(p *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 		}
 
 		matches = append(matches, &pb.Match{
-			MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.ProfileName, time.Now().Format("2006-01-02T15:04:05.00"), count),
-			MatchProfile:  p.ProfileName,
+			MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), count),
+			MatchProfile:  p.GetName(),
 			MatchFunction: matchName,
 			Tickets:       matchTickets,
 			Rosters:       matchRosters,

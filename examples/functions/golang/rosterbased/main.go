@@ -20,16 +20,9 @@
 package main
 
 import (
-	rosterbased "open-match.dev/open-match/examples/functions/golang/rosterbased/mmf"
-	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
+	"open-match.dev/open-match/examples/functions/golang/rosterbased/mmf"
 )
 
 func main() {
-	// Invoke the harness to setup a GRPC service that handles requests to run the
-	// match function. The harness itself queries open match for player pools for
-	// the specified request and passes the pools to the match function to generate
-	// proposals.
-	mmfHarness.RunMatchFunction(&mmfHarness.FunctionSettings{
-		Func: rosterbased.MakeMatches,
-	})
+	mmf.Start("om-mmlogic.open-match.svc.cluster.local:50505", 50502)
 }
