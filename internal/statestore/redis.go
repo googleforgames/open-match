@@ -37,7 +37,7 @@ var (
 		"app":       "openmatch",
 		"component": "statestore.redis",
 	})
-	mRedisConnLatencyMs = telemetry.HistogramWithBounds("redis/connectlatency", "latency to get a redis connection", "ms", []float64{0, 50, 200, 500, 1000, 2000, 4000, 10000})
+	mRedisConnLatencyMs = telemetry.HistogramWithBounds("redis/connectlatency", "latency to get a redis connection", "ms", []float64{0, 50, 100, 200, 400, 800, 1600, 3200, 6400})
 )
 
 type redisBackend struct {

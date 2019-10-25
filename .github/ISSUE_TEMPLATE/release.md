@@ -1,5 +1,5 @@
 ---
-name: release
+name: Publish a Release
 about: Instructions and checklist for creating a release.
 title: 'Release X.Y.Z-rc.N'
 labels: kind/release
