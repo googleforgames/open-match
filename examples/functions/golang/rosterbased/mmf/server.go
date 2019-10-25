@@ -57,15 +57,14 @@ func Start(mmlogicAddr string, serverPort int) error {
 		"port": serverPort,
 	}).Info("TCP net listener initialized")
 
-	go func() {
-		err := server.Serve(ln)
-		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("gRPC serve() error")
-		}
-		logger.Info("serving gRPC endpoints")
-	}()
+	logger.Info("Serving gRPC endpoint")
+	err = server.Serve(ln)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("gRPC serve() error")
+		return err
+	}
 
 	return nil
 }
