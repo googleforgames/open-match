@@ -241,6 +241,7 @@ global:
       enabled: true
     jaeger:
       enabled: false
+      samplerFraction: 1 # Configures a sampler that samples a given fraction of traces.
       agentEndpoint: "open-match-jaeger-agent:6831"
       collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
     prometheus:
