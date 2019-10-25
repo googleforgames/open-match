@@ -20,15 +20,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/pkg/pb"
-)
-
-var (
-	logger = logrus.WithFields(logrus.Fields{
-		"app":       "matchfunction",
-		"component": "matchfunction.library",
-	})
 )
 
 // QueryPool queries mmlogic and returns the tickets that belong to the specified pool.
