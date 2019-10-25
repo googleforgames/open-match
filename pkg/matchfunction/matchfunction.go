@@ -27,7 +27,7 @@ import (
 func QueryPool(ctx context.Context, mml pb.MmLogicClient, pool *pb.Pool) ([]*pb.Ticket, error) {
 	query, err := mml.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
 	if err != nil {
-		return nil, fmt.Errorf("Error calling mmlogic.QueryTickets: %v", err)
+		return nil, fmt.Errorf("Error calling mmlogic.QueryTickets: %w", err)
 	}
 
 	var tickets []*pb.Ticket
@@ -38,7 +38,7 @@ func QueryPool(ctx context.Context, mml pb.MmLogicClient, pool *pb.Pool) ([]*pb.
 		}
 
 		if err != nil {
-			return nil, fmt.Errorf("Error recieving tickets from mmlogic.QueryTickets: %v", err)
+			return nil, fmt.Errorf("Error receiving tickets from mmlogic.QueryTickets: %w", err)
 		}
 
 		tickets = append(tickets, resp.Tickets...)
@@ -57,8 +57,7 @@ func QueryPools(ctx context.Context, mml pb.MmLogicClient, pools []*pb.Pool) (ma
 
 	results := make(chan result)
 	for _, pool := range pools {
-		pool := pool
-		go func() {
+		go func(pool *pb.Pool) {
 			r := result{
 				name: pool.Name,
 			}
@@ -67,14 +66,14 @@ func QueryPools(ctx context.Context, mml pb.MmLogicClient, pools []*pb.Pool) (ma
 			case results <- r:
 			case <-ctx.Done():
 			}
-		}()
+		}(pool)
 	}
 
 	poolMap := make(map[string][]*pb.Ticket)
 	for i := 0; i < len(pools); i++ {
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("Context canceled while querying pools: %v", ctx.Err())
+			return nil, fmt.Errorf("Context canceled while querying pools: %w", ctx.Err())
 		case r := <-results:
 			if r.err != nil {
 				return nil, r.err
