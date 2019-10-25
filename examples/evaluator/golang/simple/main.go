@@ -14,11 +14,14 @@
 package main
 
 import (
-	simple "open-match.dev/open-match/examples/evaluator/golang/simple/evaluate"
-	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
+	"open-match.dev/open-match/examples/evaluator/golang/simple/evaluate"
+)
+
+var (
+	// Replace this with the port on which your Evaluator service is exposed.
+	evaluatorPort = 50508
 )
 
 func main() {
-	// Invoke the harness to setup a GRPC service that handles requests to run the evaluator.
-	harness.RunEvaluator(simple.Evaluate)
+	evaluate.Start(evaluatorPort)
 }

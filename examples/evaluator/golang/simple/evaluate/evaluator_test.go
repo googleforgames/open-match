@@ -21,7 +21,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/assert"
-	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -102,7 +101,7 @@ func TestEvaluate(t *testing.T) {
 		test := test
 		t.Run(test.description, func(t *testing.T) {
 			t.Parallel()
-			gotMatches, err := Evaluate(&harness.EvaluatorParams{Matches: test.testMatches})
+			gotMatches, err := evaluate(test.testMatches)
 
 			assert.Nil(t, err)
 			assert.Equal(t, len(test.wantMatches), len(gotMatches))

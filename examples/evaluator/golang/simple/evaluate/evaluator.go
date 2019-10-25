@@ -20,7 +20,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
-	harness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -31,11 +30,11 @@ type matchInp struct {
 
 // Evaluate is where your custom evaluation logic lives.
 // This sample evaluator sorts and deduplicates the input matches.
-func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
-	matches := make([]*matchInp, 0, len(p.Matches))
+func evaluate(proposals []*pb.Match) ([]*pb.Match, error) {
+	matches := make([]*matchInp, 0, len(proposals))
 	nilEvlautionInputs := 0
 
-	for _, m := range p.Matches {
+	for _, m := range proposals {
 		// Evaluation criteria is optional, but sort it lower than any matches which
 		// provided criteria.
 		inp := &pb.DefaultEvaluationCriteria{
@@ -46,7 +45,7 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 		} else {
 			err := ptypes.UnmarshalAny(m.EvaluationInput, inp)
 			if err != nil {
-				p.Logger.WithFields(logrus.Fields{
+				logger.WithFields(logrus.Fields{
 					"match_id": m.MatchId,
 					"error":    err,
 				}).Error("Failed to unmarshal match's DefaultEvaluationCriteria.  Rejecting match.")
@@ -60,7 +59,7 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 	}
 
 	if nilEvlautionInputs > 0 {
-		p.Logger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"count": nilEvlautionInputs,
 		}).Info("Some matches don't have the optional field evaluation_input set.")
 	}
