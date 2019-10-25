@@ -16,67 +16,54 @@
 package config
 
 import (
+	"fmt"
 	"github.com/fsnotify/fsnotify"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"go.opencensus.io/stats"
-	"go.opencensus.io/stats/view"
+	"log"
 )
 
-var (
-	logger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "config",
-	})
-
-	// OpenCensus
-	cfgVarCount = stats.Int64("config/vars_total", "Number of config vars read during initialization", "1")
-	// CfgVarCountView is the Open Census view for the cfgVarCount measure.
-	CfgVarCountView = &view.View{
-		Name:        "config/vars_total",
-		Measure:     cfgVarCount,
-		Description: "The number of config vars read during initialization",
-		Aggregation: view.Count(),
-	}
-)
-
-// Read reads a config file into a viper.Viper instance and associates environment vars defined in
-// config.envMappings
+// Read sets default to a viper instance and read user config to override these defaults.
 func Read() (View, error) {
+	var err error
+	// read configs from config/default/matchmaker_config_default.yaml
+	// matchmaker_config_default provides default values for all of the possible tunnable parameters in Open Match
+	dcfg := viper.New()
+	dcfg.SetConfigType("yaml")
+	dcfg.AddConfigPath(".")
+	dcfg.AddConfigPath("config/default")
+	dcfg.SetConfigName("matchmaker_config_default")
+	err = dcfg.ReadInConfig()
+	if err != nil {
+		return nil, fmt.Errorf("fatal error reading default config file, desc: %s", err.Error())
+	}
+
+	// read configs from config/override/matchmaker_config_default.yaml
+	// matchmaker_config_override overrides default values specified in matchmaker_config_default
 	cfg := viper.New()
-	// Viper config management initialization
-	// Support either json or yaml file types (json for backwards compatibility
-	// with previous versions)
-	cfg.SetConfigType("json")
+
+	// set defaults for cfg using settings in dcfg
+	for k, v := range dcfg.AllSettings() {
+		cfg.SetDefault(k, v)
+	}
+
 	cfg.SetConfigType("yaml")
 	cfg.AddConfigPath(".")
-	cfg.AddConfigPath("config/global")
-	cfg.SetConfigName("global_config")
-	err := cfg.ReadInConfig()
+	cfg.AddConfigPath("config/override")
+	cfg.SetConfigName("matchmaker_config_override")
+	err = cfg.ReadInConfig()
 	if err != nil {
-		logger.WithError(err).Fatal("Fatal error reading config file")
-	}
-
-	cfg.AddConfigPath("config/om")
-	cfg.SetConfigName("matchmaker_config")
-	// Read in config file using Viper
-	err = cfg.MergeInConfig()
-	if err != nil {
-		logger.WithError(err).Fatal("Fatal error reading config file")
+		return nil, fmt.Errorf("fatal error reading override config file, desc: %s", err.Error())
 	}
 
 	// Look for updates to the config; in Kubernetes, this is implemented using
-	// a ConfigMap that is written to the matchmaker_config.yaml file, which is
+	// a ConfigMap that is written to the matchmaker_config_override.yaml file, which is
 	// what the Open Match components using Viper monitor for changes.
 	// More details about Open Match's use of Kubernetes ConfigMaps at:
 	// https://open-match.dev/open-match/issues/42
 	cfg.WatchConfig() // Watch and re-read config file.
 	// Write a log when the configuration changes.
 	cfg.OnConfigChange(func(event fsnotify.Event) {
-		logger.WithFields(logrus.Fields{
-			"filename":  event.Name,
-			"operation": event.Op,
-		}).Info("Server configuration changed.")
+		log.Printf("Server configuration changed, operation: %v, filename: %s", event.Op, event.Name)
 	})
-	return cfg, err
+	return cfg, nil
 }

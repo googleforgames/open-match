@@ -16,7 +16,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: om-configmap
+  name: om-configmap-default
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -24,7 +24,7 @@ metadata:
     component: config
     release: {{ .Release.Name }}
 data:
-  matchmaker_config.yaml: |-
+  matchmaker_config_default.yaml: |-
     logging:
       level: debug
       {{- if .Values.global.telemetry.stackdriver.enabled }}
@@ -97,4 +97,33 @@ data:
       ignoreLists:
         ttl: {{ .Values.redis.ignoreLists.ttl }}
       expiration: 43200
+
+    telemetry:
+      zpages:
+        enable: "{{ .Values.global.telemetry.zpages.enabled }}"
+      jaeger:
+        enable: "{{ .Values.global.telemetry.jaeger.enabled }}"
+        agentEndpoint: "{{ .Values.global.telemetry.jaeger.agentEndpoint }}"
+        collectorEndpoint: "{{ .Values.global.telemetry.jaeger.collectorEndpoint }}"
+      prometheus:
+        enable: "{{ .Values.global.telemetry.prometheus.enabled }}"
+        endpoint: "{{ .Values.global.telemetry.prometheus.endpoint }}"
+        serviceDiscovery: "{{ .Values.global.telemetry.prometheus.serviceDiscovery }}"
+      stackdriver:
+        enable: "{{ .Values.global.telemetry.stackdriver.enabled }}"
+        gcpProjectId: "{{ .Values.global.gcpProjectId }}"
+        metricPrefix: "{{ .Values.global.telemetry.stackdriver.metricPrefix }}"
+      zipkin:
+        enable: "{{ .Values.global.telemetry.zipkin.enabled }}"
+        endpoint: "{{ .Values.global.telemetry.zipkin.endpoint }}"
+        reporterEndpoint: "{{ .Values.global.telemetry.zipkin.reporterEndpoint }}"
+      reportingPeriod: "{{ .Values.global.telemetry.reportingPeriod }}"
+{{- if .Values.global.tls.enabled }}
+    api:
+      tls:
+        trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
+        certificatefile: "{{.Values.global.tls.server.mountPath}}/public.cert"
+        privatekey: "{{.Values.global.tls.server.mountPath}}/private.key"
+        rootcertificatefile: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
+{{- end -}}
 {{- end }}

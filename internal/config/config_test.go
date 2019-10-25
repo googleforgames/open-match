@@ -24,34 +24,53 @@ import (
 )
 
 func TestReadConfigIgnoreRace(t *testing.T) {
-	yaml := []byte(`metrics.endpoint: /metrics`)
-	if err := ioutil.WriteFile("matchmaker_config.yaml", yaml, 0666); err != nil {
+	const defaultCfgName = "matchmaker_config_default.yaml"
+	const overrideCfgName = "matchmaker_config_override.yaml"
+
+	yaml := []byte(`
+metrics.overrideKey: defaultValue1
+metrics.defaultKey: defaultValue2
+`)
+	if err := ioutil.WriteFile(defaultCfgName, yaml, 0666); err != nil {
 		t.Fatalf("could not create config file: %s", err)
 	}
-	defer os.Remove("matchmaker_config.yaml")
-	yaml = []byte(`metrics.url: om`)
-	if err := ioutil.WriteFile("global_config.yaml", yaml, 0666); err != nil {
+	defer os.Remove(defaultCfgName)
+
+	yaml = []byte(`metrics.overrideKey: overrideValue1`)
+	if err := ioutil.WriteFile(overrideCfgName, yaml, 0666); err != nil {
 		t.Fatalf("could not create config file: %s", err)
 	}
-	defer os.Remove("global_config.yaml")
+	defer os.Remove(overrideCfgName)
 
 	cfg, err := Read()
 	if err != nil {
 		t.Fatalf("cannot load config, %s", err)
 	}
 
-	if cfg.GetString("metrics.endpoint") != "/metrics" {
-		t.Errorf("av.GetString('metrics.endpoint') = %s, expected '/metrics'", cfg.GetString("metrics.endpoint"))
+	if cfg.GetString("metrics.overrideKey") != "overrideValue1" {
+		t.Errorf("cfg.GetString('metrics.overrideKey') = %s, expected 'overrideValue1'", cfg.GetString("metrics.overrideKey"))
+	}
+	if cfg.GetString("metrics.defaultKey") != "defaultValue2" {
+		t.Errorf("cfg.GetString('metrics.defaultKey') = %s, expected 'defaultValue2'", cfg.GetString("metrics.defaultKey"))
 	}
 
-	yaml = []byte(`metrics.endpoint: ''`)
-	if err := ioutil.WriteFile("matchmaker_config.yaml", yaml, 0666); err != nil {
+	yaml = []byte(`
+metrics.newKey: newValue
+metrics.overrideKey: overrideValue2
+`)
+	if err := ioutil.WriteFile(overrideCfgName, yaml, 0666); err != nil {
 		t.Fatalf("could not update config file: %s", err)
 	}
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 
-	if cfg.GetString("metrics.endpoint") != "" {
-		t.Errorf("av.GetString('metrics.endpoint') = %s, expected ''", cfg.GetString("metrics.endpoint"))
+	if cfg.GetString("metrics.overrideKey") != "overrideValue2" {
+		t.Errorf("cfg.GetString('metrics.overrideKey') = %s, expected 'overrideValue2'", cfg.GetString("metrics.overrideKey"))
+	}
+	if cfg.GetString("metrics.defaultKey") != "defaultValue2" {
+		t.Errorf("cfg.GetString('metrics.defaultKey') = %s, expected 'defaultValue2'", cfg.GetString("metrics.defaultKey"))
+	}
+	if cfg.GetString("metrics.newKey") != "newValue" {
+		t.Errorf("cfg.GetString('metrics.newKey') = %s, expected 'newValue'", cfg.GetString("metrics.newKey"))
 	}
 }
