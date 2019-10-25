@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package golang provides the Match Making Function service for Open Match golang harness.
+// Package matchfunction provides helper methods to simplify authoring a match fuction.
 package matchfunction
 
 import (
@@ -30,6 +30,7 @@ var (
 	})
 )
 
+// FetchPoolTickets fetches Tickets for all the pools in the MatchProfile for the given request.
 func FetchPoolTickets(ctx context.Context, mmlClient pb.MmLogicClient, req *pb.RunRequest) (map[string][]*pb.Ticket, error) {
 	var poolTickets = make(map[string][]*pb.Ticket)
 	for _, pool := range req.GetProfile().GetPools() {

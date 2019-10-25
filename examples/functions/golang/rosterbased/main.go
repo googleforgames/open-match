@@ -23,6 +23,12 @@ import (
 	"open-match.dev/open-match/examples/functions/golang/rosterbased/mmf"
 )
 
+var (
+	// Replace these values with the approriate values for your Open Match setup.
+	mmlogicAddress = "om-mmlogic.open-match.svc.cluster.local:50503" // Address of the MMLogic Endpoint.
+	serverPort     = 50502                                           // Port of the server where the match function is hosted.
+)
+
 func main() {
-	mmf.Start("om-mmlogic.open-match.svc.cluster.local:50505", 50502)
+	mmf.Start(mmlogicAddress, serverPort)
 }

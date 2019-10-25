@@ -34,22 +34,25 @@ var (
 	})
 )
 
-// Run is this harness's implementation of the gRPC call defined in api/matchfunction.proto.
+// Run is this match function's implementation of the gRPC call defined in api/matchfunction.proto.
 func (s *MatchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
+	// Fetch tickets for the pools specified in the Match Profile.
 	poolTickets, err := matchfunction.FetchPoolTickets(stream.Context(), s.mmlogicClient, req)
 	if err != nil {
 		return err
 	}
 
-	// Run the customize match function!
+	// Generate proposals.
 	proposals, err := makeMatches(req.GetProfile(), poolTickets)
 	if err != nil {
 		return err
 	}
+
 	logger.WithFields(logrus.Fields{
 		"proposals": proposals,
 	}).Trace("proposals returned by match function")
 
+	// Stream the generated proposals back to Open Match.
 	for _, proposal := range proposals {
 		if err := stream.Send(&pb.RunResponse{Proposal: proposal}); err != nil {
 			return err

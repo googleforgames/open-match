@@ -31,6 +31,9 @@ type MatchFunctionService struct {
 	port          int
 }
 
+// Start creates and starts the Match Function server and also connects to Open
+// Match's mmlogic service. This connection is used at runtime to fetch tickets
+// for pools specified in MatchProfile.
 func Start(mmlogicAddr string, serverPort int) error {
 	conn, err := grpc.Dial(mmlogicAddr, grpc.WithInsecure())
 	if err != nil {
