@@ -17,6 +17,7 @@ package matchfunction
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/sirupsen/logrus"
@@ -30,36 +31,66 @@ var (
 	})
 )
 
-// FetchPoolTickets fetches Tickets for all the pools in the MatchProfile for the given request.
-func FetchPoolTickets(ctx context.Context, mmlClient pb.MmLogicClient, req *pb.RunRequest) (map[string][]*pb.Ticket, error) {
-	var poolTickets = make(map[string][]*pb.Ticket)
-	for _, pool := range req.GetProfile().GetPools() {
-		qtClient, err := mmlClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
-		if err != nil {
-			logger.WithError(err).Error("Failed to get queryTicketClient from mmlogic.")
-			return nil, err
-		}
-
-		// Aggregate tickets by poolName
-		var tickets []*pb.Ticket
-		for {
-			qtResponse, err := qtClient.Recv()
-			if err == io.EOF {
-				logger.Trace("Received all results from the queryTicketClient.")
-				// Break when all results are received
-				break
-			}
-
-			if err != nil {
-				logger.WithError(err).Error("Failed to receive a response from the queryTicketClient.")
-				return nil, err
-			}
-
-			tickets = append(tickets, qtResponse.Tickets...)
-		}
-
-		poolTickets[pool.GetName()] = tickets
+// QueryPool queries mmlogic and returns the tickets that belong to the specified pool.
+func QueryPool(ctx context.Context, mml pb.MmLogicClient, pool *pb.Pool) ([]*pb.Ticket, error) {
+	query, err := mml.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
+	if err != nil {
+		return nil, fmt.Errorf("Error calling mmlogic.QueryTickets: %v", err)
 	}
 
-	return poolTickets, nil
+	var tickets []*pb.Ticket
+	for {
+		resp, err := query.Recv()
+		if err == io.EOF {
+			return tickets, nil
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("Error recieving tickets from mmlogic.QueryTickets: %v", err)
+		}
+
+		tickets = append(tickets, resp.Tickets...)
+	}
+}
+
+// QueryPools queries mmlogic and returns the a map of pool names to the tickets belonging to those pools.
+func QueryPools(ctx context.Context, mml pb.MmLogicClient, pools []*pb.Pool) (map[string][]*pb.Ticket, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	type result struct {
+		err     error
+		tickets []*pb.Ticket
+		name    string
+	}
+
+	results := make(chan result)
+	for _, pool := range pools {
+		pool := pool
+		go func() {
+			r := result{
+				name: pool.Name,
+			}
+			r.tickets, r.err = QueryPool(ctx, mml, pool)
+			select {
+			case results <- r:
+			case <-ctx.Done():
+			}
+		}()
+	}
+
+	poolMap := make(map[string][]*pb.Ticket)
+	for i := 0; i < len(pools); i++ {
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("Context canceled while querying pools: %v", ctx.Err())
+		case r := <-results:
+			if r.err != nil {
+				return nil, r.err
+			}
+
+			poolMap[r.name] = r.tickets
+		}
+	}
+
+	return poolMap, nil
 }

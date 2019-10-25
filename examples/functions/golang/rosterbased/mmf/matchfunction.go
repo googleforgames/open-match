@@ -37,7 +37,7 @@ var (
 // Run is this match function's implementation of the gRPC call defined in api/matchfunction.proto.
 func (s *MatchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
 	// Fetch tickets for the pools specified in the Match Profile.
-	poolTickets, err := matchfunction.FetchPoolTickets(stream.Context(), s.mmlogicClient, req)
+	poolTickets, err := matchfunction.QueryPools(stream.Context(), s.mmlogicClient, req.GetProfile().GetPools())
 	if err != nil {
 		return err
 	}
