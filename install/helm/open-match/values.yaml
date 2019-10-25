@@ -228,13 +228,6 @@ global:
     rpc:
       enabled: false
 
-  # Specifies the location and name of the Open Match cluster-level config volumes.
-  # Used in template: `openmatch.volumemounts.configs` and `openmatch.volumes.configs` under `templates/_helpers.tpl` file.
-  configs:
-    global-configmap:
-      volumeName: global-config-volume
-      mountPath: /app/config/global
-
   # Use this field if you need to override the image registry and image tag for all services defined in this chart
   image:
     registry:
