@@ -32,6 +32,10 @@ image:
   pullPolicy: Always
 
 configs:
+  # TODO: Remove this bit after deprecating the harness dependency on configmap
+  om-configmap-default:
+    volumeName: om-config-volume-default
+    mountPath: /app/config/default
   customize-configmap:
-    mountPath: /app/config/om
     volumeName: customize-config-volume
+    mountPath: /app/config/override

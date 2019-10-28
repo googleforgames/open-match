@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if index .Values "open-match-core" "enabled" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: customize-configmap
+  name: om-configmap-override
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -23,18 +24,10 @@ metadata:
     component: config
     release: {{ .Release.Name }}
 data:
+  # TODO: Make this override configmap optional.
+  # Kubernetes doesn't allow having a configmap with empty key.
+  # Using logging setting at here as a placeholder.
   matchmaker_config_override.yaml: |-
-    api:
-      mmlogic:
-        hostname: "{{ .Values.mmlogic.hostName }}"
-        grpcport: "{{ .Values.mmlogic.grpcPort }}"
-      
-      functions:
-        hostname: "{{ .Values.function.hostName }}"
-        grpcport: "{{ .Values.function.grpcPort }}"
-        httpport: "{{ .Values.function.httpPort }}"
-      
-      evaluator:
-        hostname: "{{ .Values.evaluator.hostName }}"
-        grpcport: "{{ .Values.evaluator.grpcPort }}"
-        httpport: "{{ .Values.evaluator.httpPort }}"
+    logging:
+      level: debug
+{{- end }}}

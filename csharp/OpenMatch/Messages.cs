@@ -25,42 +25,52 @@ namespace OpenMatch {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "ChJhcGkvbWVzc2FnZXMucHJvdG8SCW9wZW5tYXRjaBoXZ29vZ2xlL3JwYy9z",
-            "dGF0dXMucHJvdG8aHGdvb2dsZS9wcm90b2J1Zi9zdHJ1Y3QucHJvdG8ibAoG",
-            "VGlja2V0EgoKAmlkGAEgASgJEisKCnByb3BlcnRpZXMYAiABKAsyFy5nb29n",
-            "bGUucHJvdG9idWYuU3RydWN0EikKCmFzc2lnbm1lbnQYAyABKAsyFS5vcGVu",
-            "bWF0Y2guQXNzaWdubWVudCJwCgpBc3NpZ25tZW50EhIKCmNvbm5lY3Rpb24Y",
-            "ASABKAkSKwoKcHJvcGVydGllcxgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5T",
-            "dHJ1Y3QSIQoFZXJyb3IYAyABKAsyEi5nb29nbGUucnBjLlN0YXR1cyI/ChBG",
-            "bG9hdFJhbmdlRmlsdGVyEhEKCWF0dHJpYnV0ZRgBIAEoCRILCgNtYXgYAiAB",
-            "KAESCwoDbWluGAMgASgBIjQKEEJvb2xFcXVhbHNGaWx0ZXISEQoJYXR0cmli",
-            "dXRlGAEgASgJEg0KBXZhbHVlGAIgASgIIjYKElN0cmluZ0VxdWFsc0ZpbHRl",
-            "chIRCglhdHRyaWJ1dGUYASABKAkSDQoFdmFsdWUYAiABKAkixgEKBFBvb2wS",
-            "DAoEbmFtZRgBIAEoCRI4ChNmbG9hdF9yYW5nZV9maWx0ZXJzGAIgAygLMhsu",
-            "b3Blbm1hdGNoLkZsb2F0UmFuZ2VGaWx0ZXISOAoTYm9vbF9lcXVhbHNfZmls",
-            "dGVycxgDIAMoCzIbLm9wZW5tYXRjaC5Cb29sRXF1YWxzRmlsdGVyEjwKFXN0",
-            "cmluZ19lcXVhbHNfZmlsdGVycxgEIAMoCzIdLm9wZW5tYXRjaC5TdHJpbmdF",
-            "cXVhbHNGaWx0ZXIiKgoGUm9zdGVyEgwKBG5hbWUYASABKAkSEgoKdGlja2V0",
-            "X2lkcxgCIAMoCSKNAQoMTWF0Y2hQcm9maWxlEgwKBG5hbWUYASABKAkSKwoK",
-            "cHJvcGVydGllcxgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSHgoF",
-            "cG9vbHMYAyADKAsyDy5vcGVubWF0Y2guUG9vbBIiCgdyb3N0ZXJzGAQgAygL",
-            "MhEub3Blbm1hdGNoLlJvc3RlciK9AQoFTWF0Y2gSEAoIbWF0Y2hfaWQYASAB",
-            "KAkSFQoNbWF0Y2hfcHJvZmlsZRgCIAEoCRIWCg5tYXRjaF9mdW5jdGlvbhgD",
-            "IAEoCRIiCgd0aWNrZXRzGAQgAygLMhEub3Blbm1hdGNoLlRpY2tldBIiCgdy",
-            "b3N0ZXJzGAUgAygLMhEub3Blbm1hdGNoLlJvc3RlchIrCgpwcm9wZXJ0aWVz",
-            "GAYgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdEIuWiBvcGVuLW1hdGNo",
-            "LmRldi9vcGVuLW1hdGNoL3BrZy9wYqoCCU9wZW5NYXRjaGIGcHJvdG8z"));
+            "dGF0dXMucHJvdG8aHGdvb2dsZS9wcm90b2J1Zi9zdHJ1Y3QucHJvdG8aGWdv",
+            "b2dsZS9wcm90b2J1Zi9hbnkucHJvdG8ingEKBlRpY2tldBIKCgJpZBgBIAEo",
+            "CRIpCgphc3NpZ25tZW50GAMgASgLMhUub3Blbm1hdGNoLkFzc2lnbm1lbnQS",
+            "LgoNc2VhcmNoX2ZpZWxkcxgEIAEoCzIXLm9wZW5tYXRjaC5TZWFyY2hGaWVs",
+            "ZHMSJwoJZXh0ZW5zaW9uGAUgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueUoE",
+            "CAIQAyL+AQoMU2VhcmNoRmllbGRzEjwKC2RvdWJsZV9hcmdzGAEgAygLMicu",
+            "b3Blbm1hdGNoLlNlYXJjaEZpZWxkcy5Eb3VibGVBcmdzRW50cnkSPAoLc3Ry",
+            "aW5nX2FyZ3MYAiADKAsyJy5vcGVubWF0Y2guU2VhcmNoRmllbGRzLlN0cmlu",
+            "Z0FyZ3NFbnRyeRIMCgR0YWdzGAMgAygJGjEKD0RvdWJsZUFyZ3NFbnRyeRIL",
+            "CgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAE6AjgBGjEKD1N0cmluZ0FyZ3NF",
+            "bnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBInIKCkFzc2ln",
+            "bm1lbnQSEgoKY29ubmVjdGlvbhgBIAEoCRIhCgVlcnJvchgDIAEoCzISLmdv",
+            "b2dsZS5ycGMuU3RhdHVzEicKCWV4dGVuc2lvbhgEIAEoCzIULmdvb2dsZS5w",
+            "cm90b2J1Zi5BbnlKBAgCEAMiQQoRRG91YmxlUmFuZ2VGaWx0ZXISEgoKZG91",
+            "YmxlX2FyZxgBIAEoCRILCgNtYXgYAiABKAESCwoDbWluGAMgASgBIjcKElN0",
+            "cmluZ0VxdWFsc0ZpbHRlchISCgpzdHJpbmdfYXJnGAEgASgJEg0KBXZhbHVl",
+            "GAIgASgJIh8KEFRhZ1ByZXNlbnRGaWx0ZXISCwoDdGFnGAEgASgJIs4BCgRQ",
+            "b29sEgwKBG5hbWUYASABKAkSOgoUZG91YmxlX3JhbmdlX2ZpbHRlcnMYAiAD",
+            "KAsyHC5vcGVubWF0Y2guRG91YmxlUmFuZ2VGaWx0ZXISPAoVc3RyaW5nX2Vx",
+            "dWFsc19maWx0ZXJzGAQgAygLMh0ub3Blbm1hdGNoLlN0cmluZ0VxdWFsc0Zp",
+            "bHRlchI4ChN0YWdfcHJlc2VudF9maWx0ZXJzGAUgAygLMhsub3Blbm1hdGNo",
+            "LlRhZ1ByZXNlbnRGaWx0ZXJKBAgDEAQiKgoGUm9zdGVyEgwKBG5hbWUYASAB",
+            "KAkSEgoKdGlja2V0X2lkcxgCIAMoCSKPAQoMTWF0Y2hQcm9maWxlEgwKBG5h",
+            "bWUYASABKAkSHgoFcG9vbHMYAyADKAsyDy5vcGVubWF0Y2guUG9vbBIiCgdy",
+            "b3N0ZXJzGAQgAygLMhEub3Blbm1hdGNoLlJvc3RlchInCglleHRlbnNpb24Y",
+            "BSABKAsyFC5nb29nbGUucHJvdG9idWYuQW55SgQIAhADIu8BCgVNYXRjaBIQ",
+            "CghtYXRjaF9pZBgBIAEoCRIVCg1tYXRjaF9wcm9maWxlGAIgASgJEhYKDm1h",
+            "dGNoX2Z1bmN0aW9uGAMgASgJEiIKB3RpY2tldHMYBCADKAsyES5vcGVubWF0",
+            "Y2guVGlja2V0EiIKB3Jvc3RlcnMYBSADKAsyES5vcGVubWF0Y2guUm9zdGVy",
+            "Ei4KEGV2YWx1YXRpb25faW5wdXQYByABKAsyFC5nb29nbGUucHJvdG9idWYu",
+            "QW55EicKCWV4dGVuc2lvbhgIIAEoCzIULmdvb2dsZS5wcm90b2J1Zi5BbnlK",
+            "BAgGEAdCLlogb3Blbi1tYXRjaC5kZXYvb3Blbi1tYXRjaC9wa2cvcGKqAglP",
+            "cGVuTWF0Y2hiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::Google.Rpc.StatusReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.StructReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::Google.Rpc.StatusReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.StructReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Ticket), global::OpenMatch.Ticket.Parser, new[]{ "Id", "Properties", "Assignment" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Assignment), global::OpenMatch.Assignment.Parser, new[]{ "Connection", "Properties", "Error" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.FloatRangeFilter), global::OpenMatch.FloatRangeFilter.Parser, new[]{ "Attribute", "Max", "Min" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.BoolEqualsFilter), global::OpenMatch.BoolEqualsFilter.Parser, new[]{ "Attribute", "Value" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.StringEqualsFilter), global::OpenMatch.StringEqualsFilter.Parser, new[]{ "Attribute", "Value" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Pool), global::OpenMatch.Pool.Parser, new[]{ "Name", "FloatRangeFilters", "BoolEqualsFilters", "StringEqualsFilters" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Ticket), global::OpenMatch.Ticket.Parser, new[]{ "Id", "Assignment", "SearchFields", "Extension" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.SearchFields), global::OpenMatch.SearchFields.Parser, new[]{ "DoubleArgs", "StringArgs", "Tags" }, null, null, new pbr::GeneratedClrTypeInfo[] { null, null, }),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Assignment), global::OpenMatch.Assignment.Parser, new[]{ "Connection", "Error", "Extension" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.DoubleRangeFilter), global::OpenMatch.DoubleRangeFilter.Parser, new[]{ "DoubleArg", "Max", "Min" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.StringEqualsFilter), global::OpenMatch.StringEqualsFilter.Parser, new[]{ "StringArg", "Value" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.TagPresentFilter), global::OpenMatch.TagPresentFilter.Parser, new[]{ "Tag" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Pool), global::OpenMatch.Pool.Parser, new[]{ "Name", "DoubleRangeFilters", "StringEqualsFilters", "TagPresentFilters" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Roster), global::OpenMatch.Roster.Parser, new[]{ "Name", "TicketIds" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.MatchProfile), global::OpenMatch.MatchProfile.Parser, new[]{ "Name", "Properties", "Pools", "Rosters" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Match), global::OpenMatch.Match.Parser, new[]{ "MatchId", "MatchProfile", "MatchFunction", "Tickets", "Rosters", "Properties" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.MatchProfile), global::OpenMatch.MatchProfile.Parser, new[]{ "Name", "Pools", "Rosters", "Extension" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Match), global::OpenMatch.Match.Parser, new[]{ "MatchId", "MatchProfile", "MatchFunction", "Tickets", "Rosters", "EvaluationInput", "Extension" }, null, null, null)
           }));
     }
     #endregion
@@ -103,8 +113,9 @@ namespace OpenMatch {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public Ticket(Ticket other) : this() {
       id_ = other.id_;
-      properties_ = other.properties_ != null ? other.properties_.Clone() : null;
       assignment_ = other.assignment_ != null ? other.assignment_.Clone() : null;
+      searchFields_ = other.searchFields_ != null ? other.searchFields_.Clone() : null;
+      extension_ = other.extension_ != null ? other.extension_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -127,21 +138,6 @@ namespace OpenMatch {
       }
     }
 
-    /// <summary>Field number for the "properties" field.</summary>
-    public const int PropertiesFieldNumber = 2;
-    private global::Google.Protobuf.WellKnownTypes.Struct properties_;
-    /// <summary>
-    /// Properties contains custom info about the ticket.  Top level values can be
-    /// used in indexing and filtering to find tickets.
-    /// </summary>
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Google.Protobuf.WellKnownTypes.Struct Properties {
-      get { return properties_; }
-      set {
-        properties_ = value;
-      }
-    }
-
     /// <summary>Field number for the "assignment" field.</summary>
     public const int AssignmentFieldNumber = 3;
     private global::OpenMatch.Assignment assignment_;
@@ -153,6 +149,36 @@ namespace OpenMatch {
       get { return assignment_; }
       set {
         assignment_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "search_fields" field.</summary>
+    public const int SearchFieldsFieldNumber = 4;
+    private global::OpenMatch.SearchFields searchFields_;
+    /// <summary>
+    /// Values visible to Open Match which can be used when querying for tickets
+    /// with specific values.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::OpenMatch.SearchFields SearchFields {
+      get { return searchFields_; }
+      set {
+        searchFields_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "extension" field.</summary>
+    public const int ExtensionFieldNumber = 5;
+    private global::Google.Protobuf.WellKnownTypes.Any extension_;
+    /// <summary>
+    /// Customized information to be used by the Match Making Function.  Optional,
+    /// depending on the requirements of the MMF.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Google.Protobuf.WellKnownTypes.Any Extension {
+      get { return extension_; }
+      set {
+        extension_ = value;
       }
     }
 
@@ -170,8 +196,9 @@ namespace OpenMatch {
         return true;
       }
       if (Id != other.Id) return false;
-      if (!object.Equals(Properties, other.Properties)) return false;
       if (!object.Equals(Assignment, other.Assignment)) return false;
+      if (!object.Equals(SearchFields, other.SearchFields)) return false;
+      if (!object.Equals(Extension, other.Extension)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -179,8 +206,9 @@ namespace OpenMatch {
     public override int GetHashCode() {
       int hash = 1;
       if (Id.Length != 0) hash ^= Id.GetHashCode();
-      if (properties_ != null) hash ^= Properties.GetHashCode();
       if (assignment_ != null) hash ^= Assignment.GetHashCode();
+      if (searchFields_ != null) hash ^= SearchFields.GetHashCode();
+      if (extension_ != null) hash ^= Extension.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -198,13 +226,17 @@ namespace OpenMatch {
         output.WriteRawTag(10);
         output.WriteString(Id);
       }
-      if (properties_ != null) {
-        output.WriteRawTag(18);
-        output.WriteMessage(Properties);
-      }
       if (assignment_ != null) {
         output.WriteRawTag(26);
         output.WriteMessage(Assignment);
+      }
+      if (searchFields_ != null) {
+        output.WriteRawTag(34);
+        output.WriteMessage(SearchFields);
+      }
+      if (extension_ != null) {
+        output.WriteRawTag(42);
+        output.WriteMessage(Extension);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -217,11 +249,14 @@ namespace OpenMatch {
       if (Id.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Id);
       }
-      if (properties_ != null) {
-        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Properties);
-      }
       if (assignment_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Assignment);
+      }
+      if (searchFields_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(SearchFields);
+      }
+      if (extension_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Extension);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -237,17 +272,23 @@ namespace OpenMatch {
       if (other.Id.Length != 0) {
         Id = other.Id;
       }
-      if (other.properties_ != null) {
-        if (properties_ == null) {
-          Properties = new global::Google.Protobuf.WellKnownTypes.Struct();
-        }
-        Properties.MergeFrom(other.Properties);
-      }
       if (other.assignment_ != null) {
         if (assignment_ == null) {
           Assignment = new global::OpenMatch.Assignment();
         }
         Assignment.MergeFrom(other.Assignment);
+      }
+      if (other.searchFields_ != null) {
+        if (searchFields_ == null) {
+          SearchFields = new global::OpenMatch.SearchFields();
+        }
+        SearchFields.MergeFrom(other.SearchFields);
+      }
+      if (other.extension_ != null) {
+        if (extension_ == null) {
+          Extension = new global::Google.Protobuf.WellKnownTypes.Any();
+        }
+        Extension.MergeFrom(other.Extension);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -264,18 +305,199 @@ namespace OpenMatch {
             Id = input.ReadString();
             break;
           }
-          case 18: {
-            if (properties_ == null) {
-              Properties = new global::Google.Protobuf.WellKnownTypes.Struct();
-            }
-            input.ReadMessage(Properties);
-            break;
-          }
           case 26: {
             if (assignment_ == null) {
               Assignment = new global::OpenMatch.Assignment();
             }
             input.ReadMessage(Assignment);
+            break;
+          }
+          case 34: {
+            if (searchFields_ == null) {
+              SearchFields = new global::OpenMatch.SearchFields();
+            }
+            input.ReadMessage(SearchFields);
+            break;
+          }
+          case 42: {
+            if (extension_ == null) {
+              Extension = new global::Google.Protobuf.WellKnownTypes.Any();
+            }
+            input.ReadMessage(Extension);
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  /// <summary>
+  /// Search fields are the fields which Open Match is aware of, and can be used
+  /// when specifying filters.
+  /// </summary>
+  public sealed partial class SearchFields : pb::IMessage<SearchFields> {
+    private static readonly pb::MessageParser<SearchFields> _parser = new pb::MessageParser<SearchFields>(() => new SearchFields());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<SearchFields> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[1]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SearchFields() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SearchFields(SearchFields other) : this() {
+      doubleArgs_ = other.doubleArgs_.Clone();
+      stringArgs_ = other.stringArgs_.Clone();
+      tags_ = other.tags_.Clone();
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SearchFields Clone() {
+      return new SearchFields(this);
+    }
+
+    /// <summary>Field number for the "double_args" field.</summary>
+    public const int DoubleArgsFieldNumber = 1;
+    private static readonly pbc::MapField<string, double>.Codec _map_doubleArgs_codec
+        = new pbc::MapField<string, double>.Codec(pb::FieldCodec.ForString(10), pb::FieldCodec.ForDouble(17), 10);
+    private readonly pbc::MapField<string, double> doubleArgs_ = new pbc::MapField<string, double>();
+    /// <summary>
+    /// Float arguments.  Filterable on ranges.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public pbc::MapField<string, double> DoubleArgs {
+      get { return doubleArgs_; }
+    }
+
+    /// <summary>Field number for the "string_args" field.</summary>
+    public const int StringArgsFieldNumber = 2;
+    private static readonly pbc::MapField<string, string>.Codec _map_stringArgs_codec
+        = new pbc::MapField<string, string>.Codec(pb::FieldCodec.ForString(10), pb::FieldCodec.ForString(18), 18);
+    private readonly pbc::MapField<string, string> stringArgs_ = new pbc::MapField<string, string>();
+    /// <summary>
+    /// String arguments.  Filterable on equality.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public pbc::MapField<string, string> StringArgs {
+      get { return stringArgs_; }
+    }
+
+    /// <summary>Field number for the "tags" field.</summary>
+    public const int TagsFieldNumber = 3;
+    private static readonly pb::FieldCodec<string> _repeated_tags_codec
+        = pb::FieldCodec.ForString(26);
+    private readonly pbc::RepeatedField<string> tags_ = new pbc::RepeatedField<string>();
+    /// <summary>
+    /// Filterable on presence or absence of given value.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public pbc::RepeatedField<string> Tags {
+      get { return tags_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as SearchFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(SearchFields other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!DoubleArgs.Equals(other.DoubleArgs)) return false;
+      if (!StringArgs.Equals(other.StringArgs)) return false;
+      if(!tags_.Equals(other.tags_)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      hash ^= DoubleArgs.GetHashCode();
+      hash ^= StringArgs.GetHashCode();
+      hash ^= tags_.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      doubleArgs_.WriteTo(output, _map_doubleArgs_codec);
+      stringArgs_.WriteTo(output, _map_stringArgs_codec);
+      tags_.WriteTo(output, _repeated_tags_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      size += doubleArgs_.CalculateSize(_map_doubleArgs_codec);
+      size += stringArgs_.CalculateSize(_map_stringArgs_codec);
+      size += tags_.CalculateSize(_repeated_tags_codec);
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(SearchFields other) {
+      if (other == null) {
+        return;
+      }
+      doubleArgs_.Add(other.doubleArgs_);
+      stringArgs_.Add(other.stringArgs_);
+      tags_.Add(other.tags_);
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            doubleArgs_.AddEntriesFrom(input, _map_doubleArgs_codec);
+            break;
+          }
+          case 18: {
+            stringArgs_.AddEntriesFrom(input, _map_stringArgs_codec);
+            break;
+          }
+          case 26: {
+            tags_.AddEntriesFrom(input, _repeated_tags_codec);
             break;
           }
         }
@@ -296,7 +518,7 @@ namespace OpenMatch {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[1]; }
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[2]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -314,8 +536,8 @@ namespace OpenMatch {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public Assignment(Assignment other) : this() {
       connection_ = other.connection_;
-      properties_ = other.properties_ != null ? other.properties_.Clone() : null;
       error_ = other.error_ != null ? other.error_.Clone() : null;
+      extension_ = other.extension_ != null ? other.extension_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -338,20 +560,6 @@ namespace OpenMatch {
       }
     }
 
-    /// <summary>Field number for the "properties" field.</summary>
-    public const int PropertiesFieldNumber = 2;
-    private global::Google.Protobuf.WellKnownTypes.Struct properties_;
-    /// <summary>
-    /// Other details to be sent to the players.
-    /// </summary>
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Google.Protobuf.WellKnownTypes.Struct Properties {
-      get { return properties_; }
-      set {
-        properties_ = value;
-      }
-    }
-
     /// <summary>Field number for the "error" field.</summary>
     public const int ErrorFieldNumber = 3;
     private global::Google.Rpc.Status error_;
@@ -363,6 +571,21 @@ namespace OpenMatch {
       get { return error_; }
       set {
         error_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "extension" field.</summary>
+    public const int ExtensionFieldNumber = 4;
+    private global::Google.Protobuf.WellKnownTypes.Any extension_;
+    /// <summary>
+    /// Customized information to be sent to the clients.  Optional, depending on
+    /// what callers are expecting.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Google.Protobuf.WellKnownTypes.Any Extension {
+      get { return extension_; }
+      set {
+        extension_ = value;
       }
     }
 
@@ -380,8 +603,8 @@ namespace OpenMatch {
         return true;
       }
       if (Connection != other.Connection) return false;
-      if (!object.Equals(Properties, other.Properties)) return false;
       if (!object.Equals(Error, other.Error)) return false;
+      if (!object.Equals(Extension, other.Extension)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -389,8 +612,8 @@ namespace OpenMatch {
     public override int GetHashCode() {
       int hash = 1;
       if (Connection.Length != 0) hash ^= Connection.GetHashCode();
-      if (properties_ != null) hash ^= Properties.GetHashCode();
       if (error_ != null) hash ^= Error.GetHashCode();
+      if (extension_ != null) hash ^= Extension.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -408,13 +631,13 @@ namespace OpenMatch {
         output.WriteRawTag(10);
         output.WriteString(Connection);
       }
-      if (properties_ != null) {
-        output.WriteRawTag(18);
-        output.WriteMessage(Properties);
-      }
       if (error_ != null) {
         output.WriteRawTag(26);
         output.WriteMessage(Error);
+      }
+      if (extension_ != null) {
+        output.WriteRawTag(34);
+        output.WriteMessage(Extension);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -427,11 +650,11 @@ namespace OpenMatch {
       if (Connection.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Connection);
       }
-      if (properties_ != null) {
-        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Properties);
-      }
       if (error_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Error);
+      }
+      if (extension_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Extension);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -447,17 +670,17 @@ namespace OpenMatch {
       if (other.Connection.Length != 0) {
         Connection = other.Connection;
       }
-      if (other.properties_ != null) {
-        if (properties_ == null) {
-          Properties = new global::Google.Protobuf.WellKnownTypes.Struct();
-        }
-        Properties.MergeFrom(other.Properties);
-      }
       if (other.error_ != null) {
         if (error_ == null) {
           Error = new global::Google.Rpc.Status();
         }
         Error.MergeFrom(other.Error);
+      }
+      if (other.extension_ != null) {
+        if (extension_ == null) {
+          Extension = new global::Google.Protobuf.WellKnownTypes.Any();
+        }
+        Extension.MergeFrom(other.Extension);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -474,18 +697,18 @@ namespace OpenMatch {
             Connection = input.ReadString();
             break;
           }
-          case 18: {
-            if (properties_ == null) {
-              Properties = new global::Google.Protobuf.WellKnownTypes.Struct();
-            }
-            input.ReadMessage(Properties);
-            break;
-          }
           case 26: {
             if (error_ == null) {
               Error = new global::Google.Rpc.Status();
             }
             input.ReadMessage(Error);
+            break;
+          }
+          case 34: {
+            if (extension_ == null) {
+              Extension = new global::Google.Protobuf.WellKnownTypes.Any();
+            }
+            input.ReadMessage(Extension);
             break;
           }
         }
@@ -496,7 +719,7 @@ namespace OpenMatch {
 
   /// <summary>
   /// Filters numerical values to only those within a range.
-  ///   attribute: "foo"
+  ///   double_arg: "foo"
   ///   max: 10
   ///   min: 5
   /// matches:
@@ -507,20 +730,17 @@ namespace OpenMatch {
   ///   {"foo": 4}
   ///   {"foo": 10.01}
   ///   {"foo": "7.5"}
-  ///   {"foo": true}
-  ///   {"foo": [7.5]}
-  ///   {"foo": null}
   ///   {}
   /// </summary>
-  public sealed partial class FloatRangeFilter : pb::IMessage<FloatRangeFilter> {
-    private static readonly pb::MessageParser<FloatRangeFilter> _parser = new pb::MessageParser<FloatRangeFilter>(() => new FloatRangeFilter());
+  public sealed partial class DoubleRangeFilter : pb::IMessage<DoubleRangeFilter> {
+    private static readonly pb::MessageParser<DoubleRangeFilter> _parser = new pb::MessageParser<DoubleRangeFilter>(() => new DoubleRangeFilter());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public static pb::MessageParser<FloatRangeFilter> Parser { get { return _parser; } }
+    public static pb::MessageParser<DoubleRangeFilter> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[2]; }
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[3]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -529,36 +749,36 @@ namespace OpenMatch {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public FloatRangeFilter() {
+    public DoubleRangeFilter() {
       OnConstruction();
     }
 
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public FloatRangeFilter(FloatRangeFilter other) : this() {
-      attribute_ = other.attribute_;
+    public DoubleRangeFilter(DoubleRangeFilter other) : this() {
+      doubleArg_ = other.doubleArg_;
       max_ = other.max_;
       min_ = other.min_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public FloatRangeFilter Clone() {
-      return new FloatRangeFilter(this);
+    public DoubleRangeFilter Clone() {
+      return new DoubleRangeFilter(this);
     }
 
-    /// <summary>Field number for the "attribute" field.</summary>
-    public const int AttributeFieldNumber = 1;
-    private string attribute_ = "";
+    /// <summary>Field number for the "double_arg" field.</summary>
+    public const int DoubleArgFieldNumber = 1;
+    private string doubleArg_ = "";
     /// <summary>
-    /// Name of the ticket attribute this Filter operates on.
+    /// Name of the ticket's search_fields.double_args this Filter operates on.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public string Attribute {
-      get { return attribute_; }
+    public string DoubleArg {
+      get { return doubleArg_; }
       set {
-        attribute_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        doubleArg_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
@@ -592,18 +812,18 @@ namespace OpenMatch {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
-      return Equals(other as FloatRangeFilter);
+      return Equals(other as DoubleRangeFilter);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public bool Equals(FloatRangeFilter other) {
+    public bool Equals(DoubleRangeFilter other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Attribute != other.Attribute) return false;
+      if (DoubleArg != other.DoubleArg) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.Equals(Max, other.Max)) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.Equals(Min, other.Min)) return false;
       return Equals(_unknownFields, other._unknownFields);
@@ -612,7 +832,7 @@ namespace OpenMatch {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override int GetHashCode() {
       int hash = 1;
-      if (Attribute.Length != 0) hash ^= Attribute.GetHashCode();
+      if (DoubleArg.Length != 0) hash ^= DoubleArg.GetHashCode();
       if (Max != 0D) hash ^= pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.GetHashCode(Max);
       if (Min != 0D) hash ^= pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.GetHashCode(Min);
       if (_unknownFields != null) {
@@ -628,9 +848,9 @@ namespace OpenMatch {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public void WriteTo(pb::CodedOutputStream output) {
-      if (Attribute.Length != 0) {
+      if (DoubleArg.Length != 0) {
         output.WriteRawTag(10);
-        output.WriteString(Attribute);
+        output.WriteString(DoubleArg);
       }
       if (Max != 0D) {
         output.WriteRawTag(17);
@@ -648,8 +868,8 @@ namespace OpenMatch {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public int CalculateSize() {
       int size = 0;
-      if (Attribute.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Attribute);
+      if (DoubleArg.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(DoubleArg);
       }
       if (Max != 0D) {
         size += 1 + 8;
@@ -664,12 +884,12 @@ namespace OpenMatch {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public void MergeFrom(FloatRangeFilter other) {
+    public void MergeFrom(DoubleRangeFilter other) {
       if (other == null) {
         return;
       }
-      if (other.Attribute.Length != 0) {
-        Attribute = other.Attribute;
+      if (other.DoubleArg.Length != 0) {
+        DoubleArg = other.DoubleArg;
       }
       if (other.Max != 0D) {
         Max = other.Max;
@@ -689,7 +909,7 @@ namespace OpenMatch {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            Attribute = input.ReadString();
+            DoubleArg = input.ReadString();
             break;
           }
           case 17: {
@@ -707,189 +927,14 @@ namespace OpenMatch {
   }
 
   /// <summary>
-  /// Filters boolean values.
-  ///   attribute: "foo"
-  ///   value: false
-  /// matches:
-  ///   {"foo": false}
-  /// does not match:
-  ///   {"foo": true}
-  ///   {"foo": "bar"}
-  ///   {"foo": 1}
-  ///   {"foo": "false"}
-  ///   {"foo": [false]}
-  ///   {"foo": null}
-  ///   {}
-  /// </summary>
-  public sealed partial class BoolEqualsFilter : pb::IMessage<BoolEqualsFilter> {
-    private static readonly pb::MessageParser<BoolEqualsFilter> _parser = new pb::MessageParser<BoolEqualsFilter>(() => new BoolEqualsFilter());
-    private pb::UnknownFieldSet _unknownFields;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public static pb::MessageParser<BoolEqualsFilter> Parser { get { return _parser; } }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public static pbr::MessageDescriptor Descriptor {
-      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[3]; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
-      get { return Descriptor; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public BoolEqualsFilter() {
-      OnConstruction();
-    }
-
-    partial void OnConstruction();
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public BoolEqualsFilter(BoolEqualsFilter other) : this() {
-      attribute_ = other.attribute_;
-      value_ = other.value_;
-      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public BoolEqualsFilter Clone() {
-      return new BoolEqualsFilter(this);
-    }
-
-    /// <summary>Field number for the "attribute" field.</summary>
-    public const int AttributeFieldNumber = 1;
-    private string attribute_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public string Attribute {
-      get { return attribute_; }
-      set {
-        attribute_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
-    /// <summary>Field number for the "value" field.</summary>
-    public const int ValueFieldNumber = 2;
-    private bool value_;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public bool Value {
-      get { return value_; }
-      set {
-        value_ = value;
-      }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public override bool Equals(object other) {
-      return Equals(other as BoolEqualsFilter);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public bool Equals(BoolEqualsFilter other) {
-      if (ReferenceEquals(other, null)) {
-        return false;
-      }
-      if (ReferenceEquals(other, this)) {
-        return true;
-      }
-      if (Attribute != other.Attribute) return false;
-      if (Value != other.Value) return false;
-      return Equals(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public override int GetHashCode() {
-      int hash = 1;
-      if (Attribute.Length != 0) hash ^= Attribute.GetHashCode();
-      if (Value != false) hash ^= Value.GetHashCode();
-      if (_unknownFields != null) {
-        hash ^= _unknownFields.GetHashCode();
-      }
-      return hash;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public override string ToString() {
-      return pb::JsonFormatter.ToDiagnosticString(this);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public void WriteTo(pb::CodedOutputStream output) {
-      if (Attribute.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(Attribute);
-      }
-      if (Value != false) {
-        output.WriteRawTag(16);
-        output.WriteBool(Value);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(output);
-      }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public int CalculateSize() {
-      int size = 0;
-      if (Attribute.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Attribute);
-      }
-      if (Value != false) {
-        size += 1 + 1;
-      }
-      if (_unknownFields != null) {
-        size += _unknownFields.CalculateSize();
-      }
-      return size;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public void MergeFrom(BoolEqualsFilter other) {
-      if (other == null) {
-        return;
-      }
-      if (other.Attribute.Length != 0) {
-        Attribute = other.Attribute;
-      }
-      if (other.Value != false) {
-        Value = other.Value;
-      }
-      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public void MergeFrom(pb::CodedInputStream input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
-            break;
-          case 10: {
-            Attribute = input.ReadString();
-            break;
-          }
-          case 16: {
-            Value = input.ReadBool();
-            break;
-          }
-        }
-      }
-    }
-
-  }
-
-  /// <summary>
   /// Filters strings exactly equaling a value.
-  ///   attribute: "foo"
+  ///   string_arg: "foo"
   ///   value: "bar"
   /// matches:
   ///   {"foo": "bar"}
   /// does not match:
   ///   {"foo": "baz"}
-  ///   {"foo": true}
-  ///   {"foo": 5}
-  ///   {"foo": ["bar"]}
-  ///   {"foo": null}
+  ///   {"bar": "foo"}
   ///   {}
   /// </summary>
   public sealed partial class StringEqualsFilter : pb::IMessage<StringEqualsFilter> {
@@ -917,7 +962,7 @@ namespace OpenMatch {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public StringEqualsFilter(StringEqualsFilter other) : this() {
-      attribute_ = other.attribute_;
+      stringArg_ = other.stringArg_;
       value_ = other.value_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
@@ -927,14 +972,17 @@ namespace OpenMatch {
       return new StringEqualsFilter(this);
     }
 
-    /// <summary>Field number for the "attribute" field.</summary>
-    public const int AttributeFieldNumber = 1;
-    private string attribute_ = "";
+    /// <summary>Field number for the "string_arg" field.</summary>
+    public const int StringArgFieldNumber = 1;
+    private string stringArg_ = "";
+    /// <summary>
+    /// Name of the ticket's search_fields.string_args this Filter operates on.
+    /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public string Attribute {
-      get { return attribute_; }
+    public string StringArg {
+      get { return stringArg_; }
       set {
-        attribute_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        stringArg_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
@@ -962,7 +1010,7 @@ namespace OpenMatch {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Attribute != other.Attribute) return false;
+      if (StringArg != other.StringArg) return false;
       if (Value != other.Value) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -970,7 +1018,7 @@ namespace OpenMatch {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override int GetHashCode() {
       int hash = 1;
-      if (Attribute.Length != 0) hash ^= Attribute.GetHashCode();
+      if (StringArg.Length != 0) hash ^= StringArg.GetHashCode();
       if (Value.Length != 0) hash ^= Value.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -985,9 +1033,9 @@ namespace OpenMatch {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public void WriteTo(pb::CodedOutputStream output) {
-      if (Attribute.Length != 0) {
+      if (StringArg.Length != 0) {
         output.WriteRawTag(10);
-        output.WriteString(Attribute);
+        output.WriteString(StringArg);
       }
       if (Value.Length != 0) {
         output.WriteRawTag(18);
@@ -1001,8 +1049,8 @@ namespace OpenMatch {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public int CalculateSize() {
       int size = 0;
-      if (Attribute.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Attribute);
+      if (StringArg.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(StringArg);
       }
       if (Value.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Value);
@@ -1018,8 +1066,8 @@ namespace OpenMatch {
       if (other == null) {
         return;
       }
-      if (other.Attribute.Length != 0) {
-        Attribute = other.Attribute;
+      if (other.StringArg.Length != 0) {
+        StringArg = other.StringArg;
       }
       if (other.Value.Length != 0) {
         Value = other.Value;
@@ -1036,11 +1084,150 @@ namespace OpenMatch {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            Attribute = input.ReadString();
+            StringArg = input.ReadString();
             break;
           }
           case 18: {
             Value = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  /// <summary>
+  /// Filters to the tag being present on the search_fields.
+  ///   tag: "foo"
+  /// matches:
+  ///   ["foo"]
+  ///   ["bar","foo"]
+  /// does not match:
+  ///   ["bar"]
+  ///   []
+  /// </summary>
+  public sealed partial class TagPresentFilter : pb::IMessage<TagPresentFilter> {
+    private static readonly pb::MessageParser<TagPresentFilter> _parser = new pb::MessageParser<TagPresentFilter>(() => new TagPresentFilter());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<TagPresentFilter> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[5]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public TagPresentFilter() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public TagPresentFilter(TagPresentFilter other) : this() {
+      tag_ = other.tag_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public TagPresentFilter Clone() {
+      return new TagPresentFilter(this);
+    }
+
+    /// <summary>Field number for the "tag" field.</summary>
+    public const int TagFieldNumber = 1;
+    private string tag_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public string Tag {
+      get { return tag_; }
+      set {
+        tag_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as TagPresentFilter);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(TagPresentFilter other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Tag != other.Tag) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Tag.Length != 0) hash ^= Tag.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Tag.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Tag);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Tag.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Tag);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(TagPresentFilter other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Tag.Length != 0) {
+        Tag = other.Tag;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            Tag = input.ReadString();
             break;
           }
         }
@@ -1057,7 +1244,7 @@ namespace OpenMatch {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[5]; }
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[6]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1075,9 +1262,9 @@ namespace OpenMatch {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public Pool(Pool other) : this() {
       name_ = other.name_;
-      floatRangeFilters_ = other.floatRangeFilters_.Clone();
-      boolEqualsFilters_ = other.boolEqualsFilters_.Clone();
+      doubleRangeFilters_ = other.doubleRangeFilters_.Clone();
       stringEqualsFilters_ = other.stringEqualsFilters_.Clone();
+      tagPresentFilters_ = other.tagPresentFilters_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1100,28 +1287,18 @@ namespace OpenMatch {
       }
     }
 
-    /// <summary>Field number for the "float_range_filters" field.</summary>
-    public const int FloatRangeFiltersFieldNumber = 2;
-    private static readonly pb::FieldCodec<global::OpenMatch.FloatRangeFilter> _repeated_floatRangeFilters_codec
-        = pb::FieldCodec.ForMessage(18, global::OpenMatch.FloatRangeFilter.Parser);
-    private readonly pbc::RepeatedField<global::OpenMatch.FloatRangeFilter> floatRangeFilters_ = new pbc::RepeatedField<global::OpenMatch.FloatRangeFilter>();
+    /// <summary>Field number for the "double_range_filters" field.</summary>
+    public const int DoubleRangeFiltersFieldNumber = 2;
+    private static readonly pb::FieldCodec<global::OpenMatch.DoubleRangeFilter> _repeated_doubleRangeFilters_codec
+        = pb::FieldCodec.ForMessage(18, global::OpenMatch.DoubleRangeFilter.Parser);
+    private readonly pbc::RepeatedField<global::OpenMatch.DoubleRangeFilter> doubleRangeFilters_ = new pbc::RepeatedField<global::OpenMatch.DoubleRangeFilter>();
     /// <summary>
     /// Set of Filters indicating the filtering criteria. Selected players must
     /// match every Filter.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::OpenMatch.FloatRangeFilter> FloatRangeFilters {
-      get { return floatRangeFilters_; }
-    }
-
-    /// <summary>Field number for the "bool_equals_filters" field.</summary>
-    public const int BoolEqualsFiltersFieldNumber = 3;
-    private static readonly pb::FieldCodec<global::OpenMatch.BoolEqualsFilter> _repeated_boolEqualsFilters_codec
-        = pb::FieldCodec.ForMessage(26, global::OpenMatch.BoolEqualsFilter.Parser);
-    private readonly pbc::RepeatedField<global::OpenMatch.BoolEqualsFilter> boolEqualsFilters_ = new pbc::RepeatedField<global::OpenMatch.BoolEqualsFilter>();
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::OpenMatch.BoolEqualsFilter> BoolEqualsFilters {
-      get { return boolEqualsFilters_; }
+    public pbc::RepeatedField<global::OpenMatch.DoubleRangeFilter> DoubleRangeFilters {
+      get { return doubleRangeFilters_; }
     }
 
     /// <summary>Field number for the "string_equals_filters" field.</summary>
@@ -1132,6 +1309,16 @@ namespace OpenMatch {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public pbc::RepeatedField<global::OpenMatch.StringEqualsFilter> StringEqualsFilters {
       get { return stringEqualsFilters_; }
+    }
+
+    /// <summary>Field number for the "tag_present_filters" field.</summary>
+    public const int TagPresentFiltersFieldNumber = 5;
+    private static readonly pb::FieldCodec<global::OpenMatch.TagPresentFilter> _repeated_tagPresentFilters_codec
+        = pb::FieldCodec.ForMessage(42, global::OpenMatch.TagPresentFilter.Parser);
+    private readonly pbc::RepeatedField<global::OpenMatch.TagPresentFilter> tagPresentFilters_ = new pbc::RepeatedField<global::OpenMatch.TagPresentFilter>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public pbc::RepeatedField<global::OpenMatch.TagPresentFilter> TagPresentFilters {
+      get { return tagPresentFilters_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1148,9 +1335,9 @@ namespace OpenMatch {
         return true;
       }
       if (Name != other.Name) return false;
-      if(!floatRangeFilters_.Equals(other.floatRangeFilters_)) return false;
-      if(!boolEqualsFilters_.Equals(other.boolEqualsFilters_)) return false;
+      if(!doubleRangeFilters_.Equals(other.doubleRangeFilters_)) return false;
       if(!stringEqualsFilters_.Equals(other.stringEqualsFilters_)) return false;
+      if(!tagPresentFilters_.Equals(other.tagPresentFilters_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1158,9 +1345,9 @@ namespace OpenMatch {
     public override int GetHashCode() {
       int hash = 1;
       if (Name.Length != 0) hash ^= Name.GetHashCode();
-      hash ^= floatRangeFilters_.GetHashCode();
-      hash ^= boolEqualsFilters_.GetHashCode();
+      hash ^= doubleRangeFilters_.GetHashCode();
       hash ^= stringEqualsFilters_.GetHashCode();
+      hash ^= tagPresentFilters_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1178,9 +1365,9 @@ namespace OpenMatch {
         output.WriteRawTag(10);
         output.WriteString(Name);
       }
-      floatRangeFilters_.WriteTo(output, _repeated_floatRangeFilters_codec);
-      boolEqualsFilters_.WriteTo(output, _repeated_boolEqualsFilters_codec);
+      doubleRangeFilters_.WriteTo(output, _repeated_doubleRangeFilters_codec);
       stringEqualsFilters_.WriteTo(output, _repeated_stringEqualsFilters_codec);
+      tagPresentFilters_.WriteTo(output, _repeated_tagPresentFilters_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1192,9 +1379,9 @@ namespace OpenMatch {
       if (Name.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Name);
       }
-      size += floatRangeFilters_.CalculateSize(_repeated_floatRangeFilters_codec);
-      size += boolEqualsFilters_.CalculateSize(_repeated_boolEqualsFilters_codec);
+      size += doubleRangeFilters_.CalculateSize(_repeated_doubleRangeFilters_codec);
       size += stringEqualsFilters_.CalculateSize(_repeated_stringEqualsFilters_codec);
+      size += tagPresentFilters_.CalculateSize(_repeated_tagPresentFilters_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -1209,9 +1396,9 @@ namespace OpenMatch {
       if (other.Name.Length != 0) {
         Name = other.Name;
       }
-      floatRangeFilters_.Add(other.floatRangeFilters_);
-      boolEqualsFilters_.Add(other.boolEqualsFilters_);
+      doubleRangeFilters_.Add(other.doubleRangeFilters_);
       stringEqualsFilters_.Add(other.stringEqualsFilters_);
+      tagPresentFilters_.Add(other.tagPresentFilters_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -1228,15 +1415,15 @@ namespace OpenMatch {
             break;
           }
           case 18: {
-            floatRangeFilters_.AddEntriesFrom(input, _repeated_floatRangeFilters_codec);
-            break;
-          }
-          case 26: {
-            boolEqualsFilters_.AddEntriesFrom(input, _repeated_boolEqualsFilters_codec);
+            doubleRangeFilters_.AddEntriesFrom(input, _repeated_doubleRangeFilters_codec);
             break;
           }
           case 34: {
             stringEqualsFilters_.AddEntriesFrom(input, _repeated_stringEqualsFilters_codec);
+            break;
+          }
+          case 42: {
+            tagPresentFilters_.AddEntriesFrom(input, _repeated_tagPresentFilters_codec);
             break;
           }
         }
@@ -1259,7 +1446,7 @@ namespace OpenMatch {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[6]; }
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[7]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1421,7 +1608,7 @@ namespace OpenMatch {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[7]; }
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[8]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1439,9 +1626,9 @@ namespace OpenMatch {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public MatchProfile(MatchProfile other) : this() {
       name_ = other.name_;
-      properties_ = other.properties_ != null ? other.properties_.Clone() : null;
       pools_ = other.pools_.Clone();
       rosters_ = other.rosters_.Clone();
+      extension_ = other.extension_ != null ? other.extension_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1461,22 +1648,6 @@ namespace OpenMatch {
       get { return name_; }
       set {
         name_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
-    /// <summary>Field number for the "properties" field.</summary>
-    public const int PropertiesFieldNumber = 2;
-    private global::Google.Protobuf.WellKnownTypes.Struct properties_;
-    /// <summary>
-    /// Set of properties associated with this MatchProfile. (Optional)
-    /// Open Match does not interpret these properties but passes them through to
-    /// the MatchFunction.
-    /// </summary>
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Google.Protobuf.WellKnownTypes.Struct Properties {
-      get { return properties_; }
-      set {
-        properties_ = value;
       }
     }
 
@@ -1511,6 +1682,21 @@ namespace OpenMatch {
       get { return rosters_; }
     }
 
+    /// <summary>Field number for the "extension" field.</summary>
+    public const int ExtensionFieldNumber = 5;
+    private global::Google.Protobuf.WellKnownTypes.Any extension_;
+    /// <summary>
+    /// Customized information on how the match function should run.  Optional,
+    /// depending on the requirements of the match function.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Google.Protobuf.WellKnownTypes.Any Extension {
+      get { return extension_; }
+      set {
+        extension_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
       return Equals(other as MatchProfile);
@@ -1525,9 +1711,9 @@ namespace OpenMatch {
         return true;
       }
       if (Name != other.Name) return false;
-      if (!object.Equals(Properties, other.Properties)) return false;
       if(!pools_.Equals(other.pools_)) return false;
       if(!rosters_.Equals(other.rosters_)) return false;
+      if (!object.Equals(Extension, other.Extension)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1535,9 +1721,9 @@ namespace OpenMatch {
     public override int GetHashCode() {
       int hash = 1;
       if (Name.Length != 0) hash ^= Name.GetHashCode();
-      if (properties_ != null) hash ^= Properties.GetHashCode();
       hash ^= pools_.GetHashCode();
       hash ^= rosters_.GetHashCode();
+      if (extension_ != null) hash ^= Extension.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1555,12 +1741,12 @@ namespace OpenMatch {
         output.WriteRawTag(10);
         output.WriteString(Name);
       }
-      if (properties_ != null) {
-        output.WriteRawTag(18);
-        output.WriteMessage(Properties);
-      }
       pools_.WriteTo(output, _repeated_pools_codec);
       rosters_.WriteTo(output, _repeated_rosters_codec);
+      if (extension_ != null) {
+        output.WriteRawTag(42);
+        output.WriteMessage(Extension);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1572,11 +1758,11 @@ namespace OpenMatch {
       if (Name.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Name);
       }
-      if (properties_ != null) {
-        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Properties);
-      }
       size += pools_.CalculateSize(_repeated_pools_codec);
       size += rosters_.CalculateSize(_repeated_rosters_codec);
+      if (extension_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Extension);
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -1591,14 +1777,14 @@ namespace OpenMatch {
       if (other.Name.Length != 0) {
         Name = other.Name;
       }
-      if (other.properties_ != null) {
-        if (properties_ == null) {
-          Properties = new global::Google.Protobuf.WellKnownTypes.Struct();
-        }
-        Properties.MergeFrom(other.Properties);
-      }
       pools_.Add(other.pools_);
       rosters_.Add(other.rosters_);
+      if (other.extension_ != null) {
+        if (extension_ == null) {
+          Extension = new global::Google.Protobuf.WellKnownTypes.Any();
+        }
+        Extension.MergeFrom(other.Extension);
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -1614,19 +1800,19 @@ namespace OpenMatch {
             Name = input.ReadString();
             break;
           }
-          case 18: {
-            if (properties_ == null) {
-              Properties = new global::Google.Protobuf.WellKnownTypes.Struct();
-            }
-            input.ReadMessage(Properties);
-            break;
-          }
           case 26: {
             pools_.AddEntriesFrom(input, _repeated_pools_codec);
             break;
           }
           case 34: {
             rosters_.AddEntriesFrom(input, _repeated_rosters_codec);
+            break;
+          }
+          case 42: {
+            if (extension_ == null) {
+              Extension = new global::Google.Protobuf.WellKnownTypes.Any();
+            }
+            input.ReadMessage(Extension);
             break;
           }
         }
@@ -1650,7 +1836,7 @@ namespace OpenMatch {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[8]; }
+      get { return global::OpenMatch.MessagesReflection.Descriptor.MessageTypes[9]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1672,7 +1858,8 @@ namespace OpenMatch {
       matchFunction_ = other.matchFunction_;
       tickets_ = other.tickets_.Clone();
       rosters_ = other.rosters_.Clone();
-      properties_ = other.properties_ != null ? other.properties_.Clone() : null;
+      evaluationInput_ = other.evaluationInput_ != null ? other.evaluationInput_.Clone() : null;
+      extension_ = other.extension_ != null ? other.extension_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1749,17 +1936,34 @@ namespace OpenMatch {
       get { return rosters_; }
     }
 
-    /// <summary>Field number for the "properties" field.</summary>
-    public const int PropertiesFieldNumber = 6;
-    private global::Google.Protobuf.WellKnownTypes.Struct properties_;
+    /// <summary>Field number for the "evaluation_input" field.</summary>
+    public const int EvaluationInputFieldNumber = 7;
+    private global::Google.Protobuf.WellKnownTypes.Any evaluationInput_;
     /// <summary>
-    /// Match properties for this Match. Open Match does not interpret this field.
+    /// Customized information for the evaluator.  Optional, depending on the
+    /// requirements of the configured evaluator.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Google.Protobuf.WellKnownTypes.Struct Properties {
-      get { return properties_; }
+    public global::Google.Protobuf.WellKnownTypes.Any EvaluationInput {
+      get { return evaluationInput_; }
       set {
-        properties_ = value;
+        evaluationInput_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "extension" field.</summary>
+    public const int ExtensionFieldNumber = 8;
+    private global::Google.Protobuf.WellKnownTypes.Any extension_;
+    /// <summary>
+    /// Customized information for how the caller of FetchMatches should handle
+    /// this match.  Optional, depending on the requirements of the FetchMatches
+    /// caller.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Google.Protobuf.WellKnownTypes.Any Extension {
+      get { return extension_; }
+      set {
+        extension_ = value;
       }
     }
 
@@ -1781,7 +1985,8 @@ namespace OpenMatch {
       if (MatchFunction != other.MatchFunction) return false;
       if(!tickets_.Equals(other.tickets_)) return false;
       if(!rosters_.Equals(other.rosters_)) return false;
-      if (!object.Equals(Properties, other.Properties)) return false;
+      if (!object.Equals(EvaluationInput, other.EvaluationInput)) return false;
+      if (!object.Equals(Extension, other.Extension)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1793,7 +1998,8 @@ namespace OpenMatch {
       if (MatchFunction.Length != 0) hash ^= MatchFunction.GetHashCode();
       hash ^= tickets_.GetHashCode();
       hash ^= rosters_.GetHashCode();
-      if (properties_ != null) hash ^= Properties.GetHashCode();
+      if (evaluationInput_ != null) hash ^= EvaluationInput.GetHashCode();
+      if (extension_ != null) hash ^= Extension.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1821,9 +2027,13 @@ namespace OpenMatch {
       }
       tickets_.WriteTo(output, _repeated_tickets_codec);
       rosters_.WriteTo(output, _repeated_rosters_codec);
-      if (properties_ != null) {
-        output.WriteRawTag(50);
-        output.WriteMessage(Properties);
+      if (evaluationInput_ != null) {
+        output.WriteRawTag(58);
+        output.WriteMessage(EvaluationInput);
+      }
+      if (extension_ != null) {
+        output.WriteRawTag(66);
+        output.WriteMessage(Extension);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -1844,8 +2054,11 @@ namespace OpenMatch {
       }
       size += tickets_.CalculateSize(_repeated_tickets_codec);
       size += rosters_.CalculateSize(_repeated_rosters_codec);
-      if (properties_ != null) {
-        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Properties);
+      if (evaluationInput_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(EvaluationInput);
+      }
+      if (extension_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Extension);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1869,11 +2082,17 @@ namespace OpenMatch {
       }
       tickets_.Add(other.tickets_);
       rosters_.Add(other.rosters_);
-      if (other.properties_ != null) {
-        if (properties_ == null) {
-          Properties = new global::Google.Protobuf.WellKnownTypes.Struct();
+      if (other.evaluationInput_ != null) {
+        if (evaluationInput_ == null) {
+          EvaluationInput = new global::Google.Protobuf.WellKnownTypes.Any();
         }
-        Properties.MergeFrom(other.Properties);
+        EvaluationInput.MergeFrom(other.EvaluationInput);
+      }
+      if (other.extension_ != null) {
+        if (extension_ == null) {
+          Extension = new global::Google.Protobuf.WellKnownTypes.Any();
+        }
+        Extension.MergeFrom(other.Extension);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1906,11 +2125,18 @@ namespace OpenMatch {
             rosters_.AddEntriesFrom(input, _repeated_rosters_codec);
             break;
           }
-          case 50: {
-            if (properties_ == null) {
-              Properties = new global::Google.Protobuf.WellKnownTypes.Struct();
+          case 58: {
+            if (evaluationInput_ == null) {
+              EvaluationInput = new global::Google.Protobuf.WellKnownTypes.Any();
             }
-            input.ReadMessage(Properties);
+            input.ReadMessage(EvaluationInput);
+            break;
+          }
+          case 66: {
+            if (extension_ == null) {
+              Extension = new global::Google.Protobuf.WellKnownTypes.Any();
+            }
+            input.ReadMessage(Extension);
             break;
           }
         }
