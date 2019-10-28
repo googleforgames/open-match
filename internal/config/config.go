@@ -30,7 +30,8 @@ func Read() (View, error) {
 	dcfg := viper.New()
 	dcfg.SetConfigType("yaml")
 	dcfg.AddConfigPath(".")
-	dcfg.AddConfigPath("config/default")
+	// The config path needs to be the same as the volumeMount path defined via helm
+	dcfg.AddConfigPath("/app/config/default")
 	dcfg.SetConfigName("matchmaker_config_default")
 	err = dcfg.ReadInConfig()
 	if err != nil {
@@ -48,7 +49,8 @@ func Read() (View, error) {
 
 	cfg.SetConfigType("yaml")
 	cfg.AddConfigPath(".")
-	cfg.AddConfigPath("config/override")
+	// The config path needs to be the same as the volumeMountPath defined via helm
+	cfg.AddConfigPath("/app/config/override")
 	cfg.SetConfigName("matchmaker_config_override")
 	err = cfg.ReadInConfig()
 	if err != nil {
