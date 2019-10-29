@@ -341,6 +341,7 @@ install-large-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
+		--set open-match-override.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
@@ -353,6 +354,7 @@ install-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSIO
 		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
+		--set open-match-override.enabled=true \
 		--set global.gcpProjectId=$(GCP_PROJECT_ID)
 
 install-scale-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
@@ -362,6 +364,7 @@ install-scale-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
 		--set open-match-core.enabled=true \
+		--set open-match-override.enabled=true \
 		--set open-match-telemetry.enabled=true \
 		--set open-match-demo.enabled=false \
 		--set open-match-customize.enabled=true \
@@ -382,6 +385,7 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 		--set global.image.registry=$(REGISTRY) \
 		--set global.image.tag=$(TAG) \
 		--set redis.ignoreLists.ttl=1000ms \
+		--set open-match-override.enabled=true \
 		--set open-match-test.enabled=true \
 		--set open-match-demo.enabled=false \
 		--set open-match-customize.function.image=openmatch-mmf-go-pool \
@@ -401,7 +405,7 @@ delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubec
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
 	-$(KUBECTL) delete namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 
-install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml
+install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml install/yaml/06-open-match-override-configmap.yaml
 
 install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
@@ -459,6 +463,13 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set global.telemetry.jaeger.enabled=true \
 		--set usingHelmTemplate=true \
 		install/helm/open-match > install/yaml/05-jaeger-chart.yaml
+
+install/yaml/06-open-match-override-configmap.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
+	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
+		--set open-match-override.enabled=true \
+		-x templates/om-configmap-override.yaml \
+		install/helm/open-match > install/yaml/06-open-match-override-configmap.yaml
 
 install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
