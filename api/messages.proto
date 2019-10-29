@@ -18,7 +18,6 @@ option go_package = "open-match.dev/open-match/pkg/pb";
 option csharp_namespace = "OpenMatch";
 
 import "google/rpc/status.proto";
-import "google/protobuf/struct.proto";
 import "google/protobuf/any.proto";
 
 // A Ticket is a basic matchmaking entity in Open Match. In order to enter
