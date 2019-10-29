@@ -68,15 +68,13 @@ data:
       swaggerui:
         hostname: "{{ .Values.swaggerui.hostName }}"
         httpport: "{{ .Values.swaggerui.httpPort }}"
-      evaluator:
-        hostname: "{{ .Values.evaluator.hostName }}"
-        grpcport: "{{ .Values.evaluator.grpcPort }}"
-        httpport: "{{ .Values.evaluator.httpPort }}"
-
-    synchronizer:
-      enabled: true
-      registrationIntervalMs: 3000ms
-      proposalCollectionIntervalMs: 2000ms
+{{- if .Values.global.tls.enabled }}
+      tls:
+        trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
+        certificatefile: "{{.Values.global.tls.server.mountPath}}/public.cert"
+        privatekey: "{{.Values.global.tls.server.mountPath}}/private.key"
+        rootcertificatefile: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
+{{- end }}
 
     storage:
       page:
@@ -118,12 +116,4 @@ data:
         endpoint: "{{ .Values.global.telemetry.zipkin.endpoint }}"
         reporterEndpoint: "{{ .Values.global.telemetry.zipkin.reporterEndpoint }}"
       reportingPeriod: "{{ .Values.global.telemetry.reportingPeriod }}"
-{{- if .Values.global.tls.enabled }}
-    api:
-      tls:
-        trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
-        certificatefile: "{{.Values.global.tls.server.mountPath}}/public.cert"
-        privatekey: "{{.Values.global.tls.server.mountPath}}/private.key"
-        rootcertificatefile: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
-{{- end -}}
 {{- end }}

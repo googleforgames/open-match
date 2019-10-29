@@ -28,6 +28,13 @@ data:
   # Kubernetes doesn't allow having a configmap with empty key.
   # Using logging setting at here as a placeholder.
   matchmaker_config_override.yaml: |-
-    logging:
-      level: debug
-{{- end }}}
+    api:
+      evaluator:
+        hostname: "{{ .Values.evaluator.hostName }}"
+        grpcport: "{{ .Values.evaluator.grpcPort }}"
+        httpport: "{{ .Values.evaluator.httpPort }}"
+    synchronizer:
+      enabled: true
+      registrationIntervalMs: 3000ms
+      proposalCollectionIntervalMs: 2000ms
+{{- end }}
