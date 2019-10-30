@@ -22,13 +22,13 @@ import (
 	"open-match.dev/open-match/internal/config"
 )
 
-func bindStackDriver(cfg config.View) func() {
-	if !cfg.GetBool("telemetry.stackdriver.enable") {
+func bindStackDriverMetrics(cfg config.View) func() {
+	if !cfg.GetBool("telemetry.stackdriverMetrics.enable") {
 		logger.Info("StackDriver Metrics: Disabled")
 		return func() {}
 	}
-	gcpProjectID := cfg.GetString("telemetry.stackdriver.gcpProjectId")
-	metricPrefix := cfg.GetString("telemetry.stackdriver.metricPrefix")
+	gcpProjectID := cfg.GetString("telemetry.stackdriverMetrics.gcpProjectId")
+	metricPrefix := cfg.GetString("telemetry.stackdriverMetrics.prefix")
 	sd, err := stackdriver.NewExporter(stackdriver.Options{
 		ProjectID: gcpProjectID,
 		// MetricPrefix helps uniquely identify your metrics.
