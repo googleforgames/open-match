@@ -29,7 +29,7 @@ const (
 	// The endpoint for the Open Match Frontend service.
 	omBackendEndpoint = "om-frontend.open-match.svc.cluster.local:50504"
 	// Number of tickets created per iteration
-	ticketsPerIter    = 20
+	ticketsPerIter = 20
 )
 
 func main() {
@@ -41,8 +41,7 @@ func main() {
 
 	defer conn.Close()
 	fe := pb.NewFrontendClient(conn)
-
-	for {
+	for range time.Tick(time.Second * 2) {
 		for i := 0; i <= ticketsPerIter; i++ {
 			req := &pb.CreateTicketRequest{
 				Ticket: makeTicket(),
@@ -56,12 +55,7 @@ func main() {
 			log.Println("Ticket created successfully, id:", resp.Ticket.Id)
 			go deleteOnAssign(fe, resp.Ticket)
 		}
-
-		time.Sleep(time.Millisecond * 2000)
 	}
-
-	// Block forever to enable inspecting state.
-	select {}
 }
 
 // deleteOnAssign fetches the Ticket state periodically and deletes the Ticket

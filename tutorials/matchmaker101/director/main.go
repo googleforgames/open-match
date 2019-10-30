@@ -52,7 +52,7 @@ func main() {
 	profiles := generateProfiles()
 	log.Printf("Fetching matches for %v profiles", len(profiles))
 
-	for {
+	for range time.Tick(time.Second * 5) {
 		// Fetch matches for each profile and make random assignments for Tickets in
 		// the matches returned.
 		var wg sync.WaitGroup
@@ -75,12 +75,7 @@ func main() {
 		}
 
 		wg.Wait()
-		// Wait for an interval before polling again.
-		time.Sleep(time.Millisecond * 5000)
 	}
-
-	// Block forever to enable inspecting state.
-	select {}
 }
 
 func fetch(be pb.BackendClient, p *pb.MatchProfile) ([]*pb.Match, error) {
