@@ -88,7 +88,7 @@ spec:
         volumeMounts:
           {{- include "openmatch.volumemounts.configs" . | nindent 10 }}
           {{- include "openmatch.volumemounts.tls" . | nindent 10 }}
-        image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.evaluator.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
+        image: "{{ .Values.global.image.registry }}/{{ .Values.evaluator.image}}:{{ .Values.global.image.tag }}"
         ports:
         - name: grpc
           containerPort: {{ .Values.evaluator.grpcPort }}

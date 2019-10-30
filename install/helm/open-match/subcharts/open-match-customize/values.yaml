@@ -26,11 +26,6 @@ evaluator:
   portType: ClusterIP
   image: openmatch-evaluator-go-simple
 
-image:
-  registry: gcr.io/open-match-public-images
-  tag: 0.0.0-dev
-  pullPolicy: Always
-
 configs:
   # TODO: Remove this bit after deprecating the harness dependency on configmap
   om-configmap-default:

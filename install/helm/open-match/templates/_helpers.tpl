@@ -41,7 +41,7 @@ prometheus.io/path: {{ .prometheus.endpoint }}
 {{- end -}}
 
 {{- define "openmatch.container.common" -}}
-imagePullPolicy: {{ .Values.image.pullPolicy }}
+imagePullPolicy: {{ .Values.global.image.pullPolicy }}
 resources:
   requests:
     memory: 100Mi
