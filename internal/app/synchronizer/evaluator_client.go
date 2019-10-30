@@ -17,6 +17,7 @@ package synchronizer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,18 +32,8 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-type evaluator interface {
-	evaluate(context.Context, []*pb.Match) ([]*pb.Match, error)
-}
-
-type clientType int
-
-// Different type of clients supported for evaluation.
-const (
-	none clientType = iota
-	grpcEvaluator
-	httpEvaluator
-)
+// DO NOT SUBMIT: Where I was: why is the http client created, but not used?  What is going on here????  The mff client in the backend needs love too.
+// it doesn't use the correct json library, and could use some refactoring.
 
 var (
 	evaluatorClientLogger = logrus.WithFields(logrus.Fields{
@@ -51,72 +42,73 @@ var (
 	})
 )
 
-type evaluatorClient struct {
-	clType     clientType
-	cfg        config.View
-	grpcClient pb.EvaluatorClient
-	httpClient *http.Client
-	baseURL    string
-	m          sync.Mutex
+type evaluator interface {
+	evaluate(context.Context, []*pb.Match) ([]*pb.Match, error)
 }
 
-// evaluate method triggers execution of user evaluation function. It initializes the configured
-// GRPC or HTTP client. If the client was already initialized, initialize is a no-op.
-func (ec *evaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) (result []*pb.Match, err error) {
-	if err := ec.initialize(); err != nil {
-		return nil, err
-	}
+type evaluatorFunc func(context.Context, []*pb.Match) ([]*pb.Match, error)
 
-	// Call the appropriate client's evaluation function.
-	switch ec.clType {
-	case grpcEvaluator:
-		return ec.grpcEvaluate(ctx, proposals)
-	case httpEvaluator:
-		return ec.httpEvaluate(ctx, proposals)
-	default:
-		return nil, status.Error(codes.Unavailable, "failed to initialize a connection to the evaluator")
+func (f evaluatorFunc) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	return f(ctx, proposals)
+}
+
+func newEvaluator(cfg config.View) evaluator {
+
+	return &deferedEvaluator{
+		cfg: cfg,
 	}
 }
 
-// initialize sets up the configured GRPC or HTTP client the first time it is called. Consequent
-// invocations after a successful client setup are a no-op. It attempts to initialize either GRPC
-// or HTTP clients. If both are defined, it prefers GRPC client.
-func (ec *evaluatorClient) initialize() error {
-	ec.m.Lock()
-	defer ec.m.Unlock()
-	if ec.clType != none {
-		// Client already initialized.
-		return nil
-	}
+type deferedEvaluator struct {
+	init sync.Once
+	cfg  config.View
+	e    evaluator
+}
 
-	// Evaluator client not initialized. Attempt to initialize GRPC client or HTTP client.
+func (de deferedEvaluator) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	de.init.Do(func() {
+		var err error
+		if de.cfg.IsSet("api.evaluator.grpcport") {
+			de.e, err = newGrpcEvaluator(de.cfg)
+		} else if de.cfg.IsSet("api.evaluator.httpport") {
+			de.e, err = newHttpEvaluator(de.cfg)
+			return
+		} else {
+			err = errors.New("Unable to determine evaluator type.  Either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config.")
+		}
+		if err != nil {
+			de.e = evaluatorFunc(func(context.Context, []*pb.Match) ([]*pb.Match, error) {
+				return nil, err
+			})
+		}
+	})
+
+	return de.e.evaluate(ctx, proposals)
+}
+
+type grcpEvaluatorClient struct {
+	evaluator pb.EvaluatorClient
+}
+
+func newGrpcEvaluator(cfg config.View) (evaluator, error) {
+	ec := &grcpEvaluatorClient{}
+
 	grpcAddr := fmt.Sprintf("%s:%d", ec.cfg.GetString("api.evaluator.hostname"), ec.cfg.GetInt64("api.evaluator.grpcport"))
 	conn, err := rpc.GRPCClientFromEndpoint(ec.cfg, grpcAddr)
-	if err == nil {
-		evaluatorClientLogger.WithFields(logrus.Fields{
-			"endpoint": grpcAddr,
-		}).Info("Created a GRPC client for input endpoint.")
-		ec.grpcClient = pb.NewEvaluatorClient(conn)
-		ec.clType = grpcEvaluator
-	}
-
-	evaluatorClientLogger.WithError(err).Errorf("failed to get a GRPC client from the endpoint %v", grpcAddr)
-	httpAddr := fmt.Sprintf("%s:%d", ec.cfg.GetString("api.evaluator.hostname"), ec.cfg.GetInt64("api.evaluator.httpport"))
-	client, baseURL, err := rpc.HTTPClientFromEndpoint(ec.cfg, httpAddr)
 	if err != nil {
-		evaluatorClientLogger.WithError(err).Errorf("failed to get a HTTP client from the endpoint %v", httpAddr)
-		return err
+		return nil, fmt.Errof("Failed to create grpc evaluator client: %w", conn)
 	}
 
 	evaluatorClientLogger.WithFields(logrus.Fields{
-		"endpoint": httpAddr,
-	}).Info("Created a HTTP client for input endpoint.")
-	ec.httpClient = client
-	ec.baseURL = baseURL
-	return nil
+		"endpoint": grpcAddr,
+	}).Info("Created a GRPC client for evaluator endpoint.")
+
+	return &grcpEvaluatorClient{
+		evaluator: pb.NewEvaluatorClient(conn),
+	}, nil
 }
 
-func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+func (ec *grpcEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
 	stream, err := ec.grpcClient.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -149,7 +141,29 @@ func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Mat
 	return results, nil
 }
 
-func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+type httpEvaluatorClient struct {
+	httpClient *http.Client
+	baseURL    string
+}
+
+func newHttpEvaluator(cfg config.View) (evaluator, error) {
+	httpAddr := fmt.Sprintf("%s:%d", ec.cfg.GetString("api.evaluator.hostname"), ec.cfg.GetInt64("api.evaluator.httpport"))
+	client, baseURL, err := rpc.HTTPClientFromEndpoint(ec.cfg, httpAddr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get a HTTP client from the endpoint %v: %w", httpAddr, err)
+	}
+
+	evaluatorClientLogger.WithFields(logrus.Fields{
+		"endpoint": httpAddr,
+	}).Info("Created a HTTP client for evaluator endpoint.")
+
+	return &httpEvaluatorClient{
+		httpClient: client,
+		baseURL:    baseURL,
+	}
+}
+
+func (ec *httpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
 	reqr, reqw := io.Pipe()
 	proposalIDs := getMatchIds(proposals)
 	var wg sync.WaitGroup
