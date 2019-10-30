@@ -17,11 +17,10 @@ package main
 import (
 	"math/rand"
 
-	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
-var (
+const (
 	// Tickets will be generated with a rating that follows a normal distribution
 	// using the below parameters.
 	minRating float64 = 0
@@ -35,7 +34,7 @@ func makeTicket() *pb.Ticket {
 	ticket := &pb.Ticket{
 		SearchFields: &pb.SearchFields{
 			DoubleArgs: map[string]float64{
-				e2e.DoubleArgMMR: normalDist(avgRating, minRating, maxRating, stdDev),
+				"attribute.mmr": normalDist(avgRating, minRating, maxRating, stdDev),
 			},
 		},
 	}

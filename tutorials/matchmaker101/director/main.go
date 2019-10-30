@@ -27,19 +27,15 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// The Director in this tutorial does the following:
-// - Generates the profiles that it will poll for.
-// - Polls Open Match backend for those profiles.
-//
-// The Director can be configured to make a single fetch for all the profiles
-// or can keep polling forever at a configured interval.
+// The Director in this tutorial continously polls Open Match for the Match
+// Profiles and makes random assignments for the Tickets in the returned matches.
 
-var (
+const (
+	// The endpoint for the Open Match Backend service.
 	omBackendEndpoint       = "om-backend.open-match.svc.cluster.local:50505"
+	// The Host and Port for the Match Function service endpoint.
 	functionHostName        = "mm101-tutorial-matchfunction.mm101-tutorial.svc.cluster.local"
 	functionPort      int32 = 50502
-	interval                = 5000 // Millisecond duration for the polling interval.
-	fetchForever            = true // Fetch once if false, forever if true.
 )
 
 func main() {
@@ -56,9 +52,9 @@ func main() {
 	profiles := generateProfiles()
 	log.Printf("Fetching matches for %v profiles", len(profiles))
 
-	// Fetch matches for each profile and then wait for all the calls to return
-	// before starting the next iteration.
 	for {
+		// Fetch matches for each profile and make random assignments for Tickets in
+		// the matches returned.
 		var wg sync.WaitGroup
 		for _, p := range profiles {
 			wg.Add(1)
@@ -71,8 +67,6 @@ func main() {
 				}
 
 				log.Printf("Generated %v matches for profile %v", len(matches), p.GetName())
-
-				// Make random assignment for all the matches returned for this profile.
 				if err := assign(be, matches); err != nil {
 					log.Printf("Failed to assign servers to matches, got %w", err)
 					return
@@ -81,10 +75,8 @@ func main() {
 		}
 
 		wg.Wait()
-		if !fetchForever {
-			break
-		}
-		time.Sleep(time.Millisecond * time.Duration(interval))
+		// Wait for an interval before polling again.
+		time.Sleep(time.Millisecond * 5000)
 	}
 
 	// Block forever to enable inspecting state.

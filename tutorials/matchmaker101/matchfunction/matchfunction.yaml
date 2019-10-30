@@ -12,6 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mm101-tutorial-matchfunction
+  namespace: mm101-tutorial
+  labels:
+    app: mm101-tutorial
+    component: matchfunction
+spec:
+  containers:
+  - name: mm101-tutorial-matchfunction
+    image: REGISTRY_PLACEHOLDER/mm101-tutorial-matchfunction:latest
+    imagePullPolicy: Always
+    ports:
+    - name: grpc
+      containerPort: 50502
+---
 kind: Service
 apiVersion: v1
 metadata:
@@ -30,32 +47,3 @@ spec:
   - name: grpc
     protocol: TCP
     port: 50502
----
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: mm101-tutorial-matchfunction
-  namespace: mm101-tutorial
-  labels:
-    app: mm101-tutorial
-    component: matchfunction
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mm101-tutorial
-      component: matchfunction
-  template:
-    metadata:
-      namespace: mm101-tutorial
-      labels:
-        app: mm101-tutorial
-        component: matchfunction
-    spec:
-      containers:
-      - name: mm101-tutorial-matchfunction
-        image: REGISTRY_PLACEHOLDER/mm101-tutorial-matchfunction:latest
-        imagePullPolicy: Always
-        ports:
-        - name: grpc
-          containerPort: 50502

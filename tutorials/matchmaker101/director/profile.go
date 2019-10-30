@@ -18,12 +18,9 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-var (
-	// emptyRosterSpot is the string that represents an empty slot on a Roster.
-	emptyRosterSpot         = "EMPTY_ROSTER_SPOT"
+const (
 	minRating       float64 = 0
 	maxRating       float64 = 100
-	ticketsPerMatch         = 4
 )
 
 // generateProfiles generates test profiles for the matchmaker101 tutorial.
@@ -43,23 +40,6 @@ func generateProfiles() []*pb.MatchProfile {
 					},
 				},
 			},
-			Rosters: []*pb.Roster{
-				makeRosterSlots("default", ticketsPerMatch),
-			},
 		},
 	}
-}
-
-// makeRosterSlots generates a roster with the specified name and with the
-// specified number of empty roster slots.
-func makeRosterSlots(name string, count int) *pb.Roster {
-	roster := &pb.Roster{
-		Name: name,
-	}
-
-	for i := 0; i <= count; i++ {
-		roster.TicketIds = append(roster.TicketIds, emptyRosterSpot)
-	}
-
-	return roster
 }

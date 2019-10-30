@@ -19,35 +19,24 @@ import (
 	"log"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// This is a very basic Roster based Match Function. It expects the Roster(s) in
-// the input Match Profile to have the following format:
-//     Roster{
-//       Name: <Pool Name>,
-//       TicketIds: [EMPTY_ROSTER_SPOT, EMPTY_ROSTER_SPOT, ..]
-//     }
-// Where the Name maps to the Pool Name from which Tickets need to be populated
-// for a given Roster and TicketIds have number of 'EMPTY_ROSTER_SPOT' representing
-// the number of players to be populated for this Roster.
-//
-// The function then simply polls MMLogic for players for each Pool and populates
-// Roster slots with Tickets to matching the corresponding pool name. The generated
-// Match has all the Ticket IDs for the match and populated Roster(s).
-//
-// The Profiles generator in the tutorial generates Profiles that follow this format.
+// This match function fetches all the Tickets for all the pools specified in
+// the profile. It uses a configured number of tickets from each pool to generate
+// a Match Proposal. It continues to generate proposals till one of the pools
+// runs out of Tickets.
 const (
-	matchName       = "roster-based-matchfunction"
-	emptyRosterSpot = "EMPTY_ROSTER_SPOT"
+	matchName              = "roster-based-matchfunction"
+	ticketsPerPoolPerMatch = 4
 )
 
 // Run is this match function's implementation of the gRPC call defined in api/matchfunction.proto.
 func (s *MatchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
 	// Fetch tickets for the pools specified in the Match Profile.
+	log.Printf("Generating proposals for function %v", req.GetProfile().GetName())
+
 	poolTickets, err := matchfunction.QueryPools(stream.Context(), s.mmlogicClient, req.GetProfile().GetPools())
 	if err != nil {
 		log.Printf("Failed to query tickets for the given pools, got %w", err)
@@ -74,50 +63,24 @@ func (s *MatchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 }
 
 func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
-	wantTickets, err := wantPoolTickets(p.Rosters)
-	if err != nil {
-		return nil, err
-	}
-
 	var matches []*pb.Match
 	count := 0
 	for {
 		insufficientTickets := false
 		matchTickets := []*pb.Ticket{}
-		matchRosters := []*pb.Roster{}
-
-		// Loop through each pool wanted in the rosters and pick the number of
-		// wanted players from the respective Pool.
-		for poolName, want := range wantTickets {
-			have, ok := poolTickets[poolName]
-			if !ok {
-				// A wanted Pool was not found in the Pools specified in the profile.
+		for pool, tickets := range poolTickets {
+			if len(tickets) < ticketsPerPoolPerMatch {
+				// This pool is completely drained out. Stop creating matches.
 				insufficientTickets = true
 				break
 			}
 
-			if len(have) < want {
-				// The Pool in the profile has fewer tickets than what the roster needs.
-				insufficientTickets = true
-				break
-			}
-
-			// Populate the wanted tickets from the Tickets in the corresponding Pool.
-			matchTickets = append(matchTickets, have[0:want]...)
-			poolTickets[poolName] = have[want:]
-			var ids []string
-			for _, ticket := range matchTickets {
-				ids = append(ids, ticket.Id)
-			}
-
-			matchRosters = append(matchRosters, &pb.Roster{
-				Name:      poolName,
-				TicketIds: ids,
-			})
+			// Remove the Tickets from this pool and add to the match proposal.
+			matchTickets = append(matchTickets, tickets[0:ticketsPerPoolPerMatch]...)
+			poolTickets[pool] = tickets[ticketsPerPoolPerMatch:]
 		}
 
 		if insufficientTickets {
-			// Ran out of Tickets. Matches cannot be created from the remaining Tickets.
 			break
 		}
 
@@ -126,32 +89,10 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 			MatchProfile:  p.GetName(),
 			MatchFunction: matchName,
 			Tickets:       matchTickets,
-			Rosters:       matchRosters,
 		})
 
 		count++
 	}
 
 	return matches, nil
-}
-
-// wantPoolTickets parses the roster to return a map of the Pool name to the
-// number of empty roster slots for that Pool.
-func wantPoolTickets(rosters []*pb.Roster) (map[string]int, error) {
-	wantTickets := make(map[string]int)
-	for _, r := range rosters {
-		if _, ok := wantTickets[r.Name]; ok {
-			// We do not expect multiple Roster Pools to have the same name.
-			return nil, status.Error(codes.InvalidArgument, "multiple rosters with same name not supported")
-		}
-
-		wantTickets[r.Name] = 0
-		for _, slot := range r.TicketIds {
-			if slot == emptyRosterSpot {
-				wantTickets[r.Name] = wantTickets[r.Name] + 1
-			}
-		}
-	}
-
-	return wantTickets, nil
 }

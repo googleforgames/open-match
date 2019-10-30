@@ -14,9 +14,7 @@
 
 package main
 
-// The Frontend in this tutorial creates a configured number of Tickets in Open
-// Match per iteration. The Frontend can be configured to run for a single
-// iteration or to keep running iterations forever at a configured interval.
+// The Frontend in this tutorial continously creates Tickets in batches in Open Match.
 
 import (
 	"context"
@@ -27,11 +25,11 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-var (
+const (
+	// The endpoint for the Open Match Frontend service.
 	omBackendEndpoint = "om-frontend.open-match.svc.cluster.local:50504"
-	ticketsPerIter    = 20   // Number of tickets created per iteration
-	interval          = 1000 // Millisecond interval between each iteration.
-	createForever     = true // Iterate once if false, forever if true.
+	// Number of tickets created per iteration
+	ticketsPerIter    = 20
 )
 
 func main() {
@@ -59,11 +57,7 @@ func main() {
 			go deleteOnAssign(fe, resp.Ticket)
 		}
 
-		if !createForever {
-			break
-		}
-
-		time.Sleep(time.Millisecond * time.Duration(interval))
+		time.Sleep(time.Millisecond * 2000)
 	}
 
 	// Block forever to enable inspecting state.

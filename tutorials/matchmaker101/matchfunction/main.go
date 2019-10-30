@@ -27,7 +27,7 @@ import (
 // configured port. You can also configure the Open Match MMLogic service endpoint
 // with which the Match Function communicates to query the Tickets.
 
-var (
+const (
 	mmlogicAddress = "om-mmlogic.open-match.svc.cluster.local:50503" // Address of the MMLogic service endpoint.
 	serverPort     = 50502                                           // The port for hosting the Match Function.
 )

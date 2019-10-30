@@ -17,7 +17,7 @@ import (
 	"open-match.dev/open-match/tutorials/matchmaker101/evaluator/evaluate"
 )
 
-var (
+const (
 	// Replace this with the port on which your Evaluator service is exposed.
 	evaluatorPort = 50508
 )

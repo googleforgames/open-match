@@ -12,6 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: om-evaluator
+  namespace: open-match
+  labels:
+    app: mm101-tutorial
+    component: evaluator
+spec:
+  containers:
+  - name: om-evaluator
+    image: REGISTRY_PLACEHOLDER/mm101-tutorial-evaluator:latest
+    imagePullPolicy: Always
+    ports:
+    - name: grpc
+      containerPort: 50508
+---
 kind: Service
 apiVersion: v1
 metadata:
@@ -30,32 +47,4 @@ spec:
   - name: grpc
     protocol: TCP
     port: 50508
----
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: om-evaluator
-  namespace: open-match
-  labels:
-    app: mm101-tutorial
-    component: evaluator
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mm101-tutorial
-      component: evaluator
-  template:
-    metadata:
-      namespace: open-match
-      labels:
-        app: mm101-tutorial
-        component: evaluator
-    spec:
-      containers:
-      - name: om-evaluator
-        image: gcr.io/sawagh-openmatch-dev/mm101-tutorial-evaluator:latest
-        imagePullPolicy: Always
-        ports:
-        - name: grpc
-          containerPort: 50508
+

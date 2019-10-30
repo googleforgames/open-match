@@ -40,6 +40,23 @@ spec:
     imagePullPolicy: Always
   hostname: mm101-tutorial-frontend
 ---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mm101-tutorial-matchfunction
+  namespace: mm101-tutorial
+  labels:
+    app: mm101-tutorial
+    component: matchfunction
+spec:
+  containers:
+  - name: mm101-tutorial-matchfunction
+    image: REGISTRY_PLACEHOLDER/mm101-tutorial-matchfunction:latest
+    imagePullPolicy: Always
+    ports:
+    - name: grpc
+      containerPort: 50502
+---
 kind: Service
 apiVersion: v1
 metadata:
@@ -59,34 +76,22 @@ spec:
     protocol: TCP
     port: 50502
 ---
-apiVersion: extensions/v1beta1
-kind: Deployment
+apiVersion: v1
+kind: Pod
 metadata:
-  name: mm101-tutorial-matchfunction
-  namespace: mm101-tutorial
+  name: om-evaluator
+  namespace: open-match
   labels:
     app: mm101-tutorial
-    component: matchfunction
+    component: evaluator
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mm101-tutorial
-      component: matchfunction
-  template:
-    metadata:
-      namespace: mm101-tutorial
-      labels:
-        app: mm101-tutorial
-        component: matchfunction
-    spec:
-      containers:
-      - name: mm101-tutorial-matchfunction
-        image: REGISTRY_PLACEHOLDER/mm101-tutorial-matchfunction:latest
-        imagePullPolicy: Always
-        ports:
-        - name: grpc
-          containerPort: 50502
+  containers:
+  - name: om-evaluator
+    image: REGISTRY_PLACEHOLDER/mm101-tutorial-evaluator:latest
+    imagePullPolicy: Always
+    ports:
+    - name: grpc
+      containerPort: 50508
 ---
 kind: Service
 apiVersion: v1
@@ -107,31 +112,3 @@ spec:
     protocol: TCP
     port: 50508
 ---
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: om-evaluator
-  namespace: open-match
-  labels:
-    app: mm101-tutorial
-    component: evaluator
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mm101-tutorial
-      component: evaluator
-  template:
-    metadata:
-      namespace: open-match
-      labels:
-        app: mm101-tutorial
-        component: evaluator
-    spec:
-      containers:
-      - name: om-evaluator
-        image: gcr.io/sawagh-openmatch-dev/mm101-tutorial-evaluator:latest
-        imagePullPolicy: Always
-        ports:
-        - name: grpc
-          containerPort: 50508
