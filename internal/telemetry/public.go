@@ -46,7 +46,7 @@ func Setup(servicePrefix string, mux *http.ServeMux, cfg config.View) func() {
 
 	bindJaeger(servicePrefix, cfg)
 	bindPrometheus(mux, cfg)
-	mc.AddCloseFunc(bindStackDriver(cfg))
+	mc.AddCloseFunc(bindStackDriverMetrics(cfg))
 	mc.AddCloseWithErrorFunc(bindOpenCensusAgent(cfg))
 	bindZipkin(cfg)
 	bindZpages(mux, cfg)

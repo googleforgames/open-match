@@ -27,7 +27,7 @@ data:
   matchmaker_config_default.yaml: |-
     logging:
       level: debug
-      {{- if .Values.global.telemetry.stackdriver.enabled }}
+      {{- if .Values.global.telemetry.stackdriverMetrics.enabled }}
       format: stackdriver
       {{- else }}
       format: text
@@ -108,10 +108,10 @@ data:
         enable: "{{ .Values.global.telemetry.prometheus.enabled }}"
         endpoint: "{{ .Values.global.telemetry.prometheus.endpoint }}"
         serviceDiscovery: "{{ .Values.global.telemetry.prometheus.serviceDiscovery }}"
-      stackdriver:
-        enable: "{{ .Values.global.telemetry.stackdriver.enabled }}"
+      stackdriverMetrics:
+        enable: "{{ .Values.global.telemetry.stackdriverMetrics.enabled }}"
         gcpProjectId: "{{ .Values.global.gcpProjectId }}"
-        metricPrefix: "{{ .Values.global.telemetry.stackdriver.metricPrefix }}"
+        prefix: "{{ .Values.global.telemetry.stackdriverMetrics.prefix }}"
       zipkin:
         enable: "{{ .Values.global.telemetry.zipkin.enabled }}"
         endpoint: "{{ .Values.global.telemetry.zipkin.endpoint }}"

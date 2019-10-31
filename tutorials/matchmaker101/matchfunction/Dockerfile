@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+ # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,19 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: v1
-kind: Pod
-metadata:
-  name: om-function
-  namespace: open-match
-spec:
-  containers:
-  - name: om-function
-    image: registry_placeholder/om-function:latest
-    imagePullPolicy: Always
-    ports:
-    - name: grpc
-      containerPort: 50502
-    - name: http
-      containerPort: 51502
-  hostname: om-function
+FROM golang:alpine as go
+WORKDIR /app
+ENV GO111MODULE=on
+
+COPY . .
+RUN go build -o matchfunction .
+
+CMD ["/app/matchfunction"]

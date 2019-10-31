@@ -158,7 +158,7 @@ redis:
 open-match-core:
   enabled: true
 
-# Contols if users need to install the demo in Open Match.
+# Controls if users need to install the demo in Open Match.
 open-match-demo:
   # Switch the value between true/false to turn on/off this subchart
   enabled: true
@@ -166,18 +166,17 @@ open-match-demo:
   frontend: *frontend
   backend: *backend
 
-# Contols if users need to install scale testing setup for Open Match.
+# Controls if users need to install scale testing setup for Open Match.
 open-match-scale:
   # Switch the value between true/false to turn on/off this subchart
   enabled: false
   frontend: *frontend
   backend: *backend
 
-# Contols if users need to install the monitoring tools in Open Match.
-# By default, the stackdriver is enabled such that users are able to see the logs in a GKE cluster.
+# Controls if users need to install the monitoring tools in Open Match.
 open-match-telemetry:
   # Switch the value between true/false to turn on/off this subchart
-  enabled: true
+  enabled: false
 
 # Controls if users need to install their own MMFs and Evaluator in Open Match.
 open-match-customize:
@@ -248,10 +247,9 @@ global:
       enabled: false
       endpoint: "/metrics"
       serviceDiscovery: true
-    # By default, the stackdriver is enabled such that users are able to see the logs in a GKE cluster.
-    stackdriver:
-      enabled: true
-      metricPrefix: "open_match"
+    stackdriverMetrics:
+      enabled: false
+      prefix: "open_match"
     zipkin:
       enabled: false
       endpoint: "/zipkin"

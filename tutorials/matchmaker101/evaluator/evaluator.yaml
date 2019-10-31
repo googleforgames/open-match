@@ -17,14 +17,34 @@ kind: Pod
 metadata:
   name: om-evaluator
   namespace: open-match
+  labels:
+    app: mm101-tutorial
+    component: evaluator
 spec:
   containers:
   - name: om-evaluator
-    image: registry_placeholder/om-evaluator:latest
+    image: REGISTRY_PLACEHOLDER/mm101-tutorial-evaluator:latest
     imagePullPolicy: Always
     ports:
     - name: grpc
       containerPort: 50508
-    - name: http
-      containerPort: 51508
-  hostname: om-evaluator
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-evaluator
+  namespace: open-match
+  labels:
+    app: mm101-tutorial
+    component: evaluator
+spec:
+  selector:
+    app: mm101-tutorial
+    component: evaluator
+  clusterIP: None
+  type: ClusterIP
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: 50508
+
