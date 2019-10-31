@@ -117,13 +117,9 @@ kind: ConfigMap
 metadata:
   name: om-configmap-override
   namespace: open-match
-  annotations:
-    chart: open-match-0.0.0-dev
-    heritage: Helm
   labels:
     app: open-match
     component: config
-    release: open-match
 data:
   matchmaker_config_override.yaml: |-
     api:
