@@ -43,7 +43,7 @@ type evaluator interface {
 	evaluate(context.Context, []*pb.Match) ([]*pb.Match, error)
 }
 
-var errNoEvaluatorType = errors.New("Unable to determine evaluator type.  Either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config.")
+var errNoEvaluatorType = errors.New("unable to determine evaluator type, either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config")
 
 func newEvaluator(cfg config.View) evaluator {
 	newInstance := func(cfg config.View) (interface{}, error) {
