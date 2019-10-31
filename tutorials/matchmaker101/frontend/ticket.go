@@ -20,21 +20,15 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-const (
-	// Tickets will be generated with a rating that follows a normal distribution
-	// using the below parameters.
-	minRating float64 = 0
-	maxRating float64 = 100
-	avgRating float64 = 40
-	stdDev    float64 = 20
-)
-
-// Ticket generates a Ticket with data using the package configuration.
+// Ticket generates a Ticket with a mode search field that has one of the
+// randomly selected modes.
 func makeTicket() *pb.Ticket {
 	ticket := &pb.Ticket{
 		SearchFields: &pb.SearchFields{
-			DoubleArgs: map[string]float64{
-				"attribute.mmr": normalDist(avgRating, minRating, maxRating, stdDev),
+			// Tags can support multiple values but for simplicity, the demo function
+			// assumes only single mode selection per Ticket.
+			Tags: []string{
+				gameMode(),
 			},
 		},
 	}
@@ -42,15 +36,7 @@ func makeTicket() *pb.Ticket {
 	return ticket
 }
 
-// normalDist generates a random integer in a normal distribution
-func normalDist(avg float64, min float64, max float64, stdev float64) float64 {
-	sample := (rand.NormFloat64() * stdev) + avg
-	switch {
-	case sample > max:
-		sample = max
-	case sample < min:
-		sample = min
-	}
-
-	return sample
+func gameMode() string {
+	modes := []string{"mode.demo", "mode.ctf", "mode.battleroyale"}
+	return modes[rand.Intn(len(modes))]
 }
