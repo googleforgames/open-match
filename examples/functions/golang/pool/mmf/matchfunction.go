@@ -21,6 +21,7 @@ package mmf
 
 import (
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/pkg/errors"
 	"github.com/rs/xid"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
@@ -54,12 +55,14 @@ func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
 			}
 
 			result = append(result, &pb.Match{
-				MatchId:         xid.New().String(),
-				MatchProfile:    params.ProfileName,
-				MatchFunction:   matchName,
-				Tickets:         tickets,
-				Rosters:         []*pb.Roster{roster},
-				EvaluationInput: evaluationInput,
+				MatchId:       xid.New().String(),
+				MatchProfile:  params.ProfileName,
+				MatchFunction: matchName,
+				Tickets:       tickets,
+				Rosters:       []*pb.Roster{roster},
+				Extensions: map[string]*any.Any{
+					"evaluation_input": evaluationInput,
+				},
 			})
 		}
 	}

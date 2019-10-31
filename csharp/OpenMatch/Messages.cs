@@ -25,51 +25,58 @@ namespace OpenMatch {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "ChJhcGkvbWVzc2FnZXMucHJvdG8SCW9wZW5tYXRjaBoXZ29vZ2xlL3JwYy9z",
-            "dGF0dXMucHJvdG8aGWdvb2dsZS9wcm90b2J1Zi9hbnkucHJvdG8ingEKBlRp",
+            "dGF0dXMucHJvdG8aGWdvb2dsZS9wcm90b2J1Zi9hbnkucHJvdG8i9QEKBlRp",
             "Y2tldBIKCgJpZBgBIAEoCRIpCgphc3NpZ25tZW50GAMgASgLMhUub3Blbm1h",
             "dGNoLkFzc2lnbm1lbnQSLgoNc2VhcmNoX2ZpZWxkcxgEIAEoCzIXLm9wZW5t",
-            "YXRjaC5TZWFyY2hGaWVsZHMSJwoJZXh0ZW5zaW9uGAUgASgLMhQuZ29vZ2xl",
-            "LnByb3RvYnVmLkFueUoECAIQAyL+AQoMU2VhcmNoRmllbGRzEjwKC2RvdWJs",
-            "ZV9hcmdzGAEgAygLMicub3Blbm1hdGNoLlNlYXJjaEZpZWxkcy5Eb3VibGVB",
-            "cmdzRW50cnkSPAoLc3RyaW5nX2FyZ3MYAiADKAsyJy5vcGVubWF0Y2guU2Vh",
-            "cmNoRmllbGRzLlN0cmluZ0FyZ3NFbnRyeRIMCgR0YWdzGAMgAygJGjEKD0Rv",
-            "dWJsZUFyZ3NFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAE6AjgB",
-            "GjEKD1N0cmluZ0FyZ3NFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiAB",
-            "KAk6AjgBInIKCkFzc2lnbm1lbnQSEgoKY29ubmVjdGlvbhgBIAEoCRIhCgVl",
-            "cnJvchgDIAEoCzISLmdvb2dsZS5ycGMuU3RhdHVzEicKCWV4dGVuc2lvbhgE",
-            "IAEoCzIULmdvb2dsZS5wcm90b2J1Zi5BbnlKBAgCEAMiQQoRRG91YmxlUmFu",
-            "Z2VGaWx0ZXISEgoKZG91YmxlX2FyZxgBIAEoCRILCgNtYXgYAiABKAESCwoD",
-            "bWluGAMgASgBIjcKElN0cmluZ0VxdWFsc0ZpbHRlchISCgpzdHJpbmdfYXJn",
-            "GAEgASgJEg0KBXZhbHVlGAIgASgJIh8KEFRhZ1ByZXNlbnRGaWx0ZXISCwoD",
-            "dGFnGAEgASgJIs4BCgRQb29sEgwKBG5hbWUYASABKAkSOgoUZG91YmxlX3Jh",
-            "bmdlX2ZpbHRlcnMYAiADKAsyHC5vcGVubWF0Y2guRG91YmxlUmFuZ2VGaWx0",
-            "ZXISPAoVc3RyaW5nX2VxdWFsc19maWx0ZXJzGAQgAygLMh0ub3Blbm1hdGNo",
-            "LlN0cmluZ0VxdWFsc0ZpbHRlchI4ChN0YWdfcHJlc2VudF9maWx0ZXJzGAUg",
-            "AygLMhsub3Blbm1hdGNoLlRhZ1ByZXNlbnRGaWx0ZXJKBAgDEAQiKgoGUm9z",
-            "dGVyEgwKBG5hbWUYASABKAkSEgoKdGlja2V0X2lkcxgCIAMoCSKPAQoMTWF0",
-            "Y2hQcm9maWxlEgwKBG5hbWUYASABKAkSHgoFcG9vbHMYAyADKAsyDy5vcGVu",
-            "bWF0Y2guUG9vbBIiCgdyb3N0ZXJzGAQgAygLMhEub3Blbm1hdGNoLlJvc3Rl",
-            "chInCglleHRlbnNpb24YBSABKAsyFC5nb29nbGUucHJvdG9idWYuQW55SgQI",
-            "AhADIu8BCgVNYXRjaBIQCghtYXRjaF9pZBgBIAEoCRIVCg1tYXRjaF9wcm9m",
-            "aWxlGAIgASgJEhYKDm1hdGNoX2Z1bmN0aW9uGAMgASgJEiIKB3RpY2tldHMY",
-            "BCADKAsyES5vcGVubWF0Y2guVGlja2V0EiIKB3Jvc3RlcnMYBSADKAsyES5v",
-            "cGVubWF0Y2guUm9zdGVyEi4KEGV2YWx1YXRpb25faW5wdXQYByABKAsyFC5n",
-            "b29nbGUucHJvdG9idWYuQW55EicKCWV4dGVuc2lvbhgIIAEoCzIULmdvb2ds",
-            "ZS5wcm90b2J1Zi5BbnlKBAgGEAdCLlogb3Blbi1tYXRjaC5kZXYvb3Blbi1t",
-            "YXRjaC9wa2cvcGKqAglPcGVuTWF0Y2hiBnByb3RvMw=="));
+            "YXRjaC5TZWFyY2hGaWVsZHMSNQoKZXh0ZW5zaW9ucxgFIAMoCzIhLm9wZW5t",
+            "YXRjaC5UaWNrZXQuRXh0ZW5zaW9uc0VudHJ5GkcKD0V4dGVuc2lvbnNFbnRy",
+            "eRILCgNrZXkYASABKAkSIwoFdmFsdWUYAiABKAsyFC5nb29nbGUucHJvdG9i",
+            "dWYuQW55OgI4AUoECAIQAyL+AQoMU2VhcmNoRmllbGRzEjwKC2RvdWJsZV9h",
+            "cmdzGAEgAygLMicub3Blbm1hdGNoLlNlYXJjaEZpZWxkcy5Eb3VibGVBcmdz",
+            "RW50cnkSPAoLc3RyaW5nX2FyZ3MYAiADKAsyJy5vcGVubWF0Y2guU2VhcmNo",
+            "RmllbGRzLlN0cmluZ0FyZ3NFbnRyeRIMCgR0YWdzGAMgAygJGjEKD0RvdWJs",
+            "ZUFyZ3NFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAE6AjgBGjEK",
+            "D1N0cmluZ0FyZ3NFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6",
+            "AjgBIs0BCgpBc3NpZ25tZW50EhIKCmNvbm5lY3Rpb24YASABKAkSIQoFZXJy",
+            "b3IYAyABKAsyEi5nb29nbGUucnBjLlN0YXR1cxI5CgpleHRlbnNpb25zGAQg",
+            "AygLMiUub3Blbm1hdGNoLkFzc2lnbm1lbnQuRXh0ZW5zaW9uc0VudHJ5GkcK",
+            "D0V4dGVuc2lvbnNFbnRyeRILCgNrZXkYASABKAkSIwoFdmFsdWUYAiABKAsy",
+            "FC5nb29nbGUucHJvdG9idWYuQW55OgI4AUoECAIQAyJBChFEb3VibGVSYW5n",
+            "ZUZpbHRlchISCgpkb3VibGVfYXJnGAEgASgJEgsKA21heBgCIAEoARILCgNt",
+            "aW4YAyABKAEiNwoSU3RyaW5nRXF1YWxzRmlsdGVyEhIKCnN0cmluZ19hcmcY",
+            "ASABKAkSDQoFdmFsdWUYAiABKAkiHwoQVGFnUHJlc2VudEZpbHRlchILCgN0",
+            "YWcYASABKAkizgEKBFBvb2wSDAoEbmFtZRgBIAEoCRI6ChRkb3VibGVfcmFu",
+            "Z2VfZmlsdGVycxgCIAMoCzIcLm9wZW5tYXRjaC5Eb3VibGVSYW5nZUZpbHRl",
+            "chI8ChVzdHJpbmdfZXF1YWxzX2ZpbHRlcnMYBCADKAsyHS5vcGVubWF0Y2gu",
+            "U3RyaW5nRXF1YWxzRmlsdGVyEjgKE3RhZ19wcmVzZW50X2ZpbHRlcnMYBSAD",
+            "KAsyGy5vcGVubWF0Y2guVGFnUHJlc2VudEZpbHRlckoECAMQBCIqCgZSb3N0",
+            "ZXISDAoEbmFtZRgBIAEoCRISCgp0aWNrZXRfaWRzGAIgAygJIuwBCgxNYXRj",
+            "aFByb2ZpbGUSDAoEbmFtZRgBIAEoCRIeCgVwb29scxgDIAMoCzIPLm9wZW5t",
+            "YXRjaC5Qb29sEiIKB3Jvc3RlcnMYBCADKAsyES5vcGVubWF0Y2guUm9zdGVy",
+            "EjsKCmV4dGVuc2lvbnMYBSADKAsyJy5vcGVubWF0Y2guTWF0Y2hQcm9maWxl",
+            "LkV4dGVuc2lvbnNFbnRyeRpHCg9FeHRlbnNpb25zRW50cnkSCwoDa2V5GAEg",
+            "ASgJEiMKBXZhbHVlGAIgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueToCOAFK",
+            "BAgCEAMilQIKBU1hdGNoEhAKCG1hdGNoX2lkGAEgASgJEhUKDW1hdGNoX3By",
+            "b2ZpbGUYAiABKAkSFgoObWF0Y2hfZnVuY3Rpb24YAyABKAkSIgoHdGlja2V0",
+            "cxgEIAMoCzIRLm9wZW5tYXRjaC5UaWNrZXQSIgoHcm9zdGVycxgFIAMoCzIR",
+            "Lm9wZW5tYXRjaC5Sb3N0ZXISNAoKZXh0ZW5zaW9ucxgHIAMoCzIgLm9wZW5t",
+            "YXRjaC5NYXRjaC5FeHRlbnNpb25zRW50cnkaRwoPRXh0ZW5zaW9uc0VudHJ5",
+            "EgsKA2tleRgBIAEoCRIjCgV2YWx1ZRgCIAEoCzIULmdvb2dsZS5wcm90b2J1",
+            "Zi5Bbnk6AjgBSgQIBhAHQi5aIG9wZW4tbWF0Y2guZGV2L29wZW4tbWF0Y2gv",
+            "cGtnL3BiqgIJT3Blbk1hdGNoYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Rpc.StatusReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.AnyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Ticket), global::OpenMatch.Ticket.Parser, new[]{ "Id", "Assignment", "SearchFields", "Extension" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Ticket), global::OpenMatch.Ticket.Parser, new[]{ "Id", "Assignment", "SearchFields", "Extensions" }, null, null, new pbr::GeneratedClrTypeInfo[] { null, }),
             new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.SearchFields), global::OpenMatch.SearchFields.Parser, new[]{ "DoubleArgs", "StringArgs", "Tags" }, null, null, new pbr::GeneratedClrTypeInfo[] { null, null, }),
-            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Assignment), global::OpenMatch.Assignment.Parser, new[]{ "Connection", "Error", "Extension" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Assignment), global::OpenMatch.Assignment.Parser, new[]{ "Connection", "Error", "Extensions" }, null, null, new pbr::GeneratedClrTypeInfo[] { null, }),
             new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.DoubleRangeFilter), global::OpenMatch.DoubleRangeFilter.Parser, new[]{ "DoubleArg", "Max", "Min" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.StringEqualsFilter), global::OpenMatch.StringEqualsFilter.Parser, new[]{ "StringArg", "Value" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.TagPresentFilter), global::OpenMatch.TagPresentFilter.Parser, new[]{ "Tag" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Pool), global::OpenMatch.Pool.Parser, new[]{ "Name", "DoubleRangeFilters", "StringEqualsFilters", "TagPresentFilters" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Roster), global::OpenMatch.Roster.Parser, new[]{ "Name", "TicketIds" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.MatchProfile), global::OpenMatch.MatchProfile.Parser, new[]{ "Name", "Pools", "Rosters", "Extension" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Match), global::OpenMatch.Match.Parser, new[]{ "MatchId", "MatchProfile", "MatchFunction", "Tickets", "Rosters", "EvaluationInput", "Extension" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.MatchProfile), global::OpenMatch.MatchProfile.Parser, new[]{ "Name", "Pools", "Rosters", "Extensions" }, null, null, new pbr::GeneratedClrTypeInfo[] { null, }),
+            new pbr::GeneratedClrTypeInfo(typeof(global::OpenMatch.Match), global::OpenMatch.Match.Parser, new[]{ "MatchId", "MatchProfile", "MatchFunction", "Tickets", "Rosters", "Extensions" }, null, null, new pbr::GeneratedClrTypeInfo[] { null, })
           }));
     }
     #endregion
@@ -111,7 +118,7 @@ namespace OpenMatch {
       id_ = other.id_;
       assignment_ = other.assignment_ != null ? other.assignment_.Clone() : null;
       searchFields_ = other.searchFields_ != null ? other.searchFields_.Clone() : null;
-      extension_ = other.extension_ != null ? other.extension_.Clone() : null;
+      extensions_ = other.extensions_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -164,19 +171,19 @@ namespace OpenMatch {
       }
     }
 
-    /// <summary>Field number for the "extension" field.</summary>
-    public const int ExtensionFieldNumber = 5;
-    private global::Google.Protobuf.WellKnownTypes.Any extension_;
+    /// <summary>Field number for the "extensions" field.</summary>
+    public const int ExtensionsFieldNumber = 5;
+    private static readonly pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>.Codec _map_extensions_codec
+        = new pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>.Codec(pb::FieldCodec.ForString(10), pb::FieldCodec.ForMessage(18, global::Google.Protobuf.WellKnownTypes.Any.Parser), 42);
+    private readonly pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any> extensions_ = new pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>();
     /// <summary>
-    /// Customized information to be used by the Match Making Function.  Optional,
-    /// depending on the requirements of the MMF.
+    /// Customized information not inspected by Open Match, to be used by the match
+    /// making function, evaluator, and components making calls to Open Match.
+    /// Optional, depending on the requirements of the connected systems.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Google.Protobuf.WellKnownTypes.Any Extension {
-      get { return extension_; }
-      set {
-        extension_ = value;
-      }
+    public pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any> Extensions {
+      get { return extensions_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -195,7 +202,7 @@ namespace OpenMatch {
       if (Id != other.Id) return false;
       if (!object.Equals(Assignment, other.Assignment)) return false;
       if (!object.Equals(SearchFields, other.SearchFields)) return false;
-      if (!object.Equals(Extension, other.Extension)) return false;
+      if (!Extensions.Equals(other.Extensions)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -205,7 +212,7 @@ namespace OpenMatch {
       if (Id.Length != 0) hash ^= Id.GetHashCode();
       if (assignment_ != null) hash ^= Assignment.GetHashCode();
       if (searchFields_ != null) hash ^= SearchFields.GetHashCode();
-      if (extension_ != null) hash ^= Extension.GetHashCode();
+      hash ^= Extensions.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -231,10 +238,7 @@ namespace OpenMatch {
         output.WriteRawTag(34);
         output.WriteMessage(SearchFields);
       }
-      if (extension_ != null) {
-        output.WriteRawTag(42);
-        output.WriteMessage(Extension);
-      }
+      extensions_.WriteTo(output, _map_extensions_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -252,9 +256,7 @@ namespace OpenMatch {
       if (searchFields_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(SearchFields);
       }
-      if (extension_ != null) {
-        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Extension);
-      }
+      size += extensions_.CalculateSize(_map_extensions_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -281,12 +283,7 @@ namespace OpenMatch {
         }
         SearchFields.MergeFrom(other.SearchFields);
       }
-      if (other.extension_ != null) {
-        if (extension_ == null) {
-          Extension = new global::Google.Protobuf.WellKnownTypes.Any();
-        }
-        Extension.MergeFrom(other.Extension);
-      }
+      extensions_.Add(other.extensions_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -317,10 +314,7 @@ namespace OpenMatch {
             break;
           }
           case 42: {
-            if (extension_ == null) {
-              Extension = new global::Google.Protobuf.WellKnownTypes.Any();
-            }
-            input.ReadMessage(Extension);
+            extensions_.AddEntriesFrom(input, _map_extensions_codec);
             break;
           }
         }
@@ -534,7 +528,7 @@ namespace OpenMatch {
     public Assignment(Assignment other) : this() {
       connection_ = other.connection_;
       error_ = other.error_ != null ? other.error_.Clone() : null;
-      extension_ = other.extension_ != null ? other.extension_.Clone() : null;
+      extensions_ = other.extensions_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -571,19 +565,19 @@ namespace OpenMatch {
       }
     }
 
-    /// <summary>Field number for the "extension" field.</summary>
-    public const int ExtensionFieldNumber = 4;
-    private global::Google.Protobuf.WellKnownTypes.Any extension_;
+    /// <summary>Field number for the "extensions" field.</summary>
+    public const int ExtensionsFieldNumber = 4;
+    private static readonly pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>.Codec _map_extensions_codec
+        = new pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>.Codec(pb::FieldCodec.ForString(10), pb::FieldCodec.ForMessage(18, global::Google.Protobuf.WellKnownTypes.Any.Parser), 34);
+    private readonly pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any> extensions_ = new pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>();
     /// <summary>
-    /// Customized information to be sent to the clients.  Optional, depending on
-    /// what callers are expecting.
+    /// Customized information not inspected by Open Match, to be used by the match
+    /// making function, evaluator, and components making calls to Open Match.
+    /// Optional, depending on the requirements of the connected systems.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Google.Protobuf.WellKnownTypes.Any Extension {
-      get { return extension_; }
-      set {
-        extension_ = value;
-      }
+    public pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any> Extensions {
+      get { return extensions_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -601,7 +595,7 @@ namespace OpenMatch {
       }
       if (Connection != other.Connection) return false;
       if (!object.Equals(Error, other.Error)) return false;
-      if (!object.Equals(Extension, other.Extension)) return false;
+      if (!Extensions.Equals(other.Extensions)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -610,7 +604,7 @@ namespace OpenMatch {
       int hash = 1;
       if (Connection.Length != 0) hash ^= Connection.GetHashCode();
       if (error_ != null) hash ^= Error.GetHashCode();
-      if (extension_ != null) hash ^= Extension.GetHashCode();
+      hash ^= Extensions.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -632,10 +626,7 @@ namespace OpenMatch {
         output.WriteRawTag(26);
         output.WriteMessage(Error);
       }
-      if (extension_ != null) {
-        output.WriteRawTag(34);
-        output.WriteMessage(Extension);
-      }
+      extensions_.WriteTo(output, _map_extensions_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -650,9 +641,7 @@ namespace OpenMatch {
       if (error_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Error);
       }
-      if (extension_ != null) {
-        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Extension);
-      }
+      size += extensions_.CalculateSize(_map_extensions_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -673,12 +662,7 @@ namespace OpenMatch {
         }
         Error.MergeFrom(other.Error);
       }
-      if (other.extension_ != null) {
-        if (extension_ == null) {
-          Extension = new global::Google.Protobuf.WellKnownTypes.Any();
-        }
-        Extension.MergeFrom(other.Extension);
-      }
+      extensions_.Add(other.extensions_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -702,10 +686,7 @@ namespace OpenMatch {
             break;
           }
           case 34: {
-            if (extension_ == null) {
-              Extension = new global::Google.Protobuf.WellKnownTypes.Any();
-            }
-            input.ReadMessage(Extension);
+            extensions_.AddEntriesFrom(input, _map_extensions_codec);
             break;
           }
         }
@@ -1625,7 +1606,7 @@ namespace OpenMatch {
       name_ = other.name_;
       pools_ = other.pools_.Clone();
       rosters_ = other.rosters_.Clone();
-      extension_ = other.extension_ != null ? other.extension_.Clone() : null;
+      extensions_ = other.extensions_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1679,19 +1660,19 @@ namespace OpenMatch {
       get { return rosters_; }
     }
 
-    /// <summary>Field number for the "extension" field.</summary>
-    public const int ExtensionFieldNumber = 5;
-    private global::Google.Protobuf.WellKnownTypes.Any extension_;
+    /// <summary>Field number for the "extensions" field.</summary>
+    public const int ExtensionsFieldNumber = 5;
+    private static readonly pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>.Codec _map_extensions_codec
+        = new pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>.Codec(pb::FieldCodec.ForString(10), pb::FieldCodec.ForMessage(18, global::Google.Protobuf.WellKnownTypes.Any.Parser), 42);
+    private readonly pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any> extensions_ = new pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>();
     /// <summary>
-    /// Customized information on how the match function should run.  Optional,
-    /// depending on the requirements of the match function.
+    /// Customized information not inspected by Open Match, to be used by the match
+    /// making function, evaluator, and components making calls to Open Match.
+    /// Optional, depending on the requirements of the connected systems.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Google.Protobuf.WellKnownTypes.Any Extension {
-      get { return extension_; }
-      set {
-        extension_ = value;
-      }
+    public pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any> Extensions {
+      get { return extensions_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1710,7 +1691,7 @@ namespace OpenMatch {
       if (Name != other.Name) return false;
       if(!pools_.Equals(other.pools_)) return false;
       if(!rosters_.Equals(other.rosters_)) return false;
-      if (!object.Equals(Extension, other.Extension)) return false;
+      if (!Extensions.Equals(other.Extensions)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1720,7 +1701,7 @@ namespace OpenMatch {
       if (Name.Length != 0) hash ^= Name.GetHashCode();
       hash ^= pools_.GetHashCode();
       hash ^= rosters_.GetHashCode();
-      if (extension_ != null) hash ^= Extension.GetHashCode();
+      hash ^= Extensions.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1740,10 +1721,7 @@ namespace OpenMatch {
       }
       pools_.WriteTo(output, _repeated_pools_codec);
       rosters_.WriteTo(output, _repeated_rosters_codec);
-      if (extension_ != null) {
-        output.WriteRawTag(42);
-        output.WriteMessage(Extension);
-      }
+      extensions_.WriteTo(output, _map_extensions_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1757,9 +1735,7 @@ namespace OpenMatch {
       }
       size += pools_.CalculateSize(_repeated_pools_codec);
       size += rosters_.CalculateSize(_repeated_rosters_codec);
-      if (extension_ != null) {
-        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Extension);
-      }
+      size += extensions_.CalculateSize(_map_extensions_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -1776,12 +1752,7 @@ namespace OpenMatch {
       }
       pools_.Add(other.pools_);
       rosters_.Add(other.rosters_);
-      if (other.extension_ != null) {
-        if (extension_ == null) {
-          Extension = new global::Google.Protobuf.WellKnownTypes.Any();
-        }
-        Extension.MergeFrom(other.Extension);
-      }
+      extensions_.Add(other.extensions_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -1806,10 +1777,7 @@ namespace OpenMatch {
             break;
           }
           case 42: {
-            if (extension_ == null) {
-              Extension = new global::Google.Protobuf.WellKnownTypes.Any();
-            }
-            input.ReadMessage(Extension);
+            extensions_.AddEntriesFrom(input, _map_extensions_codec);
             break;
           }
         }
@@ -1855,8 +1823,7 @@ namespace OpenMatch {
       matchFunction_ = other.matchFunction_;
       tickets_ = other.tickets_.Clone();
       rosters_ = other.rosters_.Clone();
-      evaluationInput_ = other.evaluationInput_ != null ? other.evaluationInput_.Clone() : null;
-      extension_ = other.extension_ != null ? other.extension_.Clone() : null;
+      extensions_ = other.extensions_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1933,35 +1900,19 @@ namespace OpenMatch {
       get { return rosters_; }
     }
 
-    /// <summary>Field number for the "evaluation_input" field.</summary>
-    public const int EvaluationInputFieldNumber = 7;
-    private global::Google.Protobuf.WellKnownTypes.Any evaluationInput_;
+    /// <summary>Field number for the "extensions" field.</summary>
+    public const int ExtensionsFieldNumber = 7;
+    private static readonly pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>.Codec _map_extensions_codec
+        = new pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>.Codec(pb::FieldCodec.ForString(10), pb::FieldCodec.ForMessage(18, global::Google.Protobuf.WellKnownTypes.Any.Parser), 58);
+    private readonly pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any> extensions_ = new pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any>();
     /// <summary>
-    /// Customized information for the evaluator.  Optional, depending on the
-    /// requirements of the configured evaluator.
+    /// Customized information not inspected by Open Match, to be used by the match
+    /// making function, evaluator, and components making calls to Open Match.
+    /// Optional, depending on the requirements of the connected systems.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Google.Protobuf.WellKnownTypes.Any EvaluationInput {
-      get { return evaluationInput_; }
-      set {
-        evaluationInput_ = value;
-      }
-    }
-
-    /// <summary>Field number for the "extension" field.</summary>
-    public const int ExtensionFieldNumber = 8;
-    private global::Google.Protobuf.WellKnownTypes.Any extension_;
-    /// <summary>
-    /// Customized information for how the caller of FetchMatches should handle
-    /// this match.  Optional, depending on the requirements of the FetchMatches
-    /// caller.
-    /// </summary>
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Google.Protobuf.WellKnownTypes.Any Extension {
-      get { return extension_; }
-      set {
-        extension_ = value;
-      }
+    public pbc::MapField<string, global::Google.Protobuf.WellKnownTypes.Any> Extensions {
+      get { return extensions_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1982,8 +1933,7 @@ namespace OpenMatch {
       if (MatchFunction != other.MatchFunction) return false;
       if(!tickets_.Equals(other.tickets_)) return false;
       if(!rosters_.Equals(other.rosters_)) return false;
-      if (!object.Equals(EvaluationInput, other.EvaluationInput)) return false;
-      if (!object.Equals(Extension, other.Extension)) return false;
+      if (!Extensions.Equals(other.Extensions)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1995,8 +1945,7 @@ namespace OpenMatch {
       if (MatchFunction.Length != 0) hash ^= MatchFunction.GetHashCode();
       hash ^= tickets_.GetHashCode();
       hash ^= rosters_.GetHashCode();
-      if (evaluationInput_ != null) hash ^= EvaluationInput.GetHashCode();
-      if (extension_ != null) hash ^= Extension.GetHashCode();
+      hash ^= Extensions.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2024,14 +1973,7 @@ namespace OpenMatch {
       }
       tickets_.WriteTo(output, _repeated_tickets_codec);
       rosters_.WriteTo(output, _repeated_rosters_codec);
-      if (evaluationInput_ != null) {
-        output.WriteRawTag(58);
-        output.WriteMessage(EvaluationInput);
-      }
-      if (extension_ != null) {
-        output.WriteRawTag(66);
-        output.WriteMessage(Extension);
-      }
+      extensions_.WriteTo(output, _map_extensions_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -2051,12 +1993,7 @@ namespace OpenMatch {
       }
       size += tickets_.CalculateSize(_repeated_tickets_codec);
       size += rosters_.CalculateSize(_repeated_rosters_codec);
-      if (evaluationInput_ != null) {
-        size += 1 + pb::CodedOutputStream.ComputeMessageSize(EvaluationInput);
-      }
-      if (extension_ != null) {
-        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Extension);
-      }
+      size += extensions_.CalculateSize(_map_extensions_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -2079,18 +2016,7 @@ namespace OpenMatch {
       }
       tickets_.Add(other.tickets_);
       rosters_.Add(other.rosters_);
-      if (other.evaluationInput_ != null) {
-        if (evaluationInput_ == null) {
-          EvaluationInput = new global::Google.Protobuf.WellKnownTypes.Any();
-        }
-        EvaluationInput.MergeFrom(other.EvaluationInput);
-      }
-      if (other.extension_ != null) {
-        if (extension_ == null) {
-          Extension = new global::Google.Protobuf.WellKnownTypes.Any();
-        }
-        Extension.MergeFrom(other.Extension);
-      }
+      extensions_.Add(other.extensions_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -2123,17 +2049,7 @@ namespace OpenMatch {
             break;
           }
           case 58: {
-            if (evaluationInput_ == null) {
-              EvaluationInput = new global::Google.Protobuf.WellKnownTypes.Any();
-            }
-            input.ReadMessage(EvaluationInput);
-            break;
-          }
-          case 66: {
-            if (extension_ == null) {
-              Extension = new global::Google.Protobuf.WellKnownTypes.Any();
-            }
-            input.ReadMessage(Extension);
+            extensions_.AddEntriesFrom(input, _map_extensions_codec);
             break;
           }
         }

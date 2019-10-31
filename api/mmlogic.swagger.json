@@ -70,9 +70,12 @@
           "$ref": "#/definitions/rpcStatus",
           "description": "Error when finding an Assignment for this Ticket."
         },
-        "extension": {
-          "$ref": "#/definitions/protobufAny",
-          "description": "Customized information to be sent to the clients.  Optional, depending on\nwhat callers are expecting."
+        "extensions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/protobufAny"
+          },
+          "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
         }
       },
       "description": "An Assignment represents a game server assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
@@ -211,9 +214,12 @@
           "$ref": "#/definitions/openmatchSearchFields",
           "description": "Search fields are the fields which Open Match is aware of, and can be used\nwhen specifying filters."
         },
-        "extension": {
-          "$ref": "#/definitions/protobufAny",
-          "description": "Customized information to be used by the Match Making Function.  Optional,\ndepending on the requirements of the MMF."
+        "extensions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/protobufAny"
+          },
+          "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
         }
       },
       "description": "A Ticket is a basic matchmaking entity in Open Match. A Ticket represents either an\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\nof SearchFields. Open Match stores the Ticket in state storage and enables an\nAssignment to be associated with this Ticket."
