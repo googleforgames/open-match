@@ -27,7 +27,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type QueryTicketsRequest struct {
-	// The Pool representing the set of Filters to be queried.
+	// A Pool is consists of a set of Filters.
 	Pool                 *Pool    `protobuf:"bytes,1,opt,name=pool,proto3" json:"pool,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -67,7 +67,7 @@ func (m *QueryTicketsRequest) GetPool() *Pool {
 }
 
 type QueryTicketsResponse struct {
-	// The Tickets that meet the Filter criteria requested by the Pool.
+	// Tickets is a list of Ticket representing one or more Tickets which meet all Filter criterias.
 	Tickets              []*Ticket `protobuf:"bytes,1,rep,name=tickets,proto3" json:"tickets,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
@@ -161,8 +161,10 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MmLogicClient interface {
-	// QueryTickets gets the list of Tickets that match every Filter in the
-	// specified Pool.
+	// QueryTickets gets a list of Tickets that match all Filters of the input Pool.
+	//   - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.
+	// QueryTickets pages the Tickets by `storage.pool.size` and stream back response.
+	//   - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000
 	QueryTickets(ctx context.Context, in *QueryTicketsRequest, opts ...grpc.CallOption) (MmLogic_QueryTicketsClient, error)
 }
 
@@ -208,8 +210,10 @@ func (x *mmLogicQueryTicketsClient) Recv() (*QueryTicketsResponse, error) {
 
 // MmLogicServer is the server API for MmLogic service.
 type MmLogicServer interface {
-	// QueryTickets gets the list of Tickets that match every Filter in the
-	// specified Pool.
+	// QueryTickets gets a list of Tickets that match all Filters of the input Pool.
+	//   - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.
+	// QueryTickets pages the Tickets by `storage.pool.size` and stream back response.
+	//   - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000
 	QueryTickets(*QueryTicketsRequest, MmLogic_QueryTicketsServer) error
 }
 

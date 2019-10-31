@@ -16,8 +16,6 @@ package e2e
 
 import (
 	"testing"
-
-	pb "open-match.dev/open-match/pkg/pb"
 )
 
 func TestServiceHealth(t *testing.T) {
@@ -43,23 +41,4 @@ func TestGetClients(t *testing.T) {
 	if c := om.MustMmLogicGRPC(); c == nil {
 		t.Error("cannot get mmlogic client")
 	}
-}
-
-func TestCreateTicket(t *testing.T) {
-	om, closer := New(t)
-	defer closer()
-	fe := om.MustFrontendGRPC()
-	resp, err := fe.CreateTicket(om.Context(), &pb.CreateTicketRequest{
-		Ticket: &pb.Ticket{
-			SearchFields: &pb.SearchFields{
-				DoubleArgs: map[string]float64{
-					"test-property": 1,
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Errorf("cannot create ticket, %s", err)
-	}
-	t.Logf("created ticket %+v", resp)
 }
