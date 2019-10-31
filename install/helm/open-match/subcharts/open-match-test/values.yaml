@@ -33,8 +33,3 @@ e2etest:
 
 kubernetes:
   serviceAccount: stress-test-uploader
-
-image:
-  registry: gcr.io/open-match-public-images
-  tag: 0.0.0-dev
-  pullPolicy: Always

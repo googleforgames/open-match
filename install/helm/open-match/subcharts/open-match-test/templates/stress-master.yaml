@@ -71,8 +71,8 @@ spec:
       serviceAccountName: {{ .Values.kubernetes.serviceAccount }}
       containers:
       - name: {{ .Values.stresstest.masterName }}
-        image: "{{ coalesce .Values.global.image.registry .Values.image.registry }}/{{ .Values.stresstest.image}}:{{ coalesce .Values.global.image.tag .Values.image.tag }}"
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        image: "{{ .Values.global.image.registry }}/{{ .Values.stresstest.image}}:{{ .Values.global.image.tag }}"
+        imagePullPolicy: {{ .Values.global.image.pullPolicy }}
         ports:
         - name: loc-master-web
           containerPort: 8089

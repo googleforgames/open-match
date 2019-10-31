@@ -16,11 +16,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-image:
-  registry: gcr.io/open-match-public-images
-  tag: 0.0.0-dev
-  pullPolicy: Always
-
 # https://github.com/helm/charts/tree/master/stable/prometheus
 prometheus:
   alertmanager:
