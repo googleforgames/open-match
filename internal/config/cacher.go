@@ -19,6 +19,9 @@ import (
 	"time"
 )
 
+// Cacher will detect which config values are read when constructing a value.
+// Then, when further requests are made, it will return the same value as long
+// as the config values which were used don't change.
 type Cacher struct {
 	cfg View
 	m   sync.Mutex
@@ -27,12 +30,18 @@ type Cacher struct {
 	v interface{}
 }
 
+// NewCacher returns a cacher which uses cfg to detect relevant changes.
 func NewCacher(cfg View) *Cacher {
 	return &Cacher{
 		cfg: cfg,
 	}
 }
 
+// Get will call f the first time it is called.  It remembers which values are
+// read from the provided View, and the value returned.  When Get is next
+// called, it will check if any of the used values have changed.  If they
+// haven't, it will return the cache'd value.  Otherwise it will call f again.
+// If f returns an error, the value will not be cached or returned.
 func (c *Cacher) Get(f func(cfg View) (interface{}, error)) (interface{}, error) {
 	c.m.Lock()
 	defer c.m.Unlock()
@@ -51,6 +60,8 @@ func (c *Cacher) Get(f func(cfg View) (interface{}, error)) (interface{}, error)
 	return c.v, nil
 }
 
+// ForceReset causes Cacher to forget the remembered value.  The next call to
+// Get will again construct a new value.
 func (c *Cacher) ForceReset() {
 	c.m.Lock()
 	defer c.m.Unlock()
