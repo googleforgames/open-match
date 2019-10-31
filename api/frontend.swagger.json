@@ -26,7 +26,7 @@
   "paths": {
     "/v1/frontend/tickets": {
       "post": {
-        "summary": "CreateTicket will create a new ticket, assign a Ticket ID to it and put the\nTicket in state storage. It will then look through the 'properties' field\nfor the attributes defined as indices the matchmakaking config. If the\nattributes exist and are valid integers, they will be indexed. Creating a\nticket adds the Ticket to the pool of Tickets considered for matchmaking.",
+        "summary": "CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.\nA ticket is considered as ready for matchmaking once it is created.\n  - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.\n  - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with mmlogic.QueryTickets function.",
         "operationId": "CreateTicket",
         "responses": {
           "200": {
@@ -59,7 +59,7 @@
     },
     "/v1/frontend/tickets/{ticket_id}": {
       "get": {
-        "summary": "GetTicket fetches the ticket associated with the specified Ticket ID.",
+        "summary": "GetTicket get the Ticket associated with the specified TicketId.",
         "operationId": "GetTicket",
         "responses": {
           "200": {
@@ -78,7 +78,7 @@
         "parameters": [
           {
             "name": "ticket_id",
-            "description": "Ticket ID of the Ticket to fetch.",
+            "description": "A TicketId of a generated Ticket.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -89,7 +89,7 @@
         ]
       },
       "delete": {
-        "summary": "DeleteTicket removes the Ticket from state storage and from corresponding\nconfigured indices and lazily removes the ticket from state storage.\nDeleting a ticket immediately stops the ticket from being\nconsidered for future matchmaking requests, yet when the ticket itself will be deleted\nis undeterministic. Users may still be able to assign/get a ticket after calling DeleteTicket on it.",
+        "summary": "DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.\nThe client must delete the Ticket when finished matchmaking with it. \n  - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.\nUsers may still be able to assign/get a ticket after calling DeleteTicket on it.",
         "operationId": "DeleteTicket",
         "responses": {
           "200": {
@@ -108,7 +108,7 @@
         "parameters": [
           {
             "name": "ticket_id",
-            "description": "Ticket ID of the Ticket to be deleted.",
+            "description": "A TicketId of a generated Ticket to be deleted.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -121,7 +121,7 @@
     },
     "/v1/frontend/tickets/{ticket_id}/assignments": {
       "get": {
-        "summary": "GetAssignments streams matchmaking results from Open Match for the\nprovided Ticket ID.",
+        "summary": "GetAssignments stream back Assignment of the specified TicketId if it is updated.\n  - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.",
         "operationId": "GetAssignments",
         "responses": {
           "200": {
@@ -140,7 +140,7 @@
         "parameters": [
           {
             "name": "ticket_id",
-            "description": "Ticket ID of the Ticket to get updates on.",
+            "description": "A TicketId of a generated Ticket to get updates on.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -169,14 +169,14 @@
           "description": "Customized information to be sent to the clients.  Optional, depending on\nwhat callers are expecting."
         }
       },
-      "description": "An Assignment object represents the assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
+      "description": "An Assignment represents a game server assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
     },
     "openmatchCreateTicketRequest": {
       "type": "object",
       "properties": {
         "ticket": {
           "$ref": "#/definitions/openmatchTicket",
-          "description": "Ticket object with the properties of the Ticket to be created."
+          "description": "A Ticket object with SearchFields defined."
         }
       }
     },
@@ -185,7 +185,7 @@
       "properties": {
         "ticket": {
           "$ref": "#/definitions/openmatchTicket",
-          "description": "Ticket object for the created Ticket - with the ticket ID populated."
+          "description": "A Ticket object with TicketId generated."
         }
       }
     },
@@ -197,7 +197,7 @@
       "properties": {
         "assignment": {
           "$ref": "#/definitions/openmatchAssignment",
-          "description": "The updated Ticket object."
+          "description": "An updated Assignment of the requested Ticket."
         }
       }
     },
@@ -234,22 +234,22 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "The Ticket ID generated by Open Match."
+          "description": "Id represents an auto-generated Id issued by Open Match."
         },
         "assignment": {
           "$ref": "#/definitions/openmatchAssignment",
-          "description": "Assignment associated with the Ticket."
+          "description": "An Assignment represents a game server assignment associated with a Ticket. \nOpen Match does not require or inspect any fields on Assignment."
         },
         "search_fields": {
           "$ref": "#/definitions/openmatchSearchFields",
-          "description": "Values visible to Open Match which can be used when querying for tickets\nwith specific values."
+          "description": "Search fields are the fields which Open Match is aware of, and can be used\nwhen specifying filters."
         },
         "extension": {
           "$ref": "#/definitions/protobufAny",
           "description": "Customized information to be used by the Match Making Function.  Optional,\ndepending on the requirements of the MMF."
         }
       },
-      "description": "A Ticket is a basic matchmaking entity in Open Match. In order to enter\nmatchmaking using Open Match, the client should generate a Ticket, passing in\nthe properties to be associated with this Ticket. Open Match will generate an\nID for a Ticket during creation. A Ticket could be used to represent an\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\nof properties. Open Match stores the Ticket in state storage and enables an\nAssignment to be associated with this Ticket."
+      "description": "A Ticket is a basic matchmaking entity in Open Match. A Ticket represents either an\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\nof SearchFields. Open Match stores the Ticket in state storage and enables an\nAssignment to be associated with this Ticket."
     },
     "protobufAny": {
       "type": "object",
