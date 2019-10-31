@@ -46,44 +46,61 @@ type evaluator interface {
 	evaluate(context.Context, []*pb.Match) ([]*pb.Match, error)
 }
 
-type evaluatorFunc func(context.Context, []*pb.Match) ([]*pb.Match, error)
-
-func (f evaluatorFunc) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
-	return f(ctx, proposals)
-}
-
 func newEvaluator(cfg config.View) evaluator {
-
 	return &deferedEvaluator{
-		cfg: cfg,
+		p: evaluatorProvider(cfg),
 	}
 }
 
 type deferedEvaluator struct {
-	init sync.Once
-	cfg  config.View
-	e    evaluator
+	p func() (evaluator, error)
 }
 
-func (de deferedEvaluator) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
-	de.init.Do(func() {
-		var err error
-		if de.cfg.IsSet("api.evaluator.grpcport") {
-			de.e, err = newGrpcEvaluator(de.cfg)
-		} else if de.cfg.IsSet("api.evaluator.httpport") {
-			de.e, err = newHttpEvaluator(de.cfg)
-			return
-		} else {
-			err = errors.New("Unable to determine evaluator type.  Either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config.")
-		}
-		if err != nil {
-			de.e = evaluatorFunc(func(context.Context, []*pb.Match) ([]*pb.Match, error) {
-				return nil, err
-			})
-		}
-	})
+func (de *deferedEvaluator) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	e, err := de.p()
+	if err != nil {
+		return nil, err
+	}
 
-	return de.e.evaluate(ctx, proposals)
+	return e.evaluate(ctx, proposals)
+}
+
+func evaluatorProvider(cfg config.View) func() (evaluator, error) {
+	var m sync.Mutex
+	var e evaluator
+
+	var addr string
+	var grpc bool
+
+	return func() (evaluator, error) {
+		m.Lock()
+		defer m.Unlock()
+
+		var shouldAddr string
+		var shouldGrpc bool
+		if cfg.IsSet("api.evaluator.grpcport") {
+			shouldAddr = fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.grpcport"))
+			shouldGrpc = true
+		} else {
+			shouldAddr = fmt.Sprintf("%s:%d", ec.cfg.GetString("api.evaluator.hostname"), ec.cfg.GetInt64("api.evaluator.httpport"))
+			shouldGrpc = false
+		}
+
+		var err error
+
+		if shouldAddr != addr || shouldGrpc != grpc {
+
+			if cfg.IsSet("api.evaluator.grpcport") {
+				e, err = newGrpcEvaluator(cfg)
+			} else if cfg.IsSet("api.evaluator.httpport") {
+				e, err = newHttpEvaluator(cfg)
+			} else {
+				e = nil
+				err = errors.New("Unable to determine evaluator type.  Either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config.")
+			}
+		}
+		return e, err
+	}
 }
 
 type grcpEvaluatorClient struct {
@@ -93,10 +110,10 @@ type grcpEvaluatorClient struct {
 func newGrpcEvaluator(cfg config.View) (evaluator, error) {
 	ec := &grcpEvaluatorClient{}
 
-	grpcAddr := fmt.Sprintf("%s:%d", ec.cfg.GetString("api.evaluator.hostname"), ec.cfg.GetInt64("api.evaluator.grpcport"))
-	conn, err := rpc.GRPCClientFromEndpoint(ec.cfg, grpcAddr)
+	grpcAddr := fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.grpcport"))
+	conn, err := rpc.GRPCClientFromEndpoint(cfg, grpcAddr)
 	if err != nil {
-		return nil, fmt.Errof("Failed to create grpc evaluator client: %w", conn)
+		return nil, fmt.Errorf("Failed to create grpc evaluator client: %w", conn)
 	}
 
 	evaluatorClientLogger.WithFields(logrus.Fields{
@@ -108,8 +125,8 @@ func newGrpcEvaluator(cfg config.View) (evaluator, error) {
 	}, nil
 }
 
-func (ec *grpcEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
-	stream, err := ec.grpcClient.Evaluate(ctx)
+func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	stream, err := ec.evaluator.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +217,7 @@ func (ec *httpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Mat
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Transfer-Encoding", "chunked")
 
-	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
+	resp, err := ec.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, status.Errorf(codes.Aborted, "failed to get response from evaluator for proposals %s: %s", proposalIDs, err.Error())
 	}
