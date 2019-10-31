@@ -17,9 +17,10 @@ package clients
 import (
 	"context"
 	"fmt"
-	"google.golang.org/grpc"
 	"math/rand"
 	"time"
+
+	"google.golang.org/grpc"
 
 	"open-match.dev/open-match/examples/demo/components"
 	"open-match.dev/open-match/examples/demo/updater"

@@ -20,6 +20,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
@@ -116,14 +117,16 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 	//'lazy' ticket delete that should be called after a ticket
 	// has been deindexed.
 	go func() {
-		err := store.DeleteTicket(context.Background(), id)
+		ctx, span := trace.StartSpan(context.Background(), "open-match/frontend.DeleteTicketLazy")
+		defer span.End()
+		err := store.DeleteTicket(ctx, id)
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error": err.Error(),
 				"id":    id,
 			}).Error("failed to delete the ticket")
 		}
-		err = store.DeleteTicketsFromIgnoreList(context.Background(), []string{id})
+		err = store.DeleteTicketsFromIgnoreList(ctx, []string{id})
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error": err.Error(),

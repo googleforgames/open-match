@@ -18,6 +18,7 @@ import (
 	"context"
 	"time"
 
+	"go.opencensus.io/trace"
 	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -66,6 +67,8 @@ func (is *instrumentedService) HealthCheck(ctx context.Context) error {
 // CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
 func (is *instrumentedService) CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
 	start := time.Now()
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.CreateTicket")
+	defer span.End()
 	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreCreateTicketCount)
 	defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreCreateTicketTime, time.Since(start).Milliseconds())
 	return is.s.CreateTicket(ctx, ticket)
@@ -74,6 +77,8 @@ func (is *instrumentedService) CreateTicket(ctx context.Context, ticket *pb.Tick
 // GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
 func (is *instrumentedService) GetTicket(ctx context.Context, id string) (*pb.Ticket, error) {
 	start := time.Now()
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetTicket")
+	defer span.End()
 	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreGetTicketCount)
 	defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreGetTicketTime, time.Since(start).Milliseconds())
 	return is.s.GetTicket(ctx, id)
@@ -82,6 +87,8 @@ func (is *instrumentedService) GetTicket(ctx context.Context, id string) (*pb.Ti
 // DeleteTicket removes the Ticket with the specified id from state storage.
 func (is *instrumentedService) DeleteTicket(ctx context.Context, id string) error {
 	start := time.Now()
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeleteTicket")
+	defer span.End()
 	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreDeleteTicketCount)
 	defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreDeleteTicketTime, time.Since(start).Milliseconds())
 	return is.s.DeleteTicket(ctx, id)
@@ -90,6 +97,8 @@ func (is *instrumentedService) DeleteTicket(ctx context.Context, id string) erro
 // IndexTicket indexes the Ticket id for the configured index fields.
 func (is *instrumentedService) IndexTicket(ctx context.Context, ticket *pb.Ticket) error {
 	start := time.Now()
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.IndexTicket")
+	defer span.End()
 	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreIndexTicketCount)
 	defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreIndexTicketTime, time.Since(start).Milliseconds())
 	return is.s.IndexTicket(ctx, ticket)
@@ -98,6 +107,8 @@ func (is *instrumentedService) IndexTicket(ctx context.Context, ticket *pb.Ticke
 // DeindexTicket removes the indexing for the specified Ticket. Only the indexes are removed but the Ticket continues to exist.
 func (is *instrumentedService) DeindexTicket(ctx context.Context, id string) error {
 	start := time.Now()
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeindexTicket")
+	defer span.End()
 	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreDeindexTicketCount)
 	defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreDeindexTicketTime, time.Since(start).Milliseconds())
 	return is.s.DeindexTicket(ctx, id)
@@ -111,6 +122,8 @@ func (is *instrumentedService) DeindexTicket(ctx context.Context, id string) err
 // }
 func (is *instrumentedService) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
 	start := time.Now()
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.FilterTickets")
+	defer span.End()
 	return is.s.FilterTickets(ctx, pool, pageSize, func(t []*pb.Ticket) error {
 		defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreFilterTicketsCount, int64(len(t)))
 		defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreFilterTicketsTime, time.Since(start).Milliseconds())
@@ -124,6 +137,8 @@ func (is *instrumentedService) FilterTickets(ctx context.Context, pool *pb.Pool,
 // assignment fields might be partially updated if this function encounters an error halfway through the execution.
 func (is *instrumentedService) UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error {
 	start := time.Now()
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.UpdateAssignments")
+	defer span.End()
 	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreUpdateAssignmentsCount)
 	defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreUpdateAssignmentsTime, time.Since(start).Milliseconds())
 	return is.s.UpdateAssignments(ctx, ids, assignment)
@@ -132,6 +147,8 @@ func (is *instrumentedService) UpdateAssignments(ctx context.Context, ids []stri
 // GetAssignments returns the assignment associated with the input ticket id
 func (is *instrumentedService) GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error {
 	start := time.Now()
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetAssignments")
+	defer span.End()
 	return is.s.GetAssignments(ctx, id, func(a *pb.Assignment) error {
 		defer telemetry.RecordUnitMeasurement(ctx, mStateStoreGetAssignmentsCount)
 		defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreGetAssignmentsTime, time.Since(start).Milliseconds())
@@ -142,6 +159,8 @@ func (is *instrumentedService) GetAssignments(ctx context.Context, id string, ca
 // AddTicketsToIgnoreList appends new proposed tickets to the proposed sorted set with current timestamp
 func (is *instrumentedService) AddTicketsToIgnoreList(ctx context.Context, ids []string) error {
 	start := time.Now()
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.AddTicketsToIgnoreList")
+	defer span.End()
 	defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreAddTicketsToIgnoreListCount, int64(len(ids)))
 	defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreAddTicketsToIgnoreListTime, time.Since(start).Milliseconds())
 	return is.s.AddTicketsToIgnoreList(ctx, ids)
@@ -150,6 +169,8 @@ func (is *instrumentedService) AddTicketsToIgnoreList(ctx context.Context, ids [
 // DeleteTicketsFromIgnoreList deletes tickets from the proposed sorted set
 func (is *instrumentedService) DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) error {
 	start := time.Now()
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeleteTicketsFromIgnoreList")
+	defer span.End()
 	defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreDeleteTicketFromIgnoreListCount, int64(len(ids)))
 	defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreDeleteTicketFromIgnoreListTime, time.Since(start).Milliseconds())
 	return is.s.DeleteTicketsFromIgnoreList(ctx, ids)
