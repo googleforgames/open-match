@@ -11,33 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 package main
 
 import (
-	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/tutorials/matchmaker101/evaluator/evaluate"
 )
 
-// generateProfiles generates test profiles for the matchmaker101 tutorial.
-func generateProfiles() []*pb.MatchProfile {
-	var profiles []*pb.MatchProfile
-	modes := []string{"mode.demo", "mode.ctf", "mode.battleroyale"}
-	for _, mode := range modes {
-		profiles = append(profiles, &pb.MatchProfile{
-			Name: "mode_based_profile",
-			Pools: []*pb.Pool{
-				{
-					Name: "pool_mode_" + mode,
-					TagPresentFilters: []*pb.TagPresentFilter{
-						{
-							Tag: mode,
-						},
-					},
-				},
-			},
-		},
-		)
-	}
+const (
+	// Replace this with the port on which your Evaluator service is exposed.
+	evaluatorPort = 50508
+)
 
-	return profiles
+func main() {
+	evaluate.Start(evaluatorPort)
 }
