@@ -156,15 +156,14 @@ func Test_Get(t *testing.T) {
 
 			cfg := viper.New()
 			calls := 0
-			f := func(cfg View) (interface{}, error) {
-				calls++
-				return tt.getValue(cfg), nil
-			}
 
 			cfg.Set("foo", tt.firstValue)
-			c := NewCacher(cfg)
+			c := NewCacher(cfg, func(cfg View) (interface{}, error) {
+				calls++
+				return tt.getValue(cfg), nil
+			})
 
-			v, err := c.Get(f)
+			v, err := c.Get()
 			if v != tt.firstExpected {
 				t.Errorf("expected %v, got %v", tt.firstExpected, v)
 			}
@@ -177,7 +176,7 @@ func Test_Get(t *testing.T) {
 
 			cfg.Set("foo", tt.firstValue)
 
-			v, err = c.Get(f)
+			v, err = c.Get()
 			if v != tt.firstExpected {
 				t.Errorf("expected %v, got %v", tt.firstExpected, v)
 			}
@@ -190,7 +189,7 @@ func Test_Get(t *testing.T) {
 
 			cfg.Set("foo", tt.secondValue)
 
-			v, err = c.Get(f)
+			v, err = c.Get()
 			if v != tt.secondExpected {
 				t.Errorf("expected %v, got %v", tt.secondExpected, v)
 			}
@@ -205,12 +204,18 @@ func Test_Get(t *testing.T) {
 }
 
 func Test_Get_Error(t *testing.T) {
-	cfg := viper.New()
-	c := NewCacher(cfg)
+	returnError := true
 
-	v, err := c.Get(func(cfg View) (interface{}, error) {
-		return "foo", fmt.Errorf("bad")
+	cfg := viper.New()
+	c := NewCacher(cfg, func(cfg View) (interface{}, error) {
+		// Contrived for tests, in real usage outside values shouldn't be used like this.
+		if returnError {
+			return "foo", fmt.Errorf("bad")
+		}
+		return "foo", nil
 	})
+
+	v, err := c.Get()
 
 	if v != nil {
 		t.Errorf("Expected value to be nil")
@@ -220,9 +225,8 @@ func Test_Get_Error(t *testing.T) {
 	}
 
 	// No config values changed, still trying.
-	v, err = c.Get(func(cfg View) (interface{}, error) {
-		return "foo", nil
-	})
+	returnError = false // Emulating the enviornment changing.
+	v, err = c.Get()
 	if v != "foo" {
 		t.Errorf("Expected foo, got %v", v)
 	}
@@ -232,12 +236,15 @@ func Test_Get_Error(t *testing.T) {
 }
 
 func Test_ForceReset(t *testing.T) {
-	cfg := viper.New()
-	c := NewCacher(cfg)
+	returnValue := "foo"
 
-	v, err := c.Get(func(cfg View) (interface{}, error) {
-		return "foo", nil
+	cfg := viper.New()
+	c := NewCacher(cfg, func(cfg View) (interface{}, error) {
+		// Contrived for tests, in real usage outside values shouldn't be used like this.
+		return returnValue, nil
 	})
+
+	v, err := c.Get()
 	if v != "foo" {
 		t.Errorf("Expected foo, got %v", v)
 	}
@@ -245,10 +252,13 @@ func Test_ForceReset(t *testing.T) {
 		t.Errorf("Expected nil, got %v", err)
 	}
 
+	// Environment has changed, eg a server connection has broken and needs to be
+	// recreated.  The change is detected with some other means (eg, connection
+	// returning errors), and a ForceReset is required.
+	returnValue = "bar"
+
 	// Sanity check: value doesn't change because config hasn't.
-	v, err = c.Get(func(cfg View) (interface{}, error) {
-		return "bar", nil
-	})
+	v, err = c.Get()
 	if v != "foo" {
 		t.Errorf("Expected foo, got %v", v)
 	}
@@ -259,9 +269,7 @@ func Test_ForceReset(t *testing.T) {
 	c.ForceReset()
 
 	// Same thing as above, but ForceReset has been called.
-	v, err = c.Get(func(cfg View) (interface{}, error) {
-		return "bar", nil
-	})
+	v, err = c.Get()
 	if v != "bar" {
 		t.Errorf("Expected bar, got %v", v)
 	}
