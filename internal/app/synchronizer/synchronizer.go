@@ -25,7 +25,7 @@ import (
 // BindService creates the synchronizer service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View) error {
 	store := statestore.New(cfg)
-	service := newSynchronizerService(cfg, &evaluatorClient{cfg: cfg}, store)
+	service := newSynchronizerService(cfg, newEvaluator(cfg), store)
 	p.AddHealthCheckFunc(store.HealthCheck)
 	p.AddHandleFunc(func(s *grpc.Server) {
 		ipb.RegisterSynchronizerServer(s, service)
