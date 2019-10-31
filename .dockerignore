@@ -85,6 +85,7 @@ msbuild.log
 msbuild.err
 msbuild.wrn
 csharp/OpenMatch/obj
+Chart.lock
 
 
 # Visual Studio 2015

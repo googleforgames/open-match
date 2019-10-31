@@ -72,7 +72,7 @@ steps:
 
 - id: 'Build: Initialize Toolchain'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'install-toolchain', 'push-helm-ci']
+  args: ['make', 'install-toolchain']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -127,7 +127,7 @@ steps:
 
 - id: 'Test: Deploy Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${SHORT_SHA}', 'OPEN_MATCH_RELEASE_NAME=open-match-${SHORT_SHA}', 'auth-gke-cluster', 'delete-chart', 'ci-reap-namespaces', 'install-ci-chart']
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${BUILD_ID}', 'OPEN_MATCH_RELEASE_NAME=open-match-${BUILD_ID}', 'auth-gke-cluster', 'delete-chart', 'ci-reap-namespaces', 'install-ci-chart']
   waitFor: ['Build: Docker Images']
 
 - id: 'Deploy: Deployment Configs'
@@ -140,7 +140,7 @@ steps:
 
 - id: 'Test: End-to-End Cluster'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${SHORT_SHA}', 'test-e2e-cluster']
+  args: ['make', 'GOPROXY=off', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${BUILD_ID}', 'test-e2e-cluster']
   waitFor: ['Test: Deploy Open Match', 'Build: Assets']
   volumes:
   - name: 'go-vol'
@@ -148,7 +148,7 @@ steps:
 
 - id: 'Test: Delete Open Match'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GCLOUD_EXTRA_FLAGS=--async', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${SHORT_SHA}', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
+  args: ['make', 'GCLOUD_EXTRA_FLAGS=--async', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${BUILD_ID}', 'OPEN_MATCH_RELEASE_NAME=open-match-${BUILD_ID}', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
   waitFor: ['Test: End-to-End Cluster']
 
 artifacts:
@@ -161,7 +161,8 @@ artifacts:
             - install/yaml/03-prometheus-chart.yaml
             - install/yaml/04-grafana-chart.yaml
             - install/yaml/05-jaeger-chart.yaml
-
+            - install/yaml/06-open-match-override-configmap.yaml
+            
 substitutions:
     _OM_VERSION: "0.0.0-dev"
     _GCB_POST_SUBMIT: "0"

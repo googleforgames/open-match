@@ -61,9 +61,8 @@ YEAR_MONTH = $(shell date -u +'%Y%m')
 YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
 PROTOC_VERSION = 3.8.0
-HELM_VERSION = 2.14.1
+HELM_VERSION = 3.0.0-beta.5
 KUBECTL_VERSION = 1.14.3
-SKAFFOLD_VERSION = latest
 MINIKUBE_VERSION = latest
 GOLANGCI_VERSION = 1.18.0
 KIND_VERSION = 0.4.0
@@ -110,12 +109,10 @@ SYNCHRONIZER_PORT = 51506
 DEMO_PORT = 51507
 PROTOC := $(TOOLCHAIN_BIN)/protoc$(EXE_EXTENSION)
 HELM = $(TOOLCHAIN_BIN)/helm$(EXE_EXTENSION)
-TILLER = $(TOOLCHAIN_BIN)/tiller$(EXE_EXTENSION)
 MINIKUBE = $(TOOLCHAIN_BIN)/minikube$(EXE_EXTENSION)
 KUBECTL = $(TOOLCHAIN_BIN)/kubectl$(EXE_EXTENSION)
 KIND = $(TOOLCHAIN_BIN)/kind$(EXE_EXTENSION)
 TERRAFORM = $(TOOLCHAIN_BIN)/terraform$(EXE_EXTENSION)
-SKAFFOLD = $(TOOLCHAIN_BIN)/skaffold$(EXE_EXTENSION)
 CERTGEN = $(TOOLCHAIN_BIN)/certgen$(EXE_EXTENSION)
 GOLANGCI = $(TOOLCHAIN_BIN)/golangci-lint$(EXE_EXTENSION)
 DOTNET = $(TOOLCHAIN_DIR)/dotnet/dotnet$(EXE_EXTENSION)
@@ -125,7 +122,6 @@ OPEN_MATCH_CHART_NAME = open-match
 OPEN_MATCH_RELEASE_NAME = open-match
 OPEN_MATCH_KUBERNETES_NAMESPACE = open-match
 OPEN_MATCH_SECRETS_DIR = $(REPOSITORY_ROOT)/install/helm/open-match/secrets
-REDIS_NAME = om-redis
 GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | cut -c 10-)
 _GCB_POST_SUBMIT ?= 0
 # Latest version triggers builds of :latest images.
@@ -155,9 +151,8 @@ ifeq ($(GCP_PROJECT_ID),)
 endif
 
 ifeq ($(OS),Windows_NT)
-	HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-windows-amd64.zip
+	HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-windows-amd64.zip
 	MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-windows-amd64.exe
-	SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-windows-amd64.exe
 	EXE_EXTENSION = .exe
 	PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-win64.zip
 	KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/windows/amd64/kubectl.exe
@@ -170,9 +165,8 @@ ifeq ($(OS),Windows_NT)
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
-		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-linux-amd64.tar.gz
+		HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
-		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-linux-amd64
 		PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
 		KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/linux/amd64/kubectl
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64.tar.gz
@@ -183,9 +177,8 @@ else
 		SED_REPLACE = sed -i
 	endif
 	ifeq ($(UNAME_S),Darwin)
-		HELM_PACKAGE = https://storage.googleapis.com/kubernetes-helm/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
+		HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
 		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-darwin-amd64
-		SKAFFOLD_PACKAGE = https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-darwin-amd64
 		PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-osx-x86_64.zip
 		KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/darwin/amd64/kubectl
 		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-darwin-amd64.tar.gz
@@ -333,34 +326,27 @@ build/chart/index.yaml.$(YEAR_MONTH_DAY): build/chart/index.yaml
 build/chart/: build/chart/index.yaml build/chart/index.yaml.$(YEAR_MONTH_DAY)
 
 install-chart-prerequisite: build/toolchain/bin/kubectl$(EXE_EXTENSION) update-chart-deps
+	-$(KUBECTL) create namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 	$(KUBECTL) apply -f install/gke-metadata-server-workaround.yaml
 
+# Used for Open Match development. Install om-configmap-override.yaml by default
+HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --atomic --no-hooks --debug --timeout=600s --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) --set global.gcpProjectId=$(GCP_PROJECT_ID) --set open-match-override.enabled=true
+# Used for generate static yamls. Install om-configmap-override.yaml as needed.
+HELM_TEMPLATE_FLAGS = --no-hooks --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --set usingHelmTemplate=true
+HELM_IMAGE_FLAGS = --set global.image.registry=$(REGISTRY) --set global.image.tag=$(TAG)
+
 install-large-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
-	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) --install --wait --debug install/helm/open-match \
-		--timeout=600 \
-		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
-		--set global.image.registry=$(REGISTRY) \
-		--set global.image.tag=$(TAG) \
+	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
-		--set global.logging.rpc.enabled=true \
-		--set global.gcpProjectId=$(GCP_PROJECT_ID)
+		--set global.logging.rpc.enabled=true
 
 install-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
-	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) --install --wait --debug install/helm/open-match \
-		--timeout=400 \
-		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
-		--set global.image.registry=$(REGISTRY) \
-		--set global.image.tag=$(TAG) \
-		--set global.gcpProjectId=$(GCP_PROJECT_ID)
+	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS)
 
 install-scale-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
-	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) --install --wait --debug install/helm/open-match \
-		--timeout=600 \
-		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
-		--set global.image.registry=$(REGISTRY) \
-		--set global.image.tag=$(TAG) \
+	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=true \
 		--set open-match-telemetry.enabled=true \
 		--set open-match-demo.enabled=false \
@@ -370,107 +356,87 @@ install-scale-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
 		--set open-match-scale.enabled=true \
-		--set global.logging.rpc.enabled=false \
-		--set global.gcpProjectId=$(GCP_PROJECT_ID)
+		--set global.logging.rpc.enabled=false
 
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	# Ignore errors result from reruning a failed build
 	-$(KUBECTL) create clusterrolebinding default-view-$(OPEN_MATCH_KUBERNETES_NAMESPACE) --clusterrole=view --serviceaccount=$(OPEN_MATCH_KUBERNETES_NAMESPACE):default
-	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) --install --wait --debug install/helm/open-match \
-		--timeout=600 \
-		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
-		--set global.image.registry=$(REGISTRY) \
-		--set global.image.tag=$(TAG) \
+	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set redis.ignoreLists.ttl=1000ms \
 		--set open-match-test.enabled=true \
 		--set open-match-demo.enabled=false \
 		--set open-match-customize.function.image=openmatch-mmf-go-pool \
-		--set global.gcpProjectId=$(GCP_PROJECT_ID) \
 		--set ci=true
 
 dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade --install --wait --debug --dry-run $(OPEN_MATCH_RELEASE_NAME) install/helm/open-match \
-		--namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) \
-		--set global.image.registry=$(REGISTRY) \
-		--set global.image.tag=$(TAG)
+	$(HELM) upgrade $(HELM_UPGRADE_FLAGS) --dry-run $(OPEN_MATCH_RELEASE_NAME) install/helm/open-match $(HELM_IMAGE_FLAGS)
 
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	-$(HELM) delete --purge $(OPEN_MATCH_RELEASE_NAME)
+	-$(HELM) uninstall $(OPEN_MATCH_RELEASE_NAME)
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheuses.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd servicemonitors.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
 	-$(KUBECTL) delete namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 
-install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml
+install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml install/yaml/06-open-match-override-configmap.yaml
 
 install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
-		--set global.image.registry=$(REGISTRY) \
-		--set global.image.tag=$(TAG) \
+	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-customize.enabled=false \
 		--set open-match-telemetry.enabled=false \
 		--set open-match-demo.enabled=false \
-		--set usingHelmTemplate=true \
 		install/helm/open-match > install/yaml/01-open-match-core.yaml
 
 install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
-		--set global.image.registry=$(REGISTRY) \
-		--set global.image.tag=$(TAG) \
+	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=false \
 		--set open-match-telemetry.enabled=false \
-		--set usingHelmTemplate=true \
 		install/helm/open-match > install/yaml/02-open-match-demo.yaml
 
 install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
-		--set global.image.registry=$(REGISTRY) \
-		--set global.image.tag=$(TAG) \
+	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-customize.enabled=false \
 		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
 		--set global.telemetry.prometheus.enabled=true \
-		--set usingHelmTemplate=true \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
 install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
-		--set global.image.registry=$(REGISTRY) \
-		--set global.image.tag=$(TAG) \
+	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-customize.enabled=false \
 		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
 		--set global.telemetry.grafana.enabled=true \
-		--set usingHelmTemplate=true \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
 
 install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
-		--set global.image.registry=$(REGISTRY) \
-		--set global.image.tag=$(TAG) \
+	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-customize.enabled=false \
 		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
 		--set global.telemetry.jaeger.enabled=true \
-		--set usingHelmTemplate=true \
 		install/helm/open-match > install/yaml/05-jaeger-chart.yaml
+
+install/yaml/06-open-match-override-configmap.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
+	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
+		--set open-match-override.enabled=true \
+		-s templates/om-configmap-override.yaml \
+		install/helm/open-match > install/yaml/06-open-match-override-configmap.yaml
 
 install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template --name $(OPEN_MATCH_RELEASE_NAME) --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) \
-		--set global.image.registry=$(REGISTRY) \
-		--set global.image.tag=$(TAG) \
+	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-customize.enabled=false \
 		--set open-match-demo.enabled=false \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
-		--set usingHelmTemplate=true \
 		install/helm/open-match > install/yaml/install.yaml
 
 set-redis-password:
@@ -479,10 +445,10 @@ set-redis-password:
 		read REDIS_PASSWORD; \
 		stty echo; \
 		printf "\n"; \
-		$(KUBECTL) create secret generic $(REDIS_NAME) -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
+		$(KUBECTL) create secret generic om-redis -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
 
 install-toolchain: install-kubernetes-tools install-protoc-tools install-openmatch-tools
-install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/skaffold$(EXE_EXTENSION) build/toolchain/bin/terraform$(EXE_EXTENSION)
+install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/terraform$(EXE_EXTENSION)
 install-protoc-tools: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 install-openmatch-tools: build/toolchain/bin/certgen$(EXE_EXTENSION) build/toolchain/bin/reaper$(EXE_EXTENSION)
 
@@ -490,12 +456,10 @@ build/toolchain/bin/helm$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	mkdir -p $(TOOLCHAIN_DIR)/temp-helm
 ifeq ($(suffix $(HELM_PACKAGE)),.zip)
-	cd $(TOOLCHAIN_DIR)/temp-helm && curl -Lo helm.zip $(HELM_PACKAGE) && unzip -j -q -o helm.zip
+	cd $(TOOLCHAIN_DIR)/temp-helm && curl -Lo helm.zip $(HELM_PACKAGE) && unzip -d $(TOOLCHAIN_BIN) -j -q -o helm.zip
 else
-	cd $(TOOLCHAIN_DIR)/temp-helm && curl -Lo helm.tar.gz $(HELM_PACKAGE) && tar xzf helm.tar.gz --strip-components 1
+	cd $(TOOLCHAIN_DIR)/temp-helm && curl -Lo helm.tar.gz $(HELM_PACKAGE) && tar xzf helm.tar.gz -C $(TOOLCHAIN_BIN) --strip-components 1
 endif
-	mv $(TOOLCHAIN_DIR)/temp-helm/helm$(EXE_EXTENSION) $(HELM)
-	mv $(TOOLCHAIN_DIR)/temp-helm/tiller$(EXE_EXTENSION) $(TILLER)
 	rm -rf $(TOOLCHAIN_DIR)/temp-helm/
 
 build/toolchain/bin/ct$(EXE_EXTENSION):
@@ -518,11 +482,6 @@ build/toolchain/bin/kubectl$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -Lo $(KUBECTL) $(KUBECTL_PACKAGE)
 	chmod +x $(KUBECTL)
-
-build/toolchain/bin/skaffold$(EXE_EXTENSION):
-	mkdir -p $(TOOLCHAIN_BIN)
-	curl -Lo $(SKAFFOLD) $(SKAFFOLD_PACKAGE)
-	chmod +x $(SKAFFOLD)
 
 build/toolchain/bin/golangci-lint$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -569,16 +528,20 @@ build/toolchain/bin/protoc$(EXE_EXTENSION):
 	(cd $(TOOLCHAIN_DIR); unzip -q -o protoc-temp.zip)
 	rm $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
 
+build/toolchain/bin/protoc-gen-doc$(EXE_EXTENSION):
+	mkdir -p $(TOOLCHAIN_BIN)
+	cd $(TOOLCHAIN_BIN) && $(GO) build -i -pkgdir . github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
+
 build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
-	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/golang/protobuf/protoc-gen-go
+	cd $(TOOLCHAIN_BIN) && $(GO) build -i -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
 build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
-	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	cd $(TOOLCHAIN_BIN) && $(GO) build -i -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
 build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
-	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+	cd $(TOOLCHAIN_BIN) && $(GO) build -i -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
 build/toolchain/bin/certgen$(EXE_EXTENSION): tools/certgen/certgen$(EXE_EXTENSION)
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -587,30 +550,6 @@ build/toolchain/bin/certgen$(EXE_EXTENSION): tools/certgen/certgen$(EXE_EXTENSIO
 build/toolchain/bin/reaper$(EXE_EXTENSION): tools/reaper/reaper$(EXE_EXTENSION)
 	mkdir -p $(TOOLCHAIN_BIN)
 	cp -f $(REPOSITORY_ROOT)/tools/reaper/reaper$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/reaper$(EXE_EXTENSION)
-
-push-helm-ci: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(HELM) init --service-account tiller --force-upgrade --client-only
-
-push-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	$(KUBECTL) create serviceaccount --namespace kube-system tiller
-	$(HELM) init --service-account tiller --force-upgrade
-	$(KUBECTL) create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-ifneq ($(strip $($(KUBECTL) get clusterroles | grep -i rbac)),)
-	$(KUBECTL) patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
-endif
-	@echo "Waiting for Tiller to become ready..."
-	$(KUBECTL) wait deployment --timeout=60s --for condition=available -l app=helm,name=tiller --namespace kube-system
-	$(KUBECTL) wait pod --timeout=60s --for condition=Ready -l app=helm,name=tiller --namespace kube-system
-
-delete-helm: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	-$(HELM) reset
-	-$(KUBECTL) --ignore-not-found=true delete serviceaccount --namespace kube-system tiller
-	-$(KUBECTL) --ignore-not-found=true delete clusterrolebinding tiller-cluster-rule
-ifneq ($(strip $($(KUBECTL) get clusterroles | grep -i rbac)),)
-	-$(KUBECTL) --ignore-not-found=true delete deployment --namespace kube-system tiller-deploy
-endif
-	@echo "Waiting for Tiller to go away..."
-	-$(KUBECTL) wait deployment --timeout=60s --for delete -l app=helm,name=tiller --namespace kube-system
 
 # Fake target for docker
 docker: no-sudo
@@ -734,6 +673,21 @@ api/%.swagger.json: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXT
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
+api/api.md: third_party/ build/toolchain/bin/protoc-gen-doc$(EXE_EXTENSION)
+	$(PROTOC) api/*.proto \
+		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
+  		--doc_out=. \
+  		--doc_opt=markdown,api.md
+# Crazy hack that insert hugo link reference to this API doc -)	
+	$(SED_REPLACE) '1 i\---\
+title: "Open Match API References" \
+linkTitle: "Open Match API References" \
+weight: 2 \
+description: \
+  This document provides API references for Open Match services. \
+--- \
+' ./api.md && mv ./api.md $(REPOSITORY_ROOT)/../open-match-docs/site/content/en/docs/Reference/
+  
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
 pkg/pb/backend.pb.go: pkg/pb/messages.pb.go
 pkg/pb/frontend.pb.go: pkg/pb/messages.pb.go

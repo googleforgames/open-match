@@ -70,7 +70,7 @@ spec:
         {{- include "openmatch.volumes.withredis" . | nindent 8 }}
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:
-      - name: {{ .Values.mmlogic.hostName }}
+      - name: {{ .Values.synchronizer.hostName }}
         volumeMounts:
           {{- include "openmatch.volumemounts.configs" . | nindent 10 }}
           {{- include "openmatch.volumemounts.tls" . | nindent 10 }}
