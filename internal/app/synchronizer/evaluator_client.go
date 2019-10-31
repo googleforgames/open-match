@@ -24,24 +24,12 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
-)
-
-type evaluator interface {
-	evaluate(context.Context, []*pb.Match) ([]*pb.Match, error)
-}
-
-type clientType int
-
-// Different type of clients supported for evaluation.
-const (
-	none clientType = iota
-	grpcEvaluator
-	httpEvaluator
 )
 
 var (
@@ -51,73 +39,68 @@ var (
 	})
 )
 
-type evaluatorClient struct {
-	clType     clientType
-	cfg        config.View
-	grpcClient pb.EvaluatorClient
-	httpClient *http.Client
-	baseURL    string
-	m          sync.Mutex
+type evaluator interface {
+	evaluate(context.Context, []*pb.Match) ([]*pb.Match, error)
 }
 
-// evaluate method triggers execution of user evaluation function. It initializes the configured
-// GRPC or HTTP client. If the client was already initialized, initialize is a no-op.
-func (ec *evaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) (result []*pb.Match, err error) {
-	if err := ec.initialize(); err != nil {
+var errNoEvaluatorType = grpc.Errorf(codes.FailedPrecondition, "unable to determine evaluator type, either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config")
+
+func newEvaluator(cfg config.View) evaluator {
+	newInstance := func(cfg config.View) (interface{}, error) {
+		// grpc is preferred over http.
+		if cfg.IsSet("api.evaluator.grpcport") {
+			return newGrpcEvaluator(cfg)
+		}
+		if cfg.IsSet("api.evaluator.httpport") {
+			return newHTTPEvaluator(cfg)
+		}
+		return nil, errNoEvaluatorType
+	}
+
+	return &deferredEvaluator{
+		cacher: config.NewCacher(cfg, newInstance),
+	}
+}
+
+type deferredEvaluator struct {
+	cacher *config.Cacher
+}
+
+func (de *deferredEvaluator) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	e, err := de.cacher.Get()
+	if err != nil {
 		return nil, err
 	}
 
-	// Call the appropriate client's evaluation function.
-	switch ec.clType {
-	case grpcEvaluator:
-		return ec.grpcEvaluate(ctx, proposals)
-	case httpEvaluator:
-		return ec.httpEvaluate(ctx, proposals)
-	default:
-		return nil, status.Error(codes.Unavailable, "failed to initialize a connection to the evaluator")
+	matches, err := e.(evaluator).evaluate(ctx, proposals)
+	if err != nil {
+		de.cacher.ForceReset()
 	}
+	return matches, err
 }
 
-// initialize sets up the configured GRPC or HTTP client the first time it is called. Consequent
-// invocations after a successful client setup are a no-op. It attempts to initialize either GRPC
-// or HTTP clients. If both are defined, it prefers GRPC client.
-func (ec *evaluatorClient) initialize() error {
-	ec.m.Lock()
-	defer ec.m.Unlock()
-	if ec.clType != none {
-		// Client already initialized.
-		return nil
-	}
+type grcpEvaluatorClient struct {
+	evaluator pb.EvaluatorClient
+}
 
-	// Evaluator client not initialized. Attempt to initialize GRPC client or HTTP client.
-	grpcAddr := fmt.Sprintf("%s:%d", ec.cfg.GetString("api.evaluator.hostname"), ec.cfg.GetInt64("api.evaluator.grpcport"))
-	conn, err := rpc.GRPCClientFromEndpoint(ec.cfg, grpcAddr)
-	if err == nil {
-		evaluatorClientLogger.WithFields(logrus.Fields{
-			"endpoint": grpcAddr,
-		}).Info("Created a GRPC client for input endpoint.")
-		ec.grpcClient = pb.NewEvaluatorClient(conn)
-		ec.clType = grpcEvaluator
-	}
-
-	evaluatorClientLogger.WithError(err).Errorf("failed to get a GRPC client from the endpoint %v", grpcAddr)
-	httpAddr := fmt.Sprintf("%s:%d", ec.cfg.GetString("api.evaluator.hostname"), ec.cfg.GetInt64("api.evaluator.httpport"))
-	client, baseURL, err := rpc.HTTPClientFromEndpoint(ec.cfg, httpAddr)
+func newGrpcEvaluator(cfg config.View) (evaluator, error) {
+	grpcAddr := fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.grpcport"))
+	conn, err := rpc.GRPCClientFromEndpoint(cfg, grpcAddr)
 	if err != nil {
-		evaluatorClientLogger.WithError(err).Errorf("failed to get a HTTP client from the endpoint %v", httpAddr)
-		return err
+		return nil, fmt.Errorf("Failed to create grpc evaluator client: %w", err)
 	}
 
 	evaluatorClientLogger.WithFields(logrus.Fields{
-		"endpoint": httpAddr,
-	}).Info("Created a HTTP client for input endpoint.")
-	ec.httpClient = client
-	ec.baseURL = baseURL
-	return nil
+		"endpoint": grpcAddr,
+	}).Info("Created a GRPC client for evaluator endpoint.")
+
+	return &grcpEvaluatorClient{
+		evaluator: pb.NewEvaluatorClient(conn),
+	}, nil
 }
 
-func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
-	stream, err := ec.grpcClient.Evaluate(ctx)
+func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	stream, err := ec.evaluator.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +132,29 @@ func (ec *evaluatorClient) grpcEvaluate(ctx context.Context, proposals []*pb.Mat
 	return results, nil
 }
 
-func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+type httpEvaluatorClient struct {
+	httpClient *http.Client
+	baseURL    string
+}
+
+func newHTTPEvaluator(cfg config.View) (evaluator, error) {
+	httpAddr := fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.httpport"))
+	client, baseURL, err := rpc.HTTPClientFromEndpoint(cfg, httpAddr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get a HTTP client from the endpoint %v: %w", httpAddr, err)
+	}
+
+	evaluatorClientLogger.WithFields(logrus.Fields{
+		"endpoint": httpAddr,
+	}).Info("Created a HTTP client for evaluator endpoint.")
+
+	return &httpEvaluatorClient{
+		httpClient: client,
+		baseURL:    baseURL,
+	}, nil
+}
+
+func (ec *httpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
 	reqr, reqw := io.Pipe()
 	proposalIDs := getMatchIds(proposals)
 	var wg sync.WaitGroup
@@ -186,7 +191,7 @@ func (ec *evaluatorClient) httpEvaluate(ctx context.Context, proposals []*pb.Mat
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Transfer-Encoding", "chunked")
 
-	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
+	resp, err := ec.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, status.Errorf(codes.Aborted, "failed to get response from evaluator for proposals %s: %s", proposalIDs, err.Error())
 	}
