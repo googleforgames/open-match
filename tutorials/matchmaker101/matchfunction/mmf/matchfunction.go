@@ -28,7 +28,7 @@ import (
 // a Match Proposal. It continues to generate proposals till one of the pools
 // runs out of Tickets.
 const (
-	matchName              = "roster-based-matchfunction"
+	matchName              = "basic-matchfunction"
 	ticketsPerPoolPerMatch = 4
 )
 
