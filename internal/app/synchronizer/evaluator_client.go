@@ -48,59 +48,34 @@ type evaluator interface {
 
 func newEvaluator(cfg config.View) evaluator {
 	return &deferedEvaluator{
-		p: evaluatorProvider(cfg),
+		cacher: *config.NewCacher(cfg),
 	}
 }
 
 type deferedEvaluator struct {
-	p func() (evaluator, error)
+	cacher *config.Cacher
 }
 
 func (de *deferedEvaluator) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
-	e, err := de.p()
+	e, err := cacher.Get(func(cfg *config.View) (interface{}, error) {
+		if cfg.IsSet("api.evaluator.grpcport") {
+			return newGrpcEvaluator(cfg)
+		}
+		if cfg.IsSet("api.evaluator.httpport") {
+			return newHttpEvaluator(cfg)
+		}
+		return nil, errors.New("Unable to determine evaluator type.  Either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config.")
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	return e.evaluate(ctx, proposals)
-}
-
-func evaluatorProvider(cfg config.View) func() (evaluator, error) {
-	var m sync.Mutex
-	var e evaluator
-
-	var addr string
-	var grpc bool
-
-	return func() (evaluator, error) {
-		m.Lock()
-		defer m.Unlock()
-
-		var shouldAddr string
-		var shouldGrpc bool
-		if cfg.IsSet("api.evaluator.grpcport") {
-			shouldAddr = fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.grpcport"))
-			shouldGrpc = true
-		} else {
-			shouldAddr = fmt.Sprintf("%s:%d", ec.cfg.GetString("api.evaluator.hostname"), ec.cfg.GetInt64("api.evaluator.httpport"))
-			shouldGrpc = false
-		}
-
-		var err error
-
-		if shouldAddr != addr || shouldGrpc != grpc {
-
-			if cfg.IsSet("api.evaluator.grpcport") {
-				e, err = newGrpcEvaluator(cfg)
-			} else if cfg.IsSet("api.evaluator.httpport") {
-				e, err = newHttpEvaluator(cfg)
-			} else {
-				e = nil
-				err = errors.New("Unable to determine evaluator type.  Either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config.")
-			}
-		}
-		return e, err
+	matches, err := e.evaluate(ctx, proposals)
+	if err != nil {
+		cacher.ForceReset()
 	}
+	return matches, err
 }
 
 type grcpEvaluatorClient struct {
