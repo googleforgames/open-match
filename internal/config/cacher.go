@@ -22,7 +22,7 @@ import (
 // Cacher is used to cache the construction of an object, such as a connection.
 // It will detect which config values are read when constructing the object.
 // Then, when further requests are made, it will return the same object as long
-// as the config values which were used don't change.
+// as the config values which were used haven't changed.
 type Cacher struct {
 	cfg View
 	m   sync.Mutex
