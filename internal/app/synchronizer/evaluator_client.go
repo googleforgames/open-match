@@ -32,9 +32,6 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// DO NOT SUBMIT: Where I was: why is the http client created, but not used?  What is going on here????  The mff client in the backend needs love too.
-// it doesn't use the correct json library, and could use some refactoring.
-
 var (
 	evaluatorClientLogger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
@@ -46,7 +43,7 @@ type evaluator interface {
 	evaluate(context.Context, []*pb.Match) ([]*pb.Match, error)
 }
 
-var noEvaluatorType = errors.New("Unable to determine evaluator type.  Either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config.")
+var errNoEvaluatorType = errors.New("Unable to determine evaluator type.  Either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config.")
 
 func newEvaluator(cfg config.View) evaluator {
 	newInstance := func(cfg config.View) (interface{}, error) {
@@ -54,9 +51,9 @@ func newEvaluator(cfg config.View) evaluator {
 			return newGrpcEvaluator(cfg)
 		}
 		if cfg.IsSet("api.evaluator.httpport") {
-			return newHttpEvaluator(cfg)
+			return newHTTPEvaluator(cfg)
 		}
-		return nil, noEvaluatorType
+		return nil, errNoEvaluatorType
 	}
 
 	return &deferredEvaluator{
@@ -70,7 +67,6 @@ type deferredEvaluator struct {
 
 func (de *deferredEvaluator) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
 	e, err := de.cacher.Get()
-
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +86,7 @@ func newGrpcEvaluator(cfg config.View) (evaluator, error) {
 	grpcAddr := fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.grpcport"))
 	conn, err := rpc.GRPCClientFromEndpoint(cfg, grpcAddr)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create grpc evaluator client: %w", conn)
+		return nil, fmt.Errorf("Failed to create grpc evaluator client: %w", err)
 	}
 
 	evaluatorClientLogger.WithFields(logrus.Fields{
@@ -140,7 +136,7 @@ type httpEvaluatorClient struct {
 	baseURL    string
 }
 
-func newHttpEvaluator(cfg config.View) (evaluator, error) {
+func newHTTPEvaluator(cfg config.View) (evaluator, error) {
 	httpAddr := fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.httpport"))
 	client, baseURL, err := rpc.HTTPClientFromEndpoint(cfg, httpAddr)
 	if err != nil {
