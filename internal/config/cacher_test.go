@@ -225,7 +225,7 @@ func Test_Get_Error(t *testing.T) {
 	}
 
 	// No config values changed, still trying.
-	returnError = false // Emulating the enviornment changing.
+	returnError = false // Emulating the environment changing.
 	v, err = c.Get()
 	if v != "foo" {
 		t.Errorf("Expected foo, got %v", v)
