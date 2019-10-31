@@ -127,7 +127,7 @@ redis:
   sysctlImage:
     enabled: true
     mountHostSys: true
-    # Redis may require some changes in the kernel of the host machine to work as expected, 
+    # Redis may require some changes in the kernel of the host machine to work as expected,
     # in particular increasing the somaxconn value and disabling transparent huge pages.
     # https://github.com/helm/charts/tree/master/stable/redis#host-kernel-settings
     command:

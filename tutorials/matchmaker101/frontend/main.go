@@ -49,7 +49,8 @@ func main() {
 
 			resp, err := fe.CreateTicket(context.Background(), req)
 			if err != nil {
-				log.Fatalf("Failed to Create Ticket, got %w", err)
+				log.Printf("Failed to Create Ticket, got %w", err)
+				continue
 			}
 
 			log.Println("Ticket created successfully, id:", resp.Ticket.Id)

@@ -79,14 +79,14 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: om-evaluator
-  namespace: open-match
+  name: mm101-tutorial-evaluator
+  namespace: mm101-tutorial
   labels:
     app: mm101-tutorial
     component: evaluator
 spec:
   containers:
-  - name: om-evaluator
+  - name: mm101-tutorial-evaluator
     image: REGISTRY_PLACEHOLDER/mm101-tutorial-evaluator:latest
     imagePullPolicy: Always
     ports:
@@ -96,8 +96,8 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: om-evaluator
-  namespace: open-match
+  name: mm101-tutorial-evaluator
+  namespace: mm101-tutorial
   labels:
     app: mm101-tutorial
     component: evaluator
@@ -112,3 +112,25 @@ spec:
     protocol: TCP
     port: 50508
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: om-configmap-override
+  namespace: open-match
+  annotations:
+    chart: open-match-0.0.0-dev
+    heritage: Helm
+  labels:
+    app: open-match
+    component: config
+    release: open-match
+data:
+  matchmaker_config_override.yaml: |-
+    api:
+      evaluator:
+        hostname: "mm101-tutorial-evaluator.mm101-tutorial.svc.cluster.local"
+        grpcport: "50508"
+    synchronizer:
+      enabled: true
+      registrationIntervalMs: 3000ms
+      proposalCollectionIntervalMs: 2000ms
