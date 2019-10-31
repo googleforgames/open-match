@@ -24,35 +24,38 @@ import (
 // Then, when further requests are made, it will return the same object as long
 // as the config values which were used haven't changed.
 type Cacher struct {
-	cfg View
-	m   sync.Mutex
+	cfg         View
+	newInstance func(cfg View) (interface{}, error)
+	m           sync.Mutex
 
 	r *viewChangeDetector
 	v interface{}
 }
 
-// NewCacher returns a cacher which uses cfg to detect relevant changes.
-func NewCacher(cfg View) *Cacher {
+// NewCacher returns a cacher which uses cfg to detect relevant changes, and
+// newInstance to construct the object when nessisary.  newInstance MUST use the
+// provided View when constructing the object.
+func NewCacher(cfg View, newInstance func(cfg View) (interface{}, error)) *Cacher {
 	return &Cacher{
-		cfg: cfg,
+		cfg:         cfg,
+		newInstance: newInstance,
 	}
 }
 
-// Get returns the cached object if possible, otherwise it calls f to construct
-// a new instance the cached object. The construction of the object MUST use the
-// provided View.  When Get is next called, it will detect if any of the
-// configuration values which were used to construct the object have changed. If
-// they have, the cache is invalidated, and a new object is constructed. If f
-// returns an error, Get returns that error and the value will not be cached or
-// returned.
-func (c *Cacher) Get(f func(cfg View) (interface{}, error)) (interface{}, error) {
+// Get returns the cached object if possible, otherwise it calls newInstance to
+// construct the new cached object.  When Get is next called, it will detect if
+// any of the configuration values which were used to construct the object have
+// changed. If they have, the cache is invalidated, and a new object is
+// constructed. If newInstance returns an error, Get returns that error and the
+// object will not be cached or returned.
+func (c *Cacher) Get() (interface{}, error) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
 	if c.r == nil || c.r.hasChanges() {
 		c.r = newViewChangeDetector(c.cfg)
 		var err error
-		c.v, err = f(c.r)
+		c.v, err = c.newInstance(c.r)
 		if err != nil {
 			c.r = nil
 			c.v = nil
@@ -64,7 +67,7 @@ func (c *Cacher) Get(f func(cfg View) (interface{}, error)) (interface{}, error)
 }
 
 // ForceReset causes Cacher to forget the cached object.  The next call to Get
-// will again construct a new value.
+// will again use newInstance to create a new object.
 func (c *Cacher) ForceReset() {
 	c.m.Lock()
 	defer c.m.Unlock()
