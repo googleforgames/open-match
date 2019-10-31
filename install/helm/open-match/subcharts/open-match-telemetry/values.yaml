@@ -155,6 +155,7 @@ grafana:
         isDefault: true
 
 jaeger:
+  enabled: true
   # Configs for the cassandra schema job
   schema:
     pullPolicy: Always
