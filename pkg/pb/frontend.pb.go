@@ -27,7 +27,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type CreateTicketRequest struct {
-	// Ticket object with the properties of the Ticket to be created.
+	// A Ticket object with SearchFields defined.
 	Ticket               *Ticket  `protobuf:"bytes,1,opt,name=ticket,proto3" json:"ticket,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -67,7 +67,7 @@ func (m *CreateTicketRequest) GetTicket() *Ticket {
 }
 
 type CreateTicketResponse struct {
-	// Ticket object for the created Ticket - with the ticket ID populated.
+	// A Ticket object with TicketId generated.
 	Ticket               *Ticket  `protobuf:"bytes,1,opt,name=ticket,proto3" json:"ticket,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -107,7 +107,7 @@ func (m *CreateTicketResponse) GetTicket() *Ticket {
 }
 
 type DeleteTicketRequest struct {
-	// Ticket ID of the Ticket to be deleted.
+	// A TicketId of a generated Ticket to be deleted.
 	TicketId             string   `protobuf:"bytes,1,opt,name=ticket_id,json=ticketId,proto3" json:"ticket_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -178,7 +178,7 @@ func (m *DeleteTicketResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_DeleteTicketResponse proto.InternalMessageInfo
 
 type GetTicketRequest struct {
-	// Ticket ID of the Ticket to fetch.
+	// A TicketId of a generated Ticket.
 	TicketId             string   `protobuf:"bytes,1,opt,name=ticket_id,json=ticketId,proto3" json:"ticket_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -218,7 +218,7 @@ func (m *GetTicketRequest) GetTicketId() string {
 }
 
 type GetAssignmentsRequest struct {
-	// Ticket ID of the Ticket to get updates on.
+	// A TicketId of a generated Ticket to get updates on.
 	TicketId             string   `protobuf:"bytes,1,opt,name=ticket_id,json=ticketId,proto3" json:"ticket_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -258,7 +258,7 @@ func (m *GetAssignmentsRequest) GetTicketId() string {
 }
 
 type GetAssignmentsResponse struct {
-	// The updated Ticket object.
+	// An updated Assignment of the requested Ticket.
 	Assignment           *Assignment `protobuf:"bytes,1,opt,name=assignment,proto3" json:"assignment,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
@@ -365,22 +365,20 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type FrontendClient interface {
-	// CreateTicket will create a new ticket, assign a Ticket ID to it and put the
-	// Ticket in state storage. It will then look through the 'properties' field
-	// for the attributes defined as indices the matchmakaking config. If the
-	// attributes exist and are valid integers, they will be indexed. Creating a
-	// ticket adds the Ticket to the pool of Tickets considered for matchmaking.
+	// CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.
+	// A ticket is considered as ready for matchmaking once it is created.
+	//   - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.
+	//   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with mmlogic.QueryTickets function.
 	CreateTicket(ctx context.Context, in *CreateTicketRequest, opts ...grpc.CallOption) (*CreateTicketResponse, error)
-	// DeleteTicket removes the Ticket from state storage and from corresponding
-	// configured indices and lazily removes the ticket from state storage.
-	// Deleting a ticket immediately stops the ticket from being
-	// considered for future matchmaking requests, yet when the ticket itself will be deleted
-	// is undeterministic. Users may still be able to assign/get a ticket after calling DeleteTicket on it.
+	// DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
+	// The client must delete the Ticket when finished matchmaking with it.
+	//   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
+	// Users may still be able to assign/get a ticket after calling DeleteTicket on it.
 	DeleteTicket(ctx context.Context, in *DeleteTicketRequest, opts ...grpc.CallOption) (*DeleteTicketResponse, error)
-	// GetTicket fetches the ticket associated with the specified Ticket ID.
+	// GetTicket get the Ticket associated with the specified TicketId.
 	GetTicket(ctx context.Context, in *GetTicketRequest, opts ...grpc.CallOption) (*Ticket, error)
-	// GetAssignments streams matchmaking results from Open Match for the
-	// provided Ticket ID.
+	// GetAssignments stream back Assignment of the specified TicketId if it is updated.
+	//   - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.
 	GetAssignments(ctx context.Context, in *GetAssignmentsRequest, opts ...grpc.CallOption) (Frontend_GetAssignmentsClient, error)
 }
 
@@ -453,22 +451,20 @@ func (x *frontendGetAssignmentsClient) Recv() (*GetAssignmentsResponse, error) {
 
 // FrontendServer is the server API for Frontend service.
 type FrontendServer interface {
-	// CreateTicket will create a new ticket, assign a Ticket ID to it and put the
-	// Ticket in state storage. It will then look through the 'properties' field
-	// for the attributes defined as indices the matchmakaking config. If the
-	// attributes exist and are valid integers, they will be indexed. Creating a
-	// ticket adds the Ticket to the pool of Tickets considered for matchmaking.
+	// CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.
+	// A ticket is considered as ready for matchmaking once it is created.
+	//   - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.
+	//   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with mmlogic.QueryTickets function.
 	CreateTicket(context.Context, *CreateTicketRequest) (*CreateTicketResponse, error)
-	// DeleteTicket removes the Ticket from state storage and from corresponding
-	// configured indices and lazily removes the ticket from state storage.
-	// Deleting a ticket immediately stops the ticket from being
-	// considered for future matchmaking requests, yet when the ticket itself will be deleted
-	// is undeterministic. Users may still be able to assign/get a ticket after calling DeleteTicket on it.
+	// DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
+	// The client must delete the Ticket when finished matchmaking with it.
+	//   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
+	// Users may still be able to assign/get a ticket after calling DeleteTicket on it.
 	DeleteTicket(context.Context, *DeleteTicketRequest) (*DeleteTicketResponse, error)
-	// GetTicket fetches the ticket associated with the specified Ticket ID.
+	// GetTicket get the Ticket associated with the specified TicketId.
 	GetTicket(context.Context, *GetTicketRequest) (*Ticket, error)
-	// GetAssignments streams matchmaking results from Open Match for the
-	// provided Ticket ID.
+	// GetAssignments stream back Assignment of the specified TicketId if it is updated.
+	//   - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.
 	GetAssignments(*GetAssignmentsRequest, Frontend_GetAssignmentsServer) error
 }
 

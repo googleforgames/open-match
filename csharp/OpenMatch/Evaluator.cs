@@ -91,7 +91,7 @@ namespace OpenMatch {
     public const int MatchFieldNumber = 1;
     private global::OpenMatch.Match match_;
     /// <summary>
-    /// List of Matches to evaluate.
+    /// A Matches proposed by the Match Function representing a candidate of the final results.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public global::OpenMatch.Match Match {
@@ -229,7 +229,7 @@ namespace OpenMatch {
     public const int MatchFieldNumber = 1;
     private global::OpenMatch.Match match_;
     /// <summary>
-    /// Accepted list of Matches.
+    /// A Match shortlisted by the evaluator representing one of the final results.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public global::OpenMatch.Match Match {
