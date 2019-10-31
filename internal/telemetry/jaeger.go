@@ -21,7 +21,7 @@ import (
 	"open-match.dev/open-match/internal/config"
 )
 
-func bindJaeger(cfg config.View) {
+func bindJaeger(servicePrefix string, cfg config.View) {
 	if !cfg.GetBool("telemetry.jaeger.enable") {
 		logger.Info("Jaeger Tracing: Disabled")
 		return
@@ -33,7 +33,7 @@ func bindJaeger(cfg config.View) {
 	je, err := jaeger.NewExporter(jaeger.Options{
 		AgentEndpoint:     agentEndpointURI,
 		CollectorEndpoint: collectorEndpointURI,
-		ServiceName:       "open_match",
+		ServiceName:       servicePrefix,
 	})
 	if err != nil {
 		logger.WithFields(logrus.Fields{
@@ -46,6 +46,7 @@ func bindJaeger(cfg config.View) {
 
 	// And now finally register it as a Trace Exporter
 	trace.RegisterExporter(je)
+	trace.ApplyConfig(trace.Config{DefaultSampler: trace.ProbabilitySampler(cfg.GetFloat64("telemetry.jaeger.samplerFraction"))})
 
 	logger.WithFields(logrus.Fields{
 		"agentEndpoint":     agentEndpointURI,
