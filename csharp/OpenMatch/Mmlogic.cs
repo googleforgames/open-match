@@ -91,7 +91,7 @@ namespace OpenMatch {
     public const int PoolFieldNumber = 1;
     private global::OpenMatch.Pool pool_;
     /// <summary>
-    /// The Pool representing the set of Filters to be queried.
+    /// A Pool is consists of a set of Filters.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public global::OpenMatch.Pool Pool {
@@ -231,7 +231,7 @@ namespace OpenMatch {
         = pb::FieldCodec.ForMessage(10, global::OpenMatch.Ticket.Parser);
     private readonly pbc::RepeatedField<global::OpenMatch.Ticket> tickets_ = new pbc::RepeatedField<global::OpenMatch.Ticket>();
     /// <summary>
-    /// The Tickets that meet the Filter criteria requested by the Pool.
+    /// Tickets is a list of Ticket representing one or more Tickets which meet all Filter criterias.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public pbc::RepeatedField<global::OpenMatch.Ticket> Tickets {

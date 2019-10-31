@@ -31,7 +31,6 @@ type View interface {
 	GetStringSlice(string) []string
 	GetBool(string) bool
 	GetDuration(string) time.Duration
-	GetStringMap(string) map[string]interface{}
 }
 
 // Mutable is a read-write view of the Open Match configuration.

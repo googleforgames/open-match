@@ -167,20 +167,21 @@ linters-settings:
 linters:
   enable-all: true
   disable:
-    - goimports
-    - stylecheck
-    - gocritic
     - dupl
-    - gocyclo
-    - gosec
-    - lll
-    - staticcheck
-    - scopelint
-    - prealloc
-    - gofmt
-    - interfacer # deprecated - "A tool that suggests interfaces is prone to bad suggestions"
-    - gochecknoglobals
     - funlen
+    - gochecknoglobals
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - gosec
+    - interfacer # deprecated - "A tool that suggests interfaces is prone to bad suggestions"
+    - lll
+    - prealloc
+    - scopelint
+    - staticcheck
+    - stylecheck
 
 #linters:
 #  enable-all: true

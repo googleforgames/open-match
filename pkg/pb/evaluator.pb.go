@@ -27,7 +27,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type EvaluateRequest struct {
-	// List of Matches to evaluate.
+	// A Matches proposed by the Match Function representing a candidate of the final results.
 	Match                *Match   `protobuf:"bytes,1,opt,name=match,proto3" json:"match,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -67,7 +67,7 @@ func (m *EvaluateRequest) GetMatch() *Match {
 }
 
 type EvaluateResponse struct {
-	// Accepted list of Matches.
+	// A Match shortlisted by the evaluator representing one of the final results.
 	Match                *Match   `protobuf:"bytes,1,opt,name=match,proto3" json:"match,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -159,8 +159,7 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type EvaluatorClient interface {
-	// Evaluate accepts a list of proposed matches, evaluates them for quality,
-	// collisions etc. and returns matches that should be accepted as results.
+	// Evaluate evaluates a list of proposed matches based on quality, collision status, and etc, then shortlist the matches and returns the final results.
 	Evaluate(ctx context.Context, opts ...grpc.CallOption) (Evaluator_EvaluateClient, error)
 }
 
@@ -205,8 +204,7 @@ func (x *evaluatorEvaluateClient) Recv() (*EvaluateResponse, error) {
 
 // EvaluatorServer is the server API for Evaluator service.
 type EvaluatorServer interface {
-	// Evaluate accepts a list of proposed matches, evaluates them for quality,
-	// collisions etc. and returns matches that should be accepted as results.
+	// Evaluate evaluates a list of proposed matches based on quality, collision status, and etc, then shortlist the matches and returns the final results.
 	Evaluate(Evaluator_EvaluateServer) error
 }
 

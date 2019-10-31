@@ -55,12 +55,10 @@ var (
 	mTicketsAssigned = telemetry.Counter("backend/tickets_assigned", "tickets assigned")
 )
 
-// FetchMatches triggers execution of the specfied MatchFunction for each of the
-// specified MatchProfiles. Each MatchFunction execution returns a set of
-// proposals which are then evaluated to generate results. FetchMatches method
-// streams these results back to the caller.
-// FetchMatches returns nil unless the context is canceled. FetchMatches moves to the next response candidate if it encounters
-// any internal execution failures.
+// FetchMatches triggers a MatchFunction with the specified MatchProfiles, while each MatchProfile
+// returns a set of match proposals. FetchMatches method streams the results back to the caller.
+// FetchMatches immediately returns an error if it encounters any execution failures.
+//   - If the synchronizer is enabled, FetchMatch will then call the synchronizer to deduplicate proposals with overlapped tickets.
 func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Backend_FetchMatchesServer) error {
 	if req.GetConfig() == nil {
 		return status.Error(codes.InvalidArgument, ".config is required")
@@ -270,8 +268,7 @@ func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb
 	return proposals, nil
 }
 
-// AssignTickets sets the specified Assignment on the Tickets for the Ticket
-// ids passed.
+// AssignTickets overwrites the Assignment field of the input TicketIds.
 func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
 	err := doAssignTickets(ctx, req, s.store)
 	if err != nil {

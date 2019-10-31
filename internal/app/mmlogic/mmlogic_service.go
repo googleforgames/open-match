@@ -40,8 +40,10 @@ type mmlogicService struct {
 	store statestore.Service
 }
 
-// GetPoolTickets gets the list of Tickets that match every Filter in the
-// specified Pool.
+// QueryTickets gets a list of Tickets that match all Filters of the input Pool.
+//   - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.
+// QueryTickets pages the Tickets by `storage.pool.size` and stream back response.
+//   - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000
 func (s *mmlogicService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.MmLogic_QueryTicketsServer) error {
 	pool := req.GetPool()
 	if pool == nil {
