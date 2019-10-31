@@ -48,7 +48,7 @@ type evaluator interface {
 
 func newEvaluator(cfg config.View) evaluator {
 	return &deferedEvaluator{
-		cacher: *config.NewCacher(cfg),
+		cacher: config.NewCacher(cfg),
 	}
 }
 
@@ -57,7 +57,7 @@ type deferedEvaluator struct {
 }
 
 func (de *deferedEvaluator) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
-	e, err := cacher.Get(func(cfg *config.View) (interface{}, error) {
+	e, err := de.cacher.Get(func(cfg config.View) (interface{}, error) {
 		if cfg.IsSet("api.evaluator.grpcport") {
 			return newGrpcEvaluator(cfg)
 		}
@@ -71,9 +71,9 @@ func (de *deferedEvaluator) evaluate(ctx context.Context, proposals []*pb.Match)
 		return nil, err
 	}
 
-	matches, err := e.evaluate(ctx, proposals)
+	matches, err := e.(evaluator).evaluate(ctx, proposals)
 	if err != nil {
-		cacher.ForceReset()
+		de.cacher.ForceReset()
 	}
 	return matches, err
 }
@@ -83,8 +83,6 @@ type grcpEvaluatorClient struct {
 }
 
 func newGrpcEvaluator(cfg config.View) (evaluator, error) {
-	ec := &grcpEvaluatorClient{}
-
 	grpcAddr := fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.grpcport"))
 	conn, err := rpc.GRPCClientFromEndpoint(cfg, grpcAddr)
 	if err != nil {
@@ -139,8 +137,8 @@ type httpEvaluatorClient struct {
 }
 
 func newHttpEvaluator(cfg config.View) (evaluator, error) {
-	httpAddr := fmt.Sprintf("%s:%d", ec.cfg.GetString("api.evaluator.hostname"), ec.cfg.GetInt64("api.evaluator.httpport"))
-	client, baseURL, err := rpc.HTTPClientFromEndpoint(ec.cfg, httpAddr)
+	httpAddr := fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.httpport"))
+	client, baseURL, err := rpc.HTTPClientFromEndpoint(cfg, httpAddr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get a HTTP client from the endpoint %v: %w", httpAddr, err)
 	}
@@ -152,7 +150,7 @@ func newHttpEvaluator(cfg config.View) (evaluator, error) {
 	return &httpEvaluatorClient{
 		httpClient: client,
 		baseURL:    baseURL,
-	}
+	}, nil
 }
 
 func (ec *httpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
