@@ -19,8 +19,9 @@ import (
 	"time"
 )
 
-// Cacher will detect which config values are read when constructing a value.
-// Then, when further requests are made, it will return the same value as long
+// Cacher is used to cache the construction of an object, such as a connection.
+// It will detect which config values are read when constructing the object.
+// Then, when further requests are made, it will return the same object as long
 // as the config values which were used don't change.
 type Cacher struct {
 	cfg View
@@ -37,11 +38,13 @@ func NewCacher(cfg View) *Cacher {
 	}
 }
 
-// Get will call f the first time it is called.  It remembers which values are
-// read from the provided View, and the value returned.  When Get is next
-// called, it will check if any of the used values have changed.  If they
-// haven't, it will return the cache'd value.  Otherwise it will call f again.
-// If f returns an error, the value will not be cached or returned.
+// Get returns the cached object if possible, otherwise it calls f to construct
+// a new instance the cached object. The construction of the object MUST use the
+// provided View.  When Get is next called, it will detect if any of the
+// configuration values which were used to construct the object have changed. If
+// they have, the cache is invalidated, and a new object is constructed. If f
+// returns an error, Get returns that error and the value will not be cached or
+// returned.
 func (c *Cacher) Get(f func(cfg View) (interface{}, error)) (interface{}, error) {
 	c.m.Lock()
 	defer c.m.Unlock()
@@ -60,8 +63,8 @@ func (c *Cacher) Get(f func(cfg View) (interface{}, error)) (interface{}, error)
 	return c.v, nil
 }
 
-// ForceReset causes Cacher to forget the remembered value.  The next call to
-// Get will again construct a new value.
+// ForceReset causes Cacher to forget the cached object.  The next call to Get
+// will again construct a new value.
 func (c *Cacher) ForceReset() {
 	c.m.Lock()
 	defer c.m.Unlock()
