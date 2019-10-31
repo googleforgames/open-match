@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	minRating       float64 = 0
-	maxRating       float64 = 100
+	minRating float64 = 0
+	maxRating float64 = 100
 )
 
 // generateProfiles generates test profiles for the matchmaker101 tutorial.
