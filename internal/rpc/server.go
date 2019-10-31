@@ -139,7 +139,7 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 	p.enableRPCPayloadLogging = logging.IsDebugEnabled(cfg)
 	// TODO: This isn't ideal since telemetry requires config for it to be initialized.
 	// This forces us to initialize readiness probes earlier than necessary.
-	p.closer = telemetry.Setup(p.ServeMux, cfg)
+	p.closer = telemetry.Setup(prefix, p.ServeMux, cfg)
 	return p, nil
 }
 
