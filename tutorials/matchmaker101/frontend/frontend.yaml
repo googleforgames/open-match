@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:alpine as go
-WORKDIR /app
-
-COPY . .
-RUN go build -o main .
-
-CMD ["/app/main"]
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mm101-tutorial-frontend
+  namespace: mm101-tutorial
+spec:
+  containers:
+  - name: mm101-tutorial-frontend
+    image: REGISTRY_PLACEHOLDER/mm101-tutorial-frontend:latest
+    imagePullPolicy: Always
+  hostname: mm101-tutorial-frontend

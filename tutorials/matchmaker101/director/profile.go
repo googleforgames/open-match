@@ -14,8 +14,32 @@
 
 package main
 
-import "fmt"
+import (
+	"open-match.dev/open-match/pkg/pb"
+)
 
-func main() {
-	fmt.Println("Hello, evaluator")
+const (
+	minRating       float64 = 0
+	maxRating       float64 = 100
+)
+
+// generateProfiles generates test profiles for the matchmaker101 tutorial.
+func generateProfiles() []*pb.MatchProfile {
+	return []*pb.MatchProfile{
+		{
+			Name: "basic_mmr_profile",
+			Pools: []*pb.Pool{
+				{
+					Name: "default",
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{
+						{
+							DoubleArg: "attribute.mmr",
+							Min:       minRating,
+							Max:       maxRating,
+						},
+					},
+				},
+			},
+		},
+	}
 }

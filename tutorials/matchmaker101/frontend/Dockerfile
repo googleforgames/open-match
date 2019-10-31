@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+ # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: v1
-kind: Pod
-metadata:
-  name: om-director
-  namespace: open-match
-spec:
-  containers:
-  - name: om-director
-    image: registry_placeholder/om-director:latest
-    imagePullPolicy: Always
-  hostname: om-director
+FROM golang:alpine as go
+WORKDIR /app
+ENV GO111MODULE=on
+
+COPY . .
+RUN go build -o frontend .
+
+CMD ["/app/frontend"]
