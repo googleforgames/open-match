@@ -46,9 +46,10 @@ var (
 	mTicketAssignmentsRetrieved = telemetry.Counter("frontend/tickets_assignments_retrieved", "ticket assignments retrieved")
 )
 
-// CreateTicket will create a new ticket, assign an id to it and put it in state
-// storage. It will index the Ticket attributes based on the indexing configuration.
-// Indexing a Ticket adds the it to the pool of Tickets considered for matchmaking.
+// CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.
+// A ticket is considered as ready for matchmaking once it is created.
+//   - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.
+//   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with mmlogic.QueryTickets function.
 func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
 	// Perform input validation.
 	if req.GetTicket() == nil {
@@ -88,11 +89,10 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 	return &pb.CreateTicketResponse{Ticket: ticket}, nil
 }
 
-// DeleteTicket removes the Ticket from state storage and from corresponding
-// configured indices and lazily removes the ticket from state storage.
-// Deleting a ticket immediately stops the ticket from being
-// considered for future matchmaking requests, yet when the ticket itself will be deleted
-// is undeterministic. Users may still be able to assign/get a ticket after calling DeleteTicket on it.
+// DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
+// The client must delete the Ticket when finished matchmaking with it.
+//   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
+// Users may still be able to assign/get a ticket after calling DeleteTicket on it.
 func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*pb.DeleteTicketResponse, error) {
 	err := doDeleteTicket(ctx, req.GetTicketId(), s.store)
 	if err != nil {
@@ -136,7 +136,7 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 	return nil
 }
 
-// GetTicket returns the Ticket associated with the specified Ticket id.
+// GetTicket get the Ticket associated with the specified TicketId.
 func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketRequest) (*pb.Ticket, error) {
 	telemetry.RecordUnitMeasurement(ctx, mTicketsRetrieved)
 	return doGetTickets(ctx, req.GetTicketId(), s.store)
@@ -155,8 +155,8 @@ func doGetTickets(ctx context.Context, id string, store statestore.Service) (*pb
 	return ticket, nil
 }
 
-// GetTicketUpdates streams matchmaking results from Open Match for the
-// provided Ticket id.
+// GetAssignments stream back Assignment of the specified TicketId if it is updated.
+//   - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.
 func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream pb.Frontend_GetAssignmentsServer) error {
 	ctx := stream.Context()
 	for {

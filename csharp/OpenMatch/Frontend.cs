@@ -109,7 +109,7 @@ namespace OpenMatch {
     public const int TicketFieldNumber = 1;
     private global::OpenMatch.Ticket ticket_;
     /// <summary>
-    /// Ticket object with the properties of the Ticket to be created.
+    /// A Ticket object with SearchFields defined.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public global::OpenMatch.Ticket Ticket {
@@ -247,7 +247,7 @@ namespace OpenMatch {
     public const int TicketFieldNumber = 1;
     private global::OpenMatch.Ticket ticket_;
     /// <summary>
-    /// Ticket object for the created Ticket - with the ticket ID populated.
+    /// A Ticket object with TicketId generated.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public global::OpenMatch.Ticket Ticket {
@@ -385,7 +385,7 @@ namespace OpenMatch {
     public const int TicketIdFieldNumber = 1;
     private string ticketId_ = "";
     /// <summary>
-    /// Ticket ID of the Ticket to be deleted.
+    /// A TicketId of a generated Ticket to be deleted.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public string TicketId {
@@ -618,7 +618,7 @@ namespace OpenMatch {
     public const int TicketIdFieldNumber = 1;
     private string ticketId_ = "";
     /// <summary>
-    /// Ticket ID of the Ticket to fetch.
+    /// A TicketId of a generated Ticket.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public string TicketId {
@@ -750,7 +750,7 @@ namespace OpenMatch {
     public const int TicketIdFieldNumber = 1;
     private string ticketId_ = "";
     /// <summary>
-    /// Ticket ID of the Ticket to get updates on.
+    /// A TicketId of a generated Ticket to get updates on.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public string TicketId {
@@ -882,7 +882,7 @@ namespace OpenMatch {
     public const int AssignmentFieldNumber = 1;
     private global::OpenMatch.Assignment assignment_;
     /// <summary>
-    /// The updated Ticket object.
+    /// An updated Assignment of the requested Ticket.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public global::OpenMatch.Assignment Assignment {
