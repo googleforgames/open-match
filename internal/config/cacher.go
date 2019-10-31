@@ -26,7 +26,7 @@ type Cacher struct {
 	cfg View
 	m   sync.Mutex
 
-	r *rememberingView
+	r *viewChangeDetector
 	v interface{}
 }
 
@@ -47,7 +47,7 @@ func (c *Cacher) Get(f func(cfg View) (interface{}, error)) (interface{}, error)
 	defer c.m.Unlock()
 
 	if c.r == nil || c.r.hasChanges() {
-		c.r = newRememberingView(c.cfg)
+		c.r = newViewChangeDetector(c.cfg)
 		var err error
 		c.v, err = f(c.r)
 		if err != nil {
@@ -69,7 +69,9 @@ func (c *Cacher) ForceReset() {
 	c.v = nil
 }
 
-type rememberingView struct {
+// Remember each value as it is read, and can detect if a value has been changed
+// since it was last read.
+type viewChangeDetector struct {
 	cfg            View
 	isSet          map[string]bool
 	getString      map[string]string
@@ -81,8 +83,8 @@ type rememberingView struct {
 	getDuration    map[string]time.Duration
 }
 
-func newRememberingView(cfg View) *rememberingView {
-	return &rememberingView{
+func newViewChangeDetector(cfg View) *viewChangeDetector {
+	return &viewChangeDetector{
 		cfg:            cfg,
 		isSet:          make(map[string]bool),
 		getString:      make(map[string]string),
@@ -95,55 +97,55 @@ func newRememberingView(cfg View) *rememberingView {
 	}
 }
 
-func (r *rememberingView) IsSet(k string) bool {
+func (r *viewChangeDetector) IsSet(k string) bool {
 	v := r.cfg.IsSet(k)
 	r.isSet[k] = v
 	return v
 }
 
-func (r *rememberingView) GetString(k string) string {
+func (r *viewChangeDetector) GetString(k string) string {
 	v := r.cfg.GetString(k)
 	r.getString[k] = v
 	return v
 }
 
-func (r *rememberingView) GetInt(k string) int {
+func (r *viewChangeDetector) GetInt(k string) int {
 	v := r.cfg.GetInt(k)
 	r.getInt[k] = v
 	return v
 }
 
-func (r *rememberingView) GetInt64(k string) int64 {
+func (r *viewChangeDetector) GetInt64(k string) int64 {
 	v := r.cfg.GetInt64(k)
 	r.getInt64[k] = v
 	return v
 }
 
-func (r *rememberingView) GetFloat64(k string) float64 {
+func (r *viewChangeDetector) GetFloat64(k string) float64 {
 	v := r.cfg.GetFloat64(k)
 	r.getFloat64[k] = v
 	return v
 }
 
-func (r *rememberingView) GetStringSlice(k string) []string {
+func (r *viewChangeDetector) GetStringSlice(k string) []string {
 	v := r.cfg.GetStringSlice(k)
 	r.getStringSlice[k] = v
 	return v
 }
 
-func (r *rememberingView) GetBool(k string) bool {
+func (r *viewChangeDetector) GetBool(k string) bool {
 	v := r.cfg.GetBool(k)
 	r.getBool[k] = v
 	return v
 }
 
-func (r *rememberingView) GetDuration(k string) time.Duration {
+func (r *viewChangeDetector) GetDuration(k string) time.Duration {
 	v := r.cfg.GetDuration(k)
 	r.getDuration[k] = v
 	return v
 }
 
-func (r *rememberingView) hasChanges() bool {
+func (r *viewChangeDetector) hasChanges() bool {
 	for k, v := range r.isSet {
 		if r.cfg.IsSet(k) != v {
 			return true
