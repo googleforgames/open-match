@@ -127,7 +127,7 @@ redis:
   sysctlImage:
     enabled: true
     mountHostSys: true
-    # Redis may require some changes in the kernel of the host machine to work as expected, 
+    # Redis may require some changes in the kernel of the host machine to work as expected,
     # in particular increasing the somaxconn value and disabling transparent huge pages.
     # https://github.com/helm/charts/tree/master/stable/redis#host-kernel-settings
     command:
@@ -158,7 +158,7 @@ redis:
 open-match-core:
   enabled: true
 
-# Contols if users need to install the demo in Open Match.
+# Controls if users need to install the demo in Open Match.
 open-match-demo:
   # Switch the value between true/false to turn on/off this subchart
   enabled: true
@@ -166,18 +166,17 @@ open-match-demo:
   frontend: *frontend
   backend: *backend
 
-# Contols if users need to install scale testing setup for Open Match.
+# Controls if users need to install scale testing setup for Open Match.
 open-match-scale:
   # Switch the value between true/false to turn on/off this subchart
   enabled: false
   frontend: *frontend
   backend: *backend
 
-# Contols if users need to install the monitoring tools in Open Match.
-# By default, the stackdriver is enabled such that users are able to see the logs in a GKE cluster.
+# Controls if users need to install the monitoring tools in Open Match.
 open-match-telemetry:
   # Switch the value between true/false to turn on/off this subchart
-  enabled: true
+  enabled: false
 
 # Controls if users need to install their own MMFs and Evaluator in Open Match.
 open-match-customize:
@@ -243,16 +242,16 @@ global:
       enabled: true
     jaeger:
       enabled: false
+      samplerFraction: 1 # Configures a sampler that samples a given fraction of traces.
       agentEndpoint: "open-match-jaeger-agent:6831"
       collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
     prometheus:
       enabled: false
       endpoint: "/metrics"
       serviceDiscovery: true
-    # By default, the stackdriver is enabled such that users are able to see the logs in a GKE cluster.
-    stackdriver:
-      enabled: true
-      metricPrefix: "open_match"
+    stackdriverMetrics:
+      enabled: false
+      prefix: "open_match"
     zipkin:
       enabled: false
       endpoint: "/zipkin"

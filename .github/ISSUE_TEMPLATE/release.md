@@ -148,6 +148,10 @@ TODO: Add guidelines for labeling issues.
 - [ ] If this is a new minor version in the newest major version then run `./docs/governance/templates/release.sh {source version tag} latest`.
 - [ ] Copy the files from `build/release/` generated from `make release` to the release draft you created.  You can drag and drop the files using the Github UI.
 - [ ] Open the [`README.md`](readme-deploy) update the version references and submit. (Release candidates can ignore this step.)
+- [ ] Run proto-gen-doc to update API references in open-match-docs repo.
+- [ ] Update [Slack invitation link](https://slack.com/help/articles/201330256-invite-new-members-to-your-workspace#share-an-invite-link) in [open-match.dev](https://open-match.dev/site/docs/contribute/#get-involved).
+- [ ] Test Open Match installation under GKE and Minikube enviroment and make sure the first match example works.
+- [ ] Update usage requirements in the Installation doc - e.g. supported minikube version, kubectl version, golang version, etc.
 
 ## Finalize
 

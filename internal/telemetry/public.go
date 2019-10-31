@@ -32,7 +32,7 @@ var (
 )
 
 // Setup configures the telemetry for the server.
-func Setup(mux *http.ServeMux, cfg config.View) func() {
+func Setup(servicePrefix string, mux *http.ServeMux, cfg config.View) func() {
 	mc := util.NewMultiClose()
 	periodString := cfg.GetString("telemetry.reportingPeriod")
 	reportingPeriod, err := time.ParseDuration(periodString)
@@ -44,9 +44,9 @@ func Setup(mux *http.ServeMux, cfg config.View) func() {
 		reportingPeriod = time.Minute * 1
 	}
 
-	bindJaeger(cfg)
+	bindJaeger(servicePrefix, cfg)
 	bindPrometheus(mux, cfg)
-	mc.AddCloseFunc(bindStackDriver(cfg))
+	mc.AddCloseFunc(bindStackDriverMetrics(cfg))
 	mc.AddCloseWithErrorFunc(bindOpenCensusAgent(cfg))
 	bindZipkin(cfg)
 	bindZpages(mux, cfg)
