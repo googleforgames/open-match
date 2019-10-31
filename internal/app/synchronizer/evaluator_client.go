@@ -46,26 +46,30 @@ type evaluator interface {
 	evaluate(context.Context, []*pb.Match) ([]*pb.Match, error)
 }
 
+var noEvaluatorType = errors.New("Unable to determine evaluator type.  Either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config.")
+
 func newEvaluator(cfg config.View) evaluator {
-	return &deferedEvaluator{
-		cacher: config.NewCacher(cfg),
-	}
-}
-
-type deferedEvaluator struct {
-	cacher *config.Cacher
-}
-
-func (de *deferedEvaluator) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
-	e, err := de.cacher.Get(func(cfg config.View) (interface{}, error) {
+	newInstance := func(cfg config.View) (interface{}, error) {
 		if cfg.IsSet("api.evaluator.grpcport") {
 			return newGrpcEvaluator(cfg)
 		}
 		if cfg.IsSet("api.evaluator.httpport") {
 			return newHttpEvaluator(cfg)
 		}
-		return nil, errors.New("Unable to determine evaluator type.  Either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config.")
-	})
+		return nil, noEvaluatorType
+	}
+
+	return &deferredEvaluator{
+		cacher: config.NewCacher(cfg, newInstance),
+	}
+}
+
+type deferredEvaluator struct {
+	cacher *config.Cacher
+}
+
+func (de *deferredEvaluator) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	e, err := de.cacher.Get()
 
 	if err != nil {
 		return nil, err
