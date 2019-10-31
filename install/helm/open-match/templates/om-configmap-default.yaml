@@ -1,0 +1,120 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+{{- if index .Values "open-match-core" "enabled" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: om-configmap-default
+  namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+  labels:
+    app: {{ template "openmatch.name" . }}
+    component: config
+    release: {{ .Release.Name }}
+data:
+  matchmaker_config_default.yaml: |-
+    logging:
+      level: debug
+      {{- if .Values.global.telemetry.stackdriverMetrics.enabled }}
+      format: stackdriver
+      {{- else }}
+      format: text
+      {{- end }}
+      rpc: {{ .Values.global.logging.rpc.enabled }}
+    # Open Match applies the exponential backoff strategy for its retryable gRPC calls.
+    # The settings below are the default backoff configuration used in Open Match.
+    # See https://github.com/cenkalti/backoff/blob/v3/exponential.go for detailed explanations
+    backoff:
+      # The initial retry interval (in milliseconds)
+      initialInterval: 100ms
+      # maxInterval caps the maximum time elapsed for a retry interval
+      maxInterval: 500ms
+      # The next retry interval is multiplied by this multiplier
+      multiplier: 1.5
+      # Randomize the retry interval
+      randFactor: 0.5
+      # maxElapsedTime caps the retry time (in milliseconds)
+      maxElapsedTime: 3000ms
+
+    api:
+      backend:
+        hostname: "{{ .Values.backend.hostName }}"
+        grpcport: "{{ .Values.backend.grpcPort }}"
+        httpport: "{{ .Values.backend.httpPort }}"
+      frontend:
+        hostname: "{{ .Values.frontend.hostName }}"
+        grpcport: "{{ .Values.frontend.grpcPort }}"
+        httpport: "{{ .Values.frontend.httpPort }}"
+      mmlogic:
+        hostname: "{{ .Values.mmlogic.hostName }}"
+        grpcport: "{{ .Values.mmlogic.grpcPort }}"
+        httpport: "{{ .Values.mmlogic.httpPort }}"
+      synchronizer:
+        hostname: "{{ .Values.synchronizer.hostName }}"
+        grpcport: "{{ .Values.synchronizer.grpcPort }}"
+        httpport: "{{ .Values.synchronizer.httpPort }}"
+      swaggerui:
+        hostname: "{{ .Values.swaggerui.hostName }}"
+        httpport: "{{ .Values.swaggerui.httpPort }}"
+{{- if .Values.global.tls.enabled }}
+      tls:
+        trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
+        certificatefile: "{{.Values.global.tls.server.mountPath}}/public.cert"
+        privatekey: "{{.Values.global.tls.server.mountPath}}/private.key"
+        rootcertificatefile: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
+{{- end }}
+
+    storage:
+      page:
+        size: 10000
+
+    redis:
+      hostname: {{ .Values.redis.fullnameOverride }}-master.{{ .Release.Namespace }}.svc.cluster.local
+      port: {{ .Values.redis.redisPort }}
+      user: {{ .Values.redis.user }}
+{{- if .Values.redis.usePassword }}
+      passwordPath: {{ .Values.redis.secretMountPath }}/redis-password
+{{- end }}
+      pool:
+        maxIdle: 5000
+        maxActive: 0
+        idleTimeout: 60s
+        healthCheckTimeout: 100ms
+      ignoreLists:
+        ttl: {{ .Values.redis.ignoreLists.ttl }}
+      expiration: 43200
+
+    telemetry:
+      zpages:
+        enable: "{{ .Values.global.telemetry.zpages.enabled }}"
+      jaeger:
+        enable: "{{ .Values.global.telemetry.jaeger.enabled }}"
+        samplerFraction: {{ .Values.global.telemetry.jaeger.samplerFraction }}
+        agentEndpoint: "{{ .Values.global.telemetry.jaeger.agentEndpoint }}"
+        collectorEndpoint: "{{ .Values.global.telemetry.jaeger.collectorEndpoint }}"
+      prometheus:
+        enable: "{{ .Values.global.telemetry.prometheus.enabled }}"
+        endpoint: "{{ .Values.global.telemetry.prometheus.endpoint }}"
+        serviceDiscovery: "{{ .Values.global.telemetry.prometheus.serviceDiscovery }}"
+      stackdriverMetrics:
+        enable: "{{ .Values.global.telemetry.stackdriverMetrics.enabled }}"
+        gcpProjectId: "{{ .Values.global.gcpProjectId }}"
+        prefix: "{{ .Values.global.telemetry.stackdriverMetrics.prefix }}"
+      zipkin:
+        enable: "{{ .Values.global.telemetry.zipkin.enabled }}"
+        endpoint: "{{ .Values.global.telemetry.zipkin.endpoint }}"
+        reporterEndpoint: "{{ .Values.global.telemetry.zipkin.reporterEndpoint }}"
+      reportingPeriod: "{{ .Values.global.telemetry.reportingPeriod }}"
+{{- end }}

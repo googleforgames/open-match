@@ -424,6 +424,18 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 	}
 	defer handleConnectionClose(&redisConn)
 
+	ttl := rb.cfg.GetDuration("redis.ignoreLists.ttl")
+	curTime := time.Now()
+	curTimeInt := curTime.UnixNano()
+	startTimeInt := curTime.Add(-ttl).UnixNano()
+
+	// Filter out tickets that are fetched but not assigned within ttl time (ms).
+	idsInIgnoreLists, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, curTimeInt))
+	if err != nil {
+		redisLogger.WithError(err).Error("failed to get proposed tickets")
+		return status.Errorf(codes.Internal, err.Error())
+	}
+
 	// A set of playerIds that satisfies all filters
 	idSet := make([]string, 0)
 
@@ -445,18 +457,6 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 		} else {
 			idSet = set.Intersection(idSet, idsInFilter)
 		}
-	}
-
-	ttl := rb.cfg.GetDuration("redis.ignoreLists.ttl")
-	curTime := time.Now()
-	curTimeInt := curTime.UnixNano()
-	startTimeInt := curTime.Add(-ttl).UnixNano()
-
-	// Filter out tickets that are fetched but not assigned within ttl time (ms).
-	idsInIgnoreLists, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, curTimeInt))
-	if err != nil {
-		redisLogger.WithError(err).Error("failed to get proposed tickets")
-		return status.Errorf(codes.Internal, err.Error())
 	}
 
 	idSet = set.Difference(idSet, idsInIgnoreLists)

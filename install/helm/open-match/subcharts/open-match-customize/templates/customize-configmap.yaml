@@ -23,7 +23,7 @@ metadata:
     component: config
     release: {{ .Release.Name }}
 data:
-  matchmaker_config.yaml: |-
+  matchmaker_config_override.yaml: |-
     api:
       mmlogic:
         hostname: "{{ .Values.mmlogic.hostName }}"
