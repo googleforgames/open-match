@@ -27,14 +27,14 @@ import (
 
 const (
 	// The endpoint for the Open Match Frontend service.
-	omBackendEndpoint = "om-frontend.open-match.svc.cluster.local:50504"
+	omFrontendEndpoint = "om-frontend.open-match.svc.cluster.local:50504"
 	// Number of tickets created per iteration
 	ticketsPerIter = 20
 )
 
 func main() {
 	// Connect to Open Match Frontend.
-	conn, err := grpc.Dial(omBackendEndpoint, grpc.WithInsecure())
+	conn, err := grpc.Dial(omFrontendEndpoint, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("Failed to connect to Open Match, got %v", err)
 	}
