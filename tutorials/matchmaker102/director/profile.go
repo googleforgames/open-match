@@ -36,12 +36,12 @@ func generateProfiles() []*pb.MatchProfile {
 					},
 				},
 				StringEqualsFilters: []*pb.StringEqualsFilter{
-						{
-							StringArg: "attributes.role",
-							Value:     role,
-						},
+					{
+						StringArg: "attributes.role",
+						Value:     role,
 					},
-				})
+				},
+			})
 		}
 
 		profiles = append(profiles, &pb.MatchProfile{
