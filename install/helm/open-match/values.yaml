@@ -125,7 +125,8 @@ redis:
     create: true
     name: open-match-redis-service
   sysctlImage:
-    enabled: true
+    # Enable this setting in production if you are running Open Match under Linux environment
+    enabled: false
     mountHostSys: true
     # Redis may require some changes in the kernel of the host machine to work as expected,
     # in particular increasing the somaxconn value and disabling transparent huge pages.
