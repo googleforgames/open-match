@@ -96,4 +96,3 @@ spec:
         - name: http
           containerPort: {{ .Values.function.httpPort }}
         {{- include "openmatch.container.common" . | nindent 8 }}
-        {{- include "kubernetes.probe" (dict "port" .Values.function.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
