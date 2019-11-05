@@ -402,6 +402,7 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-customize.enabled=false \
 		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
+		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
@@ -411,6 +412,7 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-customize.enabled=false \
 		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
+		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
 
@@ -420,6 +422,7 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-customize.enabled=false \
 		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
+		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		install/helm/open-match > install/yaml/05-jaeger-chart.yaml
 
@@ -435,6 +438,7 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-customize.enabled=false \
 		--set open-match-demo.enabled=false \
+		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
