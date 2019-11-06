@@ -91,7 +91,7 @@ Preview:
 Below this point you will see {version} used as a placeholder for future
 releases. Find {version} and replace with the current release (e.g. 0.5.0)
 
-## Create a release branch in the upstream repository
+## Create a release branch in the upstream open-match repository
 
 **Note: This step is performed by the person who starts the release.  It is
 only required once.**
@@ -113,9 +113,16 @@ git push origin release-0.5
 - [ ] Open the [`cloudbuild.yaml`] and change the `_OM_VERSION` entry.
 - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
 - [ ] Run `make release`
-- [ ] Create a PR with the changes and include the release candidate name.
-- [ ] Go to [open-match-build](https://pantheon.corp.google.com/cloud-build/triggers?project=open-match-build) and update all the triggers' `_GCB_LATEST_VERSION` value to the `X.Y` of the release. This value should only increase as it's used to determine the latest stable version.
+- [ ] Create a PR with the changes, include the release candidate name, and point it to the release branch.
+- [ ] Go to [open-match-build](https://pantheon.corp.google.com/cloud-build/triggers?project=open-match-build) and update all *post submit* triggers' `_GCB_LATEST_VERSION` value to the `X.Y` of the release. This value should only increase as it's used to determine the latest stable version.
 - [ ] Merge your changes once the PR is approved.
+
+## Create a release branch in the upstream open-match-docs repository
+- [ ] Open [`Makefile`](makefile-version) and change BASE_VERSION entry.
+- [ ] Open [`cloudbuild.yaml`] and change the `_OM_VERSION` entry.
+- [ ] Open [`site/config.toml`] and change the `release_version` entry.
+- [ ] Run `make release`.
+- [ ] Create a PR with the changes, include the release candidate name, and point it to the release branch.
 
 ## Complete Milestone
 
@@ -142,15 +149,15 @@ TODO: Add guidelines for labeling issues.
 
 ## Build Artifacts
 
-- [ ] Go to [Cloud Build](https://pantheon.corp.google.com/cloud-build/triggers?project=open-match-build), under Post Submit click "Run Trigger".
-- [ ] Go to the History section and find the "Post Submit" build that's running. Wait for it to go Green. If it's red, fix error repeat this section. Take note of the docker image version tag for next step. Example: 0.5.0-a4706cb.
+- [ ] Go to the History section and find the "Post Submit" build of the merged commit that's running. Wait for it to go Green. If it's red, fix error repeat this section. Take note of the docker image version tag for next step. Example: 0.5.0-a4706cb.
 - [ ] Run `./docs/governance/templates/release.sh {source version tag} {version}` to copy the images to open-match-public-images.
 - [ ] If this is a new minor version in the newest major version then run `./docs/governance/templates/release.sh {source version tag} latest`.
 - [ ] Copy the files from `build/release/` generated from `make release` to the release draft you created.  You can drag and drop the files using the Github UI.
-- [ ] Open the [`README.md`](readme-deploy) update the version references and submit. (Release candidates can ignore this step.)
-- [ ] Run proto-gen-doc to update API references in open-match-docs repo.
+- [ ] Run `make api/api.md` in open-match repo to update the auto-generated API references in open-match-docs repo.
 - [ ] Update [Slack invitation link](https://slack.com/help/articles/201330256-invite-new-members-to-your-workspace#share-an-invite-link) in [open-match.dev](https://open-match.dev/site/docs/contribute/#get-involved).
-- [ ] Test Open Match installation under GKE and Minikube enviroment and make sure the first match example works.
+- [ ] Test Open Match installation under GKE and Minikube enviroment, follow the [First Match](https://development.open-match.dev/site/docs/getting-started/first_match/) guide, run `make proxy-demo`, and open `localhost:51507` to make sure everything works.
+  - [ ] Minikube: Run `make create-mini-cluster` to create a local cluster with latest Kubernetes API version.
+  - [ ] GKE: Run `make create-gke-cluster` to create a GKE cluster.
 - [ ] Update usage requirements in the Installation doc - e.g. supported minikube version, kubectl version, golang version, etc.
 
 ## Finalize
