@@ -18,39 +18,52 @@ module open-match.dev/open-match
 go 1.13.1
 
 require (
-	cloud.google.com/go v0.40.0 // indirect
+	cloud.google.com/go v0.47.0 // indirect
 	contrib.go.opencensus.io/exporter/jaeger v0.1.0
-	contrib.go.opencensus.io/exporter/ocagent v0.5.0
+	contrib.go.opencensus.io/exporter/ocagent v0.6.0
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
-	contrib.go.opencensus.io/exporter/stackdriver v0.12.2
+	contrib.go.opencensus.io/exporter/stackdriver v0.12.8
 	contrib.go.opencensus.io/exporter/zipkin v0.1.1
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
-	github.com/alicebob/miniredis/v2 v2.8.1-0.20190618082157-e29950035715
-	github.com/cenkalti/backoff v2.1.1+incompatible
+	github.com/alicebob/miniredis/v2 v2.10.1
+	github.com/apache/thrift v0.13.0 // indirect
+	github.com/aws/aws-sdk-go v1.25.27 // indirect
+	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/fsnotify/fsnotify v1.4.7
-	github.com/gogo/protobuf v1.3.0 // indirect
+	github.com/gogo/protobuf v1.3.1 // indirect
+	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/gomodule/redigo v1.7.1-0.20190322064113-39e2c31b7ca3
-	github.com/google/gofuzz v1.0.0 // indirect
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
-	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
-	github.com/grpc-ecosystem/grpc-gateway v1.9.6
-	github.com/imdario/mergo v0.3.7 // indirect
-	github.com/openzipkin/zipkin-go v0.1.6
+	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
+	github.com/grpc-ecosystem/grpc-gateway v1.12.0
+	github.com/imdario/mergo v0.3.8 // indirect
+	github.com/json-iterator/go v1.1.8 // indirect
+	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
+	github.com/openzipkin/zipkin-go v0.2.2
+	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/client_golang v1.0.0
+	github.com/prometheus/client_golang v1.2.1
 	github.com/rs/xid v1.2.1
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/afero v1.2.2 // indirect
-	github.com/spf13/viper v1.4.0
-	github.com/stretchr/testify v1.3.0
-	go.opencensus.io v0.22.0
-	golang.org/x/net v0.0.0-20190522155817-f3200d17e092
-	google.golang.org/genproto v0.0.0-20190611190212-a7e196e89fd3
-	google.golang.org/grpc v1.21.1
+	github.com/spf13/jwalterweatherman v1.1.0 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/viper v1.5.0
+	github.com/stretchr/testify v1.4.0
+	github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036 // indirect
+	go.opencensus.io v0.22.1
+	golang.org/x/crypto v0.0.0-20191105034135-c7e5f84aec59 // indirect
+	golang.org/x/net v0.0.0-20191105084925-a882066a44e0
+	golang.org/x/sys v0.0.0-20191105231009-c1f44814a5cd // indirect
+	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
+	google.golang.org/api v0.13.0 // indirect
+	google.golang.org/appengine v1.6.5 // indirect
+	google.golang.org/genproto v0.0.0-20191028173616-919d9bdd9fe6
+	google.golang.org/grpc v1.25.0
 	gopkg.in/inf.v0 v0.9.1 // indirect
+	gopkg.in/yaml.v2 v2.2.5 // indirect
 	k8s.io/api v0.0.0-20190708094356-59223ed9f6ce // kubernetes-1.12.10
 	k8s.io/apimachinery v0.0.0-20190221084156-01f179d85dbc // kubernetes-1.12.10
 	k8s.io/client-go v9.0.0+incompatible // kubernetes-1.12.10
