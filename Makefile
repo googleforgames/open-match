@@ -1013,7 +1013,7 @@ proxy-locust: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
-proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-synchronizer proxy-ui proxy-dashboard proxy-demo proxy-jaeger
+proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-jaeger proxy-synchronizer proxy-ui proxy-dashboard proxy-demo
 
 proxy:
 	# This is an exception case where we'll call recursive make.
