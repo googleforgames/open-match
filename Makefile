@@ -621,8 +621,7 @@ create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
 		--enable-pod-security-policy \
 		--cluster-version $(GKE_VERSION) \
 		--image-type cos_containerd \
-		--tags open-match \
-		--identity-namespace=$(GCP_PROJECT_ID).svc.id.goog
+		--tags open-match
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
 delete-gke-cluster: gcloud
@@ -692,7 +691,7 @@ api/api.md: third_party/ build/toolchain/bin/protoc-gen-doc$(EXE_EXTENSION)
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
   		--doc_out=. \
   		--doc_opt=markdown,api.md
-# Crazy hack that insert hugo link reference to this API doc -)	
+# Crazy hack that insert hugo link reference to this API doc -)
 	$(SED_REPLACE) '1 i\---\
 title: "Open Match API References" \
 linkTitle: "Open Match API References" \
@@ -701,7 +700,7 @@ description: \
   This document provides API references for Open Match services. \
 --- \
 ' ./api.md && mv ./api.md $(REPOSITORY_ROOT)/../open-match-docs/site/content/en/docs/Reference/
-  
+
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
 pkg/pb/backend.pb.go: pkg/pb/messages.pb.go
 pkg/pb/frontend.pb.go: pkg/pb/messages.pb.go
