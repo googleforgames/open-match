@@ -23,14 +23,7 @@ metadata:
     component: config
     release: {{ .Release.Name }}
 data:
-  matchmaker_config.yaml: |-
-    api:
-      frontend:
-        hostname: "{{ .Values.frontend.hostName }}"
-        grpcport: "{{ .Values.frontend.grpcPort }}"
-      backend:
-        hostname: "{{ .Values.backend.hostName }}"
-        grpcport: "{{ .Values.backend.grpcPort }}"
+  matchmaker_config_override.yaml: |-
     testConfig:
       profile: "{{ .Values.testConfig.profile }}"
       concurrentCreates: "{{ .Values.testConfig.concurrentCreates }}"

@@ -23,6 +23,9 @@ metadata:
   annotations:
     {{- include "openmatch.chartmeta" . | nindent 4 }}
     seccomp.security.alpha.kubernetes.io/allowedProfileNames: '*'
+  labels:
+    app: {{ template "openmatch.name" . }}
+    release: {{ .Release.Name }}
 spec:
   privileged: true
   allowPrivilegeEscalation: true
@@ -49,7 +52,7 @@ spec:
     rule: 'RunAsAny'
 ---
 # om-core-podsecuritypolicy does not allow creating privileged pods and restrict binded pods to use the specified port ranges.
-apiVersion: extensions/v1beta1
+apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
   name: om-core-podsecuritypolicy

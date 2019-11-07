@@ -12,8 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: v1
-appVersion: "1.0"
-description: A Helm chart for Kubernetes
+apiVersion: v2
+appVersion: "0.0.0-dev"
+description: A chart to deploy telemetry support for Open Match
 name: open-match-telemetry
 version: 0.0.0-dev
+dependencies:
+  - name: prometheus
+    version: 9.2.0
+    repository: https://kubernetes-charts.storage.googleapis.com/
+    condition: global.telemetry.prometheus.enabled,prometheus.enabled
+  - name: grafana
+    version: 4.0.1
+    repository: https://kubernetes-charts.storage.googleapis.com/
+    condition: global.telemetry.grafana.enabled,grafana.enabled
+  - name: jaeger
+    version: 0.13.3
+    repository: https://kubernetes-charts-incubator.storage.googleapis.com/
+    condition: global.telemetry.jaeger.enabled,jaeger.enabled
+
