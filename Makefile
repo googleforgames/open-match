@@ -346,18 +346,26 @@ install-large-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 install-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS)
 
-install-scale-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
+install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=true \
 		--set open-match-telemetry.enabled=true \
 		--set open-match-demo.enabled=false \
+		--set open-match-scale.enabled=false \
 		--set open-match-customize.enabled=true \
 		--set open-match-customize.function.image=openmatch-mmf-go-rosterbased\
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
+		--set global.logging.rpc.enabled=false \
+		--set global.gcpProjectId=$(GCP_PROJECT_ID)
+	$(HELM) template $(OPEN_MATCH_RELEASE_NAME)-scale  install/helm/open-match $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
+		--set open-match-core.enabled=false \
+		--set open-match-telemetry.enabled=false \
+		--set open-match-demo.enabled=false \
+		--set open-match-customize.enabled=false \
 		--set open-match-scale.enabled=true \
-		--set global.logging.rpc.enabled=false
+		--set global.logging.rpc.enabled=false | $(KUBECTL) apply -f -
 
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	# Ignore errors result from reruning a failed build
@@ -374,6 +382,7 @@ dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
 
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) uninstall $(OPEN_MATCH_RELEASE_NAME)
+	-$(KUBECTL) delete psp,clusterrole,clusterrolebinding --selector=release=open-match
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheuses.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd servicemonitors.monitoring.coreos.com
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
@@ -402,6 +411,7 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-customize.enabled=false \
 		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
+		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
@@ -411,6 +421,7 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-customize.enabled=false \
 		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
+		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
 
@@ -420,6 +431,7 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-customize.enabled=false \
 		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
+		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		install/helm/open-match > install/yaml/05-jaeger-chart.yaml
 
@@ -435,6 +447,7 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-customize.enabled=false \
 		--set open-match-demo.enabled=false \
+		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
@@ -1000,7 +1013,7 @@ proxy-locust: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
-proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-synchronizer proxy-ui proxy-dashboard proxy-demo proxy-jaeger
+proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-jaeger proxy-synchronizer proxy-ui proxy-dashboard proxy-demo
 
 proxy:
 	# This is an exception case where we'll call recursive make.
