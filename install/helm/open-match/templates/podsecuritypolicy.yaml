@@ -52,7 +52,7 @@ spec:
     rule: 'RunAsAny'
 ---
 # om-core-podsecuritypolicy does not allow creating privileged pods and restrict binded pods to use the specified port ranges.
-apiVersion: extensions/v1beta1
+apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
   name: om-core-podsecuritypolicy
