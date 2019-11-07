@@ -23,6 +23,9 @@ metadata:
   annotations:
     {{- include "openmatch.chartmeta" . | nindent 4 }}
     seccomp.security.alpha.kubernetes.io/allowedProfileNames: '*'
+  labels:
+    app: {{ template "openmatch.name" . }}
+    release: {{ .Release.Name }}
 spec:
   privileged: true
   allowPrivilegeEscalation: true
