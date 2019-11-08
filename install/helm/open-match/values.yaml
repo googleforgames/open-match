@@ -97,12 +97,14 @@ image:
 # Specifies the location and name of the Open Match application-level config volumes.
   # Used in template: `openmatch.volumemounts.configs` and `openmatch.volumes.configs` under `templates/_helpers.tpl` file.
 configs:
-  om-configmap-default:
+  default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
-  om-configmap-override:
+    configName: om-configmap-default
+  override:
     volumeName: om-config-volume-override
     mountPath: /app/config/override
+    configName: om-configmap-override
 
 # Override Redis settings
 # https://hub.helm.sh/charts/stable/redis

@@ -33,6 +33,7 @@ image:
 # to create a new evaluator and mmf. We should create a global configmap for the security settings for all subcharts 
 # under the /install/helm/open-match directory to avoid copy&paste files around.
 configs:
-  demo-configmap:
+  demoConfig:
     mountPath: /app/config/om
     volumeName: demo-config-volume
+    configName: demo-configmap
