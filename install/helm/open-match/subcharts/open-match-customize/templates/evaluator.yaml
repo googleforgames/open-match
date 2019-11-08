@@ -83,13 +83,13 @@ spec:
         release: {{ .Release.Name }}
     spec:
       volumes:
-        {{- include "openmatch.volumes.configs" . | nindent 8}}
+        {{- include "openmatch.volumes.configs" (dict "configs" .Values.evaluatorConfigs) | nindent 8}}
         {{- include "openmatch.volumes.tls" . | nindent 8}}
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:
       - name: {{ .Values.evaluator.hostName }}
         volumeMounts:
-          {{- include "openmatch.volumemounts.configs" . | nindent 10 }}
+          {{- include "openmatch.volumemounts.configs" (dict "configs" .Values.evaluatorConfigs) | nindent 10 }}
           {{- include "openmatch.volumemounts.tls" . | nindent 10 }}
         image: "{{ .Values.global.image.registry }}/{{ .Values.evaluator.image}}:{{ .Values.global.image.tag }}"
         ports:
