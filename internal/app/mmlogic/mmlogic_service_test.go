@@ -96,8 +96,10 @@ func TestDoQueryTickets(t *testing.T) {
 			100,
 			func(ctx context.Context, t *testing.T, store statestore.Service) {
 				for _, testTicket := range testTickets {
-					assert.Nil(t, store.CreateTicket(ctx, testTicket))
-					assert.Nil(t, store.IndexTicket(ctx, testTicket))
+					_, err := store.CreateTicket(ctx, testTicket)
+					assert.Nil(t, err)
+					_, err = store.IndexTicket(ctx, testTicket)
+					assert.Nil(t, err)
 				}
 			},
 			nil,
@@ -121,8 +123,10 @@ func TestDoQueryTickets(t *testing.T) {
 			100,
 			func(ctx context.Context, t *testing.T, store statestore.Service) {
 				for _, testTicket := range testTickets {
-					assert.Nil(t, store.CreateTicket(ctx, testTicket))
-					assert.Nil(t, store.IndexTicket(ctx, testTicket))
+					_, err := store.CreateTicket(ctx, testTicket)
+					assert.Nil(t, err)
+					_, err = store.IndexTicket(ctx, testTicket)
+					assert.Nil(t, err)
 				}
 			},
 			status.Errorf(codes.Internal, "%v", fakeErr),

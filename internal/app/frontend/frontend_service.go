@@ -68,7 +68,7 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 	}
 
 	ticket.Id = xid.New().String()
-	err := store.CreateTicket(ctx, ticket)
+	ctx, err := store.CreateTicket(ctx, ticket)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error":  err.Error(),
@@ -77,7 +77,7 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 		return nil, err
 	}
 
-	err = store.IndexTicket(ctx, ticket)
+	ctx, err = store.IndexTicket(ctx, ticket)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error":  err.Error(),
@@ -105,7 +105,7 @@ func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicket
 
 func doDeleteTicket(ctx context.Context, id string, store statestore.Service) error {
 	// Deindex this Ticket to remove it from matchmaking pool.
-	err := store.DeindexTicket(ctx, id)
+	_, err := store.DeindexTicket(ctx, id)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -119,14 +119,14 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 	go func() {
 		ctx, span := trace.StartSpan(context.Background(), "open-match/frontend.DeleteTicketLazy")
 		defer span.End()
-		err := store.DeleteTicket(ctx, id)
+		ctx, err := store.DeleteTicket(ctx, id)
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error": err.Error(),
 				"id":    id,
 			}).Error("failed to delete the ticket")
 		}
-		err = store.DeleteTicketsFromIgnoreList(ctx, []string{id})
+		_, err = store.DeleteTicketsFromIgnoreList(ctx, []string{id})
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error": err.Error(),
@@ -146,7 +146,7 @@ func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketReques
 }
 
 func doGetTickets(ctx context.Context, id string, store statestore.Service) (*pb.Ticket, error) {
-	ticket, err := store.GetTicket(ctx, id)
+	_, ticket, err := store.GetTicket(ctx, id)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -195,5 +195,6 @@ func doGetAssignments(ctx context.Context, id string, sender func(*pb.Assignment
 		return nil
 	}
 
-	return store.GetAssignments(ctx, id, callback)
+	_, err := store.GetAssignments(ctx, id, callback)
+	return err
 }

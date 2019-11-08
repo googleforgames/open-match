@@ -69,24 +69,24 @@ func TestTicketLifecycle(t *testing.T) {
 	}
 
 	// Validate that GetTicket fails for a Ticket that does not exist.
-	_, err := service.GetTicket(ctx, id)
+	_, _, err := service.GetTicket(ctx, id)
 	assert.NotNil(err)
 	assert.Equal(status.Code(err), codes.NotFound)
 
 	// Validate nonexisting Ticket deletion
-	err = service.DeleteTicket(ctx, id)
+	_, err = service.DeleteTicket(ctx, id)
 	assert.Nil(err)
 
 	// Validate nonexisting Ticket deindexing
-	err = service.DeindexTicket(ctx, id)
+	_, err = service.DeindexTicket(ctx, id)
 	assert.Nil(err)
 
 	// Validate Ticket creation
-	err = service.CreateTicket(ctx, ticket)
+	_, err = service.CreateTicket(ctx, ticket)
 	assert.Nil(err)
 
 	// Validate Ticket retrival
-	result, err := service.GetTicket(ctx, ticket.Id)
+	_, result, err := service.GetTicket(ctx, ticket.Id)
 	assert.Nil(err)
 	assert.NotNil(result)
 	assert.Equal(ticket.Id, result.Id)
@@ -94,10 +94,10 @@ func TestTicketLifecycle(t *testing.T) {
 	assert.Equal(ticket.Assignment.Connection, result.Assignment.Connection)
 
 	// Validate Ticket deletion
-	err = service.DeleteTicket(ctx, id)
+	_, err = service.DeleteTicket(ctx, id)
 	assert.Nil(err)
 
-	_, err = service.GetTicket(ctx, id)
+	_, _, err = service.GetTicket(ctx, id)
 	assert.NotNil(err)
 }
 
@@ -118,8 +118,10 @@ func TestIgnoreLists(t *testing.T) {
 
 	ticketIds := []string{}
 	for _, ticket := range tickets {
-		assert.Nil(service.CreateTicket(ctx, ticket))
-		assert.Nil(service.IndexTicket(ctx, ticket))
+		_, err := service.CreateTicket(ctx, ticket)
+		assert.Nil(err)
+		_, err = service.IndexTicket(ctx, ticket)
+		assert.Nil(err)
 		ticketIds = append(ticketIds, ticket.GetId())
 	}
 
@@ -142,7 +144,8 @@ func TestIgnoreLists(t *testing.T) {
 	verifyTickets(service, len(tickets))
 
 	// Add the first three tickets to the ignore list and verify changes are reflected in the result
-	assert.Nil(service.AddTicketsToIgnoreList(ctx, ticketIds[:3]))
+	_, err := service.AddTicketsToIgnoreList(ctx, ticketIds[:3])
+	assert.Nil(err)
 	verifyTickets(service, len(tickets)-3)
 
 	// Sleep until the ignore list expired and verify we still have all the tickets
@@ -176,19 +179,19 @@ func TestTicketIndexing(t *testing.T) {
 			},
 		}
 
-		err := service.CreateTicket(ctx, ticket)
+		_, err := service.CreateTicket(ctx, ticket)
 		assert.Nil(err)
 
-		err = service.IndexTicket(ctx, ticket)
+		_, err = service.IndexTicket(ctx, ticket)
 		assert.Nil(err)
 	}
 
 	// Remove one ticket, to test that it doesn't fall over.
-	err := service.DeleteTicket(ctx, "ticket.no.5")
+	_, err := service.DeleteTicket(ctx, "ticket.no.5")
 	assert.Nil(err)
 
 	// Remove ticket from index, should not show up.
-	err = service.DeindexTicket(ctx, "ticket.no.6")
+	_, err = service.DeindexTicket(ctx, "ticket.no.6")
 	assert.Nil(err)
 
 	found := []string{}
@@ -208,7 +211,7 @@ func TestTicketIndexing(t *testing.T) {
 		},
 	}
 
-	err = service.FilterTickets(ctx, pool, 2, func(tickets []*pb.Ticket) error {
+	_, err = service.FilterTickets(ctx, pool, 2, func(tickets []*pb.Ticket) error {
 		assert.True(len(tickets) <= 2)
 		for _, ticket := range tickets {
 			found = append(found, ticket.Id)
@@ -238,7 +241,7 @@ func TestGetAssignmentBeforeSet(t *testing.T) {
 
 	var assignmentResp *pb.Assignment
 
-	err := service.GetAssignments(ctx, "id", func(assignment *pb.Assignment) error {
+	_, err := service.GetAssignments(ctx, "id", func(assignment *pb.Assignment) error {
 		assignmentResp = assignment
 		return nil
 	})
@@ -260,14 +263,14 @@ func TestUpdateAssignmentFatal(t *testing.T) {
 	var assignmentResp *pb.Assignment
 
 	// Now create a ticket in the state store service
-	err := service.CreateTicket(ctx, &pb.Ticket{
+	_, err := service.CreateTicket(ctx, &pb.Ticket{
 		Id:         "1",
 		Assignment: &pb.Assignment{Connection: "2"},
 	})
 	assert.Nil(err)
 
 	// Try to update the assignmets with the ticket created and some non-existed tickets
-	err = service.UpdateAssignments(ctx, []string{"1", "2", "3"}, &pb.Assignment{Connection: "localhost"})
+	_, err = service.UpdateAssignments(ctx, []string{"1", "2", "3"}, &pb.Assignment{Connection: "localhost"})
 	// UpdateAssignment failed because the ticket does not exists
 	assert.Equal(codes.NotFound, status.Convert(err).Code())
 	assert.Nil(assignmentResp)
@@ -283,7 +286,7 @@ func TestGetAssignmentNormal(t *testing.T) {
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
-	err := service.CreateTicket(ctx, &pb.Ticket{
+	_, err := service.CreateTicket(ctx, &pb.Ticket{
 		Id:         "1",
 		Assignment: &pb.Assignment{Connection: "2"},
 	})
@@ -294,7 +297,7 @@ func TestGetAssignmentNormal(t *testing.T) {
 	callbackCount := 0
 	returnedErr := errors.New("some errors")
 
-	err = service.GetAssignments(ctx, "1", func(assignment *pb.Assignment) error {
+	_, err = service.GetAssignments(ctx, "1", func(assignment *pb.Assignment) error {
 		assignmentResp = assignment
 
 		if callbackCount == 5 {
@@ -325,26 +328,26 @@ func TestUpdateAssignmentNormal(t *testing.T) {
 	ctx := utilTesting.NewContext(t)
 
 	// Create a ticket without assignment
-	err := service.CreateTicket(ctx, &pb.Ticket{
+	_, err := service.CreateTicket(ctx, &pb.Ticket{
 		Id: "1",
 	})
 	assert.Nil(err)
 	// Create a ticket already with an assignment
-	err = service.CreateTicket(ctx, &pb.Ticket{
+	_, err = service.CreateTicket(ctx, &pb.Ticket{
 		Id:         "3",
 		Assignment: &pb.Assignment{Connection: "4"},
 	})
 	assert.Nil(err)
 
 	fakeAssignment := &pb.Assignment{Connection: "Halo"}
-	err = service.UpdateAssignments(ctx, []string{"1", "3"}, fakeAssignment)
+	_, err = service.UpdateAssignments(ctx, []string{"1", "3"}, fakeAssignment)
 	assert.Nil(err)
 	// Verify the transaction behavior of the UpdateAssignment.
-	ticket, err := service.GetTicket(ctx, "1")
+	_, ticket, err := service.GetTicket(ctx, "1")
 	assert.Equal(fakeAssignment.Connection, ticket.Assignment.Connection)
 	assert.Nil(err)
 	// Verify the transaction behavior of the UpdateAssignment.
-	ticket, err = service.GetTicket(ctx, "3")
+	_, ticket, err = service.GetTicket(ctx, "3")
 	assert.Equal(fakeAssignment.Connection, ticket.Assignment.Connection)
 	assert.Nil(err)
 }

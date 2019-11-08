@@ -117,12 +117,14 @@ func TestDoGetAssignments(t *testing.T) {
 		{
 			description: "expect two assignment reads from preAction writes and fail in grpc aborted code",
 			preAction: func(ctx context.Context, t *testing.T, store statestore.Service, wantAssignments []*pb.Assignment, wg *sync.WaitGroup) {
-				assert.Nil(t, store.CreateTicket(ctx, testTicket))
+				_, err := store.CreateTicket(ctx, testTicket)
+				assert.Nil(t, err)
 
 				go func(wg *sync.WaitGroup) {
 					for i := 0; i < len(wantAssignments); i++ {
 						time.Sleep(50 * time.Millisecond)
-						assert.Nil(t, store.UpdateAssignments(ctx, []string{testTicket.GetId()}, wantAssignments[i]))
+						_, err := store.UpdateAssignments(ctx, []string{testTicket.GetId()}, wantAssignments[i])
+						assert.Nil(t, err)
 						wg.Done()
 					}
 				}(wg)

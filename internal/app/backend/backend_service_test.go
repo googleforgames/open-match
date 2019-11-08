@@ -238,7 +238,7 @@ func TestDoAssignTickets(t *testing.T) {
 				pool := &pb.Pool{
 					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: fakeProperty, Min: 0, Max: 3}},
 				}
-				err := store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
+				_, err := store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
 					wantFilteredTickets = filterTickets
 					return nil
 				})
@@ -273,7 +273,7 @@ func TestDoAssignTickets(t *testing.T) {
 
 			if err == nil {
 				for _, id := range test.req.GetTicketIds() {
-					ticket, err := store.GetTicket(ctx, id)
+					_, ticket, err := store.GetTicket(ctx, id)
 					assert.Nil(t, err)
 					assert.Equal(t, test.wantAssignment, ticket.GetAssignment())
 				}

@@ -87,7 +87,7 @@ func newGrpcEvaluator(cfg config.View) (evaluator, error) {
 	grpcAddr := fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.grpcport"))
 	conn, err := rpc.GRPCClientFromEndpoint(cfg, grpcAddr)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create grpc evaluator client: %w", err)
+		return nil, fmt.Errorf("Failed to create grpc evaluator client: %v", err)
 	}
 
 	evaluatorClientLogger.WithFields(logrus.Fields{
@@ -141,7 +141,7 @@ func newHTTPEvaluator(cfg config.View) (evaluator, error) {
 	httpAddr := fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.httpport"))
 	client, baseURL, err := rpc.HTTPClientFromEndpoint(cfg, httpAddr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get a HTTP client from the endpoint %v: %w", httpAddr, err)
+		return nil, fmt.Errorf("failed to get a HTTP client from the endpoint %v: %v", httpAddr, err)
 	}
 
 	evaluatorClientLogger.WithFields(logrus.Fields{

@@ -28,34 +28,34 @@ type Service interface {
 	HealthCheck(ctx context.Context) error
 
 	// CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
-	CreateTicket(ctx context.Context, ticket *pb.Ticket) error
+	CreateTicket(ctx context.Context, ticket *pb.Ticket) (context.Context, error)
 
 	// GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
-	GetTicket(ctx context.Context, id string) (*pb.Ticket, error)
+	GetTicket(ctx context.Context, id string) (context.Context, *pb.Ticket, error)
 
 	// DeleteTicket removes the Ticket with the specified id from state storage. This method succeeds if the Ticket does not exist.
-	DeleteTicket(ctx context.Context, id string) error
+	DeleteTicket(ctx context.Context, id string) (context.Context, error)
 
 	// IndexTicket indexes the Ticket id for the configured index fields.
-	IndexTicket(ctx context.Context, ticket *pb.Ticket) error
+	IndexTicket(ctx context.Context, ticket *pb.Ticket) (context.Context, error)
 
 	// DeindexTicket removes the indexing for the specified Ticket. Only the indexes are removed but the Ticket continues to exist.
-	DeindexTicket(ctx context.Context, id string) error
+	DeindexTicket(ctx context.Context, id string) (context.Context, error)
 
 	// FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria.
-	FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error
+	FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) (context.Context, error)
 
 	// UpdateAssignments update the match assignments for the input ticket ids
-	UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error
+	UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) (context.Context, error)
 
 	// GetAssignments returns the assignment associated with the input ticket id
-	GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error
+	GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) (context.Context, error)
 
 	// AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
-	AddTicketsToIgnoreList(ctx context.Context, ids []string) error
+	AddTicketsToIgnoreList(ctx context.Context, ids []string) (context.Context, error)
 
 	// DeleteTicketsFromIgnoreList deletes tickets from the proposed sorted set
-	DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) error
+	DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) (context.Context, error)
 
 	// Closes the connection to the underlying storage.
 	Close() error

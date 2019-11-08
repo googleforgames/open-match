@@ -27,7 +27,7 @@ import (
 func QueryPool(ctx context.Context, mml pb.MmLogicClient, pool *pb.Pool) ([]*pb.Ticket, error) {
 	query, err := mml.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
 	if err != nil {
-		return nil, fmt.Errorf("Error calling mmlogic.QueryTickets: %w", err)
+		return nil, fmt.Errorf("Error calling mmlogic.QueryTickets: %s", err.Error())
 	}
 
 	var tickets []*pb.Ticket
@@ -38,7 +38,7 @@ func QueryPool(ctx context.Context, mml pb.MmLogicClient, pool *pb.Pool) ([]*pb.
 		}
 
 		if err != nil {
-			return nil, fmt.Errorf("Error receiving tickets from mmlogic.QueryTickets: %w", err)
+			return nil, fmt.Errorf("Error receiving tickets from mmlogic.QueryTickets: %s", err.Error())
 		}
 
 		tickets = append(tickets, resp.Tickets...)
@@ -73,7 +73,7 @@ func QueryPools(ctx context.Context, mml pb.MmLogicClient, pools []*pb.Pool) (ma
 	for i := 0; i < len(pools); i++ {
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("Context canceled while querying pools: %w", ctx.Err())
+			return nil, fmt.Errorf("Context canceled while querying pools: %s", ctx.Err())
 		case r := <-results:
 			if r.err != nil {
 				return nil, r.err

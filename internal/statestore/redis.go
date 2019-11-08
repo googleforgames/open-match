@@ -131,16 +131,16 @@ func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
 		}).Error("failed to connect to redis")
 		return nil, status.Errorf(codes.Unavailable, "%v", err)
 	}
-	telemetry.RecordNUnitMeasurement(ctx, mRedisConnLatencyMs, time.Since(startTime).Milliseconds())
+	telemetry.RecordNUnitMeasurement(ctx, mRedisConnLatencyMs, time.Since(startTime).Nanoseconds())
 
 	return redisConn, nil
 }
 
 // CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
-func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
+func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) (context.Context, error) {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		return err
+		return ctx, err
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -150,7 +150,7 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 			"cmd":   "MULTI",
 			"error": err.Error(),
 		}).Error("state storage operation failed")
-		return status.Errorf(codes.Internal, "%v", err)
+		return ctx, status.Errorf(codes.Internal, "%v", err)
 	}
 
 	value, err := proto.Marshal(ticket)
@@ -159,7 +159,7 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 			"key":   ticket.GetId(),
 			"error": err.Error(),
 		}).Error("failed to marshal the ticket proto")
-		return status.Errorf(codes.Internal, "%v", err)
+		return ctx, status.Errorf(codes.Internal, "%v", err)
 	}
 
 	err = redisConn.Send("SET", ticket.GetId(), value)
@@ -169,7 +169,7 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 			"key":   ticket.GetId(),
 			"error": err.Error(),
 		}).Error("failed to set the value for ticket")
-		return status.Errorf(codes.Internal, "%v", err)
+		return ctx, status.Errorf(codes.Internal, "%v", err)
 	}
 
 	if rb.cfg.IsSet("redis.expiration") {
@@ -183,7 +183,7 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 					"ttl":   redisTTL,
 					"error": err.Error(),
 				}).Error("failed to set ticket expiration in state storage")
-				return status.Errorf(codes.Internal, "%v", err)
+				return ctx, status.Errorf(codes.Internal, "%v", err)
 			}
 		}
 	}
@@ -195,17 +195,17 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 			"key":   ticket.GetId(),
 			"error": err.Error(),
 		}).Error("failed to create ticket in state storage")
-		return status.Errorf(codes.Internal, "%v", err)
+		return ctx, status.Errorf(codes.Internal, "%v", err)
 	}
 
-	return nil
+	return ctx, nil
 }
 
 // GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
-func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, error) {
+func (rb *redisBackend) GetTicket(ctx context.Context, id string) (context.Context, *pb.Ticket, error) {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		return nil, err
+		return ctx, nil, err
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -224,10 +224,10 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 				"key": id,
 				"cmd": "GET",
 			}).Error(msg)
-			return nil, status.Error(codes.NotFound, msg)
+			return ctx, nil, status.Error(codes.NotFound, msg)
 		}
 
-		return nil, status.Errorf(codes.Internal, "%v", err)
+		return ctx, nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
 	if value == nil {
@@ -236,7 +236,7 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 			"key": id,
 			"cmd": "GET",
 		}).Error(msg)
-		return nil, status.Error(codes.NotFound, msg)
+		return ctx, nil, status.Error(codes.NotFound, msg)
 	}
 
 	ticket := &pb.Ticket{}
@@ -246,17 +246,17 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 			"key":   id,
 			"error": err.Error(),
 		}).Error("failed to unmarshal the ticket proto")
-		return nil, status.Errorf(codes.Internal, "%v", err)
+		return ctx, nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
-	return ticket, nil
+	return ctx, ticket, nil
 }
 
 // DeleteTicket removes the Ticket with the specified id from state storage.
-func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) error {
+func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) (context.Context, error) {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		return err
+		return ctx, err
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -267,17 +267,17 @@ func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) error {
 			"key":   id,
 			"error": err.Error(),
 		}).Error("failed to delete the ticket from state storage")
-		return status.Errorf(codes.Internal, "%v", err)
+		return ctx, status.Errorf(codes.Internal, "%v", err)
 	}
 
-	return nil
+	return ctx, nil
 }
 
 // IndexTicket indexes the Ticket id for the configured index fields.
-func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) error {
+func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) (context.Context, error) {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		return err
+		return ctx, err
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -289,7 +289,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 			"cmd":   "MULTI",
 			"error": err.Error(),
 		}).Error("state storage operation failed")
-		return status.Errorf(codes.Internal, "%v", err)
+		return ctx, status.Errorf(codes.Internal, "%v", err)
 	}
 
 	{
@@ -306,7 +306,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 				"error":   err.Error(),
 				"indices": command[1:],
 			}).Error("failed to set ticket's indices")
-			return status.Errorf(codes.Internal, "%v", err)
+			return ctx, status.Errorf(codes.Internal, "%v", err)
 		}
 	}
 
@@ -321,7 +321,7 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 				"ticket":    ticket.GetId(),
 				"error":     err.Error(),
 			}).Error("failed to index ticket DoubleArg")
-			return status.Errorf(codes.Internal, "%v", err)
+			return ctx, status.Errorf(codes.Internal, "%v", err)
 		}
 	}
 
@@ -333,17 +333,17 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 			"id":    ticket.GetId(),
 			"error": err.Error(),
 		}).Error("failed to index the ticket")
-		return status.Errorf(codes.Internal, "%v", err)
+		return ctx, status.Errorf(codes.Internal, "%v", err)
 	}
 
-	return nil
+	return ctx, nil
 }
 
 // DeindexTicket removes the indexing for the specified Ticket. Only the indexes are removed but the Ticket continues to exist.
-func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
+func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) (context.Context, error) {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		return err
+		return ctx, err
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -354,11 +354,11 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 			"error":    err.Error(),
 			"ticket":   id,
 		}).Error("failed to retrieve ticket's indexed fields")
-		return status.Errorf(codes.Internal, "%v", err)
+		return ctx, status.Errorf(codes.Internal, "%v", err)
 	}
 
 	if len(indices) == 0 {
-		return nil
+		return ctx, nil
 	}
 
 	err = redisConn.Send("MULTI")
@@ -367,7 +367,7 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 			"cmd":   "MULTI",
 			"error": err.Error(),
 		}).Error("state storage operation failed")
-		return status.Errorf(codes.Internal, "%v", err)
+		return ctx, status.Errorf(codes.Internal, "%v", err)
 	}
 
 	for _, index := range indices {
@@ -379,7 +379,7 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 				"id":    id,
 				"error": err.Error(),
 			}).Error("failed to deindex the ticket")
-			return status.Errorf(codes.Internal, "%v", err)
+			return ctx, status.Errorf(codes.Internal, "%v", err)
 		}
 	}
 
@@ -390,7 +390,7 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 			"id":    id,
 			"error": err.Error(),
 		}).Error("failed to remove ticket's indexed fields")
-		return status.Errorf(codes.Internal, "%v", err)
+		return ctx, status.Errorf(codes.Internal, "%v", err)
 	}
 
 	_, err = redisConn.Do("EXEC")
@@ -400,10 +400,10 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 			"id":    id,
 			"error": err.Error(),
 		}).Error("failed to deindex the ticket")
-		return status.Errorf(codes.Internal, "%v", err)
+		return ctx, status.Errorf(codes.Internal, "%v", err)
 	}
 
-	return nil
+	return ctx, nil
 }
 
 // FilterTickets returns the Ticket ids and required DoubleArg key-value pairs for the Tickets meeting the specified filtering criteria.
@@ -412,7 +412,7 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 //  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
-func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
+func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) (context.Context, error) {
 	var err error
 	var redisConn redis.Conn
 	var ticketBytes [][]byte
@@ -420,7 +420,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 
 	redisConn, err = rb.connect(ctx)
 	if err != nil {
-		return err
+		return ctx, err
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -433,7 +433,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 	idsInIgnoreLists, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, curTimeInt))
 	if err != nil {
 		redisLogger.WithError(err).Error("failed to get proposed tickets")
-		return status.Errorf(codes.Internal, err.Error())
+		return ctx, status.Errorf(codes.Internal, err.Error())
 	}
 
 	// A set of playerIds that satisfies all filters
@@ -449,7 +449,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 			redisLogger.WithFields(logrus.Fields{
 				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f", filter.name, filter.min, filter.max),
 			}).WithError(err).Error("Failed to lookup index.")
-			return status.Errorf(codes.Internal, "%v", err)
+			return ctx, status.Errorf(codes.Internal, "%v", err)
 		}
 
 		if i == 0 {
@@ -468,7 +468,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 			redisLogger.WithFields(logrus.Fields{
 				"Command": fmt.Sprintf("MGET %v", page),
 			}).WithError(err).Error("Failed to lookup tickets.")
-			return status.Errorf(codes.Internal, "%v", err)
+			return ctx, status.Errorf(codes.Internal, "%v", err)
 		}
 
 		tickets := make([]*pb.Ticket, 0, len(page))
@@ -481,7 +481,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 					redisLogger.WithFields(logrus.Fields{
 						"key": page[i],
 					}).WithError(err).Error("Failed to unmarshal ticket from redis.")
-					return status.Errorf(codes.Internal, "%v", err)
+					return ctx, status.Errorf(codes.Internal, "%v", err)
 				}
 				tickets = append(tickets, t)
 			}
@@ -489,36 +489,36 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 
 		err = callback(tickets)
 		if err != nil {
-			return status.Errorf(codes.Internal, "%v", err)
+			return ctx, status.Errorf(codes.Internal, "%v", err)
 		}
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return ctx, ctx.Err()
 		default:
 		}
 	}
 
-	return nil
+	return ctx, nil
 }
 
 // UpdateAssignments update the match assignments for the input ticket ids.
 // This function guarantees if any of the input ids does not exists, the state of the storage service won't be altered.
 // However, since Redis does not support transaction roll backs (see https://redis.io/topics/transactions), some of the
 // assignment fields might be partially updated if this function encounters an error halfway through the execution.
-func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error {
+func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) (context.Context, error) {
 	if assignment == nil {
-		return status.Error(codes.InvalidArgument, "assignment is nil")
+		return ctx, status.Error(codes.InvalidArgument, "assignment is nil")
 	}
 
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		return err
+		return ctx, err
 	}
 	defer handleConnectionClose(&redisConn)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
-		return err
+		return ctx, err
 	}
 
 	// Sanity check to make sure all inputs ids are valid
@@ -526,13 +526,13 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 	for _, id := range ids {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return ctx, ctx.Err()
 		default:
 			var ticket *pb.Ticket
-			ticket, err = rb.GetTicket(ctx, id)
+			ctx, ticket, err = rb.GetTicket(ctx, id)
 			if err != nil {
 				redisLogger.WithError(err).Errorf("failed to get ticket %s from redis when updating assignments", id)
-				return err
+				return ctx, err
 			}
 			tickets = append(tickets, ticket)
 		}
@@ -541,20 +541,20 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 	for _, ticket := range tickets {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return ctx, ctx.Err()
 		default:
 			assignmentCopy, ok := proto.Clone(assignment).(*pb.Assignment)
 			if !ok {
 				redisLogger.Error("failed to cast assignment object")
-				return status.Error(codes.Internal, "failed to cast to the assignment object")
+				return ctx, status.Error(codes.Internal, "failed to cast to the assignment object")
 			}
 
 			ticket.Assignment = assignmentCopy
 
-			err = rb.CreateTicket(ctx, ticket)
+			ctx, err = rb.CreateTicket(ctx, ticket)
 			if err != nil {
 				redisLogger.WithError(err).Errorf("failed to recreate ticket %#v with new assignment when updating assignments", ticket)
-				return err
+				return ctx, err
 			}
 		}
 	}
@@ -563,23 +563,23 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 	_, err = redisConn.Do("EXEC")
 	if err != nil {
 		redisLogger.WithError(err).Error("failed to execute update assignments transaction")
-		return err
+		return ctx, err
 	}
 
-	return nil
+	return ctx, nil
 }
 
 // GetAssignments returns the assignment associated with the input ticket id
-func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error {
+func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) (context.Context, error) {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		return err
+		return ctx, err
 	}
 	defer handleConnectionClose(&redisConn)
 
 	backoffOperation := func() error {
 		var ticket *pb.Ticket
-		ticket, err = rb.GetTicket(ctx, id)
+		ctx, ticket, err = rb.GetTicket(ctx, id)
 		if err != nil {
 			redisLogger.WithError(err).Errorf("failed to get ticket %s when executing get assignments", id)
 			return backoff.Permanent(err)
@@ -595,23 +595,23 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 
 	err = backoff.Retry(backoffOperation, rb.newConstantBackoffStrategy())
 	if err != nil {
-		return err
+		return ctx, err
 	}
-	return nil
+	return ctx, nil
 }
 
 // AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
-func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string) error {
+func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string) (context.Context, error) {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		return err
+		return ctx, err
 	}
 	defer handleConnectionClose(&redisConn)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
 		redisLogger.WithError(err).Error("failed to pipeline commands for AddTicketsToIgnoreList")
-		return status.Error(codes.Internal, err.Error())
+		return ctx, status.Error(codes.Internal, err.Error())
 	}
 
 	currentTime := time.Now().UnixNano()
@@ -620,7 +620,7 @@ func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string
 		err = redisConn.Send("ZADD", "proposed_ticket_ids", currentTime, id)
 		if err != nil {
 			redisLogger.WithError(err).Error("failed to append proposed tickets to redis")
-			return status.Error(codes.Internal, err.Error())
+			return ctx, status.Error(codes.Internal, err.Error())
 		}
 	}
 
@@ -628,35 +628,35 @@ func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string
 	_, err = redisConn.Do("EXEC")
 	if err != nil {
 		redisLogger.WithError(err).Error("failed to execute pipelined commands for AddTicketsToIgnoreList")
-		return status.Error(codes.Internal, err.Error())
+		return ctx, status.Error(codes.Internal, err.Error())
 	}
 
-	return nil
+	return ctx, nil
 }
 
 // DeleteTicketsFromIgnoreList deletes tickets from the proposed sorted set
-func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) error {
+func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) (context.Context, error) {
 	if len(ids) == 0 {
-		return nil
+		return ctx, nil
 	}
 
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		return err
+		return ctx, err
 	}
 	defer handleConnectionClose(&redisConn)
 
 	err = redisConn.Send("MULTI")
 	if err != nil {
 		redisLogger.WithError(err).Error("failed to pipeline commands for DeleteTicketsFromIgnoreList")
-		return status.Error(codes.Internal, err.Error())
+		return ctx, status.Error(codes.Internal, err.Error())
 	}
 
 	for _, id := range ids {
 		err = redisConn.Send("ZREM", "proposed_ticket_ids", id)
 		if err != nil {
 			redisLogger.WithError(err).Error("failed to delete proposed tickets from ignore list")
-			return status.Error(codes.Internal, err.Error())
+			return ctx, status.Error(codes.Internal, err.Error())
 		}
 	}
 
@@ -664,10 +664,10 @@ func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []s
 	_, err = redisConn.Do("EXEC")
 	if err != nil {
 		redisLogger.WithError(err).Error("failed to execute pipelined commands for DeleteTicketsFromIgnoreList")
-		return status.Error(codes.Internal, err.Error())
+		return ctx, status.Error(codes.Internal, err.Error())
 	}
 
-	return nil
+	return ctx, nil
 }
 
 func idsToPages(ids []string, pageSize int) [][]interface{} {

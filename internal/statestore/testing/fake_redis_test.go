@@ -35,8 +35,9 @@ func TestFakeStatestore(t *testing.T) {
 	ticket := &pb.Ticket{
 		Id: "abc",
 	}
-	assert.Nil(s.CreateTicket(ctx, ticket))
-	retrievedTicket, err := s.GetTicket(ctx, "abc")
+	_, err := s.CreateTicket(ctx, ticket)
+	assert.Nil(err)
+	_, retrievedTicket, err := s.GetTicket(ctx, "abc")
 	assert.Nil(err)
 	assert.Equal(ticket.Id, retrievedTicket.Id)
 }

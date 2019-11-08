@@ -151,7 +151,7 @@ func (s *synchronizerService) doEvaluateProposals(ctx context.Context, proposals
 			ids = append(ids, ticket.GetId())
 		}
 	}
-	err = syncState.store.AddTicketsToIgnoreList(ctx, ids)
+	_, err = syncState.store.AddTicketsToIgnoreList(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
