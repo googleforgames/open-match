@@ -17,11 +17,13 @@
 # Declare variables to be passed into your templates.
 
 function:
+  enabled: false
   replicas: 3
   portType: ClusterIP
   image: openmatch-mmf-go-soloduel
 
 evaluator:
+  enabled: false
   replicas: 3
   portType: ClusterIP
   image: openmatch-evaluator-go-simple

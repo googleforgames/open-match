@@ -341,6 +341,8 @@ install-large-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 		--set open-match-telemetry.enabled=true \
 		--set open-match-demo.enabled=true \
 		--set open-match-customize.enabled=true \
+		--set open-match-customize.function.enabled=true \
+		--set open-match-customize.evaluator.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
@@ -350,13 +352,17 @@ install-large-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 install-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set open-match-demo.enabled=true \
-		--set open-match-customize.enabled=true
+		--set open-match-customize.enabled=true \
+		--set open-match-customize.function.enabled=true \
+		--set open-match-customize.evaluator.enabled=true
 
 # install-scale-chart will wait for installing open-match-core with telemetry supports then install open-match-scale chart.
 install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set open-match-telemetry.enabled=true \
 		--set open-match-customize.enabled=true \
+		--set open-match-customize.function.enabled=true \
+		--set open-match-customize.evaluator.enabled=true \
 		--set open-match-customize.function.image=openmatch-mmf-go-rosterbased \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
@@ -375,6 +381,8 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 		--set redis.ignoreLists.ttl=1000ms \
 		--set open-match-test.enabled=true \
 		--set open-match-customize.enabled=true \
+		--set open-match-customize.function.enabled=true \
+		--set open-match-customize.evaluator.enabled=true \
 		--set open-match-customize.function.image=openmatch-mmf-go-pool \
 		--set ci=true
 
@@ -386,7 +394,7 @@ delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubec
 	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
 	-$(KUBECTL) delete namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 
-install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml install/yaml/06-open-match-override-configmap.yaml
+install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml install/yaml/06-open-match-override-configmap.yaml install/yaml/07-open-match-default-evaluator.yaml
 
 install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
@@ -399,6 +407,7 @@ install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-core.enabled=false \
 		--set open-match-demo.enabled=true \
 		--set open-match-customize.enabled=true \
+		--set open-match-customize.function.enabled=true \
 		install/helm/open-match > install/yaml/02-open-match-demo.yaml
 
 install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -433,10 +442,20 @@ install/yaml/06-open-match-override-configmap.yaml: build/toolchain/bin/helm$(EX
 		-s templates/om-configmap-override.yaml \
 		install/helm/open-match > install/yaml/06-open-match-override-configmap.yaml
 
+install/yaml/07-open-match-default-evaluator.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
+	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
+		--set open-match-core.enabled=false \
+		--set open-match-customize.enabled=true \
+		--set open-match-customize.evaluator.enabled=true \
+		install/helm/open-match > install/yaml/07-open-match-default-evaluator.yaml
+
 install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-customize.enabled=true \
+		--set open-match-customize.function.enabled=true \
+		--set open-match-customize.evaluator.enabled=true \
 		--set open-match-demo.enabled=true \
 		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
