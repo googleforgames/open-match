@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Ugly workaround to split out MMF and evaluator
+# TODO: Reconsider helm chart structure and move things out after v0.8 release
+{{- if index .Values "evaluator" "enabled" }}
 kind: Service
 apiVersion: v1
 metadata:
@@ -95,3 +98,4 @@ spec:
         - name: http
           containerPort: {{ .Values.evaluator.httpPort }}
         {{- include "openmatch.container.common" . | nindent 8 }}
+{{- end }}
