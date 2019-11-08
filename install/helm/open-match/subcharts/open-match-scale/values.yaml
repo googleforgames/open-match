@@ -25,12 +25,14 @@ scaleBackend:
   image: openmatch-scale-backend
 
 configs:
-  om-configmap-default:
+  default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
+    configName: scale-configmap
   scale-configmap:
     volumeName: scale-config-volume
     mountPath: /app/config/override
+    configName: scale-configmap
 
 testConfig:
   profile: greedy

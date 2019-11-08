@@ -352,7 +352,8 @@ install-chart: install-chart-prerequisite install-demo build/toolchain/bin/helm$
 		--set open-match-customize.enabled=true \
 		--set open-match-customize.evaluator.enabled=true
 
-install-demo: OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-demo OPEN_MATCH_RELEASE_NAME=open-match-demo
+install-demo: OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-demo
+install-demo: OPEN_MATCH_RELEASE_NAME=open-match-demo
 install-demo: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	-$(KUBECTL) create namespace open-match-demo
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
@@ -407,6 +408,8 @@ install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		install/helm/open-match > install/yaml/01-open-match-core.yaml
 
+install/yaml/02-open-match-demo.yaml: OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-demo 
+install/yaml/02-open-match-demo.yaml: OPEN_MATCH_RELEASE_NAME=open-match-demo
 install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
@@ -414,6 +417,7 @@ install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-demo.enabled=true \
 		--set open-match-customize.enabled=true \
 		--set open-match-customize.function.enabled=true \
+		--set global.kubernetes.serviceAccount=open-match-demo-service \
 		install/helm/open-match > install/yaml/02-open-match-demo.yaml
 
 install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
