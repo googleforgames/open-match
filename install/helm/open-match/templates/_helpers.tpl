@@ -49,17 +49,17 @@ resources:
 {{- end -}}
 
 {{- define "openmatch.volumemounts.configs" -}}
-{{- range $configName, $configValues := .Values.configs }}
+{{- range $configIndex, $configValues := .configs }}
 - name: {{ $configValues.volumeName }}
   mountPath: {{ $configValues.mountPath }}
 {{- end }}
 {{- end -}}
 
 {{- define "openmatch.volumes.configs" -}}
-{{- range $configName, $configValues := .Values.configs }}
+{{- range $configIndex, $configValues := .configs }}
 - name: {{ $configValues.volumeName }}
   configMap:
-    name: {{ $configName }}
+    name: {{ $configValues.configName }}
 {{- end }}
 {{- end -}}
 

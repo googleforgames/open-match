@@ -33,6 +33,8 @@ configs:
   om-configmap-default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
+    configName: om-configmap-default
   customize-configmap:
     volumeName: customize-config-volume
     mountPath: /app/config/override
+    configName: customize-configmap

@@ -31,6 +31,7 @@ spec:
       automountServiceAccountToken: true
       containers:
       - image: "{{ .Values.global.image.registry }}/{{ .Values.e2etest.image }}:{{ .Values.global.image.tag }}"
+        imagePullPolicy: Always
         name: e2e-job
         env:
         - name: NAMESPACE
