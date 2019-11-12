@@ -1,5 +1,6 @@
 ![Open Match](https://github.com/googleforgames/open-match-docs/blob/master/site/static/images/logo-with-name.png)
 
+
 [![GoDoc](https://godoc.org/open-match.dev/open-match?status.svg)](https://godoc.org/open-match.dev/open-match)
 [![Go Report Card](https://goreportcard.com/badge/open-match.dev/open-match)](https://goreportcard.com/report/open-match.dev/open-match)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/googleforgames/open-match/blob/master/LICENSE)
