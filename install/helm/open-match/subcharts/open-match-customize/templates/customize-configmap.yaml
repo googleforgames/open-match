@@ -37,5 +37,5 @@ data:
   matchmaker_config_override.yaml: |-
     api:
       mmlogic:
-        hostname: "{{ .Values.mmlogic.hostName }}.open-match.svc.cluster.local"
+        hostname: "{{ .Values.mmlogic.hostName }}.{{ .Release.Namespace }}.svc.cluster.local"
         grpcport: "{{ .Values.mmlogic.grpcPort }}"
