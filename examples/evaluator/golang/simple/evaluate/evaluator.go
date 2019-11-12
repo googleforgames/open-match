@@ -69,7 +69,8 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 	sort.Sort(byScore(matches))
 
 	d := decollider{
-		ticketsUsed: map[string]struct{}{},
+		ticketsUsed: make(map[string]*collidingMatch),
+		logger:      p.Logger,
 	}
 
 	for _, m := range matches {
@@ -79,20 +80,36 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 	return d.results, nil
 }
 
+type collidingMatch struct {
+	id    string
+	score float64
+}
+
 type decollider struct {
 	results     []*pb.Match
-	ticketsUsed map[string]struct{}
+	ticketsUsed map[string]*collidingMatch
+	logger      *logrus.Entry
 }
 
 func (d *decollider) maybeAdd(m *matchInp) {
 	for _, t := range m.match.GetTickets() {
-		if _, ok := d.ticketsUsed[t.Id]; ok {
+		if cm, ok := d.ticketsUsed[t.Id]; ok {
+			d.logger.WithFields(logrus.Fields{
+				"match_id":              m.match.GetMatchId(),
+				"ticket_id":             t.GetId(),
+				"match_score":           m.inp.GetScore(),
+				"colliding_match_id":    cm.id,
+				"colliding_match_score": cm.score,
+			}).Info("Higher quality match with colliding ticket found. Rejecting match.")
 			return
 		}
 	}
 
 	for _, t := range m.match.GetTickets() {
-		d.ticketsUsed[t.Id] = struct{}{}
+		d.ticketsUsed[t.Id] = &collidingMatch{
+			id:    m.match.GetMatchId(),
+			score: m.inp.GetScore(),
+		}
 	}
 
 	d.results = append(d.results, m.match)
