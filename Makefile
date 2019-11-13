@@ -317,8 +317,11 @@ build/chart/open-match-$(BASE_VERSION).tgz: build/toolchain/bin/helm$(EXE_EXTENS
 	$(HELM) package -d $(BUILD_DIR)/chart/ --version $(BASE_VERSION) $(REPOSITORY_ROOT)/install/helm/open-match
 
 build/chart/index.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) gcloud build/chart/open-match-$(BASE_VERSION).tgz
+	mkdir -p $(BUILD_DIR)/chart-index/
 	-gsutil cp gs://open-match-chart/chart/index.yaml $(BUILD_DIR)/chart-index/
-	$(HELM) repo index --merge $(BUILD_DIR)/chart/index.yaml $(BUILD_DIR)/chart/
+	-gsutil -m cp gs://open-match-chart/chart/open-match-* $(BUILD_DIR)/chart-index/
+	$(HELM) repo index $(BUILD_DIR)/chart-index/
+	$(HELM) repo index --merge $(BUILD_DIR)/chart-index/index.yaml $(BUILD_DIR)/chart/
 
 build/chart/index.yaml.$(YEAR_MONTH_DAY): build/chart/index.yaml
 	cp $(BUILD_DIR)/chart/index.yaml $(BUILD_DIR)/chart/index.yaml.$(YEAR_MONTH_DAY)
