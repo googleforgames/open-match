@@ -202,7 +202,7 @@ ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS) $(CSHARP_PROTOS)
 CMDS = $(notdir $(wildcard cmd/*))
 
 # Names of the individual images, ommiting the openmatch prefix.
-IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool mmf-go-rosterbased evaluator-go-simple reaper stress-frontend base-build
+IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool mmf-go-rosterbased evaluator-go-simple stress-frontend base-build
 
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
@@ -250,9 +250,6 @@ build-mmf-go-pool-image: docker build-base-build-image
 
 build-evaluator-go-simple-image: docker build-base-build-image
 	docker build -f examples/evaluator/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG) .
-
-build-reaper-image: docker build-base-build-image
-	docker build -f tools/reaper/Dockerfile -t $(REGISTRY)/openmatch-reaper:$(TAG) -t $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG) .
 
 build-stress-frontend-image: docker
 	docker build -f test/stress/Dockerfile -t $(REGISTRY)/openmatch-stress-frontend:$(TAG) -t $(REGISTRY)/openmatch-stress-frontend:$(ALTERNATE_TAG) .
@@ -884,7 +881,7 @@ else
 endif
 
 ci-reap-namespaces: build/toolchain/bin/reaper$(EXE_EXTENSION)
-	$(TOOLCHAIN_BIN)/reaper -age=30m
+	-$(TOOLCHAIN_BIN)/reaper -age=30m
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: GOLANG_TEST_COUNT = 5
@@ -940,7 +937,7 @@ clean-binaries:
 clean-terraform:
 	rm -rf $(REPOSITORY_ROOT)/install/terraform/.terraform/
 
-clean-build: clean-toolchain clean-archives clean-release clean-chart
+clean-build: clean-toolchain clean-release clean-chart
 	rm -rf $(BUILD_DIR)/
 
 clean-release:
@@ -951,9 +948,6 @@ clean-toolchain:
 
 clean-chart:
 	rm -rf $(BUILD_DIR)/chart/
-
-clean-archives:
-	rm -rf $(BUILD_DIR)/archives/
 
 clean-install-yaml:
 	rm -f $(REPOSITORY_ROOT)/install/yaml/*
@@ -1074,12 +1068,6 @@ sync-deps:
 	$(GO) clean -modcache
 	$(GO) mod download
 
-sleep-10:
-	sleep 10
-
-sleep-30:
-	sleep 30
-
 # Prevents users from running with sudo.
 # There's an exception for Google Cloud Build because it runs as root.
 no-sudo:
@@ -1092,4 +1080,4 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
-.PHONY: docker gcloud update-deps sync-deps sleep-10 sleep-30 all build proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-reap-namespaces md-test vet
+.PHONY: docker gcloud update-deps sync-deps all build proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-binaries clean-protos presubmit test ci-reap-namespaces md-test vet
