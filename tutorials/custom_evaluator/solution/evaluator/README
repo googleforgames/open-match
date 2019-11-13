@@ -1,0 +1,25 @@
+This folder provides a sample Evaluator for Open Match Matchmaker 101 Tutorial.
+<TODO - Update the README with details of the Evaluator and the steps that need
+to be run before executing the commamds below>
+
+Run the below steps in this folder to set up the Evaluator.
+
+Step1: Specify your Registry URL.
+```
+REGISTRY=[YOUR_REGISTRY_URL]
+```
+
+Step2: Build the Evaluator image.
+```
+docker build -t $REGISTRY/custom-eval-tutorial-evaluator .
+```
+
+Step3: Push the Evaluator image to the configured Registry.
+```
+docker push $REGISTRY/custom-eval-tutorial-evaluator
+```
+
+Step4: Update the install yaml for your setup.
+```
+sed "s|REGISTRY_PLACEHOLDER|$REGISTRY|g" evaluator.yaml | kubectl apply -f -
+```
