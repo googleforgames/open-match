@@ -30,6 +30,9 @@ func makeTicket() *pb.Ticket {
 			Tags: []string{
 				gameMode(),
 			},
+			StringArgs: map[string]string{
+				"attributes.role": role(),
+			},
 		},
 	}
 
@@ -39,4 +42,9 @@ func makeTicket() *pb.Ticket {
 func gameMode() string {
 	modes := []string{"mode.demo", "mode.ctf", "mode.battleroyale"}
 	return modes[rand.Intn(len(modes))]
+}
+
+func role() string {
+	roles := []string{"role.dps", "role.support", "role.tank"}
+	return roles[rand.Intn(len(roles))]
 }

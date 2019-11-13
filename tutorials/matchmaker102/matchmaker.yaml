@@ -19,23 +19,60 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: mm101-tutorial-director
-  namespace: mm101-tutorial
+  name: mm102-tutorial-director
+  namespace: mm102-tutorial
 spec:
   containers:
-  - name: mm101-tutorial-director
-    image: REGISTRY_PLACEHOLDER/mm101-tutorial-director:latest
+  - name: mm102-tutorial-director
+    image: REGISTRY_PLACEHOLDER/mm102-tutorial-director:latest
     imagePullPolicy: Always
-  hostname: mm101-tutorial-director
+  hostname: mm102-tutorial-director
 ---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: mm101-tutorial-frontend
-  namespace: mm101-tutorial
+  name: mm102-tutorial-frontend
+  namespace: mm102-tutorial
 spec:
   containers:
-  - name: mm101-tutorial-frontend
-    image: REGISTRY_PLACEHOLDER/mm101-tutorial-frontend:latest
+  - name: mm102-tutorial-frontend
+    image: REGISTRY_PLACEHOLDER/mm102-tutorial-frontend:latest
     imagePullPolicy: Always
-  hostname: mm101-tutorial-frontend
+  hostname: mm102-tutorial-frontend
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mm102-tutorial-matchfunction
+  namespace: mm102-tutorial
+  labels:
+    app: mm102-tutorial
+    component: matchfunction
+spec:
+  containers:
+  - name: mm102-tutorial-matchfunction
+    image: REGISTRY_PLACEHOLDER/mm102-tutorial-matchfunction:latest
+    imagePullPolicy: Always
+    ports:
+    - name: grpc
+      containerPort: 50502
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: mm102-tutorial-matchfunction
+  namespace: mm102-tutorial
+  labels:
+    app: mm102-tutorial
+    component: matchfunction
+spec:
+  selector:
+    app: mm102-tutorial
+    component: matchfunction
+  clusterIP: None
+  type: ClusterIP
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: 50502
+---
