@@ -12,38 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This file contains the sample minimal pod definitions for all of the components that one may need to use Open Match as a match maker.
+# You can find the same pod definitions within the sub-folders under the /tutorials/ directory
+# Run `kubectl apply -f matchmaker.yaml` to deploy these definitions.
+
 apiVersion: v1
 kind: Pod
 metadata:
-  name: mm102-tutorial-matchfunction
+  name: mm102-tutorial-director
   namespace: mm102-tutorial
-  labels:
-    app: mm102-tutorial
-    component: matchfunction
 spec:
   containers:
-  - name: mm102-tutorial-matchfunction
-    image: REGISTRY_PLACEHOLDER/mm102-tutorial-matchfunction:latest
+  - name: mm102-tutorial-director
+    image: REGISTRY_PLACEHOLDER/mm102-tutorial-director:latest
     imagePullPolicy: Always
-    ports:
-    - name: grpc
-      containerPort: 50502
+  hostname: mm102-tutorial-director
 ---
-kind: Service
 apiVersion: v1
+kind: Pod
 metadata:
-  name: mm102-tutorial-matchfunction
+  name: mm102-tutorial-frontend
   namespace: mm102-tutorial
-  labels:
-    app: mm102-tutorial
-    component: matchfunction
 spec:
-  selector:
-    app: mm102-tutorial
-    component: matchfunction
-  clusterIP: None
-  type: ClusterIP
-  ports:
-  - name: grpc
-    protocol: TCP
-    port: 50502
+  containers:
+  - name: mm102-tutorial-frontend
+    image: REGISTRY_PLACEHOLDER/mm102-tutorial-frontend:latest
+    imagePullPolicy: Always
+  hostname: mm102-tutorial-frontend

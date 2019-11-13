@@ -15,6 +15,8 @@
 package main
 
 import (
+	"fmt"
+
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -22,21 +24,30 @@ import (
 func generateProfiles() []*pb.MatchProfile {
 	var profiles []*pb.MatchProfile
 	modes := []string{"mode.demo", "mode.ctf", "mode.battleroyale"}
+	roles := []string{"role.dps", "role.support", "role.tank"}
 	for _, mode := range modes {
-		profiles = append(profiles, &pb.MatchProfile{
-			Name: "mode_based_profile",
-			Pools: []*pb.Pool{
-				{
-					Name: "pool_mode_" + mode,
-					TagPresentFilters: []*pb.TagPresentFilter{
-						{
-							Tag: mode,
-						},
+		var pools []*pb.Pool
+		for _, role := range roles {
+			pools = append(pools, &pb.Pool{
+				Name: fmt.Sprintf("pool_%s_%s", mode, role),
+				TagPresentFilters: []*pb.TagPresentFilter{
+					{
+						Tag: mode,
 					},
 				},
-			},
-		},
-		)
+				StringEqualsFilters: []*pb.StringEqualsFilter{
+					{
+						StringArg: "attributes.role",
+						Value:     role,
+					},
+				},
+			})
+		}
+
+		profiles = append(profiles, &pb.MatchProfile{
+			Name:  "profile_" + mode,
+			Pools: pools,
+		})
 	}
 
 	return profiles
