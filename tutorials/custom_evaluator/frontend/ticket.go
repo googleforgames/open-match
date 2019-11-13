@@ -47,7 +47,7 @@ func gameModes() []string {
 	}
 
 	var result []string
-	for k, _ := range selected {
+	for k := range selected {
 		result = append(result, k)
 	}
 
