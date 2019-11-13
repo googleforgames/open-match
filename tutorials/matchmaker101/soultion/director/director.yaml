@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This file contains the sample minimal pod definitions for all of the components that one may need to use Open Match as a match maker.
-# You can find the same pod definitions within the sub-folders under the /tutorials/ directory
-# Run `kubectl apply -f matchmaker.yaml` to deploy these definitions.
-
 apiVersion: v1
 kind: Pod
 metadata:
@@ -27,15 +23,3 @@ spec:
     image: REGISTRY_PLACEHOLDER/mm101-tutorial-director:latest
     imagePullPolicy: Always
   hostname: mm101-tutorial-director
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: mm101-tutorial-frontend
-  namespace: mm101-tutorial
-spec:
-  containers:
-  - name: mm101-tutorial-frontend
-    image: REGISTRY_PLACEHOLDER/mm101-tutorial-frontend:latest
-    imagePullPolicy: Always
-  hostname: mm101-tutorial-frontend
