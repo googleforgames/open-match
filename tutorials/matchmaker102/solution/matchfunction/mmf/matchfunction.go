@@ -28,8 +28,8 @@ import (
 // a Match Proposal. It continues to generate proposals till one of the pools
 // runs out of Tickets.
 const (
-	matchName              = "basic-matchfunction"
-	ticketsPerPoolPerMatch = 4
+	matchName              = "multipool-matchfunction"
+	ticketsPerPoolPerMatch = 1
 )
 
 // Run is this match function's implementation of the gRPC call defined in api/matchfunction.proto.

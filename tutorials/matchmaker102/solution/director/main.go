@@ -66,7 +66,10 @@ func main() {
 					return
 				}
 
-				log.Printf("Generated %v matches for profile %v", len(matches), p.GetName())
+				for _, match := range matches {
+					log.Printf("Generated Match: %+v", match)
+				}
+
 				if err := assign(be, matches); err != nil {
 					log.Printf("Failed to assign servers to matches, got %w", err)
 					return
