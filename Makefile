@@ -335,6 +335,13 @@ HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --atomic --no-hooks --debug --timeout=
 HELM_TEMPLATE_FLAGS = --no-hooks --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --set usingHelmTemplate=true
 HELM_IMAGE_FLAGS = --set global.image.registry=$(REGISTRY) --set global.image.tag=$(TAG)
 
+install-demo: build/toolchain/bin/helm$(EXE_EXTENSION)
+	cp $(REPOSITORY_ROOT)/install/02-open-match-demo.yaml $(REPOSITORY_ROOT)/install/tmp-demo.yaml
+	$(SED_REPLACE) 's|gcr.io/open-match-public-images|$(REGISTRY)|g' $(REPOSITORY_ROOT)/install/tmp-demo.yaml
+	$(SED_REPLACE) 's|0.0.0-dev|$(TAG)|g' $(REPOSITORY_ROOT)/install/tmp-demo.yaml
+	$(KUBECTL) apply -f $(REPOSITORY_ROOT)/install/tmp-demo.yaml
+	rm $(REPOSITORY_ROOT)/install/tmp-demo.yaml
+
 # install-large-chart will install open-match-core, open-match-demo with the demo evaluator and mmf, and telemetry supports.
 install-large-chart: install-chart-prerequisite install-demo build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
@@ -351,17 +358,6 @@ install-chart: install-chart-prerequisite install-demo build/toolchain/bin/helm$
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set open-match-customize.enabled=true \
 		--set open-match-customize.evaluator.enabled=true
-
-install-demo: OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-demo
-install-demo: OPEN_MATCH_RELEASE_NAME=open-match-demo
-install-demo: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
-	-$(KUBECTL) create namespace open-match-demo
-	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
-		--set open-match-core.enabled=false \
-		--set open-match-demo.enabled=true \
-		--set open-match-customize.enabled=true \
-		--set open-match-customize.function.enabled=true \
-		--set global.kubernetes.serviceAccount=open-match-demo-service
 
 # install-scale-chart will wait for installing open-match-core with telemetry supports then install open-match-scale chart.
 install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
@@ -408,17 +404,11 @@ install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		install/helm/open-match > install/yaml/01-open-match-core.yaml
 
-install/yaml/02-open-match-demo.yaml: OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-demo 
-install/yaml/02-open-match-demo.yaml: OPEN_MATCH_RELEASE_NAME=open-match-demo
 install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
-		--set open-match-core.enabled=false \
-		--set open-match-demo.enabled=true \
-		--set open-match-customize.enabled=true \
-		--set open-match-customize.function.enabled=true \
-		--set global.kubernetes.serviceAccount=open-match-demo-service \
-		install/helm/open-match > install/yaml/02-open-match-demo.yaml
+	cp $(REPOSITORY_ROOT)/install/02-open-match-demo.yaml $(REPOSITORY_ROOT)/install/yaml/02-open-match-demo.yaml
+	$(SED_REPLACE) 's|0.0.0-dev|$(TAG)|g' $(REPOSITORY_ROOT)/install/yaml/02-open-match-demo.yaml
+	$(SED_REPLACE) 's|gcr.io/open-match-public-images|$(REGISTRY)|g' $(REPOSITORY_ROOT)/install/yaml/02-open-match-demo.yaml
 
 install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
@@ -464,9 +454,7 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-customize.enabled=true \
-		--set open-match-customize.function.enabled=true \
 		--set open-match-customize.evaluator.enabled=true \
-		--set open-match-demo.enabled=true \
 		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
