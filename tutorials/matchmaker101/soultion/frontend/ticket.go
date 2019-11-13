@@ -15,11 +15,28 @@
 package main
 
 import (
+	"math/rand"
+
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// generateProfiles generates test profiles for the matchmaker101 tutorial.
-func generateProfiles() []*pb.MatchProfile {
-	// Add logic to generate match profiles here.
-	return nil
+// Ticket generates a Ticket with a mode search field that has one of the
+// randomly selected modes.
+func makeTicket() *pb.Ticket {
+	ticket := &pb.Ticket{
+		SearchFields: &pb.SearchFields{
+			// Tags can support multiple values but for simplicity, the demo function
+			// assumes only single mode selection per Ticket.
+			Tags: []string{
+				gameMode(),
+			},
+		},
+	}
+
+	return ticket
+}
+
+func gameMode() string {
+	modes := []string{"mode.demo", "mode.ctf", "mode.battleroyale"}
+	return modes[rand.Intn(len(modes))]
 }

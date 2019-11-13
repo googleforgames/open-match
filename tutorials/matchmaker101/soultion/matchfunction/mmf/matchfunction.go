@@ -15,14 +15,21 @@
 package mmf
 
 import (
+	"fmt"
 	"log"
+	"time"
 
 	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
 )
 
+// This match function fetches all the Tickets for all the pools specified in
+// the profile. It uses a configured number of tickets from each pool to generate
+// a Match Proposal. It continues to generate proposals till one of the pools
+// runs out of Tickets.
 const (
-	matchName = "basic-matchfunction"
+	matchName              = "basic-matchfunction"
+	ticketsPerPoolPerMatch = 4
 )
 
 // Run is this match function's implementation of the gRPC call defined in api/matchfunction.proto.
@@ -56,6 +63,36 @@ func (s *MatchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 }
 
 func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
-	// Add logic to parse the pool tickets and generate matches here.
-	return nil, nil
+	var matches []*pb.Match
+	count := 0
+	for {
+		insufficientTickets := false
+		matchTickets := []*pb.Ticket{}
+		for pool, tickets := range poolTickets {
+			if len(tickets) < ticketsPerPoolPerMatch {
+				// This pool is completely drained out. Stop creating matches.
+				insufficientTickets = true
+				break
+			}
+
+			// Remove the Tickets from this pool and add to the match proposal.
+			matchTickets = append(matchTickets, tickets[0:ticketsPerPoolPerMatch]...)
+			poolTickets[pool] = tickets[ticketsPerPoolPerMatch:]
+		}
+
+		if insufficientTickets {
+			break
+		}
+
+		matches = append(matches, &pb.Match{
+			MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), count),
+			MatchProfile:  p.GetName(),
+			MatchFunction: matchName,
+			Tickets:       matchTickets,
+		})
+
+		count++
+	}
+
+	return matches, nil
 }
