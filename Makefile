@@ -726,7 +726,7 @@ test: $(ALL_PROTOS) tls-certs third_party/
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
 test-e2e-cluster: all-protos tls-certs third_party/
-	-$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 200s
+	-$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 300s
 	$(KUBECTL) logs job/e2e-job -n $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 	$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 0
 
