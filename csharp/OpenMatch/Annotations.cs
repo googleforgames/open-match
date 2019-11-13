@@ -26,8 +26,8 @@ namespace Grpc.Gateway.ProtocGenSwagger.Options {
           string.Concat(
             "Cjh0aGlyZF9wYXJ0eS9wcm90b2MtZ2VuLXN3YWdnZXIvb3B0aW9ucy9hbm5v",
             "dGF0aW9ucy5wcm90bxInZ3JwYy5nYXRld2F5LnByb3RvY19nZW5fc3dhZ2dl",
-            "ci5vcHRpb25zGipwcm90b2MtZ2VuLXN3YWdnZXIvb3B0aW9ucy9vcGVuYXBp",
-            "djIucHJvdG8aIGdvb2dsZS9wcm90b2J1Zi9kZXNjcmlwdG9yLnByb3RvOmoK",
+            "ci5vcHRpb25zGiBnb29nbGUvcHJvdG9idWYvZGVzY3JpcHRvci5wcm90bxoq",
+            "cHJvdG9jLWdlbi1zd2FnZ2VyL29wdGlvbnMvb3BlbmFwaXYyLnByb3RvOmoK",
             "EW9wZW5hcGl2Ml9zd2FnZ2VyEhwuZ29vZ2xlLnByb3RvYnVmLkZpbGVPcHRp",
             "b25zGJIIIAEoCzIwLmdycGMuZ2F0ZXdheS5wcm90b2NfZ2VuX3N3YWdnZXIu",
             "b3B0aW9ucy5Td2FnZ2VyOnAKE29wZW5hcGl2Ml9vcGVyYXRpb24SHi5nb29n",
@@ -43,7 +43,7 @@ namespace Grpc.Gateway.ProtocGenSwagger.Options {
             "YUJDWkFnaXRodWIuY29tL2dycGMtZWNvc3lzdGVtL2dycGMtZ2F0ZXdheS9w",
             "cm90b2MtZ2VuLXN3YWdnZXIvb3B0aW9uc2IGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::Grpc.Gateway.ProtocGenSwagger.Options.Openapiv2Reflection.Descriptor, pbr::FileDescriptor.DescriptorProtoFileDescriptor, },
+          new pbr::FileDescriptor[] { pbr::FileDescriptor.DescriptorProtoFileDescriptor, global::Grpc.Gateway.ProtocGenSwagger.Options.Openapiv2Reflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null));
     }
     #endregion

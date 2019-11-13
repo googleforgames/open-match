@@ -128,7 +128,7 @@ namespace OpenMatch {
 
     /// <summary>Field number for the "type" field.</summary>
     public const int TypeFieldNumber = 3;
-    private global::OpenMatch.FunctionConfig.Types.Type type_ = 0;
+    private global::OpenMatch.FunctionConfig.Types.Type type_ = global::OpenMatch.FunctionConfig.Types.Type.Grpc;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public global::OpenMatch.FunctionConfig.Types.Type Type {
       get { return type_; }
@@ -161,7 +161,7 @@ namespace OpenMatch {
       int hash = 1;
       if (Host.Length != 0) hash ^= Host.GetHashCode();
       if (Port != 0) hash ^= Port.GetHashCode();
-      if (Type != 0) hash ^= Type.GetHashCode();
+      if (Type != global::OpenMatch.FunctionConfig.Types.Type.Grpc) hash ^= Type.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -183,7 +183,7 @@ namespace OpenMatch {
         output.WriteRawTag(16);
         output.WriteInt32(Port);
       }
-      if (Type != 0) {
+      if (Type != global::OpenMatch.FunctionConfig.Types.Type.Grpc) {
         output.WriteRawTag(24);
         output.WriteEnum((int) Type);
       }
@@ -201,7 +201,7 @@ namespace OpenMatch {
       if (Port != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(Port);
       }
-      if (Type != 0) {
+      if (Type != global::OpenMatch.FunctionConfig.Types.Type.Grpc) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Type);
       }
       if (_unknownFields != null) {
@@ -221,7 +221,7 @@ namespace OpenMatch {
       if (other.Port != 0) {
         Port = other.Port;
       }
-      if (other.Type != 0) {
+      if (other.Type != global::OpenMatch.FunctionConfig.Types.Type.Grpc) {
         Type = other.Type;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);

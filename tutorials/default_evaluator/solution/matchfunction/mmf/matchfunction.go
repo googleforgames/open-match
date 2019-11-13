@@ -16,10 +16,10 @@ package mmf
 
 import (
 	"fmt"
-	"log"
-	"time"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"log"
+	"time"
 
 	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"

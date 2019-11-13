@@ -3362,7 +3362,7 @@ namespace Grpc.Gateway.ProtocGenSwagger.Options {
 
     /// <summary>Field number for the "type" field.</summary>
     public const int TypeFieldNumber = 1;
-    private global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Type type_ = 0;
+    private global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Type type_ = global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Type.Invalid;
     /// <summary>
     /// Required. The type of the security scheme. Valid values are "basic",
     /// "apiKey" or "oauth2".
@@ -3407,7 +3407,7 @@ namespace Grpc.Gateway.ProtocGenSwagger.Options {
 
     /// <summary>Field number for the "in" field.</summary>
     public const int InFieldNumber = 4;
-    private global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.In in_ = 0;
+    private global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.In in_ = global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.In.Invalid;
     /// <summary>
     /// Required. The location of the API key. Valid values are "query" or "header".
     ///
@@ -3423,7 +3423,7 @@ namespace Grpc.Gateway.ProtocGenSwagger.Options {
 
     /// <summary>Field number for the "flow" field.</summary>
     public const int FlowFieldNumber = 5;
-    private global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Flow flow_ = 0;
+    private global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Flow flow_ = global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Flow.Invalid;
     /// <summary>
     /// Required. The flow used by the OAuth2 security scheme. Valid values are
     /// "implicit", "password", "application" or "accessCode".
@@ -3526,11 +3526,11 @@ namespace Grpc.Gateway.ProtocGenSwagger.Options {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override int GetHashCode() {
       int hash = 1;
-      if (Type != 0) hash ^= Type.GetHashCode();
+      if (Type != global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Type.Invalid) hash ^= Type.GetHashCode();
       if (Description.Length != 0) hash ^= Description.GetHashCode();
       if (Name.Length != 0) hash ^= Name.GetHashCode();
-      if (In != 0) hash ^= In.GetHashCode();
-      if (Flow != 0) hash ^= Flow.GetHashCode();
+      if (In != global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.In.Invalid) hash ^= In.GetHashCode();
+      if (Flow != global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Flow.Invalid) hash ^= Flow.GetHashCode();
       if (AuthorizationUrl.Length != 0) hash ^= AuthorizationUrl.GetHashCode();
       if (TokenUrl.Length != 0) hash ^= TokenUrl.GetHashCode();
       if (scopes_ != null) hash ^= Scopes.GetHashCode();
@@ -3548,7 +3548,7 @@ namespace Grpc.Gateway.ProtocGenSwagger.Options {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public void WriteTo(pb::CodedOutputStream output) {
-      if (Type != 0) {
+      if (Type != global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Type.Invalid) {
         output.WriteRawTag(8);
         output.WriteEnum((int) Type);
       }
@@ -3560,11 +3560,11 @@ namespace Grpc.Gateway.ProtocGenSwagger.Options {
         output.WriteRawTag(26);
         output.WriteString(Name);
       }
-      if (In != 0) {
+      if (In != global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.In.Invalid) {
         output.WriteRawTag(32);
         output.WriteEnum((int) In);
       }
-      if (Flow != 0) {
+      if (Flow != global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Flow.Invalid) {
         output.WriteRawTag(40);
         output.WriteEnum((int) Flow);
       }
@@ -3589,7 +3589,7 @@ namespace Grpc.Gateway.ProtocGenSwagger.Options {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public int CalculateSize() {
       int size = 0;
-      if (Type != 0) {
+      if (Type != global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Type.Invalid) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Type);
       }
       if (Description.Length != 0) {
@@ -3598,10 +3598,10 @@ namespace Grpc.Gateway.ProtocGenSwagger.Options {
       if (Name.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Name);
       }
-      if (In != 0) {
+      if (In != global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.In.Invalid) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) In);
       }
-      if (Flow != 0) {
+      if (Flow != global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Flow.Invalid) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Flow);
       }
       if (AuthorizationUrl.Length != 0) {
@@ -3625,7 +3625,7 @@ namespace Grpc.Gateway.ProtocGenSwagger.Options {
       if (other == null) {
         return;
       }
-      if (other.Type != 0) {
+      if (other.Type != global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Type.Invalid) {
         Type = other.Type;
       }
       if (other.Description.Length != 0) {
@@ -3634,10 +3634,10 @@ namespace Grpc.Gateway.ProtocGenSwagger.Options {
       if (other.Name.Length != 0) {
         Name = other.Name;
       }
-      if (other.In != 0) {
+      if (other.In != global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.In.Invalid) {
         In = other.In;
       }
-      if (other.Flow != 0) {
+      if (other.Flow != global::Grpc.Gateway.ProtocGenSwagger.Options.SecurityScheme.Types.Flow.Invalid) {
         Flow = other.Flow;
       }
       if (other.AuthorizationUrl.Length != 0) {
