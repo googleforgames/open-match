@@ -24,6 +24,13 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+var (
+	logger = logrus.WithFields(logrus.Fields{
+		"app":       "evaluator",
+		"component": "evaluator.default",
+	})
+)
+
 type matchInp struct {
 	match *pb.Match
 	inp   *pb.DefaultEvaluationCriteria
@@ -45,7 +52,7 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 		if a, ok := m.Extensions["evaluation_input"]; ok {
 			err := ptypes.UnmarshalAny(a, inp)
 			if err != nil {
-				p.Logger.WithFields(logrus.Fields{
+				logger.WithFields(logrus.Fields{
 					"match_id": m.MatchId,
 					"error":    err,
 				}).Error("Failed to unmarshal match's DefaultEvaluationCriteria.  Rejecting match.")
@@ -61,7 +68,7 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 	}
 
 	if nilEvlautionInputs > 0 {
-		p.Logger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"count": nilEvlautionInputs,
 		}).Info("Some matches don't have the optional field evaluation_input set.")
 	}
@@ -70,7 +77,6 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 
 	d := decollider{
 		ticketsUsed: make(map[string]*collidingMatch),
-		logger:      p.Logger,
 	}
 
 	for _, m := range matches {
@@ -88,13 +94,12 @@ type collidingMatch struct {
 type decollider struct {
 	results     []*pb.Match
 	ticketsUsed map[string]*collidingMatch
-	logger      *logrus.Entry
 }
 
 func (d *decollider) maybeAdd(m *matchInp) {
 	for _, t := range m.match.GetTickets() {
 		if cm, ok := d.ticketsUsed[t.Id]; ok {
-			d.logger.WithFields(logrus.Fields{
+			logger.WithFields(logrus.Fields{
 				"match_id":              m.match.GetMatchId(),
 				"ticket_id":             t.GetId(),
 				"match_score":           m.inp.GetScore(),
