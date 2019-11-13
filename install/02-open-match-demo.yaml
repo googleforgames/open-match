@@ -1,0 +1,182 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: open-match-demo
+  labels:
+    app: open-match-demo
+    release: open-match-demo
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: customize-configmap
+  namespace: open-match-demo
+  labels:
+    app: open-match-customize
+    component: config
+    release: open-match-demo
+data:
+  matchmaker_config_default.yaml: |-
+    api:
+      functions:
+        hostname: "om-function"
+        grpcport: 50502
+        httpport: 51502
+  matchmaker_config_override.yaml: |-
+    api:
+      mmlogic:
+        hostname: "om-mmlogic.open-match.svc.cluster.local"
+        grpcport: "50503"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-function
+  namespace: open-match-demo
+  labels:
+    app: open-match-customize
+    component: matchfunction
+    release: open-match-demo
+spec:
+  selector:
+    app: open-match-customize
+    component: matchfunction
+    release: open-match-demo
+  clusterIP: None
+  type: ClusterIP
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: 50502
+  - name: http
+    protocol: TCP
+    port: 51502
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-demo
+  namespace: open-match-demo
+  labels:
+    app: open-match-demo
+    component: demo
+    release: open-match-demo
+spec:
+  selector:
+    app: open-match-demo
+    component: demo
+  type: ClusterIP
+  ports:
+  - name: http
+    protocol: TCP
+    port: 51507
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: om-function
+  namespace: open-match-demo
+  labels:
+    app: open-match-customize
+    component: matchfunction
+    release: open-match-demo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: open-match-customize
+      component: matchfunction
+  template:
+    metadata:
+      namespace: open-match-demo
+      labels:
+        app: open-match-customize
+        component: matchfunction
+        release: open-match-demo
+    spec:
+      volumes:
+        - name: customize-config-volume
+          configMap:
+            name: customize-configmap
+        - name: om-config-volume-default
+          configMap:
+            name: customize-configmap
+      containers:
+      - name: om-function
+        volumeMounts:
+          - name: customize-config-volume
+            mountPath: /app/config/override
+          - name: om-config-volume-default
+            mountPath: /app/config/default
+        image: "gcr.io/open-match-public-images/openmatch-mmf-go-soloduel:0.0.0-dev"
+        ports:
+        - name: grpc
+          containerPort: 50502
+        - name: http
+          containerPort: 51502
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: om-demo
+  namespace: open-match-demo
+  labels:
+    app: open-match-demo
+    component: demo
+    release: open-match-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: open-match-demo
+      component: demo
+  template:
+    metadata:
+      namespace: open-match-demo
+      labels:
+        app: open-match-demo
+        component: demo
+        release: open-match-demo
+    spec:
+      containers:
+      - name: om-demo
+        image: "gcr.io/open-match-public-images/openmatch-demo-first-match:0.0.0-dev"
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 51507
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /healthz
+            port: 51507
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /healthz?readiness=true
+            port: 51507
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 2
