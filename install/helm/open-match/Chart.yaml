@@ -21,10 +21,6 @@ dependencies:
     version: 9.5.0
     repository: https://kubernetes-charts.storage.googleapis.com/
     condition: open-match-core.enabled
-  - name: open-match-demo
-    version: 0.0.0-dev
-    condition: open-match-demo.enabled
-    repository: "file://./subcharts/open-match-demo"
   - name: open-match-telemetry
     version: 0.0.0-dev
     condition: open-match-telemetry.enabled
