@@ -43,7 +43,7 @@ func gameModes() []string {
 	modes := []string{"mode.demo", "mode.ctf", "mode.battleroyale", "mode.2v2"}
 	count := rand.Intn(2) + 1
 	selected := make(map[string]bool)
-	for i:=0; i<count; i++ {
+	for i := 0; i < count; i++ {
 		mode := modes[rand.Intn(len(modes))]
 		if !selected[mode] {
 			selected[mode] = true
@@ -51,7 +51,7 @@ func gameModes() []string {
 	}
 
 	var result []string
-	for k, _ := range selected {
+	for k := range selected {
 		result = append(result, k)
 	}
 
