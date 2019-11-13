@@ -24,6 +24,13 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+var (
+	logger = logrus.WithFields(logrus.Fields{
+		"app":       "evaluator",
+		"component": "evaluator.default",
+	})
+)
+
 type matchInp struct {
 	match *pb.Match
 	inp   *pb.DefaultEvaluationCriteria
@@ -45,7 +52,7 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 		if a, ok := m.Extensions["evaluation_input"]; ok {
 			err := ptypes.UnmarshalAny(a, inp)
 			if err != nil {
-				p.Logger.WithFields(logrus.Fields{
+				logger.WithFields(logrus.Fields{
 					"match_id": m.MatchId,
 					"error":    err,
 				}).Error("Failed to unmarshal match's DefaultEvaluationCriteria.  Rejecting match.")
@@ -61,7 +68,7 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 	}
 
 	if nilEvlautionInputs > 0 {
-		p.Logger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"count": nilEvlautionInputs,
 		}).Info("Some matches don't have the optional field evaluation_input set.")
 	}
@@ -69,7 +76,7 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 	sort.Sort(byScore(matches))
 
 	d := decollider{
-		ticketsUsed: map[string]struct{}{},
+		ticketsUsed: make(map[string]*collidingMatch),
 	}
 
 	for _, m := range matches {
@@ -79,20 +86,35 @@ func Evaluate(p *harness.EvaluatorParams) ([]*pb.Match, error) {
 	return d.results, nil
 }
 
+type collidingMatch struct {
+	id    string
+	score float64
+}
+
 type decollider struct {
 	results     []*pb.Match
-	ticketsUsed map[string]struct{}
+	ticketsUsed map[string]*collidingMatch
 }
 
 func (d *decollider) maybeAdd(m *matchInp) {
 	for _, t := range m.match.GetTickets() {
-		if _, ok := d.ticketsUsed[t.Id]; ok {
+		if cm, ok := d.ticketsUsed[t.Id]; ok {
+			logger.WithFields(logrus.Fields{
+				"match_id":              m.match.GetMatchId(),
+				"ticket_id":             t.GetId(),
+				"match_score":           m.inp.GetScore(),
+				"colliding_match_id":    cm.id,
+				"colliding_match_score": cm.score,
+			}).Info("Higher quality match with colliding ticket found. Rejecting match.")
 			return
 		}
 	}
 
 	for _, t := range m.match.GetTickets() {
-		d.ticketsUsed[t.Id] = struct{}{}
+		d.ticketsUsed[t.Id] = &collidingMatch{
+			id:    m.match.GetMatchId(),
+			score: m.inp.GetScore(),
+		}
 	}
 
 	d.results = append(d.results, m.match)
