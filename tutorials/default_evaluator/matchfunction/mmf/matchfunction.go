@@ -100,7 +100,7 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 }
 
 func scoreCalculator(tickets []*pb.Ticket) float64 {
-  matchScore := 0.0
-  // Add your logic to compute the score for this Match here
-  return matchScore
+	matchScore := 0.0
+	// Add your logic to compute the score for this Match here
+	return matchScore
 }

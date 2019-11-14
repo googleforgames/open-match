@@ -13,10 +13,10 @@
 # limitations under the License.
 
 apiVersion: v2
-appVersion: "0.0.0-dev"
+appVersion: "0.8.0"
 description: A chart to deploy telemetry support for Open Match
 name: open-match-telemetry
-version: 0.0.0-dev
+version: 0.8.0
 dependencies:
   - name: prometheus
     version: 9.2.0

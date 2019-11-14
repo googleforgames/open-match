@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <PackageId>OpenMatch</PackageId>
-    <Version>0.0.0-dev</Version>
+    <Version>0.8.0</Version>
     <Authors>Google LLC</Authors>
     <Company>Google LLC</Company>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
