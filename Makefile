@@ -689,6 +689,12 @@ pkg/pb/%.pb.gw.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTE
    		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)/build/prototmp
 	mv $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/$@ $@
 
+gen-proto:
+	$(REPOSITORY_ROOT)/test/proto/generate-protos.sh
+
+cmp-proto:
+	$(REPOSITORY_ROOT)/test/proto/compare-protos.sh
+
 api/%.swagger.json: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
