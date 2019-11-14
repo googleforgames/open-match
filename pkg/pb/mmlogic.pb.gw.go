@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/golang/protobuf/descriptor"
 	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/grpc-ecosystem/grpc-gateway/utilities"
@@ -22,11 +23,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// Suppress "imported and not used" errors
 var _ codes.Code
 var _ io.Reader
 var _ status.Status
 var _ = runtime.String
 var _ = utilities.NewDoubleArray
+var _ = descriptor.ForMessage
 
 func request_MmLogic_QueryTickets_0(ctx context.Context, marshaler runtime.Marshaler, client MmLogicClient, req *http.Request, pathParams map[string]string) (MmLogic_QueryTicketsClient, runtime.ServerMetadata, error) {
 	var protoReq QueryTicketsRequest
@@ -51,6 +54,21 @@ func request_MmLogic_QueryTickets_0(ctx context.Context, marshaler runtime.Marsh
 	metadata.HeaderMD = header
 	return stream, metadata, nil
 
+}
+
+// RegisterMmLogicHandlerServer registers the http handlers for service MmLogic to "mux".
+// UnaryRPC     :call MmLogicServer directly.
+// StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
+func RegisterMmLogicHandlerServer(ctx context.Context, mux *runtime.ServeMux, server MmLogicServer) error {
+
+	mux.Handle("POST", pattern_MmLogic_QueryTickets_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
+		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+		return
+	})
+
+	return nil
 }
 
 // RegisterMmLogicHandlerFromEndpoint is same as RegisterMmLogicHandler but

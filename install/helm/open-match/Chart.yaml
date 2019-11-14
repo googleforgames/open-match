@@ -12,10 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: v1
-appVersion: "0.8.0-rc.1"
-version: 0.8.0-rc.1
+apiVersion: v2
+appVersion: "0.8.0"
+version: 0.8.0
 name: open-match
+dependencies:
+  - name: redis
+    version: 9.5.0
+    repository: https://kubernetes-charts.storage.googleapis.com/
+    condition: open-match-core.enabled
+  - name: open-match-telemetry
+    version: 0.8.0
+    condition: open-match-telemetry.enabled
+    repository: "file://./subcharts/open-match-telemetry"
+  - name: open-match-customize
+    version: 0.8.0
+    condition: open-match-customize.enabled
+    repository: "file://./subcharts/open-match-customize"
+  - name: open-match-test
+    version: 0.8.0
+    condition: open-match-test.enabled
+    repository: "file://./subcharts/open-match-test"
+  - name: open-match-scale
+    version: 0.8.0
+    condition: open-match-scale.enabled
+    repository: "file://./subcharts/open-match-scale"
 description: Flexible, extensible, and scalable video game matchmaking.
 keywords:
   - kubernetes
@@ -33,4 +54,3 @@ maintainers:
    url: https://groups.google.com/forum/#!forum/open-match-discuss
 engine: gotpl
 icon: https://open-match.dev/site/images/logo.svg
-tillerVersion: ">2.10.0"

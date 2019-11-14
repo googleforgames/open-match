@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: v1
-appVersion: "1.0"
+apiVersion: v2
+appVersion: "0.8.0"
 description: A Helm chart for Kubernetes
 name: open-match-scale
-version: 0.0.0-dev
+version: 0.8.0

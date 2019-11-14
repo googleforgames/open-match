@@ -17,20 +17,39 @@
 # Declare variables to be passed into your templates.
 
 function:
+  enabled: false
   replicas: 3
   portType: ClusterIP
   image: openmatch-mmf-go-soloduel
 
 evaluator:
+  enabled: false
   replicas: 3
   portType: ClusterIP
   image: openmatch-evaluator-go-simple
 
-configs:
+evaluatorConfigs: 
+  # We use harness to implement the MMFs. MMF itself only requires one configmap but harness expects two,
+  # so we mount the same configmap twice to bypass this restriction.
   # TODO: Remove this bit after deprecating the harness dependency on configmap
-  om-configmap-default:
+  default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
-  customize-configmap:
+    configName: customize-configmap
+  customize:
     volumeName: customize-config-volume
     mountPath: /app/config/override
+    configName: customize-configmap
+
+mmfConfigs:
+  # We use harness to implement the MMFs. MMF itself only requires one configmap but harness expects two,
+  # so we mount the same configmap twice to bypass this restriction.
+  # TODO: Remove this bit after deprecating the harness dependency on configmap
+  default:
+    volumeName: om-config-volume-default
+    mountPath: /app/config/default
+    configName: customize-configmap
+  customize:
+    volumeName: customize-config-volume
+    mountPath: /app/config/override
+    configName: customize-configmap

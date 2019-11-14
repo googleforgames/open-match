@@ -34,7 +34,7 @@ const (
 	// The endpoint for the Open Match Backend service.
 	omBackendEndpoint = "om-backend.open-match.svc.cluster.local:50505"
 	// The Host and Port for the Match Function service endpoint.
-	functionHostName       = "mm101-tutorial-matchfunction.mm101-tutorial.svc.cluster.local"
+	functionHostName       = "mm102-tutorial-matchfunction.mm102-tutorial.svc.cluster.local"
 	functionPort     int32 = 50502
 )
 
@@ -66,10 +66,7 @@ func main() {
 					return
 				}
 
-				for _, match := range matches {
-					log.Printf("Generated Match: %+v", match)
-				}
-
+				log.Printf("Generated %v matches for profile %v", len(matches), p.GetName())
 				if err := assign(be, matches); err != nil {
 					log.Printf("Failed to assign servers to matches, got %w", err)
 					return

@@ -52,7 +52,7 @@
 # If you want information on how to edit this file checkout,
 # http://makefiletutorial.com/
 
-BASE_VERSION = 0.8.0-rc.1
+BASE_VERSION = 0.8.0
 SHORT_SHA = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(SHORT_SHA)
@@ -60,15 +60,15 @@ BUILD_DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 YEAR_MONTH = $(shell date -u +'%Y%m')
 YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
-PROTOC_VERSION = 3.8.0
-HELM_VERSION = 3.0.0-beta.5
-KUBECTL_VERSION = 1.14.3
+PROTOC_VERSION = 3.10.1
+HELM_VERSION = 3.0.0
+KUBECTL_VERSION = 1.16.2
 MINIKUBE_VERSION = latest
 GOLANGCI_VERSION = 1.18.0
-KIND_VERSION = 0.4.0
-SWAGGERUI_VERSION = 3.23.0
-TERRAFORM_VERSION = 0.12.3
-CHART_TESTING_VERSION = 2.3.3
+KIND_VERSION = 0.5.1
+SWAGGERUI_VERSION = 3.24.2
+TERRAFORM_VERSION = 0.12.13
+CHART_TESTING_VERSION = 2.4.0
 
 ENABLE_SECURITY_HARDENING = 0
 GO = GO111MODULE=on go
@@ -202,7 +202,7 @@ ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS) $(CSHARP_PROTOS)
 CMDS = $(notdir $(wildcard cmd/*))
 
 # Names of the individual images, ommiting the openmatch prefix.
-IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool mmf-go-rosterbased evaluator-go-simple reaper stress-frontend base-build
+IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool mmf-go-rosterbased evaluator-go-simple stress-frontend base-build
 
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
@@ -250,9 +250,6 @@ build-mmf-go-pool-image: docker build-base-build-image
 
 build-evaluator-go-simple-image: docker build-base-build-image
 	docker build -f examples/evaluator/golang/simple/Dockerfile -t $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG) .
-
-build-reaper-image: docker build-base-build-image
-	docker build -f tools/reaper/Dockerfile -t $(REGISTRY)/openmatch-reaper:$(TAG) -t $(REGISTRY)/openmatch-reaper:$(ALTERNATE_TAG) .
 
 build-stress-frontend-image: docker
 	docker build -f test/stress/Dockerfile -t $(REGISTRY)/openmatch-stress-frontend:$(TAG) -t $(REGISTRY)/openmatch-stress-frontend:$(ALTERNATE_TAG) .
@@ -317,8 +314,11 @@ build/chart/open-match-$(BASE_VERSION).tgz: build/toolchain/bin/helm$(EXE_EXTENS
 	$(HELM) package -d $(BUILD_DIR)/chart/ --version $(BASE_VERSION) $(REPOSITORY_ROOT)/install/helm/open-match
 
 build/chart/index.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) gcloud build/chart/open-match-$(BASE_VERSION).tgz
+	mkdir -p $(BUILD_DIR)/chart-index/
 	-gsutil cp gs://open-match-chart/chart/index.yaml $(BUILD_DIR)/chart-index/
-	$(HELM) repo index --merge $(BUILD_DIR)/chart/index.yaml $(BUILD_DIR)/chart/
+	-gsutil -m cp gs://open-match-chart/chart/open-match-* $(BUILD_DIR)/chart-index/
+	$(HELM) repo index $(BUILD_DIR)/chart-index/
+	$(HELM) repo index --merge $(BUILD_DIR)/chart-index/index.yaml $(BUILD_DIR)/chart/
 
 build/chart/index.yaml.$(YEAR_MONTH_DAY): build/chart/index.yaml
 	cp $(BUILD_DIR)/chart/index.yaml $(BUILD_DIR)/chart/index.yaml.$(YEAR_MONTH_DAY)
@@ -335,106 +335,127 @@ HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --atomic --no-hooks --debug --timeout=
 HELM_TEMPLATE_FLAGS = --no-hooks --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --set usingHelmTemplate=true
 HELM_IMAGE_FLAGS = --set global.image.registry=$(REGISTRY) --set global.image.tag=$(TAG)
 
-install-large-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
+install-demo: build/toolchain/bin/helm$(EXE_EXTENSION)
+	cp $(REPOSITORY_ROOT)/install/02-open-match-demo.yaml $(REPOSITORY_ROOT)/install/tmp-demo.yaml
+	$(SED_REPLACE) 's|gcr.io/open-match-public-images|$(REGISTRY)|g' $(REPOSITORY_ROOT)/install/tmp-demo.yaml
+	$(SED_REPLACE) 's|0.0.0-dev|$(TAG)|g' $(REPOSITORY_ROOT)/install/tmp-demo.yaml
+	$(KUBECTL) apply -f $(REPOSITORY_ROOT)/install/tmp-demo.yaml
+	rm $(REPOSITORY_ROOT)/install/tmp-demo.yaml
+
+# install-large-chart will install open-match-core, open-match-demo with the demo evaluator and mmf, and telemetry supports.
+install-large-chart: install-chart-prerequisite install-demo build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set open-match-telemetry.enabled=true \
+		--set open-match-customize.enabled=true \
+		--set open-match-customize.evaluator.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
 		--set global.logging.rpc.enabled=true
 
-install-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
-	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS)
-
-install-scale-chart: build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
+# install-chart will install open-match-core, open-match-demo, with the demo evaluator and mmf.
+install-chart: install-chart-prerequisite install-demo build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
-		--set open-match-core.enabled=true \
-		--set open-match-telemetry.enabled=true \
-		--set open-match-demo.enabled=false \
 		--set open-match-customize.enabled=true \
-		--set open-match-customize.function.image=openmatch-mmf-go-rosterbased\
+		--set open-match-customize.evaluator.enabled=true
+
+# install-scale-chart will wait for installing open-match-core with telemetry supports then install open-match-scale chart.
+install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
+	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
+		--set open-match-telemetry.enabled=true \
+		--set open-match-customize.enabled=true \
+		--set open-match-customize.function.enabled=true \
+		--set open-match-customize.evaluator.enabled=true \
+		--set open-match-customize.function.image=openmatch-mmf-go-rosterbased \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
-		--set open-match-scale.enabled=true \
 		--set global.logging.rpc.enabled=false
+	$(HELM) template $(OPEN_MATCH_RELEASE_NAME)-scale  install/helm/open-match $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
+		--set open-match-core.enabled=false \
+		--set open-match-scale.enabled=true \
+		--set global.logging.rpc.enabled=false | $(KUBECTL) apply -f -
 
+# install-ci-chart will install open-match-core with pool based mmf for end-to-end in-cluster test.
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	# Ignore errors result from reruning a failed build
 	-$(KUBECTL) create clusterrolebinding default-view-$(OPEN_MATCH_KUBERNETES_NAMESPACE) --clusterrole=view --serviceaccount=$(OPEN_MATCH_KUBERNETES_NAMESPACE):default
 	$(HELM) upgrade $(OPEN_MATCH_RELEASE_NAME) $(HELM_UPGRADE_FLAGS) install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set redis.ignoreLists.ttl=1000ms \
 		--set open-match-test.enabled=true \
-		--set open-match-demo.enabled=false \
+		--set open-match-customize.enabled=true \
+		--set open-match-customize.function.enabled=true \
+		--set open-match-customize.evaluator.enabled=true \
 		--set open-match-customize.function.image=openmatch-mmf-go-pool \
 		--set ci=true
 
-dry-chart: build/toolchain/bin/helm$(EXE_EXTENSION)
-	$(HELM) upgrade $(HELM_UPGRADE_FLAGS) --dry-run $(OPEN_MATCH_RELEASE_NAME) install/helm/open-match $(HELM_IMAGE_FLAGS)
-
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) uninstall $(OPEN_MATCH_RELEASE_NAME)
-	-$(KUBECTL) --ignore-not-found=true delete crd prometheuses.monitoring.coreos.com
-	-$(KUBECTL) --ignore-not-found=true delete crd servicemonitors.monitoring.coreos.com
-	-$(KUBECTL) --ignore-not-found=true delete crd prometheusrules.monitoring.coreos.com
+	-$(HELM) uninstall $(OPEN_MATCH_RELEASE_NAME)-demo
+	-$(KUBECTL) delete psp,clusterrole,clusterrolebinding --selector=release=open-match
+	-$(KUBECTL) delete psp,clusterrole,clusterrolebinding --selector=release=open-match-demo
 	-$(KUBECTL) delete namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
+	-$(KUBECTL) delete namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)-demo
 
-install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml install/yaml/06-open-match-override-configmap.yaml
+install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml install/yaml/06-open-match-override-configmap.yaml install/yaml/07-open-match-default-evaluator.yaml
 
 install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
-		--set open-match-customize.enabled=false \
-		--set open-match-telemetry.enabled=false \
-		--set open-match-demo.enabled=false \
 		install/helm/open-match > install/yaml/01-open-match-core.yaml
 
 install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
-	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
-		--set open-match-core.enabled=false \
-		--set open-match-telemetry.enabled=false \
-		install/helm/open-match > install/yaml/02-open-match-demo.yaml
+	cp $(REPOSITORY_ROOT)/install/02-open-match-demo.yaml $(REPOSITORY_ROOT)/install/yaml/02-open-match-demo.yaml
+	$(SED_REPLACE) 's|0.0.0-dev|$(TAG)|g' $(REPOSITORY_ROOT)/install/yaml/02-open-match-demo.yaml
+	$(SED_REPLACE) 's|gcr.io/open-match-public-images|$(REGISTRY)|g' $(REPOSITORY_ROOT)/install/yaml/02-open-match-demo.yaml
 
 install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
-		--set open-match-customize.enabled=false \
-		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
+		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
 install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
-		--set open-match-customize.enabled=false \
-		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
+		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
 
 install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
-		--set open-match-customize.enabled=false \
-		--set open-match-demo.enabled=false \
 		--set open-match-core.enabled=false \
+		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		install/helm/open-match > install/yaml/05-jaeger-chart.yaml
 
 install/yaml/06-open-match-override-configmap.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
+		--set open-match-core.enabled=false \
 		--set open-match-override.enabled=true \
 		-s templates/om-configmap-override.yaml \
 		install/helm/open-match > install/yaml/06-open-match-override-configmap.yaml
 
+install/yaml/07-open-match-default-evaluator.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+	mkdir -p install/yaml/
+	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
+		--set open-match-core.enabled=false \
+		--set open-match-customize.enabled=true \
+		--set open-match-customize.evaluator.enabled=true \
+		install/helm/open-match > install/yaml/07-open-match-default-evaluator.yaml
+
 install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
-		--set open-match-customize.enabled=false \
-		--set open-match-demo.enabled=false \
+		--set open-match-customize.enabled=true \
+		--set open-match-customize.evaluator.enabled=true \
+		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
@@ -600,7 +621,7 @@ get-kind-kubeconfig: build/toolchain/bin/kind$(EXE_EXTENSION)
 delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(KIND) delete cluster
 
-create-gke-cluster: GKE_VERSION = 1.13.9-gke.3 # gcloud beta container get-server-config --zone us-west1-a
+create-gke-cluster: GKE_VERSION = 1.14.7-gke.17 # gcloud beta container get-server-config --zone us-west1-a
 create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
@@ -608,8 +629,7 @@ create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
 		--enable-pod-security-policy \
 		--cluster-version $(GKE_VERSION) \
 		--image-type cos_containerd \
-		--tags open-match \
-		--identity-namespace=$(GCP_PROJECT_ID).svc.id.goog
+		--tags open-match
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
 delete-gke-cluster: gcloud
@@ -679,7 +699,7 @@ api/api.md: third_party/ build/toolchain/bin/protoc-gen-doc$(EXE_EXTENSION)
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
   		--doc_out=. \
   		--doc_opt=markdown,api.md
-# Crazy hack that insert hugo link reference to this API doc -)	
+# Crazy hack that insert hugo link reference to this API doc -)
 	$(SED_REPLACE) '1 i\---\
 title: "Open Match API References" \
 linkTitle: "Open Match API References" \
@@ -688,7 +708,7 @@ description: \
   This document provides API references for Open Match services. \
 --- \
 ' ./api.md && mv ./api.md $(REPOSITORY_ROOT)/../open-match-docs/site/content/en/docs/Reference/
-  
+
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
 pkg/pb/backend.pb.go: pkg/pb/messages.pb.go
 pkg/pb/frontend.pb.go: pkg/pb/messages.pb.go
@@ -706,7 +726,7 @@ test: $(ALL_PROTOS) tls-certs third_party/
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
 test-e2e-cluster: all-protos tls-certs third_party/
-	-$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 200s
+	-$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 300s
 	$(KUBECTL) logs job/e2e-job -n $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 	$(KUBECTL) wait job --for condition=complete -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) -l component=e2e-job --timeout 0
 
@@ -861,7 +881,7 @@ else
 endif
 
 ci-reap-namespaces: build/toolchain/bin/reaper$(EXE_EXTENSION)
-	$(TOOLCHAIN_BIN)/reaper -age=30m
+	-$(TOOLCHAIN_BIN)/reaper -age=30m
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: GOLANG_TEST_COUNT = 5
@@ -917,7 +937,7 @@ clean-binaries:
 clean-terraform:
 	rm -rf $(REPOSITORY_ROOT)/install/terraform/.terraform/
 
-clean-build: clean-toolchain clean-archives clean-release clean-chart
+clean-build: clean-toolchain clean-release clean-chart
 	rm -rf $(BUILD_DIR)/
 
 clean-release:
@@ -928,9 +948,6 @@ clean-toolchain:
 
 clean-chart:
 	rm -rf $(BUILD_DIR)/chart/
-
-clean-archives:
-	rm -rf $(BUILD_DIR)/archives/
 
 clean-install-yaml:
 	rm -f $(REPOSITORY_ROOT)/install/yaml/*
@@ -992,7 +1009,7 @@ proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "View Demo: http://localhost:$(DEMO_PORT)"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match-demo,component=demo,release=$(OPEN_MATCH_RELEASE_NAME)" --output jsonpath='{.items[0].metadata.name}') $(DEMO_PORT):51507 $(PORT_FORWARD_ADDRESS_FLAG)
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)-demo $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)-demo --selector="app=open-match-demo,component=demo" --output jsonpath='{.items[0].metadata.name}') $(DEMO_PORT):51507 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-locust: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Locust UI: http://localhost:$(LOCUST_PORT)"
@@ -1000,7 +1017,7 @@ proxy-locust: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
-proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-synchronizer proxy-ui proxy-dashboard proxy-demo proxy-jaeger
+proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-jaeger proxy-synchronizer proxy-ui proxy-dashboard proxy-demo
 
 proxy:
 	# This is an exception case where we'll call recursive make.
@@ -1051,12 +1068,6 @@ sync-deps:
 	$(GO) clean -modcache
 	$(GO) mod download
 
-sleep-10:
-	sleep 10
-
-sleep-30:
-	sleep 30
-
 # Prevents users from running with sudo.
 # There's an exception for Google Cloud Build because it runs as root.
 no-sudo:
@@ -1069,4 +1080,4 @@ ifeq ($(shell whoami),root)
 endif
 endif
 
-.PHONY: docker gcloud update-deps sync-deps sleep-10 sleep-30 all build proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-archives clean-binaries clean-protos presubmit test ci-reap-namespaces md-test vet
+.PHONY: docker gcloud update-deps sync-deps all build proxy-dashboard proxy-prometheus proxy-grafana clean clean-build clean-toolchain clean-binaries clean-protos presubmit test ci-reap-namespaces md-test vet
