@@ -23,12 +23,8 @@ metadata:
     component: config
     release: {{ .Release.Name }}
 data:
-  matchmaker_config_override.yaml: |-
+  matchmaker_config_default.yaml: |-
     api:
-      mmlogic:
-        hostname: "{{ .Values.mmlogic.hostName }}"
-        grpcport: "{{ .Values.mmlogic.grpcPort }}"
-      
       functions:
         hostname: "{{ .Values.function.hostName }}"
         grpcport: "{{ .Values.function.grpcPort }}"
@@ -37,4 +33,9 @@ data:
       evaluator:
         hostname: "{{ .Values.evaluator.hostName }}"
         grpcport: "{{ .Values.evaluator.grpcPort }}"
-        httpport: "{{ .Values.evaluator.httpPort }}"
+        httpport: "{{ .Values.evaluator.httpPort }}"    
+  matchmaker_config_override.yaml: |-
+    api:
+      mmlogic:
+        hostname: "{{ .Values.mmlogic.hostName }}.{{ .Release.Namespace }}.svc.cluster.local"
+        grpcport: "{{ .Values.mmlogic.grpcPort }}"

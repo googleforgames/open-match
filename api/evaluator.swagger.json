@@ -38,6 +38,7 @@
           "404": {
             "description": "Returned when the resource does not exist.",
             "schema": {
+              "type": "string",
               "format": "string"
             }
           }

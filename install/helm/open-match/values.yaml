@@ -97,12 +97,14 @@ image:
 # Specifies the location and name of the Open Match application-level config volumes.
   # Used in template: `openmatch.volumemounts.configs` and `openmatch.volumes.configs` under `templates/_helpers.tpl` file.
 configs:
-  om-configmap-default:
+  default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
-  om-configmap-override:
+    configName: om-configmap-default
+  override:
     volumeName: om-config-volume-override
     mountPath: /app/config/override
+    configName: om-configmap-override
 
 # Override Redis settings
 # https://hub.helm.sh/charts/stable/redis
@@ -125,7 +127,8 @@ redis:
     create: true
     name: open-match-redis-service
   sysctlImage:
-    enabled: true
+    # Enable this setting in production if you are running Open Match under Linux environment
+    enabled: false
     mountHostSys: true
     # Redis may require some changes in the kernel of the host machine to work as expected,
     # in particular increasing the somaxconn value and disabling transparent huge pages.
@@ -161,7 +164,7 @@ open-match-core:
 # Controls if users need to install the demo in Open Match.
 open-match-demo:
   # Switch the value between true/false to turn on/off this subchart
-  enabled: true
+  enabled: false
   function: *function
   frontend: *frontend
   backend: *backend
@@ -181,7 +184,7 @@ open-match-telemetry:
 # Controls if users need to install their own MMFs and Evaluator in Open Match.
 open-match-customize:
   # Switch the value between true/false to turn on/off this subchart
-  enabled: true
+  enabled: false
   evaluator: *evaluator
   function: *function
   mmlogic: *mmlogic
