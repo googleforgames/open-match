@@ -84,6 +84,8 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 			break
 		}
 
+		// Add score calculation logic here.
+
 		matches = append(matches, &pb.Match{
 			MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), count),
 			MatchProfile:  p.GetName(),
@@ -95,4 +97,10 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 	}
 
 	return matches, nil
+}
+
+func scoreCalculator(tickets []*pb.Ticket) float64 {
+  matchScore := 0.0
+  // Add your logic to compute the score for this Match here
+  return matchScore
 }
