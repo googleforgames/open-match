@@ -34,22 +34,13 @@ func makeTicket() *pb.Ticket {
 	return ticket
 }
 
-// gameModes() selects up to two unique game modes for this Ticket.
+func enterQueueTime() float64 {
+	// Implement your logic to return a random time interval.
+	return 0.0
+}
+
 func gameModes() []string {
-	modes := []string{"mode.demo", "mode.ctf", "mode.battleroyale", "mode.2v2"}
-	count := rand.Intn(2) + 1
-	selected := make(map[string]bool)
-	for i := 0; i < count; i++ {
-		mode := modes[rand.Intn(len(modes))]
-		if !selected[mode] {
-			selected[mode] = true
-		}
-	}
-
-	var result []string
-	for k := range selected {
-		result = append(result, k)
-	}
-
-	return result
+  // modes := []string{"mode.demo", "mode.ctf", "mode.battleroyale", "mode.2v2"}
+	// Implement your logic to return any two of the above game-modes randomly
+	return []string{}
 }
