@@ -113,6 +113,8 @@ git push origin release-0.5
 - [ ] Open the [`cloudbuild.yaml`] and change the `_OM_VERSION` entry.
 - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
 - [ ] Run `make release`
+- [ ] Run `make api/api.md` in open-match repo to update the auto-generated API references in open-match-docs repo.
+- [ ] Use the files under the `build/release/` directory for the Open Match installation guide. Make sure the artifacts work as expected - these are the artifacts that will be published to the GCS bucket and used in our release assets.
 - [ ] Create a PR with the changes, include the release candidate name, and point it to the release branch.
 - [ ] Go to [open-match-build](https://pantheon.corp.google.com/cloud-build/triggers?project=open-match-build) and update all *post submit* triggers' `_GCB_LATEST_VERSION` value to the `X.Y` of the release. This value should only increase as it's used to determine the latest stable version.
 - [ ] Merge your changes once the PR is approved.
@@ -121,7 +123,7 @@ git push origin release-0.5
 - [ ] Open [`Makefile`](makefile-version) and change BASE_VERSION entry.
 - [ ] Open [`cloudbuild.yaml`] and change the `_OM_VERSION` entry.
 - [ ] Open [`site/config.toml`] and change the `release_version` entry.
-- [ ] Run `make release`.
+- [ ] Open [`site/static/swaggerui/config.json`] and change the `api/VERSION/...` entries
 - [ ] Create a PR with the changes, include the release candidate name, and point it to the release branch.
 
 ## Complete Milestone
@@ -145,19 +147,17 @@ only required once.**
 - [ ] Review all closed issues against the milestone. Put the user visible changes into the release notes using the suggested format. https://github.com/googleforgames/open-match/issues?utf8=%E2%9C%93&q=is%3Aissue+is%3Aclosed+milestone%3Av{version}
 - [ ] Verify the [milestone](https://github.com/googleforgames/open-match/milestones) is effectively 100% at this point with the exception of the release issue itself.
 
-TODO: Add guidelines for labeling issues.
-
 ## Build Artifacts
 
 - [ ] Go to the History section and find the "Post Submit" build of the merged commit that's running. Wait for it to go Green. If it's red, fix error repeat this section. Take note of the docker image version tag for next step. Example: 0.5.0-a4706cb.
 - [ ] Run `./docs/governance/templates/release.sh {source version tag} {version}` to copy the images to open-match-public-images.
 - [ ] If this is a new minor version in the newest major version then run `./docs/governance/templates/release.sh {source version tag} latest`.
 - [ ] Copy the files from `build/release/` generated from `make release` to the release draft you created.  You can drag and drop the files using the Github UI.
-- [ ] Run `make api/api.md` in open-match repo to update the auto-generated API references in open-match-docs repo.
 - [ ] Update [Slack invitation link](https://slack.com/help/articles/201330256-invite-new-members-to-your-workspace#share-an-invite-link) in [open-match.dev](https://open-match.dev/site/docs/contribute/#get-involved).
-- [ ] Test Open Match installation under GKE and Minikube enviroment, follow the [First Match](https://development.open-match.dev/site/docs/getting-started/first_match/) guide, run `make proxy-demo`, and open `localhost:51507` to make sure everything works.
+- [ ] Test Open Match installation under GKE and Minikube enviroment using YAML files and Helm. Follow the [First Match](https://development.open-match.dev/site/docs/getting-started/first_match/) guide, run `make proxy-demo`, and open `localhost:51507` to make sure everything works.
   - [ ] Minikube: Run `make create-mini-cluster` to create a local cluster with latest Kubernetes API version.
   - [ ] GKE: Run `make create-gke-cluster` to create a GKE cluster.
+  - [ ] Helm: Run `helm install open-match -n open-match open-match/open-match`
 - [ ] Update usage requirements in the Installation doc - e.g. supported minikube version, kubectl version, golang version, etc.
 
 ## Finalize
