@@ -140,7 +140,6 @@ ifdef OPEN_MATCH_CI_MODE
 	export KUBECONFIG = $(HOME)/.kube/config
 	GCLOUD = gcloud --quiet --no-user-output-enabled
 	GKE_CLUSTER_NAME = open-match-ci
-	GKE_CLUSTER_FLAGS = --labels open-match-ci=1 --node-labels=open-match-ci=1
 endif
 
 export PATH := $(TOOLCHAIN_BIN):$(PATH)
@@ -350,8 +349,7 @@ install-large-chart: install-chart-prerequisite install-demo build/toolchain/bin
 		--set open-match-customize.evaluator.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
-		--set global.telemetry.prometheus.enabled=true \
-		--set global.logging.rpc.enabled=true
+		--set global.telemetry.prometheus.enabled=true
 
 # install-chart will install open-match-core, open-match-demo, with the demo evaluator and mmf.
 install-chart: install-chart-prerequisite install-demo build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
@@ -369,12 +367,10 @@ install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 		--set open-match-customize.function.image=openmatch-mmf-go-rosterbased \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
-		--set global.telemetry.prometheus.enabled=true \
-		--set global.logging.rpc.enabled=false
+		--set global.telemetry.prometheus.enabled=true
 	$(HELM) template $(OPEN_MATCH_RELEASE_NAME)-scale  install/helm/open-match $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=false \
-		--set open-match-scale.enabled=true \
-		--set global.logging.rpc.enabled=false | $(KUBECTL) apply -f -
+		--set open-match-scale.enabled=true | $(KUBECTL) apply -f -
 
 # install-ci-chart will install open-match-core with pool based mmf for end-to-end in-cluster test.
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/

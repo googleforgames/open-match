@@ -88,12 +88,6 @@ function: &function
   httpPort: 51502
   replicas: 3
 
-# Specifies a unified image registry, image tag, and imagePullPolicy for all components defined above.
-image:
-  registry: gcr.io/open-match-public-images
-  tag: 0.0.0-dev
-  pullPolicy: Always
-
 # Specifies the location and name of the Open Match application-level config volumes.
   # Used in template: `openmatch.volumemounts.configs` and `openmatch.volumes.configs` under `templates/_helpers.tpl` file.
 configs:
@@ -146,28 +140,15 @@ redis:
 #
 # Open Match uses subcharts to control its `functional granularity`.
 # You are able to override configurations in a subchart by having a key-value pair under its corresponding subchart section.
-# For example, the settings below overrides the `image.pullPolicy` field in `open-match/subcharts/open-match-demo/values.yaml` file.
-# open-match-demo:
-#   image:
-#     pullPolicy: SOME_PULL_POLICY
 #
-# 1. open-match-demo: Kubernetes definitions of a demo to emulate director and clients connecting to Open Match.
-# 2. open-match-telemetry: Kubernetes definitions of the integrated monitoring tools along with the core Open Match componenets.
-# 3. open-match-customize: Kubernetes definitions of the customizable template to use Open Match with your own MMFs and Evaluator.
-# 4. open-match-test: Kubernetes definitions of the load testing tools and end-to-end jobs for Open Match.
+# 1. open-match-telemetry: Kubernetes definitions of the integrated monitoring tools along with the core Open Match componenets.
+# 2. open-match-customize: Kubernetes definitions of the customizable template to use Open Match with your own MMFs and Evaluator.
+# 3. open-match-test: Kubernetes definitions of the load testing tools and end-to-end jobs for Open Match.
 ###############################################################################################################################
 
 # Controls if users need to install backend, frontend, mmlogic, om-configmap, and swaggerui.
 open-match-core:
   enabled: true
-
-# Controls if users need to install the demo in Open Match.
-open-match-demo:
-  # Switch the value between true/false to turn on/off this subchart
-  enabled: false
-  function: *function
-  frontend: *frontend
-  backend: *backend
 
 # Controls if users need to install scale testing setup for Open Match.
 open-match-scale:
@@ -188,12 +169,7 @@ open-match-customize:
   evaluator: *evaluator
   function: *function
   mmlogic: *mmlogic
-  # You can enable the open-match-customize subchart
-  # and override the evaluator/mmf image
-  # image:
-  #   registry: [YOUR_COMPONENT_REGISTRY]
-  #   tag: [YOUR_COMPONENT_IMAGE_VERSION]
-  #   pullPolicy: Always
+  # You can override the evaluator/mmf image
   # evaluator:
   #   image: [YOUR_EVALUATOR_IMAGE]
   # function:
