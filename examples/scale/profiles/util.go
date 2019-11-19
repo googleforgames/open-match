@@ -56,7 +56,7 @@ func makeRangeFilters(config *rangeConfig) []*rangeFilter {
 	for r <= config.max {
 		max := r + config.rangeSize
 		if max > config.max {
-			r = config.max
+			max = config.max
 		}
 
 		filters = append(filters, &rangeFilter{

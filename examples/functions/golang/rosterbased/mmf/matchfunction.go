@@ -67,7 +67,7 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 	// populated roster specifying the empty slots for each pool name and also
 	// have the ticket pools referenced in the roster. It generates matches by
 	// populating players from the specified pools into rosters.
-	wantTickets, err := wantPoolTickets(p.Rosters)
+	wantTickets, err := wantPoolTickets(p.GetRosters())
 	if err != nil {
 		return nil, err
 	}
@@ -133,16 +133,16 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 func wantPoolTickets(rosters []*pb.Roster) (map[string]int, error) {
 	wantTickets := make(map[string]int)
 	for _, r := range rosters {
-		if _, ok := wantTickets[r.Name]; ok {
+		if _, ok := wantTickets[r.GetName()]; ok {
 			// We do not expect multiple Roster Pools to have the same name.
 			logger.Errorf("multiple rosters with same name not supported")
 			return nil, status.Error(codes.InvalidArgument, "multiple rosters with same name not supported")
 		}
 
-		wantTickets[r.Name] = 0
-		for _, slot := range r.TicketIds {
+		wantTickets[r.GetName()] = 0
+		for _, slot := range r.GetTicketIds() {
 			if slot == emptyRosterSpot {
-				wantTickets[r.Name] = wantTickets[r.Name] + 1
+				wantTickets[r.GetName()] = wantTickets[r.GetName()] + 1
 			}
 		}
 	}

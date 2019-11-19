@@ -12,12 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-scaleFrontend:
-  hostName: om-scale-frontend
-  httpPort: 51509
-  replicas: 1
-  image: openmatch-scale-frontend
-
 scaleBackend:
   hostName: om-scale-backend
   httpPort: 51510

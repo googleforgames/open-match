@@ -16,57 +16,112 @@ package tickets
 
 import (
 	"math/rand"
+	"time"
 
-	"open-match.dev/open-match/internal/config"
-
-	"github.com/sirupsen/logrus"
-	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 var (
-	logger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "scale.tickets",
-	})
+	regions = []string{
+		"region.europe0",
+		"region.europe1",
+		"region.europe2",
+		"region.europe3",
+		"region.europe4",
+		"region.europe5",
+		"region.europe6",
+		"region.europe7",
+		"region.europe8",
+		"region.europe9",
+	}
+	platforms = []string{
+		"platform.pc",
+		"platform.xbox",
+		"platform.ps",
+		"platform.nintendo",
+		"platform.any",
+	}
+	playlists = []string{
+		"mmr.playlist1",
+		"mmr.playlist2",
+		"mmr.playlist3",
+		"mmr.playlist4",
+		"mmr.playlist5",
+		"mmr.playlist6",
+		"mmr.playlist7",
+		"mmr.playlist8",
+		"mmr.playlist9",
+		"mmr.playlist10",
+		"mmr.playlist11",
+		"mmr.playlist12",
+		"mmr.playlist13",
+		"mmr.playlist14",
+		"mmr.playlist15",
+	}
 )
 
-// Ticket generates a ticket based on the config for scale testing
-func Ticket(cfg config.View) *pb.Ticket {
-	characters := cfg.GetStringSlice("testConfig.characters")
-	regions := cfg.GetStringSlice("testConfig.regions")
-	min := cfg.GetFloat64("testConfig.minRating")
-	max := cfg.GetFloat64("testConfig.maxRating")
-	latencyMap := latency(regions)
+// Ticket generates a ticket for profile scale testing
+func Ticket() *pb.Ticket {
 	ticket := &pb.Ticket{
 		SearchFields: &pb.SearchFields{
-			DoubleArgs: map[string]float64{
-				e2e.DoubleArgMMR: normalDist(40, min, max, 20),
-			},
-			StringArgs: map[string]string{
-				e2e.Role: characters[rand.Intn(len(characters))],
-			},
+			DoubleArgs: make(map[string]float64),
 		},
 	}
 
-	for _, r := range regions {
-		ticket.SearchFields.DoubleArgs[r] = latencyMap[r]
-	}
+	addRegionsAttributes(ticket.SearchFields)
+	addPlatformAttributes(ticket.SearchFields)
+	addPlaylistAttributes(ticket.SearchFields)
 
 	return ticket
 }
 
-// latency generates a latency mapping of each region to a latency value. It picks
-// one region with latency between 0ms to 100ms and sets latencies to all other regions
-// to a value between 100ms to 300ms.
-func latency(regions []string) map[string]float64 {
-	latencies := make(map[string]float64)
-	for _, r := range regions {
-		latencies[r] = normalDist(175, 100, 300, 75)
+func addRegionsAttributes(fields *pb.SearchFields) {
+	// Each ticket can have 1-3 regions. Pick a random number of regions between 1 and 3
+	regionCount := rand.Intn(3) + 1
+
+	// Pick a random indices for playlists.
+	regionIndex := randomInRange(len(regions)-1, 0, regionCount)
+
+	// Add an attribute for each picked region
+	for r := range regionIndex {
+		fields.DoubleArgs[regions[r]] = float64(time.Now().Unix())
+	}
+}
+
+func addPlatformAttributes(fields *pb.SearchFields) {
+	fields.DoubleArgs[platforms[rand.Intn(len(platforms))]] = float64(time.Now().Unix())
+}
+
+func addPlaylistAttributes(fields *pb.SearchFields) {
+	// Each ticket can have 1-3 playlists. Pick a random number of playlists between 1 and 3
+	plCount := rand.Intn(3) + 1
+
+	// Pick a random indices for playlists.
+	plIndex := randomInRange(len(playlists)-1, 0, plCount)
+
+	// For each of the picked playlist, add an attribute with a mmr from a normal distribution
+	for pl := range plIndex {
+		fields.DoubleArgs[playlists[pl]] = normalDist(40, 0, 100, 20)
+	}
+}
+
+func randomInRange(max int, min int, count int) []int {
+	if count <= 0 {
+		return []int{}
 	}
 
-	latencies[regions[rand.Intn(len(regions))]] = normalDist(25, 0, 100, 75)
-	return latencies
+	var exists = make(map[int]bool)
+	for len(exists) < count {
+		rnum := rand.Intn(max-min+1) + min
+		exists[rnum] = true
+	}
+
+	var result []int
+	for k := range exists {
+		result = append(result, k)
+	}
+
+	return result
 }
 
 // normalDist generates a random integer in a normal distribution
