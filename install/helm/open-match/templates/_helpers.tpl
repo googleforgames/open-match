@@ -104,8 +104,8 @@ livenessProbe:
     scheme: {{ if (.isHTTPS) }}HTTPS{{ else }}HTTP{{ end }}
     path: /healthz
     port: {{ .port }}
-  initialDelaySeconds: 5
-  periodSeconds: 5
+  initialDelaySeconds: 10
+  periodSeconds: 10
   failureThreshold: 3
 readinessProbe:
   httpGet:

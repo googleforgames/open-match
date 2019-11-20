@@ -37,7 +37,9 @@ var (
 		"app":       "openmatch",
 		"component": "statestore.redis",
 	})
-	mRedisConnLatencyMs = telemetry.HistogramWithBounds("redis/connectlatency", "latency to get a redis connection", "ms", []float64{0, 50, 200, 500, 1000, 2000, 4000, 10000})
+	mRedisConnLatencyMs  = telemetry.HistogramWithBounds("redis/connectlatency", "latency to get a redis connection", "ms", []float64{0, 50, 200, 500, 1000, 2000, 4000, 10000})
+	mRedisConnPoolActive = telemetry.Gauge("redis/connectactivecount", "number of connections in the pool, includes idle plus connections in use")
+	mRedisConnPoolIdle   = telemetry.Gauge("redis/connectidlecount", "number of idle connections in the pool")
 )
 
 type redisBackend struct {
@@ -80,6 +82,10 @@ func newRedis(cfg config.View) Service {
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
 		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout"),
 		Wait:        true,
+		TestOnBorrow: func(c redis.Conn, _ time.Time) error {
+			_, err := c.Do("PING")
+			return err
+		},
 		DialContext: func(ctx context.Context) (redis.Conn, error) {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
@@ -114,7 +120,12 @@ func (rb *redisBackend) HealthCheck(ctx context.Context) error {
 		return status.Errorf(codes.Unavailable, "%v", err)
 	}
 	defer handleConnectionClose(&redisConn)
-	_, err = redisConn.Do("SELECT", "0")
+
+	poolStats := rb.redisPool.Stats()
+	telemetry.SetGauge(ctx, mRedisConnPoolActive, int64(poolStats.ActiveCount))
+	telemetry.SetGauge(ctx, mRedisConnPoolIdle, int64(poolStats.IdleCount))
+
+	_, err = redisConn.Do("PING")
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
 		return status.Errorf(codes.Unavailable, "%v", err)
