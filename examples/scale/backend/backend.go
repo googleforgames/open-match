@@ -24,7 +24,11 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/examples/scale/profiles"
+	"open-match.dev/open-match/examples/scale/tickets"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/rpc"
@@ -37,10 +41,10 @@ var (
 		"component": "scale.backend",
 	})
 
-	// TODO: Add metrics to track matches created, tickets assigned, deleted.
 	matchCount uint64
 	assigned   uint64
 	deleted    uint64
+	failed     uint64
 )
 
 // Run triggers execution of functions that continuously fetch, assign and
@@ -70,70 +74,134 @@ func Run() {
 	defer feConn.Close()
 	fe := pb.NewFrontendClient(feConn)
 
-	// The buffered channels attempt to decouple fetch, assign and delete. It is
-	// best effort and these operations may still block each other if buffers are full.
-	matches := make(chan *pb.Match, 1000)
-	deleteIds := make(chan string, 1000)
+	for i := 0; i < 10; i++ {
+		errMap := &sync.Map{}
 
-	go doFetch(cfg, be, matches)
-	go doAssign(be, matches, deleteIds)
-	go doDelete(fe, deleteIds)
+		doCreate(fe, errMap)
+		doFetch(cfg, be, errMap)
 
-	// The above goroutines run forever and so the main goroutine needs to block.
+		errMap.Range(func(k interface{}, v interface{}) bool {
+			logger.Infof("Got error %s: %#v", k, v)
+			return true
+		})
+		logger.Infof("%d round completes\n", i)
+		time.Sleep(time.Second * 5)
+	}
 	select {}
+
+}
+
+func doCreate(fe pb.FrontendClient, errMap *sync.Map) {
+	var created uint64
+	var failed uint64
+	start := time.Now()
+	for created < 5000 {
+		var wg sync.WaitGroup
+		for i := 0; i < 500; i++ {
+			wg.Add(1)
+			go func(wg *sync.WaitGroup, i int) {
+				defer wg.Done()
+				req := &pb.CreateTicketRequest{
+					Ticket: tickets.Ticket(),
+				}
+
+				ctx, span := trace.StartSpan(context.Background(), "scale.backend/CreateTicket")
+				defer span.End()
+
+				_, err := fe.CreateTicket(ctx, req)
+				if err != nil {
+					errMsg := fmt.Sprintf("failed to create a ticket: %w", err)
+					errRead, ok := errMap.Load(errMsg)
+					if !ok {
+						errRead = 0
+					}
+					errMap.Store(errMsg, errRead.(int)+1)
+					atomic.AddUint64(&failed, 1)
+				}
+				atomic.AddUint64(&created, 1)
+			}(&wg, i)
+		}
+
+		// Wait for all concurrent creates to complete.
+		wg.Wait()
+	}
+	logger.Infof("%v tickets created, %v failed in %v", created, failed, time.Since(start))
 }
 
 // doFetch continuously fetches all profiles in a loop and queues up the fetched
 // matches for assignment.
-func doFetch(cfg config.View, be pb.BackendClient, matches chan *pb.Match) {
+func doFetch(cfg config.View, be pb.BackendClient, errMap *sync.Map) {
 	startTime := time.Now()
 	mprofiles := profiles.Generate(cfg)
-	for {
-		var wg sync.WaitGroup
-		for _, p := range mprofiles {
-			wg.Add(1)
-			p := p
-			go func(wg *sync.WaitGroup) {
-				defer wg.Done()
-				fetch(be, p, matches)
-			}(&wg)
-		}
-
-		// Wait for all FetchMatches calls to complete before proceeding.
-		wg.Wait()
-		logger.Infof("FetchedMatches:%v, AssignedTickets:%v, DeletedTickets:%v in time %v", atomic.LoadUint64(&matchCount), atomic.LoadUint64(&assigned), atomic.LoadUint64(&deleted), time.Since(startTime))
+	time.Sleep(time.Second * 1)
+	var wg sync.WaitGroup
+	for i, p := range mprofiles {
+		wg.Add(1)
+		p := p
+		go func(wg *sync.WaitGroup, i int) {
+			defer wg.Done()
+			fetch(be, p, i, errMap)
+		}(&wg, i)
 	}
+
+	// Wait for all FetchMatches calls to complete before proceeding.
+	wg.Wait()
+	logger.Infof(
+		"FetchedMatches:%v, AssignedTickets:%v, DeletedTickets:%v in time %v, Total profiles: %v, Failures: %v",
+		atomic.LoadUint64(&matchCount),
+		atomic.LoadUint64(&assigned),
+		atomic.LoadUint64(&deleted),
+		time.Since(startTime).Milliseconds(),
+		len(mprofiles),
+		atomic.LoadUint64(&failed),
+	)
 }
 
-func fetch(be pb.BackendClient, p *pb.MatchProfile, matches chan *pb.Match) {
-	req := &pb.FetchMatchesRequest{
-		Config: &pb.FunctionConfig{
-			Host: "om-function",
-			Port: 50502,
-			Type: pb.FunctionConfig_GRPC,
-		},
-		Profiles: []*pb.MatchProfile{p},
-	}
-
-	stream, err := be.FetchMatches(context.Background(), req)
-	if err != nil {
-		logger.Errorf("FetchMatches failed, got %v", err)
-		return
-	}
-
+func fetch(be pb.BackendClient, p *pb.MatchProfile, i int, errMap *sync.Map) {
 	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			return
+		req := &pb.FetchMatchesRequest{
+			Config: &pb.FunctionConfig{
+				Host: "om-function",
+				Port: 50502,
+				Type: pb.FunctionConfig_GRPC,
+			},
+			Profiles: []*pb.MatchProfile{p},
 		}
 
+		ctx, span := trace.StartSpan(context.Background(), "scale.backend/FetchMatches")
+		defer span.End()
+
+		stream, err := be.FetchMatches(ctx, req)
 		if err != nil {
-			logger.Errorf("FetchMatches failed, got %v", err)
+			errMsg := fmt.Sprintf("failed to get available stream client: %w", err)
+			errRead, ok := errMap.Load(errMsg)
+			if !ok {
+				errRead = 0
+			}
+			errMap.Store(errMsg, errRead.(int)+1)
+			atomic.AddUint64(&failed, 1)
 			return
 		}
 
-		matches <- resp.GetMatch()
-		atomic.AddUint64(&matchCount, 1)
+		for {
+			_, err := stream.Recv()
+			if err == io.EOF {
+				return
+			}
+
+			if err != nil {
+				errMsg := fmt.Sprintf("failed to stream in the halfway: %w", err)
+				errRead, ok := errMap.Load(errMsg)
+				if !ok {
+					errRead = 0
+				}
+				errMap.Store(errMsg, errRead.(int)+1)
+				atomic.AddUint64(&failed, 1)
+				return
+			}
+
+			atomic.AddUint64(&matchCount, 1)
+		}
 	}
 }
 
@@ -168,6 +236,7 @@ func doAssign(be pb.BackendClient, matches chan *pb.Match, deleteIds chan string
 
 // doDelete deletes all the tickets whose ids get added to the deleteIds channel.
 func doDelete(fe pb.FrontendClient, deleteIds chan string) {
+	logger.Infof("Starts doDelete, deleteIds len is: %d", len(deleteIds))
 	for id := range deleteIds {
 		req := &pb.DeleteTicketRequest{
 			TicketId: id,
@@ -180,4 +249,12 @@ func doDelete(fe pb.FrontendClient, deleteIds chan string) {
 
 		atomic.AddUint64(&deleted, 1)
 	}
+}
+
+func unavailable(err error) bool {
+	if status.Convert(err).Code() == codes.Unavailable {
+		return true
+	}
+
+	return false
 }
