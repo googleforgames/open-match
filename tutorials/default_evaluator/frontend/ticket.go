@@ -40,7 +40,7 @@ func enterQueueTime() float64 {
 }
 
 func gameModes() []string {
-  // modes := []string{"mode.demo", "mode.ctf", "mode.battleroyale", "mode.2v2"}
+	// modes := []string{"mode.demo", "mode.ctf", "mode.battleroyale", "mode.2v2"}
 	// Implement your logic to return any two of the above game-modes randomly
 	return []string{}
 }
