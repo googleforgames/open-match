@@ -39,3 +39,40 @@ spec:
     image: REGISTRY_PLACEHOLDER/mm101-tutorial-frontend:latest
     imagePullPolicy: Always
   hostname: mm101-tutorial-frontend
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mm101-tutorial-matchfunction
+  namespace: mm101-tutorial
+  labels:
+    app: mm101-tutorial
+    component: matchfunction
+spec:
+  containers:
+  - name: mm101-tutorial-matchfunction
+    image: REGISTRY_PLACEHOLDER/mm101-tutorial-matchfunction:latest
+    imagePullPolicy: Always
+    ports:
+    - name: grpc
+      containerPort: 50502
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: mm101-tutorial-matchfunction
+  namespace: mm101-tutorial
+  labels:
+    app: mm101-tutorial
+    component: matchfunction
+spec:
+  selector:
+    app: mm101-tutorial
+    component: matchfunction
+  clusterIP: None
+  type: ClusterIP
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: 50502
+---
