@@ -17,12 +17,19 @@ package mmf
 import (
 	"log"
 
+	// Uncomment if following the tutorial
+	// "fmt"
+	// "time"
+
 	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 const (
 	matchName = "basic-matchfunction"
+
+	// Uncomment if following the tutorial
+	// ticketsPerPoolPerMatch = 4
 )
 
 // Run is this match function's implementation of the gRPC call defined in api/matchfunction.proto.

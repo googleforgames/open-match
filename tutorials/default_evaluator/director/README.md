@@ -1,6 +1,4 @@
 This folder provides a sample Director for Open Match Matchmaker 101 Tutorial.
-<TODO - Update the README with details of the Director and the steps that need
-to be run before executing the commamds below>
 
 Run the below steps in this folder to set up the Director.
 
@@ -20,6 +18,13 @@ docker push $REGISTRY/default-eval-tutorial-director
 ```
 
 Step4: Update the install yaml for your setup.
-```
-sed "s|REGISTRY_PLACEHOLDER|$REGISTRY|g" director.yaml | kubectl apply -f -
-```
+
+- For GKE users, run:
+    ```bash
+    sed "s|REGISTRY_PLACEHOLDER|$REGISTRY|g" director.yaml | kubectl apply -f -
+    ```
+- For Minikube users, [use local image](https://kubernetes.io/docs/setup/learning-environment/minikube/#use-local-images-by-re-using-the-docker-daemon) by running the following command:
+    ```bash
+    eval $(minikube docker-env)
+    sed "s|REGISTRY_PLACEHOLDER|$REGISTRY|g" director.yaml | sed "s|Always|Never|g" | kubectl apply -f -
+    ```
