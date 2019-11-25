@@ -19,15 +19,24 @@ import (
 	"net"
 	"time"
 
-	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
-
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_tracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
+	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/balancer/roundrobin"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/resolver"
 	"open-match.dev/open-match/pkg/pb"
+)
+
+var (
+	mmfServerLogger = logrus.WithFields(logrus.Fields{
+		"app":       "openmatch",
+		"component": "server",
+	})
 )
 
 func init() {
@@ -53,8 +62,14 @@ func newGRPCDialOptions() []grpc.DialOption {
 	})
 	grpcLogger.Level = logrus.DebugLevel
 
-	si := []grpc.StreamClientInterceptor{grpc_logrus.StreamClientInterceptor(grpcLogger)}
-	ui := []grpc.UnaryClientInterceptor{grpc_logrus.UnaryClientInterceptor(grpcLogger)}
+	si := []grpc.StreamClientInterceptor{
+		grpc_logrus.StreamClientInterceptor(grpcLogger),
+		grpc_tracing.StreamClientInterceptor(),
+	}
+	ui := []grpc.UnaryClientInterceptor{
+		grpc_logrus.UnaryClientInterceptor(grpcLogger),
+		grpc_tracing.UnaryClientInterceptor(),
+	}
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
 		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(si...)),
@@ -68,6 +83,26 @@ func newGRPCDialOptions() []grpc.DialOption {
 	}
 
 	return opts
+}
+
+func newGRPCServerOptions() []grpc.ServerOption {
+	si := []grpc.StreamServerInterceptor{
+		grpc_recovery.StreamServerInterceptor(),
+		grpc_validator.StreamServerInterceptor(),
+		grpc_tracing.StreamServerInterceptor(),
+		grpc_logrus.StreamServerInterceptor(mmfServerLogger),
+	}
+	ui := []grpc.UnaryServerInterceptor{
+		grpc_recovery.UnaryServerInterceptor(),
+		grpc_validator.UnaryServerInterceptor(),
+		grpc_tracing.UnaryServerInterceptor(),
+		grpc_logrus.UnaryServerInterceptor(mmfServerLogger),
+	}
+
+	return []grpc.ServerOption{
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(si...)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(ui...)),
+	}
 }
 
 // Start creates and starts the Match Function server and also connects to Open
@@ -84,7 +119,7 @@ func Start(mmlogicAddr string, serverPort int) error {
 		mmlogicClient: pb.NewMmLogicClient(conn),
 	}
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(newGRPCServerOptions()...)
 	pb.RegisterMatchFunctionServer(server, &mmfService)
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", serverPort))
 	if err != nil {
