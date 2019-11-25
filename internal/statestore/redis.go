@@ -37,7 +37,7 @@ var (
 		"app":       "openmatch",
 		"component": "statestore.redis",
 	})
-	mRedisConnLatencyMs  = telemetry.HistogramWithBounds("redis/connectlatency", "latency to get a redis connection", "ms", []float64{0, 50, 200, 500, 1000, 2000, 4000, 10000})
+	mRedisConnLatencyMs  = telemetry.HistogramWithBounds("redis/connectlatency", "latency to get a redis connection", "ms", telemetry.HistogramBounds)
 	mRedisConnPoolActive = telemetry.Gauge("redis/connectactivecount", "number of connections in the pool, includes idle plus connections in use")
 	mRedisConnPoolIdle   = telemetry.Gauge("redis/connectidlecount", "number of idle connections in the pool")
 )
@@ -130,6 +130,7 @@ func (rb *redisBackend) HealthCheck(ctx context.Context) error {
 	if err != nil {
 		return status.Errorf(codes.Unavailable, "%v", err)
 	}
+
 	return nil
 }
 

@@ -21,6 +21,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
@@ -53,6 +54,10 @@ var (
 	})
 	mMatchesFetched  = telemetry.Counter("backend/matches_fetched", "matches fetched")
 	mTicketsAssigned = telemetry.Counter("backend/tickets_assigned", "tickets assigned")
+
+	mRegisterPhase           = telemetry.HistogramWithBounds("backend/register", "time to register and get synchronizer ID", "ms", telemetry.HistogramBounds)
+	mProposalCollectionPhase = telemetry.HistogramWithBounds("backend/proposal_collection", "time to collect the proposals", "ms", telemetry.HistogramBounds)
+	mEvaluateProposalsPhase  = telemetry.HistogramWithBounds("backend/evaluate_proposals", "time to evaluate proposals", "ms", telemetry.HistogramBounds)
 )
 
 // FetchMatches triggers a MatchFunction with the specified MatchProfiles, while each MatchProfile
@@ -72,10 +77,15 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	var syncID string
 	var err error
 
+	startTime := time.Now()
+
 	syncID, err = s.synchronizer.register(stream.Context())
 	if err != nil {
 		return err
 	}
+
+	telemetry.RecordNUnitMeasurement(stream.Context(), mRegisterPhase, time.Since(startTime).Milliseconds())
+	startTime = time.Now()
 
 	err = doFetchMatchesReceiveMmfResult(stream.Context(), s.mmfClients, req, resultChan)
 	if err != nil {
@@ -87,10 +97,15 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		return err
 	}
 
+	telemetry.RecordNUnitMeasurement(stream.Context(), mProposalCollectionPhase, time.Since(startTime).Milliseconds())
+	startTime = time.Now()
+
 	results, err := s.synchronizer.evaluate(stream.Context(), syncID, proposals)
 	if err != nil {
 		return err
 	}
+
+	telemetry.RecordNUnitMeasurement(stream.Context(), mEvaluateProposalsPhase, time.Since(startTime).Milliseconds())
 
 	for _, result := range results {
 		select {

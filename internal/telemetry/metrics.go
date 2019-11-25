@@ -22,6 +22,11 @@ import (
 	"go.opencensus.io/tag"
 )
 
+var (
+	// HistogramBounds defines a unified bucket boundaries for all histogram typed time metrics in Open Match
+	HistogramBounds = []float64{0, 50, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 51200}
+)
+
 // Gauge creates a gauge metric to be recorded with dimensionless unit.
 func Gauge(name string, description string, tags ...tag.Key) *stats.Int64Measure {
 	s := stats.Int64(name, description, "1")
