@@ -28,8 +28,5 @@ stresstest:
   duration: 30s
   enabled: false
 
-e2etest:
-  image: openmatch-base-build
-
 kubernetes:
   serviceAccount: stress-test-uploader

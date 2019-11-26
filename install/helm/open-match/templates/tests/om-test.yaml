@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: om-test
+  namespace: {{ .Release.Namespace }}
+  annotations: 
+    {{- include "openmatch.chartmeta" . | nindent 4 }}
+    "helm.sh/hook": test-success
+  labels:
+    app: {{ template "openmatch.name" . }}
+    component: om-test
+    release: {{ .Release.Name }}
+spec:
+  # Specifies the duration in seconds relative to the startTime that the job may be active before the system tries to terminate it.
+  activeDeadlineSeconds: 900
+  serviceAccountName: open-match-test-service
+  automountServiceAccountToken: true
+  containers:
+  - image: "{{ .Values.global.image.registry }}/openmatch-base-build:{{ .Values.global.image.tag }}"
+    imagePullPolicy: Always
+    name: om-test
+    resources:
+      limits:
+        memory: 800Mi
+        cpu: "1"
+    env:
+    - name: NAMESPACE
+      value: "{{ .Release.Namespace }}"
+    command: ["go"]
+    args:
+    - "test"
+    - "./test/e2e"
+    - "-v"
+    - "-timeout"
+    - "150s"
+    - "-race"
+    - "-tags"
+    - "e2ecluster"
+  restartPolicy: Never
