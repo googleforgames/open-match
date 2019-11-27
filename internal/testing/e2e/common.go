@@ -28,8 +28,8 @@ import (
 
 var (
 	testOnlyEnableMetrics        = flag.Bool("test_only_metrics", true, "Enables metrics exporting for tests.")
-	testOnlyEnableRPCLoggingFlag = flag.Bool("test_only_rpc_logging", false, "Enables RPC Logging for tests. This output is very verbose.")
-	testOnlyLoggingLevel         = flag.String("test_only_log_level", "info", "Sets the log level for tests.")
+	testOnlyEnableRPCLoggingFlag = flag.Bool("test_only_rpc_logging", true, "Enables RPC Logging for tests. This output is very verbose.")
+	testOnlyLoggingLevel         = flag.String("test_only_log_level", "trace", "Sets the log level for tests.")
 )
 
 // OM is the interface for communicating with Open Match.
