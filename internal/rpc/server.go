@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
@@ -33,6 +34,7 @@ import (
 	"go.opencensus.io/plugin/ochttp"
 	"go.opencensus.io/plugin/ochttp/propagation/b3"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/signal"
@@ -336,5 +338,11 @@ func newGRPCServerOptions(params *ServerParams) []grpc.ServerOption {
 
 	return append(opts,
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(si...)),
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(ui...)))
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(ui...)),
+		grpc.KeepaliveEnforcementPolicy(
+			keepalive.EnforcementPolicy{
+				MinTime:             10 * time.Second,
+				PermitWithoutStream: true,
+			},
+		))
 }

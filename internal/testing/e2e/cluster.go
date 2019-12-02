@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/resolver"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -33,8 +34,15 @@ import (
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/util"
+
 	pb "open-match.dev/open-match/pkg/pb"
 )
+
+func init() {
+	// Reset the gRPC resolver to passthrough for end-to-end out-of-cluster testings.
+	// DNS resolver is unsupported for end-to-end local testings.
+	resolver.SetDefaultScheme("dns")
+}
 
 type clusterOM struct {
 	kubeClient kubernetes.Interface

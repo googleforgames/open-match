@@ -325,7 +325,7 @@ install-chart-prerequisite: build/toolchain/bin/kubectl$(EXE_EXTENSION) update-c
 	$(KUBECTL) apply -f install/gke-metadata-server-workaround.yaml
 
 # Used for Open Match development. Install om-configmap-override.yaml by default.
-HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --atomic --no-hooks --debug --timeout=600s --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) --set global.gcpProjectId=$(GCP_PROJECT_ID) --set open-match-override.enabled=true
+HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --no-hooks --debug --timeout=600s --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) --set global.gcpProjectId=$(GCP_PROJECT_ID) --set open-match-override.enabled=true
 # Used for generate static yamls. Install om-configmap-override.yaml as needed.
 HELM_TEMPLATE_FLAGS = --no-hooks --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --set usingHelmTemplate=true
 HELM_IMAGE_FLAGS = --set global.image.registry=$(REGISTRY) --set global.image.tag=$(TAG)
@@ -715,7 +715,7 @@ test: $(ALL_PROTOS) tls-certs third_party/
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
 test-e2e-cluster: all-protos tls-certs third_party/
-	$(HELM) test --logs --timeout 5m0s -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(OPEN_MATCH_HELM_NAME)
+	$(HELM) test --logs -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(OPEN_MATCH_HELM_NAME)
 
 stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:$(FRONTEND_PORT) \

@@ -39,6 +39,7 @@ var (
 	})
 )
 
+// nolint: gochecknoinits
 func init() {
 	// Using gRPC's DNS resolver to create clients.
 	// This is a workaround for load balancing gRPC applications under k8s environments.
@@ -102,6 +103,12 @@ func newGRPCServerOptions() []grpc.ServerOption {
 	return []grpc.ServerOption{
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(si...)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(ui...)),
+		grpc.KeepaliveEnforcementPolicy(
+			keepalive.EnforcementPolicy{
+				MinTime:             10 * time.Second,
+				PermitWithoutStream: true,
+			},
+		),
 	}
 }
 
