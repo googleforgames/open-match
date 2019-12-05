@@ -23,7 +23,7 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// matchFunctionService implements pb.MatchFunctionServer, the server generated
+// MatchFunctionService implements pb.MatchFunctionServer, the server generated
 // by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
 type MatchFunctionService struct {
 	grpc          *grpc.Server

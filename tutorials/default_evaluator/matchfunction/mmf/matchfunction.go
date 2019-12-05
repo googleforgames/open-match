@@ -15,6 +15,10 @@
 package mmf
 
 import (
+	// Uncomment if following the tutorial
+	// "github.com/golang/protobuf/ptypes"
+	// "github.com/golang/protobuf/ptypes/any"
+
 	"fmt"
 	"log"
 	"time"

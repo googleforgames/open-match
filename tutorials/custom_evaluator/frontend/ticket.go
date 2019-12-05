@@ -16,6 +16,7 @@ package main
 
 import (
 	"math/rand"
+	"time"
 
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -28,6 +29,9 @@ func makeTicket() *pb.Ticket {
 			// Tags can support multiple values but for simplicity, the demo function
 			// assumes only single mode selection per Ticket.
 			Tags: gameModes(),
+			DoubleArgs: map[string]float64{
+				"time.enterqueue": enterQueueTime(),
+			},
 		},
 	}
 
@@ -52,4 +56,11 @@ func gameModes() []string {
 	}
 
 	return result
+}
+
+// enterQueueTime returns the time at which the Ticket entered matchmaking queue. To simulate
+// variability, we pick any random second interval in the past 5 seconds as the players queue
+// entry time.
+func enterQueueTime() float64 {
+	return float64(time.Now().Add(-time.Duration(rand.Intn(5)) * time.Second).UnixNano())
 }
