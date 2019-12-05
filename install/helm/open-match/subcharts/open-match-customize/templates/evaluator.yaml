@@ -99,3 +99,4 @@ spec:
           containerPort: {{ .Values.evaluator.httpPort }}
         {{- include "openmatch.container.common" . | nindent 8 }}
 {{- end }}
+

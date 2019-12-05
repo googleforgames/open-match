@@ -119,6 +119,6 @@ readinessProbe:
 
 {{- define "openmatch.HorizontalPodAutoscaler.spec.common" -}}
 minReplicas: 1
-maxReplicas: 30
-targetCPUUtilizationPercentage: 50
+maxReplicas: 50
+targetCPUUtilizationPercentage: 80
 {{- end -}}
