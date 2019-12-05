@@ -106,11 +106,13 @@ configs:
 redis:
   fullnameOverride: om-redis
   redisPort: 6379
-  usePassword: true
-  usePasswordFile: true
+  usePassword: false
+  usePasswordFile: false
   secretMountPath: /opt/bitnami/redis/secrets
   ignoreLists:
     ttl: 60000ms
+  configmap:
+    maxclients 100000
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
   metrics:
@@ -132,8 +134,8 @@ redis:
       - -c
       - |-
         install_packages procps
-        sysctl -w net.core.somaxconn=10000
-        echo never > /host-sys/kernel/mm/transparent_hugepage/enabled
+        sysctl -w net.core.somaxconn=100000
+        echo never > /host-sys/kernel/mm/transparent_hugepage/enabled # Disable THP support
 
 ###############################################################################################################################
 #                               Open Match configurations for the subcharts
@@ -221,7 +223,7 @@ global:
       enabled: true
     jaeger:
       enabled: false
-      samplerFraction: 1 # Configures a sampler that samples a given fraction of traces.
+      samplerFraction: 0.01 # Configures a sampler that samples a given fraction of traces.
       agentEndpoint: "open-match-jaeger-agent:6831"
       collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
     prometheus:
