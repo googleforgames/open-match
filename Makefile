@@ -376,6 +376,7 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 		--set open-match-customize.function.enabled=true \
 		--set open-match-customize.evaluator.enabled=true \
 		--set open-match-customize.function.image=openmatch-mmf-go-pool \
+		--set mmlogic.replicas=1,frontend.replicas=1,backend.replicas=1,open-match-customize.evaluator.replicas=1,open-match-customize.function.replicas=1 \
 		--set ci=true
 
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
@@ -715,7 +716,7 @@ test: $(ALL_PROTOS) tls-certs third_party/
 	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
 
 test-e2e-cluster: all-protos tls-certs third_party/
-	$(HELM) test --logs -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(OPEN_MATCH_HELM_NAME)
+	$(HELM) test --timeout 7m30s -v 0 --logs -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(OPEN_MATCH_HELM_NAME)
 
 stress-frontend-%: build/toolchain/python/
 	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:$(FRONTEND_PORT) \
