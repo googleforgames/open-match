@@ -30,8 +30,8 @@ var (
 )
 
 // RunApplication creates a server.
-func RunApplication(serverName string, bindService func(*rpc.ServerParams, config.View) error) {
-	cfg, err := config.Read()
+func RunApplication(serverName string, getCfg func() (config.View, error), bindService func(*rpc.ServerParams, config.View) error) {
+	cfg, err := getCfg()
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),

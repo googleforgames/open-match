@@ -30,7 +30,7 @@ type FunctionSettings struct {
 
 // RunMatchFunction is a hook for the main() method in the main executable.
 func RunMatchFunction(settings *FunctionSettings) {
-	app.RunApplication("functions", func(p *rpc.ServerParams, cfg config.View) error {
+	app.RunApplication("functions", config.Read, func(p *rpc.ServerParams, cfg config.View) error {
 		return BindService(p, cfg, settings)
 	})
 }
