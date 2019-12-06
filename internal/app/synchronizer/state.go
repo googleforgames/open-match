@@ -23,7 +23,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -69,18 +68,16 @@ type synchronizerState struct {
 	cfg        config.View        // Open Match configuration
 	cycleData  *synchronizerData  // State for the current synchronization cycle
 	eval       evaluator          // Evaluation function to be triggered
-	store      statestore.Service // A wrapper service that connects to the backend data storage service
 	idleCond   *sync.Cond         // Signal any blocked registrations to proceed
 	status     synchronizerStatus // Current status of the Synchronizer
 	stateMutex sync.Mutex         // Mutex to check on current state and take specific actions.
 }
 
-func newSynchronizerState(cfg config.View, eval evaluator, store statestore.Service) *synchronizerState {
+func newSynchronizerState(cfg config.View, eval evaluator) *synchronizerState {
 	syncState := &synchronizerState{
 		status: statusIdle,
 		cfg:    cfg,
 		eval:   eval,
-		store:  store,
 		cycleData: &synchronizerData{
 			idToRequestData: make(map[string]*requestData),
 			resultsReady:    make(chan struct{}),
