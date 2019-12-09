@@ -22,17 +22,17 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/resolver"
-	simple "open-match.dev/open-match/examples/evaluator/golang/simple/evaluate"
 	pool "open-match.dev/open-match/examples/functions/golang/pool/mmf"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/internal/telemetry"
+	"open-match.dev/open-match/internal/testing/customize/evaluator"
 	"open-match.dev/open-match/internal/util"
-	evalHarness "open-match.dev/open-match/pkg/harness/evaluator/golang"
 	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
 	pb "open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/test/evaluator/evaluate"
 )
 
 // nolint:gochecknoinits
@@ -181,7 +181,7 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 func createEvaluatorForTest(t *testing.T) *rpcTesting.TestContext {
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
-		assert.Nil(t, evalHarness.BindService(p, cfg, simple.Evaluate))
+		assert.Nil(t, evaluator.BindService(p, cfg, evaluate.Evaluate))
 	})
 
 	return tc
