@@ -66,6 +66,8 @@ make build-images -j$(nproc)
 make push-images -j$(nproc)
 # Push images to Docker Hub
 make REGISTRY=mydockerusername push-images -j$(nproc)
+# Generate Kubernetes installation YAML files (Note that the trailing '/' is needed here)
+make install/yaml/
 ```
 
 _**-j$(nproc)** is a flag to tell make to parallelize the commands based on
