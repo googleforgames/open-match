@@ -24,7 +24,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/pkg/errors"
 	"github.com/rs/xid"
-	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
+	internalMmf "open-match.dev/open-match/internal/testing/mmf"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -37,7 +37,7 @@ var (
 // The goal of this function is to generate predictable matches that can be validated without flakyness.
 // This match function loops through all the pools and generates one match per pool aggregating all players
 // in that pool in the generated match.
-func MakeMatches(params *mmfHarness.MatchFunctionParams) ([]*pb.Match, error) {
+func MakeMatches(params *internalMmf.MatchFunctionParams) ([]*pb.Match, error) {
 	var result []*pb.Match
 	for pool, tickets := range params.PoolNameToTickets {
 		if len(tickets) != 0 {
