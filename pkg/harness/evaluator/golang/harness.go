@@ -25,7 +25,7 @@ import (
 
 // RunEvaluator is a hook for the main() method in the main executable.
 func RunEvaluator(eval Evaluator) {
-	app.RunApplication("evaluator", func(p *rpc.ServerParams, cfg config.View) error {
+	app.RunApplication("evaluator", config.Read, func(p *rpc.ServerParams, cfg config.View) error {
 		return BindService(p, cfg, eval)
 	})
 }
