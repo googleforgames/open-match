@@ -100,3 +100,4 @@ spec:
           containerPort: {{ .Values.function.httpPort }}
         {{- include "openmatch.container.common" . | nindent 8 }}
 {{- end }}
+

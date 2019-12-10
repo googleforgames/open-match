@@ -18,8 +18,9 @@ package main
 import (
 	"open-match.dev/open-match/internal/app"
 	"open-match.dev/open-match/internal/app/backend"
+	"open-match.dev/open-match/internal/config"
 )
 
 func main() {
-	app.RunApplication("backend", backend.BindService)
+	app.RunApplication("backend", config.Read, backend.BindService)
 }

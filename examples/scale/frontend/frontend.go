@@ -16,11 +16,13 @@ package frontend
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 	"open-match.dev/open-match/examples/scale/tickets"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
@@ -33,6 +35,9 @@ var (
 		"app":       "openmatch",
 		"component": "scale.frontend",
 	})
+
+	errMap  = &sync.Map{}
+	created uint64
 )
 
 // Run triggers execution of the scale frontend component that creates
@@ -46,11 +51,6 @@ func Run() {
 	}
 
 	logging.ConfigureLogging(cfg)
-	doCreate(cfg)
-}
-
-func doCreate(cfg config.View) {
-	concurrent := cfg.GetInt("testConfig.concurrent-creates")
 	conn, err := rpc.GRPCClientFromConfig(cfg, "api.frontend")
 	if err != nil {
 		logger.WithFields(logrus.Fields{
@@ -61,33 +61,45 @@ func doCreate(cfg config.View) {
 	defer conn.Close()
 	fe := pb.NewFrontendClient(conn)
 
-	var created uint64
-	var failed uint64
+	go doCreate(cfg, fe)
+
+	select {}
+}
+
+func doCreate(cfg config.View, fe pb.FrontendClient) {
+	concurrent := cfg.GetInt("testConfig.concurrentCreates")
 	start := time.Now()
 	for {
 		var wg sync.WaitGroup
-		for i := 0; i <= concurrent; i++ {
+		for i := 0; i < concurrent; i++ {
 			wg.Add(1)
 			go func(wg *sync.WaitGroup) {
 				defer wg.Done()
 				req := &pb.CreateTicketRequest{
-					Ticket: tickets.Ticket(cfg),
+					Ticket: tickets.Ticket(),
 				}
 
-				if _, err := fe.CreateTicket(context.Background(), req); err != nil {
-					logger.WithFields(logrus.Fields{
-						"error": err.Error(),
-					}).Error("failed to create a ticket.")
-					atomic.AddUint64(&failed, 1)
-					return
-				}
+				ctx, span := trace.StartSpan(context.Background(), "scale.frontend/CreateTicket")
+				defer span.End()
 
+				if _, err := fe.CreateTicket(ctx, req); err != nil {
+					errMsg := fmt.Sprintf("failed to create a ticket: %w", err)
+					errRead, ok := errMap.Load(errMsg)
+					if !ok {
+						errRead = 0
+					}
+					errMap.Store(errMsg, errRead.(int)+1)
+				}
 				atomic.AddUint64(&created, 1)
 			}(&wg)
 		}
 
 		// Wait for all concurrent creates to complete.
 		wg.Wait()
-		logger.Infof("%v tickets created, %v failed in %v", created, failed, time.Since(start))
+		errMap.Range(func(k interface{}, v interface{}) bool {
+			logger.Infof("Got error %s: %#v", k, v)
+			return true
+		})
+		logger.Infof("%v tickets created in %v", created, time.Since(start))
 	}
 }

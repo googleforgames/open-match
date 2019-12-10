@@ -104,8 +104,8 @@ livenessProbe:
     scheme: {{ if (.isHTTPS) }}HTTPS{{ else }}HTTP{{ end }}
     path: /healthz
     port: {{ .port }}
-  initialDelaySeconds: 5
-  periodSeconds: 5
+  initialDelaySeconds: 10
+  periodSeconds: 10
   failureThreshold: 3
 readinessProbe:
   httpGet:
@@ -119,6 +119,6 @@ readinessProbe:
 
 {{- define "openmatch.HorizontalPodAutoscaler.spec.common" -}}
 minReplicas: 1
-maxReplicas: 30
-targetCPUUtilizationPercentage: 50
+maxReplicas: 50
+targetCPUUtilizationPercentage: 80
 {{- end -}}

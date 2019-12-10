@@ -35,17 +35,16 @@ var (
 	mStateStoreAddTicketsToIgnoreListCount     = telemetry.Counter("statestore/addticketstoignorelistcount", "number of tickets moved to ignore list")
 	mStateStoreDeleteTicketFromIgnoreListCount = telemetry.Counter("statestore/deleteticketfromignorelistcount", "number of tickets removed from ignore list")
 
-	histogramBounds                           = []float64{0, 50, 100, 200, 400, 800, 1600, 3200, 6400}
-	mStateStoreCreateTicketTime               = telemetry.HistogramWithBounds("statestore/createtickettime", "time elapsed to create tickets", "ms", histogramBounds)
-	mStateStoreGetTicketTime                  = telemetry.HistogramWithBounds("statestore/gettickettime", "time elapsed to retrieve tickets", "ms", histogramBounds)
-	mStateStoreDeleteTicketTime               = telemetry.HistogramWithBounds("statestore/deletetickettime", "time elapsed to delete tickets", "ms", histogramBounds)
-	mStateStoreIndexTicketTime                = telemetry.HistogramWithBounds("statestore/indextickettime", "time elapsed to index tickets", "ms", histogramBounds)
-	mStateStoreDeindexTicketTime              = telemetry.HistogramWithBounds("statestore/deindextickettime", "time elapsed to deindex tickets", "ms", histogramBounds)
-	mStateStoreFilterTicketsTime              = telemetry.HistogramWithBounds("statestore/filtertickettime", "time elapsed to filter tickets", "ms", histogramBounds)
-	mStateStoreUpdateAssignmentsTime          = telemetry.HistogramWithBounds("statestore/updateassignmenttime", "time elapsed to assign tickets", "ms", histogramBounds)
-	mStateStoreGetAssignmentsTime             = telemetry.HistogramWithBounds("statestore/getassignmentstime", "time elapsed to retrieve assignments", "ms", histogramBounds)
-	mStateStoreAddTicketsToIgnoreListTime     = telemetry.HistogramWithBounds("statestore/addticketstoignorelisttime", "time elapsed to move tickets to ignore list", "ms", histogramBounds)
-	mStateStoreDeleteTicketFromIgnoreListTime = telemetry.HistogramWithBounds("statestore/deleteticketfromignorelisttime", "time elapsed to remove tickets from ignore list", "ms", histogramBounds)
+	mStateStoreCreateTicketTime               = telemetry.HistogramWithBounds("statestore/createtickettime", "time elapsed to create tickets", "ms", telemetry.HistogramBounds)
+	mStateStoreGetTicketTime                  = telemetry.HistogramWithBounds("statestore/gettickettime", "time elapsed to retrieve tickets", "ms", telemetry.HistogramBounds)
+	mStateStoreDeleteTicketTime               = telemetry.HistogramWithBounds("statestore/deletetickettime", "time elapsed to delete tickets", "ms", telemetry.HistogramBounds)
+	mStateStoreIndexTicketTime                = telemetry.HistogramWithBounds("statestore/indextickettime", "time elapsed to index tickets", "ms", telemetry.HistogramBounds)
+	mStateStoreDeindexTicketTime              = telemetry.HistogramWithBounds("statestore/deindextickettime", "time elapsed to deindex tickets", "ms", telemetry.HistogramBounds)
+	mStateStoreFilterTicketsTime              = telemetry.HistogramWithBounds("statestore/filtertickettime", "time elapsed to filter tickets", "ms", telemetry.HistogramBounds)
+	mStateStoreUpdateAssignmentsTime          = telemetry.HistogramWithBounds("statestore/updateassignmenttime", "time elapsed to assign tickets", "ms", telemetry.HistogramBounds)
+	mStateStoreGetAssignmentsTime             = telemetry.HistogramWithBounds("statestore/getassignmentstime", "time elapsed to retrieve assignments", "ms", telemetry.HistogramBounds)
+	mStateStoreAddTicketsToIgnoreListTime     = telemetry.HistogramWithBounds("statestore/addticketstoignorelisttime", "time elapsed to move tickets to ignore list", "ms", telemetry.HistogramBounds)
+	mStateStoreDeleteTicketFromIgnoreListTime = telemetry.HistogramWithBounds("statestore/deleteticketfromignorelisttime", "time elapsed to remove tickets from ignore list", "ms", telemetry.HistogramBounds)
 )
 
 // instrumentedService is a wrapper for a statestore service that provides instrumentation (metrics and tracing) of the database.

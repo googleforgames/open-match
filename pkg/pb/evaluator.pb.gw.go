@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/golang/protobuf/descriptor"
 	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/grpc-ecosystem/grpc-gateway/utilities"
@@ -22,11 +23,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// Suppress "imported and not used" errors
 var _ codes.Code
 var _ io.Reader
 var _ status.Status
 var _ = runtime.String
 var _ = utilities.NewDoubleArray
+var _ = descriptor.ForMessage
 
 func request_Evaluator_Evaluate_0(ctx context.Context, marshaler runtime.Marshaler, client EvaluatorClient, req *http.Request, pathParams map[string]string) (Evaluator_EvaluateClient, runtime.ServerMetadata, error) {
 	var metadata runtime.ServerMetadata
@@ -78,6 +81,21 @@ func request_Evaluator_Evaluate_0(ctx context.Context, marshaler runtime.Marshal
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
+}
+
+// RegisterEvaluatorHandlerServer registers the http handlers for service Evaluator to "mux".
+// UnaryRPC     :call EvaluatorServer directly.
+// StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
+func RegisterEvaluatorHandlerServer(ctx context.Context, mux *runtime.ServeMux, server EvaluatorServer) error {
+
+	mux.Handle("POST", pattern_Evaluator_Evaluate_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
+		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+		return
+	})
+
+	return nil
 }
 
 // RegisterEvaluatorHandlerFromEndpoint is same as RegisterEvaluatorHandler but

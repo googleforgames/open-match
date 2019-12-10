@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/golang/protobuf/descriptor"
 	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/grpc-ecosystem/grpc-gateway/utilities"
@@ -22,11 +23,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// Suppress "imported and not used" errors
 var _ codes.Code
 var _ io.Reader
 var _ status.Status
 var _ = runtime.String
 var _ = utilities.NewDoubleArray
+var _ = descriptor.ForMessage
 
 func request_MatchFunction_Run_0(ctx context.Context, marshaler runtime.Marshaler, client MatchFunctionClient, req *http.Request, pathParams map[string]string) (MatchFunction_RunClient, runtime.ServerMetadata, error) {
 	var protoReq RunRequest
@@ -51,6 +54,21 @@ func request_MatchFunction_Run_0(ctx context.Context, marshaler runtime.Marshale
 	metadata.HeaderMD = header
 	return stream, metadata, nil
 
+}
+
+// RegisterMatchFunctionHandlerServer registers the http handlers for service MatchFunction to "mux".
+// UnaryRPC     :call MatchFunctionServer directly.
+// StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
+func RegisterMatchFunctionHandlerServer(ctx context.Context, mux *runtime.ServeMux, server MatchFunctionServer) error {
+
+	mux.Handle("POST", pattern_MatchFunction_Run_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
+		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+		return
+	})
+
+	return nil
 }
 
 // RegisterMatchFunctionHandlerFromEndpoint is same as RegisterMatchFunctionHandler but

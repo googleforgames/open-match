@@ -2,7 +2,7 @@
 
 This is the {version} release of Open Match.
 
-Check the [README](https://github.com/googleforgames/open-match/tree/release-{version}) for details on features, installation and usage.
+Check the [official website](https://open-match.dev) for details on features, installation and usage.
 
 Release Notes
 -------------
@@ -13,13 +13,18 @@ Release Notes
 **Breaking Changes**
 { detail any behaviors or API surfaces which worked in a previous version which will no longer work correctly }
 
+> Future releases towards 1.0.0 may still have breaking changes.
+
 **Security Fixes**
 { list any changes which fix vulnerabilities in open match }
 
 **Enhancements**
 { go into details on improvements and changes }
 
-See [CHANGELOG](https://github.com/googleforgames/open-match/blob/release-{version}/CHANGELOG.md) for more details on changes.
+Usage Requirements
+-------------
+* Tested against Kubernetes Version { a list of k8s versions}
+* Golang Version = v{ required golang version }
 
 Images
 ------
@@ -47,15 +52,10 @@ _This software is currently alpha, and subject to change. Not to be used in prod
 Installation
 ------------
 
-To deploy Open Match in your Kubernetes cluster run the following commands:
+* Follow [Open Match Installation Guide](https://open-match.dev/site/docs/installation/) to setup Open Match in your cluster.
 
-```bash
-# Grant yourself cluster-admin permissions so that you can deploy service accounts.
-kubectl create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(YOUR_KUBERNETES_USER_NAME)
-# Place all Open Match components in their own namespace.
-kubectl create namespace open-match
-# Install Open Match services.
-kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/01-open-match-core.yaml --namespace open-match
-# Install the demo.
-kubectl apply -f https://github.com/googleforgames/open-match/releases/download/v{version}/02-open-match-demo.yaml --namespace open-match
-```
+API Definitions
+------------
+
+- gRPC API Definitions are available in [API references](https://open-match.dev/site/docs/reference/api/) - _Preferred_
+- HTTP API Definitions are available in [SwaggerUI](https://open-match.dev/site/swaggerui/index.html)

@@ -20,7 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
@@ -122,9 +123,9 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	// 1. Create a few tickets with delicate designs and hand crafted search fields
 	for i := 0; i < len(tickets); i++ {
 		var ctResp *pb.CreateTicketResponse
-		ctResp, err = fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: tickets[i]})
-		assert.Nil(t, err)
-		assert.NotNil(t, ctResp)
+		ctResp, err = fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: tickets[i]}, grpc.WaitForReady(true))
+		require.Nil(t, err)
+		require.NotNil(t, ctResp)
 		// Assign Open Match ids back to the input tickets
 		*tickets[i] = *ctResp.GetTicket()
 	}
@@ -176,9 +177,9 @@ func TestGameMatchWorkFlow(t *testing.T) {
 		for _, ticket := range tickets {
 			tids = append(tids, ticket.GetId())
 		}
-		gotAtResp, err = be.AssignTickets(ctx, &pb.AssignTicketsRequest{TicketIds: tids, Assignment: &pb.Assignment{Connection: "agones-1"}})
-		assert.Nil(t, err)
-		assert.NotNil(t, gotAtResp)
+		gotAtResp, err = be.AssignTickets(ctx, &pb.AssignTicketsRequest{TicketIds: tids, Assignment: &pb.Assignment{Connection: "agones-1"}}, grpc.WaitForReady(true))
+		require.Nil(t, err)
+		require.NotNil(t, gotAtResp)
 	}
 
 	// 6. Call backend.FetchMatches and verify it no longer returns tickets got assigned in the previous step.
@@ -188,9 +189,9 @@ func TestGameMatchWorkFlow(t *testing.T) {
 
 	// 7. Call frontend.DeleteTicket to delete the tickets returned in step 6.
 	var gotDtResp *pb.DeleteTicketResponse
-	gotDtResp, err = fe.DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: ticket1.GetId()})
-	assert.Nil(t, err)
-	assert.NotNil(t, gotDtResp)
+	gotDtResp, err = fe.DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: ticket1.GetId()}, grpc.WaitForReady(true))
+	require.Nil(t, err)
+	require.NotNil(t, gotDtResp)
 
 	// 8. Call backend.FetchMatches and verify the response does not contain the tickets got deleted.
 	time.Sleep(statestoreTesting.IgnoreListTTL)
@@ -199,20 +200,20 @@ func TestGameMatchWorkFlow(t *testing.T) {
 }
 
 func validateFetchMatchesResponse(ctx context.Context, t *testing.T, wantTickets [][]*pb.Ticket, be pb.BackendClient, fmReq *pb.FetchMatchesRequest) {
-	stream, err := be.FetchMatches(ctx, fmReq)
-	assert.Nil(t, err)
+	stream, err := be.FetchMatches(ctx, fmReq, grpc.WaitForReady(true))
+	require.Nil(t, err)
 	matches := make([]*pb.Match, 0)
 	for {
 		resp, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
-		assert.Nil(t, err)
+		require.Nil(t, err)
 		matches = append(matches, resp.GetMatch())
 	}
 
-	assert.Equal(t, len(wantTickets), len(matches))
+	require.Equal(t, len(wantTickets), len(matches))
 	for _, match := range matches {
-		assert.Contains(t, wantTickets, match.GetTickets())
+		require.Contains(t, wantTickets, match.GetTickets())
 	}
 }

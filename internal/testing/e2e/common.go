@@ -21,8 +21,6 @@ import (
 	"os"
 	"testing"
 
-	"google.golang.org/grpc/resolver"
-
 	pb "open-match.dev/open-match/pkg/pb"
 )
 
@@ -62,9 +60,6 @@ func New(t *testing.T) (OM, func()) {
 
 // RunMain provides the setup and teardown for Open Match e2e tests.
 func RunMain(m *testing.M) {
-	// Reset the gRPC resolver to passthrough for end-to-end out-of-cluster testings.
-	// DNS resolver is unsupported for end-to-end local testings.
-	resolver.SetDefaultScheme("passthrough")
 	var exitCode int
 	z, err := createZygote(m)
 	if err != nil {

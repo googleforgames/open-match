@@ -1,0 +1,29 @@
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: om-test-role
+  namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+  labels:
+    app: {{ template "openmatch.name" . }}
+    release: {{ .Release.Name }}
+rules:
+# Define om-test-role to use om-core-podsecuritypolicy
+- apiGroups:
+  - extensions
+  resources:
+  - podsecuritypolicies
+  resourceNames:
+  - om-core-podsecuritypolicy
+  verbs:
+  - use
+# Grant om-test-role get & list permission for k8s endpoints and pods resources
+# Required for e2e in-cluster testing.
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  - pods
+  verbs:
+  - get
+  - list

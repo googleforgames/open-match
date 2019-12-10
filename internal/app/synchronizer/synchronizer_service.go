@@ -33,11 +33,13 @@ import (
 // of proposals from Match functions.
 type synchronizerService struct {
 	state *synchronizerState
+	store statestore.Service
 }
 
 func newSynchronizerService(cfg config.View, eval evaluator, store statestore.Service) *synchronizerService {
 	return &synchronizerService{
-		state: newSynchronizerState(cfg, eval, store),
+		state: newSynchronizerState(cfg, eval),
+		store: store,
 	}
 }
 
@@ -46,35 +48,34 @@ func newSynchronizerService(cfg config.View, eval evaluator, store statestore.Se
 // identifier back in the evaluation request. This enables synchronizer to
 // identify stale evaluation requests belonging to a prior cycle.
 func (s *synchronizerService) Register(ctx context.Context, req *ipb.RegisterRequest) (*ipb.RegisterResponse, error) {
-	syncState := s.state
 	// Registration calls are only permitted if the synchronizer is idle or in
 	// registration state. If the synchronizer is in any other state, the
 	// registration call blocks on the idle condition. This condition is broadcasted
 	// when the previous synchronization cycle is complete, waking up all the
 	// blocked requests to make progress in the new cycle.
-	syncState.stateMutex.Lock()
-	for (syncState.status != statusIdle) && (syncState.status != statusRequestRegistration) {
-		syncState.idleCond.Wait()
+	s.state.stateMutex.Lock()
+	for (s.state.status != statusIdle) && (s.state.status != statusRequestRegistration) {
+		s.state.idleCond.Wait()
 	}
 
-	defer syncState.stateMutex.Unlock()
-	if syncState.status == statusIdle {
+	defer s.state.stateMutex.Unlock()
+	if s.state.status == statusIdle {
 		// After waking up, the first request that encounters the idle state changes
 		// state to requestRegistration and initializes the state for this synchronization
 		// cycle. Consequent registration requests bypass this initialization.
 		logger.Info("Changing status from idle to requestRegistration")
-		syncState.status = statusRequestRegistration
-		syncState.resetCycleData()
+		s.state.status = statusRequestRegistration
+		s.state.resetCycleData()
 
 		// This method triggers the goroutine that changes the state of the synchronizer
 		// to proposalCollection after a configured time.
-		go syncState.trackRegistrationWindow()
+		go s.state.trackRegistrationWindow()
 	}
 
 	// Now that we are in requestRegistration state, allocate an id and initialize
 	// request data for this request.
 	id := xid.New().String()
-	syncState.cycleData.idToRequestData[id] = &requestData{}
+	s.state.cycleData.idToRequestData[id] = &requestData{}
 	logger.WithFields(logrus.Fields{
 		"id": id,
 	}).Info("Registered request for synchronization")
@@ -123,24 +124,23 @@ func (s *synchronizerService) EvaluateProposals(stream ipb.Synchronizer_Evaluate
 }
 
 func (s *synchronizerService) doEvaluateProposals(ctx context.Context, proposals []*pb.Match, id string) ([]*pb.Match, error) {
-	syncState := s.state
 	// pendingRequests keeps track of number of requests pending. This is incremented
 	// in addProposals while holding the state mutex. The count should be decremented
 	// only after this request completes.
-	err := syncState.addProposals(id, proposals)
+	err := s.state.addProposals(id, proposals)
 	if err != nil {
 		return nil, err
 	}
 
 	// If proposals were successfully added, then the pending request count has been
 	// incremented and should only be reduced when this request is completed.
-	defer syncState.cycleData.pendingRequests.Done()
+	defer s.state.cycleData.pendingRequests.Done()
 
 	// fetchResults blocks till results are available. It does not change the
 	// state of the synchronizer itself (since multiple concurrent of these can
 	// be in progress). The evaluation routine tracks the completion of all of
 	// these and then changes the state of the synchronizer to idle.
-	results, err := syncState.fetchResults(id)
+	results, err := s.state.fetchResults(id)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func (s *synchronizerService) doEvaluateProposals(ctx context.Context, proposals
 			ids = append(ids, ticket.GetId())
 		}
 	}
-	err = syncState.store.AddTicketsToIgnoreList(ctx, ids)
+	err = s.store.AddTicketsToIgnoreList(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
