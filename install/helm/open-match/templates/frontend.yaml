@@ -80,6 +80,7 @@ spec:
         component: frontend
         release: {{ .Release.Name }}
     spec:
+      {{- include "openmatch.labels.nodegrouping" . | nindent 6 }}
       volumes:
         {{- include "openmatch.volumes.configs" (dict "configs" .Values.configs) | nindent 8}}
         {{- include "openmatch.volumes.tls" . | nindent 8}}
