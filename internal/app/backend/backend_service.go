@@ -21,13 +21,14 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
+	"sync"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/internal/telemetry"
@@ -72,54 +73,180 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		return status.Error(codes.InvalidArgument, ".profile is required")
 	}
 
-	resultChan := make(chan mmfResult, len(req.GetProfiles()))
-
-	var syncID string
-	var err error
-
-	startTime := time.Now()
-
-	syncID, err = s.synchronizer.register(stream.Context())
+	syncStream, err := s.synchronizer.synchronize(stream.Context())
 	if err != nil {
 		return err
 	}
 
-	telemetry.RecordNUnitMeasurement(stream.Context(), mRegisterPhase, time.Since(startTime).Milliseconds())
-	startTime = time.Now()
+	errors := make(chan error, 2)
+	mmfCtx, cancelMmfs := context.WithCancel(stream.Context())
+	startMmfs := func() {
+		resultChan := make(chan mmfResult, len(req.GetProfiles()))
 
-	err = doFetchMatchesReceiveMmfResult(stream.Context(), s.mmfClients, req, resultChan)
-	if err != nil {
-		return err
-	}
+		err := doFetchMatchesReceiveMmfResult(mmfCtx, s.mmfClients, req, resultChan)
+		if err != nil {
+			// TODO: Log but continue case where mmfs were canceled.
+			errors <- err
+			return
+		}
 
-	proposals, err := doFetchMatchesValidateProposals(stream.Context(), resultChan, len(req.GetProfiles()))
-	if err != nil {
-		return err
-	}
+		proposals, err := doFetchMatchesValidateProposals(mmfCtx, resultChan, len(req.GetProfiles()))
+		if err != nil {
+			// TODO: Log but continue case where mmfs were canceled.
+			errors <- err
+			return
+		}
 
-	telemetry.RecordNUnitMeasurement(stream.Context(), mProposalCollectionPhase, time.Since(startTime).Milliseconds())
-	startTime = time.Now()
+	sendProposals:
+		for _, p := range proposals {
+			select {
+			case <-mmfCtx.Done():
+				// TODO: Log that we weren't done sending...
+				break sendProposals
+			default:
+			}
 
-	results, err := s.synchronizer.evaluate(stream.Context(), syncID, proposals)
-	if err != nil {
-		return err
-	}
-
-	telemetry.RecordNUnitMeasurement(stream.Context(), mEvaluateProposalsPhase, time.Since(startTime).Milliseconds())
-
-	for _, result := range results {
-		select {
-		case <-stream.Context().Done():
-			return stream.Context().Err()
-		default:
-			err = stream.Send(&pb.FetchMatchesResponse{Match: result})
-			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
+			err = syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
 			if err != nil {
-				logger.WithError(err).Error("failed to stream back the response")
-				return err
+				// TODO: Log.
+				errors <- err
+				return
 			}
 		}
+
+		err = syncStream.CloseSend()
+		if err != nil {
+			// TODO: Log?
+			errors <- err
+			return
+		}
+		errors <- nil
 	}
+
+	go func() {
+		var startMmfsOnce sync.Once
+
+		for {
+			resp, err := syncStream.Recv()
+			if err == io.EOF {
+				errors <- nil
+				return
+			}
+			if err != nil {
+				// TODO: Log?
+				errors <- err
+				return
+			}
+
+			if resp.StartMmfs {
+				go startMmfsOnce.Do(startMmfs)
+			}
+
+			if resp.CancelMmfs {
+				cancelMmfs()
+			}
+
+			if resp.Match != nil {
+				err = stream.Send(&pb.FetchMatchesResponse{Match: resp.Match})
+				telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
+				if err != nil {
+					logger.WithError(err).Error("failed to stream back a found match.")
+					errors <- err
+					return
+				}
+			}
+		}
+	}()
+
+	for i := 0; i < 2; i++ {
+		err := <-errors
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+
+	// runMMfs := sync.Once(func() {
+
+	// })
+
+	// runMmfs := func(ctx context.Context, proposals chan *pb.Match) error {
+	// 	// TODO: Refactor this so it streams proposals.
+	// 	resultChan := make(chan mmfResult, len(req.GetProfiles()))
+
+	// 	err = doFetchMatchesReceiveMmfResult(stream.Context(), s.mmfClients, req, resultChan)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	proposalsToSend, err := doFetchMatchesValidateProposals(stream.Context(), resultChan, len(req.GetProfiles()))
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	for _, p := range proposalsToSend {
+	// 		proposals <- p
+	// 	}
+	// 	return nil
+	// }
+
+	// processMatch := func(match *pb.Match) error {
+
+	// }
+
+	// err := s.synchronizer.synchronize(stream.Context(), runMmfs, processMatch)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// resultChan := make(chan mmfResult, len(req.GetProfiles()))
+
+	// var syncID string
+	// var err error
+
+	// startTime := time.Now()
+
+	// syncID, err = s.synchronizer.register(stream.Context())
+	// if err != nil {
+	// 	return err
+	// }
+
+	// telemetry.RecordNUnitMeasurement(stream.Context(), mRegisterPhase, time.Since(startTime).Milliseconds())
+	// startTime = time.Now()
+
+	// err = doFetchMatchesReceiveMmfResult(stream.Context(), s.mmfClients, req, resultChan)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// proposals, err := doFetchMatchesValidateProposals(stream.Context(), resultChan, len(req.GetProfiles()))
+	// if err != nil {
+	// 	return err
+	// }
+
+	// telemetry.RecordNUnitMeasurement(stream.Context(), mProposalCollectionPhase, time.Since(startTime).Milliseconds())
+	// startTime = time.Now()
+
+	// results, err := s.synchronizer.evaluate(stream.Context(), syncID, proposals)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// telemetry.RecordNUnitMeasurement(stream.Context(), mEvaluateProposalsPhase, time.Since(startTime).Milliseconds())
+
+	// for _, result := range results {
+	// 	select {
+	// 	case <-stream.Context().Done():
+	// 		return stream.Context().Err()
+	// 	default:
+	// 		err = stream.Send(&pb.FetchMatchesResponse{Match: result})
+	// 		telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
+	// 		if err != nil {
+	// 			logger.WithError(err).Error("failed to stream back the response")
+	// 			return err
+	// 		}
+	// 	}
+	// }
 
 	return nil
 }
