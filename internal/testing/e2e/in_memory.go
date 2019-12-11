@@ -21,7 +21,6 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc/resolver"
 	pool "open-match.dev/open-match/examples/functions/golang/pool/mmf"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/rpc"
@@ -34,13 +33,6 @@ import (
 	pb "open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/test/evaluator/evaluate"
 )
-
-// nolint:gochecknoinits
-func init() {
-	// Reset the gRPC resolver to passthrough for end-to-end out-of-cluster testings.
-	// DNS resolver is unsupported for end-to-end local testings.
-	resolver.SetDefaultScheme("passthrough")
-}
 
 type inmemoryOM struct {
 	mainTc *rpcTesting.TestContext
