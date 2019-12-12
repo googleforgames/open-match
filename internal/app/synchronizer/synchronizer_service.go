@@ -233,8 +233,10 @@ func newMatchRouter(proposalsOut, matchesIn chan *pb.Match) *matchRouter {
 		for {
 			select {
 			case proposal := <-mr.proposals:
-				origin[proposal.proposal.GetMatchId()] = proposal.result
-				proposalsOut <- proposal.proposal
+				if collectingProposals {
+					origin[proposal.proposal.GetMatchId()] = proposal.result
+					proposalsOut <- proposal.proposal
+				}
 			case <-mr.closeProposals:
 				if collectingProposals {
 					close(proposalsOut)
