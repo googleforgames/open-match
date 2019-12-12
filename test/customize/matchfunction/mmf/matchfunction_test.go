@@ -23,7 +23,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
+	internalMmf "open-match.dev/open-match/internal/testing/mmf"
 )
 
 func TestMakeMatches(t *testing.T) {
@@ -72,7 +72,7 @@ func TestMakeMatches(t *testing.T) {
 		"pool2": tickets[2:],
 	}
 
-	p := &mmfHarness.MatchFunctionParams{
+	p := &internalMmf.MatchFunctionParams{
 		Logger:            &logrus.Entry{},
 		ProfileName:       "test-profile",
 		Rosters:           []*pb.Roster{},
