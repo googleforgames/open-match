@@ -179,6 +179,8 @@ Registration:
 
 	// Clean up in case it was never needed.
 	cancelProposalCollection.Stop()
+
+	// Indicate next cycle can be started.
 	s.startCycle <- struct{}{}
 }
 
