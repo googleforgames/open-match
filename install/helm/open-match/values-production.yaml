@@ -116,11 +116,13 @@ redis:
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
     resources:
-      requests: {}
+      requests:
+        memory: 2Gi
+        cpu: 2
   metrics:
     enabled: true
   cluster:
-    slaveCount: 2
+    slaveCount: 3
   serviceAccount:
     create: true
     name: open-match-redis-service
@@ -202,11 +204,8 @@ global:
       targetCPUUtilizationPercentage: 80
     resources:
       requests:
-        memory: 100Mi
-        cpu: 100m
-      limits:
-        memory: 100Mi
-        cpu: 100m
+        memory: 1Gi
+        cpu: 1500m
     # Defines a service account which provides an identity for processes that run in a Pod in Open Match.
     serviceAccount: open-match-unprivileged-service
     # Use this field if you need to override the port type for all services defined in this chart
@@ -242,7 +241,7 @@ global:
       enabled: true
     jaeger:
       enabled: false
-      samplerFraction: 0.01 # Configures a sampler that samples a given fraction of traces.
+      samplerFraction: 0.005 # Configures a sampler that samples a given fraction of traces.
       agentEndpoint: "open-match-jaeger-agent:6831"
       collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
     prometheus:
