@@ -125,6 +125,11 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 
 	go func() {
 		var startMmfsOnce sync.Once
+		defer func() {
+			startMmfsOnce.Do(func() {
+				errors <- fmt.Errorf("MMFS were never started.")
+			})
+		}()
 
 		for {
 			resp, err := syncStream.Recv()
@@ -160,6 +165,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 
 	for i := 0; i < 2; i++ {
 		err := <-errors
+		fmt.Println("ERRROR: ", err)
 		if err != nil {
 			return err
 		}

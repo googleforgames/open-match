@@ -46,7 +46,7 @@ func newSynchronizerService(cfg config.View, evaluator evaluator, store statesto
 		evaluator:           evaluator,
 	}
 
-	s.runCycles(s.synchronizeRequests)
+	go s.runCycles(s.synchronizeRequests)
 
 	return s
 }
@@ -72,6 +72,9 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 			req, err := stream.Recv()
 			if err != nil {
 				if err != io.EOF {
+					// logger.
+
+					// panic(err)
 					/////////////////////////todo log error
 				}
 				return
@@ -80,15 +83,25 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 		}
 	}()
 
+	err := stream.Send(&ipb.SynchronizeResponse{StartMmfs: true})
+	if err != nil {
+		return err
+	}
+
 	for {
-		match, ok := <-mrc.Recv()
-		if !ok {
-			return nil
-		}
-		err := stream.Send(&ipb.SynchronizeResponse{Match: match})
-		if err != nil {
-			// TODO LOG ERROR
-			return err
+		select {
+		case match, ok := <-mrc.Recv():
+			if !ok {
+				return nil
+			}
+			err = stream.Send(&ipb.SynchronizeResponse{Match: match})
+			if err != nil {
+				// TODO LOG ERROR
+				return err
+			}
+		case <-stream.Context().Done():
+			// TODO: LOG ERROR
+			return stream.Context().Err()
 		}
 	}
 
@@ -147,14 +160,18 @@ func (s *synchronizerService) runCycles(synchronizeRequests chan chan *matchRout
 ///////////////////////////////////////
 
 type matchRouter struct {
-	proposals       chan propose
-	proposalsClosed chan struct{}
-	newClient       chan chan *pb.Match
-	senderClosed    chan struct{}
+	// Channels sent by function calls on matchRouter, recieved by the
+	// matchRouter's go routine.  Never closed, because closed channels are always
+	// available to recieve in a select, and it's easier to only have one select.
+	proposals      chan propose
+	closeProposals chan struct{}
+	newClient      chan chan *pb.Match
+	closeNewClient chan struct{}
+	senderClosed   chan struct{}
 
-	origin         map[string]chan *pb.Match
-	clients        []chan *pb.Match
-	clientsSending int
+	// Closed by matchRouter's go routine, used to prevent clients being blocked
+	// after the matchRouter's go routine returns.
+	proposalsClosed chan struct{}
 }
 
 type matchRouterClient struct {
@@ -170,15 +187,59 @@ type propose struct {
 
 func newMatchRouter(proposalsOut, matchesIn chan *pb.Match) *matchRouter {
 	mr := &matchRouter{
-		proposals:       make(chan propose),
+		proposals:      make(chan propose),
+		closeProposals: make(chan struct{}),
+		newClient:      make(chan chan *pb.Match),
+		closeNewClient: make(chan struct{}),
+		senderClosed:   make(chan struct{}),
+
 		proposalsClosed: make(chan struct{}),
-		senderClosed:    make(chan struct{}),
-		origin:          make(map[string]chan *pb.Match),
-		newClient:       make(chan chan *pb.Match),
 	}
 
 	go func() {
-
+		activeCount := 0
+		collectingClients := true
+		collectingProposals := true
+		origin := make(map[string]chan *pb.Match)
+		clients := []chan *pb.Match{}
+		for {
+			select {
+			case proposal := <-mr.proposals:
+				origin[proposal.proposal.GetMatchId()] = proposal.result
+				proposalsOut <- proposal.proposal
+			case <-mr.closeProposals:
+				if collectingProposals {
+					close(proposalsOut)
+					close(mr.proposalsClosed)
+					collectingProposals = false
+				}
+			case mrcMatches := <-mr.newClient:
+				activeCount++
+				clients = append(clients, mrcMatches)
+			case <-mr.closeNewClient:
+				collectingClients = false
+				if activeCount == 0 && collectingProposals {
+					close(proposalsOut)
+					close(mr.proposalsClosed)
+					collectingProposals = false
+				}
+			case <-mr.senderClosed:
+				activeCount--
+				if activeCount == 0 && collectingProposals && !collectingClients {
+					close(proposalsOut)
+					close(mr.proposalsClosed)
+					collectingProposals = false
+				}
+			case match, ok := <-matchesIn:
+				if !ok {
+					for _, c := range clients {
+						close(c)
+					}
+					return
+				}
+				origin[match.GetMatchId()] <- match
+			}
+		}
 	}()
 
 	return mr
@@ -186,26 +247,24 @@ func newMatchRouter(proposalsOut, matchesIn chan *pb.Match) *matchRouter {
 
 func (mr *matchRouter) NewClient() *matchRouterClient {
 	mrc := &matchRouterClient{
-		mr:         mr,
-		matches:    make(chan *pb.Match),
-		sendClosed: false,
+		mr:      mr,
+		matches: make(chan *pb.Match),
 	}
+
+	mr.newClient <- mrc.matches
 
 	return mrc
 }
 
 func (mr *matchRouter) CloseNewClients() {
-	close(mr.newClient)
+	mr.closeNewClient <- struct{}{}
 }
 
 func (mr *matchRouter) CloseProposals() {
-	close(mr.proposalsClosed)
+	mr.closeProposals <- struct{}{}
 }
 
 func (mrc *matchRouterClient) Send(proposal *pb.Match) bool {
-	if mrc.sendClosed {
-		panic("Sending on closed matchRouterCleint")
-	}
 	select {
 	case mrc.mr.proposals <- propose{proposal: proposal, result: mrc.matches}:
 		return true
@@ -215,11 +274,7 @@ func (mrc *matchRouterClient) Send(proposal *pb.Match) bool {
 }
 
 func (mrc *matchRouterClient) CloseSend() {
-	if mrc.sendClosed {
-		panic("Closing a closed matchRouterCleint")
-	}
 	mrc.mr.senderClosed <- struct{}{}
-	mrc.sendClosed = true
 }
 
 // Channel MUST be drained.
@@ -257,26 +312,27 @@ func (s *synchronizerService) wrapEvaluator(proposals, matches chan *pb.Match) {
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-func (s *synchronizerService) reserveMatches(proposals, matches chan *pb.Match) {
-	props := bufferChannel(proposals)
-	loop := true
-	for {
-		matches := []*pb.Match{}
-	gather:
-		for ps := range props {
-			ids := []string{}
-			for _, match := range ps {
-				for _, ticket := range match.GetTickets() {
-					ids = append(ids, ticket.GetId())
-				}
-			}
+func (s *synchronizerService) reserveMatches(unreserved, reserved chan *pb.Match) {
+	buffered := bufferChannel(unreserved)
 
-			err := s.store.AddTicketsToIgnoreList(context.Background(), ids)
-			if err != nil {
-				panic(err) // TODO: DO SOMETHING SENSIBLE
+	for matches := range buffered {
+		ids := []string{}
+		for _, match := range matches {
+			for _, ticket := range match.GetTickets() {
+				ids = append(ids, ticket.GetId())
 			}
 		}
+
+		err := s.store.AddTicketsToIgnoreList(context.Background(), ids)
+		if err != nil {
+			panic(err) // TODO: DO SOMETHING SENSIBLE
+		}
+
+		for _, match := range matches {
+			reserved <- match
+		}
 	}
+	close(reserved)
 }
 
 func bufferChannel(in chan *pb.Match) chan []*pb.Match {
@@ -298,6 +354,7 @@ func bufferChannel(in chan *pb.Match) chan []*pb.Match {
 					if !ok {
 						break outerLoop
 					}
+					a = append(a, m)
 				case out <- a:
 					a = nil
 				}

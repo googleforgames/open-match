@@ -16,6 +16,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -121,6 +122,7 @@ func TestGameMatchWorkFlow(t *testing.T) {
 
 	var err error
 	// 1. Create a few tickets with delicate designs and hand crafted search fields
+	fmt.Println("111111111111111111111111111111111111111111111111111111")
 	for i := 0; i < len(tickets); i++ {
 		var ctResp *pb.CreateTicketResponse
 		ctResp, err = fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: tickets[i]}, grpc.WaitForReady(true))
@@ -158,19 +160,23 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	}
 
 	// 2. Call backend.FetchMatches and expects two matches with the following tickets
+	fmt.Println("222222222222222222222222222222222222222222222222")
 	var wantTickets = [][]*pb.Ticket{{ticket2, ticket3, ticket4}, {ticket5}}
 	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 
 	// 3. Call backend.FetchMatches within redis.ignoreLists.ttl seconds and expects it return a match with ticket1 .
+	fmt.Println("3333333333333333333333333333333333333333333333333333")
 	wantTickets = [][]*pb.Ticket{{ticket1}}
 	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 
 	// 4. Wait for redis.ignoreLists.ttl seconds and call backend.FetchMatches the third time, expect the same result as step 2.
+	fmt.Println("44444444444444444444444444444444444444444444444444444444444444444444444")
 	time.Sleep(statestoreTesting.IgnoreListTTL)
 	wantTickets = [][]*pb.Ticket{{ticket2, ticket3, ticket4}, {ticket5}}
 	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 
 	// 5. Call backend.AssignTickets to assign DGSs for the tickets in FetchMatches' response
+	fmt.Println("5555555555555555555555555555555555555555555555555555555555555555")
 	var gotAtResp *pb.AssignTicketsResponse
 	for _, tickets := range wantTickets {
 		tids := []string{}
@@ -183,20 +189,26 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	}
 
 	// 6. Call backend.FetchMatches and verify it no longer returns tickets got assigned in the previous step.
+	fmt.Println("6666666666666666666666666666666666666666666666666666")
 	time.Sleep(statestoreTesting.IgnoreListTTL)
 	wantTickets = [][]*pb.Ticket{{ticket1}}
 	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 
 	// 7. Call frontend.DeleteTicket to delete the tickets returned in step 6.
+	fmt.Println("77777777777777777777777777777777777777777777777777777")
 	var gotDtResp *pb.DeleteTicketResponse
 	gotDtResp, err = fe.DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: ticket1.GetId()}, grpc.WaitForReady(true))
 	require.Nil(t, err)
 	require.NotNil(t, gotDtResp)
 
 	// 8. Call backend.FetchMatches and verify the response does not contain the tickets got deleted.
+	fmt.Println("888888888888888888888888888888888888888888888888888")
 	time.Sleep(statestoreTesting.IgnoreListTTL)
 	wantTickets = [][]*pb.Ticket{}
 	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
+
+	fmt.Println("99999999999999999999999999999999999999999999")
+
 }
 
 func validateFetchMatchesResponse(ctx context.Context, t *testing.T, wantTickets [][]*pb.Ticket, be pb.BackendClient, fmReq *pb.FetchMatchesRequest) {
