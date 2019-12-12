@@ -146,8 +146,8 @@ joinOrStart:
 
 func (s *synchronizerService) runCycle() {
 	incomingProposals := make(chan *pb.Match)
-	reservedMatches := make(chan *pb.Match)
 	evaluatedMatches := make(chan *pb.Match)
+	reservedMatches := make(chan *pb.Match)
 
 	mr := newMatchRouter(incomingProposals, reservedMatches)
 	go s.wrapEvaluator(incomingProposals, evaluatedMatches)
