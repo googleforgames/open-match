@@ -165,94 +165,10 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 
 	for i := 0; i < 2; i++ {
 		err := <-errors
-		fmt.Println("ERRROR: ", err)
 		if err != nil {
 			return err
 		}
 	}
-	return nil
-
-	// runMMfs := sync.Once(func() {
-
-	// })
-
-	// runMmfs := func(ctx context.Context, proposals chan *pb.Match) error {
-	// 	// TODO: Refactor this so it streams proposals.
-	// 	resultChan := make(chan mmfResult, len(req.GetProfiles()))
-
-	// 	err = doFetchMatchesReceiveMmfResult(stream.Context(), s.mmfClients, req, resultChan)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	proposalsToSend, err := doFetchMatchesValidateProposals(stream.Context(), resultChan, len(req.GetProfiles()))
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	for _, p := range proposalsToSend {
-	// 		proposals <- p
-	// 	}
-	// 	return nil
-	// }
-
-	// processMatch := func(match *pb.Match) error {
-
-	// }
-
-	// err := s.synchronizer.synchronize(stream.Context(), runMmfs, processMatch)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// resultChan := make(chan mmfResult, len(req.GetProfiles()))
-
-	// var syncID string
-	// var err error
-
-	// startTime := time.Now()
-
-	// syncID, err = s.synchronizer.register(stream.Context())
-	// if err != nil {
-	// 	return err
-	// }
-
-	// telemetry.RecordNUnitMeasurement(stream.Context(), mRegisterPhase, time.Since(startTime).Milliseconds())
-	// startTime = time.Now()
-
-	// err = doFetchMatchesReceiveMmfResult(stream.Context(), s.mmfClients, req, resultChan)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// proposals, err := doFetchMatchesValidateProposals(stream.Context(), resultChan, len(req.GetProfiles()))
-	// if err != nil {
-	// 	return err
-	// }
-
-	// telemetry.RecordNUnitMeasurement(stream.Context(), mProposalCollectionPhase, time.Since(startTime).Milliseconds())
-	// startTime = time.Now()
-
-	// results, err := s.synchronizer.evaluate(stream.Context(), syncID, proposals)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// telemetry.RecordNUnitMeasurement(stream.Context(), mEvaluateProposalsPhase, time.Since(startTime).Milliseconds())
-
-	// for _, result := range results {
-	// 	select {
-	// 	case <-stream.Context().Done():
-	// 		return stream.Context().Err()
-	// 	default:
-	// 		err = stream.Send(&pb.FetchMatchesResponse{Match: result})
-	// 		telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
-	// 		if err != nil {
-	// 			logger.WithError(err).Error("failed to stream back the response")
-	// 			return err
-	// 		}
-	// 	}
-	// }
 
 	return nil
 }
