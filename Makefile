@@ -244,7 +244,7 @@ build-mmf-go-rosterbased-image: docker build-base-build-image
 	docker build -f examples/functions/golang/rosterbased/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-rosterbased:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-rosterbased:$(ALTERNATE_TAG) .
 
 build-mmf-go-pool-image: docker build-base-build-image
-	docker build -f examples/functions/golang/pool/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG) .
+	docker build -f test/customize/matchfunction/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG) .
 
 build-evaluator-go-simple-image: docker build-base-build-image
 	docker build -f test/evaluator/Dockerfile -t $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG) .

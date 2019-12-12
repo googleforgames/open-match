@@ -21,16 +21,17 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	pool "open-match.dev/open-match/examples/functions/golang/pool/mmf"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/internal/testing/customize/evaluator"
+	internalMmf "open-match.dev/open-match/internal/testing/mmf"
 	"open-match.dev/open-match/internal/util"
-	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
 	pb "open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/test/customize/matchfunction/mmf"
+
 	"open-match.dev/open-match/test/evaluator/evaluate"
 )
 
@@ -162,8 +163,8 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 		cfg.Set("api.mmlogic.grpcport", c.GetGRPCPort())
 		cfg.Set("api.mmlogic.httpport", c.GetHTTPPort())
 
-		assert.Nil(t, mmfHarness.BindService(p, cfg, &mmfHarness.FunctionSettings{
-			Func: pool.MakeMatches,
+		assert.Nil(t, internalMmf.BindService(p, cfg, &internalMmf.FunctionSettings{
+			Func: mmf.MakeMatches,
 		}))
 	})
 	return tc
