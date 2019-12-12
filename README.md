@@ -30,7 +30,7 @@ This software is currently alpha, and subject to change.
 
 ## Support
 
-* [Slack Channel](https://open-match.slack.com/) ([Signup](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLWQzMzE1MGY5YmYyYWY3ZjE2MjNjZTdmYmQ1ZTQzMmNiNGViYmQyN2M4ZmVkMDY2YzZlOTUwMTYwMzI1Y2I2MjU))
+* [Slack Channel](https://open-match.slack.com/) ([Signup](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLTM5ZWQxNjc1YWI3MzJmN2RiMWJmYWI0ZjFiNzNkZmNkMWQ3YWU5OGVkNzA5Yzc4OGVkOGU5MTc0OTA5ZTA5NDU))
 * [File an Issue](https://github.com/googleforgames/open-match/issues/new)
 * [Mailing list](https://groups.google.com/forum/#!forum/open-match-discuss)
 
