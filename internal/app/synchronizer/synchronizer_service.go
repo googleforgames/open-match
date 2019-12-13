@@ -16,6 +16,7 @@ package synchronizer
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"time"
 
@@ -38,7 +39,7 @@ type synchronizerService struct {
 	store     statestore.Service
 	evaluator evaluator
 
-	synchronizeRequests chan chan *matchRouterClient
+	synchronizeRegistration chan chan *registration
 	// startCycle is a buffered channel for containing a single value.  The value
 	// is present only when a cycle is not running.
 	startCycle chan struct{}
@@ -50,8 +51,8 @@ func newSynchronizerService(cfg config.View, evaluator evaluator, store statesto
 		store:     store,
 		evaluator: evaluator,
 
-		synchronizeRequests: make(chan chan *matchRouterClient),
-		startCycle:          make(chan struct{}, 1),
+		synchronizeRegistration: make(chan chan *registration),
+		startCycle:              make(chan struct{}, 1),
 	}
 
 	s.startCycle <- struct{}{}
@@ -59,40 +60,34 @@ func newSynchronizerService(cfg config.View, evaluator evaluator, store statesto
 	return s
 }
 
-// Matches flow through channels in the synchronizer.
+// Matches flow through channels in the synchronizer.  Match variables are
+// named by how many steps of processing have taken place.
 
-//
-// +-----------+ --> +------+     +---------+
-// |synchronize|     |match | --> |evaluator|
-// +-----------+ <-- |router|     +---------+
-//                   |      |          |
-// +-----------+ --> |      |          V
-// |synchronize|     |      |     +--------------+
-// +-----------+ <-- +------+ <-- |reserveMatches|
-//                                +--------------+
+// receive from backend                       | Synchronize
+//   m1 -> m1c
+// collect from multiple synchronize calls    | foobarRenameMe
+//   m2 -> m2c
+// remember return channel (m TODO) for match | fanInFanOut
+//   m3 -> m3c (buffered)
+// send to evaluator                          | wrapEvaluator
+//   m4 -> m4c (buffered)
+// add tickets to ignore list                 | addMatchesToIgnoreList
+//   m5 -> m5c
+// fan out to origin synchronize call         | fanInFanOut
+//   m6 -> m6c (buffered)
+// return to backend                          | Synchronize
 
 func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeServer) error {
-	resp := make(chan *matchRouterClient)
+	fmt.Println("Synchronize start")
+	defer fmt.Println("Synchronize end")
 
-joinOrStart:
-	for {
-		select {
-		case s.synchronizeRequests <- resp:
-			break joinOrStart
-		case <-s.startCycle:
-			go s.runCycle()
+	registration := s.register()
+	defer func() {
+		for range registration.m6c {
 		}
-	}
-
-	mrc := <-resp
-	defer mrc.DrainRecv()
-
-	cancelMmfs := make(chan struct{})
+	}()
 
 	go func() {
-		defer mrc.CloseSend()
-		cancelSent := false
-
 		for {
 			req, err := stream.Recv()
 			if err != nil {
@@ -102,11 +97,12 @@ joinOrStart:
 					// panic(err)
 					/////////////////////////todo log error
 				}
+				registration.m1cDone <- struct{}{}
 				return
 			}
-			if !mrc.Send(req.Proposal) && !cancelSent {
-				cancelMmfs <- struct{}{}
-				cancelSent = true
+			select {
+			case registration.m1c <- mAndM6c{m: req.Proposal, m6c: registration.m6c}:
+			case <-registration.closedOnMmfCancel:
 			}
 		}
 	}()
@@ -118,7 +114,7 @@ joinOrStart:
 
 	for {
 		select {
-		case match, ok := <-mrc.Recv():
+		case match, ok := <-registration.m6c:
 			if !ok {
 				return nil
 			}
@@ -127,7 +123,7 @@ joinOrStart:
 				// TODO LOG ERROR
 				return err
 			}
-		case <-cancelMmfs:
+		case <-registration.cancelMmfs:
 			err = stream.Send(&ipb.SynchronizeResponse{CancelMmfs: true})
 			if err != nil {
 				// TODO LOG ERROR
@@ -144,188 +140,177 @@ joinOrStart:
 ///////////////////////////////////////
 ///////////////////////////////////////
 
+func (s synchronizerService) register() *registration {
+	resp := make(chan *registration)
+	for {
+		select {
+		case s.synchronizeRegistration <- resp:
+			return <-resp
+		case <-s.startCycle:
+			go func() {
+				s.runCycle()
+				s.startCycle <- struct{}{}
+			}()
+		}
+	}
+}
+
 func (s *synchronizerService) runCycle() {
-	incomingProposals := make(chan *pb.Match)
-	evaluatedMatches := make(chan *pb.Match)
-	reservedMatches := make(chan *pb.Match)
+	fmt.Println("runCycle start")
+	defer fmt.Println("runCycle end")
 
-	mr := newMatchRouter(incomingProposals, reservedMatches)
-	go s.wrapEvaluator(incomingProposals, evaluatedMatches)
-	matchesReserved := make(chan struct{})
+	m1c := make(chan mAndM6c)
+	m2c := make(chan mAndM6c)
+	m3c := make(chan *pb.Match)
+	m4c := make(chan *pb.Match)
+	m5c := make(chan *pb.Match)
+	// m6c is per Synchronize call.
+
+	m1cDone := make(chan struct{})
+
+	newRegistration := make(chan struct{})
+	closeRegistration := time.After(s.registrationInterval())
+	registrationDone := make(chan struct{})
+
+	registrations := []*registration{}
+	closedOnMmfCancel := make(chan struct{})
+	matchesAddedToIgnoreList := make(chan struct{})
+
+	go foobarRenameMe(m1c, m2c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel)
 	go func() {
-		s.reserveMatches(evaluatedMatches, reservedMatches)
-		close(matchesReserved)
+		fanInFanOut(m2c, m3c, m5c)
+		for _, r := range registrations {
+			close(r.m6c) // TODO when switching to buffered, needs to close the buffer input, not buffer output
+		}
 	}()
-
-	registrationDone := time.After(s.registrationInterval())
+	go s.wrapEvaluator(bufferChannel(m3c), m4c)
+	go func() {
+		s.addMatchesToIgnoreList(bufferChannel(m4c), m5c)
+		close(matchesAddedToIgnoreList)
+	}()
 
 Registration:
 	for {
 		select {
-		case r := <-s.synchronizeRequests:
-			r <- mr.NewClient()
-		case <-registrationDone:
+		case c := <-s.synchronizeRegistration:
+			r := &registration{
+				m1c:               m1c,
+				m1cDone:           m1cDone,
+				m6c:               make(chan *pb.Match),
+				cancelMmfs:        make(chan struct{}, 1),
+				closedOnMmfCancel: closedOnMmfCancel,
+			}
+			registrations = append(registrations, r)
+			c <- r
+		case <-closeRegistration:
 			break Registration
 		}
 	}
-	mr.CloseNewClients()
+	registrationDone <- struct{}{}
 
 	cancelProposalCollection := time.AfterFunc(s.proposalCollectionInterval(), func() {
-		mr.CloseProposals()
+		close(closedOnMmfCancel)
+		for _, r := range registrations {
+			r.cancelMmfs <- struct{}{}
+		}
 	})
 
-	// Once matches have been reserved, next cycle can started.
-	<-matchesReserved
+	<-matchesAddedToIgnoreList
 
 	// Clean up in case it was never needed.
 	cancelProposalCollection.Stop()
+}
 
-	// Indicate next cycle can be started.
-	s.startCycle <- struct{}{}
+type registration struct {
+	m1c               chan mAndM6c
+	m1cDone           chan struct{}
+	m6c               chan *pb.Match
+	cancelMmfs        chan struct{}
+	closedOnMmfCancel chan struct{}
 }
 
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-type matchRouter struct {
-	// Channels sent by function calls on matchRouter, recieved by the
-	// matchRouter's go routine.  Never closed, because closed channels are always
-	// available to recieve in a select, and it's easier to only have one select.
-	proposals      chan propose
-	closeProposals chan struct{}
-	newClient      chan chan *pb.Match
-	closeNewClient chan struct{}
-	senderClosed   chan struct{}
-
-	// Closed by matchRouter's go routine, used to prevent clients being blocked
-	// after the matchRouter's go routine returns.
-	proposalsClosed chan struct{}
+type mAndM6c struct {
+	m   *pb.Match
+	m6c chan *pb.Match
 }
 
-type matchRouterClient struct {
-	mr         *matchRouter
-	matches    chan *pb.Match
-	sendClosed bool
-}
+func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match) {
+	fmt.Println("fanInFanOut start")
+	defer fmt.Println("fanInFanOut end")
 
-type propose struct {
-	proposal *pb.Match
-	result   chan *pb.Match
-}
+	m6cMap := make(map[string]chan<- *pb.Match)
 
-func newMatchRouter(proposalsOut, matchesIn chan *pb.Match) *matchRouter {
-	mr := &matchRouter{
-		proposals:      make(chan propose),
-		closeProposals: make(chan struct{}),
-		newClient:      make(chan chan *pb.Match),
-		closeNewClient: make(chan struct{}),
-		senderClosed:   make(chan struct{}),
-
-		proposalsClosed: make(chan struct{}),
-	}
-
-	go func() {
-		activeCount := 0
-		collectingClients := true
-		collectingProposals := true
-		origin := make(map[string]chan *pb.Match)
-		clients := []chan *pb.Match{}
-		for {
-			select {
-			case proposal := <-mr.proposals:
-				if collectingProposals {
-					origin[proposal.proposal.GetMatchId()] = proposal.result
-					proposalsOut <- proposal.proposal
-				}
-			case <-mr.closeProposals:
-				if collectingProposals {
-					close(proposalsOut)
-					close(mr.proposalsClosed)
-					collectingProposals = false
-				}
-			case mrcMatches := <-mr.newClient:
-				activeCount++
-				clients = append(clients, mrcMatches)
-			case <-mr.closeNewClient:
-				collectingClients = false
-				if activeCount == 0 && collectingProposals {
-					close(proposalsOut)
-					close(mr.proposalsClosed)
-					collectingProposals = false
-				}
-			case <-mr.senderClosed:
-				activeCount--
-				if activeCount == 0 && collectingProposals && !collectingClients {
-					close(proposalsOut)
-					close(mr.proposalsClosed)
-					collectingProposals = false
-				}
-			case match, ok := <-matchesIn:
-				if !ok {
-					for _, c := range clients {
-						close(c)
-					}
-					return
-				}
-				origin[match.GetMatchId()] <- match
-			}
+	defer func() {
+		for range m2c {
 		}
 	}()
 
-	return mr
-}
+	for {
+		select {
+		case m2, ok := <-m2c:
+			if !ok {
+				close(m3c)
+				return
+			}
+			m6cMap[m2.m.GetMatchId()] = m2.m6c
+			m3c <- m2.m
 
-func (mr *matchRouter) NewClient() *matchRouterClient {
-	mrc := &matchRouterClient{
-		mr:      mr,
-		matches: make(chan *pb.Match),
-	}
+		case m5, ok := <-m5c:
+			if !ok {
+				return
+			}
 
-	mr.newClient <- mrc.matches
-
-	return mrc
-}
-
-func (mr *matchRouter) CloseNewClients() {
-	mr.closeNewClient <- struct{}{}
-}
-
-func (mr *matchRouter) CloseProposals() {
-	mr.closeProposals <- struct{}{}
-}
-
-func (mrc *matchRouterClient) Send(proposal *pb.Match) bool {
-	select {
-	case mrc.mr.proposals <- propose{proposal: proposal, result: mrc.matches}:
-		return true
-	case <-mrc.mr.proposalsClosed:
-		return false
-	}
-}
-
-func (mrc *matchRouterClient) CloseSend() {
-	mrc.mr.senderClosed <- struct{}{}
-}
-
-// Channel MUST be drained.
-func (mrc *matchRouterClient) Recv() chan *pb.Match {
-	return mrc.matches
-}
-
-func (mrc *matchRouterClient) DrainRecv() {
-	for range mrc.Recv() {
+			m6cMap[m5.GetMatchId()] <- m5
+		}
 	}
 }
 
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-func (s *synchronizerService) wrapEvaluator(proposals, matches chan *pb.Match) {
+func foobarRenameMe(m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel chan struct{}) {
+	fmt.Println("foobarRenameMe start")
+	defer fmt.Println("foobarRenameMe end")
+	registrationOpen := true
+	openSenders := 0
+
+	for {
+		if !registrationOpen && openSenders == 0 {
+			close(m2c)
+			return
+		}
+
+		select {
+		case <-newRegistration:
+			openSenders++
+		case <-m1cDone:
+			openSenders--
+		case <-closedOnMmfCancel:
+			close(m2c)
+			return
+		case <-registrationDone:
+			registrationOpen = false
+		case match := <-m1c:
+			m2c <- match
+		}
+	}
+}
+
+///////////////////////////////////////
+///////////////////////////////////////
+
+func (s *synchronizerService) wrapEvaluator(proposals chan []*pb.Match, matches chan *pb.Match) {
+	fmt.Println("wrapEvaluator start")
+	defer fmt.Println("wrapEvaluator end")
+
 	// TODO: Stream through the request.
 
 	proposalList := []*pb.Match{}
 	for p := range proposals {
-		proposalList = append(proposalList, p)
+		proposalList = append(proposalList, p...)
 	}
 
 	matchList, err := s.evaluator.evaluate(context.Background(), proposalList)
@@ -342,13 +327,13 @@ func (s *synchronizerService) wrapEvaluator(proposals, matches chan *pb.Match) {
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-func (s *synchronizerService) reserveMatches(unreserved, reserved chan *pb.Match) {
-	buffered := bufferChannel(unreserved)
-
-	for matches := range buffered {
+func (s *synchronizerService) addMatchesToIgnoreList(m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
+	fmt.Println("addMatchesToIgnoreList start")
+	defer fmt.Println("addMatchesToIgnoreList end")
+	for m4s := range m4c {
 		ids := []string{}
-		for _, match := range matches {
-			for _, ticket := range match.GetTickets() {
+		for _, m4 := range m4s {
+			for _, ticket := range m4.GetTickets() {
 				ids = append(ids, ticket.GetId())
 			}
 		}
@@ -358,11 +343,11 @@ func (s *synchronizerService) reserveMatches(unreserved, reserved chan *pb.Match
 			panic(err) // TODO: DO SOMETHING SENSIBLE
 		}
 
-		for _, match := range matches {
-			reserved <- match
+		for _, m4 := range m4s {
+			m5c <- m4
 		}
 	}
-	close(reserved)
+	close(m5c)
 }
 
 ///////////////////////////////////////
