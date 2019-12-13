@@ -117,8 +117,10 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 		select {
 		case match, ok := <-registration.m6c:
 			if !ok {
+				logger.Warning("============= Synchronize match closed")
 				return nil
 			}
+			logger.Warning("============= Synchronize match")
 			err = stream.Send(&ipb.SynchronizeResponse{Match: match})
 			if err != nil {
 				// TODO LOG ERROR
@@ -126,12 +128,15 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 			}
 			logger.Warning("============= Synchronize match returned")
 		case <-registration.cancelMmfs:
+			logger.Warning("============= Synchronize cancel mmfs")
 			err = stream.Send(&ipb.SynchronizeResponse{CancelMmfs: true})
 			if err != nil {
+				logger.Warning("============= Synchronize error on cancel mmfs")
 				// TODO LOG ERROR
 				return err
 			}
 		case <-stream.Context().Done():
+			logger.Warning("============= Synchronize context done")
 			// TODO: LOG ERROR
 			return stream.Context().Err()
 		}
@@ -171,8 +176,8 @@ func (s *synchronizerService) runCycle() {
 	m1cDone := make(chan struct{})
 
 	newRegistration := make(chan struct{})
-	closeRegistration := time.After(s.registrationInterval())
 	registrationDone := make(chan struct{})
+	closeRegistration := time.After(s.registrationInterval())
 
 	registrations := []*registration{}
 	closedOnMmfCancel := make(chan struct{})
@@ -240,8 +245,8 @@ type mAndM6c struct {
 }
 
 func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match) {
-	//logger.Warning("============= fanInFanOut start")
-	//defer logger.Warning("============= fanInFanOut end")
+	logger.Warning("============= fanInFanOut start")
+	defer logger.Warning("============= fanInFanOut end")
 
 	m6cMap := make(map[string]chan<- *pb.Match)
 
@@ -250,12 +255,13 @@ func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match)
 		}
 	}()
 
+loop:
 	for {
 		select {
 		case m2, ok := <-m2c:
 			if !ok {
 				close(m3c)
-				return
+				break loop
 			}
 			m6cMap[m2.m.GetMatchId()] = m2.m6c
 			m3c <- m2.m
@@ -267,6 +273,10 @@ func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match)
 
 			m6cMap[m5.GetMatchId()] <- m5
 		}
+	}
+
+	for m5 := range m5c {
+		m6cMap[m5.GetMatchId()] <- m5
 	}
 }
 
@@ -336,10 +346,10 @@ func (s *synchronizerService) wrapEvaluator(m3c <-chan []*pb.Match, m4c chan<- *
 func (s *synchronizerService) addMatchesToIgnoreList(m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
 	//logger.Warning("============= addMatchesToIgnoreList start")
 	//defer logger.Warning("============= addMatchesToIgnoreList end")
-	for m4s := range m4c {
+	for matches := range m4c {
 		ids := []string{}
-		for _, m4 := range m4s {
-			for _, ticket := range m4.GetTickets() {
+		for _, match := range matches {
+			for _, ticket := range match.GetTickets() {
 				ids = append(ids, ticket.GetId())
 			}
 		}
@@ -349,8 +359,8 @@ func (s *synchronizerService) addMatchesToIgnoreList(m4c <-chan []*pb.Match, m5c
 			panic(err) // TODO: DO SOMETHING SENSIBLE
 		}
 
-		for _, m4 := range m4s {
-			m5c <- m4
+		for _, match := range matches {
+			m5c <- match
 		}
 	}
 	close(m5c)
