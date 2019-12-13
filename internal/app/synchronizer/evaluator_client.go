@@ -124,7 +124,6 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Mat
 			break
 		}
 		if err != nil {
-			time.Sleep(time.Second)
 			return nil, fmt.Errorf("Error streaming results from evaluator: %w", err)
 		}
 		results = append(results, resp.GetMatch())
