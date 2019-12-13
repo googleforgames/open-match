@@ -101,6 +101,7 @@ func newGrpcEvaluator(cfg config.View) (evaluator, error) {
 }
 
 func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+	time.Sleep(time.Second)
 	stream, err := ec.evaluator.Evaluate(ctx)
 	if err != nil {
 		time.Sleep(time.Second)
