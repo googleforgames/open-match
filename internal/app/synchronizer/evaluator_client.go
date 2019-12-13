@@ -21,7 +21,6 @@ import (
 	"io"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
@@ -101,16 +100,13 @@ func newGrpcEvaluator(cfg config.View) (evaluator, error) {
 }
 
 func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
-	time.Sleep(time.Second)
 	stream, err := ec.evaluator.Evaluate(ctx)
 	if err != nil {
-		time.Sleep(time.Second)
 		return nil, fmt.Errorf("Error starting evaluator call: %w", err)
 	}
 
 	for _, proposal := range proposals {
 		if err = stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
-			time.Sleep(time.Second)
 			return nil, fmt.Errorf("Error sending proposals to evaluator: %w", err)
 		}
 	}

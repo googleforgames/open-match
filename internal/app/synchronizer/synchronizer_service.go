@@ -314,7 +314,8 @@ func (s *synchronizerService) wrapEvaluator(proposals chan []*pb.Match, matches 
 
 	matchList, err := s.evaluator.evaluate(context.Background(), proposalList)
 	if err != nil {
-		panic(err)
+		logger.Error(err)
+		// panic(err)
 		///TODO: DO SOMETHING SENSIBLE
 	}
 	for _, m := range matchList {
