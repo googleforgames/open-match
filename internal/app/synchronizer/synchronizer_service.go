@@ -16,7 +16,6 @@ package synchronizer
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"time"
 
@@ -78,8 +77,8 @@ func newSynchronizerService(cfg config.View, evaluator evaluator, store statesto
 // return to backend                          | Synchronize
 
 func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeServer) error {
-	fmt.Println("Synchronize start")
-	defer fmt.Println("Synchronize end")
+	logger.Warning("============= Synchronize start")
+	defer logger.Warning("============= Synchronize end")
 
 	registration := s.register()
 	defer func() {
@@ -156,8 +155,8 @@ func (s synchronizerService) register() *registration {
 }
 
 func (s *synchronizerService) runCycle() {
-	fmt.Println("runCycle start")
-	defer fmt.Println("runCycle end")
+	logger.Warning("============= runCycle start")
+	defer logger.Warning("============= runCycle end")
 
 	m1c := make(chan mAndM6c)
 	m2c := make(chan mAndM6c)
@@ -238,8 +237,8 @@ type mAndM6c struct {
 }
 
 func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match) {
-	fmt.Println("fanInFanOut start")
-	defer fmt.Println("fanInFanOut end")
+	logger.Warning("============= fanInFanOut start")
+	defer logger.Warning("============= fanInFanOut end")
 
 	m6cMap := make(map[string]chan<- *pb.Match)
 
@@ -272,8 +271,8 @@ func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match)
 ///////////////////////////////////////
 
 func foobarRenameMe(m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel chan struct{}) {
-	fmt.Println("foobarRenameMe start")
-	defer fmt.Println("foobarRenameMe end")
+	logger.Warning("============= foobarRenameMe start")
+	defer logger.Warning("============= foobarRenameMe end")
 	registrationOpen := true
 	openSenders := 0
 
@@ -303,8 +302,8 @@ func foobarRenameMe(m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, ne
 ///////////////////////////////////////
 
 func (s *synchronizerService) wrapEvaluator(proposals chan []*pb.Match, matches chan *pb.Match) {
-	fmt.Println("wrapEvaluator start")
-	defer fmt.Println("wrapEvaluator end")
+	logger.Warning("============= wrapEvaluator start")
+	defer logger.Warning("============= wrapEvaluator end")
 
 	// TODO: Stream through the request.
 
@@ -328,8 +327,8 @@ func (s *synchronizerService) wrapEvaluator(proposals chan []*pb.Match, matches 
 ///////////////////////////////////////
 
 func (s *synchronizerService) addMatchesToIgnoreList(m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
-	fmt.Println("addMatchesToIgnoreList start")
-	defer fmt.Println("addMatchesToIgnoreList end")
+	logger.Warning("============= addMatchesToIgnoreList start")
+	defer logger.Warning("============= addMatchesToIgnoreList end")
 	for m4s := range m4c {
 		ids := []string{}
 		for _, m4 := range m4s {
