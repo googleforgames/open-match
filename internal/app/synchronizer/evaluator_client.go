@@ -103,11 +103,11 @@ func newGrpcEvaluator(cfg config.View) (evaluator, error) {
 func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
 	stream, err := ec.evaluator.Evaluate(ctx)
 	if err != nil {
+		time.Sleep(time.Second)
 		return nil, fmt.Errorf("Error starting evaluator call: %w", err)
 	}
 
 	for _, proposal := range proposals {
-		logger.Warning(proposal)
 		if err = stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
 			time.Sleep(time.Second)
 			return nil, fmt.Errorf("Error sending proposals to evaluator: %w", err)
@@ -127,6 +127,7 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Mat
 			break
 		}
 		if err != nil {
+			time.Sleep(time.Second)
 			return nil, fmt.Errorf("Error streaming results from evaluator: %w", err)
 		}
 		results = append(results, resp.GetMatch())
