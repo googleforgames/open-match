@@ -16,6 +16,7 @@ package synchronizer
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"time"
 
@@ -436,4 +437,69 @@ func getMatchIds(matches []*pb.Match) []string {
 		result = append(result, m.GetMatchId())
 	}
 	return result
+}
+
+///////////////////////////////////////
+///////////////////////////////////////
+
+type callUnification struct {
+	ctx           context.Context
+	cancelWithErr chan error
+	err           error
+	attatch       chan context.Context
+}
+
+func newCallUnification(firstContext context.Context) *callUnification {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	c := &callUnification{
+		ctx:           ctx,
+		cancelWithErr: make(chan error),
+		err:           nil,
+		attatch:       make(chan context.Context),
+	}
+	go func() {
+
+		sourceContexts := []context.Context{firstContext}
+		for {
+			if len(sourceContexts) == 0 {
+				c.err = fmt.Errorf("All callers have canceled, so canceling, example: %w", firstContext.Err())
+				cancel()
+				return
+			}
+			select {
+			case <-sourceContexts[0].Done():
+				sourceContexts = sourceContexts[1:]
+			case aCtx := <-c.attatch:
+				sourceContexts = append(sourceContexts, aCtx)
+			case c.err = <-c.cancelWithErr:
+				cancel()
+				return
+			}
+		}
+	}()
+
+	return c
+}
+
+func (c *callUnification) Attatch(ctx context.Context) {
+	select {
+	case c.attatch <- ctx:
+	case <-c.ctx.Done():
+	}
+}
+
+func (c *callUnification) CancelWithError(err error) {
+	select {
+	case <-c.ctx.Done():
+	case c.cancelWithErr <- err:
+	}
+}
+
+func (c *callUnification) Error() error {
+	return c.err
+}
+
+func (c *callUnification) Context() context.Context {
+	return c.ctx
 }
