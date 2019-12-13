@@ -77,8 +77,8 @@ func newSynchronizerService(cfg config.View, evaluator evaluator, store statesto
 // return to backend                          | Synchronize
 
 func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeServer) error {
-	//logger.Warning("============= Synchronize start")
-	//defer logger.Warning("============= Synchronize end")
+	logger.Warning("============= Synchronize start")
+	defer logger.Warning("============= Synchronize end")
 
 	registration := s.register()
 	defer func() {
@@ -101,7 +101,9 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 			}
 			select {
 			case registration.m1c <- mAndM6c{m: req.Proposal, m6c: registration.m6c}:
+				logger.Warning("============= Synchronize proposals received")
 			case <-registration.closedOnMmfCancel:
+				logger.Warning("============= Synchronize mmfs were canceled")
 			}
 		}
 	}()
@@ -122,6 +124,7 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 				// TODO LOG ERROR
 				return err
 			}
+			logger.Warning("============= Synchronize match returned")
 		case <-registration.cancelMmfs:
 			err = stream.Send(&ipb.SynchronizeResponse{CancelMmfs: true})
 			if err != nil {
@@ -301,27 +304,30 @@ func foobarRenameMe(m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, ne
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-func (s *synchronizerService) wrapEvaluator(proposals chan []*pb.Match, matches chan *pb.Match) {
-	//logger.Warning("============= wrapEvaluator start")
-	//defer logger.Warning("============= wrapEvaluator end")
+func (s *synchronizerService) wrapEvaluator(m3c <-chan []*pb.Match, m4c chan<- *pb.Match) {
+	logger.Warning("============= wrapEvaluator start")
+	defer logger.Warning("============= wrapEvaluator end")
 
 	// TODO: Stream through the request.
 
 	proposalList := []*pb.Match{}
-	for p := range proposals {
-		proposalList = append(proposalList, p...)
+	for matches := range m3c {
+		logger.Warning("============= wrapEvaluator get match")
+		proposalList = append(proposalList, matches...)
 	}
 
+	logger.Warning("============= wrapEvaluator run")
 	matchList, err := s.evaluator.evaluate(context.Background(), proposalList)
 	if err != nil {
 		logger.Error(err)
-		// panic(err)
+		panic(err)
 		///TODO: DO SOMETHING SENSIBLE
 	}
 	for _, m := range matchList {
-		matches <- m
+		logger.Warning("============= wrapEvaluator get sent match")
+		m4c <- m
 	}
-	close(matches)
+	close(m4c)
 }
 
 ///////////////////////////////////////

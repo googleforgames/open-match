@@ -112,7 +112,7 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Mat
 	}
 
 	if err = stream.CloseSend(); err != nil {
-		logger.Errorf("failed to close the send stream: %s", err.Error())
+		logger.Errorf("failed to close the send stream: %w", err.Error())
 	}
 
 	var results = []*pb.Match{}
