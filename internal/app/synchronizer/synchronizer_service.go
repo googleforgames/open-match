@@ -78,8 +78,6 @@ func newSynchronizerService(cfg config.View, evaluator evaluator, store statesto
 // return to backend                          | Synchronize
 
 func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeServer) error {
-	logger.Warning("============= Synchronize start")
-	defer logger.Warning("============= Synchronize end")
 
 	registration := s.register(stream.Context())
 	matchesBuffer := bufferChannel(registration.m6c)
@@ -93,19 +91,16 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 			req, err := stream.Recv()
 			if err != nil {
 				if err != io.EOF {
-					// logger.
-
-					// panic(err)
-					/////////////////////////todo log error
+					logger.WithFields(logrus.Fields{
+						"error": err.Error(),
+					}).Error("Error streaming in synchronizer from backend.")
 				}
 				registration.m1cDone <- struct{}{}
 				return
 			}
 			select {
 			case registration.m1c <- mAndM6c{m: req.Proposal, m6c: registration.m6c}:
-				logger.Warning("============= Synchronize proposals received")
 			case <-registration.closedOnMmfCancel:
-				logger.Warning("============= Synchronize mmfs were canceled")
 			}
 		}
 	}()
@@ -119,28 +114,29 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 		select {
 		case matches, ok := <-matchesBuffer:
 			if !ok {
-				logger.Warning("============= Synchronize match closed")
 				return nil
 			}
 			for _, match := range matches {
-				logger.Warning("============= Synchronize match")
 				err = stream.Send(&ipb.SynchronizeResponse{Match: match})
 				if err != nil {
-					// TODO LOG ERROR
+					logger.WithFields(logrus.Fields{
+						"error": err.Error(),
+					}).Error("Error streaming match in synchronizer to backend.")
 					return err
 				}
-				logger.Warning("============= Synchronize match returned")
 			}
 		case <-registration.cancelMmfs:
-			logger.Warning("============= Synchronize cancel mmfs")
 			err = stream.Send(&ipb.SynchronizeResponse{CancelMmfs: true})
 			if err != nil {
-				logger.Warning("============= Synchronize error on cancel mmfs")
-				// TODO LOG ERROR
+				logger.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("Error streaming mmf cancel in synchronizer to backend.")
 				return err
 			}
 		case <-stream.Context().Done():
-			logger.Warning("============= Synchronize context done")
+			logger.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("Error streaming in synchronizer to backend: context is done")
 			// TODO: LOG ERROR
 			return stream.Context().Err()
 		}
@@ -170,8 +166,6 @@ func (s synchronizerService) register(ctx context.Context) *registration {
 }
 
 func (s *synchronizerService) runCycle() {
-	//logger.Warning("============= runCycle start")
-	//defer logger.Warning("============= runCycle end")
 
 	// unification :=
 
@@ -259,8 +253,6 @@ type mAndM6c struct {
 }
 
 func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match) {
-	logger.Warning("============= fanInFanOut start")
-	defer logger.Warning("============= fanInFanOut end")
 
 	m6cMap := make(map[string]chan<- *pb.Match)
 
@@ -298,8 +290,6 @@ loop:
 ///////////////////////////////////////
 
 func foobarRenameMe(m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel chan struct{}) {
-	//logger.Warning("============= foobarRenameMe start")
-	//defer logger.Warning("============= foobarRenameMe end")
 	registrationOpen := true
 	openSenders := 0
 
@@ -329,18 +319,14 @@ func foobarRenameMe(m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, ne
 ///////////////////////////////////////
 
 func (s *synchronizerService) wrapEvaluator(m3c <-chan []*pb.Match, m4c chan<- *pb.Match) {
-	logger.Warning("============= wrapEvaluator start")
-	defer logger.Warning("============= wrapEvaluator end")
 
 	// TODO: Stream through the request.
 
 	proposalList := []*pb.Match{}
 	for matches := range m3c {
-		logger.Warning("============= wrapEvaluator get match")
 		proposalList = append(proposalList, matches...)
 	}
 
-	logger.Warning("============= wrapEvaluator run")
 	matchList, err := s.evaluator.evaluate(context.Background(), proposalList)
 	if err != nil {
 		logger.Error(err)
@@ -348,7 +334,6 @@ func (s *synchronizerService) wrapEvaluator(m3c <-chan []*pb.Match, m4c chan<- *
 		///TODO: DO SOMETHING SENSIBLE
 	}
 	for _, m := range matchList {
-		logger.Warning("============= wrapEvaluator get sent match")
 		m4c <- m
 	}
 	close(m4c)
@@ -358,8 +343,6 @@ func (s *synchronizerService) wrapEvaluator(m3c <-chan []*pb.Match, m4c chan<- *
 ///////////////////////////////////////
 
 func (s *synchronizerService) addMatchesToIgnoreList(m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
-	//logger.Warning("============= addMatchesToIgnoreList start")
-	//defer logger.Warning("============= addMatchesToIgnoreList end")
 	for matches := range m4c {
 		ids := []string{}
 		for _, match := range matches {
