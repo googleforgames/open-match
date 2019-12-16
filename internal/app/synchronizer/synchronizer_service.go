@@ -39,7 +39,7 @@ type synchronizerService struct {
 	store     statestore.Service
 	evaluator evaluator
 
-	synchronizeRegistration chan chan *registration
+	synchronizeRegistration chan *registrationRequest
 	// startCycle is a buffered channel for containing a single value.  The value
 	// is present only when a cycle is not running.
 	startCycle chan struct{}
@@ -51,7 +51,7 @@ func newSynchronizerService(cfg config.View, evaluator evaluator, store statesto
 		store:     store,
 		evaluator: evaluator,
 
-		synchronizeRegistration: make(chan chan *registration),
+		synchronizeRegistration: make(chan *registrationRequest),
 		startCycle:              make(chan struct{}, 1),
 	}
 
@@ -64,26 +64,27 @@ func newSynchronizerService(cfg config.View, evaluator evaluator, store statesto
 // named by how many steps of processing have taken place.
 
 // receive from backend                       | Synchronize
-//   m1 -> m1c
+//  -> m1c ->
 // collect from multiple synchronize calls    | foobarRenameMe
-//   m2 -> m2c
+//   -> m2c ->
 // remember return channel (m TODO) for match | fanInFanOut
-//   m3 -> m3c (buffered)
+//   -> m3c -> (buffered)
 // send to evaluator                          | wrapEvaluator
-//   m4 -> m4c (buffered)
+//   -> m4c -> (buffered)
 // add tickets to ignore list                 | addMatchesToIgnoreList
-//   m5 -> m5c
+//   -> m5c ->
 // fan out to origin synchronize call         | fanInFanOut
-//   m6 -> m6c (buffered)
+//   -> m6c -> (buffered)
 // return to backend                          | Synchronize
 
 func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeServer) error {
 	logger.Warning("============= Synchronize start")
 	defer logger.Warning("============= Synchronize end")
 
-	registration := s.register()
+	registration := s.register(stream.Context())
+	matchesBuffer := bufferChannel(registration.m6c)
 	defer func() {
-		for range registration.m6c {
+		for range matchesBuffer {
 		}
 	}()
 
@@ -116,18 +117,20 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 
 	for {
 		select {
-		case match, ok := <-registration.m6c:
+		case matches, ok := <-matchesBuffer:
 			if !ok {
 				logger.Warning("============= Synchronize match closed")
 				return nil
 			}
-			logger.Warning("============= Synchronize match")
-			err = stream.Send(&ipb.SynchronizeResponse{Match: match})
-			if err != nil {
-				// TODO LOG ERROR
-				return err
+			for _, match := range matches {
+				logger.Warning("============= Synchronize match")
+				err = stream.Send(&ipb.SynchronizeResponse{Match: match})
+				if err != nil {
+					// TODO LOG ERROR
+					return err
+				}
+				logger.Warning("============= Synchronize match returned")
 			}
-			logger.Warning("============= Synchronize match returned")
 		case <-registration.cancelMmfs:
 			logger.Warning("============= Synchronize cancel mmfs")
 			err = stream.Send(&ipb.SynchronizeResponse{CancelMmfs: true})
@@ -148,12 +151,15 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-func (s synchronizerService) register() *registration {
-	resp := make(chan *registration)
+func (s synchronizerService) register(ctx context.Context) *registration {
+	req := &registrationRequest{
+		resp: make(chan *registration),
+		ctx:  ctx,
+	}
 	for {
 		select {
-		case s.synchronizeRegistration <- resp:
-			return <-resp
+		case s.synchronizeRegistration <- req:
+			return <-req.resp
 		case <-s.startCycle:
 			go func() {
 				s.runCycle()
@@ -166,6 +172,8 @@ func (s synchronizerService) register() *registration {
 func (s *synchronizerService) runCycle() {
 	//logger.Warning("============= runCycle start")
 	//defer logger.Warning("============= runCycle end")
+
+	// unification :=
 
 	m1c := make(chan mAndM6c)
 	m2c := make(chan mAndM6c)
@@ -188,7 +196,7 @@ func (s *synchronizerService) runCycle() {
 	go func() {
 		fanInFanOut(m2c, m3c, m5c)
 		for _, r := range registrations {
-			close(r.m6c) // TODO when switching to buffered, needs to close the buffer input, not buffer output
+			close(r.m6c)
 		}
 	}()
 	go s.wrapEvaluator(bufferChannel(m3c), m4c)
@@ -200,7 +208,7 @@ func (s *synchronizerService) runCycle() {
 Registration:
 	for {
 		select {
-		case c := <-s.synchronizeRegistration:
+		case req := <-s.synchronizeRegistration:
 			r := &registration{
 				m1c:               m1c,
 				m1cDone:           m1cDone,
@@ -209,7 +217,7 @@ Registration:
 				closedOnMmfCancel: closedOnMmfCancel,
 			}
 			registrations = append(registrations, r)
-			c <- r
+			req.resp <- r
 		case <-closeRegistration:
 			break Registration
 		}
@@ -227,6 +235,11 @@ Registration:
 
 	// Clean up in case it was never needed.
 	cancelProposalCollection.Stop()
+}
+
+type registrationRequest struct {
+	resp chan *registration
+	ctx  context.Context
 }
 
 type registration struct {
@@ -459,7 +472,6 @@ func newCallUnification(firstContext context.Context) *callUnification {
 		attatch:       make(chan context.Context),
 	}
 	go func() {
-
 		sourceContexts := []context.Context{firstContext}
 		for {
 			if len(sourceContexts) == 0 {
@@ -474,6 +486,9 @@ func newCallUnification(firstContext context.Context) *callUnification {
 				sourceContexts = append(sourceContexts, aCtx)
 			case c.err = <-c.cancelWithErr:
 				cancel()
+				return
+			case <-ctx.Done():
+				c.err = ctx.Err()
 				return
 			}
 		}
@@ -497,7 +512,12 @@ func (c *callUnification) CancelWithError(err error) {
 }
 
 func (c *callUnification) Error() error {
-	return c.err
+	select {
+	case <-c.ctx.Done():
+		return c.err
+	default:
+		return nil
+	}
 }
 
 func (c *callUnification) Context() context.Context {
