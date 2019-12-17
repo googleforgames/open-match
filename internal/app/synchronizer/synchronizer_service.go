@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -41,6 +42,9 @@ var (
 // These matches are sent to the evaluator, then the tickets are added to the
 // ignore list.  Finally the matches are returned to the calling stream.
 
+// This is best read from bottom to top, as both Synchronize and runCycle combine
+// components further in the file to create the desired functionality.
+
 // receive from backend                       | Synchronize
 //  -> m1c ->
 // collect from multiple synchronize calls    | combineWithCutoff
@@ -61,6 +65,7 @@ type synchronizerService struct {
 	evaluator evaluator
 
 	synchronizeRegistration chan *registrationRequest
+
 	// startCycle is a buffered channel for containing a single value.  The value
 	// is present only when a cycle is not running.
 	startCycle chan struct{}
@@ -82,11 +87,10 @@ func newSynchronizerService(cfg config.View, evaluator evaluator, store statesto
 }
 
 func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeServer) error {
-
 	registration := s.register(stream.Context())
-	matchesBuffer := bufferChannel(registration.m6c)
+	m6cBuffer := bufferChannel(registration.m6c)
 	defer func() {
-		for range matchesBuffer {
+		for range m6cBuffer {
 		}
 	}()
 
@@ -116,7 +120,7 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 
 	for {
 		select {
-		case matches, ok := <-matchesBuffer:
+		case matches, ok := <-m6cBuffer:
 			if !ok {
 				return nil
 			}
@@ -143,8 +147,8 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 			}).Error("Error streaming in synchronizer to backend: context is done")
 			// TODO: LOG ERROR
 			return stream.Context().Err()
-		case <-registration.unification.Context().Done():
-			return registration.unification.Err()
+		case <-registration.cycleCtx.Done():
+			return registration.cycleCtx.Err()
 		}
 	}
 
@@ -172,8 +176,7 @@ func (s synchronizerService) register(ctx context.Context) *registration {
 }
 
 func (s *synchronizerService) runCycle() {
-
-	unification := newCallUnification()
+	ctx, cancel := WithCancelCause(context.Background())
 
 	m1c := make(chan mAndM6c)
 	m2c := make(chan mAndM6c)
@@ -182,26 +185,31 @@ func (s *synchronizerService) runCycle() {
 	m5c := make(chan *pb.Match)
 	// m6c is per Synchronize call.
 
+	// Value passed indicates a Synchronize call has finished sending values.  It can't
+	// close the channel because other calls may still be using it.
 	m1cDone := make(chan struct{})
-
+	// Value passed indicates a new Synchronize call has joined the cycle.
 	newRegistration := make(chan struct{})
+	// Value passed indicates that no new Synchronize calls will join the cycle.
 	registrationDone := make(chan struct{})
 
 	registrations := []*registration{}
+	callingCtx := []context.Context{}
 	closedOnMmfCancel := make(chan struct{})
-	matchesAddedToIgnoreList := make(chan struct{})
+	closedOnCycleEnd := make(chan struct{})
 
-	go combineWithCutoff(unification, m1c, m2c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel)
+	go combineWithCutoff(m1c, m2c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel)
 	go func() {
-		fanInFanOut(unification, m2c, m3c, m5c)
+		fanInFanOut(m2c, m3c, m5c)
+		// Close response channels after all responses have been sent.
 		for _, r := range registrations {
 			close(r.m6c)
 		}
 	}()
-	go s.wrapEvaluator(unification, bufferChannel(m3c), m4c)
+	go s.wrapEvaluator(ctx, cancel, bufferChannel(m3c), m4c)
 	go func() {
-		s.addMatchesToIgnoreList(unification, bufferChannel(m4c), m5c)
-		close(matchesAddedToIgnoreList)
+		s.addMatchesToIgnoreList(ctx, cancel, bufferChannel(m4c), m5c)
+		close(closedOnCycleEnd)
 	}()
 
 	closeRegistration := time.After(s.registrationInterval())
@@ -209,15 +217,16 @@ Registration:
 	for {
 		select {
 		case req := <-s.synchronizeRegistration:
-			unification.Attatch(req.ctx)
+			callingCtx = append(callingCtx, req.ctx)
 			r := &registration{
 				m1c:               m1c,
 				m1cDone:           m1cDone,
 				m6c:               make(chan *pb.Match),
 				cancelMmfs:        make(chan struct{}, 1),
 				closedOnMmfCancel: closedOnMmfCancel,
-				unification:       unification,
+				cycleCtx:          ctx,
 			}
+			newRegistration <- struct{}{}
 			registrations = append(registrations, r)
 			req.resp <- r
 		case <-closeRegistration:
@@ -225,7 +234,7 @@ Registration:
 		}
 	}
 	registrationDone <- struct{}{}
-	unification.CancelIfAttatchedDone()
+	go cancelWhenCallersAreDone(callingCtx, cancel)
 
 	cancelProposalCollection := time.AfterFunc(s.proposalCollectionInterval(), func() {
 		close(closedOnMmfCancel)
@@ -233,8 +242,7 @@ Registration:
 			r.cancelMmfs <- struct{}{}
 		}
 	})
-
-	<-matchesAddedToIgnoreList
+	<-closedOnCycleEnd
 
 	// Clean up in case it was never needed.
 	cancelProposalCollection.Stop()
@@ -251,7 +259,7 @@ type registration struct {
 	m6c               chan *pb.Match
 	cancelMmfs        chan struct{}
 	closedOnMmfCancel chan struct{}
-	unification       *callUnification
+	cycleCtx          context.Context
 }
 
 ///////////////////////////////////////
@@ -262,8 +270,9 @@ type mAndM6c struct {
 	m6c chan *pb.Match
 }
 
-func fanInFanOut(unification *callUnification, m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match) {
-
+// For incoming mathces, remembers the channel the match needs to be returned to
+// if it passes the synchronizer.
+func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match) {
 	m6cMap := make(map[string]chan<- *pb.Match)
 
 	defer func() {
@@ -299,7 +308,7 @@ loop:
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-func combineWithCutoff(unification *callUnification, m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel chan struct{}) {
+func combineWithCutoff(m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel chan struct{}) {
 	defer close(m2c)
 
 	registrationOpen := true
@@ -321,8 +330,6 @@ func combineWithCutoff(unification *callUnification, m1c <-chan mAndM6c, m2c cha
 			registrationOpen = false
 		case match := <-m1c:
 			m2c <- match
-		case <-unification.Context().Done():
-			return
 		}
 	}
 }
@@ -330,7 +337,7 @@ func combineWithCutoff(unification *callUnification, m1c <-chan mAndM6c, m2c cha
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-func (s *synchronizerService) wrapEvaluator(unification *callUnification, m3c <-chan []*pb.Match, m4c chan<- *pb.Match) {
+func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel CancelErrFunc, m3c <-chan []*pb.Match, m4c chan<- *pb.Match) {
 
 	// TODO: Stream through the request.
 
@@ -339,7 +346,7 @@ func (s *synchronizerService) wrapEvaluator(unification *callUnification, m3c <-
 		proposalList = append(proposalList, matches...)
 	}
 
-	matchList, err := s.evaluator.evaluate(context.Background(), proposalList)
+	matchList, err := s.evaluator.evaluate(ctx, proposalList)
 	if err == nil {
 		for _, m := range matchList {
 			m4c <- m
@@ -348,7 +355,7 @@ func (s *synchronizerService) wrapEvaluator(unification *callUnification, m3c <-
 		logger.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("Error calling evaluator. Canceling cycle.")
-		unification.CancelWithError(fmt.Errorf("Error calling evaluator: %w", err))
+		cancel(fmt.Errorf("Error calling evaluator: %w", err))
 	}
 	close(m4c)
 }
@@ -356,7 +363,7 @@ func (s *synchronizerService) wrapEvaluator(unification *callUnification, m3c <-
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-func (s *synchronizerService) addMatchesToIgnoreList(unification *callUnification, m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
+func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, cancel CancelErrFunc, m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
 	totalMatches := 0
 	successfulMatches := 0
 	var lastErr error
@@ -368,7 +375,7 @@ func (s *synchronizerService) addMatchesToIgnoreList(unification *callUnificatio
 			}
 		}
 
-		err := s.store.AddTicketsToIgnoreList(unification.Context(), ids)
+		err := s.store.AddTicketsToIgnoreList(ctx, ids)
 
 		totalMatches += len(matches)
 		if err == nil {
@@ -388,11 +395,11 @@ func (s *synchronizerService) addMatchesToIgnoreList(unification *callUnificatio
 			"totalMatches":      totalMatches,
 			"successfulMatches": successfulMatches,
 		}).Error("Some or all matches were not successfully added to the ignore list, failed matches dropped.")
-	}
-	if totalMatches > 0 && successfulMatches == 0 {
-		unification.CancelWithError(fmt.Errorf("No matches successfully added to the ignore list.  Last error: %w", lastErr))
-	}
 
+		if successfulMatches == 0 {
+			cancel(fmt.Errorf("No matches successfully added to the ignore list.  Last error: %w", lastErr))
+		}
+	}
 	close(m5c)
 }
 
@@ -428,6 +435,7 @@ func (s *synchronizerService) proposalCollectionInterval() time.Duration {
 ///////////////////////////////////////
 ///////////////////////////////////////
 
+//
 func bufferChannel(in chan *pb.Match) chan []*pb.Match {
 	out := make(chan []*pb.Match)
 	go func() {
@@ -472,87 +480,47 @@ func getMatchIds(matches []*pb.Match) []string {
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-type callUnification struct {
-	ctx                   context.Context
-	cancelWithErr         chan error
-	err                   error
-	attatch               chan context.Context
-	cancelIfAttatchedDone chan struct{}
+type CancelErrFunc func(err error)
+
+type contextWithCancelCause struct {
+	context.Context
+	m   sync.Mutex
+	err error
 }
 
-func newCallUnification() *callUnification {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	c := &callUnification{
-		ctx:                   ctx,
-		cancelWithErr:         make(chan error),
-		err:                   nil,
-		attatch:               make(chan context.Context),
-		cancelIfAttatchedDone: make(chan struct{}),
+func (ctx *contextWithCancelCause) Err() error {
+	ctx.m.Lock()
+	defer ctx.m.Unlock()
+	if ctx.err == nil {
+		return ctx.Context.Err()
 	}
-	go func() {
-		defer cancel()
-		neverSends := (<-chan struct{})(make(chan struct{}))
-		sourceContexts := []context.Context{}
-		cancelIfAttatchedDone := false
-		for {
-			nextSourceContext := neverSends
-			if cancelIfAttatchedDone {
-				if len(sourceContexts) == 0 {
-					c.err = fmt.Errorf("All callers have canceled, so canceling.")
-					return
-				}
-				nextSourceContext = sourceContexts[0].Done()
-			}
-			select {
-			case <-nextSourceContext:
-				sourceContexts = sourceContexts[1:]
-			case aCtx := <-c.attatch:
-				sourceContexts = append(sourceContexts, aCtx)
-			case c.err = <-c.cancelWithErr:
-				cancel()
-			case <-ctx.Done():
-				c.err = ctx.Err()
-				return
-			case <-c.cancelIfAttatchedDone:
-				cancelIfAttatchedDone = true
-			}
+	return ctx.err
+}
+
+func WithCancelCause(parent context.Context) (context.Context, CancelErrFunc) {
+	parent, cancel := context.WithCancel(parent)
+
+	ctx := &contextWithCancelCause{
+		Context: parent,
+	}
+
+	return ctx, func(err error) {
+		ctx.m.Lock()
+		defer ctx.m.Unlock()
+
+		if ctx.err == nil {
+			ctx.err = err
 		}
-	}()
-
-	return c
-}
-
-func (c *callUnification) Attatch(ctx context.Context) {
-	select {
-	case c.attatch <- ctx:
-	case <-c.ctx.Done():
+		cancel()
 	}
 }
 
-func (c *callUnification) CancelWithError(err error) {
-	select {
-	case <-c.ctx.Done():
-	case c.cancelWithErr <- err:
-	}
-}
+///////////////////////////////////////
+///////////////////////////////////////
 
-func (c *callUnification) Err() error {
-	select {
-	case <-c.ctx.Done():
-		return c.err
-	default:
-		return nil
+func cancelWhenCallersAreDone(ctxs []context.Context, cancel CancelErrFunc) {
+	for _, ctx := range ctxs {
+		<-ctx.Done()
 	}
-}
-
-func (c *callUnification) Context() context.Context {
-	return c.ctx
-}
-
-func (c *callUnification) CancelIfAttatchedDone() {
-	select {
-	case c.cancelIfAttatchedDone <- struct{}{}:
-	case <-c.ctx.Done():
-	}
+	cancel(fmt.Errorf("Canceled because all callers were done."))
 }
