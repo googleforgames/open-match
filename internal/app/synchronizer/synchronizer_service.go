@@ -139,6 +139,8 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 			}).Error("Error streaming in synchronizer to backend: context is done")
 			// TODO: LOG ERROR
 			return stream.Context().Err()
+		case <-registration.unification.Context().Done():
+			return registration.unification.Err()
 		}
 	}
 
@@ -210,6 +212,7 @@ Registration:
 				m6c:               make(chan *pb.Match),
 				cancelMmfs:        make(chan struct{}, 1),
 				closedOnMmfCancel: closedOnMmfCancel,
+				unification:       unification,
 			}
 			registrations = append(registrations, r)
 			req.resp <- r
@@ -244,6 +247,7 @@ type registration struct {
 	m6c               chan *pb.Match
 	cancelMmfs        chan struct{}
 	closedOnMmfCancel chan struct{}
+	unification       *callUnification
 }
 
 ///////////////////////////////////////
