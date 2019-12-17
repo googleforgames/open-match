@@ -117,8 +117,13 @@ redis:
     disableCommands: [] # don't disable 'FLUSH-' commands
     resources:
       requests:
-        memory: 2Gi
-        cpu: 2
+        memory: 3Gi
+        cpu: 3
+      limits:
+        memory: 6Gi
+        cpu: 6
+    persistence:
+      enabled: false
   metrics:
     enabled: true
   cluster:
@@ -126,9 +131,19 @@ redis:
   serviceAccount:
     create: true
     name: open-match-redis-service
+  slave:
+    persistence:
+      enabled: false
+    resources:
+      requests:
+        memory: 1Gi
+        cpu: 1
+      limits:
+        memory: 2Gi
+        cpu: 2
   sysctlImage:
     # Enable this setting in production if you are running Open Match under Linux environment
-    enabled: false
+    enabled: true
     mountHostSys: true
     # Redis may require some changes in the kernel of the host machine to work as expected,
     # in particular increasing the somaxconn value and disabling transparent huge pages.
@@ -137,9 +152,9 @@ redis:
       - /bin/sh
       - -c
       - |-
+        echo never > /host-sys/kernel/mm/transparent_hugepage/enabled # Disable THP support
         install_packages procps
         sysctl -w net.core.somaxconn=100000
-        echo never > /host-sys/kernel/mm/transparent_hugepage/enabled # Disable THP support
 
 ###############################################################################################################################
 #                               Open Match configurations for the subcharts
@@ -157,10 +172,10 @@ open-match-core:
   enabled: true
   redis:
     pool:
-      maxIdle: 200
-      maxActive: 0
+      maxIdle: 500
+      maxActive: 500
       idleTimeout: 0
-      healthCheckTimeout: 100ms
+      healthCheckTimeout: 300ms
 
 # Controls if users need to install scale testing setup for Open Match.
 open-match-scale:
@@ -199,13 +214,16 @@ open-match-test:
 global:
   kubernetes:
     horizontalPodAutoScaler:
-      minReplicas: 1
+      minReplicas: 3
       maxReplicas: 10
-      targetCPUUtilizationPercentage: 80
+      targetCPUUtilizationPercentage: 60
     resources:
       requests:
-        memory: 1Gi
-        cpu: 1500m
+        memory: 1.5Gi
+        cpu: 1.5
+      limits:
+        memory: 3Gi
+        cpu: 2
     # Defines a service account which provides an identity for processes that run in a Pod in Open Match.
     serviceAccount: open-match-unprivileged-service
     # Use this field if you need to override the port type for all services defined in this chart
