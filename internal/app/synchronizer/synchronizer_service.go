@@ -167,7 +167,7 @@ func (s synchronizerService) register(ctx context.Context) *registration {
 
 func (s *synchronizerService) runCycle() {
 
-	// unification :=
+	unification := newCallUnification()
 
 	m1c := make(chan mAndM6c)
 	m2c := make(chan mAndM6c)
@@ -180,29 +180,30 @@ func (s *synchronizerService) runCycle() {
 
 	newRegistration := make(chan struct{})
 	registrationDone := make(chan struct{})
-	closeRegistration := time.After(s.registrationInterval())
 
 	registrations := []*registration{}
 	closedOnMmfCancel := make(chan struct{})
 	matchesAddedToIgnoreList := make(chan struct{})
 
-	go foobarRenameMe(m1c, m2c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel)
+	go foobarRenameMe(unification, m1c, m2c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel)
 	go func() {
-		fanInFanOut(m2c, m3c, m5c)
+		fanInFanOut(unification, m2c, m3c, m5c)
 		for _, r := range registrations {
 			close(r.m6c)
 		}
 	}()
-	go s.wrapEvaluator(bufferChannel(m3c), m4c)
+	go s.wrapEvaluator(unification, bufferChannel(m3c), m4c)
 	go func() {
-		s.addMatchesToIgnoreList(bufferChannel(m4c), m5c)
+		s.addMatchesToIgnoreList(unification, bufferChannel(m4c), m5c)
 		close(matchesAddedToIgnoreList)
 	}()
 
+	closeRegistration := time.After(s.registrationInterval())
 Registration:
 	for {
 		select {
 		case req := <-s.synchronizeRegistration:
+			unification.Attatch(req.ctx)
 			r := &registration{
 				m1c:               m1c,
 				m1cDone:           m1cDone,
@@ -217,6 +218,7 @@ Registration:
 		}
 	}
 	registrationDone <- struct{}{}
+	unification.CancelIfAttatchedDone()
 
 	cancelProposalCollection := time.AfterFunc(s.proposalCollectionInterval(), func() {
 		close(closedOnMmfCancel)
@@ -252,7 +254,7 @@ type mAndM6c struct {
 	m6c chan *pb.Match
 }
 
-func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match) {
+func fanInFanOut(unification *callUnification, m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match) {
 
 	m6cMap := make(map[string]chan<- *pb.Match)
 
@@ -289,7 +291,7 @@ loop:
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-func foobarRenameMe(m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel chan struct{}) {
+func foobarRenameMe(unification *callUnification, m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel chan struct{}) {
 	registrationOpen := true
 	openSenders := 0
 
@@ -318,7 +320,7 @@ func foobarRenameMe(m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, ne
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-func (s *synchronizerService) wrapEvaluator(m3c <-chan []*pb.Match, m4c chan<- *pb.Match) {
+func (s *synchronizerService) wrapEvaluator(unification *callUnification, m3c <-chan []*pb.Match, m4c chan<- *pb.Match) {
 
 	// TODO: Stream through the request.
 
@@ -342,7 +344,10 @@ func (s *synchronizerService) wrapEvaluator(m3c <-chan []*pb.Match, m4c chan<- *
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-func (s *synchronizerService) addMatchesToIgnoreList(m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
+func (s *synchronizerService) addMatchesToIgnoreList(unification *callUnification, m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
+	totalMatches := 0
+	successfulMatches := 0
+	var lastErr error
 	for matches := range m4c {
 		ids := []string{}
 		for _, match := range matches {
@@ -352,14 +357,30 @@ func (s *synchronizerService) addMatchesToIgnoreList(m4c <-chan []*pb.Match, m5c
 		}
 
 		err := s.store.AddTicketsToIgnoreList(context.Background(), ids)
-		if err != nil {
-			panic(err) // TODO: DO SOMETHING SENSIBLE
+
+		totalMatches += len(matches)
+		if err == nil {
+			successfulMatches += len(matches)
+		} else {
+			lastErr = err
 		}
 
 		for _, match := range matches {
 			m5c <- match
 		}
 	}
+
+	if lastErr != nil {
+		logger.WithFields(logrus.Fields{
+			"error":             lastErr.Error(),
+			"totalMatches":      totalMatches,
+			"successfulMatches": successfulMatches,
+		}).Error("Some or all matches were not successfully added to the ignore list, failed matches dropped.")
+	}
+	if totalMatches > 0 && successfulMatches == 0 {
+		unification.CancelWithError(fmt.Errorf("No matches successfully added to the ignore list.  Last error: %w", lastErr))
+	}
+
 	close(m5c)
 }
 
@@ -439,40 +460,49 @@ func getMatchIds(matches []*pb.Match) []string {
 ///////////////////////////////////////
 
 type callUnification struct {
-	ctx           context.Context
-	cancelWithErr chan error
-	err           error
-	attatch       chan context.Context
+	ctx                   context.Context
+	cancelWithErr         chan error
+	err                   error
+	attatch               chan context.Context
+	cancelIfAttatchedDone chan struct{}
 }
 
-func newCallUnification(firstContext context.Context) *callUnification {
+func newCallUnification() *callUnification {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	c := &callUnification{
-		ctx:           ctx,
-		cancelWithErr: make(chan error),
-		err:           nil,
-		attatch:       make(chan context.Context),
+		ctx:                   ctx,
+		cancelWithErr:         make(chan error),
+		err:                   nil,
+		attatch:               make(chan context.Context),
+		cancelIfAttatchedDone: make(chan struct{}),
 	}
 	go func() {
-		sourceContexts := []context.Context{firstContext}
+		defer cancel()
+		neverSends := (<-chan struct{})(make(chan struct{}))
+		sourceContexts := []context.Context{}
+		cancelIfAttatchedDone := false
 		for {
-			if len(sourceContexts) == 0 {
-				c.err = fmt.Errorf("All callers have canceled, so canceling, example: %w", firstContext.Err())
-				cancel()
-				return
+			nextSourceContext := neverSends
+			if cancelIfAttatchedDone {
+				if len(sourceContexts) == 0 {
+					c.err = fmt.Errorf("All callers have canceled, so canceling.")
+					return
+				}
+				nextSourceContext = sourceContexts[0].Done()
 			}
 			select {
-			case <-sourceContexts[0].Done():
+			case <-nextSourceContext:
 				sourceContexts = sourceContexts[1:]
 			case aCtx := <-c.attatch:
 				sourceContexts = append(sourceContexts, aCtx)
 			case c.err = <-c.cancelWithErr:
 				cancel()
-				return
 			case <-ctx.Done():
 				c.err = ctx.Err()
 				return
+			case <-c.cancelIfAttatchedDone:
+				cancelIfAttatchedDone = true
 			}
 		}
 	}()
@@ -505,4 +535,11 @@ func (c *callUnification) Error() error {
 
 func (c *callUnification) Context() context.Context {
 	return c.ctx
+}
+
+func (c *callUnification) CancelIfAttatchedDone() {
+	select {
+	case c.cancelIfAttatchedDone <- struct{}{}:
+	case <-c.ctx.Done():
+	}
 }
