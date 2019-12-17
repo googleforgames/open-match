@@ -34,6 +34,27 @@ var (
 	})
 )
 
+// Matches flow through channels in the synchronizer.  Channel variable names
+// are unused to be consistant between function calls to help track everything.
+
+// Streams from multiple GRPC calls of matches are combined on a single channel.
+// These matches are sent to the evaluator, then the tickets are added to the
+// ignore list.  Finally the matches are returned to the calling stream.
+
+// receive from backend                       | Synchronize
+//  -> m1c ->
+// collect from multiple synchronize calls    | combineWithCutoff
+//   -> m2c ->
+// remember return channel (m TODO) for match | fanInFanOut
+//   -> m3c -> (buffered)
+// send to evaluator                          | wrapEvaluator
+//   -> m4c -> (buffered)
+// add tickets to ignore list                 | addMatchesToIgnoreList
+//   -> m5c ->
+// fan out to origin synchronize call         | fanInFanOut
+//   -> m6c -> (buffered)
+// return to backend                          | Synchronize
+
 type synchronizerService struct {
 	cfg       config.View
 	store     statestore.Service
@@ -59,23 +80,6 @@ func newSynchronizerService(cfg config.View, evaluator evaluator, store statesto
 
 	return s
 }
-
-// Matches flow through channels in the synchronizer.  Match variables are
-// named by how many steps of processing have taken place.
-
-// receive from backend                       | Synchronize
-//  -> m1c ->
-// collect from multiple synchronize calls    | foobarRenameMe
-//   -> m2c ->
-// remember return channel (m TODO) for match | fanInFanOut
-//   -> m3c -> (buffered)
-// send to evaluator                          | wrapEvaluator
-//   -> m4c -> (buffered)
-// add tickets to ignore list                 | addMatchesToIgnoreList
-//   -> m5c ->
-// fan out to origin synchronize call         | fanInFanOut
-//   -> m6c -> (buffered)
-// return to backend                          | Synchronize
 
 func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeServer) error {
 
@@ -187,7 +191,7 @@ func (s *synchronizerService) runCycle() {
 	closedOnMmfCancel := make(chan struct{})
 	matchesAddedToIgnoreList := make(chan struct{})
 
-	go foobarRenameMe(unification, m1c, m2c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel)
+	go combineWithCutoff(unification, m1c, m2c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel)
 	go func() {
 		fanInFanOut(unification, m2c, m3c, m5c)
 		for _, r := range registrations {
@@ -295,13 +299,14 @@ loop:
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-func foobarRenameMe(unification *callUnification, m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel chan struct{}) {
+func combineWithCutoff(unification *callUnification, m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel chan struct{}) {
+	defer close(m2c)
+
 	registrationOpen := true
 	openSenders := 0
 
 	for {
 		if !registrationOpen && openSenders == 0 {
-			close(m2c)
 			return
 		}
 
@@ -311,12 +316,13 @@ func foobarRenameMe(unification *callUnification, m1c <-chan mAndM6c, m2c chan<-
 		case <-m1cDone:
 			openSenders--
 		case <-closedOnMmfCancel:
-			close(m2c)
 			return
 		case <-registrationDone:
 			registrationOpen = false
 		case match := <-m1c:
 			m2c <- match
+		case <-unification.Context().Done():
+			return
 		}
 	}
 }
@@ -334,13 +340,15 @@ func (s *synchronizerService) wrapEvaluator(unification *callUnification, m3c <-
 	}
 
 	matchList, err := s.evaluator.evaluate(context.Background(), proposalList)
-	if err != nil {
-		logger.Error(err)
-		panic(err)
-		///TODO: DO SOMETHING SENSIBLE
-	}
-	for _, m := range matchList {
-		m4c <- m
+	if err == nil {
+		for _, m := range matchList {
+			m4c <- m
+		}
+	} else {
+		logger.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("Error calling evaluator. Canceling cycle.")
+		unification.CancelWithError(fmt.Errorf("Error calling evaluator: %w", err))
 	}
 	close(m4c)
 }
@@ -360,7 +368,7 @@ func (s *synchronizerService) addMatchesToIgnoreList(unification *callUnificatio
 			}
 		}
 
-		err := s.store.AddTicketsToIgnoreList(context.Background(), ids)
+		err := s.store.AddTicketsToIgnoreList(unification.Context(), ids)
 
 		totalMatches += len(matches)
 		if err == nil {
@@ -419,6 +427,7 @@ func (s *synchronizerService) proposalCollectionInterval() time.Duration {
 
 ///////////////////////////////////////
 ///////////////////////////////////////
+
 func bufferChannel(in chan *pb.Match) chan []*pb.Match {
 	out := make(chan []*pb.Match)
 	go func() {
@@ -528,7 +537,7 @@ func (c *callUnification) CancelWithError(err error) {
 	}
 }
 
-func (c *callUnification) Error() error {
+func (c *callUnification) Err() error {
 	select {
 	case <-c.ctx.Done():
 		return c.err
