@@ -337,6 +337,7 @@ func combineWithCutoff(m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone,
 ///////////////////////////////////////
 ///////////////////////////////////////
 
+// Calls the evaluator with the matches.
 func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel CancelErrFunc, m3c <-chan []*pb.Match, m4c chan<- *pb.Match) {
 
 	// TODO: Stream through the request.
@@ -363,6 +364,10 @@ func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel CancelEr
 ///////////////////////////////////////
 ///////////////////////////////////////
 
+// Calls statestore to add all of the tickets returned by the evaluator to the
+// ignorelist.  If it partially fails for whatever reason (not all tickets will
+// nessisarily be in the same call), only the matches which can be safely
+// returned to the Synchronize calls are.
 func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, cancel CancelErrFunc, m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
 	totalMatches := 0
 	successfulMatches := 0
@@ -435,7 +440,11 @@ func (s *synchronizerService) proposalCollectionInterval() time.Duration {
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-//
+// bufferChannel collects matches from the input, and sends
+// slice of matches on the output.  It never (for long) blocks
+// the input channel, always appending to the slice which will
+// next be used for output.  Used before external calls, so that
+// network won't back up internal processing.
 func bufferChannel(in chan *pb.Match) chan []*pb.Match {
 	out := make(chan []*pb.Match)
 	go func() {
@@ -469,6 +478,10 @@ func bufferChannel(in chan *pb.Match) chan []*pb.Match {
 	return out
 }
 
+///////////////////////////////////////
+///////////////////////////////////////
+
+// getMatchIds returns all of the match_id values on the slice of matches.
 func getMatchIds(matches []*pb.Match) []string {
 	var result []string
 	for _, m := range matches {
@@ -479,6 +492,29 @@ func getMatchIds(matches []*pb.Match) []string {
 
 ///////////////////////////////////////
 ///////////////////////////////////////
+
+// WithCancelCause returns a copy of parent with a new Done channel. The
+// returned context's Done channel is closed when the returned cancel function
+// is called or when the parent context's Done channel is closed, whichever
+// happens first.  Unlike the conext package's WithCancel, the cancel func takes
+// an error, and will return that error on subsiquent calls to Err().
+func WithCancelCause(parent context.Context) (context.Context, CancelErrFunc) {
+	parent, cancel := context.WithCancel(parent)
+
+	ctx := &contextWithCancelCause{
+		Context: parent,
+	}
+
+	return ctx, func(err error) {
+		ctx.m.Lock()
+		defer ctx.m.Unlock()
+
+		if err == nil && parent.Err() == nil {
+			ctx.err = err
+		}
+		cancel()
+	}
+}
 
 type CancelErrFunc func(err error)
 
@@ -497,27 +533,10 @@ func (ctx *contextWithCancelCause) Err() error {
 	return ctx.err
 }
 
-func WithCancelCause(parent context.Context) (context.Context, CancelErrFunc) {
-	parent, cancel := context.WithCancel(parent)
-
-	ctx := &contextWithCancelCause{
-		Context: parent,
-	}
-
-	return ctx, func(err error) {
-		ctx.m.Lock()
-		defer ctx.m.Unlock()
-
-		if ctx.err == nil {
-			ctx.err = err
-		}
-		cancel()
-	}
-}
-
 ///////////////////////////////////////
 ///////////////////////////////////////
 
+// Waits for all contexts to be Done, then calls cancel.
 func cancelWhenCallersAreDone(ctxs []context.Context, cancel CancelErrFunc) {
 	for _, ctx := range ctxs {
 		<-ctx.Done()
