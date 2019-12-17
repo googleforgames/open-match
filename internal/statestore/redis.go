@@ -436,7 +436,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 	}
 	defer handleConnectionClose(&redisConn)
 
-	ttl := rb.cfg.GetDuration("redis.ignoreLists.ttl")
+	ttl := rb.cfg.GetDuration("redis.ignoreListTTL")
 	curTime := time.Now()
 	curTimeInt := curTime.UnixNano()
 	startTimeInt := curTime.Add(-ttl).UnixNano()
