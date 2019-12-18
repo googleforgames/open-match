@@ -47,7 +47,7 @@ var (
 
 // receive from backend                       | Synchronize
 //  -> m1c ->
-// collect from multiple synchronize calls    | combineWithCutoff
+// close incoming when done or timed out      | newCutoffSender
 //   -> m2c ->
 // remember return channel (m TODO) for match | fanInFanOut
 //   -> m3c -> (buffered)
@@ -103,13 +103,10 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 						"error": err.Error(),
 					}).Error("Error streaming in synchronizer from backend.")
 				}
-				registration.m1cDone <- struct{}{}
+				registration.allM1cSent.Done()
 				return
 			}
-			select {
-			case registration.m1c <- mAndM6c{m: req.Proposal, m6c: registration.m6c}:
-			case <-registration.closedOnMmfCancel:
-			}
+			registration.m1c.send(mAndM6c{m: req.Proposal, m6c: registration.m6c})
 		}
 	}()
 
@@ -143,9 +140,8 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 			}
 		case <-stream.Context().Done():
 			logger.WithFields(logrus.Fields{
-				"error": err.Error(),
+				"error": stream.Context().Err().Error(),
 			}).Error("Error streaming in synchronizer to backend: context is done")
-			// TODO: LOG ERROR
 			return stream.Context().Err()
 		case <-registration.cycleCtx.Done():
 			return registration.cycleCtx.Err()
@@ -178,27 +174,21 @@ func (s synchronizerService) register(ctx context.Context) *registration {
 func (s *synchronizerService) runCycle() {
 	ctx, cancel := WithCancelCause(context.Background())
 
-	m1c := make(chan mAndM6c)
 	m2c := make(chan mAndM6c)
 	m3c := make(chan *pb.Match)
 	m4c := make(chan *pb.Match)
 	m5c := make(chan *pb.Match)
-	// m6c is per Synchronize call.
 
-	// Value passed indicates a Synchronize call has finished sending values.  It can't
-	// close the channel because other calls may still be using it.
-	m1cDone := make(chan struct{})
-	// Value passed indicates a new Synchronize call has joined the cycle.
-	newRegistration := make(chan struct{})
-	// Value passed indicates that no new Synchronize calls will join the cycle.
-	registrationDone := make(chan struct{})
+	m1c := newCutoffSender(m2c)
+	// m6c, unlike other channels, is specific to a synchronize call.  There are
+	// multiple values in a given cycle.
+
+	var allM1cSent sync.WaitGroup
 
 	registrations := []*registration{}
 	callingCtx := []context.Context{}
-	closedOnMmfCancel := make(chan struct{})
 	closedOnCycleEnd := make(chan struct{})
 
-	go combineWithCutoff(m1c, m2c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel)
 	go func() {
 		fanInFanOut(m2c, m3c, m5c)
 		// Close response channels after all responses have been sent.
@@ -209,6 +199,8 @@ func (s *synchronizerService) runCycle() {
 	go s.wrapEvaluator(ctx, cancel, bufferChannel(m3c), m4c)
 	go func() {
 		s.addMatchesToIgnoreList(ctx, cancel, bufferChannel(m4c), m5c)
+		// Wait for ignore list, but not all matches returned, the next cycle
+		// can start now.
 		close(closedOnCycleEnd)
 	}()
 
@@ -217,27 +209,36 @@ Registration:
 	for {
 		select {
 		case req := <-s.synchronizeRegistration:
+			allM1cSent.Add(1)
 			callingCtx = append(callingCtx, req.ctx)
 			r := &registration{
-				m1c:               m1c,
-				m1cDone:           m1cDone,
-				m6c:               make(chan *pb.Match),
-				cancelMmfs:        make(chan struct{}, 1),
-				closedOnMmfCancel: closedOnMmfCancel,
-				cycleCtx:          ctx,
+				m1c:        m1c,
+				m6c:        make(chan *pb.Match),
+				cancelMmfs: make(chan struct{}, 1),
+				cycleCtx:   ctx,
+				allM1cSent: &allM1cSent,
 			}
-			newRegistration <- struct{}{}
 			registrations = append(registrations, r)
 			req.resp <- r
 		case <-closeRegistration:
 			break Registration
 		}
 	}
-	registrationDone <- struct{}{}
-	go cancelWhenCallersAreDone(callingCtx, cancel)
+
+	go func() {
+		for _, ctx := range callingCtx {
+			<-ctx.Done()
+		}
+		cancel(fmt.Errorf("Canceled because all callers were done."))
+	}()
+
+	go func() {
+		allM1cSent.Wait()
+		m1c.cutoff()
+	}()
 
 	cancelProposalCollection := time.AfterFunc(s.proposalCollectionInterval(), func() {
-		close(closedOnMmfCancel)
+		m1c.cutoff()
 		for _, r := range registrations {
 			r.cancelMmfs <- struct{}{}
 		}
@@ -254,12 +255,11 @@ type registrationRequest struct {
 }
 
 type registration struct {
-	m1c               chan mAndM6c
-	m1cDone           chan struct{}
-	m6c               chan *pb.Match
-	cancelMmfs        chan struct{}
-	closedOnMmfCancel chan struct{}
-	cycleCtx          context.Context
+	m1c        *cutoffSender
+	allM1cSent *sync.WaitGroup
+	m6c        chan *pb.Match
+	cancelMmfs chan struct{}
+	cycleCtx   context.Context
 }
 
 ///////////////////////////////////////
@@ -308,30 +308,52 @@ loop:
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-func combineWithCutoff(m1c <-chan mAndM6c, m2c chan<- mAndM6c, registrationDone, newRegistration, m1cDone, closedOnMmfCancel chan struct{}) {
-	defer close(m2c)
+type cutoffSender struct {
+	m1c       chan<- mAndM6c
+	m2c       chan<- mAndM6c
+	closed    chan struct{}
+	closeOnce sync.Once
+}
 
-	registrationOpen := true
-	openSenders := 0
-
-	for {
-		if !registrationOpen && openSenders == 0 {
-			return
-		}
-
-		select {
-		case <-newRegistration:
-			openSenders++
-		case <-m1cDone:
-			openSenders--
-		case <-closedOnMmfCancel:
-			return
-		case <-registrationDone:
-			registrationOpen = false
-		case match := <-m1c:
-			m2c <- match
-		}
+// cutoffSender allows values to be passed on the provided channel until cutoff
+// has been called.  This closed the provided channel.  Calls to send after
+// cutoff work, but values are ignored.
+func newCutoffSender(m2c chan<- mAndM6c) *cutoffSender {
+	m1c := make(chan mAndM6c)
+	c := &cutoffSender{
+		m1c:    m1c,
+		m2c:    m2c,
+		closed: make(chan struct{}),
 	}
+
+	go func() {
+		defer close(m2c)
+
+		for {
+			select {
+			case <-c.closed:
+				return
+			case match := <-m1c:
+				m2c <- match
+			}
+		}
+	}()
+	return c
+}
+
+// send passes the value on the channel if still open, otherwise does nothing.
+func (c *cutoffSender) send(match mAndM6c) {
+	select {
+	case <-c.closed:
+	case c.m1c <- match:
+	}
+}
+
+// cutoff closes m2c.  Safe to call from multiple go routines.
+func (c *cutoffSender) cutoff() {
+	c.closeOnce.Do(func() {
+		close(c.closed)
+	})
 }
 
 ///////////////////////////////////////
@@ -531,15 +553,4 @@ func (ctx *contextWithCancelCause) Err() error {
 		return ctx.Context.Err()
 	}
 	return ctx.err
-}
-
-///////////////////////////////////////
-///////////////////////////////////////
-
-// Waits for all contexts to be Done, then calls cancel.
-func cancelWhenCallersAreDone(ctxs []context.Context, cancel CancelErrFunc) {
-	for _, ctx := range ctxs {
-		<-ctx.Done()
-	}
-	cancel(fmt.Errorf("Canceled because all callers were done."))
 }

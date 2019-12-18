@@ -85,14 +85,16 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 
 		err := doFetchMatchesReceiveMmfResult(mmfCtx, s.mmfClients, req, resultChan)
 		if err != nil {
-			// TODO: Log but continue case where mmfs were canceled.
+			// TODO: Log but continue case where mmfs were canceled once fully
+			// streaming.
 			errors <- err
 			return
 		}
 
 		proposals, err := doFetchMatchesValidateProposals(mmfCtx, resultChan, len(req.GetProfiles()))
 		if err != nil {
-			// TODO: Log but continue case where mmfs were canceled.
+			// TODO: Log but continue case where mmfs were canceled once fully
+			// streaming.
 			errors <- err
 			return
 		}
@@ -101,23 +103,21 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		for _, p := range proposals {
 			select {
 			case <-mmfCtx.Done():
-				// TODO: Log that we weren't done sending...
+				logger.Warning("proposals from mmfs recieved too late to be sent to synchronizer.")
 				break sendProposals
 			default:
 			}
 
 			err = syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
 			if err != nil {
-				// TODO: Log.
-				errors <- err
+				errors <- fmt.Errorf("Error sending proposal to synchronizer: %w", err)
 				return
 			}
 		}
 
 		err = syncStream.CloseSend()
 		if err != nil {
-			// TODO: Log?
-			errors <- err
+			errors <- fmt.Errorf("Error closing send stream of proposals to synchronizer: %w", err)
 			return
 		}
 		errors <- nil
@@ -138,8 +138,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 				return
 			}
 			if err != nil {
-				// TODO: Log?
-				errors <- err
+				errors <- fmt.Errorf("Error receiving match from synchronizer: %w", err)
 				return
 			}
 
@@ -155,8 +154,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 				err = stream.Send(&pb.FetchMatchesResponse{Match: resp.Match})
 				telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
 				if err != nil {
-					logger.WithError(err).Error("failed to stream back a found match.")
-					errors <- err
+					errors <- fmt.Errorf("Error sending match to caller of backend: %w", err)
 					return
 				}
 			}
@@ -166,6 +164,9 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	for i := 0; i < 2; i++ {
 		err := <-errors
 		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("Error in FetchMatches call.")
 			return err
 		}
 	}
