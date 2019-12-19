@@ -75,6 +75,10 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		return err
 	}
 
+	// Send errors from the running go routines back to the FetchMatches go
+	// routine.  Must have size equal to number of senders so that if FetchMatches
+	// returns an error, additional errors don't block the go routine from
+	// finishing.
 	errors := make(chan error, 2)
 	mmfCtx, cancelMmfs := context.WithCancel(stream.Context())
 	startMmfs := func() {
