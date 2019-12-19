@@ -88,10 +88,10 @@ data:
       passwordPath: {{ .Values.redis.secretMountPath }}/redis-password
 {{- end }}
       pool:
-        maxIdle: 200
-        maxActive: 0
-        idleTimeout: 60s
-        healthCheckTimeout: 100ms
+        maxIdle: {{ index .Values "open-match-core" "redis" "pool" "maxIdle" }}
+        maxActive: {{ index .Values "open-match-core" "redis" "pool" "maxActive" }}
+        idleTimeout: {{ index .Values "open-match-core" "redis" "pool" "idleTimeout" }}
+        healthCheckTimeout: {{ index .Values "open-match-core" "redis" "pool" "healthCheckTimeout" }}
       ignoreLists:
         ttl: {{ .Values.redis.ignoreLists.ttl }}
       expiration: 43200
