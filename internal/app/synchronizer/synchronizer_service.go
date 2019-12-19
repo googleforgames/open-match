@@ -270,8 +270,11 @@ type mAndM6c struct {
 	m6c chan *pb.Match
 }
 
-// For incoming mathces, remembers the channel the match needs to be returned to
-// if it passes the synchronizer.
+// fanInFanOut routes evaluated matches back to it's source synchronize call.
+// Each incoming match is passed along with it's synchronize call's m6c channel.
+// This channel is remembered in a map, and the match is passed to be evaluated.
+// When a match returns from evaluation, it's ID is looked up in the map and the
+// match is returned on that channel.
 func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match) {
 	m6cMap := make(map[string]chan<- *pb.Match)
 

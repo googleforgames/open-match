@@ -53,12 +53,9 @@ var (
 		"app":       "openmatch",
 		"component": "app.backend",
 	})
-	mMatchesFetched  = telemetry.Counter("backend/matches_fetched", "matches fetched")
-	mTicketsAssigned = telemetry.Counter("backend/tickets_assigned", "tickets assigned")
-
-	mRegisterPhase           = telemetry.HistogramWithBounds("backend/register", "time to register and get synchronizer ID", "ms", telemetry.HistogramBounds)
-	mProposalCollectionPhase = telemetry.HistogramWithBounds("backend/proposal_collection", "time to collect the proposals", "ms", telemetry.HistogramBounds)
-	mEvaluateProposalsPhase  = telemetry.HistogramWithBounds("backend/evaluate_proposals", "time to evaluate proposals", "ms", telemetry.HistogramBounds)
+	mMatchesFetched          = telemetry.Counter("backend/matches_fetched", "matches fetched")
+	mMatchesSentToEvaluation = telemetry.Counter("backend/matches_sent_to_evaluation", "matches sent to evaluation")
+	mTicketsAssigned         = telemetry.Counter("backend/tickets_assigned", "tickets assigned")
 )
 
 // FetchMatches triggers a MatchFunction with the specified MatchProfiles, while each MatchProfile
@@ -108,6 +105,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 			default:
 			}
 
+			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesSentToEvaluation)
 			err = syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
 			if err != nil {
 				errors <- fmt.Errorf("error sending proposal to synchronizer: %w", err)
@@ -151,8 +149,8 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 			}
 
 			if resp.Match != nil {
-				err = stream.Send(&pb.FetchMatchesResponse{Match: resp.Match})
 				telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
+				err = stream.Send(&pb.FetchMatchesResponse{Match: resp.Match})
 				if err != nil {
 					errors <- fmt.Errorf("error sending match to caller of backend: %w", err)
 					return

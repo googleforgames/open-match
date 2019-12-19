@@ -6,11 +6,6 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/internal/telemetry"
-)
-
-var (
-	mMatchEvaluations = telemetry.Counter("backend/matches_evaluated", "matches evaluated")
 )
 
 type synchronizerClient struct {
