@@ -103,21 +103,21 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		for _, p := range proposals {
 			select {
 			case <-mmfCtx.Done():
-				logger.Warning("proposals from mmfs recieved too late to be sent to synchronizer.")
+				logger.Warning("proposals from mmfs received too late to be sent to synchronizer")
 				break sendProposals
 			default:
 			}
 
 			err = syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
 			if err != nil {
-				errors <- fmt.Errorf("Error sending proposal to synchronizer: %w", err)
+				errors <- fmt.Errorf("error sending proposal to synchronizer: %w", err)
 				return
 			}
 		}
 
 		err = syncStream.CloseSend()
 		if err != nil {
-			errors <- fmt.Errorf("Error closing send stream of proposals to synchronizer: %w", err)
+			errors <- fmt.Errorf("error closing send stream of proposals to synchronizer: %w", err)
 			return
 		}
 		errors <- nil
@@ -127,7 +127,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		var startMmfsOnce sync.Once
 		defer func() {
 			startMmfsOnce.Do(func() {
-				errors <- fmt.Errorf("MMFS were never started.")
+				errors <- fmt.Errorf("MMFS were never started")
 			})
 		}()
 
@@ -138,7 +138,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 				return
 			}
 			if err != nil {
-				errors <- fmt.Errorf("Error receiving match from synchronizer: %w", err)
+				errors <- fmt.Errorf("error receiving match from synchronizer: %w", err)
 				return
 			}
 
@@ -154,7 +154,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 				err = stream.Send(&pb.FetchMatchesResponse{Match: resp.Match})
 				telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
 				if err != nil {
-					errors <- fmt.Errorf("Error sending match to caller of backend: %w", err)
+					errors <- fmt.Errorf("error sending match to caller of backend: %w", err)
 					return
 				}
 			}
@@ -166,7 +166,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error": err.Error(),
-			}).Error("Error in FetchMatches call.")
+			}).Error("error in FetchMatches call.")
 			return err
 		}
 	}
@@ -297,7 +297,7 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 		}
 		resp := &pb.RunResponse{}
 		if err := jsonpb.UnmarshalString(string(item.Result), resp); err != nil {
-			return nil, status.Errorf(codes.Unavailable, "failed to execute json.Unmarshal(%s, &resp): %v.", item.Result, err)
+			return nil, status.Errorf(codes.Unavailable, "failed to execute json.Unmarshal(%s, &resp): %v", item.Result, err)
 		}
 		proposals = append(proposals, resp.GetProposal())
 	}

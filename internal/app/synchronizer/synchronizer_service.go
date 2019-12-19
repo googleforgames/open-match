@@ -36,7 +36,7 @@ var (
 )
 
 // Matches flow through channels in the synchronizer.  Channel variable names
-// are unused to be consistant between function calls to help track everything.
+// are unused to be consistent between function calls to help track everything.
 
 // Streams from multiple GRPC calls of matches are combined on a single channel.
 // These matches are sent to the evaluator, then the tickets are added to the
@@ -101,7 +101,7 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 				if err != io.EOF {
 					logger.WithFields(logrus.Fields{
 						"error": err.Error(),
-					}).Error("Error streaming in synchronizer from backend.")
+					}).Error("error streaming in synchronizer from backend")
 				}
 				registration.allM1cSent.Done()
 				return
@@ -126,7 +126,7 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 				if err != nil {
 					logger.WithFields(logrus.Fields{
 						"error": err.Error(),
-					}).Error("Error streaming match in synchronizer to backend.")
+					}).Error("error streaming match in synchronizer to backend")
 					return err
 				}
 			}
@@ -135,13 +135,13 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 			if err != nil {
 				logger.WithFields(logrus.Fields{
 					"error": err.Error(),
-				}).Error("Error streaming mmf cancel in synchronizer to backend.")
+				}).Error("error streaming mmf cancel in synchronizer to backend")
 				return err
 			}
 		case <-stream.Context().Done():
 			logger.WithFields(logrus.Fields{
 				"error": stream.Context().Err().Error(),
-			}).Error("Error streaming in synchronizer to backend: context is done")
+			}).Error("error streaming in synchronizer to backend: context is done")
 			return stream.Context().Err()
 		case <-registration.cycleCtx.Done():
 			return registration.cycleCtx.Err()
@@ -172,7 +172,7 @@ func (s synchronizerService) register(ctx context.Context) *registration {
 }
 
 func (s *synchronizerService) runCycle() {
-	ctx, cancel := WithCancelCause(context.Background())
+	ctx, cancel := withCancelCause(context.Background())
 
 	m2c := make(chan mAndM6c)
 	m3c := make(chan *pb.Match)
@@ -229,7 +229,7 @@ Registration:
 		for _, ctx := range callingCtx {
 			<-ctx.Done()
 		}
-		cancel(fmt.Errorf("Canceled because all callers were done."))
+		cancel(fmt.Errorf("canceled because all callers were done"))
 	}()
 
 	go func() {
@@ -360,7 +360,7 @@ func (c *cutoffSender) cutoff() {
 ///////////////////////////////////////
 
 // Calls the evaluator with the matches.
-func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel CancelErrFunc, m3c <-chan []*pb.Match, m4c chan<- *pb.Match) {
+func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelErrFunc, m3c <-chan []*pb.Match, m4c chan<- *pb.Match) {
 
 	// TODO: Stream through the request.
 
@@ -377,8 +377,8 @@ func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel CancelEr
 	} else {
 		logger.WithFields(logrus.Fields{
 			"error": err,
-		}).Error("Error calling evaluator. Canceling cycle.")
-		cancel(fmt.Errorf("Error calling evaluator: %w", err))
+		}).Error("error calling evaluator, canceling cycle")
+		cancel(fmt.Errorf("error calling evaluator: %w", err))
 	}
 	close(m4c)
 }
@@ -390,7 +390,7 @@ func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel CancelEr
 // ignorelist.  If it partially fails for whatever reason (not all tickets will
 // nessisarily be in the same call), only the matches which can be safely
 // returned to the Synchronize calls are.
-func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, cancel CancelErrFunc, m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
+func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, cancel cancelErrFunc, m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
 	totalMatches := 0
 	successfulMatches := 0
 	var lastErr error
@@ -421,10 +421,10 @@ func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, cancel
 			"error":             lastErr.Error(),
 			"totalMatches":      totalMatches,
 			"successfulMatches": successfulMatches,
-		}).Error("Some or all matches were not successfully added to the ignore list, failed matches dropped.")
+		}).Error("some or all matches were not successfully added to the ignore list, failed matches dropped")
 
 		if successfulMatches == 0 {
-			cancel(fmt.Errorf("No matches successfully added to the ignore list.  Last error: %w", lastErr))
+			cancel(fmt.Errorf("no matches successfully added to the ignore list.  Last error: %w", lastErr))
 		}
 	}
 	close(m5c)
@@ -515,12 +515,12 @@ func getMatchIds(matches []*pb.Match) []string {
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-// WithCancelCause returns a copy of parent with a new Done channel. The
+// withCancelCause returns a copy of parent with a new Done channel. The
 // returned context's Done channel is closed when the returned cancel function
 // is called or when the parent context's Done channel is closed, whichever
 // happens first.  Unlike the conext package's WithCancel, the cancel func takes
-// an error, and will return that error on subsiquent calls to Err().
-func WithCancelCause(parent context.Context) (context.Context, CancelErrFunc) {
+// an error, and will return that error on subsequent calls to Err().
+func withCancelCause(parent context.Context) (context.Context, cancelErrFunc) {
 	parent, cancel := context.WithCancel(parent)
 
 	ctx := &contextWithCancelCause{
@@ -538,7 +538,7 @@ func WithCancelCause(parent context.Context) (context.Context, CancelErrFunc) {
 	}
 }
 
-type CancelErrFunc func(err error)
+type cancelErrFunc func(err error)
 
 type contextWithCancelCause struct {
 	context.Context
