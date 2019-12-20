@@ -57,9 +57,9 @@ var (
 // return to backend                     | Synchronize
 
 type synchronizerService struct {
-	cfg       config.View
-	store     statestore.Service
-	evaluator evaluator
+	cfg   config.View
+	store statestore.Service
+	eval  evaluator
 
 	synchronizeRegistration chan *registrationRequest
 
@@ -68,11 +68,11 @@ type synchronizerService struct {
 	startCycle chan struct{}
 }
 
-func newSynchronizerService(cfg config.View, evaluator evaluator, store statestore.Service) *synchronizerService {
+func newSynchronizerService(cfg config.View, eval evaluator, store statestore.Service) *synchronizerService {
 	s := &synchronizerService{
-		cfg:       cfg,
-		store:     store,
-		evaluator: evaluator,
+		cfg:   cfg,
+		store: store,
+		eval:  eval,
 
 		synchronizeRegistration: make(chan *registrationRequest),
 		startCycle:              make(chan struct{}, 1),
@@ -229,7 +229,7 @@ func (s *synchronizerService) runCycle() {
 		close(closedOnCycleEnd)
 	}()
 
-	/////////////////////////////////////// Run Registartion Period
+	/////////////////////////////////////// Run Registration Period
 	closeRegistration := time.After(s.registrationInterval())
 Registration:
 	for {
@@ -390,7 +390,7 @@ func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelEr
 		proposalList = append(proposalList, matches...)
 	}
 
-	matchList, err := s.evaluator.evaluate(ctx, proposalList)
+	matchList, err := s.eval.evaluate(ctx, proposalList)
 	if err == nil {
 		for _, m := range matchList {
 			m4c <- m
