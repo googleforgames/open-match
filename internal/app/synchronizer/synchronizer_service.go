@@ -45,19 +45,19 @@ var (
 // This is best read from bottom to top, as both Synchronize and runCycle combine
 // components further in the file to create the desired functionality.
 
-// receive from backend                       | Synchronize
+// receive from backend                  | Synchronize
 //  -> m1c ->
-// close incoming when done or timed out      | newCutoffSender
+// close incoming when done or timed out | newCutoffSender
 //   -> m2c ->
-// remember return channel (m TODO) for match | fanInFanOut
+// remember return channel m6c for match | fanInFanOut
 //   -> m3c -> (buffered)
-// send to evaluator                          | wrapEvaluator
+// send to evaluator                     | wrapEvaluator
 //   -> m4c -> (buffered)
-// add tickets to ignore list                 | addMatchesToIgnoreList
+// add tickets to ignore list            | addMatchesToIgnoreList
 //   -> m5c ->
-// fan out to origin synchronize call         | fanInFanOut
-//   -> m6c -> (buffered)
-// return to backend                          | Synchronize
+// fan out to origin synchronize call    | fanInFanOut
+//   -> (Synchronize call specific ) m6c -> (buffered)
+// return to backend                     | Synchronize
 
 type synchronizerService struct {
 	cfg       config.View

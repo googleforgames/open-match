@@ -9,8 +9,7 @@ import (
 )
 
 type synchronizerClient struct {
-	enabled func() bool
-	cacher  *config.Cacher
+	cacher *config.Cacher
 }
 
 func newSynchronizerClient(cfg config.View) *synchronizerClient {
@@ -23,13 +22,8 @@ func newSynchronizerClient(cfg config.View) *synchronizerClient {
 		return ipb.NewSynchronizerClient(conn), nil
 	}
 
-	enabled := func() bool {
-		return cfg.GetBool("synchronizer.enabled")
-	}
-
 	return &synchronizerClient{
-		enabled: enabled,
-		cacher:  config.NewCacher(cfg, newInstance),
+		cacher: config.NewCacher(cfg, newInstance),
 	}
 }
 
@@ -40,12 +34,9 @@ type synchronizerStream interface {
 }
 
 func (sc *synchronizerClient) synchronize(ctx context.Context) (synchronizerStream, error) {
-	if sc.enabled() {
-		client, err := sc.cacher.Get()
-		if err != nil {
-			return nil, err
-		}
-		return client.(ipb.SynchronizerClient).Synchronize(ctx)
+	client, err := sc.cacher.Get()
+	if err != nil {
+		return nil, err
 	}
-	panic("Synchronizer being disabled is not supported at this time.")
+	return client.(ipb.SynchronizerClient).Synchronize(ctx)
 }
