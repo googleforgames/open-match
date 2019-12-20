@@ -292,32 +292,37 @@ type mAndM6c struct {
 func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match) {
 	m6cMap := make(map[string]chan<- *pb.Match)
 
-	defer func() {
+	defer func(m2c <-chan mAndM6c) {
 		for range m2c {
 		}
-	}()
+	}(m2c)
 
-loop:
 	for {
 		select {
 		case m2, ok := <-m2c:
-			if !ok {
+			if ok {
+				m6cMap[m2.m.GetMatchId()] = m2.m6c
+				m3c <- m2.m
+			} else {
 				close(m3c)
-				break loop
+				// No longer select on m2c
+				m2c = nil
 			}
-			m6cMap[m2.m.GetMatchId()] = m2.m6c
-			m3c <- m2.m
 
 		case m5, ok := <-m5c:
 			if !ok {
 				return
 			}
 
-			m6cMap[m5.GetMatchId()] <- m5
+			m6c, ok := m6cMap[m5.GetMatchId()]
+			if ok {
+				m6c <- m5
+			} else {
+				logger.WithFields(logrus.Fields{
+					"matchId": m5.GetMatchId(),
+				}).Error("Match ID from evaluator does not match any id sent to it.")
+			}
 		}
-	}
-	for m5 := range m5c {
-		m6cMap[m5.GetMatchId()] <- m5
 	}
 }
 
