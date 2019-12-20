@@ -81,23 +81,21 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	// finishing.
 	errors := make(chan error, 2)
 	mmfCtx, cancelMmfs := context.WithCancel(stream.Context())
-	startMmfs := func() {
+	startMmfs := func() error {
 		resultChan := make(chan mmfResult, len(req.GetProfiles()))
 
 		err := doFetchMatchesReceiveMmfResult(mmfCtx, s.mmfClients, req, resultChan)
 		if err != nil {
 			// TODO: Log but continue case where mmfs were canceled once fully
 			// streaming.
-			errors <- err
-			return
+			return err
 		}
 
 		proposals, err := doFetchMatchesValidateProposals(mmfCtx, resultChan, len(req.GetProfiles()))
 		if err != nil {
 			// TODO: Log but continue case where mmfs were canceled once fully
 			// streaming.
-			errors <- err
-			return
+			return err
 		}
 
 	sendProposals:
@@ -112,17 +110,15 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesSentToEvaluation)
 			err = syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
 			if err != nil {
-				errors <- fmt.Errorf("error sending proposal to synchronizer: %w", err)
-				return
+				return fmt.Errorf("error sending proposal to synchronizer: %w", err)
 			}
 		}
 
 		err = syncStream.CloseSend()
 		if err != nil {
-			errors <- fmt.Errorf("error closing send stream of proposals to synchronizer: %w", err)
-			return
+			return fmt.Errorf("error closing send stream of proposals to synchronizer: %w", err)
 		}
-		errors <- nil
+		return nil
 	}
 
 	go func() {
@@ -145,7 +141,9 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 			}
 
 			if resp.StartMmfs {
-				go startMmfsOnce.Do(startMmfs)
+				go startMmfsOnce.Do(func() {
+					errors <- startMmfs()
+				})
 			}
 
 			if resp.CancelMmfs {

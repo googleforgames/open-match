@@ -36,14 +36,11 @@ var (
 )
 
 // Matches flow through channels in the synchronizer.  Channel variable names
-// are unused to be consistent between function calls to help track everything.
+// are used to be consistent between function calls to help track everything.
 
 // Streams from multiple GRPC calls of matches are combined on a single channel.
 // These matches are sent to the evaluator, then the tickets are added to the
 // ignore list.  Finally the matches are returned to the calling stream.
-
-// This is best read from bottom to top, as both Synchronize and runCycle combine
-// components further in the file to create the desired functionality.
 
 // receive from backend                  | Synchronize
 //  -> m1c ->
@@ -87,6 +84,11 @@ func newSynchronizerService(cfg config.View, evaluator evaluator, store statesto
 }
 
 func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeServer) error {
+	// Synchronize first registers against a cycle.  Then it creates two go
+	// routines:
+	// 1. Receive proposals from backend, send them to cycle.
+	// 2. Receive matches and signals from cycle, send them to backend.
+
 	registration := s.register(stream.Context())
 	m6cBuffer := bufferChannel(registration.m6c)
 	defer func() {
@@ -153,6 +155,25 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 ///////////////////////////////////////
 ///////////////////////////////////////
 
+// Registration of a Synchronize call for a cycle does the following:
+// - Sends a registration request, starting a cycle if none is running.
+// - The cycle creates the registration.
+// - The registration is sent back to the origin synchronize call on channel as
+//     part of the sychronize request.
+
+type registrationRequest struct {
+	resp chan *registration
+	ctx  context.Context
+}
+
+type registration struct {
+	m1c        *cutoffSender
+	allM1cSent *sync.WaitGroup
+	m6c        chan *pb.Match
+	cancelMmfs chan struct{}
+	cycleCtx   context.Context
+}
+
 func (s synchronizerService) register(ctx context.Context) *registration {
 	req := &registrationRequest{
 		resp: make(chan *registration),
@@ -171,7 +192,11 @@ func (s synchronizerService) register(ctx context.Context) *registration {
 	}
 }
 
+///////////////////////////////////////
+///////////////////////////////////////
+
 func (s *synchronizerService) runCycle() {
+	/////////////////////////////////////// Initialize cycle
 	ctx, cancel := withCancelCause(context.Background())
 
 	m2c := make(chan mAndM6c)
@@ -204,6 +229,7 @@ func (s *synchronizerService) runCycle() {
 		close(closedOnCycleEnd)
 	}()
 
+	/////////////////////////////////////// Run Registartion Period
 	closeRegistration := time.After(s.registrationInterval())
 Registration:
 	for {
@@ -224,6 +250,7 @@ Registration:
 			break Registration
 		}
 	}
+	/////////////////////////////////////// Wait for cycle completion.
 
 	go func() {
 		for _, ctx := range callingCtx {
@@ -247,19 +274,6 @@ Registration:
 
 	// Clean up in case it was never needed.
 	cancelProposalCollection.Stop()
-}
-
-type registrationRequest struct {
-	resp chan *registration
-	ctx  context.Context
-}
-
-type registration struct {
-	m1c        *cutoffSender
-	allM1cSent *sync.WaitGroup
-	m6c        chan *pb.Match
-	cancelMmfs chan struct{}
-	cycleCtx   context.Context
 }
 
 ///////////////////////////////////////
@@ -302,7 +316,6 @@ loop:
 			m6cMap[m5.GetMatchId()] <- m5
 		}
 	}
-
 	for m5 := range m5c {
 		m6cMap[m5.GetMatchId()] <- m5
 	}

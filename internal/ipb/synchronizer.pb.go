@@ -26,6 +26,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type SynchronizeRequest struct {
+	// A match returned by an mmf.
 	Proposal             *pb.Match `protobuf:"bytes,1,opt,name=proposal,proto3" json:"proposal,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
@@ -65,8 +66,13 @@ func (m *SynchronizeRequest) GetProposal() *pb.Match {
 }
 
 type SynchronizeResponse struct {
-	StartMmfs            bool      `protobuf:"varint,1,opt,name=start_mmfs,json=startMmfs,proto3" json:"start_mmfs,omitempty"`
-	CancelMmfs           bool      `protobuf:"varint,2,opt,name=cancel_mmfs,json=cancelMmfs,proto3" json:"cancel_mmfs,omitempty"`
+	// Instructs the backend call that it can start running the mmfs.
+	StartMmfs bool `protobuf:"varint,1,opt,name=start_mmfs,json=startMmfs,proto3" json:"start_mmfs,omitempty"`
+	// Instructs the backend call that it should cancel any RPC calls to the mmfs,
+	// not send any more matches, and close the send stream.
+	CancelMmfs bool `protobuf:"varint,2,opt,name=cancel_mmfs,json=cancelMmfs,proto3" json:"cancel_mmfs,omitempty"`
+	// A match which passes evaluation and should be returned to the FetchMatches
+	// caller.
 	Match                *pb.Match `protobuf:"bytes,3,opt,name=match,proto3" json:"match,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
@@ -158,6 +164,8 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type SynchronizerClient interface {
+	// Synchronize signals the caller when it is safe to run mmfs, collects the
+	// mmfs' proposals, and returns the evaluated matches.
 	Synchronize(ctx context.Context, opts ...grpc.CallOption) (Synchronizer_SynchronizeClient, error)
 }
 
@@ -202,6 +210,8 @@ func (x *synchronizerSynchronizeClient) Recv() (*SynchronizeResponse, error) {
 
 // SynchronizerServer is the server API for Synchronizer service.
 type SynchronizerServer interface {
+	// Synchronize signals the caller when it is safe to run mmfs, collects the
+	// mmfs' proposals, and returns the evaluated matches.
 	Synchronize(Synchronizer_SynchronizeServer) error
 }
 

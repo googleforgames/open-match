@@ -19,18 +19,28 @@ option go_package = "open-match.dev/open-match/internal/ipb";
 import "api/messages.proto";
 
 message SynchronizeRequest {
+  // A match returned by an mmf.
   openmatch.Match proposal = 1;
 }
 
 message SynchronizeResponse {
+  // Instructs the backend call that it can start running the mmfs.
   bool start_mmfs = 1;
+
+  // Instructs the backend call that it should cancel any RPC calls to the mmfs,
+  // not send any more matches, and close the send stream.
   bool cancel_mmfs = 2;
+
+  // A match which passes evaluation and should be returned to the FetchMatches
+  // caller.
   openmatch.Match match = 3;
 }
 
 // The service implementing the Synchronizer API that synchronizes the evaluation
 // of proposals returned from Match functions.
 service Synchronizer {
+  // Synchronize signals the caller when it is safe to run mmfs, collects the
+  // mmfs' proposals, and returns the evaluated matches.
   rpc Synchronize(stream SynchronizeRequest) returns (stream SynchronizeResponse);
 }
 
