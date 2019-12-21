@@ -21,13 +21,14 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
+	"sync"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/internal/telemetry"
@@ -52,12 +53,9 @@ var (
 		"app":       "openmatch",
 		"component": "app.backend",
 	})
-	mMatchesFetched  = telemetry.Counter("backend/matches_fetched", "matches fetched")
-	mTicketsAssigned = telemetry.Counter("backend/tickets_assigned", "tickets assigned")
-
-	mRegisterPhase           = telemetry.HistogramWithBounds("backend/register", "time to register and get synchronizer ID", "ms", telemetry.HistogramBounds)
-	mProposalCollectionPhase = telemetry.HistogramWithBounds("backend/proposal_collection", "time to collect the proposals", "ms", telemetry.HistogramBounds)
-	mEvaluateProposalsPhase  = telemetry.HistogramWithBounds("backend/evaluate_proposals", "time to evaluate proposals", "ms", telemetry.HistogramBounds)
+	mMatchesFetched          = telemetry.Counter("backend/matches_fetched", "matches fetched")
+	mMatchesSentToEvaluation = telemetry.Counter("backend/matches_sent_to_evaluation", "matches sent to evaluation")
+	mTicketsAssigned         = telemetry.Counter("backend/tickets_assigned", "tickets assigned")
 )
 
 // FetchMatches triggers a MatchFunction with the specified MatchProfiles, while each MatchProfile
@@ -72,52 +70,104 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		return status.Error(codes.InvalidArgument, ".profile is required")
 	}
 
-	resultChan := make(chan mmfResult, len(req.GetProfiles()))
-
-	var syncID string
-	var err error
-
-	startTime := time.Now()
-
-	syncID, err = s.synchronizer.register(stream.Context())
+	syncStream, err := s.synchronizer.synchronize(stream.Context())
 	if err != nil {
 		return err
 	}
 
-	telemetry.RecordNUnitMeasurement(stream.Context(), mRegisterPhase, time.Since(startTime).Milliseconds())
-	startTime = time.Now()
+	// Send errors from the running go routines back to the FetchMatches go
+	// routine.  Must have size equal to number of senders so that if FetchMatches
+	// returns an error, additional errors don't block the go routine from
+	// finishing.
+	errors := make(chan error, 2)
+	mmfCtx, cancelMmfs := context.WithCancel(stream.Context())
+	startMmfs := func() error {
+		resultChan := make(chan mmfResult, len(req.GetProfiles()))
 
-	err = doFetchMatchesReceiveMmfResult(stream.Context(), s.mmfClients, req, resultChan)
-	if err != nil {
-		return err
-	}
+		err := doFetchMatchesReceiveMmfResult(mmfCtx, s.mmfClients, req, resultChan)
+		if err != nil {
+			// TODO: Log but continue case where mmfs were canceled once fully
+			// streaming.
+			return err
+		}
 
-	proposals, err := doFetchMatchesValidateProposals(stream.Context(), resultChan, len(req.GetProfiles()))
-	if err != nil {
-		return err
-	}
+		proposals, err := doFetchMatchesValidateProposals(mmfCtx, resultChan, len(req.GetProfiles()))
+		if err != nil {
+			// TODO: Log but continue case where mmfs were canceled once fully
+			// streaming.
+			return err
+		}
 
-	telemetry.RecordNUnitMeasurement(stream.Context(), mProposalCollectionPhase, time.Since(startTime).Milliseconds())
-	startTime = time.Now()
-
-	results, err := s.synchronizer.evaluate(stream.Context(), syncID, proposals)
-	if err != nil {
-		return err
-	}
-
-	telemetry.RecordNUnitMeasurement(stream.Context(), mEvaluateProposalsPhase, time.Since(startTime).Milliseconds())
-
-	for _, result := range results {
-		select {
-		case <-stream.Context().Done():
-			return stream.Context().Err()
-		default:
-			err = stream.Send(&pb.FetchMatchesResponse{Match: result})
-			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
-			if err != nil {
-				logger.WithError(err).Error("failed to stream back the response")
-				return err
+	sendProposals:
+		for _, p := range proposals {
+			select {
+			case <-mmfCtx.Done():
+				logger.Warning("proposals from mmfs received too late to be sent to synchronizer")
+				break sendProposals
+			default:
 			}
+
+			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesSentToEvaluation)
+			err = syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
+			if err != nil {
+				return fmt.Errorf("error sending proposal to synchronizer: %w", err)
+			}
+		}
+
+		err = syncStream.CloseSend()
+		if err != nil {
+			return fmt.Errorf("error closing send stream of proposals to synchronizer: %w", err)
+		}
+		return nil
+	}
+
+	go func() {
+		var startMmfsOnce sync.Once
+		defer func() {
+			startMmfsOnce.Do(func() {
+				errors <- fmt.Errorf("MMFS were never started")
+			})
+		}()
+
+		for {
+			resp, err := syncStream.Recv()
+			if err == io.EOF {
+				errors <- nil
+				return
+			}
+			if err != nil {
+				errors <- fmt.Errorf("error receiving match from synchronizer: %w", err)
+				return
+			}
+
+			if resp.StartMmfs {
+				go startMmfsOnce.Do(func() {
+					errors <- startMmfs()
+				})
+			}
+
+			if resp.CancelMmfs {
+				cancelMmfs()
+			}
+
+			if resp.Match != nil {
+				telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
+				err = stream.Send(&pb.FetchMatchesResponse{Match: resp.Match})
+				if err != nil {
+					errors <- fmt.Errorf("error sending match to caller of backend: %w", err)
+					return
+				}
+			}
+		}
+	}()
+
+	for i := 0; i < 2; i++ {
+		err := <-errors
+		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("error in FetchMatches call.")
+			return err
 		}
 	}
 
@@ -247,7 +297,7 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 		}
 		resp := &pb.RunResponse{}
 		if err := jsonpb.UnmarshalString(string(item.Result), resp); err != nil {
-			return nil, status.Errorf(codes.Unavailable, "failed to execute json.Unmarshal(%s, &resp): %v.", item.Result, err)
+			return nil, status.Errorf(codes.Unavailable, "failed to execute json.Unmarshal(%s, &resp): %v", item.Result, err)
 		}
 		proposals = append(proposals, resp.GetProposal())
 	}
