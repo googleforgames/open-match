@@ -168,6 +168,7 @@ redis:
 # Controls if users need to install backend, frontend, mmlogic, om-configmap, and swaggerui.
 open-match-core:
   enabled: true
+  ignoreListTTL: 60000ms
   redis:
     install: true
     # If open-match-core.redis.install is set to false, have Open Match components talk to this redis address instead.
@@ -218,6 +219,12 @@ open-match-test:
 # Global configurations that are visible to all subcharts
 global:
   kubernetes:
+    # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+    nodeSelector: {}
+    # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+    tolerations: []
+    # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+    affinity: {}
     horizontalPodAutoScaler:
       minReplicas: 3
       maxReplicas: 10

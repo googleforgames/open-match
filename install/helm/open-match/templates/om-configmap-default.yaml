@@ -77,6 +77,7 @@ data:
 {{- end }}
 
     storage:
+      ignoreListTTL: {{ index .Values "open-match-core" "ignoreListTTL" }}
       page:
         size: 10000
 
@@ -98,7 +99,6 @@ data:
         maxActive: {{ index .Values "open-match-core" "redis" "pool" "maxActive" }}
         idleTimeout: {{ index .Values "open-match-core" "redis" "pool" "idleTimeout" }}
         healthCheckTimeout: {{ index .Values "open-match-core" "redis" "pool" "healthCheckTimeout" }}
-      ignoreListTTL: {{ index .Values "open-match-core" "redis" "ignoreListTTL" }}
       expiration: 43200
 
     telemetry:
