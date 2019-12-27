@@ -1,0 +1,283 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Default values for open-match.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Open Match Cluster Config
+# The configurations defined here will be applied when deploying Open Match to a Kubernetes cluster.
+# You may choose to override these values to tailor Open Match for your needs.
+#
+# Begins the configuration section for `mmlogic` component in Open Match.
+# mmlogic:
+#
+#   # Specifies om-mmlogic as the in-cluster domain name for the `mmlogic` service.
+#   hostName: om-mmlogic
+#
+#   # Specifies the port for receiving RESTful HTTP requests in the `mmlogic` service.
+#   # Checkouts https://open-match.dev/site/swaggerui/index.html for the RESTful APIs Open Match provides.
+#   httpPort: 51503
+#
+#   # Specifies the port for receiving gRPC calls in the `mmlogic` service.
+#   # Note that some services may not have grpcPort defined as they don't have gRPC APIs defined.
+#   grpcPort: 50503
+#
+#   # Specifies the port type for the `mmlogic` service, default to ClusterIP - available port types are ClusterIP, NodePort, LoadBalancer, ExternalName.
+#   # Please see https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types for Type values and their behaviors.
+#   portType: ClusterIP
+#
+#   # Specifies the number of Kubernetes pod replicas per `mmlogic` service, default to 3.
+#   replicas: 3
+#
+#   # Specifies the image name to be used in a Kubernetes pod for `mmlogic` compoenent.
+#   image: openmatch-mmlogic
+swaggerui: &swaggerui
+  hostName: om-swaggerui
+  httpPort: 51500
+  portType: ClusterIP
+  replicas: 1
+  image: openmatch-swaggerui
+mmlogic: &mmlogic
+  hostName: om-mmlogic
+  grpcPort: 50503
+  httpPort: 51503
+  portType: ClusterIP
+  replicas: 3
+  image: openmatch-mmlogic
+frontend: &frontend
+  hostName: om-frontend
+  grpcPort: 50504
+  httpPort: 51504
+  portType: ClusterIP
+  replicas: 3
+  image: openmatch-frontend
+backend: &backend
+  hostName: om-backend
+  grpcPort: 50505
+  httpPort: 51505
+  portType: ClusterIP
+  replicas: 3
+  image: openmatch-backend
+synchronizer: &synchronizer
+  hostName: om-synchronizer
+  grpcPort: 50506
+  httpPort: 51506
+  portType: ClusterIP
+  replicas: 1
+  image: openmatch-synchronizer
+evaluator: &evaluator
+  hostName: om-evaluator
+  grpcPort: 50508
+  httpPort: 51508
+  replicas: 3
+function: &function
+  hostName: om-function
+  grpcPort: 50502
+  httpPort: 51502
+  replicas: 3
+
+# Specifies the location and name of the Open Match application-level config volumes.
+  # Used in template: `openmatch.volumemounts.configs` and `openmatch.volumes.configs` under `templates/_helpers.tpl` file.
+configs:
+  default:
+    volumeName: om-config-volume-default
+    mountPath: /app/config/default
+    configName: om-configmap-default
+  override:
+    volumeName: om-config-volume-override
+    mountPath: /app/config/override
+    configName: om-configmap-override
+
+# Override Redis settings
+# https://hub.helm.sh/charts/stable/redis
+# https://github.com/helm/charts/tree/master/stable/redis
+redis:
+  fullnameOverride: om-redis
+  redisPort: 6379
+  usePassword: false
+  usePasswordFile: false
+  secretMountPath: /opt/bitnami/redis/secrets
+  configmap:
+    maxclients 100000
+  master:
+    disableCommands: [] # don't disable 'FLUSH-' commands
+    resources:
+      requests:
+        memory: 3Gi
+        cpu: 3
+      limits:
+        memory: 6Gi
+        cpu: 6
+    persistence:
+      enabled: false
+  metrics:
+    enabled: true
+  cluster:
+    slaveCount: 3
+  serviceAccount:
+    create: true
+    name: open-match-redis-service
+  slave:
+    persistence:
+      enabled: false
+    resources:
+      requests:
+        memory: 1Gi
+        cpu: 1
+      limits:
+        memory: 2Gi
+        cpu: 2
+  sysctlImage:
+    # Enable this setting in production if you are running Open Match under Linux environment
+    enabled: true
+    mountHostSys: true
+    # Redis may require some changes in the kernel of the host machine to work as expected,
+    # in particular increasing the somaxconn value and disabling transparent huge pages.
+    # https://github.com/helm/charts/tree/master/stable/redis#host-kernel-settings
+    command:
+      - /bin/sh
+      - -c
+      - |-
+        echo never > /host-sys/kernel/mm/transparent_hugepage/enabled # Disable THP support
+        install_packages procps
+        sysctl -w net.core.somaxconn=100000
+
+###############################################################################################################################
+#                               Open Match configurations for the subcharts
+#
+# Open Match uses subcharts to control its `functional granularity`.
+# You are able to override configurations in a subchart by having a key-value pair under its corresponding subchart section.
+#
+# 1. open-match-telemetry: Kubernetes definitions of the integrated monitoring tools along with the core Open Match componenets.
+# 2. open-match-customize: Kubernetes definitions of the customizable template to use Open Match with your own MMFs and Evaluator.
+# 3. open-match-test: Kubernetes definitions of the load testing tools and end-to-end jobs for Open Match.
+###############################################################################################################################
+
+# Controls if users need to install backend, frontend, mmlogic, om-configmap, and swaggerui.
+open-match-core:
+  enabled: true
+  ignoreListTTL: 60000ms
+  redis:
+    pool:
+      maxIdle: 500
+      maxActive: 500
+      idleTimeout: 0
+      healthCheckTimeout: 300ms
+
+# Controls if users need to install scale testing setup for Open Match.
+open-match-scale:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: false
+  frontend: *frontend
+  backend: *backend
+
+# Controls if users need to install the monitoring tools in Open Match.
+open-match-telemetry:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: false
+
+# Controls if users need to install their own MMFs and Evaluator in Open Match.
+open-match-customize:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: false
+  evaluator: *evaluator
+  function: *function
+  mmlogic: *mmlogic
+  # You can override the evaluator/mmf image
+  # evaluator:
+  #   image: [YOUR_EVALUATOR_IMAGE]
+  # function:
+  #   image: [YOUR_MMF_IMAGE]
+
+open-match-test:
+  # Switch the value between true/false to turn on/off this subchart
+  enabled: false
+  mmlogic: *mmlogic
+  frontend: *frontend
+  backend: *backend
+  synchronizer: *synchronizer
+
+# Global configurations that are visible to all subcharts
+global:
+  kubernetes:
+    # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+    nodeSelector: {}
+    # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+    tolerations: []
+    # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+    affinity: {}
+    horizontalPodAutoScaler:
+      minReplicas: 3
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 60
+    resources:
+      requests:
+        memory: 1.5Gi
+        cpu: 1.5
+      limits:
+        memory: 3Gi
+        cpu: 2
+    # Defines a service account which provides an identity for processes that run in a Pod in Open Match.
+    serviceAccount: open-match-unprivileged-service
+    # Use this field if you need to override the port type for all services defined in this chart
+    service:
+      portType:
+
+  gcpProjectId: "replace_with_your_project_id"
+
+  # Defines if Open Match needs to serve secure traffic
+  tls:
+    enabled: false
+    server:
+      mountPath: /app/secrets/tls/server
+    rootca:
+      mountPath: /app/secrets/tls/rootca
+
+  logging:
+    rpc:
+      enabled: false
+
+  # Use this field if you need to override the image registry and image tag for all services defined in this chart
+  image:
+    registry: gcr.io/open-match-public-images
+    tag: 0.0.0-dev
+    pullPolicy: Always
+
+
+  # Expose the telemetry configurations to all subcharts because prometheus, for example,
+  # requires pod-level annotation to customize its scrape path.
+  # See definitions in templates/_helpers.tpl - "prometheus.annotations" section for details
+  telemetry:
+    zpages:
+      enabled: true
+    jaeger:
+      enabled: false
+      samplerFraction: 0.005 # Configures a sampler that samples a given fraction of traces.
+      agentEndpoint: "open-match-jaeger-agent:6831"
+      collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
+    prometheus:
+      enabled: false
+      endpoint: "/metrics"
+      serviceDiscovery: true
+    stackdriverMetrics:
+      enabled: false
+      prefix: "open_match"
+    zipkin:
+      enabled: false
+      endpoint: "/zipkin"
+      reporterEndpoint: "zipkin"
+    grafana:
+      enabled: false
+    reportingPeriod: "1m"

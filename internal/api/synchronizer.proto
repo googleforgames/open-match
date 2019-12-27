@@ -17,87 +17,31 @@ package openmatch.internal;
 option go_package = "open-match.dev/open-match/internal/ipb";
 
 import "api/messages.proto";
-import "google/api/annotations.proto";
-import "protoc-gen-swagger/options/annotations.proto";
 
-option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
-  info: {
-    title: "Synchronizer"
-    version: "1.0"
-    contact: {
-      name: "Open Match"
-      url: "https://open-match.dev"
-      email: "open-match-discuss@googlegroups.com"
-    }
-    license: {
-      name: "Apache 2.0 License"
-      url: "https://github.com/googleforgames/open-match/blob/master/LICENSE"
-    }
-  }
-  external_docs: {
-    url: "https://open-match.dev/site/docs/"
-    description: "Open Match Documentation"
-  }
-  schemes: HTTP
-  schemes: HTTPS
-  consumes: "application/json"
-  produces: "application/json"
-  responses: {
-    key: "404"
-    value: {
-      description: "Returned when the resource does not exist."
-      schema: { json_schema: { type: STRING } }
-    }
-  }
-  // TODO Add annotations for security_defintiions.
-  // See
-  // https://github.com/grpc-ecosystem/grpc-gateway/blob/master/examples/proto/examplepb/a_bit_of_everything.proto
-};
-
-message RegisterRequest {
+message SynchronizeRequest {
+  // A match returned by an mmf.
+  openmatch.Match proposal = 1;
 }
 
-message RegisterResponse {
-  // Identifier for this request valid for the current synchronization cycle.
-  string id = 1;
-}
+message SynchronizeResponse {
+  // Instructs the backend call that it can start running the mmfs.
+  bool start_mmfs = 1;
 
-message EvaluateProposalsRequest {
-  // List of proposals to evaluate in the current synchronization cycle.
-  openmatch.Match match = 1;
+  // Instructs the backend call that it should cancel any RPC calls to the mmfs,
+  // not send any more matches, and close the send stream.
+  bool cancel_mmfs = 2;
 
-  // Identifier for this request issued during request registration.
-  string id = 2;
-}
-
-message EvaluateProposalsResponse {
-  // Results from evaluating proposals for this request.
-  openmatch.Match match = 1;
+  // A match which passes evaluation and should be returned to the FetchMatches
+  // caller.
+  openmatch.Match match = 3;
 }
 
 // The service implementing the Synchronizer API that synchronizes the evaluation
 // of proposals returned from Match functions.
 service Synchronizer {
-  // Register associates this request with the current synchronization cycle and
-  // returns an identifier for this registration. The caller returns this
-  // identifier back in the evaluation request. This enables synchronizer to
-  // identify stale evaluation requests belonging to a prior cycle.
-  rpc Register(RegisterRequest) returns (RegisterResponse) {
-    option (google.api.http) = {
-      get: "/v1/synchronizer/register"
-    };
-  }
-
-  // EvaluateProposals accepts a list of proposals and a registration identifier
-  // for this request. If the synchronization cycle to which the request was
-  // registered is completed, this request fails otherwise the proposals are
-  // added to the list of proposals to be evaluated in the current cycle. At the
-  //  end of the cycle, the user defined evaluation method is triggered and the
-  // matches accepted by it are returned as results.
-  rpc EvaluateProposals(stream EvaluateProposalsRequest) returns (stream EvaluateProposalsResponse) {
-    option (google.api.http) = {
-      post: "/v1/synchronizer/proposals:evaluate"
-      body: "*"
-    };
-  }
+  // Synchronize signals the caller when it is safe to run mmfs, collects the
+  // mmfs' proposals, and returns the evaluated matches.
+  rpc Synchronize(stream SynchronizeRequest) returns (stream SynchronizeResponse);
 }
+
+
