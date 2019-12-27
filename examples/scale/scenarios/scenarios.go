@@ -16,14 +16,7 @@ package scenarios
 
 import "open-match.dev/open-match/pkg/pb"
 
-// TODO:
-// - add images for scale-mmf and scale-evaluator, have this use it.
-// - add an evaluator.
-// - add ticket generation function and profiles to the scenario, can just pull from existing
-//     packages for now
-
-// after that start on getting metrics to show up from the scale-backend and scale-frontend.
-
+// ActiveScenario sets the scenario with preset parameters that we want to use for current Open Match benchmark run.
 var ActiveScenario = basicScenario
 
 type matchFunction func(*pb.RunRequest, pb.MatchFunction_RunServer) error
@@ -31,6 +24,8 @@ type evaluatorFunction func(pb.Evaluator_EvaluateServer) error
 
 // Scenario defines the controllable fields for Open Match benchmark scenarios
 type Scenario struct {
+	// TODO: supports the following controllable parameters
+
 	// MatchFunction Configs
 	// MatchOverlapRatio          float32
 	// TicketSearchFieldsUnitSize int
