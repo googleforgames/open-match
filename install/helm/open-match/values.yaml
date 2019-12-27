@@ -161,7 +161,6 @@ open-match-core:
     hostname: # Your redis server address
     port: 6379
     user: 
-    ignoreListTTL: 60000ms
     pool:
       maxIdle: 200
       maxActive: 0
