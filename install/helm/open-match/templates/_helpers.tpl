@@ -43,9 +43,7 @@ prometheus.io/path: {{ .prometheus.endpoint }}
 {{- define "openmatch.container.common" -}}
 imagePullPolicy: {{ .Values.global.image.pullPolicy }}
 resources:
-  requests:
-    memory: 100Mi
-    cpu: 100m
+{{- toYaml .Values.global.kubernetes.resources | nindent 2 }}
 {{- end -}}
 
 {{- define "openmatch.volumemounts.configs" -}}
@@ -98,14 +96,29 @@ resources:
 {{- end -}}
 {{- end -}}
 
+{{- define "openmatch.labels.nodegrouping" -}}
+{{- if .Values.global.kubernetes.affinity }}
+affinity:
+{{ toYaml .Values.global.kubernetes.affinity | nindent 2 }}
+{{- end }}
+{{- if .Values.global.kubernetes.nodeSelector }}
+nodeSelector:
+{{ toYaml .Values.global.kubernetes.nodeSelector | nindent 2 }}
+{{- end }}
+{{- if .Values.global.kubernetes.tolerations }}
+tolerations:
+{{ toYaml .Values.global.kubernetes.tolerations | nindent 2 }}
+{{- end }}
+{{- end -}}
+
 {{- define "kubernetes.probe" -}}
 livenessProbe:
   httpGet:
     scheme: {{ if (.isHTTPS) }}HTTPS{{ else }}HTTP{{ end }}
     path: /healthz
     port: {{ .port }}
-  initialDelaySeconds: 5
-  periodSeconds: 5
+  initialDelaySeconds: 10
+  periodSeconds: 10
   failureThreshold: 3
 readinessProbe:
   httpGet:
@@ -118,7 +131,7 @@ readinessProbe:
 {{- end -}}
 
 {{- define "openmatch.HorizontalPodAutoscaler.spec.common" -}}
-minReplicas: 1
-maxReplicas: 30
-targetCPUUtilizationPercentage: 50
+minReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.minReplicas }}
+maxReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.maxReplicas }}
+targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoScaler.targetCPUUtilizationPercentage }}
 {{- end -}}

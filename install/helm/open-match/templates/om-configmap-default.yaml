@@ -77,6 +77,7 @@ data:
 {{- end }}
 
     storage:
+      ignoreListTTL: {{ index .Values "open-match-core" "ignoreListTTL" }}
       page:
         size: 10000
 
@@ -88,12 +89,10 @@ data:
       passwordPath: {{ .Values.redis.secretMountPath }}/redis-password
 {{- end }}
       pool:
-        maxIdle: 5000
-        maxActive: 0
-        idleTimeout: 60s
-        healthCheckTimeout: 100ms
-      ignoreLists:
-        ttl: {{ .Values.redis.ignoreLists.ttl }}
+        maxIdle: {{ index .Values "open-match-core" "redis" "pool" "maxIdle" }}
+        maxActive: {{ index .Values "open-match-core" "redis" "pool" "maxActive" }}
+        idleTimeout: {{ index .Values "open-match-core" "redis" "pool" "idleTimeout" }}
+        healthCheckTimeout: {{ index .Values "open-match-core" "redis" "pool" "healthCheckTimeout" }}
       expiration: 43200
 
     telemetry:

@@ -35,7 +35,7 @@ configs:
     configName: scale-configmap
 
 testConfig:
-  profile: greedy
+  profile: scaleprofiles
   concurrentCreates: 500
   regions:
     - region.europe-west1

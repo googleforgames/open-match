@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
@@ -123,7 +124,7 @@ func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.Run
 	filterPools := req.GetProfile().GetPools()
 
 	for _, pool := range filterPools {
-		qtClient, err := s.mmlogicClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
+		qtClient, err := s.mmlogicClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool}, grpc.WaitForReady(true))
 		if err != nil {
 			logger.WithError(err).Error("Failed to get queryTicketClient from mmlogic.")
 			return nil, err

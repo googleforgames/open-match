@@ -15,6 +15,11 @@
 package evaluate
 
 import (
+	// Uncomment if following the tutorials
+	// "log"
+	// "sort"
+	// "time"
+
 	"open-match.dev/open-match/pkg/pb"
 )
 

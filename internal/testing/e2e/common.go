@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"google.golang.org/grpc/resolver"
-
 	pb "open-match.dev/open-match/pkg/pb"
 )
 

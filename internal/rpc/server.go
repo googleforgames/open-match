@@ -25,6 +25,7 @@ import (
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_tracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
@@ -302,25 +303,16 @@ func instrumentHTTPHandler(handler http.Handler, params *ServerParams) http.Hand
 }
 
 func newGRPCServerOptions(params *ServerParams) []grpc.ServerOption {
-	opts := []grpc.ServerOption{
-		grpc.KeepaliveParams(keepalive.ServerParameters{
-			// MaxConnectionAge is a duration for the maximum amount of time a
-			// connection may exist before it will be closed by sending a GoAway. A
-			// random jitter of +/-10% will be added to MaxConnectionAge to spread out
-			// connection storms.
-			MaxConnectionAge: 1 * time.Minute,
-			// MaxConnectionAgeGrace is an additive period after MaxConnectionAge after
-			// which the connection will be forcibly closed.
-			MaxConnectionAgeGrace: 5 * time.Second,
-		}),
-	}
+	opts := []grpc.ServerOption{}
 	si := []grpc.StreamServerInterceptor{
 		grpc_recovery.StreamServerInterceptor(),
 		grpc_validator.StreamServerInterceptor(),
+		grpc_tracing.StreamServerInterceptor(),
 	}
 	ui := []grpc.UnaryServerInterceptor{
 		grpc_recovery.UnaryServerInterceptor(),
 		grpc_validator.UnaryServerInterceptor(),
+		grpc_tracing.UnaryServerInterceptor(),
 	}
 	if params.enableRPCLogging {
 		grpcLogger := logrus.WithFields(logrus.Fields{
@@ -346,5 +338,11 @@ func newGRPCServerOptions(params *ServerParams) []grpc.ServerOption {
 
 	return append(opts,
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(si...)),
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(ui...)))
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(ui...)),
+		grpc.KeepaliveEnforcementPolicy(
+			keepalive.EnforcementPolicy{
+				MinTime:             10 * time.Second,
+				PermitWithoutStream: true,
+			},
+		))
 }

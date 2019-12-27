@@ -15,6 +15,9 @@
 package main
 
 import (
+	// Uncomment if following the tutorial
+	// "math/rand"
+
 	"open-match.dev/open-match/pkg/pb"
 )
 

@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 	"open-match.dev/open-match/examples/scale/profiles"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
@@ -37,7 +38,12 @@ var (
 		"component": "scale.backend",
 	})
 
-	// TODO: Add metrics to track matches created, tickets assigned, deleted.
+	// The buffered channels attempt to decouple fetch, assign and delete. It is
+	// best effort and these operations may still block each other if buffers are full.
+	matches   = make(chan *pb.Match, 2000)
+	deleteIds = make(chan string, 2000)
+
+	errMap     = &sync.Map{}
 	matchCount uint64
 	assigned   uint64
 	deleted    uint64
@@ -70,78 +76,101 @@ func Run() {
 	defer feConn.Close()
 	fe := pb.NewFrontendClient(feConn)
 
-	// The buffered channels attempt to decouple fetch, assign and delete. It is
-	// best effort and these operations may still block each other if buffers are full.
-	matches := make(chan *pb.Match, 1000)
-	deleteIds := make(chan string, 1000)
+	go doFetch(cfg, be)
+	go doAssign(be)
+	go doDelete(fe)
 
-	go doFetch(cfg, be, matches)
-	go doAssign(be, matches, deleteIds)
-	go doDelete(fe, deleteIds)
-
-	// The above goroutines run forever and so the main goroutine needs to block.
 	select {}
+
 }
 
 // doFetch continuously fetches all profiles in a loop and queues up the fetched
 // matches for assignment.
-func doFetch(cfg config.View, be pb.BackendClient, matches chan *pb.Match) {
+func doFetch(cfg config.View, be pb.BackendClient) {
 	startTime := time.Now()
 	mprofiles := profiles.Generate(cfg)
+
 	for {
 		var wg sync.WaitGroup
 		for _, p := range mprofiles {
 			wg.Add(1)
-			p := p
-			go func(wg *sync.WaitGroup) {
+			go func(wg *sync.WaitGroup, p *pb.MatchProfile) {
 				defer wg.Done()
-				fetch(be, p, matches)
-			}(&wg)
+				fetch(be, p)
+			}(&wg, p)
 		}
 
 		// Wait for all FetchMatches calls to complete before proceeding.
 		wg.Wait()
-		logger.Infof("FetchedMatches:%v, AssignedTickets:%v, DeletedTickets:%v in time %v", atomic.LoadUint64(&matchCount), atomic.LoadUint64(&assigned), atomic.LoadUint64(&deleted), time.Since(startTime))
+		errMap.Range(func(k interface{}, v interface{}) bool {
+			logger.Infof("Got error %s: %#v", k, v)
+			return true
+		})
+		logger.Infof(
+			"FetchedMatches:%v, AssignedTickets:%v, DeletedTickets:%v in time %v, Total profiles: %v",
+			atomic.LoadUint64(&matchCount),
+			atomic.LoadUint64(&assigned),
+			atomic.LoadUint64(&deleted),
+			time.Since(startTime).Seconds(),
+			len(mprofiles),
+		)
 	}
 }
 
-func fetch(be pb.BackendClient, p *pb.MatchProfile, matches chan *pb.Match) {
-	req := &pb.FetchMatchesRequest{
-		Config: &pb.FunctionConfig{
-			Host: "om-function",
-			Port: 50502,
-			Type: pb.FunctionConfig_GRPC,
-		},
-		Profiles: []*pb.MatchProfile{p},
-	}
-
-	stream, err := be.FetchMatches(context.Background(), req)
-	if err != nil {
-		logger.Errorf("FetchMatches failed, got %v", err)
-		return
-	}
-
+func fetch(be pb.BackendClient, p *pb.MatchProfile) {
 	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			return
+		req := &pb.FetchMatchesRequest{
+			Config: &pb.FunctionConfig{
+				Host: "om-function",
+				Port: 50502,
+				Type: pb.FunctionConfig_GRPC,
+			},
+			Profiles: []*pb.MatchProfile{p},
 		}
 
+		ctx, span := trace.StartSpan(context.Background(), "scale.backend/FetchMatches")
+		defer span.End()
+
+		stream, err := be.FetchMatches(ctx, req)
 		if err != nil {
-			logger.Errorf("FetchMatches failed, got %v", err)
+			errMsg := fmt.Sprintf("failed to get available stream client: %w", err)
+			errRead, ok := errMap.Load(errMsg)
+			if !ok {
+				errRead = 0
+			}
+			errMap.Store(errMsg, errRead.(int)+1)
 			return
 		}
 
-		matches <- resp.GetMatch()
-		atomic.AddUint64(&matchCount, 1)
+		for {
+			resp, err := stream.Recv()
+			if err == io.EOF {
+				return
+			}
+
+			if err != nil {
+				errMsg := fmt.Sprintf("failed to stream in the halfway: %w", err)
+				errRead, ok := errMap.Load(errMsg)
+				if !ok {
+					errRead = 0
+				}
+				errMap.Store(errMsg, errRead.(int)+1)
+				return
+			}
+
+			matches <- resp.GetMatch()
+			atomic.AddUint64(&matchCount, 1)
+		}
 	}
 }
 
 // doAssign continuously assigns matches that were queued in the matches channel
 // by doFetch and after successful assignment, queues all the tickets to deleteIds
 // channel for deletion by doDelete.
-func doAssign(be pb.BackendClient, matches chan *pb.Match, deleteIds chan string) {
-	for match := range matches {
+func doAssign(be pb.BackendClient) {
+
+	for {
+		match := <-matches
 		ids := []string{}
 		for _, t := range match.Tickets {
 			ids = append(ids, t.Id)
@@ -155,8 +184,12 @@ func doAssign(be pb.BackendClient, matches chan *pb.Match, deleteIds chan string
 		}
 
 		if _, err := be.AssignTickets(context.Background(), req); err != nil {
-			logger.Errorf("AssignTickets failed, got %v", err)
-			continue
+			errMsg := fmt.Sprintf("failed to assign tickets: %w", err)
+			errRead, ok := errMap.Load(errMsg)
+			if !ok {
+				errRead = 0
+			}
+			errMap.Store(errMsg, errRead.(int)+1)
 		}
 
 		atomic.AddUint64(&assigned, uint64(len(ids)))
@@ -167,15 +200,20 @@ func doAssign(be pb.BackendClient, matches chan *pb.Match, deleteIds chan string
 }
 
 // doDelete deletes all the tickets whose ids get added to the deleteIds channel.
-func doDelete(fe pb.FrontendClient, deleteIds chan string) {
-	for id := range deleteIds {
+func doDelete(fe pb.FrontendClient) {
+	for {
+		id := <-deleteIds
 		req := &pb.DeleteTicketRequest{
 			TicketId: id,
 		}
 
 		if _, err := fe.DeleteTicket(context.Background(), req); err != nil {
-			logger.Errorf("DeleteTicket failed for ticket %v, got %v", id, err)
-			continue
+			errMsg := fmt.Sprintf("failed to delete tickets: %w", err)
+			errRead, ok := errMap.Load(errMsg)
+			if !ok {
+				errRead = 0
+			}
+			errMap.Store(errMsg, errRead.(int)+1)
 		}
 
 		atomic.AddUint64(&deleted, 1)

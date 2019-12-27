@@ -30,13 +30,15 @@ import (
 	"go.opencensus.io/plugin/ocgrpc"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	grpc_tracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ochttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/balancer/roundrobin"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/resolver"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
@@ -284,10 +286,10 @@ func HTTPClientFromParams(params *ClientParams) (*http.Client, string, error) {
 
 func newGRPCDialOptions(enableMetrics bool, enableRPCLogging bool, enableRPCPayloadLogging bool) []grpc.DialOption {
 	si := []grpc.StreamClientInterceptor{
-		grpc_retry.StreamClientInterceptor(),
+		grpc_tracing.StreamClientInterceptor(),
 	}
 	ui := []grpc.UnaryClientInterceptor{
-		grpc_retry.UnaryClientInterceptor(),
+		grpc_tracing.UnaryClientInterceptor(),
 	}
 	if enableRPCLogging {
 		grpcLogger := logrus.WithFields(logrus.Fields{
@@ -310,6 +312,11 @@ func newGRPCDialOptions(enableMetrics bool, enableRPCLogging bool, enableRPCPayl
 		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(si...)),
 		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(ui...)),
 		grpc.WithBalancerName(roundrobin.Name),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                20 * time.Second,
+			Timeout:             10 * time.Second,
+			PermitWithoutStream: true,
+		}),
 	}
 	if enableMetrics {
 		opts = append(opts, grpc.WithStatsHandler(new(ocgrpc.ClientHandler)))
