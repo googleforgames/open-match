@@ -57,8 +57,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 		This end to end test does the following things step by step
 		1. Create a few tickets with delicate designs and hand crafted search fields
 		2. Call backend.FetchMatches and verify it returns expected matches.
-		3. Call backend.FetchMatches within redis.ignoreLists.ttl seconds and expects it return a match with duplicate tickets in step 2.
-		4. Wait for redis.ignoreLists.ttl seconds and call backend.FetchMatches the third time, expect the same result as step 2.
+		3. Call backend.FetchMatches within storage.ignoreListTTL seconds and expects it return a match with duplicate tickets in step 2.
+		4. Wait for storage.ignoreListTTL seconds and call backend.FetchMatches the third time, expect the same result as step 2.
 		5. Call backend.AssignTickets to assign DGSs for the tickets in FetchMatches' response
 		6. Call backend.FetchMatches and verify it no longer returns tickets got assigned in the previous step.
 		7. Call frontend.DeleteTicket to delete the tickets returned in step 6.
@@ -161,11 +161,11 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	var wantTickets = [][]*pb.Ticket{{ticket2, ticket3, ticket4}, {ticket5}}
 	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 
-	// 3. Call backend.FetchMatches within redis.ignoreLists.ttl seconds and expects it return a match with ticket1 .
+	// 3. Call backend.FetchMatches within storage.ignoreListTTL seconds and expects it return a match with ticket1 .
 	wantTickets = [][]*pb.Ticket{{ticket1}}
 	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 
-	// 4. Wait for redis.ignoreLists.ttl seconds and call backend.FetchMatches the third time, expect the same result as step 2.
+	// 4. Wait for storage.ignoreListTTL seconds and call backend.FetchMatches the third time, expect the same result as step 2.
 	time.Sleep(statestoreTesting.IgnoreListTTL)
 	wantTickets = [][]*pb.Ticket{{ticket2, ticket3, ticket4}, {ticket5}}
 	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
