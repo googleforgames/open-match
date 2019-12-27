@@ -27,34 +27,35 @@ import (
 	"open-match.dev/open-match/examples/scale/scenarios"
 )
 
+var (
+	logger = logrus.WithFields(logrus.Fields{
+		"app":       "openmatch",
+		"component": "scale.evaluator",
+	})
+)
+
 // Run triggers execution of an evaluator.
 func Run() {
 	activeScenario := scenarios.ActiveScenario
 
-	conn, err := grpc.Dial(activeScenario.MmlogicAddr, utilTesting.NewGRPCDialOptions(activeScenario.Logger)...)
+	server := grpc.NewServer(utilTesting.NewGRPCServerOptions(logger)...)
+	pb.RegisterEvaluatorServer(server, pb.EvaluatorServer(activeScenario.Evaluator))
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", 50508))
 	if err != nil {
-		activeScenario.Logger.Fatalf("Failed to connect to Open Match, got %v", err)
-	}
-	defer conn.Close()
-
-	server := grpc.NewServer(utilTesting.NewGRPCServerOptions(activeScenario.Logger)...)
-	pb.RegisterEvaluatorServer(server, activeScenario)
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", activeScenario.MmfServerPort))
-	if err != nil {
-		activeScenario.Logger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
-			"port":  activeScenario.MmfServerPort,
+			"port":  50508,
 		}).Fatal("net.Listen() error")
 	}
 
-	activeScenario.Logger.WithFields(logrus.Fields{
-		"port": activeScenario.MmfServerPort,
+	logger.WithFields(logrus.Fields{
+		"port": 50508,
 	}).Info("TCP net listener initialized")
 
-	activeScenario.Logger.Info("Serving gRPC endpoint")
+	logger.Info("Serving gRPC endpoint")
 	err = server.Serve(ln)
 	if err != nil {
-		activeScenario.Logger.WithFields(logrus.Fields{
+		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatal("gRPC serve() error")
 	}

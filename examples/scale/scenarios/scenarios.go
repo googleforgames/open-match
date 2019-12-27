@@ -14,12 +14,7 @@
 
 package scenarios
 
-import (
-
-	// "sync"
-
-	"github.com/sirupsen/logrus"
-)
+import "open-match.dev/open-match/pkg/pb"
 
 // TODO:
 // - add images for scale-mmf and scale-evaluator, have this use it.
@@ -29,52 +24,39 @@ import (
 
 // after that start on getting metrics to show up from the scale-backend and scale-frontend.
 
-var ActiveScenario = BasicScenario{Scenario{
-	MmfServerPort:              50502,
-	MatchOverlapRatio:          0,
-	TicketSearchFieldsUnitSize: 0,
-	TicketSearchFieldsNumber:   1,
-	MmlogicAddr:                "om-mmlogic.open-match.svc.cluster.local:50503",
-	EvaluatorServerPort:        50508,
-	TicketExtensionSize:        0,
-	PendingTicketNumber:        10000,
-	MatchExtensionSize:         0,
-	ShouldCreateTicketForever:  false,
-	TicketQPS:                  100,
-	ProfileNumber:              20,
-	FilterNumber:               20,
-	ShouldAssignTicket:         true,
-	ShouldDeleteTicket:         true,
-	Logger: logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "scale",
-	}),
-}}
+var ActiveScenario = basicScenario
+
+type matchFunction func(*pb.RunRequest, pb.MatchFunction_RunServer) error
+type evaluatorFunction func(pb.Evaluator_EvaluateServer) error
 
 // Scenario defines the controllable fields for Open Match benchmark scenarios
 type Scenario struct {
 	// MatchFunction Configs
-	MmfServerPort              int32
-	MatchOverlapRatio          float32
-	TicketSearchFieldsUnitSize int
-	TicketSearchFieldsNumber   int
-	MmlogicAddr                string
-
-	// Evaluator Configs
-	EvaluatorServerPort int32
+	// MatchOverlapRatio          float32
+	// TicketSearchFieldsUnitSize int
+	// TicketSearchFieldsNumber   int
 
 	// GameFrontend Configs
-	TicketExtensionSize       int
-	PendingTicketNumber       int
-	MatchExtensionSize        int
-	ShouldCreateTicketForever bool
-	TicketQPS                 int
+	// TicketExtensionSize       int
+	// PendingTicketNumber       int
+	// MatchExtensionSize        int
+	// ShouldCreateTicketForever bool
+	// TicketCreatedQPS          int
 
 	// GameBackend Configs
-	ProfileNumber      int
-	FilterNumber       int
-	ShouldAssignTicket bool
-	ShouldDeleteTicket bool
+	// ProfileNumber      int
+	// FilterNumber       int
+	// ShouldAssignTicket bool
+	// ShouldDeleteTicket bool
 
-	Logger *logrus.Entry
+	MMF       matchFunction
+	Evaluator evaluatorFunction
+}
+
+func (mmf matchFunction) Run(req *pb.RunRequest, srv pb.MatchFunction_RunServer) error {
+	return mmf(req, srv)
+}
+
+func (eval evaluatorFunction) Evaluate(srv pb.Evaluator_EvaluateServer) error {
+	return eval(srv)
 }
