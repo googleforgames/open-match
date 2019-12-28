@@ -96,6 +96,21 @@ resources:
 {{- end -}}
 {{- end -}}
 
+{{- define "openmatch.labels.nodegrouping" -}}
+{{- if .Values.global.kubernetes.affinity }}
+affinity:
+{{ toYaml .Values.global.kubernetes.affinity | nindent 2 }}
+{{- end }}
+{{- if .Values.global.kubernetes.nodeSelector }}
+nodeSelector:
+{{ toYaml .Values.global.kubernetes.nodeSelector | nindent 2 }}
+{{- end }}
+{{- if .Values.global.kubernetes.tolerations }}
+tolerations:
+{{ toYaml .Values.global.kubernetes.tolerations | nindent 2 }}
+{{- end }}
+{{- end -}}
+
 {{- define "kubernetes.probe" -}}
 livenessProbe:
   httpGet:

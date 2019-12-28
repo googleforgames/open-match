@@ -109,8 +109,6 @@ redis:
   usePassword: false
   usePasswordFile: false
   secretMountPath: /opt/bitnami/redis/secrets
-  ignoreLists:
-    ttl: 60000ms
   configmap:
     maxclients 100000
   master:
@@ -153,6 +151,7 @@ redis:
 # Controls if users need to install backend, frontend, mmlogic, om-configmap, and swaggerui.
 open-match-core:
   enabled: true
+  ignoreListTTL: 60000ms
   redis:
     pool:
       maxIdle: 200
@@ -196,6 +195,12 @@ open-match-test:
 # Global configurations that are visible to all subcharts
 global:
   kubernetes:
+    # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+    nodeSelector: {}
+    # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+    tolerations: []
+    # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+    affinity: {}
     horizontalPodAutoScaler:
       minReplicas: 1
       maxReplicas: 10
