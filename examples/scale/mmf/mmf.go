@@ -46,7 +46,7 @@ func Run() {
 	defer conn.Close()
 
 	server := grpc.NewServer(utilTesting.NewGRPCServerOptions(logger)...)
-	pb.RegisterMatchFunctionServer(server, pb.MatchFunctionServer(activeScenario.MMF))
+	pb.RegisterMatchFunctionServer(server, activeScenario.MMF)
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", 50502))
 	if err != nil {
 		logger.WithFields(logrus.Fields{

@@ -19,9 +19,6 @@ import "open-match.dev/open-match/pkg/pb"
 // ActiveScenario sets the scenario with preset parameters that we want to use for current Open Match benchmark run.
 var ActiveScenario = basicScenario
 
-type matchFunction func(*pb.RunRequest, pb.MatchFunction_RunServer) error
-type evaluatorFunction func(pb.Evaluator_EvaluateServer) error
-
 // Scenario defines the controllable fields for Open Match benchmark scenarios
 type Scenario struct {
 	// TODO: supports the following controllable parameters
@@ -47,6 +44,9 @@ type Scenario struct {
 	MMF       matchFunction
 	Evaluator evaluatorFunction
 }
+
+type matchFunction func(*pb.RunRequest, pb.MatchFunction_RunServer) error
+type evaluatorFunction func(pb.Evaluator_EvaluateServer) error
 
 func (mmf matchFunction) Run(req *pb.RunRequest, srv pb.MatchFunction_RunServer) error {
 	return mmf(req, srv)

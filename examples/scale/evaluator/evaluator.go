@@ -39,7 +39,7 @@ func Run() {
 	activeScenario := scenarios.ActiveScenario
 
 	server := grpc.NewServer(utilTesting.NewGRPCServerOptions(logger)...)
-	pb.RegisterEvaluatorServer(server, pb.EvaluatorServer(activeScenario.Evaluator))
+	pb.RegisterEvaluatorServer(server, activeScenario.Evaluator)
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", 50508))
 	if err != nil {
 		logger.WithFields(logrus.Fields{
