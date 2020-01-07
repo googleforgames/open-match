@@ -20,13 +20,12 @@ var (
 	emptyRosterSpot = "EMPTY_ROSTER_SPOT"
 
 	basicScenario = &Scenario{
-		MMF:                       basicMatchFunction,
-		Evaluator:                 basicEvaluate,
-		CreateTicketNumber:        0,
-		TicketCreatedQPS:          500,
-		ShouldCreateTicketForever: true,
-		ShouldAssignTicket:        false,
-		ShouldDeleteTicket:        false,
+		MMF:                   basicMatchFunction,
+		Evaluator:             basicEvaluate,
+		TotalTicketsToCreate:  -1,
+		TicketCreatedQPS:      500,
+		BackendAssignsTickets: false,
+		BackendDeletesTickets: false,
 	}
 )
 

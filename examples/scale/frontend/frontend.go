@@ -64,63 +64,35 @@ func Run() {
 	defer conn.Close()
 	fe := pb.NewFrontendClient(conn)
 
-	go doCreate(cfg, fe)
+	go create(cfg, fe)
 
 	select {}
 }
 
-func doCreate(cfg config.View, fe pb.FrontendClient) {
-	cycleCreate := func(wg *sync.WaitGroup, ticketPerRoutine int, start time.Time) {
-		defer wg.Done()
-		var cycleCreated uint32
-
-		for j := 0; j < ticketPerRoutine; j++ {
-			req := &pb.CreateTicketRequest{
-				Ticket: tickets.Ticket(),
-			}
-
-			ctx, span := trace.StartSpan(context.Background(), "scale.frontend/CreateTicket")
-			defer span.End()
-
-			timeLeft := start.Add(time.Second).Sub(time.Now())
-			if timeLeft <= 0 {
-				break
-			}
-			ticketsLeft := uint32(ticketPerRoutine) - cycleCreated
-
-			time.Sleep(timeLeft / time.Duration(ticketsLeft))
-
-			if _, err := fe.CreateTicket(ctx, req); err != nil {
-				errMsg := fmt.Sprintf("failed to create a ticket: %w", err)
-				errRead, ok := errMap.Load(errMsg)
-				if !ok {
-					errRead = 0
-				}
-				errMap.Store(errMsg, errRead.(int)+1)
-			}
-			cycleCreated += 1
-		}
-
-		atomic.AddUint32(&totalCreated, cycleCreated)
-	}
-
+func create(cfg config.View, fe pb.FrontendClient) {
 	for {
-		if !activeScenario.ShouldCreateTicketForever && int(totalCreated) >= activeScenario.CreateTicketNumber {
+		if activeScenario.TotalTicketsToCreate != -1 && int(totalCreated) >= activeScenario.TotalTicketsToCreate {
 			break
 		}
 
 		// Each inner loop creates TicketCreatedQPS tickets
+		var ticketPerRoutine, ticketModRoutine int
 		start := time.Now()
-		ticketPerRoutine := int(activeScenario.TicketCreatedQPS) / numOfRoutineCreate
+		if int(totalCreated+activeScenario.TicketCreatedQPS) <= activeScenario.TotalTicketsToCreate {
+			ticketPerRoutine = int(activeScenario.TicketCreatedQPS) / numOfRoutineCreate
+			ticketModRoutine = int(activeScenario.TicketCreatedQPS) % numOfRoutineCreate
+		} else {
+			ticketPerRoutine = (activeScenario.TotalTicketsToCreate - int(totalCreated)) / numOfRoutineCreate
+			ticketModRoutine = (activeScenario.TotalTicketsToCreate - int(totalCreated)) % numOfRoutineCreate
+		}
 
 		var wg sync.WaitGroup
 		for i := 0; i < numOfRoutineCreate; i++ {
 			wg.Add(1)
-
-			if i < int(activeScenario.TicketCreatedQPS)%numOfRoutineCreate {
-				go cycleCreate(&wg, ticketPerRoutine+1, start)
+			if i < ticketModRoutine {
+				go createPerCycle(&wg, fe, ticketPerRoutine+1, start)
 			} else {
-				go cycleCreate(&wg, ticketPerRoutine, start)
+				go createPerCycle(&wg, fe, ticketPerRoutine, start)
 			}
 		}
 
@@ -132,4 +104,38 @@ func doCreate(cfg config.View, fe pb.FrontendClient) {
 		})
 		logger.Infof("%v tickets created in %v", totalCreated, time.Since(start))
 	}
+}
+
+func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendClient, ticketPerRoutine int, start time.Time) {
+	defer wg.Done()
+	var cycleCreated uint32
+
+	for j := 0; j < ticketPerRoutine; j++ {
+		req := &pb.CreateTicketRequest{
+			Ticket: tickets.Ticket(),
+		}
+
+		ctx, span := trace.StartSpan(context.Background(), "scale.frontend/CreateTicket")
+		defer span.End()
+
+		timeLeft := start.Add(time.Second).Sub(time.Now())
+		if timeLeft <= 0 {
+			break
+		}
+		ticketsLeft := uint32(ticketPerRoutine) - cycleCreated
+
+		time.Sleep(timeLeft / time.Duration(ticketsLeft))
+
+		if _, err := fe.CreateTicket(ctx, req); err != nil {
+			errMsg := fmt.Sprintf("failed to create a ticket: %w", err)
+			errRead, ok := errMap.Load(errMsg)
+			if !ok {
+				errRead = 0
+			}
+			errMap.Store(errMsg, errRead.(int)+1)
+		}
+		cycleCreated++
+	}
+
+	atomic.AddUint32(&totalCreated, cycleCreated)
 }
