@@ -32,14 +32,15 @@ type Scenario struct {
 	// TicketExtensionSize       int
 	// PendingTicketNumber       int
 	// MatchExtensionSize        int
-	// ShouldCreateTicketForever bool
-	// TicketCreatedQPS          int
+	CreateTicketNumber        int
+	ShouldCreateTicketForever bool
+	TicketCreatedQPS          uint32
 
 	// GameBackend Configs
 	// ProfileNumber      int
 	// FilterNumber       int
-	// ShouldAssignTicket bool
-	// ShouldDeleteTicket bool
+	ShouldAssignTicket bool
+	ShouldDeleteTicket bool
 
 	MMF       matchFunction
 	Evaluator evaluatorFunction

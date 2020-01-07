@@ -26,6 +26,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
 	"open-match.dev/open-match/examples/scale/profiles"
+	"open-match.dev/open-match/examples/scale/scenarios"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/rpc"
@@ -37,6 +38,8 @@ var (
 		"app":       "openmatch",
 		"component": "scale.backend",
 	})
+
+	activeScenario = scenarios.ActiveScenario
 
 	// The buffered channels attempt to decouple fetch, assign and delete. It is
 	// best effort and these operations may still block each other if buffers are full.
@@ -77,8 +80,14 @@ func Run() {
 	fe := pb.NewFrontendClient(feConn)
 
 	go doFetch(cfg, be)
-	go doAssign(be)
-	go doDelete(fe)
+
+	if activeScenario.ShouldAssignTicket {
+		go doAssign(be)
+	}
+
+	if activeScenario.ShouldDeleteTicket {
+		go doDelete(fe)
+	}
 
 	select {}
 

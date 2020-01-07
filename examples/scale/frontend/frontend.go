@@ -23,6 +23,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
+	"open-match.dev/open-match/examples/scale/scenarios"
 	"open-match.dev/open-match/examples/scale/tickets"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
@@ -35,9 +36,11 @@ var (
 		"app":       "openmatch",
 		"component": "scale.frontend",
 	})
+	activeScenario     = scenarios.ActiveScenario
+	numOfRoutineCreate = 8
 
-	errMap  = &sync.Map{}
-	created uint64
+	errMap       = &sync.Map{}
+	totalCreated uint32
 )
 
 // Run triggers execution of the scale frontend component that creates
@@ -67,31 +70,58 @@ func Run() {
 }
 
 func doCreate(cfg config.View, fe pb.FrontendClient) {
-	concurrent := cfg.GetInt("testConfig.concurrentCreates")
-	start := time.Now()
+	cycleCreate := func(wg *sync.WaitGroup, ticketPerRoutine int, start time.Time) {
+		defer wg.Done()
+		var cycleCreated uint32
+
+		for j := 0; j < ticketPerRoutine; j++ {
+			req := &pb.CreateTicketRequest{
+				Ticket: tickets.Ticket(),
+			}
+
+			ctx, span := trace.StartSpan(context.Background(), "scale.frontend/CreateTicket")
+			defer span.End()
+
+			timeLeft := start.Add(time.Second).Sub(time.Now())
+			if timeLeft <= 0 {
+				break
+			}
+			ticketsLeft := uint32(ticketPerRoutine) - cycleCreated
+
+			time.Sleep(timeLeft / time.Duration(ticketsLeft))
+
+			if _, err := fe.CreateTicket(ctx, req); err != nil {
+				errMsg := fmt.Sprintf("failed to create a ticket: %w", err)
+				errRead, ok := errMap.Load(errMsg)
+				if !ok {
+					errRead = 0
+				}
+				errMap.Store(errMsg, errRead.(int)+1)
+			}
+			cycleCreated += 1
+		}
+
+		atomic.AddUint32(&totalCreated, cycleCreated)
+	}
+
 	for {
+		if !activeScenario.ShouldCreateTicketForever && int(totalCreated) >= activeScenario.CreateTicketNumber {
+			break
+		}
+
+		// Each inner loop creates TicketCreatedQPS tickets
+		start := time.Now()
+		ticketPerRoutine := int(activeScenario.TicketCreatedQPS) / numOfRoutineCreate
+
 		var wg sync.WaitGroup
-		for i := 0; i < concurrent; i++ {
+		for i := 0; i < numOfRoutineCreate; i++ {
 			wg.Add(1)
-			go func(wg *sync.WaitGroup) {
-				defer wg.Done()
-				req := &pb.CreateTicketRequest{
-					Ticket: tickets.Ticket(),
-				}
 
-				ctx, span := trace.StartSpan(context.Background(), "scale.frontend/CreateTicket")
-				defer span.End()
-
-				if _, err := fe.CreateTicket(ctx, req); err != nil {
-					errMsg := fmt.Sprintf("failed to create a ticket: %w", err)
-					errRead, ok := errMap.Load(errMsg)
-					if !ok {
-						errRead = 0
-					}
-					errMap.Store(errMsg, errRead.(int)+1)
-				}
-				atomic.AddUint64(&created, 1)
-			}(&wg)
+			if i < int(activeScenario.TicketCreatedQPS)%numOfRoutineCreate {
+				go cycleCreate(&wg, ticketPerRoutine+1, start)
+			} else {
+				go cycleCreate(&wg, ticketPerRoutine, start)
+			}
 		}
 
 		// Wait for all concurrent creates to complete.
@@ -100,6 +130,6 @@ func doCreate(cfg config.View, fe pb.FrontendClient) {
 			logger.Infof("Got error %s: %#v", k, v)
 			return true
 		})
-		logger.Infof("%v tickets created in %v", created, time.Since(start))
+		logger.Infof("%v tickets created in %v", totalCreated, time.Since(start))
 	}
 }
