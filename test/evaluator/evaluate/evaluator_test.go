@@ -21,7 +21,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/assert"
-	"open-match.dev/open-match/internal/testing/customize/evaluator"
+	"open-match.dev/open-match/internal/testing/evaluator"
 	"open-match.dev/open-match/pkg/pb"
 )
 

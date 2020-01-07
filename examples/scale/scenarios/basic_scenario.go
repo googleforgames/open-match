@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/testing/customize/evaluator"
+	"open-match.dev/open-match/internal/testing/evaluator"
 	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/test/evaluator/evaluate"
