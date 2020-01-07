@@ -32,8 +32,8 @@ type Scenario struct {
 	// TicketExtensionSize       int
 	// PendingTicketNumber       int
 	// MatchExtensionSize        int
-	TotalTicketsToCreate int
-	TicketCreatedQPS     uint32
+	FrontendTotalTicketsToCreate int // TotalTicketsToCreate = -1 let scale-frontend create tickets forever
+	FrontendTicketCreatedQPS     uint32
 
 	// GameBackend Configs
 	// ProfileNumber      int

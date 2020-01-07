@@ -71,19 +71,19 @@ func Run() {
 
 func create(cfg config.View, fe pb.FrontendClient) {
 	for {
-		if activeScenario.TotalTicketsToCreate != -1 && int(totalCreated) >= activeScenario.TotalTicketsToCreate {
+		if activeScenario.FrontendTotalTicketsToCreate != -1 && int(totalCreated) >= activeScenario.FrontendTotalTicketsToCreate {
 			break
 		}
 
 		// Each inner loop creates TicketCreatedQPS tickets
 		var ticketPerRoutine, ticketModRoutine int
 		start := time.Now()
-		if int(totalCreated+activeScenario.TicketCreatedQPS) <= activeScenario.TotalTicketsToCreate {
-			ticketPerRoutine = int(activeScenario.TicketCreatedQPS) / numOfRoutineCreate
-			ticketModRoutine = int(activeScenario.TicketCreatedQPS) % numOfRoutineCreate
+		if int(totalCreated+activeScenario.FrontendTicketCreatedQPS) <= activeScenario.FrontendTotalTicketsToCreate {
+			ticketPerRoutine = int(activeScenario.FrontendTicketCreatedQPS) / numOfRoutineCreate
+			ticketModRoutine = int(activeScenario.FrontendTicketCreatedQPS) % numOfRoutineCreate
 		} else {
-			ticketPerRoutine = (activeScenario.TotalTicketsToCreate - int(totalCreated)) / numOfRoutineCreate
-			ticketModRoutine = (activeScenario.TotalTicketsToCreate - int(totalCreated)) % numOfRoutineCreate
+			ticketPerRoutine = (activeScenario.FrontendTotalTicketsToCreate - int(totalCreated)) / numOfRoutineCreate
+			ticketModRoutine = (activeScenario.FrontendTotalTicketsToCreate - int(totalCreated)) % numOfRoutineCreate
 		}
 
 		var wg sync.WaitGroup
