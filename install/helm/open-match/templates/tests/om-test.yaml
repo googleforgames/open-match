@@ -23,6 +23,9 @@ spec:
       limits:
         memory: 800Mi
         cpu: "1"
+      requests:
+        memory: 600Mi
+        cpu: "0.8"
     env:
     - name: NAMESPACE
       value: "{{ .Release.Namespace }}"
