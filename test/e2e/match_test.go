@@ -87,7 +87,6 @@ func TestFetchMatches(t *testing.T) {
 					}
 					if err != nil {
 						assert.Contains(t, []codes.Code{test.wantCode, codes.Unknown}, status.Convert(err).Code())
-						assert.Equal(t, test.wantCode, status.Convert(err).Code())
 						break
 					}
 					gotMatches = append(gotMatches, &pb.Match{
