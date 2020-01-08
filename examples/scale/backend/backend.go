@@ -96,27 +96,25 @@ func Run() {
 }
 
 func run(fe pb.FrontendClient, be pb.BackendClient, p *pb.MatchProfile) {
-	for {
-		ctx, span := trace.StartSpan(context.Background(), "scale.backend/FetchMatches")
-		defer span.End()
+	ctx, span := trace.StartSpan(context.Background(), "scale.backend/FetchMatches")
+	defer span.End()
 
-		req := &pb.FetchMatchesRequest{
-			Config: &pb.FunctionConfig{
-				Host: "om-function",
-				Port: 50502,
-				Type: pb.FunctionConfig_GRPC,
-			},
-			Profiles: []*pb.MatchProfile{p},
-		}
-
-		stream, err := be.FetchMatches(ctx, req)
-		if err != nil {
-			statProcessor.RecordError("failed to get available stream client", err)
-			return
-		}
-
-		processMatches(fe, be, stream)
+	req := &pb.FetchMatchesRequest{
+		Config: &pb.FunctionConfig{
+			Host: "om-function",
+			Port: 50502,
+			Type: pb.FunctionConfig_GRPC,
+		},
+		Profiles: []*pb.MatchProfile{p},
 	}
+
+	stream, err := be.FetchMatches(ctx, req)
+	if err != nil {
+		statProcessor.RecordError("failed to get available stream client", err)
+		return
+	}
+
+	processMatches(fe, be, stream)
 }
 
 func processMatches(fe pb.FrontendClient, be pb.BackendClient, stream pb.Backend_FetchMatchesClient) {

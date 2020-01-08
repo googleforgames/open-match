@@ -17,7 +17,6 @@ package scenarios
 import (
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 
 	"google.golang.org/grpc"
@@ -80,16 +79,14 @@ func (e StatProcessor) RecordError(desc string, err error) {
 
 // Log writes the formatted errors and metrics to the input writer
 func (e StatProcessor) Log(w io.Writer) {
-	msg := []string{}
 	e.sm.Range(func(k interface{}, v interface{}) bool {
-		msg = append(msg, fmt.Sprintf("%s: %#v", k, v))
+		w.Write([]byte(fmt.Sprintf("%s: %d \n", k, v)))
 		return true
 	})
 	e.em.Range(func(k interface{}, v interface{}) bool {
-		msg = append(msg, fmt.Sprintf("%s: %#v", k, v))
+		w.Write([]byte(fmt.Sprintf("%s: %d \n", k, v)))
 		return true
 	})
-	w.Write([]byte(strings.Join(msg, ", ")))
 }
 
 func getMmlogicGRPCClient() pb.MmLogicClient {

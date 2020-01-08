@@ -101,6 +101,7 @@ func create(cfg config.View, fe pb.FrontendClient) {
 
 		// Wait for all concurrent creates to complete.
 		wg.Wait()
+		statProcessor.SetStat("TotalCreated", atomic.LoadUint32(&totalCreated))
 		statProcessor.Log(w)
 	}
 }
