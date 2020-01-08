@@ -22,11 +22,16 @@ var (
 	basicScenario = &Scenario{
 		MMF:                          basicMatchFunction,
 		Evaluator:                    basicEvaluate,
-		FrontendTotalTicketsToCreate: -1,
+		FrontendTotalTicketsToCreate: 510,
 		FrontendTicketCreatedQPS:     500,
 		BackendAssignsTickets:        false,
 		BackendDeletesTickets:        false,
 	}
+
+	logger = logrus.WithFields(logrus.Fields{
+		"app":       "scale",
+		"component": "scenarios.basic",
+	})
 )
 
 func basicMatchFunction(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {

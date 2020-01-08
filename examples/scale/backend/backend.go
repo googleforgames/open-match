@@ -20,7 +20,6 @@ import (
 	"io"
 	"math/rand"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -40,11 +39,7 @@ var (
 	})
 
 	activeScenario = scenarios.ActiveScenario
-
-	errMap     = &sync.Map{}
-	matchCount uint64
-	assigned   uint64
-	deleted    uint64
+	statProcessor  = scenarios.NewStatProcessor()
 )
 
 // Run triggers execution of functions that continuously fetch, assign and
@@ -77,6 +72,11 @@ func Run() {
 	startTime := time.Now()
 	mprofiles := profiles.Generate(cfg)
 
+	statProcessor.SetStat("TotalProfiles", len(mprofiles))
+
+	w := logger.Writer()
+	defer w.Close()
+
 	for {
 		// Keep pulling matches from Open Match backend
 		var wg sync.WaitGroup
@@ -90,18 +90,8 @@ func Run() {
 
 		// Wait for all profiles to complete before proceeding.
 		wg.Wait()
-		errMap.Range(func(k interface{}, v interface{}) bool {
-			logger.Infof("Got error %s: %#v", k, v)
-			return true
-		})
-		logger.Infof(
-			"FetchedMatches:%v, AssignedTickets:%v, DeletedTickets:%v in time %v, Total profiles: %v",
-			atomic.LoadUint64(&matchCount),
-			atomic.LoadUint64(&assigned),
-			atomic.LoadUint64(&deleted),
-			time.Since(startTime).Seconds(),
-			len(mprofiles),
-		)
+		statProcessor.SetStat("TimeElapsed", time.Since(startTime).String())
+		statProcessor.Log(w)
 	}
 }
 
@@ -121,7 +111,7 @@ func run(fe pb.FrontendClient, be pb.BackendClient, p *pb.MatchProfile) {
 
 		stream, err := be.FetchMatches(ctx, req)
 		if err != nil {
-			processError("failed to get available stream client", err)
+			statProcessor.RecordError("failed to get available stream client", err)
 			return
 		}
 
@@ -138,11 +128,11 @@ func processMatches(fe pb.FrontendClient, be pb.BackendClient, stream pb.Backend
 		}
 
 		if err != nil {
-			processError("failed to get matches from stream client", err)
+			statProcessor.RecordError("failed to get matches from stream client", err)
 			return
 		}
 
-		atomic.AddUint64(&matchCount, 1)
+		statProcessor.IncrementStat("MatchCount", 1)
 
 		ids := []string{}
 		for _, t := range resp.GetMatch().Tickets {
@@ -159,11 +149,11 @@ func processMatches(fe pb.FrontendClient, be pb.BackendClient, stream pb.Backend
 				Connection: fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),
 			},
 		}); err != nil {
-			processError("failed to assign tickets", err)
+			statProcessor.RecordError("failed to assign tickets", err)
 			continue
 		}
 
-		atomic.AddUint64(&assigned, uint64(len(ids)))
+		statProcessor.IncrementStat("Assigned", len(ids))
 
 		// Delete Tickets
 	Delete:
@@ -177,23 +167,14 @@ func processMatches(fe pb.FrontendClient, be pb.BackendClient, stream pb.Backend
 			}
 
 			if _, err := fe.DeleteTicket(context.Background(), req); err != nil {
-				processError("failed to delete tickets", err)
+				statProcessor.RecordError("failed to delete tickets", err)
 				continue
 			}
 
-			atomic.AddUint64(&deleted, 1)
+			statProcessor.IncrementStat("Deleted", 1)
 		}
 
 	End:
 		// Placeholder for future logging/stat aggregation tasks.
 	}
-}
-
-func processError(desc string, err error) {
-	errMsg := fmt.Sprintf("%s: %w", desc, err)
-	errRead, ok := errMap.Load(errMsg)
-	if !ok {
-		errRead = 0
-	}
-	errMap.Store(errMsg, errRead.(int)+1)
 }

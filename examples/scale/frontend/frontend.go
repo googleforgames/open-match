@@ -16,7 +16,6 @@ package frontend
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -37,9 +36,9 @@ var (
 		"component": "scale.frontend",
 	})
 	activeScenario     = scenarios.ActiveScenario
+	statProcessor      = scenarios.NewStatProcessor()
 	numOfRoutineCreate = 8
 
-	errMap       = &sync.Map{}
 	totalCreated uint32
 )
 
@@ -70,20 +69,24 @@ func Run() {
 }
 
 func create(cfg config.View, fe pb.FrontendClient) {
+	w := logger.Writer()
+	defer w.Close()
+
 	for {
-		if activeScenario.FrontendTotalTicketsToCreate != -1 && int(totalCreated) >= activeScenario.FrontendTotalTicketsToCreate {
+		currentCreated := atomic.LoadUint32(&totalCreated)
+		if activeScenario.FrontendTotalTicketsToCreate != -1 && int(currentCreated) >= activeScenario.FrontendTotalTicketsToCreate {
 			break
 		}
 
 		// Each inner loop creates TicketCreatedQPS tickets
 		var ticketPerRoutine, ticketModRoutine int
 		start := time.Now()
-		if int(totalCreated+activeScenario.FrontendTicketCreatedQPS) <= activeScenario.FrontendTotalTicketsToCreate {
+		if activeScenario.FrontendTotalTicketsToCreate == -1 || int(currentCreated+activeScenario.FrontendTicketCreatedQPS) <= activeScenario.FrontendTotalTicketsToCreate {
 			ticketPerRoutine = int(activeScenario.FrontendTicketCreatedQPS) / numOfRoutineCreate
 			ticketModRoutine = int(activeScenario.FrontendTicketCreatedQPS) % numOfRoutineCreate
 		} else {
-			ticketPerRoutine = (activeScenario.FrontendTotalTicketsToCreate - int(totalCreated)) / numOfRoutineCreate
-			ticketModRoutine = (activeScenario.FrontendTotalTicketsToCreate - int(totalCreated)) % numOfRoutineCreate
+			ticketPerRoutine = (activeScenario.FrontendTotalTicketsToCreate - int(currentCreated)) / numOfRoutineCreate
+			ticketModRoutine = (activeScenario.FrontendTotalTicketsToCreate - int(currentCreated)) % numOfRoutineCreate
 		}
 
 		var wg sync.WaitGroup
@@ -98,17 +101,13 @@ func create(cfg config.View, fe pb.FrontendClient) {
 
 		// Wait for all concurrent creates to complete.
 		wg.Wait()
-		errMap.Range(func(k interface{}, v interface{}) bool {
-			logger.Infof("Got error %s: %#v", k, v)
-			return true
-		})
-		logger.Infof("%v tickets created in %v", totalCreated, time.Since(start))
+		statProcessor.Log(w)
 	}
 }
 
 func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendClient, ticketPerRoutine int, start time.Time) {
 	defer wg.Done()
-	var cycleCreated uint32
+	cycleCreated := 0
 
 	for j := 0; j < ticketPerRoutine; j++ {
 		req := &pb.CreateTicketRequest{
@@ -122,20 +121,15 @@ func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendClient, ticketPerRoutine i
 		if timeLeft <= 0 {
 			break
 		}
-		ticketsLeft := uint32(ticketPerRoutine) - cycleCreated
+		ticketsLeft := ticketPerRoutine - cycleCreated
 
 		time.Sleep(timeLeft / time.Duration(ticketsLeft))
 
 		if _, err := fe.CreateTicket(ctx, req); err != nil {
-			errMsg := fmt.Sprintf("failed to create a ticket: %w", err)
-			errRead, ok := errMap.Load(errMsg)
-			if !ok {
-				errRead = 0
-			}
-			errMap.Store(errMsg, errRead.(int)+1)
+			statProcessor.RecordError("failed to create a ticket", err)
 		}
 		cycleCreated++
 	}
 
-	atomic.AddUint32(&totalCreated, cycleCreated)
+	atomic.AddUint32(&totalCreated, uint32(cycleCreated))
 }
