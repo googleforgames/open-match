@@ -22,10 +22,10 @@ var (
 	basicScenario = &Scenario{
 		MMF:                          basicMatchFunction,
 		Evaluator:                    basicEvaluate,
-		FrontendTotalTicketsToCreate: 510,
+		FrontendTotalTicketsToCreate: -1,
 		FrontendTicketCreatedQPS:     500,
-		BackendAssignsTickets:        false,
-		BackendDeletesTickets:        false,
+		BackendAssignsTickets:        true,
+		BackendDeletesTickets:        true,
 	}
 
 	logger = logrus.WithFields(logrus.Fields{
