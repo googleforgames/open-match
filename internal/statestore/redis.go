@@ -94,9 +94,9 @@ func newRedis(cfg config.View) Service {
 		},
 	}
 	healthCheckPool := &redis.Pool{
-		MaxIdle:     1,
-		MaxActive:   2,
-		IdleTimeout: cfg.GetDuration("redis.pool.healthCheckTimeout"),
+		MaxIdle:     3,
+		MaxActive:   0,
+		IdleTimeout: 10 * cfg.GetDuration("redis.pool.healthCheckTimeout"),
 		Wait:        true,
 		DialContext: func(ctx context.Context) (redis.Conn, error) {
 			if ctx.Err() != nil {
