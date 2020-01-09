@@ -137,42 +137,34 @@ func processMatches(fe pb.FrontendClient, be pb.BackendClient, stream pb.Backend
 			ids = append(ids, t.GetId())
 		}
 		// Assign Tickets
-		if !activeScenario.BackendAssignsTickets {
-			goto Delete
-		}
-
-		if _, err := be.AssignTickets(context.Background(), &pb.AssignTicketsRequest{
-			TicketIds: ids,
-			Assignment: &pb.Assignment{
-				Connection: fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),
-			},
-		}); err != nil {
-			statProcessor.RecordError("failed to assign tickets", err)
-			continue
-		}
-
-		statProcessor.IncrementStat("Assigned", len(ids))
-
-		// Delete Tickets
-	Delete:
-		if !activeScenario.BackendDeletesTickets {
-			goto End
-		}
-
-		for _, id := range ids {
-			req := &pb.DeleteTicketRequest{
-				TicketId: id,
-			}
-
-			if _, err := fe.DeleteTicket(context.Background(), req); err != nil {
-				statProcessor.RecordError("failed to delete tickets", err)
+		if activeScenario.BackendAssignsTickets {
+			if _, err := be.AssignTickets(context.Background(), &pb.AssignTicketsRequest{
+				TicketIds: ids,
+				Assignment: &pb.Assignment{
+					Connection: fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),
+				},
+			}); err != nil {
+				statProcessor.RecordError("failed to assign tickets", err)
 				continue
 			}
 
-			statProcessor.IncrementStat("Deleted", 1)
+			statProcessor.IncrementStat("Assigned", len(ids))
 		}
 
-	End:
-		// Placeholder for future logging/stat aggregation tasks.
+		// Delete Tickets
+		if activeScenario.BackendDeletesTickets {
+			for _, id := range ids {
+				req := &pb.DeleteTicketRequest{
+					TicketId: id,
+				}
+
+				if _, err := fe.DeleteTicket(context.Background(), req); err != nil {
+					statProcessor.RecordError("failed to delete tickets", err)
+					continue
+				}
+
+				statProcessor.IncrementStat("Deleted", 1)
+			}
+		}
 	}
 }
