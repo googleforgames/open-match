@@ -36,7 +36,6 @@ data:
   matchmaker_config_override.yaml: |-
     testConfig:
       profile: "{{ .Values.testConfig.profile }}"
-      concurrentCreates: "{{ .Values.testConfig.concurrentCreates }}"
       regions:
       {{- range .Values.testConfig.regions }}
         - {{ . }}

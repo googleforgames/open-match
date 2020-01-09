@@ -32,14 +32,14 @@ type Scenario struct {
 	// TicketExtensionSize       int
 	// PendingTicketNumber       int
 	// MatchExtensionSize        int
-	// ShouldCreateTicketForever bool
-	// TicketCreatedQPS          int
+	FrontendTotalTicketsToCreate int // TotalTicketsToCreate = -1 let scale-frontend create tickets forever
+	FrontendTicketCreatedQPS     uint32
 
 	// GameBackend Configs
 	// ProfileNumber      int
 	// FilterNumber       int
-	// ShouldAssignTicket bool
-	// ShouldDeleteTicket bool
+	BackendAssignsTickets bool
+	BackendDeletesTickets bool
 
 	MMF       matchFunction
 	Evaluator evaluatorFunction
