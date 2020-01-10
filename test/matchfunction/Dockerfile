@@ -14,11 +14,11 @@
 
 FROM open-match-base-build as builder
 
-WORKDIR /go/src/open-match.dev/open-match/test/customize/matchfunction
+WORKDIR /go/src/open-match.dev/open-match/test/matchfunction
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o matchfunction .
 
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /app/
-COPY --from=builder --chown=nonroot /go/src/open-match.dev/open-match/test/customize/matchfunction/matchfunction /app/
+COPY --from=builder --chown=nonroot /go/src/open-match.dev/open-match/test/matchfunction/matchfunction /app/
 
 ENTRYPOINT ["/app/matchfunction"]
