@@ -36,7 +36,6 @@ configs:
 
 testConfig:
   profile: scaleprofiles
-  concurrentCreates: 500
   regions:
     - region.europe-west1
     - region.europe-west2

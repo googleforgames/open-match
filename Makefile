@@ -203,7 +203,7 @@ ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS) $(CSHARP_PROTOS)
 CMDS = $(notdir $(wildcard cmd/*))
 
 # Names of the individual images, ommiting the openmatch prefix.
-IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool mmf-go-rosterbased evaluator-go-simple stress-frontend base-build
+IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool evaluator-go-simple stress-frontend base-build
 
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
@@ -242,9 +242,6 @@ $(foreach CMD,$(CMDS),build-$(CMD)-image): build-%-image: docker build-base-buil
 
 build-mmf-go-soloduel-image: docker build-base-build-image
 	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
-
-build-mmf-go-rosterbased-image: docker build-base-build-image
-	docker build -f examples/functions/golang/rosterbased/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-rosterbased:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-rosterbased:$(ALTERNATE_TAG) .
 
 build-mmf-go-pool-image: docker build-base-build-image
 	docker build -f test/matchfunction/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG) .
@@ -363,11 +360,11 @@ install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 		--set open-match-customize.enabled=true \
 		--set open-match-customize.function.enabled=true \
 		--set open-match-customize.evaluator.enabled=true \
-		--set open-match-customize.function.image=openmatch-mmf-go-rosterbased \
+		--set open-match-customize.function.image=openmatch-scale-mmf \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true
-	$(HELM) template $(OPEN_MATCH_HELM_NAME)-scale  install/helm/open-match $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
+	$(HELM) template $(OPEN_MATCH_HELM_NAME)-scale  install/helm/open-match $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) -f install/helm/open-match/values-production.yaml \
 		--set open-match-core.enabled=false \
 		--set open-match-scale.enabled=true | $(KUBECTL) apply -f -
 
@@ -380,6 +377,7 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 		--set open-match-customize.evaluator.enabled=true \
 		--set open-match-customize.function.image=openmatch-mmf-go-pool \
 		--set mmlogic.replicas=1,frontend.replicas=1,backend.replicas=1,open-match-customize.evaluator.replicas=1,open-match-customize.function.replicas=1 \
+		--set redis.master.resources.requests.cpu=0.6,redis.master.resources.requests.memory=300Mi \
 		--set ci=true
 
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
@@ -772,8 +770,8 @@ service-binaries: cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE
 service-binaries: cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/synchronizer/synchronizer$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries example-evaluator-binaries
-example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION) examples/functions/golang/pool/pool$(EXE_EXTENSION)  examples/functions/golang/rosterbased/rosterbased$(EXE_EXTENSION)
-example-evaluator-binaries: test/evaluator/simple$(EXE_EXTENSION)
+example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
+example-evaluator-binaries: test/evaluator/evaluator$(EXE_EXTENSION)
 
 examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
