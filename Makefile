@@ -771,7 +771,7 @@ service-binaries: cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/synchronizer/synchroni
 
 example-binaries: example-mmf-binaries example-evaluator-binaries
 example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
-example-evaluator-binaries: test/evaluator/simple$(EXE_EXTENSION)
+example-evaluator-binaries: test/evaluator/evaluator$(EXE_EXTENSION)
 
 examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
