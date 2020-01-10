@@ -159,7 +159,7 @@ open-match-core:
       maxIdle: 200
       maxActive: 0
       idleTimeout: 0
-      healthCheckTimeout: 100ms
+      healthCheckTimeout: 300ms
 
 # Controls if users need to install scale testing setup for Open Match.
 open-match-scale:
