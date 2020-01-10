@@ -25,8 +25,8 @@ import (
 	"open-match.dev/open-match/examples/scale/scenarios"
 	"open-match.dev/open-match/examples/scale/tickets"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -40,30 +40,25 @@ var (
 	numOfRoutineCreate = 8
 
 	totalCreated uint32
+
+	mTicketsCreated        = telemetry.Counter("scale_frontend_tickets_created", "tickets created")
+	mTicketCreationsFailed = telemetry.Counter("scale_frontend_ticket_creations_failed", "tickets created")
 )
 
 // Run triggers execution of the scale frontend component that creates
 // tickets at scale in Open Match.
-func Run() {
-	cfg, err := config.Read()
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatal("cannot read configuration.")
-	}
-
-	logging.ConfigureLogging(cfg)
+func BindService(p *rpc.ServerParams, cfg config.View) error {
 	conn, err := rpc.GRPCClientFromConfig(cfg, "api.frontend")
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatal("failed to get Frontend connection")
 	}
-
-	defer conn.Close()
 	fe := pb.NewFrontendClient(conn)
 
-	create(cfg, fe)
+	go create(cfg, fe)
+
+	return nil
 }
 
 func create(cfg config.View, fe pb.FrontendClient) {
@@ -128,10 +123,13 @@ func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendClient, ticketPerRoutine i
 
 		time.Sleep(timeLeft / time.Duration(ticketsLeft))
 
-		if _, err := fe.CreateTicket(ctx, req); err != nil {
+		if _, err := fe.CreateTicket(ctx, req); err == nil {
+			cycleCreated++
+			telemetry.RecordUnitMeasurement(ctx, mTicketsCreated)
+		} else {
 			statProcessor.RecordError("failed to create a ticket", err)
+			telemetry.RecordUnitMeasurement(ctx, mTicketCreationsFailed)
 		}
-		cycleCreated++
 	}
 
 	atomic.AddUint32(&totalCreated, uint32(cycleCreated))

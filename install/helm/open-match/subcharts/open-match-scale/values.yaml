@@ -28,11 +28,11 @@ configs:
   default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
-    configName: scale-configmap
-  scale-configmap:
-    volumeName: scale-config-volume
+    configName: om-configmap-default
+  override:
+    volumeName: om-config-volume-override
     mountPath: /app/config/override
-    configName: scale-configmap
+    configName: om-configmap-override
 
 testConfig:
   profile: scaleprofiles
