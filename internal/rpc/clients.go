@@ -84,7 +84,7 @@ func (p *ClientParams) usingTLS() bool {
 // GRPCClientFromConfig creates a gRPC client connection from a configuration.
 func GRPCClientFromConfig(cfg config.View, prefix string) (*grpc.ClientConn, error) {
 	clientParams := &ClientParams{
-		Address:                 toAddress(cfg.GetString(prefix+".hostname"), cfg.GetInt(prefix+".grpcport")),
+		Address:                 toAddress(cfg.GetString(prefix+".hostname"), cfg.GetInt("ports.grpcPort")),
 		EnableRPCLogging:        cfg.GetBool(ConfigNameEnableRPCLogging),
 		EnableRPCPayloadLogging: logging.IsDebugEnabled(cfg),
 		EnableMetrics:           cfg.GetBool(telemetry.ConfigNameEnableMetrics),
@@ -162,7 +162,7 @@ func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 // HTTPClientFromConfig creates a HTTP client from from a configuration.
 func HTTPClientFromConfig(cfg config.View, prefix string) (*http.Client, string, error) {
 	clientParams := &ClientParams{
-		Address:                 toAddress(cfg.GetString(prefix+".hostname"), cfg.GetInt(prefix+".httpport")),
+		Address:                 toAddress(cfg.GetString(prefix+".hostname"), cfg.GetInt("ports.httpPort")),
 		EnableRPCLogging:        cfg.GetBool(ConfigNameEnableRPCLogging),
 		EnableRPCPayloadLogging: logging.IsDebugEnabled(cfg),
 		EnableMetrics:           cfg.GetBool(telemetry.ConfigNameEnableMetrics),

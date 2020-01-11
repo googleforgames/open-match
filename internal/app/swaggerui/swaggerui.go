@@ -55,7 +55,7 @@ func serve(cfg config.View) {
 	mux := &http.ServeMux{}
 	closer := telemetry.Setup("swaggerui", mux, cfg)
 	defer closer()
-	port := cfg.GetInt("api.swaggerui.httpport")
+	port := cfg.GetInt("ports.httpPort")
 	baseDir, err := os.Getwd()
 	if err != nil {
 		logger.WithError(err).Fatal("cannot get current working directory")

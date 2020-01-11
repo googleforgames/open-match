@@ -29,7 +29,7 @@ spec:
   ports:
   - name: http
     protocol: TCP
-    port: {{ .Values.scaleFrontend.httpPort }}
+    port: {{ .Values.global.kubernetes.service.httpPort }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -69,5 +69,5 @@ spec:
         image: "{{ .Values.global.image.registry }}/{{ .Values.scaleFrontend.image}}:{{ .Values.global.image.tag }}"
         ports:
         - name: http
-          containerPort: {{ .Values.scaleFrontend.httpPort }}
+          containerPort: {{ .Values.global.kubernetes.service.httpPort }}
         {{- include "openmatch.container.common" . | nindent 8 }}

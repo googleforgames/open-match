@@ -48,26 +48,21 @@ data:
       # maxElapsedTime caps the retry time (in milliseconds)
       maxElapsedTime: 3000ms
 
+    ports:
+      grpcPort: "{{ .Values.global.kubernetes.service.grpcPort }}"
+      httpPort: "{{ .Values.global.kubernetes.service.httpPort }}"
+
     api:
       backend:
         hostname: "{{ .Values.backend.hostName }}"
-        grpcport: "{{ .Values.backend.grpcPort }}"
-        httpport: "{{ .Values.backend.httpPort }}"
       frontend:
         hostname: "{{ .Values.frontend.hostName }}"
-        grpcport: "{{ .Values.frontend.grpcPort }}"
-        httpport: "{{ .Values.frontend.httpPort }}"
       mmlogic:
         hostname: "{{ .Values.mmlogic.hostName }}"
-        grpcport: "{{ .Values.mmlogic.grpcPort }}"
-        httpport: "{{ .Values.mmlogic.httpPort }}"
       synchronizer:
         hostname: "{{ .Values.synchronizer.hostName }}"
-        grpcport: "{{ .Values.synchronizer.grpcPort }}"
-        httpport: "{{ .Values.synchronizer.httpPort }}"
       swaggerui:
         hostname: "{{ .Values.swaggerui.hostName }}"
-        httpport: "{{ .Values.swaggerui.httpPort }}"
 {{- if .Values.global.tls.enabled }}
       tls:
         trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"

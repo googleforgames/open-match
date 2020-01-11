@@ -24,18 +24,18 @@ metadata:
     release: {{ .Release.Name }}
 data:
   matchmaker_config_default.yaml: |-
+    ports:
+      grpcPort: "{{ .Values.global.kubernetes.service.grpcPort }}"
+      httpPort: "{{ .Values.global.kubernetes.service.httpPort }}"
+
     api:
       functions:
         hostname: "{{ .Values.function.hostName }}"
-        grpcport: "{{ .Values.function.grpcPort }}"
-        httpport: "{{ .Values.function.httpPort }}"
       
       evaluator:
         hostname: "{{ .Values.evaluator.hostName }}"
-        grpcport: "{{ .Values.evaluator.grpcPort }}"
-        httpport: "{{ .Values.evaluator.httpPort }}"    
   matchmaker_config_override.yaml: |-
     api:
       mmlogic:
         hostname: "{{ .Values.mmlogic.hostName }}.{{ .Release.Namespace }}.svc.cluster.local"
-        grpcport: "{{ .Values.mmlogic.grpcPort }}"
+        grpcport: "{{ .Values.global.kubernetes.service.grpcPort }}"

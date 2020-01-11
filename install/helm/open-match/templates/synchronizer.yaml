@@ -32,10 +32,10 @@ spec:
   ports:
   - name: grpc
     protocol: TCP
-    port: {{ .Values.synchronizer.grpcPort }}
+    port: {{ .Values.global.kubernetes.service.grpcPort }}
   - name: http
     protocol: TCP
-    port: {{ .Values.synchronizer.httpPort }}
+    port: {{ .Values.global.kubernetes.service.httpPort }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -58,7 +58,7 @@ spec:
       namespace: {{ .Release.Namespace }}
       annotations:
         {{- include "openmatch.chartmeta" . | nindent 8 }}
-        {{- include "prometheus.annotations" (dict "port" .Values.synchronizer.httpPort "prometheus" .Values.global.telemetry.prometheus) | nindent 8 }}
+        {{- include "prometheus.annotations" . | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
         component: synchronizer
@@ -79,9 +79,9 @@ spec:
         image: "{{ .Values.global.image.registry }}/{{ .Values.synchronizer.image}}:{{ .Values.global.image.tag }}"
         ports:
         - name: grpc
-          containerPort: {{ .Values.synchronizer.grpcPort }}
+          containerPort: {{ .Values.global.kubernetes.service.grpcPort }}
         - name: http
-          containerPort: {{ .Values.synchronizer.httpPort }}
+          containerPort: {{ .Values.global.kubernetes.service.httpPort }}
         {{- include "openmatch.container.common" . | nindent 8 }}
-        {{- include "kubernetes.probe" (dict "port" .Values.synchronizer.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
+        {{- include "kubernetes.probe" . | nindent 8 }}
 {{- end }}

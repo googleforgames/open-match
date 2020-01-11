@@ -35,8 +35,8 @@ heritage: {{ .Release.Service }}
 {{- define "prometheus.annotations" -}}
 {{- if and (.prometheus.serviceDiscovery) (.prometheus.enabled) -}}
 prometheus.io/scrape: "true"
-prometheus.io/port: {{ .port | quote }}
-prometheus.io/path: {{ .prometheus.endpoint }}
+prometheus.io/port: {{ .Values.global.kubernetes.service.httpPort | quote }}
+prometheus.io/path: {{ .Values.global.telemetry.prometheus.endpoint }}
 {{- end -}}
 {{- end -}}
 
@@ -114,17 +114,17 @@ tolerations:
 {{- define "kubernetes.probe" -}}
 livenessProbe:
   httpGet:
-    scheme: {{ if (.isHTTPS) }}HTTPS{{ else }}HTTP{{ end }}
+    scheme: {{ if (.Values.global.tls.enabled) }}HTTPS{{ else }}HTTP{{ end }}
     path: /healthz
-    port: {{ .port }}
+    port: {{ .Values.global.kubernetes.service.httpPort }}
   initialDelaySeconds: 10
   periodSeconds: 10
   failureThreshold: 3
 readinessProbe:
   httpGet:
-    scheme: {{ if (.isHTTPS) }}HTTPS{{ else }}HTTP{{ end }}
+    scheme: {{ if (.Values.global.tls.enabled) }}HTTPS{{ else }}HTTP{{ end }}
     path: /healthz?readiness=true
-    port: {{ .port }}
+    port: {{ .Values.global.kubernetes.service.httpPort }}
   initialDelaySeconds: 10
   periodSeconds: 10
   failureThreshold: 2

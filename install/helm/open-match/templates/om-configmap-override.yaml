@@ -28,8 +28,8 @@ data:
     api:
       evaluator:
         hostname: "{{ .Values.evaluator.hostName }}"
-        grpcport: "{{ .Values.evaluator.grpcPort }}"
-        httpport: "{{ .Values.evaluator.httpPort }}"
+        grpcport: "{{ .Values.global.kubernetes.service.grpcPort }}"
+        httpport: "{{ .Values.global.kubernetes.service.httpPort }}"
     synchronizer:
       registrationIntervalMs: 3000ms
       proposalCollectionIntervalMs: 15000ms

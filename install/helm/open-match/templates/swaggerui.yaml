@@ -31,7 +31,7 @@ spec:
   ports:
   - name: http
     protocol: TCP
-    port: {{ .Values.swaggerui.httpPort }}
+    port: {{ .Values.global.kubernetes.service.httpPort }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -72,7 +72,7 @@ spec:
         image: "{{ .Values.global.image.registry }}/{{ .Values.swaggerui.image}}:{{ .Values.global.image.tag }}"
         ports:
         - name: http
-          containerPort: {{ .Values.swaggerui.httpPort }}
+          containerPort: {{ .Values.global.kubernetes.service.httpPort }}
         {{- include "openmatch.container.common" . | nindent 8 }}
-        {{- include "kubernetes.probe" (dict "port" .Values.swaggerui.httpPort) | nindent 8 }}
+        {{- include "kubernetes.probe" . | nindent 8 }}
 {{- end }}

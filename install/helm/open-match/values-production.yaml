@@ -45,47 +45,34 @@
 #   image: openmatch-mmlogic
 swaggerui: &swaggerui
   hostName: om-swaggerui
-  httpPort: 51500
   portType: ClusterIP
   replicas: 1
   image: openmatch-swaggerui
 mmlogic: &mmlogic
   hostName: om-mmlogic
-  grpcPort: 50503
-  httpPort: 51503
   portType: ClusterIP
   replicas: 3
   image: openmatch-mmlogic
 frontend: &frontend
   hostName: om-frontend
-  grpcPort: 50504
-  httpPort: 51504
   portType: ClusterIP
   replicas: 3
   image: openmatch-frontend
 backend: &backend
   hostName: om-backend
-  grpcPort: 50505
-  httpPort: 51505
   portType: ClusterIP
   replicas: 3
   image: openmatch-backend
 synchronizer: &synchronizer
   hostName: om-synchronizer
-  grpcPort: 50506
-  httpPort: 51506
   portType: ClusterIP
   replicas: 1
   image: openmatch-synchronizer
 evaluator: &evaluator
   hostName: om-evaluator
-  grpcPort: 50508
-  httpPort: 51508
   replicas: 3
 function: &function
   hostName: om-function
-  grpcPort: 50502
-  httpPort: 51502
   replicas: 3
 
 # Specifies the location and name of the Open Match application-level config volumes.
@@ -231,8 +218,10 @@ global:
         cpu: 2
     # Defines a service account which provides an identity for processes that run in a Pod in Open Match.
     serviceAccount: open-match-unprivileged-service
-    # Use this field if you need to override the port type for all services defined in this chart
     service:
+      grpcPort: 50500
+      httpPort: 51500
+      # Use this field if you need to override the port type for all services defined in this chart
       portType:
 
   gcpProjectId: "replace_with_your_project_id"

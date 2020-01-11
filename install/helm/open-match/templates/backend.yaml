@@ -36,10 +36,10 @@ spec:
   ports:
   - name: grpc
     protocol: TCP
-    port: {{ .Values.backend.grpcPort }}
+    port: {{ .Values.global.kubernetes.service.grpcPort }}
   - name: http
     protocol: TCP
-    port: {{ .Values.backend.httpPort }}
+    port: {{ .Values.global.kubernetes.service.httpPort }}
 ---
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
@@ -74,7 +74,7 @@ spec:
       namespace: {{ .Release.Namespace }}
       annotations:
         {{- include "openmatch.chartmeta" . | nindent 8 }}
-        {{- include "prometheus.annotations" (dict "port" .Values.backend.httpPort "prometheus" .Values.global.telemetry.prometheus) | nindent 8 }}
+        {{- include "prometheus.annotations" . | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
         component: backend
@@ -95,9 +95,9 @@ spec:
         image: "{{ .Values.global.image.registry }}/{{ .Values.backend.image}}:{{ .Values.global.image.tag }}"
         ports:
         - name: grpc
-          containerPort: {{ .Values.backend.grpcPort }}
+          containerPort: {{ .Values.global.kubernetes.service.grpcPort }}
         - name: http
-          containerPort: {{ .Values.backend.httpPort }}
+          containerPort: {{ .Values.global.kubernetes.service.httpPort }}
         {{- include "openmatch.container.common" . | nindent 8 }}
-        {{- include "kubernetes.probe" (dict "port" .Values.backend.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
+        {{- include "kubernetes.probe" . | nindent 8 }}
 {{- end }}

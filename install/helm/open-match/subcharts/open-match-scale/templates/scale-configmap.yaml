@@ -24,15 +24,15 @@ metadata:
     release: {{ .Release.Name }}
 data:
   matchmaker_config_default.yaml: |-
+    ports:
+      grpcPort: "{{ .Values.global.kubernetes.service.grpcPort }}"
+      httpPort: "{{ .Values.global.kubernetes.service.httpPort }}"
+
     api:
       backend:
         hostname: "{{ .Values.backend.hostName }}"
-        grpcport: "{{ .Values.backend.grpcPort }}"
-        httpport: "{{ .Values.backend.httpPort }}"
       frontend:
         hostname: "{{ .Values.frontend.hostName }}"
-        grpcport: "{{ .Values.frontend.grpcPort }}"
-        httpport: "{{ .Values.frontend.httpPort }}"
   matchmaker_config_override.yaml: |-
     testConfig:
       profile: "{{ .Values.testConfig.profile }}"

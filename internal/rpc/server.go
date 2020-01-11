@@ -88,12 +88,12 @@ type ServerParams struct {
 
 // NewServerParamsFromConfig returns server Params initialized from the configuration file.
 func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, error) {
-	grpcLh, err := newFromPortNumber(cfg.GetInt(prefix + ".grpcport"))
+	grpcLh, err := newFromPortNumber(cfg.GetInt("ports.grpcPort"))
 	if err != nil {
 		serverLogger.Fatal(err)
 		return nil, err
 	}
-	httpLh, err := newFromPortNumber(cfg.GetInt(prefix + ".httpport"))
+	httpLh, err := newFromPortNumber(cfg.GetInt("ports.httpPort"))
 	if err != nil {
 		closeErr := grpcLh.Close()
 		if closeErr != nil {

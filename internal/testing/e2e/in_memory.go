@@ -134,8 +134,8 @@ func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTe
 	// the backend sets up a connection to the synchronizer at runtime and hence can access these
 	// config values to establish the connection.
 	cfg.Set("api.synchronizer.hostname", tc.GetHostname())
-	cfg.Set("api.synchronizer.grpcport", tc.GetGRPCPort())
-	cfg.Set("api.synchronizer.httpport", tc.GetHTTPPort())
+	cfg.Set("ports.grpcport", tc.GetGRPCPort())
+	cfg.Set("ports.httpport", tc.GetHTTPPort())
 	cfg.Set("synchronizer.registrationIntervalMs", "200ms")
 	cfg.Set("synchronizer.proposalCollectionIntervalMs", "200ms")
 	cfg.Set("api.evaluator.hostname", evalTc.GetHostname())

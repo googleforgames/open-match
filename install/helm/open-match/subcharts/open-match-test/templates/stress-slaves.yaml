@@ -49,7 +49,7 @@ spec:
         - "./locust"
         - "-f"
         - "./frontend.py"
-        - "--host=http://{{ .Values.frontend.hostName }}:{{ .Values.frontend.httpPort }}"
+        - "--host=http://{{ .Values.frontend.hostName }}:{{ .Values.global.kubernetes.service.httpPort }}"
         - "--slave"
         - "--master-host={{ .Values.stresstest.masterName }}"
 {{- end }}
