@@ -134,8 +134,8 @@ func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTe
 	// the backend sets up a connection to the synchronizer at runtime and hence can access these
 	// config values to establish the connection.
 	cfg.Set("api.synchronizer.hostname", tc.GetHostname())
-	cfg.Set("ports.grpcport", tc.GetGRPCPort())
-	cfg.Set("ports.httpport", tc.GetHTTPPort())
+	cfg.Set("ports.grpcPort", tc.GetGRPCPort())
+	cfg.Set("ports.httpPort", tc.GetHTTPPort())
 	cfg.Set("synchronizer.registrationIntervalMs", "200ms")
 	cfg.Set("synchronizer.proposalCollectionIntervalMs", "200ms")
 	cfg.Set("api.evaluator.hostname", evalTc.GetHostname())
@@ -160,8 +160,8 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 
 		// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
 		cfg.Set("api.mmlogic.hostname", c.GetHostname())
-		cfg.Set("api.mmlogic.grpcport", c.GetGRPCPort())
-		cfg.Set("api.mmlogic.httpport", c.GetHTTPPort())
+		cfg.Set("ports.grpcPort", c.GetGRPCPort())
+		cfg.Set("ports.httpport", c.GetHTTPPort())
 
 		assert.Nil(t, internalMmf.BindService(p, cfg, &internalMmf.FunctionSettings{
 			Func: mmf.MakeMatches,
