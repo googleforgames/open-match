@@ -721,7 +721,7 @@ test-e2e-cluster: all-protos tls-certs third_party/
 	$(HELM) test --timeout 7m30s -v 0 --logs -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(OPEN_MATCH_HELM_NAME)
 
 stress-frontend-%: build/toolchain/python/
-	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:$(HTTP_PORT) \
+	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:$(FRONTEND_PORT) \
 		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
 
 fmt:
