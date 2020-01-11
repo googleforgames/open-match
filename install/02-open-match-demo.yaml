@@ -34,8 +34,8 @@ data:
     api:
       functions:
         hostname: "om-function"
-        grpcport: 50502
-        httpport: 51502
+        grpcport: 50500
+        httpport: 51500
   matchmaker_config_override.yaml: |-
     api:
       mmlogic:
@@ -61,10 +61,10 @@ spec:
   ports:
   - name: grpc
     protocol: TCP
-    port: 50502
+    port: 50500
   - name: http
     protocol: TCP
-    port: 51502
+    port: 51500
 ---
 kind: Service
 apiVersion: v1
@@ -83,7 +83,7 @@ spec:
   ports:
   - name: http
     protocol: TCP
-    port: 51507
+    port: 51500
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -125,9 +125,9 @@ spec:
         image: "gcr.io/open-match-public-images/openmatch-mmf-go-soloduel:0.0.0-dev"
         ports:
         - name: grpc
-          containerPort: 50502
+          containerPort: 50500
         - name: http
-          containerPort: 51502
+          containerPort: 51500
         imagePullPolicy: Always
         resources:
           requests:
@@ -163,12 +163,12 @@ spec:
         imagePullPolicy: Always
         ports:
         - name: http
-          containerPort: 51507
+          containerPort: 51500
         livenessProbe:
           httpGet:
             scheme: HTTP
             path: /healthz
-            port: 51507
+            port: 51500
           initialDelaySeconds: 5
           periodSeconds: 5
           failureThreshold: 3
@@ -176,7 +176,7 @@ spec:
           httpGet:
             scheme: HTTP
             path: /healthz?readiness=true
-            port: 51507
+            port: 51500
           initialDelaySeconds: 10
           periodSeconds: 10
           failureThreshold: 2

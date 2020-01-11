@@ -161,7 +161,7 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 		// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
 		cfg.Set("api.mmlogic.hostname", c.GetHostname())
 		cfg.Set("ports.grpcPort", c.GetGRPCPort())
-		cfg.Set("ports.httpport", c.GetHTTPPort())
+		cfg.Set("ports.httpPort", c.GetHTTPPort())
 
 		assert.Nil(t, internalMmf.BindService(p, cfg, &internalMmf.FunctionSettings{
 			Func: mmf.MakeMatches,

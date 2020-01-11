@@ -33,7 +33,7 @@ heritage: {{ .Release.Service }}
 {{- end -}}
 
 {{- define "prometheus.annotations" -}}
-{{- if and (.prometheus.serviceDiscovery) (.prometheus.enabled) -}}
+{{- if and (.Values.global.telemetry.prometheus.serviceDiscovery) (.Values.global.telemetry.prometheus.enabled) -}}
 prometheus.io/scrape: "true"
 prometheus.io/port: {{ .Values.global.kubernetes.service.httpPort | quote }}
 prometheus.io/path: {{ .Values.global.telemetry.prometheus.endpoint }}

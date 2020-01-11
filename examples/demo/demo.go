@@ -71,7 +71,7 @@ func Run(comps map[string]func(*components.DemoShared)) {
 		})
 	}
 
-	address := fmt.Sprintf(":%d", 51507)
+	address := fmt.Sprintf(":%d", 51500)
 	err := http.ListenAndServe(address, nil)
 	log.Printf("HTTP server closed: %s", err.Error())
 }

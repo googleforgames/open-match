@@ -77,9 +77,9 @@ spec:
   hostPorts:
   # Open Match Services
   - min: 50500
-    max: 50510
+    max: 50500
   - min: 51500
-    max: 51510
+    max: 51500
   # Cassandra
   - min: 7000
     max: 7001
