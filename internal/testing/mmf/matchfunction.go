@@ -54,11 +54,11 @@ func getCfg() (config.View, error) {
 	cfg := viper.New()
 
 	cfg.Set("api.functions.hostname", "om-function")
-	cfg.Set("api.functions.grpcport", 50502)
-	cfg.Set("api.functions.httpport", 51502)
+	cfg.Set("api.functions.grpcport", 50500)
+	cfg.Set("api.functions.httpport", 51500)
 
 	cfg.Set("api.mmlogic.hostname", "om-mmlogic")
-	cfg.Set("api.mmlogic.grpcport", 50503)
+	cfg.Set("api.mmlogic.grpcport", 50500)
 
 	return cfg, nil
 }
