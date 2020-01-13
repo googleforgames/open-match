@@ -88,14 +88,14 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		if err != nil {
 			// TODO: Log but continue case where mmfs were canceled once fully
 			// streaming.
-			return fmt.Errorf("Error receiving matches from MMF: %w", err)
+			return fmt.Errorf("Error receiving proposals from MMF: %w", err)
 		}
 
 		proposals, err := doFetchMatchesValidateProposals(mmfCtx, resultChan, len(req.GetProfiles()))
 		if err != nil {
 			// TODO: Log but continue case where mmfs were canceled once fully
 			// streaming.
-			return err
+			return fmt.Errorf("Error validating proposals from MMF: %w", err)
 		}
 
 	sendProposals:
