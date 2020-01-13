@@ -40,16 +40,16 @@ func Run() {
 
 	server := grpc.NewServer(utilTesting.NewGRPCServerOptions(logger)...)
 	pb.RegisterEvaluatorServer(server, activeScenario.Evaluator)
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", 50508))
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", 50500))
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
-			"port":  50508,
+			"port":  50500,
 		}).Fatal("net.Listen() error")
 	}
 
 	logger.WithFields(logrus.Fields{
-		"port": 50508,
+		"port": 50500,
 	}).Info("TCP net listener initialized")
 
 	logger.Info("Serving gRPC endpoint")

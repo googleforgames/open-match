@@ -26,14 +26,6 @@
 #   # Specifies om-mmlogic as the in-cluster domain name for the `mmlogic` service.
 #   hostName: om-mmlogic
 #
-#   # Specifies the port for receiving RESTful HTTP requests in the `mmlogic` service.
-#   # Checkouts https://open-match.dev/site/swaggerui/index.html for the RESTful APIs Open Match provides.
-#   httpPort: 51503
-#
-#   # Specifies the port for receiving gRPC calls in the `mmlogic` service.
-#   # Note that some services may not have grpcPort defined as they don't have gRPC APIs defined.
-#   grpcPort: 50503
-#
 #   # Specifies the port type for the `mmlogic` service, default to ClusterIP - available port types are ClusterIP, NodePort, LoadBalancer, ExternalName.
 #   # Please see https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types for Type values and their behaviors.
 #   portType: ClusterIP

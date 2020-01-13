@@ -39,7 +39,7 @@ var (
 func Run() {
 	activeScenario := scenarios.ActiveScenario
 
-	conn, err := grpc.Dial("om-mmlogic.open-match.svc.cluster.local:50503", utilTesting.NewGRPCDialOptions(logger)...)
+	conn, err := grpc.Dial("om-mmlogic.open-match.svc.cluster.local:50500", utilTesting.NewGRPCDialOptions(logger)...)
 	if err != nil {
 		logger.Fatalf("Failed to connect to Open Match, got %v", err)
 	}
@@ -47,16 +47,16 @@ func Run() {
 
 	server := grpc.NewServer(utilTesting.NewGRPCServerOptions(logger)...)
 	pb.RegisterMatchFunctionServer(server, activeScenario.MMF)
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", 50502))
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", 50500))
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
-			"port":  50502,
+			"port":  50500,
 		}).Fatal("net.Listen() error")
 	}
 
 	logger.WithFields(logrus.Fields{
-		"port": 50502,
+		"port": 50500,
 	}).Info("TCP net listener initialized")
 
 	logger.Info("Serving gRPC endpoint")

@@ -19,7 +19,7 @@ import (
 
 const (
 	// Replace this with the port on which your Evaluator service is exposed.
-	evaluatorPort = 50508
+	evaluatorPort = 50500
 )
 
 func main() {

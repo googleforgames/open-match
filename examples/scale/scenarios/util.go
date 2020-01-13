@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	mmlogicAddress = "om-mmlogic.open-match.svc.cluster.local:50503" // Address of the MMLogic Endpoint.
+	mmlogicAddress = "om-mmlogic.open-match.svc.cluster.local:50500" // Address of the MMLogic Endpoint.
 )
 
 // StatProcessor uses syncMaps to store the stress test metrics and occurrence of errors.

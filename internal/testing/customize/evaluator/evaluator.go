@@ -43,8 +43,8 @@ func BindService(p *rpc.ServerParams, cfg config.View, eval Evaluator) error {
 func getCfg() (config.View, error) {
 	cfg := viper.New()
 	cfg.Set("api.evaluator.hostname", "om-evaluator")
-	cfg.Set("api.evaluator.grpcport", 50508)
-	cfg.Set("api.evaluator.httpport", 51508)
+	cfg.Set("api.evaluator.grpcport", 50500)
+	cfg.Set("api.evaluator.httpport", 51500)
 
 	return cfg, nil
 }

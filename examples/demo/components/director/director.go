@@ -68,7 +68,7 @@ func run(ds *components.DemoShared) {
 	ds.Update(s)
 
 	// See https://open-match.dev/site/docs/guides/api/
-	conn, err := grpc.Dial("om-backend.open-match.svc.cluster.local:50505", grpc.WithInsecure())
+	conn, err := grpc.Dial("om-backend.open-match.svc.cluster.local:50500", grpc.WithInsecure())
 	if err != nil {
 		panic(err)
 	}
@@ -84,7 +84,7 @@ func run(ds *components.DemoShared) {
 		req := &pb.FetchMatchesRequest{
 			Config: &pb.FunctionConfig{
 				Host: "om-function.open-match-demo.svc.cluster.local",
-				Port: 50502,
+				Port: 50500,
 				Type: pb.FunctionConfig_GRPC,
 			},
 			Profiles: []*pb.MatchProfile{

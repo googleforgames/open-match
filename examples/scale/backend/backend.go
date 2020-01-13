@@ -102,7 +102,7 @@ func run(fe pb.FrontendClient, be pb.BackendClient, p *pb.MatchProfile) {
 	req := &pb.FetchMatchesRequest{
 		Config: &pb.FunctionConfig{
 			Host: "om-function",
-			Port: 50502,
+			Port: 50500,
 			Type: pb.FunctionConfig_GRPC,
 		},
 		Profiles: []*pb.MatchProfile{p},

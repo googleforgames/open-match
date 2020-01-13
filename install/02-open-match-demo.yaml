@@ -40,7 +40,7 @@ data:
     api:
       mmlogic:
         hostname: "om-mmlogic.open-match.svc.cluster.local"
-        grpcport: "50503"
+        grpcport: "50500"
 ---
 kind: Service
 apiVersion: v1

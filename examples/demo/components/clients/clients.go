@@ -81,7 +81,7 @@ func runScenario(ctx context.Context, name string, update updater.SetFunc) {
 	update(s)
 
 	// See https://open-match.dev/site/docs/guides/api/
-	conn, err := grpc.Dial("om-frontend.open-match.svc.cluster.local:50504", grpc.WithInsecure())
+	conn, err := grpc.Dial("om-frontend.open-match.svc.cluster.local:50500", grpc.WithInsecure())
 	if err != nil {
 		panic(err)
 	}

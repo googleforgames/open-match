@@ -28,8 +28,8 @@ import (
 // with which the Match Function communicates to query the Tickets.
 
 const (
-	mmlogicAddress = "om-mmlogic.open-match.svc.cluster.local:50503" // Address of the MMLogic service endpoint.
-	serverPort     = 50502                                           // The port for hosting the Match Function.
+	mmlogicAddress = "om-mmlogic.open-match.svc.cluster.local:50500" // Address of the MMLogic service endpoint.
+	serverPort     = 50500                                           // The port for hosting the Match Function.
 )
 
 func main() {

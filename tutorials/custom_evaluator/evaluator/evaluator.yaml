@@ -27,7 +27,7 @@ spec:
     imagePullPolicy: Always
     ports:
     - name: grpc
-      containerPort: 50508
+      containerPort: 50500
 ---
 kind: Service
 apiVersion: v1
@@ -46,5 +46,5 @@ spec:
   ports:
   - name: grpc
     protocol: TCP
-    port: 50508
+    port: 50500
 ---

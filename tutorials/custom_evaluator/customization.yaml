@@ -29,7 +29,7 @@ data:
     api:
       evaluator:
         hostname: "custom-eval-tutorial-evaluator.custom-eval-tutorial.svc.cluster.local"
-        grpcport: "50508"
+        grpcport: "50500"
     synchronizer:
       enabled: true
       registrationIntervalMs: 3000ms

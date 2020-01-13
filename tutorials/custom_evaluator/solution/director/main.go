@@ -32,10 +32,10 @@ import (
 
 const (
 	// The endpoint for the Open Match Backend service.
-	omBackendEndpoint = "om-backend.open-match.svc.cluster.local:50505"
+	omBackendEndpoint = "om-backend.open-match.svc.cluster.local:50500"
 	// The Host and Port for the Match Function service endpoint.
 	functionHostName       = "custom-eval-tutorial-matchfunction.custom-eval-tutorial.svc.cluster.local"
-	functionPort     int32 = 50502
+	functionPort     int32 = 50500
 )
 
 func main() {
