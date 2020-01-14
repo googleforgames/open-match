@@ -111,9 +111,4 @@ data:
         enable: "{{ .Values.global.telemetry.stackdriverMetrics.enabled }}"
         gcpProjectId: "{{ .Values.global.gcpProjectId }}"
         prefix: "{{ .Values.global.telemetry.stackdriverMetrics.prefix }}"
-      zipkin:
-        enable: "{{ .Values.global.telemetry.zipkin.enabled }}"
-        endpoint: "{{ .Values.global.telemetry.zipkin.endpoint }}"
-        reporterEndpoint: "{{ .Values.global.telemetry.zipkin.reporterEndpoint }}"
-      reportingPeriod: "{{ .Values.global.telemetry.reportingPeriod }}"
 {{- end }}
