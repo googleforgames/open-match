@@ -104,7 +104,6 @@ SWAGGERUI_PORT = 51500
 PROMETHEUS_PORT = 9090
 JAEGER_QUERY_PORT = 16686
 GRAFANA_PORT = 3000
-LOCUST_PORT = 8089
 FRONTEND_PORT = 51504
 BACKEND_PORT = 51505
 MMLOGIC_PORT = 51503
@@ -203,7 +202,7 @@ ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS) $(CSHARP_PROTOS)
 CMDS = $(notdir $(wildcard cmd/*))
 
 # Names of the individual images, ommiting the openmatch prefix.
-IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool evaluator-go-simple stress-frontend base-build
+IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool evaluator-go-simple base-build
 
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
@@ -248,9 +247,6 @@ build-mmf-go-pool-image: docker build-base-build-image
 
 build-evaluator-go-simple-image: docker build-base-build-image
 	docker build -f test/evaluator/Dockerfile -t $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG) .
-
-build-stress-frontend-image: docker
-	docker build -f test/stress/Dockerfile -t $(REGISTRY)/openmatch-stress-frontend:$(TAG) -t $(REGISTRY)/openmatch-stress-frontend:$(ALTERNATE_TAG) .
 
 #######################################
 ## push-images / push-<image name>-image: builds and pushes images to your
@@ -529,12 +525,6 @@ else
 	rm -rf $(TOOLCHAIN_DIR)/dotnet.tar.gz
 endif
 
-build/toolchain/python/:
-	virtualenv --python=python3 $(TOOLCHAIN_DIR)/python/
-	# Hack to workaround some crazy bug in pip that's chopping off python executable's name.
-	cd $(TOOLCHAIN_DIR)/python/bin && ln -s python3 pytho
-	cd $(TOOLCHAIN_DIR)/python/ && . bin/activate && pip install locustio google-cloud-storage && deactivate
-
 build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -o $(TOOLCHAIN_DIR)/protoc-temp.zip -L $(PROTOC_PACKAGE)
@@ -718,10 +708,6 @@ test: $(ALL_PROTOS) tls-certs third_party/
 
 test-e2e-cluster: all-protos tls-certs third_party/
 	$(HELM) test --timeout 7m30s -v 0 --logs -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(OPEN_MATCH_HELM_NAME)
-
-stress-frontend-%: build/toolchain/python/
-	$(TOOLCHAIN_DIR)/python/bin/locust -f $(REPOSITORY_ROOT)/test/stress/frontend.py --host=http://localhost:$(FRONTEND_PORT) \
-		--no-web -c $* -r 100 -t10m --csv=test/stress/stress_user$*
 
 fmt:
 	$(GO) fmt ./...
@@ -937,17 +923,13 @@ clean-chart:
 clean-install-yaml:
 	rm -f $(REPOSITORY_ROOT)/install/yaml/*
 
-clean-stress-test-tools:
-	rm -rf $(TOOLCHAIN_DIR)/python
-	rm -f $(REPOSITORY_ROOT)/test/stress/*.csv
-
 clean-swagger-docs:
 	rm -rf $(REPOSITORY_ROOT)/api/*.json
 
 clean-third-party:
 	rm -rf $(REPOSITORY_ROOT)/third_party/
 
-clean: clean-images clean-binaries clean-build clean-install-yaml clean-stress-test-tools clean-secrets clean-terraform clean-third-party clean-protos clean-swagger-docs
+clean: clean-images clean-binaries clean-build clean-install-yaml clean-secrets clean-terraform clean-third-party clean-protos clean-swagger-docs
 
 proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Frontend Health: http://localhost:$(FRONTEND_PORT)/healthz"
@@ -995,10 +977,6 @@ proxy-ui: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "View Demo: http://localhost:$(DEMO_PORT)"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)-demo $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)-demo --selector="app=open-match-demo,component=demo" --output jsonpath='{.items[0].metadata.name}') $(DEMO_PORT):51507 $(PORT_FORWARD_ADDRESS_FLAG)
-
-proxy-locust: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	@echo "Locust UI: http://localhost:$(LOCUST_PORT)"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match-test,component=locust-master,release=$(OPEN_MATCH_HELM_NAME)" --output jsonpath='{.items[0].metadata.name}') $(LOCUST_PORT):8089 $(PORT_FORWARD_ADDRESS_FLAG)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
