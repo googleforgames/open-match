@@ -263,10 +263,6 @@ global:
     stackdriverMetrics:
       enabled: false
       prefix: "open_match"
-    zipkin:
-      enabled: false
-      endpoint: "/zipkin"
-      reporterEndpoint: "zipkin"
     grafana:
       enabled: false
     reportingPeriod: "1m"
