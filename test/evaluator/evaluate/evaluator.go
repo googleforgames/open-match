@@ -20,7 +20,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
-	"open-match.dev/open-match/internal/testing/customize/evaluator"
+	"open-match.dev/open-match/internal/testing/evaluator"
 	"open-match.dev/open-match/pkg/pb"
 )
 

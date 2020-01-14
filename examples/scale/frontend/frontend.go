@@ -64,6 +64,8 @@ func Run() {
 	fe := pb.NewFrontendClient(conn)
 
 	create(cfg, fe)
+
+	select {}
 }
 
 func create(cfg config.View, fe pb.FrontendClient) {

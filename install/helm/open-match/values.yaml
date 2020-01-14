@@ -114,7 +114,9 @@ redis:
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
     resources:
-      requests: {}
+      requests:
+        memory: 300Mi
+        cpu: 0.5
   metrics:
     enabled: true
   cluster:

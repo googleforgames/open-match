@@ -14,7 +14,7 @@
 package main
 
 import (
-	"open-match.dev/open-match/internal/testing/customize/evaluator"
+	"open-match.dev/open-match/internal/testing/evaluator"
 	"open-match.dev/open-match/test/evaluator/evaluate"
 )
 
