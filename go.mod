@@ -24,8 +24,9 @@ require (
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
 	contrib.go.opencensus.io/exporter/stackdriver v0.12.8
 	contrib.go.opencensus.io/exporter/zipkin v0.1.1
+	github.com/Bose/minisentinel v0.0.0-20191213132324-b7726ed8ed71
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
-	github.com/alicebob/miniredis/v2 v2.10.1
+	github.com/alicebob/miniredis/v2 v2.11.0
 	github.com/apache/thrift v0.13.0 // indirect
 	github.com/aws/aws-sdk-go v1.25.27 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible
@@ -33,7 +34,7 @@ require (
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/golang/protobuf v1.3.2
-	github.com/gomodule/redigo v1.7.1-0.20190322064113-39e2c31b7ca3
+	github.com/gomodule/redigo v2.0.1-0.20191111085604-09d84710e01a+incompatible
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
@@ -53,7 +54,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.5.0
 	github.com/stretchr/testify v1.4.0
-	github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036 // indirect
 	go.opencensus.io v0.22.1
 	golang.org/x/crypto v0.0.0-20191105034135-c7e5f84aec59 // indirect
 	golang.org/x/net v0.0.0-20191105084925-a882066a44e0

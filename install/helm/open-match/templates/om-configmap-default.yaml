@@ -82,8 +82,10 @@ data:
         size: 10000
 
     redis:
-      hostname: {{ .Values.redis.fullnameOverride }}-master.{{ .Release.Namespace }}.svc.cluster.local
-      port: {{ .Values.redis.redisPort }}
+      # Connect to one of the Redis sentinels first to query the current master
+      sentinelPort: {{ .Values.redis.sentinel.port }}
+      sentinelMaster: {{ .Values.redis.sentinel.masterSet }}
+      sentinelHostname: {{ .Values.redis.fullnameOverride }}.{{ .Release.Namespace }}.svc.cluster.local
       user: {{ .Values.redis.user }}
 {{- if .Values.redis.usePassword }}
       passwordPath: {{ .Values.redis.secretMountPath }}/redis-password

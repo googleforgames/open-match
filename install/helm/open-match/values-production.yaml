@@ -111,6 +111,10 @@ redis:
   secretMountPath: /opt/bitnami/redis/secrets
   configmap:
     maxclients 100000
+  sentinel:
+    enabled: true
+    masterSet: om-redis-master
+    port: 26379
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
     resources:

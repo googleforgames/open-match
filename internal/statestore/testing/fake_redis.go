@@ -17,6 +17,7 @@ package testing
 import (
 	"testing"
 
+	"github.com/Bose/minisentinel"
 	miniredis "github.com/alicebob/miniredis/v2"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
@@ -24,12 +25,21 @@ import (
 
 // New creates a new in memory Redis instance for testing.
 func New(t *testing.T, cfg config.Mutable) func() {
-	mredis, err := miniredis.Run()
+	mredis := miniredis.NewMiniRedis()
+	err := mredis.StartAddr("localhost:0")
 	if err != nil {
-		t.Fatalf("failed to create miniredis, %v", err)
+		t.Fatalf("failed to start miniredis, %v", err)
 	}
-	cfg.Set("redis.hostname", mredis.Host())
-	cfg.Set("redis.port", mredis.Port())
+
+	s := minisentinel.NewSentinel(mredis)
+	err = s.StartAddr("localhost:0")
+	if err != nil {
+		t.Fatalf("failed to start minisentinel, %v", err)
+	}
+
+	cfg.Set("redis.sentinelHostname", s.Host())
+	cfg.Set("redis.sentinelPort", s.Port())
+	cfg.Set("redis.sentinelMaster", s.MasterInfo().Name)
 	cfg.Set("redis.pool.maxIdle", PoolMaxIdle)
 	cfg.Set("redis.pool.maxActive", PoolMaxActive)
 	cfg.Set("redis.pool.idleTimeout", PoolIdleTimeout)
@@ -42,6 +52,7 @@ func New(t *testing.T, cfg config.Mutable) func() {
 	cfg.Set("backoff.maxElapsedTime", MaxElapsedTime)
 
 	return func() {
+		s.Close()
 		mredis.Close()
 	}
 }

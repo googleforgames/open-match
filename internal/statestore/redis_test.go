@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Bose/minisentinel"
 	miniredis "github.com/alicebob/miniredis/v2"
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
@@ -371,17 +372,24 @@ func TestConnect(t *testing.T) {
 
 func createRedis(t *testing.T) (config.View, func()) {
 	cfg := viper.New()
-	mredis, err := miniredis.Run()
+	mredis := miniredis.NewMiniRedis()
+	err := mredis.StartAddr("localhost:0")
 	if err != nil {
-		t.Fatalf("cannot create redis %s", err)
+		t.Fatalf("failed to start miniredis, %v", err)
 	}
 
-	cfg.Set("redis.hostname", mredis.Host())
-	cfg.Set("redis.port", mredis.Port())
-	cfg.Set("redis.pool.maxIdle", 1000)
+	s := minisentinel.NewSentinel(mredis)
+	err = s.StartAddr("localhost:0")
+	if err != nil {
+		t.Fatalf("failed to start minisentinel, %v", err)
+	}
+	cfg.Set("redis.sentinelHostname", s.Host())
+	cfg.Set("redis.sentinelPort", s.Port())
+	cfg.Set("redis.sentinelMaster", s.MasterInfo().Name)
+	cfg.Set("redis.pool.maxIdle", 5)
 	cfg.Set("redis.pool.idleTimeout", time.Second)
 	cfg.Set("redis.pool.healthCheckTimeout", 100*time.Millisecond)
-	cfg.Set("redis.pool.maxActive", 1000)
+	cfg.Set("redis.pool.maxActive", 5)
 	cfg.Set("redis.expiration", 42000)
 	cfg.Set("storage.ignoreListTTL", "200ms")
 	cfg.Set("backoff.initialInterval", 100*time.Millisecond)
@@ -391,7 +399,10 @@ func createRedis(t *testing.T) (config.View, func()) {
 	cfg.Set("backoff.maxElapsedTime", 100*time.Millisecond)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, true)
 
-	return cfg, func() { mredis.Close() }
+	return cfg, func() {
+		s.Close()
+		mredis.Close()
+	}
 }
 
 // TODO: test Redis connection with Auth
