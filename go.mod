@@ -23,7 +23,6 @@ require (
 	contrib.go.opencensus.io/exporter/ocagent v0.6.0
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
 	contrib.go.opencensus.io/exporter/stackdriver v0.12.8
-	contrib.go.opencensus.io/exporter/zipkin v0.1.1
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
 	github.com/alicebob/miniredis/v2 v2.10.1
 	github.com/apache/thrift v0.13.0 // indirect
@@ -41,7 +40,6 @@ require (
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/json-iterator/go v1.1.8 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
-	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.8.1
