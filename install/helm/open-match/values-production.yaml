@@ -162,7 +162,6 @@ redis:
 #
 # 1. open-match-telemetry: Kubernetes definitions of the integrated monitoring tools along with the core Open Match componenets.
 # 2. open-match-customize: Kubernetes definitions of the customizable template to use Open Match with your own MMFs and Evaluator.
-# 3. open-match-test: Kubernetes definitions of the load testing tools and end-to-end jobs for Open Match.
 ###############################################################################################################################
 
 # Controls if users need to install backend, frontend, mmlogic, om-configmap, and swaggerui.
@@ -200,14 +199,6 @@ open-match-customize:
   #   image: [YOUR_EVALUATOR_IMAGE]
   # function:
   #   image: [YOUR_MMF_IMAGE]
-
-open-match-test:
-  # Switch the value between true/false to turn on/off this subchart
-  enabled: false
-  mmlogic: *mmlogic
-  frontend: *frontend
-  backend: *backend
-  synchronizer: *synchronizer
 
 # Global configurations that are visible to all subcharts
 global:
@@ -274,10 +265,6 @@ global:
     stackdriverMetrics:
       enabled: false
       prefix: "open_match"
-    zipkin:
-      enabled: false
-      endpoint: "/zipkin"
-      reporterEndpoint: "zipkin"
     grafana:
       enabled: false
     reportingPeriod: "1m"

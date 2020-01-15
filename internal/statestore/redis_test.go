@@ -393,3 +393,5 @@ func createRedis(t *testing.T) (config.View, func()) {
 
 	return cfg, func() { mredis.Close() }
 }
+
+// TODO: test Redis connection with Auth

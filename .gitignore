@@ -31,10 +31,6 @@
 *swo
 *~
 
-# Load testing residuals
-test/stress/*.csv
-test/stress/__pycache__
-
 # Ping data files
 *.ping
 *.pings
@@ -123,9 +119,8 @@ cmd/swaggerui/swaggerui
 tools/certgen/certgen
 examples/demo/demo
 examples/functions/golang/soloduel/soloduel
-examples/functions/golang/rosterbased/rosterbased
-examples/functions/golang/pool/pool
-examples/evaluator/golang/simple/simple
+test/evaluator/evaluator
+test/matchfunction/matchfunction
 tools/reaper/reaper
 
 # Secrets Directories

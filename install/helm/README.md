@@ -5,15 +5,14 @@ Templates under the `templates/` directory are for the core components in Open M
 
 Open Match also provides templates for optional components that are disabled by default under the `subcharts/` directory.
 1. `open-match-customize` contains flexible templates to deploy your own matchfunction and evaluator.
-2. `open-match-telemetry` contains monitoring supports for Open Match, you may choose to enable/disable [jaeger](https://www.jaegertracing.io/ "jaeger"), [prometheus](http://prometheus.io "prometheus"), [stackdriver](https://cloud.google.com/stackdriver/ "stackdriver"), [zipkin](https://zipkin.io/ "zipkin"), and [grafana](https://grafana.com/ "grafana") by overriding the config values in the provided templates.
-4. `open-match-test` contains templates of the distributed stress tests for Open Match.
+2. `open-match-telemetry` contains monitoring supports for Open Match, you may choose to enable/disable [jaeger](https://www.jaegertracing.io/ "jaeger"), [prometheus](http://prometheus.io "prometheus"), [stackdriver](https://cloud.google.com/stackdriver/ "stackdriver"), and [grafana](https://grafana.com/ "grafana") by overriding the config values in the provided templates.
 
 You may control the behavior of Open Match by overriding the configs in `install/helm/open-match/values.yaml` file. Here are a few examples:
 
 ```diff
 # install/helm/open-match/values.yaml
 # 1. Configs under the `global` section affects all components - including components in the subcharts.
-# 2. Configs under the subchart name - e.g. `open-match-test` only affects the settings in that subchart.
+# 2. Configs under the subchart name - e.g. `open-match-customize` only affects the settings in that subchart.
 # 3. Otherwise, the configs are for core components (templates in the parent chart) only.
 
 # Overrides spec.type of a specific Kubernetes Service
