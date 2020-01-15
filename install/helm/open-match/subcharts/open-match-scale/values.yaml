@@ -20,7 +20,7 @@ scaleFrontend:
 
 scaleBackend:
   hostName: om-scale-backend
-  httpPort: 51510
+  httpPort: 51509
   replicas: 1
   image: openmatch-scale-backend
 

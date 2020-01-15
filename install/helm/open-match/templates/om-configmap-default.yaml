@@ -68,6 +68,10 @@ data:
       swaggerui:
         hostname: "{{ .Values.swaggerui.hostName }}"
         httpport: "{{ .Values.swaggerui.httpPort }}"
+      scale-frontend:
+        httpport: "51509"
+      scale-backend:
+        httpport: "51510"
 {{- if .Values.global.tls.enabled }}
       tls:
         trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"

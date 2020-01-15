@@ -33,6 +33,57 @@ data:
         hostname: "{{ .Values.frontend.hostName }}"
         grpcport: "{{ .Values.frontend.grpcPort }}"
         httpport: "{{ .Values.frontend.httpPort }}"
+      scale:
+        httpport: "51509"
+{{- if .Values.global.tls.enabled }}
+      tls:
+        trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
+        certificatefile: "{{.Values.global.tls.server.mountPath}}/public.cert"
+        privatekey: "{{.Values.global.tls.server.mountPath}}/private.key"
+        rootcertificatefile: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
+{{- end }}
+
+    logging:
+      level: debug
+      {{- if .Values.global.telemetry.stackdriverMetrics.enabled }}
+      format: stackdriver
+      {{- else }}
+      format: text
+      {{- end }}
+      rpc: {{ .Values.global.logging.rpc.enabled }}
+    # Open Match applies the exponential backoff strategy for its retryable gRPC calls.
+    # The settings below are the default backoff configuration used in Open Match.
+    # See https://github.com/cenkalti/backoff/blob/v3/exponential.go for detailed explanations
+    backoff:
+      # The initial retry interval (in milliseconds)
+      initialInterval: 100ms
+      # maxInterval caps the maximum time elapsed for a retry interval
+      maxInterval: 500ms
+      # The next retry interval is multiplied by this multiplier
+      multiplier: 1.5
+      # Randomize the retry interval
+      randFactor: 0.5
+      # maxElapsedTime caps the retry time (in milliseconds)
+      maxElapsedTime: 3000ms
+
+    telemetry:
+      zpages:
+        enable: "{{ .Values.global.telemetry.zpages.enabled }}"
+      jaeger:
+        enable: "{{ .Values.global.telemetry.jaeger.enabled }}"
+        samplerFraction: {{ .Values.global.telemetry.jaeger.samplerFraction }}
+        agentEndpoint: "{{ .Values.global.telemetry.jaeger.agentEndpoint }}"
+        collectorEndpoint: "{{ .Values.global.telemetry.jaeger.collectorEndpoint }}"
+      prometheus:
+        enable: "{{ .Values.global.telemetry.prometheus.enabled }}"
+        endpoint: "{{ .Values.global.telemetry.prometheus.endpoint }}"
+        serviceDiscovery: "{{ .Values.global.telemetry.prometheus.serviceDiscovery }}"
+      stackdriverMetrics:
+        enable: "{{ .Values.global.telemetry.stackdriverMetrics.enabled }}"
+        gcpProjectId: "{{ .Values.global.gcpProjectId }}"
+        prefix: "{{ .Values.global.telemetry.stackdriverMetrics.prefix }}"
+      reportingPeriod: "{{ .Values.global.telemetry.reportingPeriod }}"
+
   matchmaker_config_override.yaml: |-
     testConfig:
       profile: "{{ .Values.testConfig.profile }}"
@@ -54,3 +105,4 @@ data:
         rangeSize: "{{ .Values.testConfig.multipool.rangeSize }}"
         rangeOverlap: "{{ .Values.testConfig.multipool.rangeOverlap }}"
         characterCount: "{{ .Values.testConfig.multipool.characterCount }}"
+
