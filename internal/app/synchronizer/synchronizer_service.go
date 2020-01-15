@@ -552,7 +552,7 @@ func withCancelCause(parent context.Context) (context.Context, cancelErrFunc) {
 		ctx.m.Lock()
 		defer ctx.m.Unlock()
 
-		if err == nil && parent.Err() == nil {
+		if ctx.err == nil && parent.Err() == nil {
 			ctx.err = err
 		}
 		cancel()
