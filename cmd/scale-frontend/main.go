@@ -21,5 +21,5 @@ import (
 )
 
 func main() {
-	app.RunApplication("scale-frontend", config.Read, frontend.BindService)
+	app.RunApplication("scale", config.Read, frontend.BindService)
 }

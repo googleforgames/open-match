@@ -48,6 +48,12 @@ var (
 // Run triggers execution of the scale frontend component that creates
 // tickets at scale in Open Match.
 func BindService(p *rpc.ServerParams, cfg config.View) error {
+	go run(cfg)
+
+	return nil
+}
+
+func run(cfg config.View) {
 	conn, err := rpc.GRPCClientFromConfig(cfg, "api.frontend")
 	if err != nil {
 		logger.WithFields(logrus.Fields{
@@ -56,12 +62,6 @@ func BindService(p *rpc.ServerParams, cfg config.View) error {
 	}
 	fe := pb.NewFrontendClient(conn)
 
-	go create(cfg, fe)
-
-	return nil
-}
-
-func create(cfg config.View, fe pb.FrontendClient) {
 	w := logger.Writer()
 	defer w.Close()
 
