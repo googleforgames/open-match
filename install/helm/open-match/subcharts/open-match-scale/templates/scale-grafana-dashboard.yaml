@@ -12,18 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{{- if .Values.stresstest.enabled }}
+{{- if .Values.global.telemetry.grafana.enabled }}
 apiVersion: v1
-kind: ServiceAccount
+kind: ConfigMap
 metadata:
-  # This annotation is not critical to security. 
-  # If the Cloud IAM binding does not exist, this annotation does not allow the Pod to use the GSA.
-  # Ref: https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity
-  annotations:
-    iam.gke.io/gcp-service-account: stress-test-uploader@{{ .Values.global.gcpProjectId }}.iam.gserviceaccount.com
-  name: {{ .Values.kubernetes.serviceAccount }}
+  name: open-match-scale-dashboard
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "openmatch.name" . }}
-    release: {{ .Release.Name }}
+     grafana_dashboard: "1"
+data:
+  {{- (.Files.Glob "dashboards/*.json").AsConfig | nindent 2 }}
 {{- end }}

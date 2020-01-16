@@ -12,8 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if .Values.global.telemetry.grafana.enabled }}
 apiVersion: v1
-appVersion: "1.0"
-description: A Helm chart for Kubernetes
-name: open-match-test
-version: 0.0.0-dev
+kind: ConfigMap
+metadata:
+  name: open-match-dashboards
+  labels:
+     grafana_dashboard: "1"
+data:
+  {{- (.Files.Glob "dashboards/*.json").AsConfig | nindent 2 }}
+{{- end }}

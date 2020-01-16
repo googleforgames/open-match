@@ -29,10 +29,6 @@ dependencies:
     version: 0.0.0-dev
     condition: open-match-customize.enabled
     repository: "file://./subcharts/open-match-customize"
-  - name: open-match-test
-    version: 0.0.0-dev
-    condition: open-match-test.enabled
-    repository: "file://./subcharts/open-match-test"
   - name: open-match-scale
     version: 0.0.0-dev
     condition: open-match-scale.enabled
