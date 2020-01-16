@@ -69,7 +69,7 @@ func getRedisPool(poolType string, cfg config.View) *redis.Pool {
 
 	if cfg.GetBool("redis.sentinelEnabled") {
 		sentinelAddr := fmt.Sprintf("%s:%s", cfg.GetString("redis.sentinelHostname"), cfg.GetString("redis.sentinelPort"))
-		sentinelURL := redisURLFromAddr(sentinelAddr, cfg)
+		sentinelURL := redisURLFromAddr(sentinelAddr, cfg, false)
 		sentinelPool = &redis.Pool{
 			MaxIdle:      maxIdle,
 			MaxActive:    maxActive,
@@ -113,7 +113,7 @@ func getDialFunc(poolType string, cfg config.View, sentinelPool *redis.Pool) fun
 
 	if cfg.GetBool("redis.sentinelEnabled") {
 		sentinelAddr := fmt.Sprintf("%s:%s", cfg.GetString("redis.sentinelHostname"), cfg.GetString("redis.sentinelPort"))
-		sentinelURL := redisURLFromAddr(sentinelAddr, cfg)
+		sentinelURL := redisURLFromAddr(sentinelAddr, cfg, false)
 
 		switch poolType {
 		case "healthcheck":
@@ -145,7 +145,7 @@ func getDialFunc(poolType string, cfg config.View, sentinelPool *redis.Pool) fun
 					return nil, status.Errorf(codes.Unavailable, "%v", err)
 				}
 
-				masterURL := redisURLFromAddr(fmt.Sprintf("%s:%s", masterInfo[0], masterInfo[1]), cfg)
+				masterURL := redisURLFromAddr(fmt.Sprintf("%s:%s", masterInfo[0], masterInfo[1]), cfg, true)
 				return redis.DialURL(masterURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
 			}
 		default:
@@ -154,7 +154,7 @@ func getDialFunc(poolType string, cfg config.View, sentinelPool *redis.Pool) fun
 		}
 	} else {
 		masterAddr := fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port"))
-		masterURL := redisURLFromAddr(masterAddr, cfg)
+		masterURL := redisURLFromAddr(masterAddr, cfg, true)
 
 		switch poolType {
 		case "healthcheck":
@@ -208,7 +208,7 @@ func testOnBorrow(c redis.Conn, t time.Time) error {
 	return err
 }
 
-func redisURLFromAddr(addr string, cfg config.View) string {
+func redisURLFromAddr(addr string, cfg config.View, usePassword bool) string {
 	// As per https://www.iana.org/assignments/uri-schemes/prov/redis
 	// redis://user:secret@localhost:6379/0?foo=bar&qux=baz
 
@@ -216,7 +216,7 @@ func redisURLFromAddr(addr string, cfg config.View) string {
 	redisURL := "redis://"
 
 	passwordFile := cfg.GetString("redis.passwordPath")
-	if len(passwordFile) > 0 {
+	if usePassword && len(passwordFile) > 0 {
 		redisLogger.Debugf("loading Redis password from file %s", passwordFile)
 		passwordData, err := ioutil.ReadFile(passwordFile)
 		if err != nil {
