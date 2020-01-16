@@ -68,6 +68,10 @@ data:
       swaggerui:
         hostname: "{{ .Values.swaggerui.hostName }}"
         httpport: "{{ .Values.swaggerui.httpPort }}"
+      scale-frontend:
+        httpport: "51509"
+      scale-backend:
+        httpport: "51510"
 {{- if .Values.global.tls.enabled }}
       tls:
         trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
@@ -88,7 +92,7 @@ data:
       sentinelPort: {{ .Values.redis.sentinel.port }}
       sentinelMaster: {{ .Values.redis.sentinel.masterSet }}
       sentinelHostname: {{ .Values.redis.fullnameOverride }}.{{ .Release.Namespace }}.svc.cluster.local
-{{- else -}}
+{{- else }}
       hostname: {{ .Values.redis.fullnameOverride }}-master.{{ .Release.Namespace }}.svc.cluster.local
       port: {{ .Values.redis.redisPort }}
 {{- end }}
