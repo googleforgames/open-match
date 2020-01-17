@@ -83,8 +83,11 @@ func run(cfg config.View) {
 
 	for {
 		// Keep pulling matches from Open Match backend
+		profiles := activeScenario.Profiles()
+		statProcessor.SetStat("TotalProfiles", len(profiles))
 		var wg sync.WaitGroup
-		for _, p := range activeScenario.Profiles() {
+
+		for _, p := range profiles {
 			wg.Add(1)
 			go func(wg *sync.WaitGroup, p *pb.MatchProfile) {
 				defer wg.Done()

@@ -3,8 +3,13 @@ package scenarios
 import (
 	"fmt"
 	"io"
-	"open-match.dev/open-match/pkg/pb"
 	"time"
+
+	"open-match.dev/open-match/pkg/pb"
+)
+
+const (
+	poolName = "all"
 )
 
 var (
@@ -26,7 +31,7 @@ func firstMatchProfile() []*pb.MatchProfile {
 			Name: "entirePool",
 			Pools: []*pb.Pool{
 				{
-					Name: "all",
+					Name: poolName,
 				},
 			},
 		},
@@ -38,7 +43,7 @@ func firstMatchTicket() *pb.Ticket {
 }
 
 func firstMatchMmf(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
-	tickets := poolTickets["all"]
+	tickets := poolTickets[poolName]
 	var matches []*pb.Match
 
 	for i := 0; i+1 <= len(tickets); i += 2 {
