@@ -132,26 +132,24 @@ func TestGameMatchWorkFlow(t *testing.T) {
 
 	fmReq := &pb.FetchMatchesRequest{
 		Config: mmfCfg,
-		Profiles: []*pb.MatchProfile{
-			{
-				Name: "test-profile",
-				Pools: []*pb.Pool{
-					{
-						Name:               "ticket12",
-						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 6}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
-					},
-					{
-						Name:               "ticket23",
-						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 10}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
-					},
-					{
-						Name:               "ticket5",
-						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 100}, {DoubleArg: e2e.DoubleArgLevel, Min: 17, Max: 25}},
-					},
-					{
-						Name:               "ticket234",
-						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 17}, {DoubleArg: e2e.DoubleArgLevel, Min: 3, Max: 17}},
-					},
+		Profile: &pb.MatchProfile{
+			Name: "test-profile",
+			Pools: []*pb.Pool{
+				{
+					Name:               "ticket12",
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 6}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
+				},
+				{
+					Name:               "ticket23",
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 10}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
+				},
+				{
+					Name:               "ticket5",
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 100}, {DoubleArg: e2e.DoubleArgLevel, Min: 17, Max: 25}},
+				},
+				{
+					Name:               "ticket234",
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 17}, {DoubleArg: e2e.DoubleArgLevel, Min: 3, Max: 17}},
 				},
 			},
 		},

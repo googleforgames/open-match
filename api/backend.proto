@@ -71,7 +71,7 @@ message FetchMatchesRequest {
   FunctionConfig config = 1;
 
   // MatchProfiles that will be sent to thhe MMF specified in the FunctionConfig.
-  repeated MatchProfile profiles = 2;
+  MatchProfile profile = 2;
 }
 
 message FetchMatchesResponse {

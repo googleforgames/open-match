@@ -114,7 +114,7 @@ func runIteration(fe pb.FrontendClient, be pb.BackendClient, p *pb.MatchProfile)
 			Port: 50502,
 			Type: pb.FunctionConfig_GRPC,
 		},
-		Profiles: []*pb.MatchProfile{p},
+		Profile: p,
 	}
 
 	telemetry.RecordUnitMeasurement(ctx, mFetchMatchCalls)

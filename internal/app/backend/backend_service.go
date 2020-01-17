@@ -66,7 +66,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	if req.GetConfig() == nil {
 		return status.Error(codes.InvalidArgument, ".config is required")
 	}
-	if req.GetProfiles() == nil {
+	if req.GetProfile() == nil {
 		return status.Error(codes.InvalidArgument, ".profile is required")
 	}
 
@@ -82,7 +82,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	errors := make(chan error, 2)
 	mmfCtx, cancelMmfs := context.WithCancel(stream.Context())
 	startMmfs := func() error {
-		resultChan := make(chan mmfResult, len(req.GetProfiles()))
+		resultChan := make(chan mmfResult, 1)
 
 		err := doFetchMatchesReceiveMmfResult(mmfCtx, s.mmfClients, req, resultChan)
 		if err != nil {
@@ -91,7 +91,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 			return err
 		}
 
-		proposals, err := doFetchMatchesValidateProposals(mmfCtx, resultChan, len(req.GetProfiles()))
+		proposals, err := doFetchMatchesValidateProposals(mmfCtx, resultChan, 1)
 		if err != nil {
 			// TODO: Log but continue case where mmfs were canceled once fully
 			// streaming.
@@ -210,22 +210,20 @@ func doFetchMatchesReceiveMmfResult(ctx context.Context, mmfClients *rpc.ClientC
 		return status.Error(codes.InvalidArgument, "provided match function type is not supported")
 	}
 
-	for _, profile := range req.GetProfiles() {
-		go func(profile *pb.MatchProfile) {
-			// Get the match results that will be sent.
-			// TODO: The matches returned by the MatchFunction will be sent to the
-			// Evaluator to select results. Until the evaluator is implemented,
-			// we channel all matches as accepted results.
-			switch configType {
-			case pb.FunctionConfig_GRPC:
-				matches, err := matchesFromGRPCMMF(ctx, profile, grpcClient)
-				resultChan <- mmfResult{matches, err}
-			case pb.FunctionConfig_REST:
-				matches, err := matchesFromHTTPMMF(ctx, profile, httpClient, baseURL)
-				resultChan <- mmfResult{matches, err}
-			}
-		}(profile)
-	}
+	go func(profile *pb.MatchProfile) {
+		// Get the match results that will be sent.
+		// TODO: The matches returned by the MatchFunction will be sent to the
+		// Evaluator to select results. Until the evaluator is implemented,
+		// we channel all matches as accepted results.
+		switch configType {
+		case pb.FunctionConfig_GRPC:
+			matches, err := matchesFromGRPCMMF(ctx, profile, grpcClient)
+			resultChan <- mmfResult{matches, err}
+		case pb.FunctionConfig_REST:
+			matches, err := matchesFromHTTPMMF(ctx, profile, httpClient, baseURL)
+			resultChan <- mmfResult{matches, err}
+		}
+	}(req.GetProfile())
 
 	return nil
 }
