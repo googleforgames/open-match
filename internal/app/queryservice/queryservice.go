@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mmlogic
+package queryservice
 
 import (
 	"google.golang.org/grpc"
@@ -22,9 +22,9 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// BindService creates the mmlogic service and binds it to the serving harness.
+// BindService creates the queryservice service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View) error {
-	service := &mmlogicService{
+	service := &queryserviceService{
 		cfg:   cfg,
 		store: statestore.New(cfg),
 	}
@@ -32,8 +32,8 @@ func BindService(p *rpc.ServerParams, cfg config.View) error {
 	p.AddHealthCheckFunc(service.store.HealthCheck)
 
 	p.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterMmLogicServer(s, service)
-	}, pb.RegisterMmLogicHandlerFromEndpoint)
+		pb.RegisterQueryServiceServer(s, service)
+	}, pb.RegisterQueryServiceHandlerFromEndpoint)
 
 	return nil
 }

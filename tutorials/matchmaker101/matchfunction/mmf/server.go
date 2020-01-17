@@ -26,24 +26,24 @@ import (
 // matchFunctionService implements pb.MatchFunctionServer, the server generated
 // by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
 type MatchFunctionService struct {
-	grpc          *grpc.Server
-	mmlogicClient pb.MmLogicClient
-	port          int
+	grpc               *grpc.Server
+	queryserviceClient pb.QueryServiceClient
+	port               int
 }
 
 // Start creates and starts the Match Function server and also connects to Open
-// Match's mmlogic service. This connection is used at runtime to fetch tickets
+// Match's queryservice service. This connection is used at runtime to fetch tickets
 // for pools specified in MatchProfile.
-func Start(mmlogicAddr string, serverPort int) {
+func Start(queryserviceAddr string, serverPort int) {
 	// Connect to MMLogic service.
-	conn, err := grpc.Dial(mmlogicAddr, grpc.WithInsecure())
+	conn, err := grpc.Dial(queryserviceAddr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("Failed to connect to Open Match, got %w", err)
 	}
 	defer conn.Close()
 
 	mmfService := MatchFunctionService{
-		mmlogicClient: pb.NewMmLogicClient(conn),
+		queryserviceClient: pb.NewQueryServiceClient(conn),
 	}
 
 	// Create and host a new gRPC service on the configured port.

@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main is the mmlogic service for Open Match.
+// Package main is the queryservice service for Open Match.
 package main
 
 import (
 	"open-match.dev/open-match/internal/app"
-	"open-match.dev/open-match/internal/app/mmlogic"
+	"open-match.dev/open-match/internal/app/queryservice"
 	"open-match.dev/open-match/internal/config"
 )
 
 func main() {
-	app.RunApplication("mmlogic", config.Read, mmlogic.BindService)
+	app.RunApplication("queryservice", config.Read, queryservice.BindService)
 }

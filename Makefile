@@ -190,11 +190,11 @@ else
 	endif
 endif
 
-GOLANG_PROTOS = pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/mmlogic.pb.go pkg/pb/messages.pb.go pkg/pb/extensions.pb.go pkg/pb/evaluator.pb.go internal/ipb/synchronizer.pb.go pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/mmlogic.pb.gw.go pkg/pb/evaluator.pb.gw.go
+GOLANG_PROTOS = pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/queryservice.pb.go pkg/pb/messages.pb.go pkg/pb/extensions.pb.go pkg/pb/evaluator.pb.go internal/ipb/synchronizer.pb.go pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/queryservice.pb.gw.go pkg/pb/evaluator.pb.gw.go
 
-CSHARP_PROTOS = csharp/OpenMatch/Backend.cs csharp/OpenMatch/Frontend.cs csharp/OpenMatch/Evaluator.cs csharp/OpenMatch/Matchfunction.cs csharp/OpenMatch/Messages.cs csharp/OpenMatch/Mmlogic.cs
+CSHARP_PROTOS = csharp/OpenMatch/Backend.cs csharp/OpenMatch/Frontend.cs csharp/OpenMatch/Evaluator.cs csharp/OpenMatch/Matchfunction.cs csharp/OpenMatch/Messages.cs csharp/OpenMatch/Queryservice.cs
 
-SWAGGER_JSON_DOCS = api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/evaluator.swagger.json
+SWAGGER_JSON_DOCS = api/frontend.swagger.json api/backend.swagger.json api/queryservice.swagger.json api/matchfunction.swagger.json api/evaluator.swagger.json
 
 # Comment out CSHARP_PROTOS build since it requires setting up dotnet dependencies and plugins.
 # I'll manually update the csharp protos for now, and  
@@ -378,7 +378,7 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 		--set open-match-customize.function.enabled=true \
 		--set open-match-customize.evaluator.enabled=true \
 		--set open-match-customize.function.image=openmatch-mmf-go-pool \
-		--set mmlogic.replicas=1,frontend.replicas=1,backend.replicas=1,open-match-customize.evaluator.replicas=1,open-match-customize.function.replicas=1 \
+		--set queryservice.replicas=1,frontend.replicas=1,backend.replicas=1,open-match-customize.evaluator.replicas=1,open-match-customize.function.replicas=1 \
 		--set redis.master.resources.requests.cpu=0.6,redis.master.resources.requests.memory=300Mi \
 		--set ci=true
 
@@ -701,7 +701,7 @@ description: \
 pkg/pb/backend.pb.go: pkg/pb/messages.pb.go
 pkg/pb/frontend.pb.go: pkg/pb/messages.pb.go
 pkg/pb/matchfunction.pb.go: pkg/pb/messages.pb.go
-pkg/pb/mmlogic.pb.go: pkg/pb/messages.pb.go
+pkg/pb/queryservice.pb.go: pkg/pb/messages.pb.go
 pkg/pb/evaluator.pb.go: pkg/pb/messages.pb.go
 internal/ipb/synchronizer.pb.go: pkg/pb/messages.pb.go
 
@@ -760,16 +760,16 @@ all: service-binaries example-binaries tools-binaries
 
 service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/swaggerui/swaggerui$(EXE_EXTENSION)
 service-binaries: cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION)
-service-binaries: cmd/mmlogic/mmlogic$(EXE_EXTENSION) cmd/synchronizer/synchronizer$(EXE_EXTENSION)
+service-binaries: cmd/queryservice/queryservice$(EXE_EXTENSION) cmd/synchronizer/synchronizer$(EXE_EXTENSION)
 
 example-binaries: example-mmf-binaries example-evaluator-binaries
 example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
 example-evaluator-binaries: test/evaluator/evaluator$(EXE_EXTENSION)
 
-examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): pkg/pb/queryservice.pb.go pkg/pb/queryservice.pb.gw.go api/queryservice.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
 
-test/matchfunction/matchfunction$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
+test/matchfunction/matchfunction$(EXE_EXTENSION): pkg/pb/queryservice.pb.go pkg/pb/queryservice.pb.gw.go api/queryservice.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/test/matchfunction; $(GO_BUILD_COMMAND)
 
 test/evaluator/evaluator$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
@@ -783,8 +783,8 @@ cmd/backend/backend$(EXE_EXTENSION): pkg/pb/backend.pb.go pkg/pb/backend.pb.gw.g
 cmd/frontend/frontend$(EXE_EXTENSION): pkg/pb/frontend.pb.go pkg/pb/frontend.pb.gw.go api/frontend.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/frontend; $(GO_BUILD_COMMAND)
 
-cmd/mmlogic/mmlogic$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
-	cd $(REPOSITORY_ROOT)/cmd/mmlogic; $(GO_BUILD_COMMAND)
+cmd/queryservice/queryservice$(EXE_EXTENSION): pkg/pb/queryservice.pb.go pkg/pb/queryservice.pb.gw.go api/queryservice.swagger.json
+	cd $(REPOSITORY_ROOT)/cmd/queryservice; $(GO_BUILD_COMMAND)
 
 cmd/synchronizer/synchronizer$(EXE_EXTENSION): internal/ipb/synchronizer.pb.go
 	cd $(REPOSITORY_ROOT)/cmd/synchronizer; $(GO_BUILD_COMMAND)
@@ -792,7 +792,7 @@ cmd/synchronizer/synchronizer$(EXE_EXTENSION): internal/ipb/synchronizer.pb.go
 # Note: This list of dependencies is long but only add file references here. If you add a .PHONY dependency make will always rebuild it.
 cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/backend.pb.go pkg/pb/backend.pb.gw.go api/backend.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/frontend.pb.go pkg/pb/frontend.pb.gw.go api/frontend.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/mmlogic.pb.go pkg/pb/mmlogic.pb.gw.go api/mmlogic.swagger.json
+cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/queryservice.pb.go pkg/pb/queryservice.pb.gw.go api/queryservice.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/messages.pb.go
@@ -903,7 +903,7 @@ clean-binaries:
 	rm -rf $(REPOSITORY_ROOT)/cmd/backend/backend$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/synchronizer/synchronizer$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/frontend/frontend$(EXE_EXTENSION)
-	rm -rf $(REPOSITORY_ROOT)/cmd/mmlogic/mmlogic$(EXE_EXTENSION)
+	rm -rf $(REPOSITORY_ROOT)/cmd/queryservice/queryservice$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
 	rm -rf $(REPOSITORY_ROOT)/test/matchfunction/matchfunction$(EXE_EXTENSION)
@@ -950,11 +950,11 @@ proxy-backend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Backend Trace: http://localhost:$(BACKEND_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=backend,release=$(OPEN_MATCH_HELM_NAME)" --output jsonpath='{.items[0].metadata.name}') $(BACKEND_PORT):51505 $(PORT_FORWARD_ADDRESS_FLAG)
 
-proxy-mmlogic: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	@echo "MmLogic Health: http://localhost:$(MMLOGIC_PORT)/healthz"
-	@echo "MmLogic RPC: http://localhost:$(MMLOGIC_PORT)/debug/rpcz"
-	@echo "MmLogic Trace: http://localhost:$(MMLOGIC_PORT)/debug/tracez"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=mmlogic,release=$(OPEN_MATCH_HELM_NAME)" --output jsonpath='{.items[0].metadata.name}') $(MMLOGIC_PORT):51503 $(PORT_FORWARD_ADDRESS_FLAG)
+proxy-queryservice: build/toolchain/bin/kubectl$(EXE_EXTENSION)
+	@echo "QueryService Health: http://localhost:$(MMLOGIC_PORT)/healthz"
+	@echo "QueryService RPC: http://localhost:$(MMLOGIC_PORT)/debug/rpcz"
+	@echo "QueryService Trace: http://localhost:$(MMLOGIC_PORT)/debug/tracez"
+	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=queryservice,release=$(OPEN_MATCH_HELM_NAME)" --output jsonpath='{.items[0].metadata.name}') $(MMLOGIC_PORT):51503 $(PORT_FORWARD_ADDRESS_FLAG)
 
 proxy-synchronizer: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Synchronizer Health: http://localhost:$(SYNCHRONIZER_PORT)/healthz"
@@ -987,7 +987,7 @@ proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
-proxy-all: proxy-frontend proxy-backend proxy-mmlogic proxy-grafana proxy-prometheus proxy-jaeger proxy-synchronizer proxy-ui proxy-dashboard proxy-demo
+proxy-all: proxy-frontend proxy-backend proxy-queryservice proxy-grafana proxy-prometheus proxy-jaeger proxy-synchronizer proxy-ui proxy-dashboard proxy-demo
 
 proxy:
 	# This is an exception case where we'll call recursive make.

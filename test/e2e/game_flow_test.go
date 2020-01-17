@@ -47,8 +47,8 @@ func TestGetClients(t *testing.T) {
 		t.Error("cannot get backend client")
 	}
 
-	if c := om.MustMmLogicGRPC(); c == nil {
-		t.Error("cannot get mmlogic client")
+	if c := om.MustQueryServiceGRPC(); c == nil {
+		t.Error("cannot get queryservice client")
 	}
 }
 

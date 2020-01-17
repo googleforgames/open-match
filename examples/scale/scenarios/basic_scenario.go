@@ -36,7 +36,7 @@ var (
 
 func basicMatchFunction(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
 	// Fetch tickets for the pools specified in the Match Profile.
-	poolTickets, err := matchfunction.QueryPools(stream.Context(), getMmlogicGRPCClient(), req.GetProfile().GetPools())
+	poolTickets, err := matchfunction.QueryPools(stream.Context(), getQueryserviceGRPCClient(), req.GetProfile().GetPools())
 	if err != nil {
 		return err
 	}

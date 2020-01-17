@@ -26,7 +26,7 @@
   "paths": {
     "/v1/matchfunction:run": {
       "post": {
-        "summary": "DO NOT CALL THIS FUNCTION MANUALLY. USE backend.FetchMatches INSTEAD.\nRun pulls Tickets that satisify Profile constraints from Mmlogic, runs matchmaking logics against them, then\nconstructs and streams back match candidates to the Backend service.",
+        "summary": "DO NOT CALL THIS FUNCTION MANUALLY. USE backend.FetchMatches INSTEAD.\nRun pulls Tickets that satisify Profile constraints from Queryservice, runs matchmaking logics against them, then\nconstructs and streams back match candidates to the Backend service.",
         "operationId": "Run",
         "responses": {
           "200": {

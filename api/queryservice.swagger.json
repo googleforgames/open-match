@@ -24,7 +24,7 @@
     "application/json"
   ],
   "paths": {
-    "/v1/mmlogic/tickets:query": {
+    "/v1/queryservice/tickets:query": {
       "post": {
         "summary": "QueryTickets gets a list of Tickets that match all Filters of the input Pool.\n  - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.\nQueryTickets pages the Tickets by `storage.pool.size` and stream back response.\n  - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000",
         "operationId": "QueryTickets",
@@ -54,7 +54,7 @@
           }
         ],
         "tags": [
-          "MmLogic"
+          "QueryService"
         ]
       }
     }

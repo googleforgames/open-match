@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	mmlogicAddress = "om-mmlogic.open-match.svc.cluster.local:50503" // Address of the MMLogic Endpoint.
+	queryserviceAddress = "om-queryservice.open-match.svc.cluster.local:50503" // Address of the MMLogic Endpoint.
 )
 
 // StatProcessor uses syncMaps to store the stress test metrics and occurrence of errors.
@@ -89,10 +89,10 @@ func (e StatProcessor) Log(w io.Writer) {
 	})
 }
 
-func getMmlogicGRPCClient() pb.MmLogicClient {
-	conn, err := grpc.Dial(mmlogicAddress, testing.NewGRPCDialOptions(logger)...)
+func getQueryserviceGRPCClient() pb.QueryServiceClient {
+	conn, err := grpc.Dial(queryserviceAddress, testing.NewGRPCDialOptions(logger)...)
 	if err != nil {
 		logger.Fatalf("Failed to connect to Open Match, got %v", err)
 	}
-	return pb.NewMmLogicClient(conn)
+	return pb.NewQueryServiceClient(conn)
 }

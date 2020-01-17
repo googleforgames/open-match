@@ -368,7 +368,7 @@ type FrontendClient interface {
 	// CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.
 	// A ticket is considered as ready for matchmaking once it is created.
 	//   - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.
-	//   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with mmlogic.QueryTickets function.
+	//   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with queryservice.QueryTickets function.
 	CreateTicket(ctx context.Context, in *CreateTicketRequest, opts ...grpc.CallOption) (*CreateTicketResponse, error)
 	// DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
 	// The client must delete the Ticket when finished matchmaking with it.
@@ -454,7 +454,7 @@ type FrontendServer interface {
 	// CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.
 	// A ticket is considered as ready for matchmaking once it is created.
 	//   - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.
-	//   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with mmlogic.QueryTickets function.
+	//   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with queryservice.QueryTickets function.
 	CreateTicket(context.Context, *CreateTicketRequest) (*CreateTicketResponse, error)
 	// DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
 	// The client must delete the Ticket when finished matchmaking with it.

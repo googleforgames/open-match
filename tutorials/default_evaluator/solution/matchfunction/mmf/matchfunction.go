@@ -39,7 +39,7 @@ func (s *MatchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 	// Fetch tickets for the pools specified in the Match Profile.
 	log.Printf("Generating proposals for function %v", req.GetProfile().GetName())
 
-	poolTickets, err := matchfunction.QueryPools(stream.Context(), s.mmlogicClient, req.GetProfile().GetPools())
+	poolTickets, err := matchfunction.QueryPools(stream.Context(), s.queryserviceClient, req.GetProfile().GetPools())
 	if err != nil {
 		log.Printf("Failed to query tickets for the given pools, got %w", err)
 		return err

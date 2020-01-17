@@ -37,8 +37,8 @@ type OM interface {
 	MustFrontendGRPC() pb.FrontendClient
 	// MustBackendGRPC returns a gRPC client to backend server.
 	MustBackendGRPC() pb.BackendClient
-	// MustMmLogicGRPC returns a gRPC client to mmlogic server.
-	MustMmLogicGRPC() pb.MmLogicClient
+	// MustQueryServiceGRPC returns a gRPC client to queryservice server.
+	MustQueryServiceGRPC() pb.QueryServiceClient
 	// HealthCheck probes the cluster for readiness.
 	HealthCheck() error
 	// MustMmfConfigGRPC returns a grpc match function config for backend server.

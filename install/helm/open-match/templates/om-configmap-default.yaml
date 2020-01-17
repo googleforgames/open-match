@@ -57,10 +57,10 @@ data:
         hostname: "{{ .Values.frontend.hostName }}"
         grpcport: "{{ .Values.frontend.grpcPort }}"
         httpport: "{{ .Values.frontend.httpPort }}"
-      mmlogic:
-        hostname: "{{ .Values.mmlogic.hostName }}"
-        grpcport: "{{ .Values.mmlogic.grpcPort }}"
-        httpport: "{{ .Values.mmlogic.httpPort }}"
+      queryservice:
+        hostname: "{{ .Values.queryservice.hostName }}"
+        grpcport: "{{ .Values.queryservice.grpcPort }}"
+        httpport: "{{ .Values.queryservice.httpPort }}"
       synchronizer:
         hostname: "{{ .Values.synchronizer.hostName }}"
         grpcport: "{{ .Values.synchronizer.grpcPort }}"

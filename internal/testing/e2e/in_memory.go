@@ -74,10 +74,10 @@ func (iom *inmemoryOM) MustBackendGRPC() pb.BackendClient {
 	return pb.NewBackendClient(conn)
 }
 
-func (iom *inmemoryOM) MustMmLogicGRPC() pb.MmLogicClient {
+func (iom *inmemoryOM) MustQueryServiceGRPC() pb.QueryServiceClient {
 	conn := iom.mainTc.MustGRPC()
 	iom.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewMmLogicClient(conn)
+	return pb.NewQueryServiceClient(conn)
 }
 
 func (iom *inmemoryOM) MustMmfConfigGRPC() *pb.FunctionConfig {
@@ -115,7 +115,7 @@ func (iom *inmemoryOM) cleanupMain() error {
 	return nil
 }
 
-// Create a minimatch test service with function bindings from frontend, backend, and mmlogic.
+// Create a minimatch test service with function bindings from frontend, backend, and queryservice.
 // Instruct this service to start and connect to a fake storage service.
 func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTesting.TestContext {
 	var closer func()
@@ -152,16 +152,16 @@ func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTe
 }
 
 // Create a mmf service using a started test server.
-// Inject the port config of mmlogic using that the passed in test server
+// Inject the port config of queryservice using that the passed in test server
 func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTesting.TestContext {
 	// TODO: Use insecure for now since minimatch and mmf only works with the same secure mode
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
 
-		// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
-		cfg.Set("api.mmlogic.hostname", c.GetHostname())
-		cfg.Set("api.mmlogic.grpcport", c.GetGRPCPort())
-		cfg.Set("api.mmlogic.httpport", c.GetHTTPPort())
+		// The below configuration is used by GRPC harness to create an queryservice client to query tickets.
+		cfg.Set("api.queryservice.hostname", c.GetHostname())
+		cfg.Set("api.queryservice.grpcport", c.GetGRPCPort())
+		cfg.Set("api.queryservice.httpport", c.GetHTTPPort())
 
 		assert.Nil(t, internalMmf.BindService(p, cfg, &internalMmf.FunctionSettings{
 			Func: mmf.MakeMatches,
