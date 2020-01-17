@@ -23,7 +23,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
 	"open-match.dev/open-match/examples/scale/scenarios"
-	"open-match.dev/open-match/examples/scale/tickets"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/telemetry"
@@ -109,7 +108,7 @@ func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendClient, ticketPerRoutine i
 
 	for j := 0; j < ticketPerRoutine; j++ {
 		req := &pb.CreateTicketRequest{
-			Ticket: tickets.Ticket(),
+			Ticket: activeScenario.Ticket(),
 		}
 
 		ctx, span := trace.StartSpan(context.Background(), "scale.frontend/CreateTicket")
