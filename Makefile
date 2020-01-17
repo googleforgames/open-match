@@ -196,7 +196,11 @@ CSHARP_PROTOS = csharp/OpenMatch/Backend.cs csharp/OpenMatch/Frontend.cs csharp/
 
 SWAGGER_JSON_DOCS = api/frontend.swagger.json api/backend.swagger.json api/mmlogic.swagger.json api/matchfunction.swagger.json api/evaluator.swagger.json
 
-ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS) $(CSHARP_PROTOS)
+# Comment out CSHARP_PROTOS build since it requires setting up dotnet dependencies and plugins.
+# I'll manually update the csharp protos for now, and  
+# hold off the dotnet changes until we start to work on the open-match-ecosystem repo.
+# (yfei1)
+ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS) # $(CSHARP_PROTOS)
 
 # CMDS is a list of all folders in cmd/
 CMDS = $(notdir $(wildcard cmd/*))
@@ -652,11 +656,12 @@ csharp/OpenMatch/Openapiv2.cs: third_party/
 		--plugin=protoc-gen-grpc=grpc_csharp_plugin \
 		--csharp_out=$(REPOSITORY_ROOT)/csharp/OpenMatch/
 
-csharp/OpenMatch/%.cs: third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) csharp/OpenMatch/Openapiv2.cs csharp/OpenMatch/Annotations.cs
+csharp/OpenMatch/%.cs: third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) csharp/OpenMatch/Messages.cs csharp/OpenMatch/Openapiv2.cs csharp/OpenMatch/Annotations.cs
 	$(PROTOC) api/$(shell echo $(*F)| tr A-Z a-z).proto \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--plugin=protoc-gen-grpc=grpc_csharp_plugin \
-		--csharp_out=$(REPOSITORY_ROOT)/csharp/OpenMatch
+		--csharp_out=$(REPOSITORY_ROOT)/csharp/OpenMatch \
+		--grpc_out=$(REPOSITORY_ROOT)/csharp/OpenMatch/
 
 internal/ipb/%.pb.go: internal/api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	mkdir -p $(REPOSITORY_ROOT)/build/prototmp $(REPOSITORY_ROOT)/internal/ipb
@@ -992,7 +997,7 @@ proxy:
 update-deps:
 	$(GO) mod tidy
 
-build-csharp: build/toolchain/dotnet/ csharp/OpenMatch/Annotations.cs csharp/OpenMatch/Openapiv2.cs
+build-csharp: install-protoc-tools $(CSHARP_PROTOS) csharp/OpenMatch/Annotations.cs csharp/OpenMatch/Openapiv2.cs build/toolchain/dotnet/
 	(cd $(REPOSITORY_ROOT)/csharp/OpenMatch && $(DOTNET) build -o .)
 
 third_party/: third_party/google/api third_party/protoc-gen-swagger/options third_party/swaggerui/
