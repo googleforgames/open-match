@@ -283,6 +283,7 @@ func TestDoReleaseTickets(t *testing.T) {
 					return nil
 				})
 
+				assert.Nil(t, err)
 				assert.Equal(t, len(filteredTickets), len(test.expectTickets))
 
 				for _, ticket := range filteredTickets {
