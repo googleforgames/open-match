@@ -81,10 +81,10 @@ func run(cfg config.View) {
 	w := logger.Writer()
 	defer w.Close()
 
-	matchesForAssignment := make(chan *pb.Match, 1000)
-	ticketsForDeletion := make(chan string, 1000)
+	matchesForAssignment := make(chan *pb.Match, 30000)
+	ticketsForDeletion := make(chan string, 30000)
 
-	for i := 0; i < 30; i++ {
+	for i := 0; i < 50; i++ {
 		go runAssignments(be, matchesForAssignment, ticketsForDeletion)
 		go runDeletions(fe, ticketsForDeletion)
 	}
