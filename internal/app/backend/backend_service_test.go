@@ -216,6 +216,16 @@ func TestDoReleaseTickets(t *testing.T) {
 			wantCode: codes.Unavailable,
 		},
 		{
+			description: "expect ok code when submitted list is empty",
+			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service, pool *pb.Pool) {
+				cancel()
+			},
+			req: &pb.ReleaseTicketsRequest{
+				TicketIds: []string{},
+			},
+			wantCode: codes.OK,
+		},
+		{
 			description:   "expect ok code",
 			pool:          &pb.Pool{DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: fakeProperty, Min: 0, Max: 3}}},
 			wantCode:      codes.OK,
