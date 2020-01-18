@@ -216,12 +216,39 @@ func TestDoReleaseTickets(t *testing.T) {
 			wantCode: codes.Unavailable,
 		},
 		{
-			description: "expect ok code when submitted list is empty",
-			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service, pool *pb.Pool) {
-				cancel()
-			},
+			description:   "expect ok code when submitted list is empty",
+			pool:          &pb.Pool{DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: fakeProperty, Min: 0, Max: 3}}},
+			expectTickets: []string{"3"},
 			req: &pb.ReleaseTicketsRequest{
 				TicketIds: []string{},
+			},
+			preAction: func(ctx context.Context, cancel context.CancelFunc, store statestore.Service, pool *pb.Pool) {
+				for _, fakeTicket := range fakeTickets {
+					store.CreateTicket(ctx, fakeTicket)
+					store.IndexTicket(ctx, fakeTicket)
+				}
+
+				// Make sure tickets are correctly indexed.
+				var wantFilteredTickets []*pb.Ticket
+				err := store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
+					wantFilteredTickets = filterTickets
+					return nil
+				})
+				assert.Nil(t, err)
+				assert.Equal(t, len(fakeTickets), len(wantFilteredTickets))
+
+				// Ignore a few tickets
+				err = store.AddTicketsToIgnoreList(ctx, []string{"1", "2"})
+				assert.Nil(t, err)
+
+				// Make sure it was properly ignored
+				var ignoredFilterTickets []*pb.Ticket
+				err = store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
+					ignoredFilterTickets = filterTickets
+					return nil
+				})
+				assert.Nil(t, err)
+				assert.Equal(t, len(fakeTickets)-2, len(ignoredFilterTickets))
 			},
 			wantCode: codes.OK,
 		},
