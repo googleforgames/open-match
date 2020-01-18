@@ -67,21 +67,6 @@ func main() {
 				}
 
 				log.Printf("Generated %v matches for profile %v", len(matches), p.GetName())
-
-				var failedToCreate []*pb.Match
-				for _, match := range matches {
-					conn, err := createGame(match)
-
-					if err != nil {
-						failedToCreate.append(match)
-					}
-				}
-
-				if err := release(be, matches); err != nil {
-					log.Printf("Failed to release tickets back to the pool, got %w", err)
-					return
-				}
-
 				if err := assign(be, matches); err != nil {
 					log.Printf("Failed to assign servers to matches, got %w", err)
 					return
@@ -126,12 +111,6 @@ func fetch(be pb.BackendClient, p *pb.MatchProfile) ([]*pb.Match, error) {
 	return result, nil
 }
 
-func createGame(match *pb.Match) (string, error) {
-	// Improvement: Read custom extension properties from the match to configure the game
-	conn := fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256))
-	return conn, nil
-}
-
 func assign(be pb.BackendClient, matches []*pb.Match) error {
 	for _, match := range matches {
 		ticketIDs := []string{}
@@ -155,8 +134,4 @@ func assign(be pb.BackendClient, matches []*pb.Match) error {
 	}
 
 	return nil
-}
-
-func release(be pb.BackendClient, matches []*pb.Match) {
-
 }
