@@ -16,7 +16,6 @@ package statestore
 
 import (
 	"context"
-	"time"
 
 	"go.opencensus.io/trace"
 	"open-match.dev/open-match/internal/telemetry"
