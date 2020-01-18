@@ -168,7 +168,7 @@ func TestDoFetchMatchesFilterChannel(t *testing.T) {
 	}
 }
 
-func TestdoReleaseTickets(t *testing.T) {
+func TestDoReleaseTickets(t *testing.T) {
 	fakeProperty := "test-property"
 	fakeTickets := []*pb.Ticket{
 		{
@@ -187,17 +187,27 @@ func TestdoReleaseTickets(t *testing.T) {
 				},
 			},
 		},
+		{
+			Id: "3",
+			SearchFields: &pb.SearchFields{
+				DoubleArgs: map[string]float64{
+					fakeProperty: 2,
+				},
+			},
+		},
 	}
 
 	tests := []struct {
-		description string
-		preAction   func(context.Context, context.CancelFunc, statestore.Service)
-		req         *pb.ReleaseTicketsRequest
-		wantCode    codes.Code
+		description   string
+		preAction     func(context.Context, context.CancelFunc, statestore.Service, *pb.Pool)
+		req           *pb.ReleaseTicketsRequest
+		wantCode      codes.Code
+		pool          *pb.Pool
+		expectTickets []string
 	}{
 		{
 			description: "expect unavailable code since context is canceled before being called",
-			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
+			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service, pool *pb.Pool) {
 				cancel()
 			},
 			req: &pb.ReleaseTicketsRequest{
@@ -206,52 +216,49 @@ func TestdoReleaseTickets(t *testing.T) {
 			wantCode: codes.Unavailable,
 		},
 		{
-			description: "expect invalid argument code since assignment is nil",
-			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
+			description: "expect ok code when submitted list is empty",
+			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service, pool *pb.Pool) {
 				cancel()
 			},
-			req:      &pb.AssignTicketsRequest{},
-			wantCode: codes.InvalidArgument,
-		},
-		{
-			description: "expect not found code since ticket does not exist",
-			preAction:   func(_ context.Context, _ context.CancelFunc, _ statestore.Service) {},
-			req: &pb.AssignTicketsRequest{
-				TicketIds: []string{"1", "2"},
-				Assignment: &pb.Assignment{
-					Connection: "123",
-				},
+			req: &pb.ReleaseTicketsRequest{
+				TicketIds: []string{},
 			},
-			wantCode: codes.NotFound,
+			wantCode: codes.OK,
 		},
 		{
-			description: "expect ok code",
-			preAction: func(ctx context.Context, cancel context.CancelFunc, store statestore.Service) {
+			description:   "expect ok code",
+			pool:          &pb.Pool{DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: fakeProperty, Min: 0, Max: 3}}},
+			wantCode:      codes.OK,
+			expectTickets: []string{"1", "2"},
+			req: &pb.ReleaseTicketsRequest{
+				TicketIds: []string{"1", "2"},
+			},
+			preAction: func(ctx context.Context, cancel context.CancelFunc, store statestore.Service, pool *pb.Pool) {
 				for _, fakeTicket := range fakeTickets {
 					store.CreateTicket(ctx, fakeTicket)
 					store.IndexTicket(ctx, fakeTicket)
 				}
 				// Make sure tickets are correctly indexed.
 				var wantFilteredTickets []*pb.Ticket
-				pool := &pb.Pool{
-					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: fakeProperty, Min: 0, Max: 3}},
-				}
 				err := store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
 					wantFilteredTickets = filterTickets
 					return nil
 				})
 				assert.Nil(t, err)
 				assert.Equal(t, len(fakeTickets), len(wantFilteredTickets))
-			},
-			req: &pb.AssignTicketsRequest{
-				TicketIds: []string{"1", "2"},
-				Assignment: &pb.Assignment{
-					Connection: "123",
-				},
-			},
-			wantCode: codes.OK,
-			wantAssignment: &pb.Assignment{
-				Connection: "123",
+
+				// Ignore all the tickets
+				err = store.AddTicketsToIgnoreList(ctx, []string{"1", "2", "3"})
+				assert.Nil(t, err)
+
+				// Make sure it was properly ignored
+				var ignoredFilterTickets []*pb.Ticket
+				err = store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
+					ignoredFilterTickets = filterTickets
+					return nil
+				})
+				assert.Nil(t, err)
+				assert.Equal(t, len(fakeTickets)-3, len(ignoredFilterTickets))
 			},
 		},
 	}
@@ -263,29 +270,24 @@ func TestdoReleaseTickets(t *testing.T) {
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 			defer closer()
 
-			test.preAction(ctx, cancel, store)
+			test.preAction(ctx, cancel, store, test.pool)
 
-			err := doAssignTickets(ctx, test.req, store)
-
+			err := doReleasetickets(ctx, test.req, store)
 			assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
 			if err == nil {
-				for _, id := range test.req.GetTicketIds() {
-					ticket, err := store.GetTicket(ctx, id)
-					assert.Nil(t, err)
-					assert.Equal(t, test.wantAssignment, ticket.GetAssignment())
-				}
-
-				// Make sure tickets are deindexed after assignment
-				var wantFilteredTickets []*pb.Ticket
-				pool := &pb.Pool{
-					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: fakeProperty, Min: 0, Max: 2}},
-				}
-				store.FilterTickets(ctx, pool, 10, func(filterTickets []*pb.Ticket) error {
-					wantFilteredTickets = filterTickets
+				// Make sure that the expected tickets are available for query
+				var filteredTickets []*pb.Ticket
+				err = store.FilterTickets(ctx, test.pool, 10, func(filterTickets []*pb.Ticket) error {
+					filteredTickets = filterTickets
 					return nil
 				})
-				assert.Nil(t, wantFilteredTickets)
+
+				assert.Equal(t, len(filteredTickets), len(test.expectTickets))
+
+				for _, ticket := range filteredTickets {
+					assert.Contains(t, test.expectTickets, ticket.GetId())
+				}
 			}
 		})
 	}

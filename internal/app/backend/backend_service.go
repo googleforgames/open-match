@@ -335,13 +335,12 @@ func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb
 }
 
 func (s *backendService) ReleaseTickets(ctx context.Context, req *pb.ReleaseTicketsRequest) (*pb.ReleaseTicketsResponse, error) {
-	err := s.store.DeleteTicketsFromIgnoreList(ctx, req.GetTicketIds())
+	err := doReleasetickets(ctx, req, s.store)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"ticket_ids": req.GetTicketIds(),
-		}).WithError(err).Error("failed to release from awaiting assignment for requested tickets")
+		logger.WithError(err).Error("failed to remove the awaiting tickets from the ignore list for requested tickets")
 		return nil, err
 	}
+
 	telemetry.RecordNUnitMeasurement(ctx, mTicketsReleased, int64(len(req.TicketIds)))
 	return &pb.ReleaseTicketsResponse{}, nil
 }
@@ -377,6 +376,18 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 		logger.WithFields(logrus.Fields{
 			"ticket_ids": req.GetTicketIds(),
 		}).Error(err)
+	}
+
+	return nil
+}
+
+func doReleasetickets(ctx context.Context, req *pb.ReleaseTicketsRequest, store statestore.Service) error {
+	err := store.DeleteTicketsFromIgnoreList(ctx, req.GetTicketIds())
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"ticket_ids": req.GetTicketIds(),
+		}).WithError(err).Error("failed to delete the tickets from the ignore list")
+		return err
 	}
 
 	return nil
