@@ -196,8 +196,8 @@ func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string]
 	be := om.MustBackendGRPC()
 	for _, profile := range testProfiles {
 		stream, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{
-			Config:   fc,
-			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
+			Config:  fc,
+			Profile: &pb.MatchProfile{Name: profile.name, Pools: profile.pools},
 		})
 		assert.Nil(t, err)
 
@@ -230,8 +230,8 @@ func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string]
 
 		// Verify calling fetch matches twice within ttl interval won't yield new results
 		stream, err = be.FetchMatches(om.Context(), &pb.FetchMatchesRequest{
-			Config:   fc,
-			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
+			Config:  fc,
+			Profile: &pb.MatchProfile{Name: profile.name, Pools: profile.pools},
 		})
 		assert.Nil(t, err)
 
