@@ -150,6 +150,54 @@ func TestIgnoreLists(t *testing.T) {
 	verifyTickets(service, len(tickets))
 }
 
+func TestDeleteTicketsFromIgnoreList(t *testing.T) {
+	// Create State Store
+	assert := assert.New(t)
+	cfg, closer := createRedis(t)
+	defer closer()
+	service := New(cfg)
+	assert.NotNil(service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	tickets := internalTesting.GenerateFloatRangeTickets(
+		internalTesting.Property{Name: "testindex1", Min: 0, Max: 10, Interval: 2},
+		internalTesting.Property{Name: "testindex2", Min: 0, Max: 10, Interval: 2},
+	)
+
+	ticketIds := []string{}
+	for _, ticket := range tickets {
+		assert.Nil(service.CreateTicket(ctx, ticket))
+		assert.Nil(service.IndexTicket(ctx, ticket))
+		ticketIds = append(ticketIds, ticket.GetId())
+	}
+
+	verifyTickets := func(service Service, expectLen int) {
+		var results []*pb.Ticket
+		pool := &pb.Pool{
+			DoubleRangeFilters: []*pb.DoubleRangeFilter{
+				{DoubleArg: "testindex1", Min: 0, Max: 10},
+				{DoubleArg: "testindex2", Min: 0, Max: 10},
+			},
+		}
+		service.FilterTickets(ctx, pool, 100, func(tickets []*pb.Ticket) error {
+			results = tickets
+			return nil
+		})
+		assert.Equal(expectLen, len(results))
+	}
+
+	// Verify all tickets are created and returned
+	verifyTickets(service, len(tickets))
+
+	// Add the first three tickets to the ignore list and verify changes are reflected in the result
+	assert.Nil(service.AddTicketsToIgnoreList(ctx, ticketIds[:3]))
+	verifyTickets(service, len(tickets)-3)
+
+	assert.Nil(service.DeleteTicketsFromIgnoreList(ctx, ticketIds[:3]))
+	verifyTickets(service, len(tickets))
+}
+
 func TestTicketIndexing(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
