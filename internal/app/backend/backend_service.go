@@ -56,6 +56,7 @@ var (
 	mMatchesFetched          = telemetry.Counter("backend/matches_fetched", "matches fetched")
 	mMatchesSentToEvaluation = telemetry.Counter("backend/matches_sent_to_evaluation", "matches sent to evaluation")
 	mTicketsAssigned         = telemetry.Counter("backend/tickets_assigned", "tickets assigned")
+	mTicketsReleased         = telemetry.Counter("backend/tickets_released", "tickets released")
 )
 
 // FetchMatches triggers a MatchFunction with the specified MatchProfiles, while each MatchProfile
@@ -331,6 +332,18 @@ func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb
 	}
 
 	return proposals, nil
+}
+
+func (s *backendService) ReleaseTickets(ctx context.Context, req *pb.ReleaseTicketsRequest) (*pb.ReleaseTicketsResponse, error) {
+	err := s.store.DeleteTicketsFromIgnoreList(ctx, req.GetTicketIds())
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"ticket_ids": req.GetTicketIds(),
+		}).WithError(err).Error("failed to release from awaiting assignment for requested tickets")
+		return nil, err
+	}
+	telemetry.RecordNUnitMeasurement(ctx, mTicketsReleased, int64(len(req.TicketIds)))
+	return &pb.ReleaseTicketsResponse{}, nil
 }
 
 // AssignTickets overwrites the Assignment field of the input TicketIds.
