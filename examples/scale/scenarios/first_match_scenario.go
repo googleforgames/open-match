@@ -46,7 +46,7 @@ func firstMatchMmf(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*
 	tickets := poolTickets[poolName]
 	var matches []*pb.Match
 
-	for i := 0; i+1 <= len(tickets); i += 2 {
+	for i := 0; i+1 < len(tickets); i += 2 {
 		matches = append(matches, &pb.Match{
 			MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
 			Tickets:       []*pb.Ticket{tickets[i], tickets[i+1]},
