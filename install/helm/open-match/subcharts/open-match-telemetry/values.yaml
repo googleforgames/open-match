@@ -135,7 +135,9 @@ grafana:
   adminPassword: openmatch
   service:
     port: 3000
-  notifiers: {{ .Values.global.telemetry.grafana.notifiers }}
+  # Setup Grafana Alert Notification Channels
+  # https://github.com/helm/charts/blob/master/stable/grafana/values.yaml#L303
+  notifiers: {}
   sidecar:
     dashboards:
         enabled: true
