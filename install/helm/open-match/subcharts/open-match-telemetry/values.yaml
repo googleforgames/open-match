@@ -135,9 +135,10 @@ grafana:
   adminPassword: openmatch
   service:
     port: 3000
+  notifiers: {{ .Values.global.telemetry.grafana.notifiers }}
   sidecar:
-      dashboards:
-          enabled: true
+    dashboards:
+        enabled: true
   plugins: grafana-piechart-panel
   datasources:
     datasources.yaml:

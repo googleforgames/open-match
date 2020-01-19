@@ -267,4 +267,7 @@ global:
       prefix: "open_match"
     grafana:
       enabled: false
+      # Setup Grafana Alert Notification Channels
+      # https://github.com/helm/charts/blob/master/stable/grafana/values.yaml#L303
+      notifiers: {}
     reportingPeriod: "1m"
