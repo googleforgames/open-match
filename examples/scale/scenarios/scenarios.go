@@ -17,7 +17,7 @@ package scenarios
 import "open-match.dev/open-match/pkg/pb"
 
 // ActiveScenario sets the scenario with preset parameters that we want to use for current Open Match benchmark run.
-var ActiveScenario = firstMatchScenario
+var ActiveScenario = battleRoyalScenario
 
 // Scenario defines the controllable fields for Open Match benchmark scenarios
 type Scenario struct {
