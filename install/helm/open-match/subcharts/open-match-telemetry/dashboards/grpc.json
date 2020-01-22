@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 8,
-  "iteration": 1579334633175,
+  "id": 2,
+  "iteration": 1579639764104,
   "links": [],
   "panels": [
     {
@@ -311,6 +311,101 @@
       }
     },
     {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 10
+      },
+      "id": 55,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "sum(\n  sum by (method) (\n    label_replace(\n      rate(grpc_io_server_received_bytes_per_rpc_sum[$timewindow]), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      rate(grpc_io_client_sent_bytes_per_rpc_sum[$timewindow]), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  )\n  \n  /\n  \n  sum by (method) (\n    label_replace(\n      rate(grpc_io_server_received_bytes_per_rpc_count[$timewindow]), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      rate(grpc_io_client_sent_bytes_per_rpc_count[$timewindow]), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  )\n)",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "Input Per Second",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(\n  sum by (method) (\n    label_replace(\n      rate(grpc_io_server_sent_bytes_per_rpc_sum[$timewindow]), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      rate(grpc_io_client_received_bytes_per_rpc_sum[$timewindow]), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  )\n  \n  /\n  \n  sum by (method) (\n    label_replace(\n      rate(grpc_io_server_sent_bytes_per_rpc_count[$timewindow]), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      rate(grpc_io_client_received_bytes_per_rpc_count[$timewindow]), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  )\n)",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "Output Per Second",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Network IO per second",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "decbytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -318,9 +413,9 @@
         "x": 0,
         "y": 18
       },
-      "id": 23,
+      "id": 57,
       "panels": [],
-      "title": "gRPC by Method",
+      "title": "openmatch.Mmlogic/QueryTickets",
       "type": "row"
     },
     {
@@ -336,6 +431,659 @@
         "w": 12,
         "x": 0,
         "y": 19
+      },
+      "id": 59,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Sent per Call: openmatch.MmLogic/QueryTickets",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "bytes",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 19
+      },
+      "id": 58,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Received per Call: openmatch.MmLogic/QueryTickets",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "bytes",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 27
+      },
+      "id": 60,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile Latency",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile Latency",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile Latency",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile Latency",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile Latency",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile Latency",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Client RTT: openmatch.Backend/AssignTickets",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "ms",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "id": 29,
+      "panels": [],
+      "title": "openmatch.Backend/AssignTickets",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 36
+      },
+      "id": 26,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Sent per Call: openmatch.Backend/AssignTickets",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "bytes",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 36
+      },
+      "id": 27,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Received per Call: openmatch.Backend/AssignTickets",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "bytes",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 44
       },
       "id": 12,
       "legend": {
@@ -394,25 +1142,11 @@
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.75, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "75%-ile Latency",
-          "refId": "E"
-        },
-        {
           "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile Latency",
           "refId": "F"
-        },
-        {
-          "expr": "histogram_quantile(0.25, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "25%-ile Latency",
-          "refId": "G"
         },
         {
           "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
@@ -448,7 +1182,7 @@
           "label": null,
           "logBase": 2,
           "max": null,
-          "min": "0",
+          "min": null,
           "show": true
         },
         {
@@ -466,8 +1200,23 @@
       }
     },
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
+      "id": 31,
+      "panels": [],
+      "repeat": null,
+      "title": "openmatch.Frontend/CreateTicket",
+      "type": "row"
+    },
+    {
       "aliasColors": {},
       "bars": false,
+      "cacheTimeout": null,
       "dashLength": 10,
       "dashes": false,
       "description": "",
@@ -475,10 +1224,10 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 19
+        "x": 0,
+        "y": 53
       },
-      "id": 14,
+      "id": 32,
       "legend": {
         "alignAsTable": true,
         "avg": true,
@@ -496,6 +1245,7 @@
       "nullPointMode": "null",
       "options": {},
       "percentage": false,
+      "pluginVersion": "6.2.4",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -505,60 +1255,46 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "99.9%-ile Latency",
+          "legendFormat": "99.9%-ile",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "99%-ile Latency",
+          "legendFormat": "99%-ile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "95%-ile Latency",
+          "legendFormat": "95%-ile",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "90%-ile Latency",
+          "legendFormat": "90%-ile",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.75, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "75%-ile Latency",
-          "refId": "E"
-        },
-        {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "50%-ile Latency",
+          "legendFormat": "50%-ile",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.25, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "25%-ile Latency",
-          "refId": "G"
-        },
-        {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "10%-ile Latency",
+          "legendFormat": "10%-ile",
           "refId": "H"
         }
       ],
@@ -566,7 +1302,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Client RTT: openmatch.Backend/FetchMatches",
+      "title": "Bytes Sent per Call: openmatch.Frontend/CreateTicket",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -584,11 +1320,11 @@
       "yaxes": [
         {
           "decimals": null,
-          "format": "ms",
+          "format": "bytes",
           "label": null,
           "logBase": 2,
           "max": null,
-          "min": "0",
+          "min": null,
           "show": true
         },
         {
@@ -608,6 +1344,7 @@
     {
       "aliasColors": {},
       "bars": false,
+      "cacheTimeout": null,
       "dashLength": 10,
       "dashes": false,
       "description": "",
@@ -615,10 +1352,10 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 27
+        "x": 12,
+        "y": 53
       },
-      "id": 17,
+      "id": 33,
       "legend": {
         "alignAsTable": true,
         "avg": true,
@@ -636,6 +1373,135 @@
       "nullPointMode": "null",
       "options": {},
       "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Received per Call: openmatch.Frontend/CreateTicket",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "bytes",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 61
+      },
+      "id": 34,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -674,25 +1540,11 @@
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.75, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "75%-ile Latency",
-          "refId": "E"
-        },
-        {
           "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile Latency",
           "refId": "F"
-        },
-        {
-          "expr": "histogram_quantile(0.25, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "25%-ile Latency",
-          "refId": "G"
         },
         {
           "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
@@ -728,7 +1580,7 @@
           "label": null,
           "logBase": 2,
           "max": null,
-          "min": "0",
+          "min": null,
           "show": true
         },
         {
@@ -746,8 +1598,22 @@
       }
     },
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 69
+      },
+      "id": 38,
+      "panels": [],
+      "title": "openmatch.Evaluator/Evaluate",
+      "type": "row"
+    },
+    {
       "aliasColors": {},
       "bars": false,
+      "cacheTimeout": null,
       "dashLength": 10,
       "dashes": false,
       "description": "",
@@ -755,10 +1621,10 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 27
+        "x": 0,
+        "y": 70
       },
-      "id": 16,
+      "id": 45,
       "legend": {
         "alignAsTable": true,
         "avg": true,
@@ -776,6 +1642,7 @@
       "nullPointMode": "null",
       "options": {},
       "percentage": false,
+      "pluginVersion": "6.2.4",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -785,60 +1652,46 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "99.9%-ile Latency",
+          "legendFormat": "99.9%-ile",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "99%-ile Latency",
+          "legendFormat": "99%-ile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "95%-ile Latency",
+          "legendFormat": "95%-ile",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "90%-ile Latency",
+          "legendFormat": "90%-ile",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.75, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "75%-ile Latency",
-          "refId": "E"
-        },
-        {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "50%-ile Latency",
+          "legendFormat": "50%-ile",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.25, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "25%-ile Latency",
-          "refId": "G"
-        },
-        {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "10%-ile Latency",
+          "legendFormat": "10%-ile",
           "refId": "H"
         }
       ],
@@ -846,7 +1699,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Client RTT: openmatch.Frontend/DeleteTicket",
+      "title": "Bytes Sent per Call: openmatch.Evaluator/Evaluate",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -864,11 +1717,11 @@
       "yaxes": [
         {
           "decimals": null,
-          "format": "ms",
+          "format": "bytes",
           "label": null,
           "logBase": 2,
           "max": null,
-          "min": "0",
+          "min": null,
           "show": true
         },
         {
@@ -888,6 +1741,7 @@
     {
       "aliasColors": {},
       "bars": false,
+      "cacheTimeout": null,
       "dashLength": 10,
       "dashes": false,
       "description": "",
@@ -895,10 +1749,10 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 35
+        "x": 12,
+        "y": 70
       },
-      "id": 18,
+      "id": 43,
       "legend": {
         "alignAsTable": true,
         "avg": true,
@@ -916,6 +1770,135 @@
       "nullPointMode": "null",
       "options": {},
       "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Received per Call: openmatch.Evaluator/Evaluate",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "bytes",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 78
+      },
+      "id": 44,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -954,25 +1937,11 @@
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.75, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "75%-ile Latency",
-          "refId": "E"
-        },
-        {
           "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile Latency",
           "refId": "F"
-        },
-        {
-          "expr": "histogram_quantile(0.25, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "25%-ile Latency",
-          "refId": "G"
         },
         {
           "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Evaluator/Evaluate\"}[$timewindow])) by (grpc_client_method, le))",
@@ -1008,7 +1977,148 @@
           "label": null,
           "logBase": 2,
           "max": null,
-          "min": "0",
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 86
+      },
+      "id": 40,
+      "panels": [],
+      "title": "openmatch.MatchFunction/Run",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 87
+      },
+      "id": 46,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Sent per Call: openmatch.MatchFunction/Run",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "bytes",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
           "show": true
         },
         {
@@ -1028,6 +2138,7 @@
     {
       "aliasColors": {},
       "bars": false,
+      "cacheTimeout": null,
       "dashLength": 10,
       "dashes": false,
       "description": "",
@@ -1036,9 +2147,9 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 35
+        "y": 87
       },
-      "id": 15,
+      "id": 47,
       "legend": {
         "alignAsTable": true,
         "avg": true,
@@ -1056,6 +2167,7 @@
       "nullPointMode": "null",
       "options": {},
       "percentage": false,
+      "pluginVersion": "6.2.4",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1065,60 +2177,46 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "99.9%-ile Latency",
+          "legendFormat": "99.9%-ile",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "99%-ile Latency",
+          "legendFormat": "99%-ile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "95%-ile Latency",
+          "legendFormat": "95%-ile",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "90%-ile Latency",
+          "legendFormat": "90%-ile",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.75, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "75%-ile Latency",
-          "refId": "E"
-        },
-        {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "50%-ile Latency",
+          "legendFormat": "50%-ile",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.25, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "25%-ile Latency",
-          "refId": "G"
-        },
-        {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "10%-ile Latency",
+          "legendFormat": "10%-ile",
           "refId": "H"
         }
       ],
@@ -1126,7 +2224,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Client RTT: openmatch.internal.Synchronizer/Synchronize",
+      "title": "Bytes Received per Call: openmatch.MatchFunction/Run",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1144,11 +2242,11 @@
       "yaxes": [
         {
           "decimals": null,
-          "format": "ms",
+          "format": "bytes",
           "label": null,
           "logBase": 2,
           "max": null,
-          "min": "0",
+          "min": null,
           "show": true
         },
         {
@@ -1176,7 +2274,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 43
+        "y": 95
       },
       "id": 19,
       "legend": {
@@ -1234,25 +2332,11 @@
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.75, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "75%-ile Latency",
-          "refId": "E"
-        },
-        {
           "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile Latency",
           "refId": "F"
-        },
-        {
-          "expr": "histogram_quantile(0.25, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "25%-ile Latency",
-          "refId": "G"
         },
         {
           "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.MatchFunction/Run\"}[$timewindow])) by (grpc_client_method, le))",
@@ -1267,6 +2351,1194 @@
       "timeRegions": [],
       "timeShift": null,
       "title": "Client RTT: openmatch.MatchFunction/Run",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "ms",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 103
+      },
+      "id": 42,
+      "panels": [],
+      "title": "openmatch.Frontend/FetchMatches",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 104
+      },
+      "id": 48,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Sent per Call: openmatch.Backend/FetchMatches",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "bytes",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 104
+      },
+      "id": 49,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Received per Call: openmatch.Backend/FetchMatches",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "bytes",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 112
+      },
+      "id": 14,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile Latency",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile Latency",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile Latency",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile Latency",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile Latency",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile Latency",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Client RTT: openmatch.Backend/FetchMatches",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "ms",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 120
+      },
+      "id": 36,
+      "panels": [],
+      "title": "openmatch.Synchronizer/Synchronize",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 121
+      },
+      "id": 50,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Sent per Call: openmatch.internal.Synchronizer/Synchronize",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "bytes",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 121
+      },
+      "id": 51,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Received per Call: openmatch.internal.Synchronizer/Synchronize",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "bytes",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 129
+      },
+      "id": 15,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile Latency",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile Latency",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile Latency",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile Latency",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile Latency",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.internal.Synchronizer/Synchronize\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile Latency",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Client RTT: openmatch.internal.Synchronizer/Synchronize",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "ms",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 137
+      },
+      "id": 23,
+      "panels": [],
+      "title": "openmatch.Frontend/DeleteTicket",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 138
+      },
+      "id": 52,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Sent per Call: openmatch.Frontend/DeleteTicket",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "bytes",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 138
+      },
+      "id": 53,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Received per Call: openmatch.Frontend/DeleteTicket",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "bytes",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 146
+      },
+      "id": 16,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "99.9%-ile Latency",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "99%-ile Latency",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "95%-ile Latency",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "90%-ile Latency",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "50%-ile Latency",
+          "refId": "F"
+        },
+        {
+          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "10%-ile Latency",
+          "refId": "H"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Client RTT: openmatch.Frontend/DeleteTicket",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1393,5 +3665,5 @@
   "timezone": "",
   "title": "gRPC",
   "uid": "nlrmG_Cmk",
-  "version": 2
+  "version": 1
 }
