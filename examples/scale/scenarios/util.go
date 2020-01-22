@@ -19,8 +19,10 @@ import (
 	"io"
 	"sync"
 
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/util/testing"
+	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -95,4 +97,30 @@ func getMmlogicGRPCClient() pb.MmLogicClient {
 		logger.Fatalf("Failed to connect to Open Match, got %v", err)
 	}
 	return pb.NewMmLogicClient(conn)
+}
+
+func queryPoolsWrapper(mmf func(req *pb.MatchProfile, pools map[string][]*pb.Ticket) ([]*pb.Match, error)) matchFunction {
+	return func(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
+		poolTickets, err := matchfunction.QueryPools(stream.Context(), getMmlogicGRPCClient(), req.GetProfile().GetPools())
+		if err != nil {
+			return err
+		}
+
+		proposals, err := mmf(req.GetProfile(), poolTickets)
+		if err != nil {
+			return err
+		}
+
+		logger.WithFields(logrus.Fields{
+			"proposals": proposals,
+		}).Trace("proposals returned by match function")
+
+		for _, proposal := range proposals {
+			if err := stream.Send(&pb.RunResponse{Proposal: proposal}); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
 }

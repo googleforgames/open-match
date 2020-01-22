@@ -87,13 +87,11 @@ func run(ds *components.DemoShared) {
 				Port: 50502,
 				Type: pb.FunctionConfig_GRPC,
 			},
-			Profiles: []*pb.MatchProfile{
-				{
-					Name: "1v1",
-					Pools: []*pb.Pool{
-						{
-							Name: "Everyone",
-						},
+			Profile: &pb.MatchProfile{
+				Name: "1v1",
+				Pools: []*pb.Pool{
+					{
+						Name: "Everyone",
 					},
 				},
 			},
