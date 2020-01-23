@@ -17,10 +17,10 @@ package main
 
 import (
 	"open-match.dev/open-match/internal/app"
-	"open-match.dev/open-match/internal/app/queryservice"
+	"open-match.dev/open-match/internal/app/query"
 	"open-match.dev/open-match/internal/config"
 )
 
 func main() {
-	app.RunApplication("queryservice", config.Read, queryservice.BindService)
+	app.RunApplication("queryservice", config.Read, query.BindService)
 }
