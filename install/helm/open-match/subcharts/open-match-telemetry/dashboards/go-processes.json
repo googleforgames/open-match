@@ -25,6 +25,193 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "description": "Current CPU usage to Pod memory resource limit in percentage",
+      "fill": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 10,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "sort": "max",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "avg by (pod_name) (\n  sum(\n    rate(container_cpu_usage_seconds_total{pod_name=~\"om-.*\", container_name!=\"POD\"}[5m])\n  ) by (pod_name, container_name) \n  \n  /\n  \n  sum(\n    container_spec_cpu_quota{pod_name=~\"om-.*\", container_name!=\"POD\"} / container_spec_cpu_period{pod_name=~\"om-.*\", container_name!=\"POD\"}\n  ) by (pod_name, container_name) \n  \n  * \n  \n  100\n)",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "{{pod_name}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "CPU Usage Limit Percentage",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fill": 0,
+      "grid": {},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 7,
+      "isNew": true,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "connected",
+      "options": {},
+      "percentage": false,
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "avg by (component) (go_goroutines{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"})",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{component}}",
+          "metric": "go_goroutines",
+          "refId": "A",
+          "step": 4
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Go Routines",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "cumulative"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
       "datasource": "Prometheus",
       "editable": true,
       "error": false,
@@ -34,7 +221,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 0
+        "y": 8
       },
       "id": 1,
       "isNew": true,
@@ -91,7 +278,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "process memory",
+      "title": "Process Memory",
       "tooltip": {
         "msResolution": false,
         "shared": true,
@@ -143,7 +330,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 0
+        "y": 8
       },
       "id": 4,
       "isNew": true,
@@ -200,7 +387,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "process memory deriv",
+      "title": "Process Memory Derivative",
       "tooltip": {
         "msResolution": false,
         "shared": true,
@@ -253,7 +440,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 16
       },
       "id": 2,
       "isNew": true,
@@ -329,7 +516,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "go memstats",
+      "title": "Go Memstats",
       "tooltip": {
         "msResolution": false,
         "shared": true,
@@ -382,7 +569,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 16
       },
       "id": 5,
       "isNew": true,
@@ -449,7 +636,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "go memstats deriv",
+      "title": "Go Memstats Derivative",
       "tooltip": {
         "msResolution": false,
         "shared": true,
@@ -502,7 +689,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 16
+        "y": 24
       },
       "id": 3,
       "isNew": true,
@@ -545,7 +732,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "open fds",
+      "title": "Open File Descriptors",
       "tooltip": {
         "msResolution": false,
         "shared": true,
@@ -598,7 +785,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 16
+        "y": 24
       },
       "id": 6,
       "isNew": true,
@@ -641,103 +828,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "open fds deriv",
-      "tooltip": {
-        "msResolution": false,
-        "shared": true,
-        "sort": 0,
-        "value_type": "cumulative"
-      },
-      "transparent": true,
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "editable": true,
-      "error": false,
-      "fill": 0,
-      "grid": {},
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 0,
-        "y": 24
-      },
-      "id": 7,
-      "isNew": true,
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": true,
-        "max": true,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "connected",
-      "options": {},
-      "percentage": false,
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "avg by (component) (go_goroutines{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"})",
-          "format": "time_series",
-          "intervalFactor": 2,
-          "legendFormat": "{{component}}",
-          "metric": "go_goroutines",
-          "refId": "A",
-          "step": 4
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Goroutines",
+      "title": "Open File Descriptors Derivative",
       "tooltip": {
         "msResolution": false,
         "shared": true,
@@ -790,7 +881,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 24
+        "y": 32
       },
       "id": 8,
       "isNew": true,
@@ -833,11 +924,11 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "GC duration quantiles",
+      "title": "GC Duration Quantiles",
       "tooltip": {
         "msResolution": false,
         "shared": true,
-        "sort": 0,
+        "sort": 2,
         "value_type": "cumulative"
       },
       "transparent": true,
