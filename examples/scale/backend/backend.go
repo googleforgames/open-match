@@ -24,7 +24,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
-	"open-match.dev/open-match/examples/scale/profiles"
 	"open-match.dev/open-match/examples/scale/scenarios"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
@@ -78,21 +77,31 @@ func run(cfg config.View) {
 	fe := pb.NewFrontendClient(feConn)
 
 	startTime := time.Now()
-	mprofiles := profiles.Generate(cfg)
-
-	statProcessor.SetStat("TotalProfiles", len(mprofiles))
 
 	w := logger.Writer()
 	defer w.Close()
 
-	for {
+	matchesForAssignment := make(chan *pb.Match, 30000)
+	ticketsForDeletion := make(chan string, 30000)
+
+	for i := 0; i < 50; i++ {
+		go runAssignments(be, matchesForAssignment, ticketsForDeletion)
+		go runDeletions(fe, ticketsForDeletion)
+	}
+
+	// Don't go faster than this, as it likely means that FetchMatches is throwing
+	// errors, and will continue doing so if queried very quickly.
+	for range time.Tick(time.Millisecond * 250) {
 		// Keep pulling matches from Open Match backend
+		profiles := activeScenario.Profiles()
+		statProcessor.SetStat("TotalProfiles", len(profiles))
 		var wg sync.WaitGroup
-		for _, p := range mprofiles {
+
+		for _, p := range profiles {
 			wg.Add(1)
 			go func(wg *sync.WaitGroup, p *pb.MatchProfile) {
 				defer wg.Done()
-				runIteration(fe, be, p)
+				runFetchMatches(be, p, matchesForAssignment)
 			}(&wg, p)
 		}
 
@@ -104,7 +113,7 @@ func run(cfg config.View) {
 	}
 }
 
-func runIteration(fe pb.FrontendClient, be pb.BackendClient, p *pb.MatchProfile) {
+func runFetchMatches(be pb.BackendClient, p *pb.MatchProfile, matchesForAssignment chan<- *pb.Match) {
 	ctx, span := trace.StartSpan(context.Background(), "scale.backend/FetchMatches")
 	defer span.End()
 
@@ -114,7 +123,7 @@ func runIteration(fe pb.FrontendClient, be pb.BackendClient, p *pb.MatchProfile)
 			Port: 50502,
 			Type: pb.FunctionConfig_GRPC,
 		},
-		Profiles: []*pb.MatchProfile{p},
+		Profile: p,
 	}
 
 	telemetry.RecordUnitMeasurement(ctx, mFetchMatchCalls)
@@ -125,10 +134,6 @@ func runIteration(fe pb.FrontendClient, be pb.BackendClient, p *pb.MatchProfile)
 		return
 	}
 
-	processMatches(ctx, fe, be, stream)
-}
-
-func processMatches(ctx context.Context, fe pb.FrontendClient, be pb.BackendClient, stream pb.Backend_FetchMatchesClient) {
 	for {
 		// Pull the Match
 		resp, err := stream.Recv()
@@ -143,22 +148,31 @@ func processMatches(ctx context.Context, fe pb.FrontendClient, be pb.BackendClie
 			return
 		}
 
+		telemetry.RecordNUnitMeasurement(ctx, mSumTicketsReturned, int64(len(resp.GetMatch().Tickets)))
 		telemetry.RecordUnitMeasurement(ctx, mMatchesReturned)
 		statProcessor.IncrementStat("MatchCount", 1)
 
+		matchesForAssignment <- resp.GetMatch()
+	}
+}
+
+func runAssignments(be pb.BackendClient, matchesForAssignment <-chan *pb.Match, ticketsForDeletion chan<- string) {
+	ctx := context.Background()
+
+	for m := range matchesForAssignment {
 		ids := []string{}
-		for _, t := range resp.GetMatch().Tickets {
-			telemetry.RecordUnitMeasurement(ctx, mSumTicketsReturned)
+		for _, t := range m.Tickets {
 			ids = append(ids, t.GetId())
 		}
-		// Assign Tickets
+
 		if activeScenario.BackendAssignsTickets {
-			if _, err := be.AssignTickets(context.Background(), &pb.AssignTicketsRequest{
+			_, err := be.AssignTickets(context.Background(), &pb.AssignTicketsRequest{
 				TicketIds: ids,
 				Assignment: &pb.Assignment{
 					Connection: fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),
 				},
-			}); err != nil {
+			})
+			if err != nil {
 				telemetry.RecordUnitMeasurement(ctx, mMatchAssignsFailed)
 				statProcessor.RecordError("failed to assign tickets", err)
 				continue
@@ -168,21 +182,29 @@ func processMatches(ctx context.Context, fe pb.FrontendClient, be pb.BackendClie
 			statProcessor.IncrementStat("Assigned", len(ids))
 		}
 
-		// Delete Tickets
+		for _, id := range ids {
+			ticketsForDeletion <- id
+		}
+	}
+}
+
+func runDeletions(fe pb.FrontendClient, ticketsForDeletion <-chan string) {
+	ctx := context.Background()
+
+	for id := range ticketsForDeletion {
 		if activeScenario.BackendDeletesTickets {
-			for _, id := range ids {
-				req := &pb.DeleteTicketRequest{
-					TicketId: id,
-				}
+			req := &pb.DeleteTicketRequest{
+				TicketId: id,
+			}
 
-				if _, err := fe.DeleteTicket(context.Background(), req); err != nil {
-					telemetry.RecordUnitMeasurement(ctx, mTicketDeletesFailed)
-					statProcessor.RecordError("failed to delete tickets", err)
-					continue
-				}
+			_, err := fe.DeleteTicket(context.Background(), req)
 
+			if err == nil {
 				telemetry.RecordUnitMeasurement(ctx, mTicketsDeleted)
 				statProcessor.IncrementStat("Deleted", 1)
+			} else {
+				telemetry.RecordUnitMeasurement(ctx, mTicketDeletesFailed)
+				statProcessor.RecordError("failed to delete tickets", err)
 			}
 		}
 	}

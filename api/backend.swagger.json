@@ -161,11 +161,8 @@
           "$ref": "#/definitions/openmatchFunctionConfig",
           "title": "FunctionConfig specifies a MMF address and client type for Backend to establish connections with the MMF"
         },
-        "profiles": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/openmatchMatchProfile"
-          },
+        "profile": {
+          "$ref": "#/definitions/openmatchMatchProfile",
           "description": "MatchProfiles that will be sent to thhe MMF specified in the FunctionConfig."
         }
       }
