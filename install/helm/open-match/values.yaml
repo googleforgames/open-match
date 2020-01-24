@@ -109,8 +109,9 @@ redis:
   usePassword: false
   usePasswordFile: false
   secretMountPath: /opt/bitnami/redis/secrets
-  configmap:
+  configmap: |
     maxclients 100000
+    maxmemory 300000000
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
     resources:
