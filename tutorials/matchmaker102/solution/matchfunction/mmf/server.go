@@ -35,7 +35,7 @@ type MatchFunctionService struct {
 // Match's queryservice service. This connection is used at runtime to fetch tickets
 // for pools specified in MatchProfile.
 func Start(queryserviceAddr string, serverPort int) {
-	// Connect to MMLogic service.
+	// Connect to QueryService.
 	conn, err := grpc.Dial(queryserviceAddr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("Failed to connect to Open Match, got %w", err)

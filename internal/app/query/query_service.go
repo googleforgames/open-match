@@ -33,7 +33,7 @@ var (
 	})
 )
 
-// The MMLogic API provides utility functions for common MMF functionality such
+// The queryservice API provides utility functions for common MMF functionality such
 // as retreiving Tickets from state storage.
 type queryserviceService struct {
 	cfg   config.View

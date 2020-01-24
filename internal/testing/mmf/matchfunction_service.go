@@ -110,7 +110,7 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunctionService, error) {
 	conn, err := rpc.GRPCClientFromConfig(cfg, "api.queryservice")
 	if err != nil {
-		logger.Errorf("Failed to get MMLogic connection, %v.", err)
+		logger.Errorf("Failed to get QueryService connection, %v.", err)
 		return nil, err
 	}
 
