@@ -46,19 +46,19 @@ func runMustServeTest(t *testing.T, mustServeFunc func(*testing.T, func(*rpc.Ser
 	ff := &shellTesting.FakeFrontend{}
 	tc := mustServeFunc(t, func(spf *rpc.ServerParams) {
 		spf.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterFrontendServer(s, ff)
-		}, pb.RegisterFrontendHandlerFromEndpoint)
+			pb.RegisterFrontendServiceServer(s, ff)
+		}, pb.RegisterFrontendServiceHandlerFromEndpoint)
 	})
 	defer tc.Close()
 
 	conn := tc.MustGRPC()
-	c := pb.NewFrontendClient(conn)
+	c := pb.NewFrontendServiceClient(conn)
 	resp, err := c.CreateTicket(tc.Context(), &pb.CreateTicketRequest{})
 	assert.Nil(err)
 	assert.NotNil(resp)
 
 	hc, endpoint := tc.MustHTTP()
-	hResp, err := hc.Post(endpoint+"/v1/frontend/tickets", "application/json", strings.NewReader("{}"))
+	hResp, err := hc.Post(endpoint+"/v1/frontendservice/tickets", "application/json", strings.NewReader("{}"))
 	assert.Nil(err)
 	if hResp != nil {
 		assert.Equal(200, hResp.StatusCode)

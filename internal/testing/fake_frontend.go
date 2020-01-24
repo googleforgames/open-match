@@ -50,6 +50,6 @@ func (s *FakeFrontend) GetTicket(ctx context.Context, req *pb.GetTicketRequest) 
 
 // GetAssignments streams matchmaking results from Open Match for the
 // provided Ticket id.
-func (s *FakeFrontend) GetAssignments(req *pb.GetAssignmentsRequest, stream pb.Frontend_GetAssignmentsServer) error {
+func (s *FakeFrontend) GetAssignments(req *pb.GetAssignmentsRequest, stream pb.FrontendService_GetAssignmentsServer) error {
 	return status.Error(codes.Unimplemented, "not implemented")
 }

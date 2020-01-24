@@ -24,7 +24,7 @@
     "application/json"
   ],
   "paths": {
-    "/v1/backend/matches:fetch": {
+    "/v1/backendservice/matches:fetch": {
       "post": {
         "summary": "FetchMatches triggers a MatchFunction with the specified MatchProfiles, while each MatchProfile \nreturns a set of match proposals. FetchMatches method streams the results back to the caller.\nFetchMatches immediately returns an error if it encounters any execution failures.\n  - If the synchronizer is enabled, FetchMatch will then call the synchronizer to deduplicate proposals with overlapped tickets.",
         "operationId": "FetchMatches",
@@ -54,11 +54,11 @@
           }
         ],
         "tags": [
-          "Backend"
+          "BackendService"
         ]
       }
     },
-    "/v1/backend/tickets:assign": {
+    "/v1/backendservice/tickets:assign": {
       "post": {
         "summary": "AssignTickets overwrites the Assignment field of the input TicketIds.",
         "operationId": "AssignTickets",
@@ -88,7 +88,7 @@
           }
         ],
         "tags": [
-          "Backend"
+          "BackendService"
         ]
       }
     }

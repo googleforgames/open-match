@@ -24,7 +24,7 @@
     "application/json"
   ],
   "paths": {
-    "/v1/frontend/tickets": {
+    "/v1/frontendservice/tickets": {
       "post": {
         "summary": "CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.\nA ticket is considered as ready for matchmaking once it is created.\n  - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.\n  - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with query.QueryTickets function.",
         "operationId": "CreateTicket",
@@ -54,11 +54,11 @@
           }
         ],
         "tags": [
-          "Frontend"
+          "FrontendService"
         ]
       }
     },
-    "/v1/frontend/tickets/{ticket_id}": {
+    "/v1/frontendservice/tickets/{ticket_id}": {
       "get": {
         "summary": "GetTicket get the Ticket associated with the specified TicketId.",
         "operationId": "GetTicket",
@@ -87,7 +87,7 @@
           }
         ],
         "tags": [
-          "Frontend"
+          "FrontendService"
         ]
       },
       "delete": {
@@ -118,11 +118,11 @@
           }
         ],
         "tags": [
-          "Frontend"
+          "FrontendService"
         ]
       }
     },
-    "/v1/frontend/tickets/{ticket_id}/assignments": {
+    "/v1/frontendservice/tickets/{ticket_id}/assignments": {
       "get": {
         "summary": "GetAssignments stream back Assignment of the specified TicketId if it is updated.\n  - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.",
         "operationId": "GetAssignments",
@@ -151,7 +151,7 @@
           }
         ],
         "tags": [
-          "Frontend"
+          "FrontendService"
         ]
       }
     }

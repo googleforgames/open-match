@@ -66,7 +66,7 @@ func run(cfg config.View) {
 	}
 
 	defer beConn.Close()
-	be := pb.NewBackendClient(beConn)
+	be := pb.NewBackendServiceClient(beConn)
 
 	feConn, err := rpc.GRPCClientFromConfig(cfg, "api.frontend")
 	if err != nil {
@@ -74,7 +74,7 @@ func run(cfg config.View) {
 	}
 
 	defer feConn.Close()
-	fe := pb.NewFrontendClient(feConn)
+	fe := pb.NewFrontendServiceClient(feConn)
 
 	startTime := time.Now()
 
@@ -113,7 +113,7 @@ func run(cfg config.View) {
 	}
 }
 
-func runFetchMatches(be pb.BackendClient, p *pb.MatchProfile, matchesForAssignment chan<- *pb.Match) {
+func runFetchMatches(be pb.BackendServiceClient, p *pb.MatchProfile, matchesForAssignment chan<- *pb.Match) {
 	ctx, span := trace.StartSpan(context.Background(), "scale.backend/FetchMatches")
 	defer span.End()
 
@@ -156,7 +156,7 @@ func runFetchMatches(be pb.BackendClient, p *pb.MatchProfile, matchesForAssignme
 	}
 }
 
-func runAssignments(be pb.BackendClient, matchesForAssignment <-chan *pb.Match, ticketsForDeletion chan<- string) {
+func runAssignments(be pb.BackendServiceClient, matchesForAssignment <-chan *pb.Match, ticketsForDeletion chan<- string) {
 	ctx := context.Background()
 
 	for m := range matchesForAssignment {
@@ -188,7 +188,7 @@ func runAssignments(be pb.BackendClient, matchesForAssignment <-chan *pb.Match, 
 	}
 }
 
-func runDeletions(fe pb.FrontendClient, ticketsForDeletion <-chan string) {
+func runDeletions(fe pb.FrontendServiceClient, ticketsForDeletion <-chan string) {
 	ctx := context.Background()
 
 	for id := range ticketsForDeletion {

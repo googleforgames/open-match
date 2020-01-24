@@ -46,7 +46,7 @@ func main() {
 	}
 
 	defer conn.Close()
-	be := pb.NewBackendClient(conn)
+	be := pb.NewBackendServiceClient(conn)
 
 	// Generate the profiles to fetch matches for.
 	profiles := generateProfiles()
@@ -78,7 +78,7 @@ func main() {
 	}
 }
 
-func fetch(be pb.BackendClient, p *pb.MatchProfile) ([]*pb.Match, error) {
+func fetch(be pb.BackendServiceClient, p *pb.MatchProfile) ([]*pb.Match, error) {
 	req := &pb.FetchMatchesRequest{
 		Config: &pb.FunctionConfig{
 			Host: functionHostName,
@@ -111,7 +111,7 @@ func fetch(be pb.BackendClient, p *pb.MatchProfile) ([]*pb.Match, error) {
 	return result, nil
 }
 
-func assign(be pb.BackendClient, matches []*pb.Match) error {
+func assign(be pb.BackendServiceClient, matches []*pb.Match) error {
 	for _, match := range matches {
 		ticketIDs := []string{}
 		for _, t := range match.GetTickets() {
