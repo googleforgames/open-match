@@ -57,8 +57,8 @@ func getCfg() (config.View, error) {
 	cfg.Set("api.functions.grpcport", 50502)
 	cfg.Set("api.functions.httpport", 51502)
 
-	cfg.Set("api.queryservice.hostname", "om-queryservice")
-	cfg.Set("api.queryservice.grpcport", 50503)
+	cfg.Set("api.query.hostname", "om-query")
+	cfg.Set("api.query.grpcport", 50503)
 
 	return cfg, nil
 }

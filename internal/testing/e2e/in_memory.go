@@ -159,9 +159,9 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 		cfg := viper.New()
 
 		// The below configuration is used by GRPC harness to create an queryservice client to query tickets.
-		cfg.Set("api.queryservice.hostname", c.GetHostname())
-		cfg.Set("api.queryservice.grpcport", c.GetGRPCPort())
-		cfg.Set("api.queryservice.httpport", c.GetHTTPPort())
+		cfg.Set("api.query.hostname", c.GetHostname())
+		cfg.Set("api.query.grpcport", c.GetGRPCPort())
+		cfg.Set("api.query.httpport", c.GetHTTPPort())
 
 		assert.Nil(t, internalMmf.BindService(p, cfg, &internalMmf.FunctionSettings{
 			Func: mmf.MakeMatches,

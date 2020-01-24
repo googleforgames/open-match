@@ -79,7 +79,7 @@ func (com *clusterOM) MustBackendGRPC() pb.BackendClient {
 }
 
 func (com *clusterOM) MustQueryServiceGRPC() pb.QueryServiceClient {
-	conn, err := com.getGRPCClientFromServiceName("om-queryservice")
+	conn, err := com.getGRPCClientFromServiceName("om-query")
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}

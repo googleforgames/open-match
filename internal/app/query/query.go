@@ -22,7 +22,7 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// BindService creates the queryservice service and binds it to the serving harness.
+// BindService creates the query service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View) error {
 	service := &queryserviceService{
 		cfg:   cfg,

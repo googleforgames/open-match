@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main is the queryservice service for Open Match.
+// Package main is the query service for Open Match.
 package main
 
 import (
@@ -22,5 +22,5 @@ import (
 )
 
 func main() {
-	app.RunApplication("queryservice", config.Read, query.BindService)
+	app.RunApplication("query", config.Read, query.BindService)
 }

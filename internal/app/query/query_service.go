@@ -29,7 +29,7 @@ import (
 var (
 	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "app.queryservice",
+		"component": "app.query",
 	})
 )
 

@@ -26,7 +26,7 @@
   "paths": {
     "/v1/frontend/tickets": {
       "post": {
-        "summary": "CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.\nA ticket is considered as ready for matchmaking once it is created.\n  - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.\n  - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with queryservice.QueryTickets function.",
+        "summary": "CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.\nA ticket is considered as ready for matchmaking once it is created.\n  - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.\n  - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with query.QueryTickets function.",
         "operationId": "CreateTicket",
         "responses": {
           "200": {
