@@ -116,7 +116,7 @@ creds.json
 # Open Match Binaries
 cmd/backend/backend
 cmd/frontend/frontend
-cmd/queryservice/queryservice
+cmd/query/query
 cmd/synchronizer/synchronizer
 cmd/minimatch/minimatch
 cmd/swaggerui/swaggerui
