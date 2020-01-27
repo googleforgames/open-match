@@ -91,7 +91,7 @@ func (e StatProcessor) Log(w io.Writer) {
 	})
 }
 
-func getQueryserviceGRPCClient() pb.QueryServiceClient {
+func getQueryServiceGRPCClient() pb.QueryServiceClient {
 	conn, err := grpc.Dial(queryServiceAddress, testing.NewGRPCDialOptions(logger)...)
 	if err != nil {
 		logger.Fatalf("Failed to connect to Open Match, got %v", err)
@@ -101,7 +101,7 @@ func getQueryserviceGRPCClient() pb.QueryServiceClient {
 
 func queryPoolsWrapper(mmf func(req *pb.MatchProfile, pools map[string][]*pb.Ticket) ([]*pb.Match, error)) matchFunction {
 	return func(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
-		poolTickets, err := matchfunction.QueryPools(stream.Context(), getQueryserviceGRPCClient(), req.GetProfile().GetPools())
+		poolTickets, err := matchfunction.QueryPools(stream.Context(), getQueryServiceGRPCClient(), req.GetProfile().GetPools())
 		if err != nil {
 			return err
 		}
