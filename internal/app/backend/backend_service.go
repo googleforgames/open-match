@@ -62,7 +62,7 @@ var (
 // returns a set of match proposals. FetchMatches method streams the results back to the caller.
 // FetchMatches immediately returns an error if it encounters any execution failures.
 //   - If the synchronizer is enabled, FetchMatch will then call the synchronizer to deduplicate proposals with overlapped tickets.
-func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Backend_FetchMatchesServer) error {
+func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.BackendService_FetchMatchesServer) error {
 	if req.GetConfig() == nil {
 		return status.Error(codes.InvalidArgument, ".config is required")
 	}

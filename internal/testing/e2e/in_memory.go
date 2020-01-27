@@ -62,16 +62,16 @@ func createZygote(m *testing.M) (OM, error) {
 	return &inmemoryOM{}, nil
 }
 
-func (iom *inmemoryOM) MustFrontendGRPC() pb.FrontendClient {
+func (iom *inmemoryOM) MustFrontendGRPC() pb.FrontendServiceClient {
 	conn := iom.mainTc.MustGRPC()
 	iom.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewFrontendClient(conn)
+	return pb.NewFrontendServiceClient(conn)
 }
 
-func (iom *inmemoryOM) MustBackendGRPC() pb.BackendClient {
+func (iom *inmemoryOM) MustBackendGRPC() pb.BackendServiceClient {
 	conn := iom.mainTc.MustGRPC()
 	iom.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewBackendClient(conn)
+	return pb.NewBackendServiceClient(conn)
 }
 
 func (iom *inmemoryOM) MustQueryServiceGRPC() pb.QueryServiceClient {

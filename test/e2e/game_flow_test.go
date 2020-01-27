@@ -197,7 +197,7 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 }
 
-func validateFetchMatchesResponse(ctx context.Context, t *testing.T, wantTickets [][]*pb.Ticket, be pb.BackendClient, fmReq *pb.FetchMatchesRequest) {
+func validateFetchMatchesResponse(ctx context.Context, t *testing.T, wantTickets [][]*pb.Ticket, be pb.BackendServiceClient, fmReq *pb.FetchMatchesRequest) {
 	stream, err := be.FetchMatches(ctx, fmReq, grpc.WaitForReady(true))
 	require.Nil(t, err)
 	matches := make([]*pb.Match, 0)

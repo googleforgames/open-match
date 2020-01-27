@@ -37,8 +37,8 @@ func TestStartStopServer(t *testing.T) {
 
 	params := NewServerParamsFromListeners(grpcLh, httpLh)
 	params.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterFrontendServer(s, ff)
-	}, pb.RegisterFrontendHandlerFromEndpoint)
+		pb.RegisterFrontendServiceServer(s, ff)
+	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
 	s := &Server{}
 	defer s.Stop()
 
@@ -65,8 +65,8 @@ func TestMustServeForever(t *testing.T) {
 
 	params := NewServerParamsFromListeners(grpcLh, httpLh)
 	params.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterFrontendServer(s, ff)
-	}, pb.RegisterFrontendHandlerFromEndpoint)
+		pb.RegisterFrontendServiceServer(s, ff)
+	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
 	serveUntilKilledFunc, stopServingFunc, err := startServingIndefinitely(params)
 	assert.Nil(err)
 	go func() {
@@ -82,12 +82,12 @@ func TestMustServeForever(t *testing.T) {
 
 func runGrpcWithProxyTests(t *testing.T, assert *assert.Assertions, s grpcServerWithProxy, conn *grpc.ClientConn, httpClient *http.Client, endpoint string) {
 	ctx := utilTesting.NewContext(t)
-	feClient := pb.NewFrontendClient(conn)
+	feClient := pb.NewFrontendServiceClient(conn)
 	grpcResp, err := feClient.CreateTicket(ctx, &pb.CreateTicketRequest{})
 	assert.Nil(err)
 	assert.NotNil(grpcResp)
 
-	httpReq, err := http.NewRequest(http.MethodPost, endpoint+"/v1/frontend/tickets", strings.NewReader("{}"))
+	httpReq, err := http.NewRequest(http.MethodPost, endpoint+"/v1/frontendservice/tickets", strings.NewReader("{}"))
 	assert.Nil(err)
 	assert.NotNil(httpReq)
 	httpResp, err := httpClient.Do(httpReq)
