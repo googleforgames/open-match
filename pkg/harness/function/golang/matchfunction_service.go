@@ -49,7 +49,7 @@ type MatchFunction func(*MatchFunctionParams) ([]*pb.Match, error)
 type matchFunctionService struct {
 	cfg                config.View
 	function           MatchFunction
-	queryserviceClient pb.QueryServiceClient
+	queryServiceClient pb.QueryServiceClient
 }
 
 // MatchFunctionParams is a protected view for the match function.
@@ -114,19 +114,19 @@ func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunct
 		return nil, err
 	}
 
-	mmfService := &matchFunctionService{cfg: cfg, function: fs.Func, queryserviceClient: pb.NewQueryServiceClient(conn)}
+	mmfService := &matchFunctionService{cfg: cfg, function: fs.Func, queryServiceClient: pb.NewQueryServiceClient(conn)}
 	return mmfService, nil
 }
 
-// getMatchManifest fetches all the data needed from the queryservice API.
+// getMatchManifest fetches all the data needed from the queryService API.
 func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.RunRequest) (map[string][]*pb.Ticket, error) {
 	poolNameToTickets := make(map[string][]*pb.Ticket)
 	filterPools := req.GetProfile().GetPools()
 
 	for _, pool := range filterPools {
-		qtClient, err := s.queryserviceClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool}, grpc.WaitForReady(true))
+		qtClient, err := s.queryServiceClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool}, grpc.WaitForReady(true))
 		if err != nil {
-			logger.WithError(err).Error("Failed to get queryTicketClient from queryservice.")
+			logger.WithError(err).Error("Failed to get queryTicketClient from queryService.")
 			return nil, err
 		}
 

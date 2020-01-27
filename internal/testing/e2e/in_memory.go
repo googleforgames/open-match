@@ -115,7 +115,7 @@ func (iom *inmemoryOM) cleanupMain() error {
 	return nil
 }
 
-// Create a minimatch test service with function bindings from frontend, backend, and queryservice.
+// Create a minimatch test service with function bindings from frontendService, backendService, and queryService.
 // Instruct this service to start and connect to a fake storage service.
 func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTesting.TestContext {
 	var closer func()
@@ -152,13 +152,13 @@ func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTe
 }
 
 // Create a mmf service using a started test server.
-// Inject the port config of queryservice using that the passed in test server
+// Inject the port config of queryService using that the passed in test server
 func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTesting.TestContext {
 	// TODO: Use insecure for now since minimatch and mmf only works with the same secure mode
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
 
-		// The below configuration is used by GRPC harness to create an queryservice client to query tickets.
+		// The below configuration is used by GRPC harness to create an queryService client to query tickets.
 		cfg.Set("api.query.hostname", c.GetHostname())
 		cfg.Set("api.query.grpcport", c.GetGRPCPort())
 		cfg.Set("api.query.httpport", c.GetHTTPPort())
