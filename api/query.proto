@@ -65,15 +65,15 @@ message QueryTicketsResponse {
   repeated Ticket tickets = 1;
 }
 
-// The MmLogic service implements helper APIs for Match Function to query Tickets from state storage.
-service MmLogic {
+// The QueryService service implements helper APIs for Match Function to query Tickets from state storage.
+service QueryService {
   // QueryTickets gets a list of Tickets that match all Filters of the input Pool.
   //   - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.
   // QueryTickets pages the Tickets by `storage.pool.size` and stream back response.
   //   - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000
   rpc QueryTickets(QueryTicketsRequest) returns (stream QueryTicketsResponse) {
     option (google.api.http) = {
-      post: "/v1/mmlogic/tickets:query"
+      post: "/v1/queryservice/tickets:query"
       body: "*"
     };
   }

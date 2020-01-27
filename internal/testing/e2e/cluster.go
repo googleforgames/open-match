@@ -78,13 +78,13 @@ func (com *clusterOM) MustBackendGRPC() pb.BackendClient {
 	return pb.NewBackendClient(conn)
 }
 
-func (com *clusterOM) MustMmLogicGRPC() pb.MmLogicClient {
-	conn, err := com.getGRPCClientFromServiceName("om-mmlogic")
+func (com *clusterOM) MustQueryServiceGRPC() pb.QueryServiceClient {
+	conn, err := com.getGRPCClientFromServiceName("om-query")
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
 	com.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewMmLogicClient(conn)
+	return pb.NewQueryServiceClient(conn)
 }
 
 func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {

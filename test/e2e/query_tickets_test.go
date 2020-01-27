@@ -253,7 +253,7 @@ func TestQueryTickets(t *testing.T) {
 				om, closer := e2e.New(t)
 				defer closer()
 				fe := om.MustFrontendGRPC()
-				mml := om.MustMmLogicGRPC()
+				mml := om.MustQueryServiceGRPC()
 				pageCounts := 0
 				ctx := om.Context()
 

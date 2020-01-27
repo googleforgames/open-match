@@ -23,11 +23,11 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// QueryPool queries mmlogic and returns the tickets that belong to the specified pool.
-func QueryPool(ctx context.Context, mml pb.MmLogicClient, pool *pb.Pool) ([]*pb.Ticket, error) {
+// QueryPool queries queryService and returns the tickets that belong to the specified pool.
+func QueryPool(ctx context.Context, mml pb.QueryServiceClient, pool *pb.Pool) ([]*pb.Ticket, error) {
 	query, err := mml.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
 	if err != nil {
-		return nil, fmt.Errorf("Error calling mmlogic.QueryTickets: %w", err)
+		return nil, fmt.Errorf("Error calling queryService.QueryTickets: %w", err)
 	}
 
 	var tickets []*pb.Ticket
@@ -38,15 +38,15 @@ func QueryPool(ctx context.Context, mml pb.MmLogicClient, pool *pb.Pool) ([]*pb.
 		}
 
 		if err != nil {
-			return nil, fmt.Errorf("Error receiving tickets from mmlogic.QueryTickets: %w", err)
+			return nil, fmt.Errorf("Error receiving tickets from queryService.QueryTickets: %w", err)
 		}
 
 		tickets = append(tickets, resp.Tickets...)
 	}
 }
 
-// QueryPools queries mmlogic and returns the a map of pool names to the tickets belonging to those pools.
-func QueryPools(ctx context.Context, mml pb.MmLogicClient, pools []*pb.Pool) (map[string][]*pb.Ticket, error) {
+// QueryPools queries queryService and returns the a map of pool names to the tickets belonging to those pools.
+func QueryPools(ctx context.Context, mml pb.QueryServiceClient, pools []*pb.Pool) (map[string][]*pb.Ticket, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	type result struct {

@@ -16,19 +16,19 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: {{ .Values.mmlogic.hostName }}
+  name: {{ .Values.query.hostName }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
-    component: mmlogic
+    component: query
     release: {{ .Release.Name }}
 spec:
   selector:
     app: {{ template "openmatch.name" . }}
-    component: mmlogic
+    component: query
     release: {{ .Release.Name }}
-{{- $portType := coalesce .Values.global.kubernetes.service.portType .Values.mmlogic.portType -}}
+{{- $portType := coalesce .Values.global.kubernetes.service.portType .Values.query.portType -}}
 {{- if eq $portType "ClusterIP" }}
   clusterIP: None
 {{- end }}
@@ -36,48 +36,48 @@ spec:
   ports:
   - name: grpc
     protocol: TCP
-    port: {{ .Values.mmlogic.grpcPort }}
+    port: {{ .Values.query.grpcPort }}
   - name: http
     protocol: TCP
-    port: {{ .Values.mmlogic.httpPort }}
+    port: {{ .Values.query.httpPort }}
 ---
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ .Values.mmlogic.hostName }}
+  name: {{ .Values.query.hostName }}
   namespace: {{ .Release.Namespace }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ .Values.mmlogic.hostName }}
+    name: {{ .Values.query.hostName }}
   {{- include "openmatch.HorizontalPodAutoscaler.spec.common" . | nindent 2 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.mmlogic.hostName }}
+  name: {{ .Values.query.hostName }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
     app: {{ template "openmatch.name" . }}
-    component: mmlogic
+    component: query
     release: {{ .Release.Name }}
 spec:
-  replicas: {{ .Values.mmlogic.replicas }}
+  replicas: {{ .Values.query.replicas }}
   selector:
     matchLabels:
       app: {{ template "openmatch.name" . }}
-      component: mmlogic
+      component: query
   template:
     metadata:
       namespace: {{ .Release.Namespace }}
       annotations:
         {{- include "openmatch.chartmeta" . | nindent 8 }}
-        {{- include "prometheus.annotations" (dict "port" .Values.mmlogic.httpPort "prometheus" .Values.global.telemetry.prometheus) | nindent 8 }}
+        {{- include "prometheus.annotations" (dict "port" .Values.query.httpPort "prometheus" .Values.global.telemetry.prometheus) | nindent 8 }}
       labels:
         app: {{ template "openmatch.name" . }}
-        component: mmlogic
+        component: query
         release: {{ .Release.Name }}
     spec:
       {{- include "openmatch.labels.nodegrouping" . | nindent 6 }}
@@ -87,17 +87,17 @@ spec:
         {{- include "openmatch.volumes.withredis" . | nindent 8 }}
       serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
       containers:
-      - name: {{ .Values.mmlogic.hostName }}
+      - name: {{ .Values.query.hostName }}
         volumeMounts:
           {{- include "openmatch.volumemounts.configs" (dict "configs" .Values.configs) | nindent 10 }}
           {{- include "openmatch.volumemounts.tls" . | nindent 10 }}
           {{- include "openmatch.volumemounts.withredis" . | nindent 10}}
-        image: "{{ .Values.global.image.registry }}/{{ .Values.mmlogic.image}}:{{ .Values.global.image.tag }}"
+        image: "{{ .Values.global.image.registry }}/{{ .Values.query.image}}:{{ .Values.global.image.tag }}"
         ports:
         - name: grpc
-          containerPort: {{ .Values.mmlogic.grpcPort }}
+          containerPort: {{ .Values.query.grpcPort }}
         - name: http
-          containerPort: {{ .Values.mmlogic.httpPort }}
+          containerPort: {{ .Values.query.httpPort }}
         {{- include "openmatch.container.common" . | nindent 8 }}
-        {{- include "kubernetes.probe" (dict "port" .Values.mmlogic.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
+        {{- include "kubernetes.probe" (dict "port" .Values.query.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
 {{- end }}
