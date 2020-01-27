@@ -33,9 +33,9 @@ var (
 	})
 )
 
-// The queryservice API provides utility functions for common MMF functionality such
+// queryService API provides utility functions for common MMF functionality such
 // as retreiving Tickets from state storage.
-type queryserviceService struct {
+type queryService struct {
 	cfg   config.View
 	store statestore.Service
 }
@@ -44,7 +44,7 @@ type queryserviceService struct {
 //   - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.
 // QueryTickets pages the Tickets by `storage.pool.size` and stream back response.
 //   - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000
-func (s *queryserviceService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.QueryService_QueryTicketsServer) error {
+func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.QueryService_QueryTicketsServer) error {
 	pool := req.GetPool()
 	if pool == nil {
 		return status.Error(codes.InvalidArgument, ".pool is required")

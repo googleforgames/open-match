@@ -40,15 +40,15 @@ func TestGetClients(t *testing.T) {
 	defer closer()
 
 	if c := om.MustFrontendGRPC(); c == nil {
-		t.Error("cannot get frontend client")
+		t.Error("cannot get frontendService client")
 	}
 
 	if c := om.MustBackendGRPC(); c == nil {
-		t.Error("cannot get backend client")
+		t.Error("cannot get backendService client")
 	}
 
 	if c := om.MustQueryServiceGRPC(); c == nil {
-		t.Error("cannot get queryservice client")
+		t.Error("cannot get queryService client")
 	}
 }
 

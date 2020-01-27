@@ -24,7 +24,7 @@ import (
 
 // BindService creates the query service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View) error {
-	service := &queryserviceService{
+	service := &queryService{
 		cfg:   cfg,
 		store: statestore.New(cfg),
 	}
