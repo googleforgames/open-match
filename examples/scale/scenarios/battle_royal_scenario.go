@@ -73,7 +73,7 @@ func battleRoyalMmf(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]
 			MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
 			Tickets:       tickets[i : i+playersInMatch],
 			MatchProfile:  p.GetName(),
-			MatchFunction: "rangeExpandingMatchFunction",
+			MatchFunction: "battleRoyal",
 		})
 	}
 
