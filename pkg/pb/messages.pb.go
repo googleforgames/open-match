@@ -236,9 +236,9 @@ func (m *Assignment) GetExtensions() map[string]*any.Any {
 type DoubleRangeFilter struct {
 	// Name of the ticket's search_fields.double_args this Filter operates on.
 	DoubleArg string `protobuf:"bytes,1,opt,name=double_arg,json=doubleArg,proto3" json:"double_arg,omitempty"`
-	// Maximum value. Defaults to positive infinity (any value above minv).
+	// Maximum value.
 	Max float64 `protobuf:"fixed64,2,opt,name=max,proto3" json:"max,omitempty"`
-	// Minimum value. Defaults to 0.
+	// Minimum value.
 	Min                  float64  `protobuf:"fixed64,3,opt,name=min,proto3" json:"min,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`

@@ -144,12 +144,12 @@
         "max": {
           "type": "number",
           "format": "double",
-          "description": "Maximum value. Defaults to positive infinity (any value above minv)."
+          "description": "Maximum value."
         },
         "min": {
           "type": "number",
           "format": "double",
-          "description": "Minimum value. Defaults to 0."
+          "description": "Minimum value."
         }
       },
       "title": "Filters numerical values to only those within a range.\n  double_arg: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {}"
