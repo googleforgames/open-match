@@ -50,7 +50,7 @@ var (
 // CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.
 // A ticket is considered as ready for matchmaking once it is created.
 //   - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.
-//   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with mmlogic.QueryTickets function.
+//   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with query.QueryTickets function.
 func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
 	// Perform input validation.
 	if req.GetTicket() == nil {
@@ -160,7 +160,7 @@ func doGetTickets(ctx context.Context, id string, store statestore.Service) (*pb
 
 // GetAssignments stream back Assignment of the specified TicketId if it is updated.
 //   - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.
-func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream pb.Frontend_GetAssignmentsServer) error {
+func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream pb.FrontendService_GetAssignmentsServer) error {
 	ctx := stream.Context()
 	for {
 		select {

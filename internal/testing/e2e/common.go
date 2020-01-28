@@ -34,11 +34,11 @@ var (
 // OM is the interface for communicating with Open Match.
 type OM interface {
 	// MustFrontendGRPC returns a gRPC client to frontend server.
-	MustFrontendGRPC() pb.FrontendClient
+	MustFrontendGRPC() pb.FrontendServiceClient
 	// MustBackendGRPC returns a gRPC client to backend server.
-	MustBackendGRPC() pb.BackendClient
-	// MustMmLogicGRPC returns a gRPC client to mmlogic server.
-	MustMmLogicGRPC() pb.MmLogicClient
+	MustBackendGRPC() pb.BackendServiceClient
+	// MustQueryServiceGRPC returns a gRPC client to query server.
+	MustQueryServiceGRPC() pb.QueryServiceClient
 	// HealthCheck probes the cluster for readiness.
 	HealthCheck() error
 	// MustMmfConfigGRPC returns a grpc match function config for backend server.

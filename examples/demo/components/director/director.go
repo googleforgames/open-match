@@ -73,7 +73,7 @@ func run(ds *components.DemoShared) {
 		panic(err)
 	}
 	defer conn.Close()
-	be := pb.NewBackendClient(conn)
+	be := pb.NewBackendServiceClient(conn)
 
 	//////////////////////////////////////////////////////////////////////////////
 	s.Status = "Match Match: Sending Request"

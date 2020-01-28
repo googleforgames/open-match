@@ -40,7 +40,7 @@ func main() {
 	}
 
 	defer conn.Close()
-	fe := pb.NewFrontendClient(conn)
+	fe := pb.NewFrontendServiceClient(conn)
 	for range time.Tick(time.Second * 2) {
 		for i := 0; i <= ticketsPerIter; i++ {
 			req := &pb.CreateTicketRequest{
@@ -60,7 +60,7 @@ func main() {
 
 // deleteOnAssign fetches the Ticket state periodically and deletes the Ticket
 // once it has an assignment.
-func deleteOnAssign(fe pb.FrontendClient, t *pb.Ticket) {
+func deleteOnAssign(fe pb.FrontendServiceClient, t *pb.Ticket) {
 	for {
 		got, err := fe.GetTicket(context.Background(), &pb.GetTicketRequest{TicketId: t.GetId()})
 		if err != nil {

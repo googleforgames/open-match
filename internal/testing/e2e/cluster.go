@@ -60,31 +60,31 @@ func (com *clusterOM) withT(t *testing.T) OM {
 	}
 }
 
-func (com *clusterOM) MustFrontendGRPC() pb.FrontendClient {
+func (com *clusterOM) MustFrontendGRPC() pb.FrontendServiceClient {
 	conn, err := com.getGRPCClientFromServiceName("om-frontend")
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
 	com.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewFrontendClient(conn)
+	return pb.NewFrontendServiceClient(conn)
 }
 
-func (com *clusterOM) MustBackendGRPC() pb.BackendClient {
+func (com *clusterOM) MustBackendGRPC() pb.BackendServiceClient {
 	conn, err := com.getGRPCClientFromServiceName("om-backend")
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
 	com.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewBackendClient(conn)
+	return pb.NewBackendServiceClient(conn)
 }
 
-func (com *clusterOM) MustMmLogicGRPC() pb.MmLogicClient {
-	conn, err := com.getGRPCClientFromServiceName("om-mmlogic")
+func (com *clusterOM) MustQueryServiceGRPC() pb.QueryServiceClient {
+	conn, err := com.getGRPCClientFromServiceName("om-query")
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
 	com.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewMmLogicClient(conn)
+	return pb.NewQueryServiceClient(conn)
 }
 
 func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {

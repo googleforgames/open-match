@@ -59,7 +59,7 @@ func run(cfg config.View) {
 			"error": err.Error(),
 		}).Fatal("failed to get Frontend connection")
 	}
-	fe := pb.NewFrontendClient(conn)
+	fe := pb.NewFrontendServiceClient(conn)
 
 	w := logger.Writer()
 	defer w.Close()
@@ -102,7 +102,7 @@ func run(cfg config.View) {
 	}
 }
 
-func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendClient, ticketPerRoutine int, start time.Time) {
+func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendServiceClient, ticketPerRoutine int, start time.Time) {
 	defer wg.Done()
 	cycleCreated := 0
 

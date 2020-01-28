@@ -47,9 +47,9 @@ type MatchFunction func(*MatchFunctionParams) ([]*pb.Match, error)
 // matchFunctionService implements pb.MatchFunctionServer, the server generated
 // by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
 type matchFunctionService struct {
-	cfg           config.View
-	function      MatchFunction
-	mmlogicClient pb.MmLogicClient
+	cfg                config.View
+	function           MatchFunction
+	queryServiceClient pb.QueryServiceClient
 }
 
 // MatchFunctionParams is a protected view for the match function.
@@ -108,25 +108,25 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 }
 
 func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunctionService, error) {
-	conn, err := rpc.GRPCClientFromConfig(cfg, "api.mmlogic")
+	conn, err := rpc.GRPCClientFromConfig(cfg, "api.query")
 	if err != nil {
-		logger.Errorf("Failed to get MMLogic connection, %v.", err)
+		logger.Errorf("Failed to get QueryService connection, %v.", err)
 		return nil, err
 	}
 
-	mmfService := &matchFunctionService{cfg: cfg, function: fs.Func, mmlogicClient: pb.NewMmLogicClient(conn)}
+	mmfService := &matchFunctionService{cfg: cfg, function: fs.Func, queryServiceClient: pb.NewQueryServiceClient(conn)}
 	return mmfService, nil
 }
 
-// getMatchManifest fetches all the data needed from the mmlogic API.
+// getMatchManifest fetches all the data needed from the queryService API.
 func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.RunRequest) (map[string][]*pb.Ticket, error) {
 	poolNameToTickets := make(map[string][]*pb.Ticket)
 	filterPools := req.GetProfile().GetPools()
 
 	for _, pool := range filterPools {
-		qtClient, err := s.mmlogicClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool}, grpc.WaitForReady(true))
+		qtClient, err := s.queryServiceClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool}, grpc.WaitForReady(true))
 		if err != nil {
-			logger.WithError(err).Error("Failed to get queryTicketClient from mmlogic.")
+			logger.WithError(err).Error("Failed to get queryTicketClient from queryService.")
 			return nil, err
 		}
 

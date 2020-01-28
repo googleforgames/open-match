@@ -38,8 +38,8 @@ data:
         httpport: 51502
   matchmaker_config_override.yaml: |-
     api:
-      mmlogic:
-        hostname: "om-mmlogic.open-match.svc.cluster.local"
+      query:
+        hostname: "om-query.open-match.svc.cluster.local"
         grpcport: "50503"
 ---
 kind: Service

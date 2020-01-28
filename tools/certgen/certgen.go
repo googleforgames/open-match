@@ -37,7 +37,7 @@ var (
 		"om-e2eevaluator:51518",
 		"om-e2ematchfunction:51512",
 		"om-frontend:51504",
-		"om-mmlogic:51503",
+		"om-query:51503",
 		"om-swaggerui:51500",
 		"om-synchronizer:51506",
 	}

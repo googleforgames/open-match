@@ -35,8 +35,8 @@ func TestInsecureStartStop(t *testing.T) {
 
 	params := NewServerParamsFromListeners(grpcLh, httpLh)
 	params.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterFrontendServer(s, ff)
-	}, pb.RegisterFrontendHandlerFromEndpoint)
+		pb.RegisterFrontendServiceServer(s, ff)
+	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
 	s := newInsecureServer(grpcLh, httpLh)
 	defer s.stop()
 	waitForStart, err := s.start(params)

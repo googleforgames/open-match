@@ -57,10 +57,10 @@ data:
         hostname: "{{ .Values.frontend.hostName }}"
         grpcport: "{{ .Values.frontend.grpcPort }}"
         httpport: "{{ .Values.frontend.httpPort }}"
-      mmlogic:
-        hostname: "{{ .Values.mmlogic.hostName }}"
-        grpcport: "{{ .Values.mmlogic.grpcPort }}"
-        httpport: "{{ .Values.mmlogic.httpPort }}"
+      query:
+        hostname: "{{ .Values.query.hostName }}"
+        grpcport: "{{ .Values.query.grpcPort }}"
+        httpport: "{{ .Values.query.httpPort }}"
       synchronizer:
         hostname: "{{ .Values.synchronizer.hostName }}"
         grpcport: "{{ .Values.synchronizer.grpcPort }}"
@@ -86,9 +86,15 @@ data:
         size: 10000
 
     redis:
+{{- if index .Values "open-match-core" "redis" "install" }}
       hostname: {{ .Values.redis.fullnameOverride }}-master.{{ .Release.Namespace }}.svc.cluster.local
       port: {{ .Values.redis.redisPort }}
       user: {{ .Values.redis.user }}
+{{- else }}
+      hostname: {{ index .Values "open-match-core" "redis" "hostname" }}
+      port: {{ index .Values "open-match-core" "redis" "port" }}
+      user: {{ index .Values "open-match-core" "redis" "user" }}
+{{- end }}
 {{- if .Values.redis.usePassword }}
       passwordPath: {{ .Values.redis.secretMountPath }}/redis-password
 {{- end }}
