@@ -98,7 +98,6 @@ func TestAssignTickets(t *testing.T) {
 						assert.Nil(t, err)
 						// grpc will write something to the reserved fields of this protobuf object, so we have to do comparisons fields by fields.
 						assert.Equal(t, test.wantAssignment.GetConnection(), gtResp.GetAssignment().GetConnection())
-						assert.Equal(t, test.wantAssignment.GetError(), gtResp.GetAssignment().GetError())
 					}
 				}
 			})
@@ -154,7 +153,6 @@ func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
 	assert.Equal(t, got.GetId(), want.GetId())
 	assert.Equal(t, got.SearchFields.DoubleArgs["test-property"], want.SearchFields.DoubleArgs["test-property"])
 	assert.Equal(t, got.GetAssignment().GetConnection(), want.GetAssignment().GetConnection())
-	assert.Equal(t, got.GetAssignment().GetError(), want.GetAssignment().GetError())
 }
 
 // validateDelete validates that the ticket is actually deleted from the state storage.
