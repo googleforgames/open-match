@@ -127,7 +127,7 @@ func TestMinimatch(t *testing.T) {
 				fc := test.fcGen(om)
 
 				fe := om.MustFrontendGRPC()
-				mml := om.MustMmLogicGRPC()
+				mml := om.MustQueryServiceGRPC()
 				ctx := om.Context()
 
 				// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids

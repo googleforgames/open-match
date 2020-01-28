@@ -40,15 +40,15 @@ func TestGetClients(t *testing.T) {
 	defer closer()
 
 	if c := om.MustFrontendGRPC(); c == nil {
-		t.Error("cannot get frontend client")
+		t.Error("cannot get frontendService client")
 	}
 
 	if c := om.MustBackendGRPC(); c == nil {
-		t.Error("cannot get backend client")
+		t.Error("cannot get backendService client")
 	}
 
-	if c := om.MustMmLogicGRPC(); c == nil {
-		t.Error("cannot get mmlogic client")
+	if c := om.MustQueryServiceGRPC(); c == nil {
+		t.Error("cannot get queryService client")
 	}
 }
 
@@ -197,7 +197,7 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 }
 
-func validateFetchMatchesResponse(ctx context.Context, t *testing.T, wantTickets [][]*pb.Ticket, be pb.BackendClient, fmReq *pb.FetchMatchesRequest) {
+func validateFetchMatchesResponse(ctx context.Context, t *testing.T, wantTickets [][]*pb.Ticket, be pb.BackendServiceClient, fmReq *pb.FetchMatchesRequest) {
 	stream, err := be.FetchMatches(ctx, fmReq, grpc.WaitForReady(true))
 	require.Nil(t, err)
 	matches := make([]*pb.Match, 0)

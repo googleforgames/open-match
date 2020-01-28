@@ -36,6 +36,6 @@ data:
         httpport: "{{ .Values.evaluator.httpPort }}"    
   matchmaker_config_override.yaml: |-
     api:
-      mmlogic:
-        hostname: "{{ .Values.mmlogic.hostName }}.{{ .Release.Namespace }}.svc.cluster.local"
-        grpcport: "{{ .Values.mmlogic.grpcPort }}"
+      query:
+        hostname: "{{ .Values.query.hostName }}.{{ .Release.Namespace }}.svc.cluster.local"
+        grpcport: "{{ .Values.query.grpcPort }}"

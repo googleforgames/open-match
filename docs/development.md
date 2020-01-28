@@ -117,7 +117,7 @@ By default you will be talking to the frontend server but you can change the tar
  * api/frontend.swagger.json
  * api/backend.swagger.json
  * api/synchronizer.swagger.json
- * api/mmlogic.swagger.json
+ * api/query.swagger.json
 
 For a more current list refer to the api/ directory of this repository. Also matchfunction.swagger.json is not supported.
 
