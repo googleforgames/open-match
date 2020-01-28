@@ -1,7 +1,7 @@
 ### Open Match Helm Chart Templates
 This directory contains the [helm](https://helm.sh/ "helm") chart templates used to customize and deploy Open Match.
 
-Templates under the `templates/` directory are for the core components in Open Match - e.g. backend, frontend, mmlogic, synchronizor, some security policies, and configmaps are defined under this folder.
+Templates under the `templates/` directory are for the core components in Open Match - e.g. backend, frontend, query, synchronizor, some security policies, and configmaps are defined under this folder.
 
 Open Match also provides templates for optional components that are disabled by default under the `subcharts/` directory.
 1. `open-match-customize` contains flexible templates to deploy your own matchfunction and evaluator.

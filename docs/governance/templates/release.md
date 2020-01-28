@@ -33,7 +33,7 @@ Images
 # Servers
 docker pull gcr.io/open-match-public-images/openmatch-backend:{version}
 docker pull gcr.io/open-match-public-images/openmatch-frontend:{version}
-docker pull gcr.io/open-match-public-images/openmatch-mmlogic:{version}
+docker pull gcr.io/open-match-public-images/openmatch-query:{version}
 docker pull gcr.io/open-match-public-images/openmatch-synchronizer:{version}
 
 # Evaluators

@@ -41,16 +41,16 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 	}
 	secureCfg.Set("api.tls.rootCertificateFile", pub)
 	restFuncCfg := &pb.FetchMatchesRequest{
-		Config:   &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_REST},
-		Profiles: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
+		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_REST},
+		Profile: &pb.MatchProfile{Name: "1"},
 	}
 	grpcFuncCfg := &pb.FetchMatchesRequest{
-		Config:   &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_GRPC},
-		Profiles: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
+		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_GRPC},
+		Profile: &pb.MatchProfile{Name: "1"},
 	}
 	unsupporteFuncCfg := &pb.FetchMatchesRequest{
-		Config:   &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: 3},
-		Profiles: []*pb.MatchProfile{{Name: "1"}, {Name: "2"}},
+		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: 3},
+		Profile: &pb.MatchProfile{Name: "1"},
 	}
 
 	tests := []struct {
@@ -95,7 +95,7 @@ func TestDoFetchMatchesInChannel(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			ctx := utilTesting.NewContext(t)
 			cc := rpc.NewClientCache(test.cfg)
-			resultChan := make(chan mmfResult, len(test.req.GetProfiles()))
+			resultChan := make(chan mmfResult, 1)
 			err := doFetchMatchesReceiveMmfResult(ctx, cc, test.req, resultChan)
 			assert.Equal(t, test.wantErr, err)
 		})

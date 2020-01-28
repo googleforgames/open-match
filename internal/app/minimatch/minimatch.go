@@ -17,7 +17,7 @@ package minimatch
 import (
 	"open-match.dev/open-match/internal/app/backend"
 	"open-match.dev/open-match/internal/app/frontend"
-	"open-match.dev/open-match/internal/app/mmlogic"
+	"open-match.dev/open-match/internal/app/query"
 	"open-match.dev/open-match/internal/app/synchronizer"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
@@ -33,7 +33,7 @@ func BindService(p *rpc.ServerParams, cfg config.View) error {
 		return err
 	}
 
-	if err := mmlogic.BindService(p, cfg); err != nil {
+	if err := query.BindService(p, cfg); err != nil {
 		return err
 	}
 

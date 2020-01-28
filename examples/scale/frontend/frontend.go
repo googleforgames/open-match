@@ -23,7 +23,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
 	"open-match.dev/open-match/examples/scale/scenarios"
-	"open-match.dev/open-match/examples/scale/tickets"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/telemetry"
@@ -60,7 +59,7 @@ func run(cfg config.View) {
 			"error": err.Error(),
 		}).Fatal("failed to get Frontend connection")
 	}
-	fe := pb.NewFrontendClient(conn)
+	fe := pb.NewFrontendServiceClient(conn)
 
 	w := logger.Writer()
 	defer w.Close()
@@ -103,13 +102,13 @@ func run(cfg config.View) {
 	}
 }
 
-func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendClient, ticketPerRoutine int, start time.Time) {
+func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendServiceClient, ticketPerRoutine int, start time.Time) {
 	defer wg.Done()
 	cycleCreated := 0
 
 	for j := 0; j < ticketPerRoutine; j++ {
 		req := &pb.CreateTicketRequest{
-			Ticket: tickets.Ticket(),
+			Ticket: activeScenario.Ticket(),
 		}
 
 		ctx, span := trace.StartSpan(context.Background(), "scale.frontend/CreateTicket")

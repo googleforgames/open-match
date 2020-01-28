@@ -91,10 +91,10 @@ message DoubleRangeFilter {
   // Name of the ticket's search_fields.double_args this Filter operates on.
   string double_arg = 1;
 
-  // Maximum value. Defaults to positive infinity (any value above minv).
+  // Maximum value.
   double max = 2;
 
-  // Minimum value. Defaults to 0.
+  // Minimum value.
   double min = 3;
 }
 

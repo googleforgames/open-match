@@ -87,15 +87,15 @@ message GetAssignmentsResponse {
   Assignment assignment = 1;
 }
 
-// The Frontend service implements APIs to manage and query status of a Tickets.
-service Frontend {
+// The FrontendService implements APIs to manage and query status of a Tickets.
+service FrontendService {
   // CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.
   // A ticket is considered as ready for matchmaking once it is created.
   //   - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.
-  //   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with mmlogic.QueryTickets function.
+  //   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with query.QueryTickets function.
   rpc CreateTicket(CreateTicketRequest) returns (CreateTicketResponse) {
     option (google.api.http) = {
-      post: "/v1/frontend/tickets"
+      post: "/v1/frontendservice/tickets"
       body: "*"
     };
   }
@@ -106,14 +106,14 @@ service Frontend {
   // Users may still be able to assign/get a ticket after calling DeleteTicket on it.
   rpc DeleteTicket(DeleteTicketRequest) returns (DeleteTicketResponse) {
     option (google.api.http) = {
-      delete: "/v1/frontend/tickets/{ticket_id}"
+      delete: "/v1/frontendservice/tickets/{ticket_id}"
     };
   }
 
   // GetTicket get the Ticket associated with the specified TicketId.
   rpc GetTicket(GetTicketRequest) returns (Ticket) {
     option (google.api.http) = {
-      get: "/v1/frontend/tickets/{ticket_id}"
+      get: "/v1/frontendservice/tickets/{ticket_id}"
     };
   }
 
@@ -122,7 +122,7 @@ service Frontend {
   rpc GetAssignments(GetAssignmentsRequest)
       returns (stream GetAssignmentsResponse) {
     option (google.api.http) = {
-      get: "/v1/frontend/tickets/{ticket_id}/assignments"
+      get: "/v1/frontendservice/tickets/{ticket_id}/assignments"
     };
   }
 }

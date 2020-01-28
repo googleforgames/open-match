@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,28 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mmlogic
+// Package main is the query service for Open Match.
+package main
 
 import (
-	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/app"
+	"open-match.dev/open-match/internal/app/query"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/internal/statestore"
-	"open-match.dev/open-match/pkg/pb"
 )
 
-// BindService creates the mmlogic service and binds it to the serving harness.
-func BindService(p *rpc.ServerParams, cfg config.View) error {
-	service := &mmlogicService{
-		cfg:   cfg,
-		store: statestore.New(cfg),
-	}
-
-	p.AddHealthCheckFunc(service.store.HealthCheck)
-
-	p.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterMmLogicServer(s, service)
-	}, pb.RegisterMmLogicHandlerFromEndpoint)
-
-	return nil
+func main() {
+	app.RunApplication("query", config.Read, query.BindService)
 }

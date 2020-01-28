@@ -157,7 +157,7 @@ func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
 
 // validateDelete validates that the ticket is actually deleted from the state storage.
 // Given that delete is async, this method retries fetch every 100ms up to 5 seconds.
-func validateDelete(ctx context.Context, t *testing.T, fe pb.FrontendClient, id string) {
+func validateDelete(ctx context.Context, t *testing.T, fe pb.FrontendServiceClient, id string) {
 	start := time.Now()
 	for {
 		if time.Since(start) > 5*time.Second {
