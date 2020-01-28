@@ -155,6 +155,12 @@ open-match-core:
   enabled: true
   ignoreListTTL: 60000ms
   redis:
+    install: true
+    # If open-match-core.redis.install is set to false, have Open Match components talk to this redis address instead.
+    # Otherwise the default is set to the om-redis instance.
+    hostname: # Your redis server address
+    port: 6379
+    user: 
     pool:
       maxIdle: 200
       maxActive: 0
