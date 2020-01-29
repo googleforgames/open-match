@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 2,
-  "iteration": 1579639764104,
+  "id": 3,
+  "iteration": 1580245993833,
   "links": [],
   "panels": [
     {
@@ -460,7 +460,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -468,35 +468,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile",
@@ -507,7 +507,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Bytes Sent per Call: openmatch.MmLogic/QueryTickets",
+      "title": "Bytes Sent per Call: openmatch.QueryService/QueryTickets",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -588,7 +588,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -596,35 +596,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)\n",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)\n",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)\n",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)\n",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.MmLogic/QueryTickets\"}[$timewindow])) by (grpc_server_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)\n",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile",
@@ -635,7 +635,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Bytes Received per Call: openmatch.MmLogic/QueryTickets",
+      "title": "Bytes Received per Call: openmatch.QueryService/QueryTickets",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -716,7 +716,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -724,35 +724,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile Latency",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile Latency",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile Latency",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile Latency",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.QueryService/QueryTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile Latency",
@@ -763,7 +763,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Client RTT: openmatch.Backend/AssignTickets",
+      "title": "Client RTT: openmatch.QueryService/QueryTickets",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -857,7 +857,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -865,35 +865,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile",
@@ -904,7 +904,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Bytes Sent per Call: openmatch.Backend/AssignTickets",
+      "title": "Bytes Sent per Call: openmatch.BackendService/AssignTickets",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -985,7 +985,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -993,35 +993,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile",
@@ -1113,7 +1113,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1121,35 +1121,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile Latency",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile Latency",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile Latency",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile Latency",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/AssignTickets\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.BackendService/AssignTickets\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile Latency",
@@ -1160,7 +1160,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Client RTT: openmatch.Backend/AssignTickets",
+      "title": "Client RTT: openmatch.BackendService/AssignTickets",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1255,7 +1255,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1263,35 +1263,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile",
@@ -1302,7 +1302,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Bytes Sent per Call: openmatch.Frontend/CreateTicket",
+      "title": "Bytes Sent per Call: openmatch.FrontendService/CreateTicket",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1383,7 +1383,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1391,35 +1391,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile",
@@ -1430,7 +1430,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Bytes Received per Call: openmatch.Frontend/CreateTicket",
+      "title": "Bytes Received per Call: openmatch.FrontendService/CreateTicket",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1511,7 +1511,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1519,35 +1519,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile Latency",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile Latency",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile Latency",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile Latency",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/CreateTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.FrontendService/CreateTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile Latency",
@@ -1558,7 +1558,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Client RTT: openmatch.Frontend/CreateTicket",
+      "title": "Client RTT: openmatch.FrontendService/CreateTicket",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -2444,7 +2444,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -2453,35 +2453,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/CreateTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile",
@@ -2492,7 +2492,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Bytes Sent per Call: openmatch.Backend/FetchMatches",
+      "title": "Bytes Sent per Call: openmatch.BackendService/FetchMatches",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -2573,7 +2573,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -2581,35 +2581,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile",
@@ -2620,7 +2620,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Bytes Received per Call: openmatch.Backend/FetchMatches",
+      "title": "Bytes Received per Call: openmatch.BackendService/FetchMatches",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -2699,7 +2699,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -2707,35 +2707,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile Latency",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile Latency",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile Latency",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile Latency",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Backend/FetchMatches\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.BackendService/FetchMatches\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile Latency",
@@ -2746,7 +2746,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Client RTT: openmatch.Backend/FetchMatches",
+      "title": "Client RTT: openmatch.BackendService/FetchMatches",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -3236,7 +3236,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -3245,35 +3245,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_sent_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_received_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile",
@@ -3284,7 +3284,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Bytes Sent per Call: openmatch.Frontend/DeleteTicket",
+      "title": "Bytes Sent per Call: openmatch.FrontendService/DeleteTicket",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -3365,7 +3365,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -3373,35 +3373,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_received_bytes_per_rpc_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_sent_bytes_per_rpc_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile",
@@ -3412,7 +3412,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Bytes Received per Call: openmatch.Frontend/DeleteTicket",
+      "title": "Bytes Received per Call: openmatch.FrontendService/DeleteTicket",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -3491,7 +3491,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.999, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.999,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -3499,35 +3499,35 @@
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.99,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "99%-ile Latency",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.95,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "95%-ile Latency",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.90,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "90%-ile Latency",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.50,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "50%-ile Latency",
           "refId": "F"
         },
         {
-          "expr": "histogram_quantile(0.10, sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.Frontend/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le))",
+          "expr": "histogram_quantile(\n  0.10,\n  sum(\n    label_replace(\n      sum(rate(grpc_io_client_roundtrip_latency_bucket{grpc_client_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_client_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_client_method\", \n      \"(.*)\"\n    )\n  or\n    label_replace(\n      sum(rate(grpc_io_server_server_latency_bucket{grpc_server_method=\"openmatch.FrontendService/DeleteTicket\"}[$timewindow])) by (grpc_server_method, le), \n      \"method\", \n      \"$1\", \n      \"grpc_server_method\", \n      \"(.*)\"\n    )\n  ) by (method, le)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "10%-ile Latency",
@@ -3538,7 +3538,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Client RTT: openmatch.Frontend/DeleteTicket",
+      "title": "Client RTT: openmatch.FrontendService/DeleteTicket",
       "tooltip": {
         "shared": true,
         "sort": 0,
