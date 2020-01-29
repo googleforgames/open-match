@@ -382,15 +382,7 @@ func (c *cutoffSender) cutoff() {
 
 // Calls the evaluator with the matches.
 func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelErrFunc, m3c <-chan []*pb.Match, m4c chan<- *pb.Match) {
-
-	// TODO: Stream through the request.
-
-	proposalList := []*pb.Match{}
-	for matches := range m3c {
-		proposalList = append(proposalList, matches...)
-	}
-
-	matchList, err := s.eval.evaluate(ctx, proposalList)
+	matchList, err := s.eval.evaluate(ctx, m3c)
 	if err == nil {
 		for _, m := range matchList {
 			m4c <- m
@@ -519,18 +511,6 @@ func bufferChannel(in chan *pb.Match) chan []*pb.Match {
 		close(out)
 	}()
 	return out
-}
-
-///////////////////////////////////////
-///////////////////////////////////////
-
-// getMatchIds returns all of the match_id values on the slice of matches.
-func getMatchIds(matches []*pb.Match) []string {
-	var result []string
-	for _, m := range matches {
-		result = append(result, m.GetMatchId())
-	}
-	return result
 }
 
 ///////////////////////////////////////

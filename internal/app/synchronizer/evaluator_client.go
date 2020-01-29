@@ -40,7 +40,7 @@ var (
 )
 
 type evaluator interface {
-	evaluate(context.Context, []*pb.Match) ([]*pb.Match, error)
+	evaluate(context.Context, <-chan []*pb.Match) ([]*pb.Match, error)
 }
 
 var errNoEvaluatorType = grpc.Errorf(codes.FailedPrecondition, "unable to determine evaluator type, either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config")
@@ -66,13 +66,13 @@ type deferredEvaluator struct {
 	cacher *config.Cacher
 }
 
-func (de *deferredEvaluator) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+func (de *deferredEvaluator) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]*pb.Match, error) {
 	e, err := de.cacher.Get()
 	if err != nil {
 		return nil, err
 	}
 
-	matches, err := e.(evaluator).evaluate(ctx, proposals)
+	matches, err := e.(evaluator).evaluate(ctx, pc)
 	if err != nil {
 		de.cacher.ForceReset()
 	}
@@ -99,23 +99,29 @@ func newGrpcEvaluator(cfg config.View) (evaluator, error) {
 	}, nil
 }
 
-func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]*pb.Match, error) {
 	stream, err := ec.evaluator.Evaluate(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Error starting evaluator call: %w", err)
 	}
 
-	for _, proposal := range proposals {
-		if err = stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
-			return nil, fmt.Errorf("Error sending proposals to evaluator: %w", err)
+	go func() {
+		for proposals := range pc {
+			for _, proposal := range proposals {
+				if err = stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
+					evaluatorClientLogger.Errorf("failed to send request to evaluator, desc: %s", err.Error())
+					return
+				}
+			}
 		}
-	}
 
-	if err = stream.CloseSend(); err != nil {
-		return nil, fmt.Errorf("failed to close the send stream: %w", err)
-	}
+		if err = stream.CloseSend(); err != nil {
+			evaluatorClientLogger.Errorf("failed to close the send direction of evaluator stream, desc: %s", err.Error())
+			return
+		}
+	}()
 
-	var results = []*pb.Match{}
+	results := []*pb.Match{}
 	for {
 		// TODO: add grpc timeouts for this call.
 		resp, err := stream.Recv()
@@ -124,8 +130,9 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Mat
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("Error streaming results from evaluator: %w", err)
+			return nil, fmt.Errorf("failed to get response from evaluator client, desc: %w", err)
 		}
+
 		results = append(results, resp.GetMatch())
 	}
 
@@ -154,9 +161,8 @@ func newHTTPEvaluator(cfg config.View) (evaluator, error) {
 	}, nil
 }
 
-func (ec *httpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Match) ([]*pb.Match, error) {
+func (ec *httpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]*pb.Match, error) {
 	reqr, reqw := io.Pipe()
-	proposalIDs := getMatchIds(proposals)
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -170,30 +176,32 @@ func (ec *httpEvaluatorClient) evaluate(ctx context.Context, proposals []*pb.Mat
 				logger.Warning("failed to close response body read closer")
 			}
 		}()
-		for _, proposal := range proposals {
-			buf, err := m.MarshalToString(&pb.EvaluateRequest{Match: proposal})
-			if err != nil {
-				sc <- status.Errorf(codes.FailedPrecondition, "failed to marshal proposal to string: %s", err.Error())
-				return
-			}
-			_, err = io.WriteString(reqw, buf)
-			if err != nil {
-				sc <- status.Errorf(codes.FailedPrecondition, "failed to write proto string to io writer: %s", err.Error())
-				return
+		for proposals := range pc {
+			for _, proposal := range proposals {
+				buf, err := m.MarshalToString(&pb.EvaluateRequest{Match: proposal})
+				if err != nil {
+					sc <- status.Errorf(codes.FailedPrecondition, "failed to marshal proposal to string: %s", err.Error())
+					return
+				}
+				_, err = io.WriteString(reqw, buf)
+				if err != nil {
+					sc <- status.Errorf(codes.FailedPrecondition, "failed to write proto string to io writer: %s", err.Error())
+					return
+				}
 			}
 		}
 	}()
 
 	req, err := http.NewRequest("POST", ec.baseURL+"/v1/evaluator/matches:evaluate", reqr)
 	if err != nil {
-		return nil, status.Errorf(codes.Aborted, "failed to create evaluator http request for proposals %s: %s", proposalIDs, err.Error())
+		return nil, status.Errorf(codes.Aborted, "failed to create evaluator http request, desc: %s", err.Error())
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Transfer-Encoding", "chunked")
 
 	resp, err := ec.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
-		return nil, status.Errorf(codes.Aborted, "failed to get response from evaluator for proposals %s: %s", proposalIDs, err.Error())
+		return nil, status.Errorf(codes.Aborted, "failed to get response from evaluator, desc: %s", err.Error())
 	}
 	defer func() {
 		if resp.Body.Close() != nil {
