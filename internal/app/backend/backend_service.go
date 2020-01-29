@@ -43,11 +43,6 @@ type backendService struct {
 	cc           *rpc.ClientCache
 }
 
-type mmfResult struct {
-	matches []*pb.Match
-	err     error
-}
-
 var (
 	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
@@ -92,6 +87,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	go func() {
 		defer wg.Done()
 		synchronizeRecvErr = synchronizeRecv(syncStream, stream, startMmfs, cancelMmfs)
+		cancelMmfs()
 	}()
 
 	var mmfErr error
