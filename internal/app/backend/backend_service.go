@@ -191,7 +191,7 @@ func callMmf(ctx context.Context, cc *rpc.ClientCache, req *pb.FetchMatchesReque
 	case pb.FunctionConfig_GRPC:
 		return callGrpcMmf(ctx, cc, req.GetProfile(), address, proposals)
 	case pb.FunctionConfig_REST:
-		return callHttpMmf(ctx, cc, req.GetProfile(), address, proposals)
+		return callHTTPMmf(ctx, cc, req.GetProfile(), address, proposals)
 	default:
 		return status.Error(codes.InvalidArgument, "provided match function type is not supported")
 	}
@@ -234,7 +234,7 @@ func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 	return nil
 }
 
-func callHttpMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProfile, address string, proposals chan<- *pb.Match) error {
+func callHTTPMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProfile, address string, proposals chan<- *pb.Match) error {
 	client, baseURL, err := cc.GetHTTP(address)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
