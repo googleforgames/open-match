@@ -27,7 +27,7 @@ func BindService(p *rpc.ServerParams, cfg config.View) error {
 	service := &backendService{
 		synchronizer: newSynchronizerClient(cfg),
 		store:        statestore.New(cfg),
-		mmfClients:   rpc.NewClientCache(cfg),
+		cc:           rpc.NewClientCache(cfg),
 	}
 
 	p.AddHealthCheckFunc(service.store.HealthCheck)

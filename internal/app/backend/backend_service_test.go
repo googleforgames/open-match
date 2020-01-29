@@ -17,156 +17,16 @@ package backend
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
-	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
-
-func TestDoFetchMatchesInChannel(t *testing.T) {
-	insecureCfg := viper.New()
-	secureCfg := viper.New()
-	pub, _, err := certgenTesting.CreateCertificateAndPrivateKeyForTesting([]string{})
-	if err != nil {
-		t.Fatalf("cannot create TLS keys: %s", err)
-	}
-	secureCfg.Set("api.tls.rootCertificateFile", pub)
-	restFuncCfg := &pb.FetchMatchesRequest{
-		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_REST},
-		Profile: &pb.MatchProfile{Name: "1"},
-	}
-	grpcFuncCfg := &pb.FetchMatchesRequest{
-		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: pb.FunctionConfig_GRPC},
-		Profile: &pb.MatchProfile{Name: "1"},
-	}
-	unsupporteFuncCfg := &pb.FetchMatchesRequest{
-		Config:  &pb.FunctionConfig{Host: "om-test", Port: 54321, Type: 3},
-		Profile: &pb.MatchProfile{Name: "1"},
-	}
-
-	tests := []struct {
-		description string
-		req         *pb.FetchMatchesRequest
-		wantErr     error
-		cfg         config.View
-	}{
-		{
-			"trusted certificate is required when requesting a secure http client",
-			restFuncCfg,
-			status.Error(codes.InvalidArgument, "failed to connect to match function"),
-			secureCfg,
-		},
-		{
-			"trusted certificate is required when requesting a secure grpc client",
-			grpcFuncCfg,
-			status.Error(codes.InvalidArgument, "failed to connect to match function"),
-			secureCfg,
-		},
-		{
-			"the mmfResult channel received data successfully under the insecure mode with rest config",
-			restFuncCfg,
-			nil,
-			insecureCfg,
-		},
-		{
-			"the mmfResult channel received data successfully under the insecure mode with grpc config",
-			grpcFuncCfg,
-			nil,
-			insecureCfg,
-		},
-		{
-			"one of the rest/grpc config is required to process the request",
-			unsupporteFuncCfg,
-			status.Error(codes.InvalidArgument, "provided match function type is not supported"),
-			insecureCfg,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			ctx := utilTesting.NewContext(t)
-			cc := rpc.NewClientCache(test.cfg)
-			resultChan := make(chan mmfResult, 1)
-			err := doFetchMatchesReceiveMmfResult(ctx, cc, test.req, resultChan)
-			assert.Equal(t, test.wantErr, err)
-		})
-	}
-}
-
-func TestDoFetchMatchesFilterChannel(t *testing.T) {
-	tests := []struct {
-		description string
-		preAction   func(chan mmfResult, context.CancelFunc)
-		wantMatches []*pb.Match
-		wantCode    codes.Code
-	}{
-		{
-			description: "test the filter can exit the for loop when context was canceled",
-			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
-				go func() {
-					time.Sleep(100 * time.Millisecond)
-					cancel()
-				}()
-			},
-			wantMatches: nil,
-			wantCode:    codes.Unknown,
-		},
-		{
-			description: "test the filter can return an error when one of the mmfResult contains an error",
-			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1", Tickets: []*pb.Ticket{{Id: "123"}}}}, err: nil}
-				mmfChan <- mmfResult{matches: nil, err: status.Error(codes.Unknown, "some error")}
-			},
-			wantMatches: nil,
-			wantCode:    codes.Unknown,
-		},
-		{
-			description: "test the filter can return an error when one of the mmf calls return match with empty tickets",
-			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1"}}, err: nil}
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "2"}}, err: nil}
-			},
-			wantMatches: []*pb.Match{{MatchId: "1"}, {MatchId: "2"}},
-			wantCode:    codes.FailedPrecondition,
-		},
-		{
-			description: "test the filter can return proposals when all mmfResults are valid",
-			preAction: func(mmfChan chan mmfResult, cancel context.CancelFunc) {
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "1", Tickets: []*pb.Ticket{{Id: "123"}}}}, err: nil}
-				mmfChan <- mmfResult{matches: []*pb.Match{{MatchId: "2", Tickets: []*pb.Ticket{{Id: "321"}}}}, err: nil}
-			},
-			wantMatches: []*pb.Match{{MatchId: "1", Tickets: []*pb.Ticket{{Id: "123"}}}, {MatchId: "2", Tickets: []*pb.Ticket{{Id: "321"}}}},
-			wantCode:    codes.OK,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			ctx := utilTesting.NewContext(t)
-			resultChan := make(chan mmfResult, 2)
-			ctx, cancel := context.WithCancel(ctx)
-			defer cancel()
-
-			test.preAction(resultChan, cancel)
-
-			matches, err := doFetchMatchesValidateProposals(ctx, resultChan, 2)
-
-			for _, match := range matches {
-				assert.Contains(t, test.wantMatches, match)
-			}
-			assert.Equal(t, test.wantCode, status.Convert(err).Code())
-		})
-	}
-}
 
 func TestDoAssignTickets(t *testing.T) {
 	fakeProperty := "test-property"
