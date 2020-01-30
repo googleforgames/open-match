@@ -47,7 +47,9 @@ var (
 // close incoming when done or timed out | newCutoffSender
 //   -> m2c ->
 // remember return channel m7c for match | fanInFanOut
-//   -> m3c -> (buffered)
+//   -> m3c ->
+// setmappings from matchIDs to ticketIDs| cacheMatchIDToTicketIDs
+//   -> m4c -> (buffered)
 // send to evaluator                     | wrapEvaluator
 //   -> m5c -> (buffered)
 // add tickets to ignore list            | addMatchesToIgnoreList
@@ -539,8 +541,8 @@ func bufferMatchChannel(in chan *pb.Match) chan []*pb.Match {
 	return out
 }
 
-// bufferStringChannel collects matches from the input, and sends
-// slice of matches on the output.  It never (for long) blocks
+// bufferStringChannel collects strings from the input, and sends
+// slice of strings on the output.  It never (for long) blocks
 // the input channel, always appending to the slice which will
 // next be used for output.  Used before external calls, so that
 // network won't back up internal processing.
