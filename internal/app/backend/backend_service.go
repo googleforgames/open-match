@@ -174,7 +174,7 @@ func synchronizeRecv(syncStream synchronizerStream, m *sync.Map, stream pb.Backe
 			cancelMmfs()
 		}
 
-		if match, ok := m.Load(resp.GetMatch().GetMatchId()); ok {
+		if match, ok := m.Load(resp.GetMatchId()); ok {
 			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
 			err = stream.Send(&pb.FetchMatchesResponse{Match: match.(*pb.Match)})
 			if err != nil {

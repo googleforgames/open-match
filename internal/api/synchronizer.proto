@@ -31,9 +31,12 @@ message SynchronizeResponse {
   // not send any more matches, and close the send stream.
   bool cancel_mmfs = 2;
 
-  // A match which passes evaluation and should be returned to the FetchMatches
+  // A match ID returned by the evaluator and should be returned to the FetchMatches
   // caller.
-  openmatch.Match match = 3;
+  string match_id = 4;
+
+  // Deprecated fields.
+  reserved 3;
 }
 
 // The service implementing the Synchronizer API that synchronizes the evaluation
