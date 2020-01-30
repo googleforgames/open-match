@@ -28,6 +28,10 @@ import (
 
 var (
 	queryServiceAddress = "om-query.open-match.svc.cluster.local:50503" // Address of the QueryService Endpoint.
+
+	logger = logrus.WithFields(logrus.Fields{
+		"app": "scale",
+	})
 )
 
 // StatProcessor uses syncMaps to store the stress test metrics and occurrence of errors.

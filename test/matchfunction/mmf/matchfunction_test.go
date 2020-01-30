@@ -75,7 +75,6 @@ func TestMakeMatches(t *testing.T) {
 	p := &internalMmf.MatchFunctionParams{
 		Logger:            &logrus.Entry{},
 		ProfileName:       "test-profile",
-		Rosters:           []*pb.Roster{},
 		PoolNameToTickets: poolNameToTickets,
 	}
 
@@ -89,7 +88,6 @@ func TestMakeMatches(t *testing.T) {
 			MatchProfile:  match.MatchProfile,
 			MatchFunction: match.MatchFunction,
 			Tickets:       match.Tickets,
-			Rosters:       match.Rosters,
 			Extensions:    match.Extensions,
 		})
 	}
@@ -111,7 +109,6 @@ func TestMakeMatches(t *testing.T) {
 			MatchProfile:  p.ProfileName,
 			MatchFunction: matchName,
 			Tickets:       tickets,
-			Rosters:       []*pb.Roster{{Name: poolName, TicketIds: tids}},
 			Extensions: map[string]*any.Any{
 				"evaluation_input": evaluationInput,
 			},

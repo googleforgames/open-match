@@ -205,7 +205,7 @@
         },
         "assignment": {
           "$ref": "#/definitions/openmatchAssignment",
-          "description": "An Assignment represents a game server assignment associated with a Ticket. \nOpen Match does not require or inspect any fields on Assignment."
+          "description": "An Assignment represents a game server assignment associated with a Ticket.\nOpen Match does not require or inspect any fields on Assignment."
         },
         "search_fields": {
           "$ref": "#/definitions/openmatchSearchFields",

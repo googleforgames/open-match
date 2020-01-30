@@ -35,8 +35,8 @@ var (
 )
 
 // MatchFunction is the function signature for the Match Making Function (MMF) to be implemented by the user.
-// The harness will pass the Rosters and PlayerPool for the match profile to this
-// function and it will return the Rosters to be populated in the proposal.
+// The harness will query the Tickets for each Pool and will pass the map of Pool to Tickets to the function
+// and the function will return a list of proposals.
 // Input:
 //  - MatchFunctionParams:
 //			A structure that defines the resources that are available to the match function.
@@ -63,10 +63,6 @@ type MatchFunctionParams struct {
 	// 'Extensions' from the MatchProfile.
 	Extensions map[string]*any.Any
 
-	// An array of Rosters. By convention, your input Roster contains players already in
-	// the match, and the names of pools to search when trying to fill an empty slot.
-	Rosters []*pb.Roster
-
 	// A map that contains mappings from pool name to a list of tickets that satisfied the filters in the pool
 	PoolNameToTickets map[string][]*pb.Ticket
 }
@@ -78,7 +74,6 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 		return err
 	}
 
-	// The matchfunction takes in some half-filled/empty rosters, a property bag, and a map[poolNames]tickets to generate match proposals
 	mfParams := &MatchFunctionParams{
 		Logger: logrus.WithFields(logrus.Fields{
 			"app":       "openmatch",
@@ -86,7 +81,6 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 		}),
 		ProfileName:       req.GetProfile().GetName(),
 		Extensions:        req.GetProfile().GetExtensions(),
-		Rosters:           req.GetProfile().GetRosters(),
 		PoolNameToTickets: poolNameToTickets,
 	}
 	// Run the customize match function!
