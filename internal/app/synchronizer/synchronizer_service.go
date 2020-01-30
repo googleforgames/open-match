@@ -202,7 +202,6 @@ func (s *synchronizerService) runCycle() {
 	m2c := make(chan mAndM6c)
 	m3c := make(chan *pb.Match)
 	m4c := make(chan *pb.Match)
-	// TODO: This will be a channel of string after the proto change, will do it in a later PR.
 	m5c := make(chan string)
 	m6c := make(chan string)
 
