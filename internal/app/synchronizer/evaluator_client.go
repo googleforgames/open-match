@@ -40,7 +40,7 @@ var (
 )
 
 type evaluator interface {
-	evaluate(context.Context, <-chan []*pb.Match) ([]*pb.Match, error)
+	evaluate(context.Context, <-chan []*pb.Match) ([]string, error)
 }
 
 var errNoEvaluatorType = grpc.Errorf(codes.FailedPrecondition, "unable to determine evaluator type, either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config")
@@ -66,7 +66,7 @@ type deferredEvaluator struct {
 	cacher *config.Cacher
 }
 
-func (de *deferredEvaluator) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]*pb.Match, error) {
+func (de *deferredEvaluator) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]string, error) {
 	e, err := de.cacher.Get()
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func newGrpcEvaluator(cfg config.View) (evaluator, error) {
 	}, nil
 }
 
-func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]*pb.Match, error) {
+func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]string, error) {
 	stream, err := ec.evaluator.Evaluate(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Error starting evaluator call: %w", err)
@@ -123,7 +123,7 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 		}
 	}()
 
-	results := []*pb.Match{}
+	results := []string{}
 	for {
 		// TODO: add grpc timeouts for this call.
 		resp, err := stream.Recv()
@@ -135,7 +135,7 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 			return nil, fmt.Errorf("failed to get response from evaluator client, desc: %w", err)
 		}
 
-		results = append(results, resp.GetMatch())
+		results = append(results, resp.GetMatchId())
 	}
 
 	if err := <-sc; err != nil {
@@ -166,7 +166,7 @@ func newHTTPEvaluator(cfg config.View) (evaluator, error) {
 	}, nil
 }
 
-func (ec *httpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]*pb.Match, error) {
+func (ec *httpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]string, error) {
 	reqr, reqw := io.Pipe()
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -215,7 +215,7 @@ func (ec *httpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 	}()
 
 	wg.Add(1)
-	var results = []*pb.Match{}
+	var results = []string{}
 	rc := make(chan error, 1)
 	defer close(rc)
 	go func() {
@@ -244,7 +244,7 @@ func (ec *httpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 				rc <- status.Errorf(codes.Unavailable, "failed to execute jsonpb.UnmarshalString(%s, &proposal): %v.", item.Result, err)
 				return
 			}
-			results = append(results, resp.GetMatch())
+			results = append(results, resp.GetMatchId())
 		}
 	}()
 

@@ -388,10 +388,10 @@ func (c *cutoffSender) cutoff() {
 
 // Calls the evaluator with the matches.
 func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelErrFunc, m3c <-chan []*pb.Match, m5c chan<- string) {
-	matchList, err := s.eval.evaluate(ctx, m3c)
+	matchIDs, err := s.eval.evaluate(ctx, m3c)
 	if err == nil {
-		for _, m := range matchList {
-			m5c <- m.GetMatchId()
+		for _, mID := range matchIDs {
+			m5c <- mID
 		}
 	} else {
 		logger.WithFields(logrus.Fields{
