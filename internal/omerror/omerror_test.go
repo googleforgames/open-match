@@ -45,12 +45,12 @@ func TestProtoFromErr(t *testing.T) {
 			&spb.Status{Code: int32(codes.DeadlineExceeded), Message: "context deadline exceeded"},
 		},
 		{
-			fmt.Errorf("monkeys with no hats!"),
-			&spb.Status{Code: int32(codes.Unknown), Message: "monkeys with no hats!"},
+			fmt.Errorf("monkeys with no hats"),
+			&spb.Status{Code: int32(codes.Unknown), Message: "monkeys with no hats"},
 		},
 		{
-			status.Errorf(codes.Internal, "even the lemurs?!?!?"),
-			&spb.Status{Code: int32(codes.Internal), Message: "even the lemurs?!?!?"},
+			status.Errorf(codes.Internal, "even the lemurs have no hats"),
+			&spb.Status{Code: int32(codes.Internal), Message: "even the lemurs have no hats"},
 		},
 	}
 
@@ -60,8 +60,8 @@ func TestProtoFromErr(t *testing.T) {
 }
 
 func TestWaitOnErrors(t *testing.T) {
-	errA := fmt.Errorf("the fish have the hats.")
-	errB := fmt.Errorf("who gave the fish hats?")
+	errA := fmt.Errorf("the fish have the hats")
+	errB := fmt.Errorf("who gave the fish hats")
 
 	tests := []struct {
 		err    error
@@ -100,7 +100,7 @@ func TestWaitOnErrors(t *testing.T) {
 					return errB
 				},
 			},
-			true, "Multiple errors occured in parallel execution. This error is surpressed by the error returned.",
+			true, "Multiple errors occurred in parallel execution. This error is suppressed by the error returned.",
 		},
 	}
 

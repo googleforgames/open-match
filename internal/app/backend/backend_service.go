@@ -78,7 +78,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	m := &sync.Map{}
 
 	synchronizerWait := omerror.WaitOnErrors(logger, func() error {
-		return synchronizeSend(stream.Context(), mmfCtx, m, proposals, syncStream)
+		return synchronizeSend(stream.Context(), syncStream, m, proposals)
 	}, func() error {
 		return synchronizeRecv(syncStream, m, stream, startMmfs, cancelMmfs)
 	})
@@ -117,11 +117,11 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	return nil
 }
 
-func synchronizeSend(ctx context.Context, mmfCtx context.Context, m *sync.Map, proposals <-chan *pb.Match, syncStream synchronizerStream) error {
+func synchronizeSend(ctx context.Context, syncStream synchronizerStream, m *sync.Map, proposals <-chan *pb.Match) error {
 sendProposals:
 	for {
 		select {
-		case <-mmfCtx.Done():
+		case <-ctx.Done():
 			break sendProposals
 		case p, ok := <-proposals:
 			if !ok {

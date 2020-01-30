@@ -101,9 +101,13 @@ func newGrpcEvaluator(cfg config.View) (evaluator, error) {
 }
 
 func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]*pb.Match, error) {
-	stream, err := ec.evaluator.Evaluate(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("Error starting evaluator call: %w", err)
+	var stream pb.Evaluator_EvaluateClient
+	{ // prevent shadowing err later
+		var err error
+		stream, err = ec.evaluator.Evaluate(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("Error starting evaluator call: %w", err)
+		}
 	}
 
 	results := []*pb.Match{}
@@ -135,7 +139,7 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 		}
 	})
 
-	err = wait()
+	err := wait()
 	if err != nil {
 		return nil, err
 	}
