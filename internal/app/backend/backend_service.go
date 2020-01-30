@@ -29,6 +29,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/ipb"
+	"open-match.dev/open-match/internal/omerror"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/internal/telemetry"
@@ -74,52 +75,46 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	// Closed when mmfs should start.
 	startMmfs := make(chan struct{})
 	proposals := make(chan *pb.Match)
-	wg := sync.WaitGroup{}
-	wg.Add(3)
 
-	var synchronizeSendErr error
-	go func() {
-		defer wg.Done()
-		synchronizeSendErr = synchronizeSend(mmfCtx, proposals, syncStream)
-	}()
+	synchronizerWait := omerror.WaitOnErrors(logger, func() error {
+		return synchronizeSend(mmfCtx, proposals, syncStream)
+	}, func() error {
+		return synchronizeRecv(syncStream, stream, startMmfs, cancelMmfs)
+	})
 
-	var synchronizeRecvErr error
-	go func() {
-		defer wg.Done()
-		synchronizeRecvErr = synchronizeRecv(syncStream, stream, startMmfs, cancelMmfs)
-		cancelMmfs()
-	}()
-
-	var mmfErr error
-	go func() {
-		defer wg.Done()
-
+	mmfWait := omerror.WaitOnErrors(logger, func() error {
 		select {
 		case <-mmfCtx.Done():
-			mmfErr = fmt.Errorf("Mmf was never started")
-			return
+			return fmt.Errorf("Mmf was never started")
 		case <-startMmfs:
 		}
 
-		mmfErr = callMmf(mmfCtx, s.cc, req, proposals)
-	}()
+		return callMmf(mmfCtx, s.cc, req, proposals)
+	})
 
-	wg.Wait()
+	syncErr := synchronizerWait()
+	// Must cancel mmfs after synchronizer is done and before checking mmf error
+	// because the synchronizer call could fail while the mmf call stalls, locking
+	// the calls.
+	cancelMmfs()
+	mmfErr := mmfWait()
 
-	// TODO: Send mmf error in FetchSummary instead of erroring call.
-	if synchronizeSendErr != nil || synchronizeRecvErr != nil || mmfErr != nil {
+	sum := &pb.FetchMatchesSummary{
+		MmfStatus:       omerror.ProtoFromErr(mmfErr),
+		EvaluatorStatus: nil, // TODO: pipe from synchronizer.
+		SystemStatus:    omerror.ProtoFromErr(syncErr),
+	}
+
+	err = stream.Send(&pb.FetchMatchesResponse{Response: &pb.FetchMatchesResponse_FetchMatchesSummary{sum}})
+	if err != nil {
+		return fmt.Errorf("error sending fetch match summary to caller of backend: %w", err)
+	}
+
+	if syncErr != nil || mmfErr != nil {
 		logger.WithFields(logrus.Fields{
-			"synchronizeSendErr": synchronizeSendErr,
-			"synchronizeRecvErr": synchronizeRecvErr,
-			"mmfErr":             mmfErr,
+			"syncErr": syncErr,
+			"mmfErr":  mmfErr,
 		}).Error("error(s) in FetchMatches call.")
-
-		return fmt.Errorf(
-			"Error(s) in FetchMatches call. synchronizeSendErr=[%s], synchronizeRecvErr=[%s], mmfErr=[%s]",
-			synchronizeSendErr,
-			synchronizeRecvErr,
-			mmfErr,
-		)
 	}
 
 	return nil
@@ -174,7 +169,7 @@ func synchronizeRecv(syncStream synchronizerStream, stream pb.BackendService_Fet
 
 		if resp.Match != nil {
 			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
-			err = stream.Send(&pb.FetchMatchesResponse{Match: resp.Match})
+			err = stream.Send(&pb.FetchMatchesResponse{Response: &pb.FetchMatchesResponse_Match{resp.Match}})
 			if err != nil {
 				return fmt.Errorf("error sending match to caller of backend: %w", err)
 			}
