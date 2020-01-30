@@ -105,18 +105,19 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 		return nil, fmt.Errorf("Error starting evaluator call: %w", err)
 	}
 
+	sc := make(chan error, 1)
 	go func() {
 		for proposals := range pc {
 			for _, proposal := range proposals {
 				if err = stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
-					evaluatorClientLogger.Errorf("failed to send request to evaluator, desc: %s", err.Error())
+					sc <- fmt.Errorf("failed to send request to evaluator, desc: %w", err)
 					return
 				}
 			}
 		}
 
 		if err = stream.CloseSend(); err != nil {
-			evaluatorClientLogger.Errorf("failed to close the send direction of evaluator stream, desc: %s", err.Error())
+			sc <- fmt.Errorf("failed to close the send direction of evaluator stream, desc: %w", err)
 			return
 		}
 	}()
@@ -136,6 +137,9 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 		results = append(results, resp.GetMatch())
 	}
 
+	if len(sc) != 0 {
+		return nil, <-sc
+	}
 	return results, nil
 }
 
