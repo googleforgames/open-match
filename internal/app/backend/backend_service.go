@@ -93,28 +93,24 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	})
 
 	syncErr := synchronizerWait()
+	// Fetch Matches should never block on just the match function.
 	// Must cancel mmfs after synchronizer is done and before checking mmf error
-	// because the synchronizer call could fail while the mmf call stalls, locking
-	// the calls.
+	// because the synchronizer call could fail while the mmf call blocks.
 	cancelMmfs()
 	mmfErr := mmfWait()
 
-	sum := &pb.FetchMatchesSummary{
-		MmfStatus:       omerror.ProtoFromErr(mmfErr),
-		EvaluatorStatus: nil, // TODO: pipe from synchronizer.
-		SystemStatus:    omerror.ProtoFromErr(syncErr),
-	}
-
-	err = stream.Send(&pb.FetchMatchesResponse{Response: &pb.FetchMatchesResponse_FetchMatchesSummary{sum}})
-	if err != nil {
-		return fmt.Errorf("error sending fetch match summary to caller of backend: %w", err)
-	}
-
+	// TODO: Send mmf error in FetchSummary instead of erroring call.
 	if syncErr != nil || mmfErr != nil {
 		logger.WithFields(logrus.Fields{
 			"syncErr": syncErr,
 			"mmfErr":  mmfErr,
 		}).Error("error(s) in FetchMatches call.")
+
+		return fmt.Errorf(
+			"Error(s) in FetchMatches call. syncErr=[%s], mmfErr=[%s]",
+			syncErr,
+			mmfErr,
+		)
 	}
 
 	return nil
@@ -169,7 +165,7 @@ func synchronizeRecv(syncStream synchronizerStream, stream pb.BackendService_Fet
 
 		if resp.Match != nil {
 			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
-			err = stream.Send(&pb.FetchMatchesResponse{Response: &pb.FetchMatchesResponse_Match{resp.Match}})
+			err = stream.Send(&pb.FetchMatchesResponse{Match: resp.Match})
 			if err != nil {
 				return fmt.Errorf("error sending match to caller of backend: %w", err)
 			}
