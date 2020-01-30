@@ -225,11 +225,11 @@ func (s *synchronizerService) runCycle() {
 		}
 	}()
 
-	mIDToTIDs := &sync.Map{}
-	go s.cacheMatchIDToTicketIDs(mIDToTIDs, bufferChannel(m3c), m3point5c)
+	matchTickets := &sync.Map{}
+	go s.cacheMatchIDToTicketIDs(matchTickets, m3c, m3point5c)
 	go s.wrapEvaluator(ctx, cancel, bufferChannel(m3point5c), m4c)
 	go func() {
-		s.addMatchesToIgnoreList(ctx, mIDToTIDs, cancel, bufferChannel(m4c), m5c)
+		s.addMatchesToIgnoreList(ctx, matchTickets, cancel, bufferChannel(m4c), m5c)
 		// Wait for ignore list, but not all matches returned, the next cycle
 		// can start now.
 		close(closedOnCycleEnd)
@@ -402,12 +402,13 @@ func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelEr
 	close(m4c)
 }
 
-func (s *synchronizerService) cacheMatchIDToTicketIDs(m *sync.Map, m3c <-chan []*pb.Match, m3point5c chan<- *pb.Match) {
-	for matches := range m3c {
-		for _, match := range matches {
-			m.Store(match.GetMatchId(), getTicketIds(match.GetTickets()))
-			m3point5c <- match
-		}
+///////////////////////////////////////
+///////////////////////////////////////
+
+func (s *synchronizerService) cacheMatchIDToTicketIDs(m *sync.Map, m3c <-chan *pb.Match, m3point5c chan<- *pb.Match) {
+	for match := range m3c {
+		m.Store(match.GetMatchId(), getTicketIds(match.GetTickets()))
+		m3point5c <- match
 	}
 	close(m3point5c)
 }
@@ -435,11 +436,13 @@ func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, m *syn
 		// For now assume m4c is a channel of MatchIds, will fix it in a later PR.
 		ids := []string{}
 		for _, match := range matches {
+
 			tids, ok := m.Load(match.GetMatchId())
-			if !ok {
+			if ok {
+				ids = append(ids, tids.([]string)...)
+			} else {
 				logger.Errorf("failed to get MatchId %s with its corresponding tickets from the cache", match.GetMatchId())
 			}
-			ids = append(ids, tids.([]string)...)
 		}
 
 		err := s.store.AddTicketsToIgnoreList(ctx, ids)
