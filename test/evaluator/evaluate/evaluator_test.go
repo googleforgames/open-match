@@ -39,6 +39,7 @@ func TestEvaluate(t *testing.T) {
 	ticket3 := &pb.Ticket{Id: "3"}
 
 	ticket12Score1 := &pb.Match{
+		MatchId: "ticket12Score1",
 		Tickets: []*pb.Ticket{ticket1, ticket2},
 		Extensions: map[string]*any.Any{
 			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
@@ -48,6 +49,7 @@ func TestEvaluate(t *testing.T) {
 	}
 
 	ticket12Score10 := &pb.Match{
+		MatchId: "ticket12Score10",
 		Tickets: []*pb.Ticket{ticket2, ticket1},
 		Extensions: map[string]*any.Any{
 			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
@@ -57,6 +59,7 @@ func TestEvaluate(t *testing.T) {
 	}
 
 	ticket123Score5 := &pb.Match{
+		MatchId: "ticket123Score5",
 		Tickets: []*pb.Ticket{ticket1, ticket2, ticket3},
 		Extensions: map[string]*any.Any{
 			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
@@ -66,6 +69,7 @@ func TestEvaluate(t *testing.T) {
 	}
 
 	ticket3Score50 := &pb.Match{
+		MatchId: "ticket3Score50",
 		Tickets: []*pb.Ticket{ticket3},
 		Extensions: map[string]*any.Any{
 			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
@@ -75,34 +79,34 @@ func TestEvaluate(t *testing.T) {
 	}
 
 	tests := []struct {
-		description string
-		testMatches []*pb.Match
-		wantMatches []*pb.Match
+		description  string
+		testMatches  []*pb.Match
+		wantMatchIDs []string
 	}{
 		{
-			description: "test empty request returns empty response",
-			testMatches: []*pb.Match{},
-			wantMatches: []*pb.Match{},
+			description:  "test empty request returns empty response",
+			testMatches:  []*pb.Match{},
+			wantMatchIDs: []string{},
 		},
 		{
-			description: "test input matches output when receiving one match",
-			testMatches: []*pb.Match{ticket12Score1},
-			wantMatches: []*pb.Match{ticket12Score1},
+			description:  "test input matches output when receiving one match",
+			testMatches:  []*pb.Match{ticket12Score1},
+			wantMatchIDs: []string{ticket12Score1.GetMatchId()},
 		},
 		{
-			description: "test deduplicates and expect the one with higher score",
-			testMatches: []*pb.Match{ticket12Score1, ticket12Score10},
-			wantMatches: []*pb.Match{ticket12Score10},
+			description:  "test deduplicates and expect the one with higher score",
+			testMatches:  []*pb.Match{ticket12Score1, ticket12Score10},
+			wantMatchIDs: []string{ticket12Score10.GetMatchId()},
 		},
 		{
-			description: "test first returns matches with higher score",
-			testMatches: []*pb.Match{ticket123Score5, ticket12Score10},
-			wantMatches: []*pb.Match{ticket12Score10},
+			description:  "test first returns matches with higher score",
+			testMatches:  []*pb.Match{ticket123Score5, ticket12Score10},
+			wantMatchIDs: []string{ticket12Score10.GetMatchId()},
 		},
 		{
-			description: "test evaluator returns two matches with the highest score",
-			testMatches: []*pb.Match{ticket12Score1, ticket12Score10, ticket123Score5, ticket3Score50},
-			wantMatches: []*pb.Match{ticket12Score10, ticket3Score50},
+			description:  "test evaluator returns two matches with the highest score",
+			testMatches:  []*pb.Match{ticket12Score1, ticket12Score10, ticket123Score5, ticket3Score50},
+			wantMatchIDs: []string{ticket12Score10.GetMatchId(), ticket3Score50.GetMatchId()},
 		},
 	}
 
@@ -110,12 +114,13 @@ func TestEvaluate(t *testing.T) {
 		test := test
 		t.Run(test.description, func(t *testing.T) {
 			t.Parallel()
-			gotMatches, err := Evaluate(&evaluator.Params{Matches: test.testMatches})
+			gotMatchIDs, err := Evaluate(&evaluator.Params{Matches: test.testMatches})
 
 			assert.Nil(t, err)
-			assert.Equal(t, len(test.wantMatches), len(gotMatches))
-			for _, match := range gotMatches {
-				assert.Contains(t, test.wantMatches, match)
+			assert.Equal(t, len(test.wantMatchIDs), len(gotMatchIDs))
+
+			for _, mID := range gotMatchIDs {
+				assert.Contains(t, test.wantMatchIDs, mID)
 			}
 		})
 	}

@@ -87,7 +87,7 @@ func basicEvaluate(stream pb.Evaluator_EvaluateServer) error {
 	}
 
 	for _, result := range results {
-		if err := stream.Send(&pb.EvaluateResponse{Match: result}); err != nil {
+		if err := stream.Send(&pb.EvaluateResponse{MatchId: result}); err != nil {
 			return err
 		}
 	}
