@@ -92,7 +92,7 @@ func TestMakeMatches(t *testing.T) {
 		})
 	}
 
-	matchGen := func(poolName string, tickets []*pb.Ticket) *pb.Match {
+	matchGen := func(tickets []*pb.Ticket) *pb.Match {
 		tids := []string{}
 		for _, ticket := range tickets {
 			tids = append(tids, ticket.GetId())
@@ -115,7 +115,7 @@ func TestMakeMatches(t *testing.T) {
 		}
 	}
 
-	for poolName, tickets := range poolNameToTickets {
-		assert.Contains(actual, matchGen(poolName, tickets))
+	for _, tickets := range poolNameToTickets {
+		assert.Contains(actual, matchGen(tickets))
 	}
 }
