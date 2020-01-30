@@ -67,7 +67,7 @@ func (m *EvaluateRequest) GetMatch() *Match {
 }
 
 type EvaluateResponse struct {
-	// A Match shortlisted by the evaluator representing one of the final results.
+	// A Match ID representing a shortlisted match returned by the evaluator as the final result.
 	MatchId              string   `protobuf:"bytes,2,opt,name=match_id,json=matchId,proto3" json:"match_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
