@@ -436,7 +436,6 @@ func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, m *syn
 		// For now assume m4c is a channel of MatchIds, will fix it in a later PR.
 		ids := []string{}
 		for _, match := range matches {
-
 			tids, ok := m.Load(match.GetMatchId())
 			if ok {
 				ids = append(ids, tids.([]string)...)
