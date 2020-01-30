@@ -93,7 +93,6 @@ func TestFetchMatches(t *testing.T) {
 						MatchProfile:  resp.GetMatch().GetMatchProfile(),
 						MatchFunction: resp.GetMatch().GetMatchFunction(),
 						Tickets:       resp.GetMatch().GetTickets(),
-						Rosters:       resp.GetMatch().GetRosters(),
 					})
 				}
 

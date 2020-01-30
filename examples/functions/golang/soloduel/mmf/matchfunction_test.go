@@ -35,7 +35,6 @@ func TestMakeMatchesDeduplicate(t *testing.T) {
 	p := &mmfHarness.MatchFunctionParams{
 		Logger:            &logrus.Entry{},
 		ProfileName:       "test-profile",
-		Rosters:           []*pb.Roster{},
 		PoolNameToTickets: poolNameToTickets,
 	}
 
@@ -56,7 +55,6 @@ func TestMakeMatches(t *testing.T) {
 	p := &mmfHarness.MatchFunctionParams{
 		Logger:            &logrus.Entry{},
 		ProfileName:       "test-profile",
-		Rosters:           []*pb.Roster{},
 		PoolNameToTickets: poolNameToTickets,
 	}
 
@@ -68,6 +66,5 @@ func TestMakeMatches(t *testing.T) {
 		assert.Equal(2, len(match.Tickets))
 		assert.Equal(matchName, match.MatchFunction)
 		assert.Equal(p.ProfileName, match.MatchProfile)
-		assert.Nil(match.Rosters)
 	}
 }
