@@ -201,6 +201,9 @@ func (s *synchronizerService) runCycle() {
 
 	m2c := make(chan mAndM6c)
 	m3c := make(chan *pb.Match)
+	// TODO: Let's call it m3point5c for now, will do the renaming in a later PR.
+	m3point5c := make(chan *pb.Match)
+	// TODO: This will be a channel of string after the proto change, will do it in a later PR.
 	m4c := make(chan *pb.Match)
 	m5c := make(chan *pb.Match)
 
@@ -221,9 +224,12 @@ func (s *synchronizerService) runCycle() {
 			close(r.m6c)
 		}
 	}()
-	go s.wrapEvaluator(ctx, cancel, bufferChannel(m3c), m4c)
+
+	mIDToTIDs := &sync.Map{}
+	go s.cacheMatchIDToTicketIDs(mIDToTIDs, bufferChannel(m3c), m3point5c)
+	go s.wrapEvaluator(ctx, cancel, bufferChannel(m3point5c), m4c)
 	go func() {
-		s.addMatchesToIgnoreList(ctx, cancel, bufferChannel(m4c), m5c)
+		s.addMatchesToIgnoreList(ctx, mIDToTIDs, cancel, bufferChannel(m4c), m5c)
 		// Wait for ignore list, but not all matches returned, the next cycle
 		// can start now.
 		close(closedOnCycleEnd)
@@ -396,6 +402,24 @@ func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelEr
 	close(m4c)
 }
 
+func (s *synchronizerService) cacheMatchIDToTicketIDs(m *sync.Map, m3c <-chan []*pb.Match, m3point5c chan<- *pb.Match) {
+	for matches := range m3c {
+		for _, match := range matches {
+			m.Store(match.GetMatchId(), getTicketIds(match.GetTickets()))
+			m3point5c <- match
+		}
+	}
+	close(m3point5c)
+}
+
+func getTicketIds(tickets []*pb.Ticket) []string {
+	tids := []string{}
+	for _, ticket := range tickets {
+		tids = append(tids, ticket.GetId())
+	}
+	return tids
+}
+
 ///////////////////////////////////////
 ///////////////////////////////////////
 
@@ -403,16 +427,19 @@ func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelEr
 // ignorelist.  If it partially fails for whatever reason (not all tickets will
 // nessisarily be in the same call), only the matches which can be safely
 // returned to the Synchronize calls are.
-func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, cancel cancelErrFunc, m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
+func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, m *sync.Map, cancel cancelErrFunc, m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
 	totalMatches := 0
 	successfulMatches := 0
 	var lastErr error
 	for matches := range m4c {
+		// For now assume m4c is a channel of MatchIds, will fix it in a later PR.
 		ids := []string{}
 		for _, match := range matches {
-			for _, ticket := range match.GetTickets() {
-				ids = append(ids, ticket.GetId())
+			tids, ok := m.Load(match.GetMatchId())
+			if !ok {
+				logger.Errorf("failed to get MatchId %s with its corresponding tickets from the cache", match.GetMatchId())
 			}
+			ids = append(ids, tids.([]string)...)
 		}
 
 		err := s.store.AddTicketsToIgnoreList(ctx, ids)
