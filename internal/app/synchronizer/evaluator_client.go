@@ -108,6 +108,7 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 	sc := make(chan error, 1)
 	defer close(sc)
 	go func() {
+		defer close(sc)
 		for proposals := range pc {
 			for _, proposal := range proposals {
 				if err = stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
@@ -138,8 +139,8 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 		results = append(results, resp.GetMatch())
 	}
 
-	if len(sc) != 0 {
-		return nil, <-sc
+	if err := <-sc; err != nil {
+		return nil, err
 	}
 	return results, nil
 }
