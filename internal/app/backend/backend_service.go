@@ -74,19 +74,20 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	// Closed when mmfs should start.
 	startMmfs := make(chan struct{})
 	proposals := make(chan *pb.Match)
+	m := &sync.Map{}
 	wg := sync.WaitGroup{}
 	wg.Add(3)
 
 	var synchronizeSendErr error
 	go func() {
 		defer wg.Done()
-		synchronizeSendErr = synchronizeSend(mmfCtx, proposals, syncStream)
+		synchronizeSendErr = synchronizeSend(mmfCtx, m, proposals, syncStream)
 	}()
 
 	var synchronizeRecvErr error
 	go func() {
 		defer wg.Done()
-		synchronizeRecvErr = synchronizeRecv(syncStream, stream, startMmfs, cancelMmfs)
+		synchronizeRecvErr = synchronizeRecv(syncStream, m, stream, startMmfs, cancelMmfs)
 		cancelMmfs()
 	}()
 
@@ -125,7 +126,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	return nil
 }
 
-func synchronizeSend(ctx context.Context, proposals <-chan *pb.Match, syncStream synchronizerStream) error {
+func synchronizeSend(ctx context.Context, m *sync.Map, proposals <-chan *pb.Match, syncStream synchronizerStream) error {
 sendProposals:
 	for {
 		select {
@@ -135,6 +136,7 @@ sendProposals:
 			if !ok {
 				break sendProposals
 			}
+			m.Store(p.GetMatchId(), p)
 			telemetry.RecordUnitMeasurement(ctx, mMatchesSentToEvaluation)
 			err := syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
 			if err != nil {
@@ -150,7 +152,7 @@ sendProposals:
 	return nil
 }
 
-func synchronizeRecv(syncStream synchronizerStream, stream pb.BackendService_FetchMatchesServer, startMmfs chan<- struct{}, cancelMmfs context.CancelFunc) error {
+func synchronizeRecv(syncStream synchronizerStream, m *sync.Map, stream pb.BackendService_FetchMatchesServer, startMmfs chan<- struct{}, cancelMmfs context.CancelFunc) error {
 	var startMmfsOnce sync.Once
 
 	for {
@@ -172,9 +174,9 @@ func synchronizeRecv(syncStream synchronizerStream, stream pb.BackendService_Fet
 			cancelMmfs()
 		}
 
-		if resp.Match != nil {
+		if match, ok := m.Load(resp.GetMatch().GetMatchId()); ok {
 			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
-			err = stream.Send(&pb.FetchMatchesResponse{Match: resp.Match})
+			err = stream.Send(&pb.FetchMatchesResponse{Match: match.(*pb.Match)})
 			if err != nil {
 				return fmt.Errorf("error sending match to caller of backend: %w", err)
 			}
