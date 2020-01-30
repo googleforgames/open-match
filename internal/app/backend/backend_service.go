@@ -74,20 +74,20 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	// Closed when mmfs should start.
 	startMmfs := make(chan struct{})
 	proposals := make(chan *pb.Match)
-	mc := &sync.Map{}
+	m := &sync.Map{}
 	wg := sync.WaitGroup{}
 	wg.Add(3)
 
 	var synchronizeSendErr error
 	go func() {
 		defer wg.Done()
-		synchronizeSendErr = synchronizeSend(mmfCtx, mc, proposals, syncStream)
+		synchronizeSendErr = synchronizeSend(mmfCtx, m, proposals, syncStream)
 	}()
 
 	var synchronizeRecvErr error
 	go func() {
 		defer wg.Done()
-		synchronizeRecvErr = synchronizeRecv(syncStream, mc, stream, startMmfs, cancelMmfs)
+		synchronizeRecvErr = synchronizeRecv(syncStream, m, stream, startMmfs, cancelMmfs)
 		cancelMmfs()
 	}()
 
@@ -126,7 +126,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	return nil
 }
 
-func synchronizeSend(ctx context.Context, mc *sync.Map, proposals <-chan *pb.Match, syncStream synchronizerStream) error {
+func synchronizeSend(ctx context.Context, m *sync.Map, proposals <-chan *pb.Match, syncStream synchronizerStream) error {
 sendProposals:
 	for {
 		select {
@@ -136,7 +136,7 @@ sendProposals:
 			if !ok {
 				break sendProposals
 			}
-			mc.Store(p.GetMatchId(), p)
+			m.Store(p.GetMatchId(), p)
 			telemetry.RecordUnitMeasurement(ctx, mMatchesSentToEvaluation)
 			err := syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
 			if err != nil {
@@ -152,7 +152,7 @@ sendProposals:
 	return nil
 }
 
-func synchronizeRecv(syncStream synchronizerStream, mc *sync.Map, stream pb.BackendService_FetchMatchesServer, startMmfs chan<- struct{}, cancelMmfs context.CancelFunc) error {
+func synchronizeRecv(syncStream synchronizerStream, m *sync.Map, stream pb.BackendService_FetchMatchesServer, startMmfs chan<- struct{}, cancelMmfs context.CancelFunc) error {
 	var startMmfsOnce sync.Once
 
 	for {
@@ -174,7 +174,7 @@ func synchronizeRecv(syncStream synchronizerStream, mc *sync.Map, stream pb.Back
 			cancelMmfs()
 		}
 
-		if match, ok := mc.Load(resp.GetMatch().GetMatchId()); ok {
+		if match, ok := m.Load(resp.GetMatch().GetMatchId()); ok {
 			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
 			err = stream.Send(&pb.FetchMatchesResponse{Match: match.(*pb.Match)})
 			if err != nil {
