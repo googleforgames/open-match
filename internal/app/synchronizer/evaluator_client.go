@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/omerror"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -100,45 +101,46 @@ func newGrpcEvaluator(cfg config.View) (evaluator, error) {
 }
 
 func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]string, error) {
-	stream, err := ec.evaluator.Evaluate(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("Error starting evaluator call: %w", err)
+	var stream pb.Evaluator_EvaluateClient
+	{ // prevent shadowing err later
+		var err error
+		stream, err = ec.evaluator.Evaluate(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("Error starting evaluator call: %w", err)
+		}
 	}
 
-	sc := make(chan error, 1)
-	go func() {
-		defer close(sc)
+	results := []string{}
+
+	wait := omerror.WaitOnErrors(evaluatorClientLogger, func() error {
 		for proposals := range pc {
 			for _, proposal := range proposals {
-				if err = stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
-					sc <- fmt.Errorf("failed to send request to evaluator, desc: %w", err)
-					return
+				if err := stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
+					return fmt.Errorf("failed to send request to evaluator, desc: %w", err)
 				}
 			}
 		}
 
-		if err = stream.CloseSend(); err != nil {
-			sc <- fmt.Errorf("failed to close the send direction of evaluator stream, desc: %w", err)
-			return
+		if err := stream.CloseSend(); err != nil {
+			return fmt.Errorf("failed to close the send direction of evaluator stream, desc: %w", err)
 		}
-	}()
-
-	results := []string{}
-	for {
-		// TODO: add grpc timeouts for this call.
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			// read done.
-			break
+		return nil
+	}, func() error {
+		for {
+			// TODO: add grpc timeouts for this call.
+			resp, err := stream.Recv()
+			if err == io.EOF {
+				return nil
+			}
+			if err != nil {
+				return fmt.Errorf("failed to get response from evaluator client, desc: %w", err)
+			}
+			results = append(results, resp.GetMatchId())
 		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to get response from evaluator client, desc: %w", err)
-		}
+	})
 
-		results = append(results, resp.GetMatchId())
-	}
-
-	if err := <-sc; err != nil {
+	err := wait()
+	if err != nil {
 		return nil, err
 	}
 	return results, nil

@@ -29,6 +29,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/ipb"
+	"open-match.dev/open-match/internal/omerror"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/internal/telemetry"
@@ -75,50 +76,40 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	startMmfs := make(chan struct{})
 	proposals := make(chan *pb.Match)
 	m := &sync.Map{}
-	wg := sync.WaitGroup{}
-	wg.Add(3)
 
-	var synchronizeSendErr error
-	go func() {
-		defer wg.Done()
-		synchronizeSendErr = synchronizeSend(mmfCtx, m, proposals, syncStream)
-	}()
+	synchronizerWait := omerror.WaitOnErrors(logger, func() error {
+		return synchronizeSend(stream.Context(), syncStream, m, proposals)
+	}, func() error {
+		return synchronizeRecv(syncStream, m, stream, startMmfs, cancelMmfs)
+	})
 
-	var synchronizeRecvErr error
-	go func() {
-		defer wg.Done()
-		synchronizeRecvErr = synchronizeRecv(syncStream, m, stream, startMmfs, cancelMmfs)
-		cancelMmfs()
-	}()
-
-	var mmfErr error
-	go func() {
-		defer wg.Done()
-
+	mmfWait := omerror.WaitOnErrors(logger, func() error {
 		select {
 		case <-mmfCtx.Done():
-			mmfErr = fmt.Errorf("Mmf was never started")
-			return
+			return fmt.Errorf("Mmf was never started")
 		case <-startMmfs:
 		}
 
-		mmfErr = callMmf(mmfCtx, s.cc, req, proposals)
-	}()
+		return callMmf(mmfCtx, s.cc, req, proposals)
+	})
 
-	wg.Wait()
+	syncErr := synchronizerWait()
+	// Fetch Matches should never block on just the match function.
+	// Must cancel mmfs after synchronizer is done and before checking mmf error
+	// because the synchronizer call could fail while the mmf call blocks.
+	cancelMmfs()
+	mmfErr := mmfWait()
 
 	// TODO: Send mmf error in FetchSummary instead of erroring call.
-	if synchronizeSendErr != nil || synchronizeRecvErr != nil || mmfErr != nil {
+	if syncErr != nil || mmfErr != nil {
 		logger.WithFields(logrus.Fields{
-			"synchronizeSendErr": synchronizeSendErr,
-			"synchronizeRecvErr": synchronizeRecvErr,
-			"mmfErr":             mmfErr,
+			"syncErr": syncErr,
+			"mmfErr":  mmfErr,
 		}).Error("error(s) in FetchMatches call.")
 
 		return fmt.Errorf(
-			"Error(s) in FetchMatches call. synchronizeSendErr=[%s], synchronizeRecvErr=[%s], mmfErr=[%s]",
-			synchronizeSendErr,
-			synchronizeRecvErr,
+			"Error(s) in FetchMatches call. syncErr=[%s], mmfErr=[%s]",
+			syncErr,
 			mmfErr,
 		)
 	}
@@ -126,7 +117,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	return nil
 }
 
-func synchronizeSend(ctx context.Context, m *sync.Map, proposals <-chan *pb.Match, syncStream synchronizerStream) error {
+func synchronizeSend(ctx context.Context, syncStream synchronizerStream, m *sync.Map, proposals <-chan *pb.Match) error {
 sendProposals:
 	for {
 		select {
