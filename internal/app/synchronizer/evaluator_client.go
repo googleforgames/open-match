@@ -106,6 +106,7 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 	}
 
 	sc := make(chan error, 1)
+	defer close(sc)
 	go func() {
 		for proposals := range pc {
 			for _, proposal := range proposals {
