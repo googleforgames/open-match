@@ -33,7 +33,7 @@ message SynchronizeResponse {
 
   // A match which passes evaluation and should be returned to the FetchMatches
   // caller.
-  openmatch.Match match = 3;
+  string match_id = 3;
 }
 
 // The service implementing the Synchronizer API that synchronizes the evaluation
