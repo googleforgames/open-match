@@ -90,9 +90,9 @@
     "openmatchEvaluateResponse": {
       "type": "object",
       "properties": {
-        "match": {
-          "$ref": "#/definitions/openmatchMatch",
-          "description": "A Match shortlisted by the evaluator representing one of the final results."
+        "match_id": {
+          "type": "string",
+          "description": "A Match ID representing a shortlisted match returned by the evaluator as the final result."
         }
       }
     },
