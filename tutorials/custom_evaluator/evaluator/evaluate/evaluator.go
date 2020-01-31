@@ -24,7 +24,7 @@ import (
 )
 
 // Evaluate is where your custom evaluation logic lives.
-func evaluate(proposals []*pb.Match) ([]*pb.Match, error) {
+func evaluate(proposals []*pb.Match) ([]string, error) {
 
-	return []*pb.Match{}, nil
+	return []string{}, nil
 }
