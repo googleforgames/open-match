@@ -59,10 +59,8 @@ func WaitOnErrors(logger *logrus.Entry, fs ...func() error) WaitFunc {
 			err := <-errors
 			if first == nil {
 				first = err
-			} else {
-				if err != nil {
-					logger.WithError(err).Warning("Multiple errors occurred in parallel execution. This error is suppressed by the error returned.")
-				}
+			} else if err != nil {
+				logger.WithError(err).Warning("Multiple errors occurred in parallel execution. This error is suppressed by the error returned.")
 			}
 		}
 		return first

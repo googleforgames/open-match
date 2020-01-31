@@ -93,11 +93,6 @@ func TestMakeMatches(t *testing.T) {
 	}
 
 	matchGen := func(tickets []*pb.Ticket) *pb.Match {
-		tids := []string{}
-		for _, ticket := range tickets {
-			tids = append(tids, ticket.GetId())
-		}
-
 		evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
 			Score: scoreCalculator(tickets),
 		})

@@ -15,10 +15,11 @@
 package rpc
 
 import (
-	"google.golang.org/grpc"
 	"net/http"
-	"open-match.dev/open-match/internal/config"
 	"sync"
+
+	"google.golang.org/grpc"
+	"open-match.dev/open-match/internal/config"
 )
 
 // ClientCache holds GRPC and HTTP clients based on an address.

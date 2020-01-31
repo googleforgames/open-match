@@ -15,8 +15,9 @@
 package e2e
 
 import (
-	"open-match.dev/open-match/internal/testing/e2e"
 	"testing"
+
+	"open-match.dev/open-match/internal/testing/e2e"
 )
 
 func TestMain(m *testing.M) {

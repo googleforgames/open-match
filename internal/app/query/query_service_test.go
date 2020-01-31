@@ -131,6 +131,7 @@ func TestDoQueryTickets(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.description, func(t *testing.T) {
 			cfg := viper.New()
 			cfg.Set("storage.page.size", 1000)
@@ -183,6 +184,7 @@ func TestGetPageSize(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := viper.New()
 			tt.configure(cfg)

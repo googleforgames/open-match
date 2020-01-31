@@ -69,6 +69,7 @@ func TestExtractIndexedFields(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.description, func(t *testing.T) {
 			actual := extractIndexedFields(&pb.Ticket{SearchFields: test.searchFields})
 
@@ -151,6 +152,7 @@ func TestExtractIndexFilters(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.description, func(t *testing.T) {
 			actual := extractIndexFilters(test.pool)
 

@@ -48,7 +48,7 @@ func TestMinimatch(t *testing.T) {
 	// improving this in future iterations to test data scoped to sepcific test cases
 
 	// Tickets used for testing. The id will be populated once the Tickets are created.
-	sourceTickets := []testTicket{
+	sourceTickets := []*testTicket{
 		{skill: 1, mapValue: e2e.DoubleArgMMR, targetPool: e2e.Map1BeginnerPool},
 		{skill: 5, mapValue: e2e.DoubleArgMMR, targetPool: e2e.Map1BeginnerPool},
 		{skill: 8, mapValue: e2e.DoubleArgMMR, targetPool: e2e.Map1AdvancedPool},
@@ -94,7 +94,7 @@ func TestMinimatch(t *testing.T) {
 	// Test profiles being tested for. Note that each profile embeds two pools - and
 	// the current MMF returns a match per pool in the profile - so each profile should
 	// output two matches that are comprised of tickets belonging to that pool.
-	sourceProfiles := []testProfile{
+	sourceProfiles := []*testProfile{
 		{name: "", pools: []*pb.Pool{testPools[e2e.Map1BeginnerPool], testPools[e2e.Map1AdvancedPool]}},
 		{name: "", pools: []*pb.Pool{testPools[e2e.Map2BeginnerPool], testPools[e2e.Map2AdvancedPool]}},
 	}
@@ -116,8 +116,8 @@ func TestMinimatch(t *testing.T) {
 	t.Run("TestMinimatch", func(t *testing.T) {
 		for _, test := range tests {
 			test := test
-			testTickets := make([]testTicket, len(sourceTickets))
-			testProfiles := make([]testProfile, len(sourceProfiles))
+			testTickets := make([]*testTicket, len(sourceTickets))
+			testProfiles := make([]*testProfile, len(sourceProfiles))
 			copy(testTickets, sourceTickets)
 			copy(testProfiles, sourceProfiles)
 
@@ -193,7 +193,7 @@ func TestMinimatch(t *testing.T) {
 	})
 }
 
-func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string][]string, testProfiles []testProfile, om e2e.OM, fc *pb.FunctionConfig) {
+func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string][]string, testProfiles []*testProfile, om e2e.OM, fc *pb.FunctionConfig) {
 	// Fetch Matches for each test profile.
 	be := om.MustBackendGRPC()
 	for _, profile := range testProfiles {

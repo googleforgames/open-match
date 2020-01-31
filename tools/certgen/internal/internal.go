@@ -154,7 +154,7 @@ func CreateCertificateAndPrivateKey(params *Params) ([]byte, []byte, error) {
 		IsCA:                  params.CertificateAuthority,
 	}
 	if params.CertificateAuthority {
-		certTemplate.KeyUsage = certTemplate.KeyUsage | x509.KeyUsageCertSign
+		certTemplate.KeyUsage |= x509.KeyUsageCertSign
 	}
 	hostnames := expandHostnames(params.Hostnames)
 	for _, hostname := range hostnames {
