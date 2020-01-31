@@ -122,6 +122,9 @@ service Backend {
   // ReleaseTickets removes the submitted tickets from the list that prevents tickets 
   // that are awaiting assignment from appearing in MMF queries, effectively putting them back into
   // the matchmaking pool
+  // 
+  // BETA FEATURE WARNING:  This call and the associated Request and Response
+  // messages are not finalized and still subject to possible change or removal.
   rpc ReleaseTickets(ReleaseTicketsRequest) returns (ReleaseTicketsResponse) {
     option (google.api.http) = {
       post: "/v1/backend/tickets:release"
