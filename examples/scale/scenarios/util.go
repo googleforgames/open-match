@@ -75,7 +75,7 @@ func (e StatProcessor) IncrementStat(k string, delta interface{}) {
 
 // RecordError atomically records the occurrence of input errors
 func (e StatProcessor) RecordError(desc string, err error) {
-	errMsg := fmt.Sprintf("%s: %w", desc, err)
+	errMsg := fmt.Sprintf("%s: %s", desc, err.Error())
 	errRead, ok := e.em.Load(errMsg)
 	if !ok {
 		errRead = 0
