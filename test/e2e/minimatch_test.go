@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -127,7 +129,7 @@ func TestMinimatch(t *testing.T) {
 				fc := test.fcGen(om)
 
 				fe := om.MustFrontendGRPC()
-				mml := om.MustMmLogicGRPC()
+				mml := om.MustQueryServiceGRPC()
 				ctx := om.Context()
 
 				// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids
@@ -195,12 +197,19 @@ func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string]
 	// Fetch Matches for each test profile.
 	be := om.MustBackendGRPC()
 	for _, profile := range testProfiles {
+
+		var wantPools []string
+		for _, pool := range profile.pools {
+			wantPools = append(wantPools, pool.GetName())
+		}
+
 		stream, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{
-			Config:   fc,
-			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
+			Config:  fc,
+			Profile: &pb.MatchProfile{Name: profile.name, Pools: profile.pools},
 		})
 		assert.Nil(t, err)
 
+		var gotMatches []*pb.Match
 		for {
 			var resp *pb.FetchMatchesResponse
 			resp, err = stream.Recv()
@@ -210,28 +219,42 @@ func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string]
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			assert.NotNil(t, resp.GetMatch())
+			gotMatches = append(gotMatches, resp.GetMatch())
+		}
 
-			match := resp.GetMatch()
-			// Currently, the MMF simply creates a match per pool in the match profile - and populates
-			// the roster with the pool name. Thus validate that for the roster populated in the match
-			// result has all the tickets expected in that pool.
-			assert.Equal(t, len(match.GetRosters()), 1)
-			assert.Equal(t, match.GetRosters()[0].GetTicketIds(), poolTickets[match.GetRosters()[0].GetName()])
+		assert.Equal(t, len(wantPools), len(gotMatches))
+		var gotMatchTickets [][]string
+		var wantMatchTickets [][]string
 
-			var gotTickets []string
-			for _, ticket := range match.GetTickets() {
-				gotTickets = append(gotTickets, ticket.Id)
+		for _, m := range gotMatches {
+			var ids []string
+			for _, t := range m.GetTickets() {
+				ids = append(ids, t.GetId())
 			}
 
-			// Given that currently we only populate all tickets in a match in a Roster, validate that
-			// all the tickets present in the result match are equal to the tickets in the pool for that match.
-			assert.Equal(t, gotTickets, poolTickets[match.GetRosters()[0].GetName()])
+			sort.Strings(ids)
+			gotMatchTickets = append(gotMatchTickets, ids)
 		}
+
+		sort.Slice(gotMatchTickets, func(lhs int, rhs int) bool {
+			return strings.Compare(gotMatchTickets[lhs][0], gotMatchTickets[rhs][0]) != 1
+		})
+
+		for _, p := range wantPools {
+			sort.Strings(poolTickets[p])
+			wantMatchTickets = append(wantMatchTickets, poolTickets[p])
+		}
+
+		sort.Slice(wantMatchTickets, func(lhs int, rhs int) bool {
+			return strings.Compare(wantMatchTickets[lhs][0], wantMatchTickets[rhs][0]) != 1
+		})
+
+		assert.Equal(t, gotMatchTickets, wantMatchTickets)
 
 		// Verify calling fetch matches twice within ttl interval won't yield new results
 		stream, err = be.FetchMatches(om.Context(), &pb.FetchMatchesRequest{
-			Config:   fc,
-			Profiles: []*pb.MatchProfile{{Name: profile.name, Pools: profile.pools}},
+			Config:  fc,
+			Profile: &pb.MatchProfile{Name: profile.name, Pools: profile.pools},
 		})
 		assert.Nil(t, err)
 

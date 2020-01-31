@@ -37,7 +37,7 @@ func TestFetchMatches(t *testing.T) {
 	var tt = []struct {
 		description string
 		fc          *pb.FunctionConfig
-		profile     []*pb.MatchProfile
+		profile     *pb.MatchProfile
 		wantMatch   []*pb.Match
 		wantCode    codes.Code
 	}{
@@ -55,14 +55,14 @@ func TestFetchMatches(t *testing.T) {
 				Port: int32(54321),
 				Type: pb.FunctionConfig_GRPC,
 			},
-			[]*pb.MatchProfile{{Name: "some name"}},
+			&pb.MatchProfile{Name: "some name"},
 			[]*pb.Match{},
 			codes.Unavailable,
 		},
 		{
 			"expects empty response since the store is empty",
 			om.MustMmfConfigGRPC(),
-			[]*pb.MatchProfile{{Name: "some name"}},
+			&pb.MatchProfile{Name: "some name"},
 			[]*pb.Match{},
 			codes.OK,
 		},
@@ -75,7 +75,7 @@ func TestFetchMatches(t *testing.T) {
 				t.Parallel()
 				ctx := om.Context()
 
-				stream, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{Config: test.fc, Profiles: test.profile})
+				stream, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile})
 				assert.Nil(t, err)
 
 				var resp *pb.FetchMatchesResponse
@@ -93,7 +93,6 @@ func TestFetchMatches(t *testing.T) {
 						MatchProfile:  resp.GetMatch().GetMatchProfile(),
 						MatchFunction: resp.GetMatch().GetMatchFunction(),
 						Tickets:       resp.GetMatch().GetTickets(),
-						Rosters:       resp.GetMatch().GetRosters(),
 					})
 				}
 

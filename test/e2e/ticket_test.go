@@ -98,7 +98,6 @@ func TestAssignTickets(t *testing.T) {
 						assert.Nil(t, err)
 						// grpc will write something to the reserved fields of this protobuf object, so we have to do comparisons fields by fields.
 						assert.Equal(t, test.wantAssignment.GetConnection(), gtResp.GetAssignment().GetConnection())
-						assert.Equal(t, test.wantAssignment.GetError(), gtResp.GetAssignment().GetError())
 					}
 				}
 			})
@@ -154,12 +153,11 @@ func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
 	assert.Equal(t, got.GetId(), want.GetId())
 	assert.Equal(t, got.SearchFields.DoubleArgs["test-property"], want.SearchFields.DoubleArgs["test-property"])
 	assert.Equal(t, got.GetAssignment().GetConnection(), want.GetAssignment().GetConnection())
-	assert.Equal(t, got.GetAssignment().GetError(), want.GetAssignment().GetError())
 }
 
 // validateDelete validates that the ticket is actually deleted from the state storage.
 // Given that delete is async, this method retries fetch every 100ms up to 5 seconds.
-func validateDelete(ctx context.Context, t *testing.T, fe pb.FrontendClient, id string) {
+func validateDelete(ctx context.Context, t *testing.T, fe pb.FrontendServiceClient, id string) {
 	start := time.Now()
 	for {
 		if time.Since(start) > 5*time.Second {

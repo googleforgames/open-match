@@ -29,6 +29,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/ipb"
+	"open-match.dev/open-match/internal/omerror"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/internal/telemetry"
@@ -40,12 +41,7 @@ import (
 type backendService struct {
 	synchronizer *synchronizerClient
 	store        statestore.Service
-	mmfClients   *rpc.ClientCache
-}
-
-type mmfResult struct {
-	matches []*pb.Match
-	err     error
+	cc           *rpc.ClientCache
 }
 
 var (
@@ -63,11 +59,11 @@ var (
 // returns a set of match proposals. FetchMatches method streams the results back to the caller.
 // FetchMatches immediately returns an error if it encounters any execution failures.
 //   - If the synchronizer is enabled, FetchMatch will then call the synchronizer to deduplicate proposals with overlapped tickets.
-func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Backend_FetchMatchesServer) error {
+func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.BackendService_FetchMatchesServer) error {
 	if req.GetConfig() == nil {
 		return status.Error(codes.InvalidArgument, ".config is required")
 	}
-	if req.GetProfiles() == nil {
+	if req.GetProfile() == nil {
 		return status.Error(codes.InvalidArgument, ".profile is required")
 	}
 
@@ -76,200 +72,186 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		return err
 	}
 
-	// Send errors from the running go routines back to the FetchMatches go
-	// routine.  Must have size equal to number of senders so that if FetchMatches
-	// returns an error, additional errors don't block the go routine from
-	// finishing.
-	errors := make(chan error, 2)
 	mmfCtx, cancelMmfs := context.WithCancel(stream.Context())
-	startMmfs := func() error {
-		resultChan := make(chan mmfResult, len(req.GetProfiles()))
+	// Closed when mmfs should start.
+	startMmfs := make(chan struct{})
+	proposals := make(chan *pb.Match)
+	m := &sync.Map{}
 
-		err := doFetchMatchesReceiveMmfResult(mmfCtx, s.mmfClients, req, resultChan)
-		if err != nil {
-			// TODO: Log but continue case where mmfs were canceled once fully
-			// streaming.
-			return err
+	synchronizerWait := omerror.WaitOnErrors(logger, func() error {
+		return synchronizeSend(stream.Context(), syncStream, m, proposals)
+	}, func() error {
+		return synchronizeRecv(syncStream, m, stream, startMmfs, cancelMmfs)
+	})
+
+	mmfWait := omerror.WaitOnErrors(logger, func() error {
+		select {
+		case <-mmfCtx.Done():
+			return fmt.Errorf("Mmf was never started")
+		case <-startMmfs:
 		}
 
-		proposals, err := doFetchMatchesValidateProposals(mmfCtx, resultChan, len(req.GetProfiles()))
-		if err != nil {
-			// TODO: Log but continue case where mmfs were canceled once fully
-			// streaming.
-			return err
-		}
+		return callMmf(mmfCtx, s.cc, req, proposals)
+	})
 
-	sendProposals:
-		for _, p := range proposals {
-			select {
-			case <-mmfCtx.Done():
-				logger.Warning("proposals from mmfs received too late to be sent to synchronizer")
+	syncErr := synchronizerWait()
+	// Fetch Matches should never block on just the match function.
+	// Must cancel mmfs after synchronizer is done and before checking mmf error
+	// because the synchronizer call could fail while the mmf call blocks.
+	cancelMmfs()
+	mmfErr := mmfWait()
+
+	// TODO: Send mmf error in FetchSummary instead of erroring call.
+	if syncErr != nil || mmfErr != nil {
+		logger.WithFields(logrus.Fields{
+			"syncErr": syncErr,
+			"mmfErr":  mmfErr,
+		}).Error("error(s) in FetchMatches call.")
+
+		return fmt.Errorf(
+			"Error(s) in FetchMatches call. syncErr=[%s], mmfErr=[%s]",
+			syncErr,
+			mmfErr,
+		)
+	}
+
+	return nil
+}
+
+func synchronizeSend(ctx context.Context, syncStream synchronizerStream, m *sync.Map, proposals <-chan *pb.Match) error {
+sendProposals:
+	for {
+		select {
+		case <-ctx.Done():
+			break sendProposals
+		case p, ok := <-proposals:
+			if !ok {
 				break sendProposals
-			default:
 			}
-
-			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesSentToEvaluation)
-			err = syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
+			m.Store(p.GetMatchId(), p)
+			telemetry.RecordUnitMeasurement(ctx, mMatchesSentToEvaluation)
+			err := syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
 			if err != nil {
 				return fmt.Errorf("error sending proposal to synchronizer: %w", err)
 			}
 		}
-
-		err = syncStream.CloseSend()
-		if err != nil {
-			return fmt.Errorf("error closing send stream of proposals to synchronizer: %w", err)
-		}
-		return nil
 	}
 
-	go func() {
-		var startMmfsOnce sync.Once
-		defer func() {
-			startMmfsOnce.Do(func() {
-				errors <- fmt.Errorf("MMFS were never started")
-			})
-		}()
-
-		for {
-			resp, err := syncStream.Recv()
-			if err == io.EOF {
-				errors <- nil
-				return
-			}
-			if err != nil {
-				errors <- fmt.Errorf("error receiving match from synchronizer: %w", err)
-				return
-			}
-
-			if resp.StartMmfs {
-				go startMmfsOnce.Do(func() {
-					errors <- startMmfs()
-				})
-			}
-
-			if resp.CancelMmfs {
-				cancelMmfs()
-			}
-
-			if resp.Match != nil {
-				telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
-				err = stream.Send(&pb.FetchMatchesResponse{Match: resp.Match})
-				if err != nil {
-					errors <- fmt.Errorf("error sending match to caller of backend: %w", err)
-					return
-				}
-			}
-		}
-	}()
-
-	for i := 0; i < 2; i++ {
-		err := <-errors
-		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("error in FetchMatches call.")
-			return err
-		}
+	err := syncStream.CloseSend()
+	if err != nil {
+		return fmt.Errorf("error closing send stream of proposals to synchronizer: %w", err)
 	}
-
 	return nil
 }
 
-func doFetchMatchesReceiveMmfResult(ctx context.Context, mmfClients *rpc.ClientCache, req *pb.FetchMatchesRequest, resultChan chan<- mmfResult) error {
-	var grpcClient pb.MatchFunctionClient
-	var httpClient *http.Client
-	var baseURL string
-	var err error
+func synchronizeRecv(syncStream synchronizerStream, m *sync.Map, stream pb.BackendService_FetchMatchesServer, startMmfs chan<- struct{}, cancelMmfs context.CancelFunc) error {
+	var startMmfsOnce sync.Once
 
-	configType := req.GetConfig().GetType()
+	for {
+		resp, err := syncStream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("error receiving match from synchronizer: %w", err)
+		}
+
+		if resp.StartMmfs {
+			go startMmfsOnce.Do(func() {
+				close(startMmfs)
+			})
+		}
+
+		if resp.CancelMmfs {
+			cancelMmfs()
+		}
+
+		if match, ok := m.Load(resp.GetMatchId()); ok {
+			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
+			err = stream.Send(&pb.FetchMatchesResponse{Match: match.(*pb.Match)})
+			if err != nil {
+				return fmt.Errorf("error sending match to caller of backend: %w", err)
+			}
+		}
+	}
+}
+
+// callMmf triggers execution of MMFs to fetch match proposals.
+func callMmf(ctx context.Context, cc *rpc.ClientCache, req *pb.FetchMatchesRequest, proposals chan<- *pb.Match) error {
+	defer close(proposals)
 	address := fmt.Sprintf("%s:%d", req.GetConfig().GetHost(), req.GetConfig().GetPort())
 
-	switch configType {
-	// MatchFunction Hosted as a GRPC service
+	switch req.GetConfig().GetType() {
 	case pb.FunctionConfig_GRPC:
-		var conn *grpc.ClientConn
-		conn, err = mmfClients.GetGRPC(address)
-		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"error":    err.Error(),
-				"function": req.GetConfig(),
-			}).Error("failed to establish grpc client connection to match function")
-			return status.Error(codes.InvalidArgument, "failed to connect to match function")
-		}
-		grpcClient = pb.NewMatchFunctionClient(conn)
-	// MatchFunction Hosted as a REST service
+		return callGrpcMmf(ctx, cc, req.GetProfile(), address, proposals)
 	case pb.FunctionConfig_REST:
-		httpClient, baseURL, err = mmfClients.GetHTTP(address)
-		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"error":    err.Error(),
-				"function": req.GetConfig(),
-			}).Error("failed to establish rest client connection to match function")
-			return status.Error(codes.InvalidArgument, "failed to connect to match function")
-		}
+		return callHTTPMmf(ctx, cc, req.GetProfile(), address, proposals)
 	default:
 		return status.Error(codes.InvalidArgument, "provided match function type is not supported")
 	}
+}
 
-	for _, profile := range req.GetProfiles() {
-		go func(profile *pb.MatchProfile) {
-			// Get the match results that will be sent.
-			// TODO: The matches returned by the MatchFunction will be sent to the
-			// Evaluator to select results. Until the evaluator is implemented,
-			// we channel all matches as accepted results.
-			switch configType {
-			case pb.FunctionConfig_GRPC:
-				matches, err := matchesFromGRPCMMF(ctx, profile, grpcClient)
-				resultChan <- mmfResult{matches, err}
-			case pb.FunctionConfig_REST:
-				matches, err := matchesFromHTTPMMF(ctx, profile, httpClient, baseURL)
-				resultChan <- mmfResult{matches, err}
-			}
-		}(profile)
+func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProfile, address string, proposals chan<- *pb.Match) error {
+	var conn *grpc.ClientConn
+	conn, err := cc.GetGRPC(address)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error":    err.Error(),
+			"function": address,
+		}).Error("failed to establish grpc client connection to match function")
+		return status.Error(codes.InvalidArgument, "failed to connect to match function")
+	}
+	client := pb.NewMatchFunctionClient(conn)
+
+	stream, err := client.Run(ctx, &pb.RunRequest{Profile: profile})
+	if err != nil {
+		logger.WithError(err).Error("failed to run match function for profile")
+		return err
+	}
+
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			logger.Errorf("%v.Run() error, %v\n", client, err)
+			return err
+		}
+		select {
+		case proposals <- resp.GetProposal():
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 
 	return nil
 }
 
-func doFetchMatchesValidateProposals(ctx context.Context, resultChan <-chan mmfResult, channelSize int) ([]*pb.Match, error) {
-	proposals := []*pb.Match{}
-	for i := 0; i < channelSize; i++ {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case result := <-resultChan:
-			// Check if mmf responds with any errors
-			if result.err != nil {
-				return nil, result.err
-			}
-
-			// Check if mmf returns a match with no tickets in it
-			for _, match := range result.matches {
-				if len(match.GetTickets()) == 0 {
-					return nil, status.Errorf(codes.FailedPrecondition, "match %s does not have associated tickets.", match.GetMatchId())
-				}
-			}
-			proposals = append(proposals, result.matches...)
-		}
+func callHTTPMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProfile, address string, proposals chan<- *pb.Match) error {
+	client, baseURL, err := cc.GetHTTP(address)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error":    err.Error(),
+			"function": address,
+		}).Error("failed to establish rest client connection to match function")
+		return status.Error(codes.InvalidArgument, "failed to connect to match function")
 	}
-	return proposals, nil
-}
 
-func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *http.Client, baseURL string) ([]*pb.Match, error) {
 	var m jsonpb.Marshaler
 	strReq, err := m.MarshalToString(&pb.RunRequest{Profile: profile})
 	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to marshal profile pb to string for profile %s: %s", profile.GetName(), err.Error())
+		return status.Errorf(codes.FailedPrecondition, "failed to marshal profile pb to string for profile %s: %s", profile.GetName(), err.Error())
 	}
 
 	req, err := http.NewRequest("POST", baseURL+"/v1/matchfunction:run", strings.NewReader(strReq))
 	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "failed to create mmf http request for profile %s: %s", profile.GetName(), err.Error())
+		return status.Errorf(codes.FailedPrecondition, "failed to create mmf http request for profile %s: %s", profile.GetName(), err.Error())
 	}
 
 	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get response from mmf run for proile %s: %s", profile.Name, err.Error())
+		return status.Errorf(codes.Internal, "failed to get response from mmf run for proile %s: %s", profile.Name, err.Error())
 	}
 	defer func() {
 		err = resp.Body.Close()
@@ -279,7 +261,6 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 	}()
 
 	dec := json.NewDecoder(resp.Body)
-	proposals := make([]*pb.Match, 0)
 	for {
 		var item struct {
 			Result json.RawMessage        `json:"result"`
@@ -291,47 +272,23 @@ func matchesFromHTTPMMF(ctx context.Context, profile *pb.MatchProfile, client *h
 			break
 		}
 		if err != nil {
-			return nil, status.Errorf(codes.Unavailable, "failed to read response from HTTP JSON stream: %s", err.Error())
+			return status.Errorf(codes.Unavailable, "failed to read response from HTTP JSON stream: %s", err.Error())
 		}
 		if len(item.Error) != 0 {
-			return nil, status.Errorf(codes.Unavailable, "failed to execute matchfunction.Run: %v", item.Error)
+			return status.Errorf(codes.Unavailable, "failed to execute matchfunction.Run: %v", item.Error)
 		}
 		resp := &pb.RunResponse{}
 		if err := jsonpb.UnmarshalString(string(item.Result), resp); err != nil {
-			return nil, status.Errorf(codes.Unavailable, "failed to execute json.Unmarshal(%s, &resp): %v", item.Result, err)
+			return status.Errorf(codes.Unavailable, "failed to execute json.Unmarshal(%s, &resp): %v", item.Result, err)
 		}
-		proposals = append(proposals, resp.GetProposal())
+		select {
+		case proposals <- resp.GetProposal():
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 
-	return proposals, nil
-}
-
-// matchesFromGRPCMMF triggers execution of MMFs to fetch match results for each profile.
-// These proposals are then sent to evaluator and the results are streamed back on the channel
-// that this function returns to the caller.
-func matchesFromGRPCMMF(ctx context.Context, profile *pb.MatchProfile, client pb.MatchFunctionClient) ([]*pb.Match, error) {
-	// TODO: This code calls user code and could hang. We need to add a deadline here
-	// and timeout gracefully to ensure that the ListMatches completes.
-	stream, err := client.Run(ctx, &pb.RunRequest{Profile: profile})
-	if err != nil {
-		logger.WithError(err).Error("failed to run match function for profile")
-		return nil, err
-	}
-
-	proposals := make([]*pb.Match, 0)
-	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			logger.Errorf("%v.Run() error, %v\n", client, err)
-			return nil, err
-		}
-		proposals = append(proposals, resp.GetProposal())
-	}
-
-	return proposals, nil
+	return nil
 }
 
 func (s *backendService) ReleaseTickets(ctx context.Context, req *pb.ReleaseTicketsRequest) (*pb.ReleaseTicketsResponse, error) {

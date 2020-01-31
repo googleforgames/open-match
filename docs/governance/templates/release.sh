@@ -12,7 +12,7 @@ SOURCE_VERSION=$1
 DEST_VERSION=$2
 SOURCE_PROJECT_ID=open-match-build
 DEST_PROJECT_ID=open-match-public-images
-IMAGE_NAMES="openmatch-backend openmatch-frontend openmatch-mmlogic openmatch-synchronizer openmatch-minimatch openmatch-demo-first-match openmatch-mmf-go-soloduel openmatch-mmf-go-pool openmatch-evaluator-go-simple openmatch-swaggerui openmatch-reaper"
+IMAGE_NAMES="openmatch-backend openmatch-frontend openmatch-query openmatch-synchronizer openmatch-minimatch openmatch-demo-first-match openmatch-mmf-go-soloduel openmatch-mmf-go-pool openmatch-evaluator-go-simple openmatch-swaggerui openmatch-reaper"
 
 for name in $IMAGE_NAMES
 do

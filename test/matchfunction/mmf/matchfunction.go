@@ -39,14 +39,8 @@ var (
 // in that pool in the generated match.
 func MakeMatches(params *internalMmf.MatchFunctionParams) ([]*pb.Match, error) {
 	var result []*pb.Match
-	for pool, tickets := range params.PoolNameToTickets {
+	for _, tickets := range params.PoolNameToTickets {
 		if len(tickets) != 0 {
-			roster := &pb.Roster{Name: pool}
-
-			for _, ticket := range tickets {
-				roster.TicketIds = append(roster.GetTicketIds(), ticket.GetId())
-			}
-
 			evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
 				Score: scoreCalculator(tickets),
 			})
@@ -59,7 +53,6 @@ func MakeMatches(params *internalMmf.MatchFunctionParams) ([]*pb.Match, error) {
 				MatchProfile:  params.ProfileName,
 				MatchFunction: matchName,
 				Tickets:       tickets,
-				Rosters:       []*pb.Roster{roster},
 				Extensions: map[string]*any.Any{
 					"evaluation_input": evaluationInput,
 				},

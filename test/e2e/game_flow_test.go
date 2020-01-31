@@ -40,15 +40,15 @@ func TestGetClients(t *testing.T) {
 	defer closer()
 
 	if c := om.MustFrontendGRPC(); c == nil {
-		t.Error("cannot get frontend client")
+		t.Error("cannot get frontendService client")
 	}
 
 	if c := om.MustBackendGRPC(); c == nil {
-		t.Error("cannot get backend client")
+		t.Error("cannot get backendService client")
 	}
 
-	if c := om.MustMmLogicGRPC(); c == nil {
-		t.Error("cannot get mmlogic client")
+	if c := om.MustQueryServiceGRPC(); c == nil {
+		t.Error("cannot get queryService client")
 	}
 }
 
@@ -132,26 +132,24 @@ func TestGameMatchWorkFlow(t *testing.T) {
 
 	fmReq := &pb.FetchMatchesRequest{
 		Config: mmfCfg,
-		Profiles: []*pb.MatchProfile{
-			{
-				Name: "test-profile",
-				Pools: []*pb.Pool{
-					{
-						Name:               "ticket12",
-						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 6}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
-					},
-					{
-						Name:               "ticket23",
-						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 10}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
-					},
-					{
-						Name:               "ticket5",
-						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 100}, {DoubleArg: e2e.DoubleArgLevel, Min: 17, Max: 25}},
-					},
-					{
-						Name:               "ticket234",
-						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 17}, {DoubleArg: e2e.DoubleArgLevel, Min: 3, Max: 17}},
-					},
+		Profile: &pb.MatchProfile{
+			Name: "test-profile",
+			Pools: []*pb.Pool{
+				{
+					Name:               "ticket12",
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 6}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
+				},
+				{
+					Name:               "ticket23",
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 10}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
+				},
+				{
+					Name:               "ticket5",
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 100}, {DoubleArg: e2e.DoubleArgLevel, Min: 17, Max: 25}},
+				},
+				{
+					Name:               "ticket234",
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 17}, {DoubleArg: e2e.DoubleArgLevel, Min: 3, Max: 17}},
 				},
 			},
 		},
@@ -199,7 +197,7 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
 }
 
-func validateFetchMatchesResponse(ctx context.Context, t *testing.T, wantTickets [][]*pb.Ticket, be pb.BackendClient, fmReq *pb.FetchMatchesRequest) {
+func validateFetchMatchesResponse(ctx context.Context, t *testing.T, wantTickets [][]*pb.Ticket, be pb.BackendServiceClient, fmReq *pb.FetchMatchesRequest) {
 	stream, err := be.FetchMatches(ctx, fmReq, grpc.WaitForReady(true))
 	require.Nil(t, err)
 	matches := make([]*pb.Match, 0)

@@ -75,7 +75,6 @@ func TestMakeMatches(t *testing.T) {
 	p := &internalMmf.MatchFunctionParams{
 		Logger:            &logrus.Entry{},
 		ProfileName:       "test-profile",
-		Rosters:           []*pb.Roster{},
 		PoolNameToTickets: poolNameToTickets,
 	}
 
@@ -89,12 +88,11 @@ func TestMakeMatches(t *testing.T) {
 			MatchProfile:  match.MatchProfile,
 			MatchFunction: match.MatchFunction,
 			Tickets:       match.Tickets,
-			Rosters:       match.Rosters,
 			Extensions:    match.Extensions,
 		})
 	}
 
-	matchGen := func(poolName string, tickets []*pb.Ticket) *pb.Match {
+	matchGen := func(tickets []*pb.Ticket) *pb.Match {
 		tids := []string{}
 		for _, ticket := range tickets {
 			tids = append(tids, ticket.GetId())
@@ -111,14 +109,13 @@ func TestMakeMatches(t *testing.T) {
 			MatchProfile:  p.ProfileName,
 			MatchFunction: matchName,
 			Tickets:       tickets,
-			Rosters:       []*pb.Roster{{Name: poolName, TicketIds: tids}},
 			Extensions: map[string]*any.Any{
 				"evaluation_input": evaluationInput,
 			},
 		}
 	}
 
-	for poolName, tickets := range poolNameToTickets {
-		assert.Contains(actual, matchGen(poolName, tickets))
+	for _, tickets := range poolNameToTickets {
+		assert.Contains(actual, matchGen(tickets))
 	}
 }

@@ -65,7 +65,7 @@ func fifoEvaluate(stream pb.Evaluator_EvaluateServer) error {
 
 	// TODO: once the evaluator client supports sending and recieving at the
 	// same time, don't buffer, just send results immediately.
-	matches := []*pb.Match{}
+	matchIDs := []string{}
 
 outer:
 	for {
@@ -89,11 +89,11 @@ outer:
 			used[t.Id] = struct{}{}
 		}
 
-		matches = append(matches, m)
+		matchIDs = append(matchIDs, m.GetMatchId())
 	}
 
-	for _, m := range matches {
-		err := stream.Send(&pb.EvaluateResponse{Match: m})
+	for _, mID := range matchIDs {
+		err := stream.Send(&pb.EvaluateResponse{MatchId: mID})
 		if err != nil {
 			return fmt.Errorf("Error sending evaluator output stream: %w", err)
 		}

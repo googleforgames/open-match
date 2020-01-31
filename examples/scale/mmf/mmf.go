@@ -39,7 +39,7 @@ var (
 func Run() {
 	activeScenario := scenarios.ActiveScenario
 
-	conn, err := grpc.Dial("om-mmlogic.open-match.svc.cluster.local:50503", utilTesting.NewGRPCDialOptions(logger)...)
+	conn, err := grpc.Dial("om-query.open-match.svc.cluster.local:50503", utilTesting.NewGRPCDialOptions(logger)...)
 	if err != nil {
 		logger.Fatalf("Failed to connect to Open Match, got %v", err)
 	}
