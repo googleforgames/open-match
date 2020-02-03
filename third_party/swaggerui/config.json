@@ -1,10 +1,10 @@
 {
     "urls": [
-        {"name": "Frontend", "url": "https://open-match.dev/api/v0.0.0-dev/frontend.swagger.json"},
-        {"name": "Backend", "url": "https://open-match.dev/api/v0.0.0-dev/backend.swagger.json"},
-        {"name": "Query", "url": "https://open-match.dev/api/v0.0.0-dev/query.swagger.json"},
-        {"name": "MatchFunction", "url": "https://open-match.dev/api/v0.0.0-dev/matchfunction.swagger.json"},
-        {"name": "Synchronizer", "url": "https://open-match.dev/api/v0.0.0-dev/synchronizer.swagger.json"},
-        {"name": "Evaluator", "url": "https://open-match.dev/api/v0.0.0-dev/evaluator.swagger.json"}
+        {"name": "Frontend", "url": "https://open-match.dev/api/v0.9.0/frontend.swagger.json"},
+        {"name": "Backend", "url": "https://open-match.dev/api/v0.9.0/backend.swagger.json"},
+        {"name": "Query", "url": "https://open-match.dev/api/v0.9.0/query.swagger.json"},
+        {"name": "MatchFunction", "url": "https://open-match.dev/api/v0.9.0/matchfunction.swagger.json"},
+        {"name": "Synchronizer", "url": "https://open-match.dev/api/v0.9.0/synchronizer.swagger.json"},
+        {"name": "Evaluator", "url": "https://open-match.dev/api/v0.9.0/evaluator.swagger.json"}
     ]
 }
