@@ -48,7 +48,7 @@ func TestMinimatch(t *testing.T) {
 	// improving this in future iterations to test data scoped to sepcific test cases
 
 	// Tickets used for testing. The id will be populated once the Tickets are created.
-	sourceTickets := []*testTicket{
+	sourceTickets := []testTicket{
 		{skill: 1, mapValue: e2e.DoubleArgMMR, targetPool: e2e.Map1BeginnerPool},
 		{skill: 5, mapValue: e2e.DoubleArgMMR, targetPool: e2e.Map1BeginnerPool},
 		{skill: 8, mapValue: e2e.DoubleArgMMR, targetPool: e2e.Map1AdvancedPool},
@@ -116,11 +116,10 @@ func TestMinimatch(t *testing.T) {
 	t.Run("TestMinimatch", func(t *testing.T) {
 		for _, test := range tests {
 			test := test
-			testTickets := make([]*testTicket, len(sourceTickets))
+			testTickets := make([]testTicket, len(sourceTickets))
 			testProfiles := make([]*testProfile, len(sourceProfiles))
 			copy(testTickets, sourceTickets)
 			copy(testProfiles, sourceProfiles)
-
 			t.Run(fmt.Sprintf("TestMinimatch-%v", test.description), func(t *testing.T) {
 				t.Parallel()
 
@@ -134,12 +133,12 @@ func TestMinimatch(t *testing.T) {
 
 				// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids
 				// to expected player pools.
-				for i, td := range testTickets {
+				for i := 0; i < len(testTickets); i++ {
 					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{
 						SearchFields: &pb.SearchFields{
 							DoubleArgs: map[string]float64{
-								e2e.DoubleArgDefense: td.skill,
-								td.mapValue:          float64(time.Now().Unix()),
+								e2e.DoubleArgDefense:    testTickets[i].skill,
+								testTickets[i].mapValue: float64(time.Now().Unix()),
 							},
 						},
 					}})

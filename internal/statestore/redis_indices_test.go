@@ -82,12 +82,12 @@ func TestExtractIndexFilters(t *testing.T) {
 	tests := []struct {
 		description string
 		pool        *pb.Pool
-		expected    []indexFilter
+		expected    []*indexFilter
 	}{
 		{
 			description: "empty",
 			pool:        &pb.Pool{},
-			expected: []indexFilter{
+			expected: []*indexFilter{
 				{
 					name: "allTickets",
 					min:  math.Inf(-1),
@@ -106,7 +106,7 @@ func TestExtractIndexFilters(t *testing.T) {
 					},
 				},
 			},
-			expected: []indexFilter{
+			expected: []*indexFilter{
 				{
 					name: "ri$foo",
 					min:  -1,
@@ -123,7 +123,7 @@ func TestExtractIndexFilters(t *testing.T) {
 					},
 				},
 			},
-			expected: []indexFilter{
+			expected: []*indexFilter{
 				{
 					name: "ti$foo",
 					min:  0,
@@ -141,7 +141,7 @@ func TestExtractIndexFilters(t *testing.T) {
 					},
 				},
 			},
-			expected: []indexFilter{
+			expected: []*indexFilter{
 				{
 					name: "si$foo$vbar",
 					min:  0,
