@@ -156,11 +156,21 @@ func Test_Get(t *testing.T) {
 
 			cfg := viper.New()
 			calls := 0
+			var closed interface{}
 
 			cfg.Set("foo", tt.firstValue)
-			c := NewCacher(cfg, func(cfg View) (interface{}, error) {
+			c := NewCacher(cfg, func(cfg View) (interface{}, func(), error) {
 				calls++
-				return tt.getValue(cfg), nil
+				v := tt.getValue(cfg)
+
+				close := func() {
+					if closed != nil {
+						t.Errorf("Close called without closed being reset.")
+					}
+					closed = v
+				}
+
+				return v, close, nil
 			})
 
 			v, err := c.Get()
@@ -172,6 +182,9 @@ func Test_Get(t *testing.T) {
 			}
 			if err != nil {
 				t.Errorf("expected nil error, got %v", err)
+			}
+			if closed != nil {
+				t.Errorf("expected nothing closed, got %v", closed)
 			}
 
 			cfg.Set("foo", tt.firstValue)
@@ -185,6 +198,9 @@ func Test_Get(t *testing.T) {
 			}
 			if err != nil {
 				t.Errorf("expected nil error, got %v", err)
+			}
+			if closed != nil {
+				t.Errorf("expected nothing closed, got %v", closed)
 			}
 
 			cfg.Set("foo", tt.secondValue)
@@ -199,6 +215,10 @@ func Test_Get(t *testing.T) {
 			if err != nil {
 				t.Errorf("expected nil error, got %v", err)
 			}
+			if closed != tt.firstExpected {
+				t.Errorf("expected first closed, got %v", closed)
+			}
+			closed = nil
 		})
 	}
 }
@@ -207,12 +227,17 @@ func Test_Get_Error(t *testing.T) {
 	returnError := true
 
 	cfg := viper.New()
-	c := NewCacher(cfg, func(cfg View) (interface{}, error) {
+	c := NewCacher(cfg, func(cfg View) (interface{}, func(), error) {
 		// Contrived for tests, in real usage outside values shouldn't be used like this.
 		if returnError {
-			return "foo", fmt.Errorf("bad")
+			return nil, nil, fmt.Errorf("bad")
 		}
-		return "foo", nil
+
+		close := func() {
+			t.Errorf("Close shouldn't be called.")
+		}
+
+		return "foo", close, nil
 	})
 
 	v, err := c.Get()
@@ -238,10 +263,21 @@ func Test_Get_Error(t *testing.T) {
 func Test_ForceReset(t *testing.T) {
 	returnValue := "foo"
 
+	var closed interface{}
 	cfg := viper.New()
-	c := NewCacher(cfg, func(cfg View) (interface{}, error) {
+	c := NewCacher(cfg, func(cfg View) (interface{}, func(), error) {
+
 		// Contrived for tests, in real usage outside values shouldn't be used like this.
-		return returnValue, nil
+		v := returnValue
+
+		close := func() {
+			if closed != nil {
+				t.Errorf("Close called without closed being reset.")
+			}
+			closed = v
+		}
+
+		return v, close, nil
 	})
 
 	v, err := c.Get()
@@ -250,6 +286,9 @@ func Test_ForceReset(t *testing.T) {
 	}
 	if err != nil {
 		t.Errorf("Expected nil, got %v", err)
+	}
+	if closed != nil {
+		t.Errorf("expected nothing closed, got %v", closed)
 	}
 
 	// Environment has changed, eg a server connection has broken and needs to be
@@ -265,6 +304,9 @@ func Test_ForceReset(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected nil, got %v", err)
 	}
+	if closed != nil {
+		t.Errorf("expected nothing closed, got %v", closed)
+	}
 
 	c.ForceReset()
 
@@ -275,5 +317,8 @@ func Test_ForceReset(t *testing.T) {
 	}
 	if err != nil {
 		t.Errorf("Expected nil, got %v", err)
+	}
+	if closed != "foo" {
+		t.Errorf("expected foo closed, got %v", closed)
 	}
 }

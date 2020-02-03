@@ -25,17 +25,23 @@ import (
 // as the config values which were used haven't changed.
 type Cacher struct {
 	cfg         View
-	newInstance func(cfg View) (interface{}, error)
+	newInstance NewInstanceFunc
 	m           sync.Mutex
 
 	r *viewChangeDetector
 	v interface{}
+	c func()
 }
+
+// NewInstanceFunc is used by the cacher to create a new value given the config.
+// It may return an additional function to close or otherwise cleanup if
+// ForceReset is called.
+type NewInstanceFunc func(cfg View) (interface{}, func(), error)
 
 // NewCacher returns a cacher which uses cfg to detect relevant changes, and
 // newInstance to construct the object when nessisary.  newInstance MUST use the
 // provided View when constructing the object.
-func NewCacher(cfg View, newInstance func(cfg View) (interface{}, error)) *Cacher {
+func NewCacher(cfg View, newInstance NewInstanceFunc) *Cacher {
 	return &Cacher{
 		cfg:         cfg,
 		newInstance: newInstance,
@@ -53,12 +59,13 @@ func (c *Cacher) Get() (interface{}, error) {
 	defer c.m.Unlock()
 
 	if c.r == nil || c.r.hasChanges() {
+		c.locklessReset()
+
 		c.r = newViewChangeDetector(c.cfg)
 		var err error
-		c.v, err = c.newInstance(c.r)
+		c.v, c.c, err = c.newInstance(c.r)
 		if err != nil {
-			c.r = nil
-			c.v = nil
+			c.locklessReset()
 			return nil, err
 		}
 	}
@@ -71,6 +78,14 @@ func (c *Cacher) Get() (interface{}, error) {
 func (c *Cacher) ForceReset() {
 	c.m.Lock()
 	defer c.m.Unlock()
+	c.locklessReset()
+}
+
+func (c *Cacher) locklessReset() {
+	if c.c != nil {
+		c.c()
+	}
+	c.c = nil
 	c.r = nil
 	c.v = nil
 }

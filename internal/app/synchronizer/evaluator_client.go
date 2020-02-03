@@ -47,7 +47,7 @@ type evaluator interface {
 var errNoEvaluatorType = grpc.Errorf(codes.FailedPrecondition, "unable to determine evaluator type, either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config")
 
 func newEvaluator(cfg config.View) evaluator {
-	newInstance := func(cfg config.View) (interface{}, error) {
+	newInstance := func(cfg config.View) (interface{}, func(), error) {
 		// grpc is preferred over http.
 		if cfg.IsSet("api.evaluator.grpcport") {
 			return newGrpcEvaluator(cfg)
@@ -55,7 +55,7 @@ func newEvaluator(cfg config.View) evaluator {
 		if cfg.IsSet("api.evaluator.httpport") {
 			return newHTTPEvaluator(cfg)
 		}
-		return nil, errNoEvaluatorType
+		return nil, nil, errNoEvaluatorType
 	}
 
 	return &deferredEvaluator{
@@ -84,20 +84,27 @@ type grcpEvaluatorClient struct {
 	evaluator pb.EvaluatorClient
 }
 
-func newGrpcEvaluator(cfg config.View) (evaluator, error) {
+func newGrpcEvaluator(cfg config.View) (evaluator, func(), error) {
 	grpcAddr := fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.grpcport"))
 	conn, err := rpc.GRPCClientFromEndpoint(cfg, grpcAddr)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create grpc evaluator client: %w", err)
+		return nil, nil, fmt.Errorf("Failed to create grpc evaluator client: %w", err)
 	}
 
 	evaluatorClientLogger.WithFields(logrus.Fields{
 		"endpoint": grpcAddr,
 	}).Info("Created a GRPC client for evaluator endpoint.")
 
+	close := func() {
+		err := conn.Close()
+		if err != nil {
+			logger.WithError(err).Warning("Error closing synchronizer client.")
+		}
+	}
+
 	return &grcpEvaluatorClient{
 		evaluator: pb.NewEvaluatorClient(conn),
-	}, nil
+	}, close, nil
 }
 
 func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]string, error) {
@@ -151,21 +158,25 @@ type httpEvaluatorClient struct {
 	baseURL    string
 }
 
-func newHTTPEvaluator(cfg config.View) (evaluator, error) {
+func newHTTPEvaluator(cfg config.View) (evaluator, func(), error) {
 	httpAddr := fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.httpport"))
 	client, baseURL, err := rpc.HTTPClientFromEndpoint(cfg, httpAddr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get a HTTP client from the endpoint %v: %w", httpAddr, err)
+		return nil, nil, fmt.Errorf("failed to get a HTTP client from the endpoint %v: %w", httpAddr, err)
 	}
 
 	evaluatorClientLogger.WithFields(logrus.Fields{
 		"endpoint": httpAddr,
 	}).Info("Created a HTTP client for evaluator endpoint.")
 
+	close := func() {
+		client.CloseIdleConnections()
+	}
+
 	return &httpEvaluatorClient{
 		httpClient: client,
 		baseURL:    baseURL,
-	}, nil
+	}, close, nil
 }
 
 func (ec *httpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]string, error) {
