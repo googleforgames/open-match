@@ -33,6 +33,9 @@ type Cacher struct {
 	c func()
 }
 
+// NewInstanceFunc is used by the cacher to create a new value given the config.
+// It may return an additional function to close or otherwise cleanup if
+// ForceReset is called.
 type NewInstanceFunc func(cfg View) (interface{}, func(), error)
 
 // NewCacher returns a cacher which uses cfg to detect relevant changes, and
