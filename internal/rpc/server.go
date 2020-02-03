@@ -303,13 +303,7 @@ func instrumentHTTPHandler(handler http.Handler, params *ServerParams) http.Hand
 }
 
 func newGRPCServerOptions(params *ServerParams) []grpc.ServerOption {
-	opts := []grpc.ServerOption{
-		grpc.KeepaliveParams(keepalive.ServerParameters{
-			MaxConnectionIdle: time.Second * 20,
-			Time:              time.Second,
-			Timeout:           time.Second * 5,
-		}),
-	}
+	opts := []grpc.ServerOption{}
 	si := []grpc.StreamServerInterceptor{
 		grpc_recovery.StreamServerInterceptor(),
 		grpc_validator.StreamServerInterceptor(),

@@ -103,13 +103,8 @@ func getQueryServiceGRPCClient() pb.QueryServiceClient {
 	return pb.NewQueryServiceClient(conn)
 }
 
-var q pb.QueryServiceClient
-var startQ sync.Once
-
 func queryPoolsWrapper(mmf func(req *pb.MatchProfile, pools map[string][]*pb.Ticket) ([]*pb.Match, error)) matchFunction {
-	startQ.Do(func() {
-		q = getQueryServiceGRPCClient()
-	})
+	q := getQueryServiceGRPCClient()
 
 	return func(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
 		poolTickets, err := matchfunction.QueryPools(stream.Context(), q, req.GetProfile().GetPools())
