@@ -67,10 +67,10 @@ message FunctionConfig {
 }
 
 message FetchMatchesRequest {
-  // FunctionConfig specifies a MMF address and client type for Backend to establish connections with the MMF
+  // A configuration for the MatchFunction server of this FetchMatches call.
   FunctionConfig config = 1;
 
-  // MatchProfiles that will be sent to thhe MMF specified in the FunctionConfig.
+  // A MatchProfile that will be sent to the MatchFunction server of this FetchMatches call.
   MatchProfile profile = 2;
 }
 
@@ -100,10 +100,9 @@ message AssignTicketsResponse {}
 
 // The BackendService implements APIs to generate matches and handle ticket assignments.
 service BackendService {
-  // FetchMatches triggers a MatchFunction with the specified MatchProfiles, while each MatchProfile 
-  // returns a set of match proposals. FetchMatches method streams the results back to the caller.
+  // FetchMatches triggers a MatchFunction with the specified MatchProfile and returns a set of match proposals that 
+  // match the description of that MatchProfile.
   // FetchMatches immediately returns an error if it encounters any execution failures.
-  //   - If the synchronizer is enabled, FetchMatch will then call the synchronizer to deduplicate proposals with overlapped tickets.
   rpc FetchMatches(FetchMatchesRequest) returns (stream FetchMatchesResponse) {
     option (google.api.http) = {
       post: "/v1/backendservice/matches:fetch"
@@ -127,7 +126,7 @@ service BackendService {
   // messages are not finalized and still subject to possible change or removal.
   rpc ReleaseTickets(ReleaseTicketsRequest) returns (ReleaseTicketsResponse) {
     option (google.api.http) = {
-      post: "/v1/backend/tickets:release"
+      post: "/v1/backendservice/tickets:release"
       body: "*"
     };
   }
