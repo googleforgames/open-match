@@ -109,7 +109,7 @@ func queryPoolsWrapper(mmf func(req *pb.MatchProfile, pools map[string][]*pb.Tic
 
 	return func(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
 		startQ.Do(func() {
-			q := getQueryServiceGRPCClient()
+			q = getQueryServiceGRPCClient()
 		})
 
 		poolTickets, err := matchfunction.QueryPools(stream.Context(), q, req.GetProfile().GetPools())
