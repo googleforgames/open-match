@@ -126,7 +126,7 @@ service BackendService {
   // messages are not finalized and still subject to possible change or removal.
   rpc ReleaseTickets(ReleaseTicketsRequest) returns (ReleaseTicketsResponse) {
     option (google.api.http) = {
-      post: "/v1/backend/tickets:release"
+      post: "/v1/backendservice/tickets:release"
       body: "*"
     };
   }
