@@ -61,7 +61,7 @@ message QueryTicketsRequest {
 }
 
 message QueryTicketsResponse {
-  // Tickets is a list of Ticket representing one or more Tickets which meet all Filter criterias.
+  // Tickets that satisfy all the filtering criteria.
   repeated Ticket tickets = 1;
 }
 
