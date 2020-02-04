@@ -122,7 +122,7 @@ spec:
             mountPath: /app/config/override
           - name: om-config-volume-default
             mountPath: /app/config/default
-        image: "gcr.io/open-match-public-images/openmatch-mmf-go-soloduel:0.0.0-dev"
+        image: "gcr.io/open-match-public-images/openmatch-mmf-go-soloduel:0.9.0"
         ports:
         - name: grpc
           containerPort: 50502
@@ -159,7 +159,7 @@ spec:
     spec:
       containers:
       - name: om-demo
-        image: "gcr.io/open-match-public-images/openmatch-demo-first-match:0.0.0-dev"
+        image: "gcr.io/open-match-public-images/openmatch-demo-first-match:0.9.0"
         imagePullPolicy: Always
         ports:
         - name: http
