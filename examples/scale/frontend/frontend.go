@@ -35,7 +35,6 @@ var (
 		"component": "scale.frontend",
 	})
 	activeScenario     = scenarios.ActiveScenario
-	statProcessor      = scenarios.NewStatProcessor()
 	numOfRoutineCreate = 8
 
 	totalCreated uint32
@@ -97,8 +96,6 @@ func run(cfg config.View) {
 
 		// Wait for all concurrent creates to complete.
 		wg.Wait()
-		statProcessor.SetStat("TotalCreated", atomic.LoadUint32(&totalCreated))
-		statProcessor.Log(w)
 	}
 }
 
@@ -126,7 +123,7 @@ func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendServiceClient, ticketPerRo
 			cycleCreated++
 			telemetry.RecordUnitMeasurement(ctx, mTicketsCreated)
 		} else {
-			statProcessor.RecordError("failed to create a ticket", err)
+			logger.WithError(err).Error("failed to create a ticket")
 			telemetry.RecordUnitMeasurement(ctx, mTicketCreationsFailed)
 		}
 	}
