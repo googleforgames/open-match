@@ -82,7 +82,12 @@ func newRedis(cfg config.View) Service {
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
 		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout"),
 		Wait:        true,
-		TestOnBorrow: func(c redis.Conn, _ time.Time) error {
+		TestOnBorrow: func(c redis.Conn, t time.Time) error {
+			// Check if this connection have been returned for more than 10 seconds, if so, do a PING check.
+			if time.Now().Sub(t) > 10*time.Second {
+				return nil
+			}
+
 			_, err := c.Do("PING")
 			return err
 		},
