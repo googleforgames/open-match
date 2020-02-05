@@ -17,7 +17,7 @@
   "gnetId": 763,
   "graphTooltip": 0,
   "id": 3,
-  "iteration": 1580944567924,
+  "iteration": 1580945453636,
   "links": [],
   "panels": [
     {
@@ -296,7 +296,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "fill": 1,
+      "fill": 0,
       "gridPos": {
         "h": 7,
         "w": 8,
@@ -312,8 +312,8 @@
         "min": false,
         "rightSide": true,
         "show": true,
-        "sort": null,
-        "sortDesc": null,
+        "sort": "current",
+        "sortDesc": true,
         "total": false,
         "values": true
       },
@@ -327,24 +327,54 @@
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
-      "seriesOverrides": [],
+      "seriesOverrides": [
+        {
+          "alias": "limit",
+          "color": "#C4162A",
+          "hideTooltip": true,
+          "legend": false,
+          "nullPointMode": "connected"
+        },
+        {
+          "alias": "request",
+          "color": "#73BF69",
+          "hideTooltip": true,
+          "legend": false,
+          "nullPointMode": "connected"
+        }
+      ],
       "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{pod_name=~\"om-redis.*\", name!~\".*prometheus.*\", image!=\"\", container_name!=\"POD\"}[5m])) by (pod_name, container_name) /\nsum(container_spec_cpu_quota{name!~\".*prometheus.*\", image!=\"\", container_name!=\"POD\"}/container_spec_cpu_period{name!~\".*prometheus.*\", image!=\"\", container_name!=\"POD\"}) by (pod_name, container_name) * 100",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{pod_name=~\"om-redis.*\", name!~\".*prometheus.*\", image!=\"\", container_name!=\"POD\"}[5m])) by (pod_name)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{pod_name}}",
+          "legendFormat": "{{pod_name}} usage",
           "refId": "A"
+        },
+        {
+          "expr": "sum(kube_pod_container_resource_limits_cpu_cores{pod=~\"om-redis.*\"}) by (pod)",
+          "format": "time_series",
+          "hide": false,
+          "intervalFactor": 1,
+          "legendFormat": "limit",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(kube_pod_container_resource_requests_cpu_cores{pod=~\"om-redis.*\"}) by (pod)",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "request",
+          "refId": "C"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "CPU Usage Percentage of Limit",
+      "title": "CPU Usage",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -362,7 +392,7 @@
       "yaxes": [
         {
           "format": "short",
-          "label": "%",
+          "label": "core",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -412,8 +442,6 @@
         "min": false,
         "rightSide": true,
         "show": true,
-        "sort": "current",
-        "sortDesc": true,
         "total": false,
         "values": true
       },
@@ -521,8 +549,6 @@
         "min": false,
         "rightSide": true,
         "show": true,
-        "sort": "current",
-        "sortDesc": true,
         "total": false,
         "values": true
       },
@@ -634,8 +660,6 @@
         "min": false,
         "rightSide": true,
         "show": true,
-        "sort": "current",
-        "sortDesc": true,
         "total": false,
         "values": true
       },
@@ -663,13 +687,6 @@
           "refId": "A",
           "step": 240,
           "target": ""
-        },
-        {
-          "expr": "sum by (kubernetes_pod_name) (rate(redis_commands_total{cmd!~\"info|slowlog|client|latency|replconf|config\"}[5m]))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "total - {{kubernetes_pod_name}}",
-          "refId": "B"
         }
       ],
       "thresholds": [],
@@ -741,8 +758,6 @@
         "min": false,
         "rightSide": true,
         "show": true,
-        "sort": "current",
-        "sortDesc": true,
         "total": false,
         "values": true
       },
@@ -846,8 +861,6 @@
         "min": false,
         "rightSide": true,
         "show": true,
-        "sort": null,
-        "sortDesc": null,
         "total": false,
         "values": true
       },
