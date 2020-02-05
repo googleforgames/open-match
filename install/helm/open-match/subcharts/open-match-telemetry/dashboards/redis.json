@@ -16,8 +16,8 @@
   "editable": true,
   "gnetId": 763,
   "graphTooltip": 0,
-  "id": 2,
-  "iteration": 1579655194536,
+  "id": 3,
+  "iteration": 1580944567924,
   "links": [],
   "panels": [
     {
@@ -312,6 +312,8 @@
         "min": false,
         "rightSide": true,
         "show": true,
+        "sort": null,
+        "sortDesc": null,
         "total": false,
         "values": true
       },
@@ -410,6 +412,8 @@
         "min": false,
         "rightSide": true,
         "show": true,
+        "sort": "current",
+        "sortDesc": true,
         "total": false,
         "values": true
       },
@@ -517,6 +521,8 @@
         "min": false,
         "rightSide": true,
         "show": true,
+        "sort": "current",
+        "sortDesc": true,
         "total": false,
         "values": true
       },
@@ -628,6 +634,8 @@
         "min": false,
         "rightSide": true,
         "show": true,
+        "sort": "current",
+        "sortDesc": true,
         "total": false,
         "values": true
       },
@@ -655,6 +663,13 @@
           "refId": "A",
           "step": 240,
           "target": ""
+        },
+        {
+          "expr": "sum by (kubernetes_pod_name) (rate(redis_commands_total{cmd!~\"info|slowlog|client|latency|replconf|config\"}[5m]))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "total - {{kubernetes_pod_name}}",
+          "refId": "B"
         }
       ],
       "thresholds": [],
@@ -726,6 +741,8 @@
         "min": false,
         "rightSide": true,
         "show": true,
+        "sort": "current",
+        "sortDesc": true,
         "total": false,
         "values": true
       },
@@ -829,6 +846,8 @@
         "min": false,
         "rightSide": true,
         "show": true,
+        "sort": null,
+        "sortDesc": null,
         "total": false,
         "values": true
       },
@@ -911,8 +930,8 @@
       {
         "allValue": null,
         "current": {
-          "text": "10.28.0.27:9121",
-          "value": "10.28.0.27:9121"
+          "text": "10.28.0.12:9121",
+          "value": "10.28.0.12:9121"
         },
         "datasource": "Prometheus",
         "definition": "label_values(redis_up, instance)",
