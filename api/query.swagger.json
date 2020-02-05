@@ -142,7 +142,7 @@
           "items": {
             "$ref": "#/definitions/openmatchTicket"
           },
-          "description": "Tickets is a list of Ticket representing one or more Tickets which meet all Filter criterias."
+          "description": "Tickets that satisfy all the filtering criteria."
         }
       }
     },
