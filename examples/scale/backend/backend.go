@@ -38,7 +38,6 @@ var (
 	})
 
 	activeScenario = scenarios.ActiveScenario
-	statProcessor  = scenarios.NewStatProcessor()
 
 	mIterations          = telemetry.Counter("scale_backend_iterations", "fetch match iterations")
 	mFetchMatchCalls     = telemetry.Counter("scale_backend_fetch_match_calls", "fetch match calls")
@@ -76,8 +75,6 @@ func run(cfg config.View) {
 	defer feConn.Close()
 	fe := pb.NewFrontendServiceClient(feConn)
 
-	startTime := time.Now()
-
 	w := logger.Writer()
 	defer w.Close()
 
@@ -94,7 +91,6 @@ func run(cfg config.View) {
 	for range time.Tick(time.Millisecond * 250) {
 		// Keep pulling matches from Open Match backend
 		profiles := activeScenario.Profiles()
-		statProcessor.SetStat("TotalProfiles", len(profiles))
 		var wg sync.WaitGroup
 
 		for _, p := range profiles {
@@ -107,9 +103,7 @@ func run(cfg config.View) {
 
 		// Wait for all profiles to complete before proceeding.
 		wg.Wait()
-		statProcessor.SetStat("TimeElapsed", time.Since(startTime).String())
 		telemetry.RecordUnitMeasurement(context.Background(), mIterations)
-		statProcessor.Log(w)
 	}
 }
 
@@ -130,7 +124,7 @@ func runFetchMatches(be pb.BackendServiceClient, p *pb.MatchProfile, matchesForA
 	stream, err := be.FetchMatches(ctx, req)
 	if err != nil {
 		telemetry.RecordUnitMeasurement(ctx, mFetchMatchErrors)
-		statProcessor.RecordError("failed to get available stream client", err)
+		logger.WithError(err).Error("failed to get available stream client")
 		return
 	}
 
@@ -144,13 +138,12 @@ func runFetchMatches(be pb.BackendServiceClient, p *pb.MatchProfile, matchesForA
 
 		if err != nil {
 			telemetry.RecordUnitMeasurement(ctx, mFetchMatchErrors)
-			statProcessor.RecordError("failed to get matches from stream client", err)
+			logger.WithError(err).Error("failed to get matches from stream client")
 			return
 		}
 
 		telemetry.RecordNUnitMeasurement(ctx, mSumTicketsReturned, int64(len(resp.GetMatch().Tickets)))
 		telemetry.RecordUnitMeasurement(ctx, mMatchesReturned)
-		statProcessor.IncrementStat("MatchCount", 1)
 
 		matchesForAssignment <- resp.GetMatch()
 	}
@@ -174,12 +167,11 @@ func runAssignments(be pb.BackendServiceClient, matchesForAssignment <-chan *pb.
 			})
 			if err != nil {
 				telemetry.RecordUnitMeasurement(ctx, mMatchAssignsFailed)
-				statProcessor.RecordError("failed to assign tickets", err)
+				logger.WithError(err).Error("failed to assign tickets")
 				continue
 			}
 
 			telemetry.RecordUnitMeasurement(ctx, mMatchesAssigned)
-			statProcessor.IncrementStat("Assigned", len(ids))
 		}
 
 		for _, id := range ids {
@@ -201,10 +193,9 @@ func runDeletions(fe pb.FrontendServiceClient, ticketsForDeletion <-chan string)
 
 			if err == nil {
 				telemetry.RecordUnitMeasurement(ctx, mTicketsDeleted)
-				statProcessor.IncrementStat("Deleted", 1)
 			} else {
 				telemetry.RecordUnitMeasurement(ctx, mTicketDeletesFailed)
-				statProcessor.RecordError("failed to delete tickets", err)
+				logger.WithError(err).Error("failed to delete tickets")
 			}
 		}
 	}
