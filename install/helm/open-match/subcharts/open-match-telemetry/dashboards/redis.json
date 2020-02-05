@@ -16,8 +16,8 @@
   "editable": true,
   "gnetId": 763,
   "graphTooltip": 0,
-  "id": 3,
-  "iteration": 1580945453636,
+  "id": 6,
+  "iteration": 1580946687856,
   "links": [],
   "panels": [
     {
@@ -660,6 +660,8 @@
         "min": false,
         "rightSide": true,
         "show": true,
+        "sort": "current",
+        "sortDesc": true,
         "total": false,
         "values": true
       },
@@ -687,6 +689,13 @@
           "refId": "A",
           "step": 240,
           "target": ""
+        },
+        {
+          "expr": "sum by (kubernetes_pod_name) (rate(redis_commands_total[5m]))",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "total - {{kubernetes_pod_name}}",
+          "refId": "B"
         }
       ],
       "thresholds": [],
