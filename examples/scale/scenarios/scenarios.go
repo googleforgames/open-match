@@ -51,11 +51,11 @@ type GameScenario interface {
 
 // ActiveScenario sets the scenario with preset parameters that we want to use for current Open Match benchmark run.
 var ActiveScenario = func() *Scenario {
-	var ls GameScenario = firstmatch.Scenario()
+	var gs GameScenario = firstmatch.Scenario()
 
 	// TODO: Select which scenario to use based on some configuration or choice,
 	// so it's easier to run different scenarios without changing code.
-	ls = battleroyal.Scenario()
+	gs = battleroyal.Scenario()
 
 	return &Scenario{
 		FrontendTotalTicketsToCreate: -1,
@@ -64,11 +64,11 @@ var ActiveScenario = func() *Scenario {
 		BackendAssignsTickets: true,
 		BackendDeletesTickets: true,
 
-		Ticket:   ls.Ticket,
-		Profiles: ls.Profiles,
+		Ticket:   gs.Ticket,
+		Profiles: gs.Profiles,
 
-		MMF:       queryPoolsWrapper(ls.MatchFunction),
-		Evaluator: ls.Evaluate,
+		MMF:       queryPoolsWrapper(gs.MatchFunction),
+		Evaluator: gs.Evaluate,
 	}
 }()
 
