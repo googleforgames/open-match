@@ -26,7 +26,7 @@
   "paths": {
     "/v1/backendservice/matches:fetch": {
       "post": {
-        "summary": "FetchMatches triggers a MatchFunction with the specified MatchProfiles, while each MatchProfile \nreturns a set of match proposals. FetchMatches method streams the results back to the caller.\nFetchMatches immediately returns an error if it encounters any execution failures.\n  - If the synchronizer is enabled, FetchMatch will then call the synchronizer to deduplicate proposals with overlapped tickets.",
+        "summary": "FetchMatches triggers a MatchFunction with the specified MatchProfile and returns a set of match proposals that \nmatch the description of that MatchProfile.\nFetchMatches immediately returns an error if it encounters any execution failures.",
         "operationId": "FetchMatches",
         "responses": {
           "200": {
@@ -84,6 +84,41 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/openmatchAssignTicketsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "BackendService"
+        ]
+      }
+    },
+    "/v1/backendservice/tickets:release": {
+      "post": {
+        "summary": "ReleaseTickets removes the submitted tickets from the list that prevents tickets \nthat are awaiting assignment from appearing in MMF queries, effectively putting them back into\nthe matchmaking pool",
+        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "ReleaseTickets",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/openmatchReleaseTicketsResponse"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openmatchReleaseTicketsRequest"
             }
           }
         ],
@@ -155,11 +190,11 @@
       "properties": {
         "config": {
           "$ref": "#/definitions/openmatchFunctionConfig",
-          "title": "FunctionConfig specifies a MMF address and client type for Backend to establish connections with the MMF"
+          "description": "A configuration for the MatchFunction server of this FetchMatches call."
         },
         "profile": {
           "$ref": "#/definitions/openmatchMatchProfile",
-          "description": "MatchProfiles that will be sent to thhe MMF specified in the FunctionConfig."
+          "description": "A MatchProfile that will be sent to the MatchFunction server of this FetchMatches call."
         }
       }
     },
@@ -279,6 +314,21 @@
           }
         }
       }
+    },
+    "openmatchReleaseTicketsRequest": {
+      "type": "object",
+      "properties": {
+        "ticket_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "TicketIds is a list of string representing Open Match generated Ids to be re-enabled for MMF querying\nbecause they are no longer awaiting assignment from a previous match result"
+        }
+      }
+    },
+    "openmatchReleaseTicketsResponse": {
+      "type": "object"
     },
     "openmatchSearchFields": {
       "type": "object",

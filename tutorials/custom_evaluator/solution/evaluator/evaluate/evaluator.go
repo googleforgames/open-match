@@ -29,7 +29,7 @@ type matchEval struct {
 
 // Evaluate is where your custom evaluation logic lives.
 // This sample evaluator sorts and deduplicates the input matches.
-func evaluate(proposals []*pb.Match) ([]*pb.Match, error) {
+func evaluate(proposals []*pb.Match) ([]string, error) {
 	matches := make([]*matchEval, 0, len(proposals))
 	now := float64(time.Now().UnixNano())
 	for _, m := range proposals {
@@ -57,7 +57,7 @@ func evaluate(proposals []*pb.Match) ([]*pb.Match, error) {
 		d.maybeAdd(m)
 	}
 
-	return d.results, nil
+	return d.resultIDs, nil
 }
 
 type collidingMatch struct {
@@ -66,7 +66,7 @@ type collidingMatch struct {
 }
 
 type decollider struct {
-	results     []*pb.Match
+	resultIDs   []string
 	ticketsUsed map[string]*collidingMatch
 }
 
@@ -86,7 +86,7 @@ func (d *decollider) maybeAdd(m *matchEval) {
 		}
 	}
 
-	d.results = append(d.results, m.match)
+	d.resultIDs = append(d.resultIDs, m.match.GetMatchId())
 }
 
 type byMaxWait []*matchEval

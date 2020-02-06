@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package mmf provides a sample match function that uses the GRPC harness to set up 1v1 matches.
+// This sample is a reference to demonstrate the usage of the GRPC harness and should only be used as
+// a starting point for your match function. You will need to modify the
+// matchmaking logic in this function based on your game's requirements.
 package mmf
 
 import (
@@ -22,14 +26,6 @@ import (
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/pkg/pb"
 )
-
-// MatchFunctionService implements pb.MatchFunctionServer, the server generated
-// by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
-type MatchFunctionService struct {
-	grpc               *grpc.Server
-	queryServiceClient pb.QueryServiceClient
-	port               int
-}
 
 // Start creates and starts the Match Function server and also connects to Open
 // Match's queryService service. This connection is used at runtime to fetch tickets
@@ -42,7 +38,7 @@ func Start(queryServiceAddr string, serverPort int) {
 	}
 	defer conn.Close()
 
-	mmfService := MatchFunctionService{
+	mmfService := matchFunctionService{
 		queryServiceClient: pb.NewQueryServiceClient(conn),
 	}
 

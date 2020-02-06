@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 3,
-  "iteration": 1580245993833,
+  "id": 2,
+  "iteration": 1580944984710,
   "links": [],
   "panels": [
     {
@@ -415,7 +415,7 @@
       },
       "id": 57,
       "panels": [],
-      "title": "openmatch.Mmlogic/QueryTickets",
+      "title": "openmatch.QueryService/QueryTickets",
       "type": "row"
     },
     {
@@ -812,7 +812,7 @@
       },
       "id": 29,
       "panels": [],
-      "title": "openmatch.Backend/AssignTickets",
+      "title": "openmatch.BackendService/AssignTickets",
       "type": "row"
     },
     {
@@ -1210,7 +1210,7 @@
       "id": 31,
       "panels": [],
       "repeat": null,
-      "title": "openmatch.Frontend/CreateTicket",
+      "title": "openmatch.FrontendService/CreateTicket",
       "type": "row"
     },
     {
@@ -2399,7 +2399,7 @@
       },
       "id": 42,
       "panels": [],
-      "title": "openmatch.Frontend/FetchMatches",
+      "title": "openmatch.BackendService/FetchMatches",
       "type": "row"
     },
     {
@@ -3191,7 +3191,7 @@
       },
       "id": 23,
       "panels": [],
-      "title": "openmatch.Frontend/DeleteTicket",
+      "title": "openmatch.FrontendService/DeleteTicket",
       "type": "row"
     },
     {

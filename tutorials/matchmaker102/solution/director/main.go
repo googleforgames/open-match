@@ -42,7 +42,7 @@ func main() {
 	// Connect to Open Match Backend.
 	conn, err := grpc.Dial(omBackendEndpoint, grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("Failed to connect to Open Match Backend, got %w", err)
+		log.Fatalf("Failed to connect to Open Match Backend, got %s", err.Error())
 	}
 
 	defer conn.Close()
@@ -62,7 +62,7 @@ func main() {
 				defer wg.Done()
 				matches, err := fetch(be, p)
 				if err != nil {
-					log.Printf("Failed to fetch matches for profile %v, got %w", p.GetName(), err)
+					log.Printf("Failed to fetch matches for profile %v, got %s", p.GetName(), err.Error())
 					return
 				}
 
@@ -71,7 +71,7 @@ func main() {
 				}
 
 				if err := assign(be, matches); err != nil {
-					log.Printf("Failed to assign servers to matches, got %w", err)
+					log.Printf("Failed to assign servers to matches, got %s", err.Error())
 					return
 				}
 			}(&wg, p)
@@ -88,7 +88,7 @@ func fetch(be pb.BackendServiceClient, p *pb.MatchProfile) ([]*pb.Match, error) 
 			Port: functionPort,
 			Type: pb.FunctionConfig_GRPC,
 		},
-		Profiles: []*pb.MatchProfile{p},
+		Profile: p,
 	}
 
 	stream, err := be.FetchMatches(context.Background(), req)

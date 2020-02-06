@@ -1,4 +1,18 @@
-package scenarios
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package firstmatch
 
 import (
 	"fmt"
@@ -12,20 +26,14 @@ const (
 	poolName = "all"
 )
 
-var (
-	firstMatchScenario = &Scenario{
-		MMF:                          queryPoolsWrapper(firstMatchMmf),
-		Evaluator:                    fifoEvaluate,
-		FrontendTotalTicketsToCreate: -1,
-		FrontendTicketCreatedQPS:     100,
-		BackendAssignsTickets:        true,
-		BackendDeletesTickets:        true,
-		Ticket:                       firstMatchTicket,
-		Profiles:                     firstMatchProfile,
-	}
-)
+func Scenario() *FirstMatchScenario {
+	return &FirstMatchScenario{}
+}
 
-func firstMatchProfile() []*pb.MatchProfile {
+type FirstMatchScenario struct {
+}
+
+func (_ *FirstMatchScenario) Profiles() []*pb.MatchProfile {
 	return []*pb.MatchProfile{
 		{
 			Name: "entirePool",
@@ -38,11 +46,11 @@ func firstMatchProfile() []*pb.MatchProfile {
 	}
 }
 
-func firstMatchTicket() *pb.Ticket {
+func (_ *FirstMatchScenario) Ticket() *pb.Ticket {
 	return &pb.Ticket{}
 }
 
-func firstMatchMmf(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
+func (_ *FirstMatchScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
 	tickets := poolTickets[poolName]
 	var matches []*pb.Match
 
@@ -60,7 +68,7 @@ func firstMatchMmf(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*
 
 // fifoEvaluate accepts all matches which don't contain the same ticket as in a
 // previously accepted match.  Essentially first to claim the ticket wins.
-func fifoEvaluate(stream pb.Evaluator_EvaluateServer) error {
+func (_ *FirstMatchScenario) Evaluate(stream pb.Evaluator_EvaluateServer) error {
 	used := map[string]struct{}{}
 
 	// TODO: once the evaluator client supports sending and recieving at the
