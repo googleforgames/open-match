@@ -14,10 +14,50 @@
 
 package scenarios
 
-import "open-match.dev/open-match/pkg/pb"
+import (
+	"sync"
+
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"open-match.dev/open-match/examples/scale/scenarios/battleroyal"
+	"open-match.dev/open-match/examples/scale/scenarios/firstmatch"
+	"open-match.dev/open-match/internal/util/testing"
+	"open-match.dev/open-match/pkg/matchfunction"
+	"open-match.dev/open-match/pkg/pb"
+)
+
+var _ = firstmatch.Scenario()
+
+var (
+	queryServiceAddress = "om-query.open-match.svc.cluster.local:50503" // Address of the QueryService Endpoint.
+
+	logger = logrus.WithFields(logrus.Fields{
+		"app": "scale",
+	})
+)
 
 // ActiveScenario sets the scenario with preset parameters that we want to use for current Open Match benchmark run.
-var ActiveScenario = battleRoyalScenario
+var ActiveScenario = func() *Scenario {
+	var ls LogicalScenario = firstmatch.Scenario()
+
+	// TODO: Select which scenario to use based on some configuration or choice,
+	// so it's easier to run different scenarios without changing code.
+	ls = battleroyal.Scenario()
+
+	return &Scenario{
+		FrontendTotalTicketsToCreate: -1,
+		FrontendTicketCreatedQPS:     100,
+
+		BackendAssignsTickets: true,
+		BackendDeletesTickets: true,
+
+		Ticket:   ls.Ticket,
+		Profiles: ls.Profiles,
+
+		MMF:       queryPoolsWrapper(ls.MatchFunction),
+		Evaluator: ls.Evaluate,
+	}
+}()
 
 // Scenario defines the controllable fields for Open Match benchmark scenarios
 type Scenario struct {
@@ -48,6 +88,13 @@ type Scenario struct {
 	Evaluator evaluatorFunction
 }
 
+type LogicalScenario interface {
+	Profiles() []*pb.MatchProfile
+	Ticket() *pb.Ticket
+	MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error)
+	Evaluate(stream pb.Evaluator_EvaluateServer) error
+}
+
 type matchFunction func(*pb.RunRequest, pb.MatchFunction_RunServer) error
 type evaluatorFunction func(pb.Evaluator_EvaluateServer) error
 
@@ -57,4 +104,45 @@ func (mmf matchFunction) Run(req *pb.RunRequest, srv pb.MatchFunction_RunServer)
 
 func (eval evaluatorFunction) Evaluate(srv pb.Evaluator_EvaluateServer) error {
 	return eval(srv)
+}
+
+func getQueryServiceGRPCClient() pb.QueryServiceClient {
+	conn, err := grpc.Dial(queryServiceAddress, testing.NewGRPCDialOptions(logger)...)
+	if err != nil {
+		logger.Fatalf("Failed to connect to Open Match, got %v", err)
+	}
+	return pb.NewQueryServiceClient(conn)
+}
+
+func queryPoolsWrapper(mmf func(req *pb.MatchProfile, pools map[string][]*pb.Ticket) ([]*pb.Match, error)) matchFunction {
+	var q pb.QueryServiceClient
+	var startQ sync.Once
+
+	return func(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
+		startQ.Do(func() {
+			q = getQueryServiceGRPCClient()
+		})
+
+		poolTickets, err := matchfunction.QueryPools(stream.Context(), q, req.GetProfile().GetPools())
+		if err != nil {
+			return err
+		}
+
+		proposals, err := mmf(req.GetProfile(), poolTickets)
+		if err != nil {
+			return err
+		}
+
+		logger.WithFields(logrus.Fields{
+			"proposals": proposals,
+		}).Trace("proposals returned by match function")
+
+		for _, proposal := range proposals {
+			if err := stream.Send(&pb.RunResponse{Proposal: proposal}); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
 }
