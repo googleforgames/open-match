@@ -94,7 +94,7 @@ func TestMinimatch(t *testing.T) {
 	// Test profiles being tested for. Note that each profile embeds two pools - and
 	// the current MMF returns a match per pool in the profile - so each profile should
 	// output two matches that are comprised of tickets belonging to that pool.
-	sourceProfiles := []testProfile{
+	sourceProfiles := []*testProfile{
 		{name: "", pools: []*pb.Pool{testPools[e2e.Map1BeginnerPool], testPools[e2e.Map1AdvancedPool]}},
 		{name: "", pools: []*pb.Pool{testPools[e2e.Map2BeginnerPool], testPools[e2e.Map2AdvancedPool]}},
 	}
@@ -117,10 +117,9 @@ func TestMinimatch(t *testing.T) {
 		for _, test := range tests {
 			test := test
 			testTickets := make([]testTicket, len(sourceTickets))
-			testProfiles := make([]testProfile, len(sourceProfiles))
+			testProfiles := make([]*testProfile, len(sourceProfiles))
 			copy(testTickets, sourceTickets)
 			copy(testProfiles, sourceProfiles)
-
 			t.Run(fmt.Sprintf("TestMinimatch-%v", test.description), func(t *testing.T) {
 				t.Parallel()
 
@@ -134,12 +133,12 @@ func TestMinimatch(t *testing.T) {
 
 				// Create all the tickets and validate ticket creation succeeds. Also populate ticket ids
 				// to expected player pools.
-				for i, td := range testTickets {
+				for i := 0; i < len(testTickets); i++ {
 					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{
 						SearchFields: &pb.SearchFields{
 							DoubleArgs: map[string]float64{
-								e2e.DoubleArgDefense: td.skill,
-								td.mapValue:          float64(time.Now().Unix()),
+								e2e.DoubleArgDefense:    testTickets[i].skill,
+								testTickets[i].mapValue: float64(time.Now().Unix()),
 							},
 						},
 					}})
@@ -193,7 +192,7 @@ func TestMinimatch(t *testing.T) {
 	})
 }
 
-func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string][]string, testProfiles []testProfile, om e2e.OM, fc *pb.FunctionConfig) {
+func testFetchMatches(ctx context.Context, t *testing.T, poolTickets map[string][]string, testProfiles []*testProfile, om e2e.OM, fc *pb.FunctionConfig) {
 	// Fetch Matches for each test profile.
 	be := om.MustBackendGRPC()
 	for _, profile := range testProfiles {

@@ -16,17 +16,18 @@ package rpc
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
 	"io/ioutil"
 	"net/http"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/telemetry"
 	shellTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestStartStopServer(t *testing.T) {

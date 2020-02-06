@@ -87,7 +87,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	mmfWait := omerror.WaitOnErrors(logger, func() error {
 		select {
 		case <-mmfCtx.Done():
-			return fmt.Errorf("Mmf was never started")
+			return fmt.Errorf("mmf was never started")
 		case <-startMmfs:
 		}
 
@@ -109,7 +109,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		}).Error("error(s) in FetchMatches call.")
 
 		return fmt.Errorf(
-			"Error(s) in FetchMatches call. syncErr=[%s], mmfErr=[%s]",
+			"error(s) in FetchMatches call. syncErr=[%s], mmfErr=[%s]",
 			syncErr,
 			mmfErr,
 		)
