@@ -26,8 +26,6 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-var _ = firstmatch.Scenario()
-
 var (
 	queryServiceAddress = "om-query.open-match.svc.cluster.local:50503" // Address of the QueryService Endpoint.
 
@@ -36,9 +34,24 @@ var (
 	})
 )
 
+// GameScenario defines what tickets look like, and how they should be matched.
+type GameScenario interface {
+	// Ticket creates a new ticket, with randomized parameters.
+	Ticket() *pb.Ticket
+
+	// Profiles lists all of the profiles that should run.
+	Profiles() []*pb.MatchProfile
+
+	// MatchFunction is the custom logic implementation of the match function.
+	MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error)
+
+	// Evaluate is the custom logic implementation of the evaluator.
+	Evaluate(stream pb.Evaluator_EvaluateServer) error
+}
+
 // ActiveScenario sets the scenario with preset parameters that we want to use for current Open Match benchmark run.
 var ActiveScenario = func() *Scenario {
-	var ls LogicalScenario = firstmatch.Scenario()
+	var ls GameScenario = firstmatch.Scenario()
 
 	// TODO: Select which scenario to use based on some configuration or choice,
 	// so it's easier to run different scenarios without changing code.
@@ -86,13 +99,6 @@ type Scenario struct {
 
 	MMF       matchFunction
 	Evaluator evaluatorFunction
-}
-
-type LogicalScenario interface {
-	Profiles() []*pb.MatchProfile
-	Ticket() *pb.Ticket
-	MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error)
-	Evaluate(stream pb.Evaluator_EvaluateServer) error
 }
 
 type matchFunction func(*pb.RunRequest, pb.MatchFunction_RunServer) error
