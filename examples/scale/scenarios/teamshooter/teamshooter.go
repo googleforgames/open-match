@@ -17,10 +17,37 @@ package teamshooter
 import (
 	"fmt"
 	"io"
+	"math"
 	"math/rand"
 	"sort"
 	"time"
+
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	"open-match.dev/open-match/pkg/pb"
 )
+
+const (
+	poolName = "all"
+)
+
+func Scenario() *TeamShooterScenario {
+
+	modes, randomMode := weightedChoice(map[string]int{
+		"pl": 100,
+		"cp": 25,
+	})
+
+	return &TeamShooterScenario{
+		regions:         2,
+		maxRegions:      1,
+		playersPerGame:  12,
+		skillBoundaries: []float64{math.Inf(-1), 0, math.Inf(1)},
+		modes:           modes,
+		randomMode:      randomMode,
+	}
+}
 
 type TeamShooterScenario struct {
 	regions            int
@@ -36,7 +63,7 @@ func (t *TeamShooterScenario) Profiles() []*pb.MatchProfile {
 	p := []*pb.MatchProfile{}
 
 	for region := 0; region < t.regions; region++ {
-		for mode := range t.modePopulations {
+		for _, mode := range t.modes {
 			for i := 0; i+1 < len(t.skillBoundaries); i++ {
 				skillMin := t.skillBoundaries[i] - t.maxSkillDifference/2
 				skillMax := t.skillBoundaries[i+1] + t.maxSkillDifference/2
@@ -74,24 +101,14 @@ func (t *TeamShooterScenario) Profiles() []*pb.MatchProfile {
 }
 
 func (t *TeamShooterScenario) Ticket() *pb.Ticket {
-	v := rand.Intn(r.modePopulationTotal)
-	mode := ""
-	for m, pop := range r.modePopulations {
-		v -= pop
-		if v < 0 {
-			mode = m
-			break
-		}
-	}
-
-	region := rand.Intn(r.regions)
-	numRegions := rand.Intn(r.maxRegions) + 1
+	region := rand.Intn(t.regions)
+	numRegions := rand.Intn(t.maxRegions) + 1
 
 	tags := []string{}
 	for i := 0; i < numRegions; i++ {
 		tags = append(tags, fmt.Sprintf("region_%d", region))
 		// The Earth is actually a circle.
-		region = (region + 1) % r.regions
+		region = (region + 1) % t.regions
 	}
 
 	return &pb.Ticket{
@@ -100,7 +117,7 @@ func (t *TeamShooterScenario) Ticket() *pb.Ticket {
 				"skill": clamp(rand.NormFloat64(), -3, 3),
 			},
 			StringArgs: map[string]string{
-				"mode": mode,
+				"mode": t.randomMode(),
 			},
 			Tags: tags,
 		},
@@ -119,9 +136,9 @@ func (t *TeamShooterScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[
 		return skill(tickets[i]) < skill(tickets[j])
 	})
 
-	for i := 0; i+r.playersPerGame <= len(tickets); i++ {
-		mt := tickets[i : i+r.playersPerGame]
-		if skill(mt[len(mt)-1])-skill(mt[0]) < r.maxSkillDifference {
+	for i := 0; i+t.playersPerGame <= len(tickets); i++ {
+		mt := tickets[i : i+t.playersPerGame]
+		if skill(mt[len(mt)-1])-skill(mt[0]) < t.maxSkillDifference {
 			avg := float64(0)
 			for _, t := range mt {
 				avg += skill(t)
@@ -173,7 +190,7 @@ func (t *TeamShooterScenario) Evaluate(stream pb.Evaluator_EvaluateServer) error
 		proposals = append(proposals, p)
 	}
 
-	// Higher quality is better.
+	// Higher quality is bettet.
 	sort.Slice(proposals, func(i, j int) bool {
 		return proposals[i].quality < proposals[j].quality
 	})
@@ -190,7 +207,7 @@ outer:
 			used[t.Id] = struct{}{}
 		}
 
-		err := stream.Send(&pb.EvaluateResponse{Match: p.original})
+		err := stream.Send(&pb.EvaluateResponse{MatchId: p.id})
 		if err != nil {
 			return fmt.Errorf("Error sending evaluator output stream: %w", err)
 		}
@@ -205,7 +222,6 @@ type matchExt struct {
 	quality       float64
 	matchProfile  string
 	matchFunction string
-	original      *pb.Match
 }
 
 func unpackMatch(m *pb.Match) (*matchExt, error) {
@@ -226,10 +242,6 @@ func unpackMatch(m *pb.Match) (*matchExt, error) {
 }
 
 func (m *matchExt) pack() (*pb.Match, error) {
-	if m.original != nil {
-		return nil, fmt.Errorf("Packing match which has original, not safe to preserve extensions.")
-	}
-
 	v := &wrappers.DoubleValue{Value: m.quality}
 
 	a, err := ptypes.MarshalAny(v)
@@ -256,4 +268,24 @@ func clamp(v float64, min float64, max float64) float64 {
 		return max
 	}
 	return v
+}
+
+func weightedChoice(m map[string]int) ([]string, func() string) {
+	s := make([]string, 0, len(m))
+	total := 0
+	for k, v := range m {
+		s = append(s, k)
+		total += v
+	}
+
+	return s, func() string {
+		remainder := rand.Intn(total)
+		for k, v := range m {
+			remainder -= v
+			if remainder < 0 {
+				return k
+			}
+		}
+		panic("weightedChoice is broken.")
+	}
 }
