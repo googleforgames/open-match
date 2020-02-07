@@ -24,7 +24,6 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
@@ -44,7 +43,7 @@ type evaluator interface {
 	evaluate(context.Context, <-chan []*pb.Match) ([]string, error)
 }
 
-var errNoEvaluatorType = grpc.Errorf(codes.FailedPrecondition, "unable to determine evaluator type, either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config")
+var errNoEvaluatorType = status.Errorf(codes.FailedPrecondition, "unable to determine evaluator type, either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config")
 
 func newEvaluator(cfg config.View) evaluator {
 	newInstance := func(cfg config.View) (interface{}, func(), error) {
@@ -88,7 +87,7 @@ func newGrpcEvaluator(cfg config.View) (evaluator, func(), error) {
 	grpcAddr := fmt.Sprintf("%s:%d", cfg.GetString("api.evaluator.hostname"), cfg.GetInt64("api.evaluator.grpcport"))
 	conn, err := rpc.GRPCClientFromEndpoint(cfg, grpcAddr)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Failed to create grpc evaluator client: %w", err)
+		return nil, nil, fmt.Errorf("failed to create grpc evaluator client: %w", err)
 	}
 
 	evaluatorClientLogger.WithFields(logrus.Fields{
@@ -113,7 +112,7 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 		var err error
 		stream, err = ec.evaluator.Evaluate(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("Error starting evaluator call: %w", err)
+			return nil, fmt.Errorf("error starting evaluator call: %w", err)
 		}
 	}
 

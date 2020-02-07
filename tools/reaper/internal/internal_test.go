@@ -113,8 +113,9 @@ func TestIsOrphaned(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(fmt.Sprintf("%s deleted= %t", tc.namespace.ObjectMeta.Name, tc.expected), func(t *testing.T) {
-			actual := isOrphaned(tc.namespace, &Params{
+			actual := isOrphaned(&tc.namespace, &Params{
 				Age: tc.age,
 			})
 			if actual != tc.expected {

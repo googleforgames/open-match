@@ -67,9 +67,11 @@ func TestObtain(t *testing.T) {
 			listener, err := lh.Obtain()
 			if err != nil {
 				atomic.AddUint64(&errCount, 1)
-			} else if listener != nil {
+			}
+			if listener != nil {
 				atomic.AddUint64(&obtainCount, 1)
-			} else {
+			}
+			if err != nil && listener != nil {
 				t.Error("err and listener were both nil.")
 			}
 			wg.Done()

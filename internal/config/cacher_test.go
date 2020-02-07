@@ -133,8 +133,10 @@ var getTests = []struct {
 	},
 }
 
+//nolint: gocritic, staticcheck
 func Test_Get(t *testing.T) {
 	for _, tt := range getTests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.verifySame == nil {
 				tt.verifySame = func(a, b interface{}) bool {
