@@ -12,6 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// TeamShooterScenario is a scenario which is designed to emulate the
+// approximate behavior to open match that a skill based team game would have.
+// It doesn't try to provide good behavior for such a game.  There are three
+// arguments used:
+// mode: The game mode the players wants to play in.  mode is a hard partition.
+// regions: Players may have good latency to one or more regions.  A player will
+//   search for matches in all eligible regions.
+// skill: Players have a random skill based on a normal distribution.  Players
+//   will only be matched with other players who have a close skill value.  The
+//   match functions have overlapping partitions of the skill brackets.
 package teamshooter
 
 import (
@@ -58,16 +68,7 @@ func Scenario() *TeamShooterScenario {
 	}
 }
 
-// TeamShooterScenario is a scenario which is designed to emulate the
-// approximate behavior to open match that a skill based team game would have.
-// It doesn't try to provide good behavior for such a game.  There are three
-// arguments used:
-// mode: The game mode the players wants to play in.  mode is a hard partition.
-// regions: Players may have good latency to one or more regions.  A player will
-//   search for matches in all eligible regions.
-// skill: Players have a random skill based on a normal distribution.  Players
-//   will only be matched with other players who have a close skill value.  The
-//   match functions have overlapping partitions of the skill brackets.
+// TeamShooterScenario provides the required methods for running a scenario.
 type TeamShooterScenario struct {
 	regions            []string
 	maxRegions         int
