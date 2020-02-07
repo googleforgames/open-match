@@ -78,6 +78,7 @@ type TeamShooterScenario struct {
 	randomMode         func() string
 }
 
+// Profiles shards the player base on mode, region, and skill.
 func (t *TeamShooterScenario) Profiles() []*pb.MatchProfile {
 	p := []*pb.MatchProfile{}
 
@@ -119,6 +120,7 @@ func (t *TeamShooterScenario) Profiles() []*pb.MatchProfile {
 	return p
 }
 
+// Ticket creates a randomized player.
 func (t *TeamShooterScenario) Ticket() *pb.Ticket {
 	region := rand.Intn(len(t.regions))
 	numRegions := rand.Intn(t.maxRegions) + 1
