@@ -34,6 +34,7 @@ const (
 	modeArg  = "mode"
 )
 
+// Scenario creates a new TeamShooterScenario.
 func Scenario() *TeamShooterScenario {
 
 	modes, randomMode := weightedChoice(map[string]int{
@@ -57,6 +58,16 @@ func Scenario() *TeamShooterScenario {
 	}
 }
 
+// TeamShooterScenario is a scenario which is designed to emulate the
+// approximate behavior to open match that a skill based team game would have.
+// It doesn't try to provide good behavior for such a game.  There are three
+// arguments used:
+// mode: The game mode the players wants to play in.  mode is a hard partition.
+// regions: Players may have good latency to one or more regions.  A player will
+//   search for matches in all eligible regions.
+// skill: Players have a random skill based on a normal distribution.  Players
+//   will only be matched with other players who have a close skill value.  The
+//   match functions have overlapping partitions of the skill brackets.
 type TeamShooterScenario struct {
 	regions            []string
 	maxRegions         int
@@ -132,6 +143,8 @@ func (t *TeamShooterScenario) Ticket() *pb.Ticket {
 	}
 }
 
+// MatchFunction puts tickets into matches based on their skill, finding the
+// required number of tickets for a game within the maximum skill difference.
 func (t *TeamShooterScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
 	skill := func(t *pb.Ticket) float64 {
 		return t.SearchFields.DoubleArgs[skillArg]
@@ -176,6 +189,8 @@ func (t *TeamShooterScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[
 	return matches, nil
 }
 
+// Evaluate returns matches in order of highest quality, skipping any matches
+// which contain tickets that are already used.
 func (t *TeamShooterScenario) Evaluate(stream pb.Evaluator_EvaluateServer) error {
 	// Unpacked proposal matches.
 	proposals := []*matchExt{}
@@ -198,9 +213,9 @@ func (t *TeamShooterScenario) Evaluate(stream pb.Evaluator_EvaluateServer) error
 		proposals = append(proposals, p)
 	}
 
-	// Higher quality is bettet.
+	// Higher quality is better.
 	sort.Slice(proposals, func(i, j int) bool {
-		return proposals[i].quality < proposals[j].quality
+		return proposals[i].quality > proposals[j].quality
 	})
 
 outer:
