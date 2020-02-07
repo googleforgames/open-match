@@ -30,6 +30,8 @@ import (
 
 const (
 	poolName = "all"
+	skillArg = "skill"
+	modeArg  = "mode"
 )
 
 func Scenario() *TeamShooterScenario {
@@ -39,8 +41,13 @@ func Scenario() *TeamShooterScenario {
 		"cp": 25,
 	})
 
+	regions := []string{}
+	for i := 0; i < 2; i++ {
+		regions = append(regions, fmt.Sprintf("region_%d", i))
+	}
+
 	return &TeamShooterScenario{
-		regions:         2,
+		regions:         regions,
 		maxRegions:      1,
 		playersPerGame:  12,
 		skillBoundaries: []float64{math.Inf(-1), 0, math.Inf(1)},
@@ -50,7 +57,7 @@ func Scenario() *TeamShooterScenario {
 }
 
 type TeamShooterScenario struct {
-	regions            int
+	regions            []string
 	maxRegions         int
 	playersPerGame     int
 	skillBoundaries    []float64
@@ -62,34 +69,34 @@ type TeamShooterScenario struct {
 func (t *TeamShooterScenario) Profiles() []*pb.MatchProfile {
 	p := []*pb.MatchProfile{}
 
-	for region := 0; region < t.regions; region++ {
+	for _, region := range t.regions {
 		for _, mode := range t.modes {
 			for i := 0; i+1 < len(t.skillBoundaries); i++ {
 				skillMin := t.skillBoundaries[i] - t.maxSkillDifference/2
 				skillMax := t.skillBoundaries[i+1] + t.maxSkillDifference/2
 				p = append(p, &pb.MatchProfile{
-					Name: fmt.Sprintf("region_%d_%s_%v-%v", region, mode, skillMin, skillMax),
+					Name: fmt.Sprintf("%s_%s_%v-%v", region, mode, skillMin, skillMax),
 					Pools: []*pb.Pool{
 						{
 							Name: poolName,
-							DoubleRangeFilters: []*pb.DoubleRangeFilter{
-								{
-									DoubleArg: "skill",
-									Min:       skillMin,
-									Max:       skillMax,
-								},
-							},
-							TagPresentFilters: []*pb.TagPresentFilter{
-								{
-									Tag: fmt.Sprintf("region_%d", region),
-								},
-							},
-							StringEqualsFilters: []*pb.StringEqualsFilter{
-								{
-									StringArg: "mode",
-									Value:     mode,
-								},
-							},
+							// DoubleRangeFilters: []*pb.DoubleRangeFilter{
+							// 	{
+							// 		DoubleArg: skillArg,
+							// 		Min:       skillMin,
+							// 		Max:       skillMax,
+							// 	},
+							// },
+							// TagPresentFilters: []*pb.TagPresentFilter{
+							// 	{
+							// 		Tag: region,
+							// 	},
+							// },
+							// StringEqualsFilters: []*pb.StringEqualsFilter{
+							// 	{
+							// 		StringArg: modeArg,
+							// 		Value:     mode,
+							// 	},
+							// },
 						},
 					},
 				})
@@ -101,23 +108,23 @@ func (t *TeamShooterScenario) Profiles() []*pb.MatchProfile {
 }
 
 func (t *TeamShooterScenario) Ticket() *pb.Ticket {
-	region := rand.Intn(t.regions)
+	region := rand.Intn(len(t.regions))
 	numRegions := rand.Intn(t.maxRegions) + 1
 
 	tags := []string{}
 	for i := 0; i < numRegions; i++ {
-		tags = append(tags, fmt.Sprintf("region_%d", region))
+		tags = append(tags, t.regions[region])
 		// The Earth is actually a circle.
-		region = (region + 1) % t.regions
+		region = (region + 1) % len(t.regions)
 	}
 
 	return &pb.Ticket{
 		SearchFields: &pb.SearchFields{
 			DoubleArgs: map[string]float64{
-				"skill": clamp(rand.NormFloat64(), -3, 3),
+				skillArg: clamp(rand.NormFloat64(), -3, 3),
 			},
 			StringArgs: map[string]string{
-				"mode": t.randomMode(),
+				modeArg: t.randomMode(),
 			},
 			Tags: tags,
 		},
@@ -126,7 +133,7 @@ func (t *TeamShooterScenario) Ticket() *pb.Ticket {
 
 func (t *TeamShooterScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
 	skill := func(t *pb.Ticket) float64 {
-		return t.SearchFields.DoubleArgs["skill"]
+		return t.SearchFields.DoubleArgs[skillArg]
 	}
 
 	tickets := poolTickets[poolName]
@@ -154,7 +161,7 @@ func (t *TeamShooterScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[
 			m, err := (&matchExt{
 				id:            fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
 				matchProfile:  p.GetName(),
-				matchFunction: "rangeExpandingMatchFunction",
+				matchFunction: "skillmatcher",
 				tickets:       mt,
 				quality:       q,
 			}).pack()
