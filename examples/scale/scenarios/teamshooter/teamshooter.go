@@ -47,12 +47,13 @@ func Scenario() *TeamShooterScenario {
 	}
 
 	return &TeamShooterScenario{
-		regions:         regions,
-		maxRegions:      1,
-		playersPerGame:  12,
-		skillBoundaries: []float64{math.Inf(-1), 0, math.Inf(1)},
-		modes:           modes,
-		randomMode:      randomMode,
+		regions:            regions,
+		maxRegions:         1,
+		playersPerGame:     12,
+		skillBoundaries:    []float64{math.Inf(-1), 0, math.Inf(1)},
+		maxSkillDifference: 0.01,
+		modes:              modes,
+		randomMode:         randomMode,
 	}
 }
 
@@ -79,24 +80,24 @@ func (t *TeamShooterScenario) Profiles() []*pb.MatchProfile {
 					Pools: []*pb.Pool{
 						{
 							Name: poolName,
-							// DoubleRangeFilters: []*pb.DoubleRangeFilter{
-							// 	{
-							// 		DoubleArg: skillArg,
-							// 		Min:       skillMin,
-							// 		Max:       skillMax,
-							// 	},
-							// },
-							// TagPresentFilters: []*pb.TagPresentFilter{
-							// 	{
-							// 		Tag: region,
-							// 	},
-							// },
-							// StringEqualsFilters: []*pb.StringEqualsFilter{
-							// 	{
-							// 		StringArg: modeArg,
-							// 		Value:     mode,
-							// 	},
-							// },
+							DoubleRangeFilters: []*pb.DoubleRangeFilter{
+								{
+									DoubleArg: skillArg,
+									Min:       skillMin,
+									Max:       skillMax,
+								},
+							},
+							TagPresentFilters: []*pb.TagPresentFilter{
+								{
+									Tag: region,
+								},
+							},
+							StringEqualsFilters: []*pb.StringEqualsFilter{
+								{
+									StringArg: modeArg,
+									Value:     mode,
+								},
+							},
 						},
 					},
 				})
