@@ -16,8 +16,7 @@ package frontend
 
 import (
 	"context"
-	"sync"
-	"sync/atomic"
+	"math/rand"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -34,13 +33,11 @@ var (
 		"app":       "openmatch",
 		"component": "scale.frontend",
 	})
-	activeScenario     = scenarios.ActiveScenario
-	numOfRoutineCreate = 8
-
-	totalCreated uint32
+	activeScenario = scenarios.ActiveScenario
 
 	mTicketsCreated        = telemetry.Counter("scale_frontend_tickets_created", "tickets created")
 	mTicketCreationsFailed = telemetry.Counter("scale_frontend_ticket_creations_failed", "tickets created")
+	mOutstandingRunners    = telemetry.Gauge("scale_frontend_outstanding_runners", "outstanding runners")
 )
 
 // Run triggers execution of the scale frontend component that creates
@@ -60,50 +57,37 @@ func run(cfg config.View) {
 	}
 	fe := pb.NewFrontendServiceClient(conn)
 
-	w := logger.Writer()
-	defer w.Close()
-
 	ticketQPS := int(activeScenario.FrontendTicketCreatedQPS)
 	ticketTotal := activeScenario.FrontendTotalTicketsToCreate
 
+	ticker := time.NewTicker(time.Second)
+
+	totalCreated := 0
+	outstanding := int64(0)
+	runnerDone := make(chan struct{})
+
 	for {
-		currentCreated := int(atomic.LoadUint32(&totalCreated))
-		if ticketTotal != -1 && currentCreated >= ticketTotal {
-			break
-		}
-
-		// Each inner loop creates TicketCreatedQPS tickets
-		var ticketPerRoutine, ticketModRoutine int
-		start := time.Now()
-
-		if ticketTotal == -1 || currentCreated+ticketQPS <= ticketTotal {
-			ticketPerRoutine = ticketQPS / numOfRoutineCreate
-			ticketModRoutine = ticketQPS % numOfRoutineCreate
-		} else {
-			ticketPerRoutine = (ticketTotal - currentCreated) / numOfRoutineCreate
-			ticketModRoutine = (ticketTotal - currentCreated) % numOfRoutineCreate
-		}
-
-		var wg sync.WaitGroup
-		for i := 0; i < numOfRoutineCreate; i++ {
-			wg.Add(1)
-			if i < ticketModRoutine {
-				go createPerCycle(&wg, fe, ticketPerRoutine+1, start)
-			} else {
-				go createPerCycle(&wg, fe, ticketPerRoutine, start)
+		select {
+		case <-ticker.C:
+			for i := 0; i < ticketQPS; i++ {
+				if ticketTotal == -1 || totalCreated < ticketTotal {
+					go runner(fe, runnerDone)
+					outstanding++
+				}
 			}
+
+		case <-runnerDone:
+			outstanding--
 		}
 
-		// Wait for all concurrent creates to complete.
-		wg.Wait()
+		telemetry.SetGauge(context.Background(), mOutstandingRunners, outstanding)
 	}
 }
 
-func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendServiceClient, ticketPerRoutine int, start time.Time) {
-	defer wg.Done()
-	cycleCreated := 0
+func runner(fe pb.FrontendServiceClient, done chan struct{}) {
+	time.Sleep(time.Duration(rand.Int63n(int64(time.Second))))
 
-	for j := 0; j < ticketPerRoutine; j++ {
+	{ // Always create ticket.
 		req := &pb.CreateTicketRequest{
 			Ticket: activeScenario.Ticket(),
 		}
@@ -111,16 +95,7 @@ func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendServiceClient, ticketPerRo
 		ctx, span := trace.StartSpan(context.Background(), "scale.frontend/CreateTicket")
 		defer span.End()
 
-		timeLeft := start.Add(time.Second).Sub(time.Now())
-		if timeLeft <= 0 {
-			break
-		}
-		ticketsLeft := ticketPerRoutine - cycleCreated
-
-		time.Sleep(timeLeft / time.Duration(ticketsLeft))
-
 		if _, err := fe.CreateTicket(ctx, req); err == nil {
-			cycleCreated++
 			telemetry.RecordUnitMeasurement(ctx, mTicketsCreated)
 		} else {
 			logger.WithError(err).Error("failed to create a ticket")
@@ -128,5 +103,5 @@ func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendServiceClient, ticketPerRo
 		}
 	}
 
-	atomic.AddUint32(&totalCreated, uint32(cycleCreated))
+	done <- struct{}{}
 }
