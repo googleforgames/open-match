@@ -358,11 +358,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(scale_frontend_outstanding_runners)",
+          "expr": "sum(scale_frontend_runners_waiting)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "Outstanding Frontend Runners",
+          "legendFormat": "Runners Waiting To Start",
           "refId": "A"
+        },
+        {
+          "expr": "sum(scale_frontend_runners_creating)",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 1,
+          "legendFormat": "Runners Creating Ticket",
+          "refId": "B"
         }
       ],
       "thresholds": [],
@@ -882,7 +890,7 @@
       }
     }
   ],
-  "refresh": "1s",
+  "refresh": "",
   "schemaVersion": 18,
   "style": "dark",
   "tags": [],
