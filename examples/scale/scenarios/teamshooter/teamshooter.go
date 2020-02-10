@@ -44,12 +44,31 @@ const (
 	modeArg  = "mode"
 )
 
+// TeamShooterScenario provides the required methods for running a scenario.
+type TeamShooterScenario struct {
+	// Names of available region tags.
+	regions []string
+	// Maximum regions a player can search in.
+	maxRegions int
+	// Number of tickets which form a match.
+	playersPerGame int
+	// For each pair of consequitive values, the value to split profiles on by
+	// skill.
+	skillBoundaries []float64
+	// Maximum difference between two tickets to consider a match valid.
+	maxSkillDifference float64
+	// List of mode names.
+	modes []string
+	// Returns a random mode, with some weight.
+	randomMode func() string
+}
+
 // Scenario creates a new TeamShooterScenario.
 func Scenario() *TeamShooterScenario {
 
 	modes, randomMode := weightedChoice(map[string]int{
-		"pl": 100,
-		"cp": 25,
+		"pl": 100, // Payload, very popular.
+		"cp": 25,  // Capture point, 1/4 as popular.
 	})
 
 	regions := []string{}
@@ -66,17 +85,6 @@ func Scenario() *TeamShooterScenario {
 		modes:              modes,
 		randomMode:         randomMode,
 	}
-}
-
-// TeamShooterScenario provides the required methods for running a scenario.
-type TeamShooterScenario struct {
-	regions            []string
-	maxRegions         int
-	playersPerGame     int
-	skillBoundaries    []float64
-	maxSkillDifference float64
-	modes              []string
-	randomMode         func() string
 }
 
 // Profiles shards the player base on mode, region, and skill.
@@ -242,6 +250,8 @@ outer:
 	return nil
 }
 
+// matchExt presents the match and extension data in a native form, and allows
+// easy conversion to and from proto format.
 type matchExt struct {
 	id            string
 	tickets       []*pb.Ticket
@@ -296,6 +306,9 @@ func clamp(v float64, min float64, max float64) float64 {
 	return v
 }
 
+// weightedChoice takes a map of values, and their relative probability.  It
+// returns a list of the values, along with a function which will return random
+// choices from the values with the weighted probability.
 func weightedChoice(m map[string]int) ([]string, func() string) {
 	s := make([]string, 0, len(m))
 	total := 0
