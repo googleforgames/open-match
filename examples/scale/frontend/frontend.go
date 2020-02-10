@@ -82,6 +82,9 @@ func runner(fe pb.FrontendServiceClient) {
 	defer g.stop()
 
 	g.start(mRunnersWaiting)
+	// A random sleep at the start of the worker evens calls out over the second
+	// period, and makes timing between ticket creation calls a more realistic
+	// poisson distribution.
 	time.Sleep(time.Duration(rand.Int63n(int64(time.Second))))
 
 	g.start(mRunnersCreating)
