@@ -161,15 +161,6 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("MULTI")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "MULTI",
-			"error": err.Error(),
-		}).Error("state storage operation failed")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
 	value, err := proto.Marshal(ticket)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -179,7 +170,7 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	err = redisConn.Send("SET", ticket.GetId(), value)
+	_, err = redisConn.Do("SET", ticket.GetId(), value)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
 			"cmd":   "SET",
@@ -192,7 +183,7 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 	if rb.cfg.IsSet("redis.expiration") {
 		redisTTL := rb.cfg.GetInt("redis.expiration")
 		if redisTTL > 0 {
-			err = redisConn.Send("EXPIRE", ticket.GetId(), redisTTL)
+			_, err = redisConn.Do("EXPIRE", ticket.GetId(), redisTTL)
 			if err != nil {
 				redisLogger.WithFields(logrus.Fields{
 					"cmd":   "EXPIRE",
@@ -203,16 +194,6 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 				return status.Errorf(codes.Internal, "%v", err)
 			}
 		}
-	}
-
-	_, err = redisConn.Do("EXEC")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "EXEC",
-			"key":   ticket.GetId(),
-			"error": err.Error(),
-		}).Error("failed to create ticket in state storage")
-		return status.Errorf(codes.Internal, "%v", err)
 	}
 
 	return nil
@@ -535,6 +516,9 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 	if assignment == nil {
 		return status.Error(codes.InvalidArgument, "assignment is nil")
 	}
+	if len(ids) == 0 {
+		return nil
+	}
 
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
@@ -542,29 +526,35 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("MULTI")
+	b := make([]interface{}, len(ids))
+	for i := range ids {
+		b[i] = ids[i]
+	}
+
+	ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", b...))
 	if err != nil {
 		return err
 	}
 
-	// Sanity check to make sure all inputs ids are valid
-	tickets := []*pb.Ticket{}
-	for _, id := range ids {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			var ticket *pb.Ticket
-			ticket, err = rb.GetTicket(ctx, id)
-			if err != nil {
-				redisLogger.WithError(err).Errorf("failed to get ticket %s from redis when updating assignments", id)
-				return err
-			}
-			tickets = append(tickets, ticket)
+	tickets := make([]*pb.Ticket, 0, len(ticketBytes))
+	for i, ticketByte := range ticketBytes {
+		// Tickets may be deleted by the time we read it from redis.
+		if ticketByte == nil {
+			return status.Errorf(codes.NotFound, "failed to get ticket %s from statestore", ids[i])
 		}
+		t := &pb.Ticket{}
+		err = proto.Unmarshal(ticketByte, t)
+		if err != nil {
+			redisLogger.WithFields(logrus.Fields{
+				"key": ids[i],
+			}).WithError(err).Error("Failed to unmarshal ticket from redis.")
+			return status.Errorf(codes.Internal, "%v", err)
+		}
+		tickets = append(tickets, t)
 	}
 
-	for _, ticket := range tickets {
+	cmds := make([]interface{}, 2*len(tickets))
+	for i, ticket := range tickets {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -577,18 +567,20 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 
 			ticket.Assignment = assignmentCopy
 
-			err = rb.CreateTicket(ctx, ticket)
+			var ticketByte []byte
+			ticketByte, err = proto.Marshal(ticket)
 			if err != nil {
-				redisLogger.WithError(err).Errorf("failed to recreate ticket %#v with new assignment when updating assignments", ticket)
-				return err
+				return status.Errorf(codes.Internal, "failed to marshal ticket %s", ticket.GetId())
 			}
+
+			cmds[2*i] = ticket.GetId()
+			cmds[2*i+1] = ticketByte
 		}
 	}
 
-	// Run pipelined Redis commands.
-	_, err = redisConn.Do("EXEC")
+	_, err = redisConn.Do("MSET", cmds...)
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to execute update assignments transaction")
+		redisLogger.WithError(err).Errorf("failed to send ticket updates to redis %s", cmds)
 		return err
 	}
 
@@ -628,32 +620,27 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 
 // AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
 func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("MULTI")
-	if err != nil {
-		redisLogger.WithError(err).Error("failed to pipeline commands for AddTicketsToIgnoreList")
-		return status.Error(codes.Internal, err.Error())
-	}
-
 	currentTime := time.Now().UnixNano()
-	for _, id := range ids {
-		// Index the DoubleArg by value.
-		err = redisConn.Send("ZADD", "proposed_ticket_ids", currentTime, id)
-		if err != nil {
-			redisLogger.WithError(err).Error("failed to append proposed tickets to redis")
-			return status.Error(codes.Internal, err.Error())
-		}
+	cmds := make([]interface{}, 2*len(ids)+1)
+	cmds[0] = "proposed_ticket_ids"
+	for i, id := range ids {
+		cmds[2*i+1] = currentTime
+		cmds[2*i+2] = id
 	}
 
-	// Run pipelined Redis commands.
-	_, err = redisConn.Do("EXEC")
+	_, err = redisConn.Do("ZADD", cmds...)
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to execute pipelined commands for AddTicketsToIgnoreList")
+		redisLogger.WithError(err).Error("failed to append proposed tickets to redis")
 		return status.Error(codes.Internal, err.Error())
 	}
 
@@ -672,24 +659,15 @@ func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []s
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("MULTI")
-	if err != nil {
-		redisLogger.WithError(err).Error("failed to pipeline commands for DeleteTicketsFromIgnoreList")
-		return status.Error(codes.Internal, err.Error())
+	cmds := make([]interface{}, len(ids)+1)
+	cmds[0] = "proposed_ticket_ids"
+	for i, id := range ids {
+		cmds[i+1] = id
 	}
 
-	for _, id := range ids {
-		err = redisConn.Send("ZREM", "proposed_ticket_ids", id)
-		if err != nil {
-			redisLogger.WithError(err).Error("failed to delete proposed tickets from ignore list")
-			return status.Error(codes.Internal, err.Error())
-		}
-	}
-
-	// Run pipelined Redis commands.
-	_, err = redisConn.Do("EXEC")
+	_, err = redisConn.Do("ZREM", cmds...)
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to execute pipelined commands for DeleteTicketsFromIgnoreList")
+		redisLogger.WithError(err).Error("failed to delete proposed tickets from ignore list")
 		return status.Error(codes.Internal, err.Error())
 	}
 
