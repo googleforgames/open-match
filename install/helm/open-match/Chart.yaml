@@ -20,7 +20,7 @@ dependencies:
   - name: redis
     version: 9.5.0
     repository: https://kubernetes-charts.storage.googleapis.com/
-    condition: open-match-core.redis.install
+    condition: open-match-core.redis.enabled
   - name: open-match-telemetry
     version: 0.0.0-dev
     condition: open-match-telemetry.enabled
