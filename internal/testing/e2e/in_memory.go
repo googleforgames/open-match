@@ -21,18 +21,17 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"open-match.dev/open-match/internal/app/evaluator"
+	"open-match.dev/open-match/internal/app/evaluator/defaulte"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/internal/telemetry"
-	"open-match.dev/open-match/internal/testing/evaluator"
 	internalMmf "open-match.dev/open-match/internal/testing/mmf"
 	"open-match.dev/open-match/internal/util"
 	pb "open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/test/matchfunction/mmf"
-
-	"open-match.dev/open-match/test/evaluator/evaluate"
 )
 
 type inmemoryOM struct {
@@ -174,7 +173,7 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 func createEvaluatorForTest(t *testing.T) *rpcTesting.TestContext {
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
-		assert.Nil(t, evaluator.BindService(p, cfg, evaluate.Evaluate))
+		assert.Nil(t, evaluator.BindService(p, cfg, defaulte.Evaluate))
 	})
 
 	return tc

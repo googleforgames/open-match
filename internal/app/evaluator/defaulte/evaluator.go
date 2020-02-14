@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package evaluate
+// Default evaluator implementation.
+package defaulte
 
 import (
 	"math"
@@ -20,7 +21,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
-	"open-match.dev/open-match/internal/testing/evaluator"
+	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -36,8 +37,8 @@ type matchInp struct {
 	inp   *pb.DefaultEvaluationCriteria
 }
 
-// Evaluate is where your custom evaluation logic lives.
-// This sample evaluator sorts and deduplicates the input matches.
+// Evaluate sorts the matches by DefaultEvaluationCriteria.Score (optional),
+// then returns matches which don't collide with previously returned matches.
 func Evaluate(p *evaluator.Params) ([]string, error) {
 	matches := make([]*matchInp, 0, len(p.Matches))
 	nilEvlautionInputs := 0

@@ -14,11 +14,11 @@
 package main
 
 import (
-	"open-match.dev/open-match/internal/testing/evaluator"
-	"open-match.dev/open-match/test/evaluator/evaluate"
+	"open-match.dev/open-match/internal/app/evaluator"
+	"open-match.dev/open-match/internal/app/evaluator/defaulte"
 )
 
 func main() {
 	// Invoke the harness to setup a GRPC service that handles requests to run the evaluator.
-	evaluator.RunEvaluator(evaluate.Evaluate)
+	evaluator.RunEvaluator(defaulte.Evaluate)
 }
