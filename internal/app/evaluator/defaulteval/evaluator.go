@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Default evaluator implementation.
-package defaulte
+package defaulteval
 
 import (
 	"math"

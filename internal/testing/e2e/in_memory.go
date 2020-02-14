@@ -22,7 +22,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"open-match.dev/open-match/internal/app/evaluator"
-	"open-match.dev/open-match/internal/app/evaluator/defaulte"
+	"open-match.dev/open-match/internal/app/evaluator/defaulteval"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
@@ -173,7 +173,7 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 func createEvaluatorForTest(t *testing.T) *rpcTesting.TestContext {
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
-		assert.Nil(t, evaluator.BindService(p, cfg, defaulte.Evaluate))
+		assert.Nil(t, evaluator.BindService(p, cfg, defaulteval.Evaluate))
 	})
 
 	return tc

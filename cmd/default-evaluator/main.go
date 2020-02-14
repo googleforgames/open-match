@@ -15,10 +15,10 @@ package main
 
 import (
 	"open-match.dev/open-match/internal/app/evaluator"
-	"open-match.dev/open-match/internal/app/evaluator/defaulte"
+	"open-match.dev/open-match/internal/app/evaluator/defaulteval"
 )
 
 func main() {
 	// Invoke the harness to setup a GRPC service that handles requests to run the evaluator.
-	evaluator.RunEvaluator(defaulte.Evaluate)
+	evaluator.RunEvaluator(defaulteval.Evaluate)
 }
