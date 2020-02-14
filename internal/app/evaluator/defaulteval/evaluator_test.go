@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package evaluate
+package defaulteval
 
 import (
 	"testing"
@@ -21,7 +21,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/assert"
-	"open-match.dev/open-match/internal/testing/evaluator"
+	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/pkg/pb"
 )
 

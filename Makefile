@@ -196,7 +196,7 @@ ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS)
 CMDS = $(notdir $(wildcard cmd/*))
 
 # Names of the individual images, ommiting the openmatch prefix.
-IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool evaluator-go-simple base-build
+IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool base-build
 
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
@@ -238,9 +238,6 @@ build-mmf-go-soloduel-image: docker build-base-build-image
 
 build-mmf-go-pool-image: docker build-base-build-image
 	docker build -f test/matchfunction/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG) .
-
-build-evaluator-go-simple-image: docker build-base-build-image
-	docker build -f test/evaluator/Dockerfile -t $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG) .
 
 #######################################
 ## push-images / push-<image name>-image: builds and pushes images to your
