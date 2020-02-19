@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -476,6 +477,15 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 	}
 
 	idSet = set.Difference(idSet, idsInIgnoreLists)
+
+	// Do a little randomization to prevent dependancy on return order.
+	if len(idSet) > 0 {
+		for i := 0; i < 20; i++ {
+			j := rand.Intn(len(idSet))
+			k := rand.Intn(len(idSet))
+			idSet[j], idSet[k] = idSet[k], idSet[j]
+		}
+	}
 
 	// TODO: finish reworking this after the proto changes.
 	for _, page := range idsToPages(idSet, pageSize) {
