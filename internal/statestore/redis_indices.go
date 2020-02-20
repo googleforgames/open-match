@@ -60,6 +60,18 @@ func extractIndexFilters(p *pb.Pool) []*indexFilter {
 	filters := make([]*indexFilter, 0)
 
 	for _, f := range p.DoubleRangeFilters {
+		if math.IsNaN(f.Min) || math.IsNaN(f.Max) {
+			// Some bug in the redis stack doesn't properly reject all tickets for a
+			// NaN max, so just special case it.
+			return []*indexFilter{
+				&indexFilter{
+					name: "notafilter",
+					min:  math.NaN(),
+					max:  math.NaN(),
+				},
+			}
+		}
+
 		filters = append(filters, &indexFilter{
 			name: rangeIndexName(f.DoubleArg),
 			min:  f.Min,
