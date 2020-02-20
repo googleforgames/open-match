@@ -85,7 +85,8 @@ func TestPaging(t *testing.T) {
 	foundIds := map[string]struct{}{}
 
 	for i := 0; i < 5; i++ {
-		resp, err := stream.Recv()
+		var resp *pb.QueryTicketsResponse
+		resp, err = stream.Recv()
 		assert.Nil(t, err)
 		assert.Equal(t, len(resp.Tickets), pageSize)
 
@@ -108,6 +109,7 @@ func TestPaging(t *testing.T) {
 
 func TestTicketFound(t *testing.T) {
 	for _, tc := range testcases.IncludedTestCases() {
+		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			if !returnedByQuery(t, tc) {
 				assert.Fail(t, "Expected to find ticket in pool but didn't.")
@@ -118,6 +120,7 @@ func TestTicketFound(t *testing.T) {
 
 func TestTicketNotFound(t *testing.T) {
 	for _, tc := range testcases.ExcludedTestCases() {
+		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			if returnedByQuery(t, tc) {
 				assert.Fail(t, "Expected to not find ticket in pool but did.")

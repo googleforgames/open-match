@@ -21,17 +21,19 @@ import (
 )
 
 func TestInPool(t *testing.T) {
-	for _, tt := range testcases.IncludedTestCases() {
-		t.Run(tt.Name, func(t *testing.T) {
-			if !InPool(tt.Ticket, tt.Pool) {
+	for _, tc := range testcases.IncludedTestCases() {
+		tc := tc
+		t.Run(tc.Name, func(t *testing.T) {
+			if !InPool(tc.Ticket, tc.Pool) {
 				t.Error("ticket should be included in the pool")
 			}
 		})
 	}
 
-	for _, tt := range testcases.ExcludedTestCases() {
-		t.Run(tt.Name, func(t *testing.T) {
-			if InPool(tt.Ticket, tt.Pool) {
+	for _, tc := range testcases.ExcludedTestCases() {
+		tc := tc
+		t.Run(tc.Name, func(t *testing.T) {
+			if InPool(tc.Ticket, tc.Pool) {
 				t.Error("ticket should be excluded from the pool")
 			}
 		})

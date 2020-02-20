@@ -55,7 +55,7 @@ func IncludedTestCases() []TestCase {
 			},
 			&pb.Pool{
 				StringEqualsFilters: []*pb.StringEqualsFilter{
-					&pb.StringEqualsFilter{
+					{
 						StringArg: "field",
 						Value:     "value",
 					},
@@ -74,7 +74,7 @@ func IncludedTestCases() []TestCase {
 			},
 			&pb.Pool{
 				TagPresentFilters: []*pb.TagPresentFilter{
-					&pb.TagPresentFilter{
+					{
 						Tag: "mytag",
 					},
 				},
@@ -92,13 +92,13 @@ func IncludedTestCases() []TestCase {
 			},
 			&pb.Pool{
 				TagPresentFilters: []*pb.TagPresentFilter{
-					&pb.TagPresentFilter{
+					{
 						Tag: "A",
 					},
-					&pb.TagPresentFilter{
+					{
 						Tag: "C",
 					},
-					&pb.TagPresentFilter{
+					{
 						Tag: "B",
 					},
 				},
@@ -118,7 +118,7 @@ func ExcludedTestCases() []TestCase {
 			&pb.Ticket{},
 			&pb.Pool{
 				DoubleRangeFilters: []*pb.DoubleRangeFilter{
-					&pb.DoubleRangeFilter{
+					{
 						DoubleArg: "field",
 						Min:       math.Inf(-1),
 						Max:       math.Inf(1),
@@ -131,7 +131,7 @@ func ExcludedTestCases() []TestCase {
 			&pb.Ticket{},
 			&pb.Pool{
 				StringEqualsFilters: []*pb.StringEqualsFilter{
-					&pb.StringEqualsFilter{
+					{
 						StringArg: "field",
 						Value:     "value",
 					},
@@ -143,7 +143,7 @@ func ExcludedTestCases() []TestCase {
 			&pb.Ticket{},
 			&pb.Pool{
 				TagPresentFilters: []*pb.TagPresentFilter{
-					&pb.TagPresentFilter{
+					{
 						Tag: "value",
 					},
 				},
@@ -161,7 +161,7 @@ func ExcludedTestCases() []TestCase {
 			},
 			&pb.Pool{
 				DoubleRangeFilters: []*pb.DoubleRangeFilter{
-					&pb.DoubleRangeFilter{
+					{
 						DoubleArg: "field",
 						Min:       math.Inf(-1),
 						Max:       math.Inf(1),
@@ -190,7 +190,7 @@ func ExcludedTestCases() []TestCase {
 			},
 			&pb.Pool{
 				StringEqualsFilters: []*pb.StringEqualsFilter{
-					&pb.StringEqualsFilter{
+					{
 						StringArg: "field",
 						Value:     "VALUE",
 					},
@@ -209,7 +209,7 @@ func ExcludedTestCases() []TestCase {
 			},
 			&pb.Pool{
 				StringEqualsFilters: []*pb.StringEqualsFilter{
-					&pb.StringEqualsFilter{
+					{
 						StringArg: "field",
 						Value:     "value",
 					},
@@ -228,7 +228,7 @@ func ExcludedTestCases() []TestCase {
 			},
 			&pb.Pool{
 				TagPresentFilters: []*pb.TagPresentFilter{
-					&pb.TagPresentFilter{
+					{
 						Tag: "mytag",
 					},
 				},
@@ -246,13 +246,13 @@ func ExcludedTestCases() []TestCase {
 			},
 			&pb.Pool{
 				TagPresentFilters: []*pb.TagPresentFilter{
-					&pb.TagPresentFilter{
+					{
 						Tag: "A",
 					},
-					&pb.TagPresentFilter{
+					{
 						Tag: "D",
 					},
-					&pb.TagPresentFilter{
+					{
 						Tag: "C",
 					},
 				},
@@ -277,7 +277,7 @@ func simpleDoubleRange(name string, value, min, max float64) TestCase {
 		},
 		&pb.Pool{
 			DoubleRangeFilters: []*pb.DoubleRangeFilter{
-				&pb.DoubleRangeFilter{
+				{
 					DoubleArg: "field",
 					Min:       min,
 					Max:       max,
@@ -318,20 +318,20 @@ func multipleFilters(doubleRange, stringEquals, tagPresent bool) TestCase {
 		},
 		&pb.Pool{
 			DoubleRangeFilters: []*pb.DoubleRangeFilter{
-				&pb.DoubleRangeFilter{
+				{
 					DoubleArg: "a",
 					Min:       -1,
 					Max:       1,
 				},
 			},
 			StringEqualsFilters: []*pb.StringEqualsFilter{
-				&pb.StringEqualsFilter{
+				{
 					StringArg: "b",
 					Value:     "hi",
 				},
 			},
 			TagPresentFilters: []*pb.TagPresentFilter{
-				&pb.TagPresentFilter{
+				{
 					Tag: "yo",
 				},
 			},

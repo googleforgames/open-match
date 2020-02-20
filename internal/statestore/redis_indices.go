@@ -64,7 +64,7 @@ func extractIndexFilters(p *pb.Pool) []*indexFilter {
 			// Some bug in the redis stack doesn't properly reject all tickets for a
 			// NaN max, so just special case it.
 			return []*indexFilter{
-				&indexFilter{
+				{
 					name: "notafilter",
 					min:  math.NaN(),
 					max:  math.NaN(),
