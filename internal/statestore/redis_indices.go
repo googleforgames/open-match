@@ -60,6 +60,20 @@ func extractIndexFilters(p *pb.Pool) []*indexFilter {
 	filters := make([]*indexFilter, 0)
 
 	for _, f := range p.DoubleRangeFilters {
+		if math.IsNaN(f.Min) || math.IsNaN(f.Max) {
+			// NaN, when compared with any value, should always be false.  As the
+			// definition of the range is min <= x && x <= max, this should be
+			// excluded whenever the min or max is NaN.  Redis doesn't actually follow
+			// this, so add a special case here to reject all tickets.
+			return []*indexFilter{
+				{
+					name: "notafilter",
+					min:  math.NaN(),
+					max:  math.NaN(),
+				},
+			}
+		}
+
 		filters = append(filters, &indexFilter{
 			name: rangeIndexName(f.DoubleArg),
 			min:  f.Min,
