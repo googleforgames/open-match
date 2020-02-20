@@ -478,7 +478,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 
 	idSet = set.Difference(idSet, idsInIgnoreLists)
 
-	// Do a little randomization to prevent dependancy on return order.
+	// Do a little randomization to prevent dependency on return order.
 	if len(idSet) > 0 {
 		for i := 0; i < 20; i++ {
 			j := rand.Intn(len(idSet))

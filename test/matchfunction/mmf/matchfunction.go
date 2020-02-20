@@ -66,6 +66,7 @@ func scoreCalculator(tickets []*pb.Ticket) float64 {
 	return matchScore
 }
 
+// MakeMatch creates a match given the provided tickets.
 func MakeMatch(profileName string, tickets ...*pb.Ticket) (*pb.Match, error) {
 	// Keep output deterministic
 	sort.Slice(tickets, func(i, j int) bool {
