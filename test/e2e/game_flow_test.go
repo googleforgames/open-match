@@ -157,16 +157,16 @@ func TestGameMatchWorkFlow(t *testing.T) {
 	}
 
 	// 2. Call backend.FetchMatches and expects two matches with the following tickets
-	matches := []*pb.Match{MustMakeMatch("ticket234", ticket2, ticket3, ticket4), MustMakeMatch("ticket5", ticket5)}
+	matches := []*pb.Match{MustMakeMatch(ticket2, ticket3, ticket4), MustMakeMatch(ticket5)}
 	validateFetchMatchesResponse(ctx, t, matches, be, fmReq)
 
 	// 3. Call backend.FetchMatches within storage.ignoreListTTL seconds and expects it return a match with ticket1 .
-	matches = []*pb.Match{MustMakeMatch("ticket12", ticket1)}
+	matches = []*pb.Match{MustMakeMatch(ticket1)}
 	validateFetchMatchesResponse(ctx, t, matches, be, fmReq)
 
 	// 4. Wait for storage.ignoreListTTL seconds and call backend.FetchMatches the third time, expect the same result as step 2.
 	time.Sleep(statestoreTesting.IgnoreListTTL)
-	matches = []*pb.Match{MustMakeMatch("ticket234", ticket2, ticket3, ticket4), MustMakeMatch("ticket5", ticket5)}
+	matches = []*pb.Match{MustMakeMatch(ticket2, ticket3, ticket4), MustMakeMatch(ticket5)}
 	validateFetchMatchesResponse(ctx, t, matches, be, fmReq)
 
 	// 5. Call backend.AssignTickets to assign DGSs for the tickets in FetchMatches' response
@@ -184,7 +184,7 @@ func TestGameMatchWorkFlow(t *testing.T) {
 
 	// 6. Call backend.FetchMatches and verify it no longer returns tickets got assigned in the previous step.
 	time.Sleep(statestoreTesting.IgnoreListTTL)
-	matches = []*pb.Match{MustMakeMatch("ticket12", ticket1)}
+	matches = []*pb.Match{MustMakeMatch(ticket1)}
 	validateFetchMatchesResponse(ctx, t, matches, be, fmReq)
 
 	// 7. Call frontend.DeleteTicket to delete the tickets returned in step 6.
@@ -215,8 +215,8 @@ func validateFetchMatchesResponse(ctx context.Context, t *testing.T, expectedMat
 	require.ElementsMatch(t, expectedMatches, matches)
 }
 
-func MustMakeMatch(profileName string, tickets ...*pb.Ticket) *pb.Match {
-	m, err := mmf.MakeMatch(profileName, tickets...)
+func MustMakeMatch(tickets ...*pb.Ticket) *pb.Match {
+	m, err := mmf.MakeMatch("test-profile", tickets...)
 	if err != nil {
 		panic(err)
 	}

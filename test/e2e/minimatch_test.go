@@ -183,7 +183,7 @@ func TestMinimatch(t *testing.T) {
 					}
 
 					// Validate that all the pools have the expected tickets.
-					assert.Equal(t, poolTickets[pool.Name], want)
+					assert.ElementsMatch(t, poolTickets[pool.Name], want)
 				}
 
 				testFetchMatches(ctx, t, poolTickets, testProfiles, om, fc)
