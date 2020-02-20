@@ -21,7 +21,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/filter/testcases"
@@ -36,11 +36,11 @@ func TestNoPool(t *testing.T) {
 	q := om.MustQueryServiceGRPC()
 
 	stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: nil})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	resp, err := stream.Recv()
-	assert.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
-	assert.Nil(t, resp)
+	require.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
+	require.Nil(t, resp)
 }
 
 func TestNoTickets(t *testing.T) {
@@ -49,11 +49,11 @@ func TestNoTickets(t *testing.T) {
 
 	q := om.MustQueryServiceGRPC()
 	stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	resp, err := stream.Recv()
-	assert.Equal(t, io.EOF, err)
-	assert.Nil(t, resp)
+	require.Equal(t, io.EOF, err)
+	require.Nil(t, resp)
 }
 
 func TestPaging(t *testing.T) {
@@ -62,7 +62,7 @@ func TestPaging(t *testing.T) {
 
 	pageSize := 10 // TODO: read from config
 	if pageSize < 1 {
-		assert.Fail(t, "invalid page size")
+		require.Fail(t, "invalid page size")
 	}
 
 	totalTickets := pageSize*5 + 1
@@ -71,24 +71,24 @@ func TestPaging(t *testing.T) {
 	fe := om.MustFrontendGRPC()
 	for i := 0; i < totalTickets; i++ {
 		resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-		assert.NotNil(t, resp)
-		assert.NotNil(t, resp.Ticket)
-		assert.Nil(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Ticket)
+		require.Nil(t, err)
 
 		expectedIds[resp.Ticket.Id] = struct{}{}
 	}
 
 	q := om.MustQueryServiceGRPC()
 	stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	foundIds := map[string]struct{}{}
 
 	for i := 0; i < 5; i++ {
 		var resp *pb.QueryTicketsResponse
 		resp, err = stream.Recv()
-		assert.Nil(t, err)
-		assert.Equal(t, len(resp.Tickets), pageSize)
+		require.Nil(t, err)
+		require.Equal(t, len(resp.Tickets), pageSize)
 
 		for _, ticket := range resp.Tickets {
 			foundIds[ticket.Id] = struct{}{}
@@ -96,15 +96,15 @@ func TestPaging(t *testing.T) {
 	}
 
 	resp, err := stream.Recv()
-	assert.Nil(t, err)
-	assert.Equal(t, len(resp.Tickets), 1)
+	require.Nil(t, err)
+	require.Equal(t, len(resp.Tickets), 1)
 	foundIds[resp.Tickets[0].Id] = struct{}{}
 
-	assert.Equal(t, expectedIds, foundIds)
+	require.Equal(t, expectedIds, foundIds)
 
 	resp, err = stream.Recv()
-	assert.Equal(t, err, io.EOF)
-	assert.Nil(t, resp)
+	require.Equal(t, err, io.EOF)
+	require.Nil(t, resp)
 }
 
 func TestTicketFound(t *testing.T) {
@@ -112,7 +112,7 @@ func TestTicketFound(t *testing.T) {
 		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			if !returnedByQuery(t, tc) {
-				assert.Fail(t, "Expected to find ticket in pool but didn't.")
+				require.Fail(t, "Expected to find ticket in pool but didn't.")
 			}
 		})
 	}
@@ -123,7 +123,7 @@ func TestTicketNotFound(t *testing.T) {
 		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			if returnedByQuery(t, tc) {
-				assert.Fail(t, "Expected to not find ticket in pool but did.")
+				require.Fail(t, "Expected to not find ticket in pool but did.")
 			}
 		})
 	}
@@ -136,14 +136,14 @@ func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
 	{
 		fe := om.MustFrontendGRPC()
 		resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})
-		assert.NotNil(t, resp)
-		assert.NotNil(t, resp.Ticket)
-		assert.Nil(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Ticket)
+		require.Nil(t, err)
 	}
 
 	q := om.MustQueryServiceGRPC()
 	stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: tc.Pool})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	tickets := []*pb.Ticket{}
 	for {
@@ -151,13 +151,13 @@ func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
 		if err == io.EOF {
 			break
 		}
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		tickets = append(tickets, resp.Tickets...)
 	}
 
 	if len(tickets) > 1 {
-		assert.Fail(t, "More than one ticket found")
+		require.Fail(t, "More than one ticket found")
 	}
 
 	return len(tickets) == 1
