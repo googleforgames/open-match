@@ -17,7 +17,6 @@ package statestore
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -29,7 +28,6 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/telemetry"
-	internalTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -101,178 +99,178 @@ func TestTicketLifecycle(t *testing.T) {
 	assert.NotNil(err)
 }
 
-func TestIgnoreLists(t *testing.T) {
-	// Create State Store
-	assert := assert.New(t)
-	cfg, closer := createRedis(t)
-	defer closer()
-	service := New(cfg)
-	assert.NotNil(service)
-	defer service.Close()
-	ctx := utilTesting.NewContext(t)
+// func TestIgnoreLists(t *testing.T) {
+// 	// Create State Store
+// 	assert := assert.New(t)
+// 	cfg, closer := createRedis(t)
+// 	defer closer()
+// 	service := New(cfg)
+// 	assert.NotNil(service)
+// 	defer service.Close()
+// 	ctx := utilTesting.NewContext(t)
 
-	tickets := internalTesting.GenerateFloatRangeTickets(
-		internalTesting.Property{Name: "testindex1", Min: 0, Max: 10, Interval: 2},
-		internalTesting.Property{Name: "testindex2", Min: 0, Max: 10, Interval: 2},
-	)
+// 	tickets := internalTesting.GenerateFloatRangeTickets(
+// 		internalTesting.Property{Name: "testindex1", Min: 0, Max: 10, Interval: 2},
+// 		internalTesting.Property{Name: "testindex2", Min: 0, Max: 10, Interval: 2},
+// 	)
 
-	ticketIds := []string{}
-	for _, ticket := range tickets {
-		assert.Nil(service.CreateTicket(ctx, ticket))
-		assert.Nil(service.IndexTicket(ctx, ticket))
-		ticketIds = append(ticketIds, ticket.GetId())
-	}
+// 	ticketIds := []string{}
+// 	for _, ticket := range tickets {
+// 		assert.Nil(service.CreateTicket(ctx, ticket))
+// 		assert.Nil(service.IndexTicket(ctx, ticket))
+// 		ticketIds = append(ticketIds, ticket.GetId())
+// 	}
 
-	verifyTickets := func(service Service, expectLen int) {
-		var results []*pb.Ticket
-		pool := &pb.Pool{
-			DoubleRangeFilters: []*pb.DoubleRangeFilter{
-				{DoubleArg: "testindex1", Min: 0, Max: 10},
-				{DoubleArg: "testindex2", Min: 0, Max: 10},
-			},
-		}
-		service.FilterTickets(ctx, pool, 100, func(tickets []*pb.Ticket) error {
-			results = tickets
-			return nil
-		})
-		assert.Equal(expectLen, len(results))
-	}
+// 	verifyTickets := func(service Service, expectLen int) {
+// 		var results []*pb.Ticket
+// 		pool := &pb.Pool{
+// 			DoubleRangeFilters: []*pb.DoubleRangeFilter{
+// 				{DoubleArg: "testindex1", Min: 0, Max: 10},
+// 				{DoubleArg: "testindex2", Min: 0, Max: 10},
+// 			},
+// 		}
+// 		service.FilterTickets(ctx, pool, 100, func(tickets []*pb.Ticket) error {
+// 			results = tickets
+// 			return nil
+// 		})
+// 		assert.Equal(expectLen, len(results))
+// 	}
 
-	// Verify all tickets are created and returned
-	verifyTickets(service, len(tickets))
+// 	// Verify all tickets are created and returned
+// 	verifyTickets(service, len(tickets))
 
-	// Add the first three tickets to the ignore list and verify changes are reflected in the result
-	assert.Nil(service.AddTicketsToIgnoreList(ctx, ticketIds[:3]))
-	verifyTickets(service, len(tickets)-3)
+// 	// Add the first three tickets to the ignore list and verify changes are reflected in the result
+// 	assert.Nil(service.AddTicketsToIgnoreList(ctx, ticketIds[:3]))
+// 	verifyTickets(service, len(tickets)-3)
 
-	// Sleep until the ignore list expired and verify we still have all the tickets
-	time.Sleep(cfg.GetDuration("storage.ignoreListTTL"))
-	verifyTickets(service, len(tickets))
-}
+// 	// Sleep until the ignore list expired and verify we still have all the tickets
+// 	time.Sleep(cfg.GetDuration("storage.ignoreListTTL"))
+// 	verifyTickets(service, len(tickets))
+// }
 
-func TestDeleteTicketsFromIgnoreList(t *testing.T) {
-	// Create State Store
-	assert := assert.New(t)
-	cfg, closer := createRedis(t)
-	defer closer()
-	service := New(cfg)
-	assert.NotNil(service)
-	defer service.Close()
-	ctx := utilTesting.NewContext(t)
+// func TestDeleteTicketsFromIgnoreList(t *testing.T) {
+// 	// Create State Store
+// 	assert := assert.New(t)
+// 	cfg, closer := createRedis(t)
+// 	defer closer()
+// 	service := New(cfg)
+// 	assert.NotNil(service)
+// 	defer service.Close()
+// 	ctx := utilTesting.NewContext(t)
 
-	tickets := internalTesting.GenerateFloatRangeTickets(
-		internalTesting.Property{Name: "testindex1", Min: 0, Max: 10, Interval: 2},
-		internalTesting.Property{Name: "testindex2", Min: 0, Max: 10, Interval: 2},
-	)
+// 	tickets := internalTesting.GenerateFloatRangeTickets(
+// 		internalTesting.Property{Name: "testindex1", Min: 0, Max: 10, Interval: 2},
+// 		internalTesting.Property{Name: "testindex2", Min: 0, Max: 10, Interval: 2},
+// 	)
 
-	ticketIds := []string{}
-	for _, ticket := range tickets {
-		assert.Nil(service.CreateTicket(ctx, ticket))
-		assert.Nil(service.IndexTicket(ctx, ticket))
-		ticketIds = append(ticketIds, ticket.GetId())
-	}
+// 	ticketIds := []string{}
+// 	for _, ticket := range tickets {
+// 		assert.Nil(service.CreateTicket(ctx, ticket))
+// 		assert.Nil(service.IndexTicket(ctx, ticket))
+// 		ticketIds = append(ticketIds, ticket.GetId())
+// 	}
 
-	verifyTickets := func(service Service, expectLen int) {
-		var results []*pb.Ticket
-		pool := &pb.Pool{
-			DoubleRangeFilters: []*pb.DoubleRangeFilter{
-				{DoubleArg: "testindex1", Min: 0, Max: 10},
-				{DoubleArg: "testindex2", Min: 0, Max: 10},
-			},
-		}
-		service.FilterTickets(ctx, pool, 100, func(tickets []*pb.Ticket) error {
-			results = tickets
-			return nil
-		})
-		assert.Equal(expectLen, len(results))
-	}
+// 	verifyTickets := func(service Service, expectLen int) {
+// 		var results []*pb.Ticket
+// 		pool := &pb.Pool{
+// 			DoubleRangeFilters: []*pb.DoubleRangeFilter{
+// 				{DoubleArg: "testindex1", Min: 0, Max: 10},
+// 				{DoubleArg: "testindex2", Min: 0, Max: 10},
+// 			},
+// 		}
+// 		service.FilterTickets(ctx, pool, 100, func(tickets []*pb.Ticket) error {
+// 			results = tickets
+// 			return nil
+// 		})
+// 		assert.Equal(expectLen, len(results))
+// 	}
 
-	// Verify all tickets are created and returned
-	verifyTickets(service, len(tickets))
+// 	// Verify all tickets are created and returned
+// 	verifyTickets(service, len(tickets))
 
-	// Add the first three tickets to the ignore list and verify changes are reflected in the result
-	assert.Nil(service.AddTicketsToIgnoreList(ctx, ticketIds[:3]))
-	verifyTickets(service, len(tickets)-3)
+// 	// Add the first three tickets to the ignore list and verify changes are reflected in the result
+// 	assert.Nil(service.AddTicketsToIgnoreList(ctx, ticketIds[:3]))
+// 	verifyTickets(service, len(tickets)-3)
 
-	assert.Nil(service.DeleteTicketsFromIgnoreList(ctx, ticketIds[:3]))
-	verifyTickets(service, len(tickets))
-}
+// 	assert.Nil(service.DeleteTicketsFromIgnoreList(ctx, ticketIds[:3]))
+// 	verifyTickets(service, len(tickets))
+// }
 
-func TestTicketIndexing(t *testing.T) {
-	// Create State Store
-	assert := assert.New(t)
-	cfg, closer := createRedis(t)
-	defer closer()
-	service := New(cfg)
-	assert.NotNil(service)
-	defer service.Close()
-	ctx := utilTesting.NewContext(t)
+// func TestTicketIndexing(t *testing.T) {
+// 	// Create State Store
+// 	assert := assert.New(t)
+// 	cfg, closer := createRedis(t)
+// 	defer closer()
+// 	service := New(cfg)
+// 	assert.NotNil(service)
+// 	defer service.Close()
+// 	ctx := utilTesting.NewContext(t)
 
-	for i := 0; i < 10; i++ {
-		id := fmt.Sprintf("ticket.no.%d", i)
+// 	for i := 0; i < 10; i++ {
+// 		id := fmt.Sprintf("ticket.no.%d", i)
 
-		ticket := &pb.Ticket{
-			Id: id,
-			SearchFields: &pb.SearchFields{
-				DoubleArgs: map[string]float64{
-					"testindex1": float64(i),
-					"testindex2": 0.5,
-				},
-			},
-			Assignment: &pb.Assignment{
-				Connection: "test-tbd",
-			},
-		}
+// 		ticket := &pb.Ticket{
+// 			Id: id,
+// 			SearchFields: &pb.SearchFields{
+// 				DoubleArgs: map[string]float64{
+// 					"testindex1": float64(i),
+// 					"testindex2": 0.5,
+// 				},
+// 			},
+// 			Assignment: &pb.Assignment{
+// 				Connection: "test-tbd",
+// 			},
+// 		}
 
-		err := service.CreateTicket(ctx, ticket)
-		assert.Nil(err)
+// 		err := service.CreateTicket(ctx, ticket)
+// 		assert.Nil(err)
 
-		err = service.IndexTicket(ctx, ticket)
-		assert.Nil(err)
-	}
+// 		err = service.IndexTicket(ctx, ticket)
+// 		assert.Nil(err)
+// 	}
 
-	// Remove one ticket, to test that it doesn't fall over.
-	err := service.DeleteTicket(ctx, "ticket.no.5")
-	assert.Nil(err)
+// 	// Remove one ticket, to test that it doesn't fall over.
+// 	err := service.DeleteTicket(ctx, "ticket.no.5")
+// 	assert.Nil(err)
 
-	// Remove ticket from index, should not show up.
-	err = service.DeindexTicket(ctx, "ticket.no.6")
-	assert.Nil(err)
+// 	// Remove ticket from index, should not show up.
+// 	err = service.DeindexTicket(ctx, "ticket.no.6")
+// 	assert.Nil(err)
 
-	found := []string{}
+// 	found := []string{}
 
-	pool := &pb.Pool{
-		DoubleRangeFilters: []*pb.DoubleRangeFilter{
-			{
-				DoubleArg: "testindex1",
-				Min:       2.5,
-				Max:       8.5,
-			},
-			{
-				DoubleArg: "testindex2",
-				Min:       0.49,
-				Max:       0.51,
-			},
-		},
-	}
+// 	pool := &pb.Pool{
+// 		DoubleRangeFilters: []*pb.DoubleRangeFilter{
+// 			{
+// 				DoubleArg: "testindex1",
+// 				Min:       2.5,
+// 				Max:       8.5,
+// 			},
+// 			{
+// 				DoubleArg: "testindex2",
+// 				Min:       0.49,
+// 				Max:       0.51,
+// 			},
+// 		},
+// 	}
 
-	err = service.FilterTickets(ctx, pool, 2, func(tickets []*pb.Ticket) error {
-		assert.True(len(tickets) <= 2)
-		for _, ticket := range tickets {
-			found = append(found, ticket.Id)
-		}
-		return nil
-	})
-	assert.Nil(err)
+// 	err = service.FilterTickets(ctx, pool, 2, func(tickets []*pb.Ticket) error {
+// 		assert.True(len(tickets) <= 2)
+// 		for _, ticket := range tickets {
+// 			found = append(found, ticket.Id)
+// 		}
+// 		return nil
+// 	})
+// 	assert.Nil(err)
 
-	expected := []string{
-		"ticket.no.3",
-		"ticket.no.4",
-		"ticket.no.7",
-		"ticket.no.8",
-	}
-	assert.ElementsMatch(expected, found)
-}
+// 	expected := []string{
+// 		"ticket.no.3",
+// 		"ticket.no.4",
+// 		"ticket.no.7",
+// 		"ticket.no.8",
+// 	}
+// 	assert.ElementsMatch(expected, found)
+// }
 
 func TestGetAssignmentBeforeSet(t *testing.T) {
 	// Create State Store

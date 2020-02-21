@@ -16,14 +16,15 @@ package query
 
 import (
 	"context"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/pkg/pb"
-
+	"open-match.dev/open-match/internal/filter"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 var (
@@ -36,8 +37,19 @@ var (
 // queryService API provides utility functions for common MMF functionality such
 // as retreiving Tickets from state storage.
 type queryService struct {
-	cfg   config.View
-	store statestore.Service
+	cfg           config.View
+	store         statestore.Service
+	queryRequests chan *queryRequest
+}
+
+type queryRequest struct {
+	ctx  context.Context
+	resp chan *queryResponse
+}
+
+type queryResponse struct {
+	wg *sync.WaitGroup
+	ts *ticketStash
 }
 
 // QueryTickets gets a list of Tickets that match all Filters of the input Pool.
@@ -45,6 +57,7 @@ type queryService struct {
 // QueryTickets pages the Tickets by `storage.pool.size` and stream back response.
 //   - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000
 func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.QueryService_QueryTicketsServer) error {
+	logger.Errorf("Starting QueryTickets")
 	pool := req.GetPool()
 	if pool == nil {
 		return status.Error(codes.InvalidArgument, ".pool is required")
@@ -53,24 +66,45 @@ func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer 
 	ctx := responseServer.Context()
 	pSize := getPageSize(s.cfg)
 
-	callback := func(tickets []*pb.Ticket) error {
-		err := responseServer.Send(&pb.QueryTicketsResponse{Tickets: tickets})
-		if err != nil {
-			logger.WithError(err).Error("Failed to send Redis response to grpc server")
-			return status.Errorf(codes.Aborted, err.Error())
-		}
-		return nil
+	qr := &queryRequest{
+		ctx:  ctx,
+		resp: make(chan *queryResponse),
+	}
+	select {
+	case <-ctx.Done():
+		logger.Errorf("QueryTickets canceled before request sent.")
+		return ctx.Err()
+	case s.queryRequests <- qr:
 	}
 
-	return doQueryTickets(ctx, pool, pSize, callback, s.store)
-}
+	var qresp *queryResponse
 
-func doQueryTickets(ctx context.Context, pool *pb.Pool, pageSize int, sender func(tickets []*pb.Ticket) error, store statestore.Service) error {
-	// Send requests to the storage service
-	err := store.FilterTickets(ctx, pool, pageSize, sender)
+	select {
+	case <-ctx.Done():
+		logger.Errorf("QueryTickets canceled waiting for access.")
+		return ctx.Err()
+	case qresp = <-qr.resp:
+	}
+
+	logger.Errorf("QueryTickets ran query")
+	tickets, err := qresp.ts.query(pool)
+	qresp.wg.Done()
+
 	if err != nil {
-		logger.WithError(err).Error("Failed to retrieve result from storage service.")
 		return err
+	}
+	for start := 0; start < len(tickets); start += pSize {
+		end := start + pSize
+		if end > len(tickets) {
+			end = len(tickets)
+		}
+
+		err := responseServer.Send(&pb.QueryTicketsResponse{
+			Tickets: tickets[start:end],
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -106,4 +140,113 @@ func getPageSize(cfg config.View) int {
 	}
 
 	return pSize
+}
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+type ticketStash struct {
+	listed map[string]*pb.Ticket
+	err    error
+}
+
+func (ts *ticketStash) query(pool *pb.Pool) ([]*pb.Ticket, error) {
+	if ts.err != nil {
+		return nil, ts.err
+	}
+
+	var results []*pb.Ticket
+
+	for _, ticket := range ts.listed {
+		if filter.InPool(ticket, pool) {
+			results = append(results, ticket)
+		}
+	}
+
+	return results, nil
+}
+
+// Does not fail, but may set error which will be returned to clients.
+func (ts *ticketStash) update(store statestore.Service) {
+	previousCount := len(ts.listed)
+
+	currentAll, err := store.GetIndexedIds(context.Background())
+	if err != nil {
+		ts.err = err
+		return
+	}
+
+	deletedCount := 0
+	for id := range ts.listed {
+		if _, ok := currentAll[id]; !ok {
+			delete(ts.listed, id)
+			deletedCount++
+		}
+	}
+
+	toFetch := []string{}
+
+	for id := range currentAll {
+		if _, ok := ts.listed[id]; !ok {
+			toFetch = append(toFetch, id)
+		}
+	}
+
+	newTickets, err := store.GetTickets(context.Background(), toFetch)
+	if err != nil {
+		ts.err = err
+		return
+	}
+
+	for _, t := range newTickets {
+		ts.listed[t.Id] = t
+	}
+
+	logger.Warningf("Previous %d, Deleted %d, toFetch %d, Current %d", previousCount, deletedCount, len(toFetch), len(ts.listed))
+	ts.err = nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+func (s *queryService) runQueryLoop() {
+	ts := &ticketStash{
+		listed: make(map[string]*pb.Ticket),
+	}
+
+	for {
+		// Wait for first query, processing updates while doing so.
+		reqs := []*queryRequest{<-s.queryRequests}
+
+		// Collect all waiting querries.
+	collectAllWaiting:
+		for {
+			select {
+			case req := <-s.queryRequests:
+				reqs = append(reqs, req)
+			default:
+				break collectAllWaiting
+			}
+		}
+
+		ts.update(s.store)
+
+		wg := &sync.WaitGroup{}
+
+		// Send ticket stash to query calls.
+		resp := &queryResponse{
+			wg: wg,
+			ts: ts,
+		}
+		for _, req := range reqs {
+			select {
+			case req.resp <- resp:
+				wg.Add(1)
+			case <-req.ctx.Done():
+			}
+		}
+
+		// wait for query calls to finish using ticket stash.
+		wg.Wait()
+	}
 }

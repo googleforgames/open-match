@@ -97,13 +97,21 @@ func (is *instrumentedService) DeindexTicket(ctx context.Context, id string) err
 //  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
 //  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
 // }
-func (is *instrumentedService) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
-	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.FilterTickets")
-	defer span.End()
-	return is.s.FilterTickets(ctx, pool, pageSize, func(t []*pb.Ticket) error {
-		defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreFilterTicketsCount, int64(len(t)))
-		return callback(t)
-	})
+// func (is *instrumentedService) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
+// 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.FilterTickets")
+// 	defer span.End()
+// 	return is.s.FilterTickets(ctx, pool, pageSize, func(t []*pb.Ticket) error {
+// 		defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreFilterTicketsCount, int64(len(t)))
+// 		return callback(t)
+// 	})
+// }
+
+func (is *instrumentedService) GetTickets(ctx context.Context, ids []string) ([]*pb.Ticket, error) {
+	return is.s.GetTickets(ctx, ids)
+}
+
+func (is *instrumentedService) GetIndexedIds(ctx context.Context) (map[string]struct{}, error) {
+	return is.s.GetIndexedIds(ctx)
 }
 
 // UpdateAssignments update the match assignments for the input ticket ids.

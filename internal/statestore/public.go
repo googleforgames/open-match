@@ -42,8 +42,9 @@ type Service interface {
 	// DeindexTicket removes the indexing for the specified Ticket. Only the indexes are removed but the Ticket continues to exist.
 	DeindexTicket(ctx context.Context, id string) error
 
-	// FilterTickets returns the Ticket ids for the Tickets meeting the specified filtering criteria.
-	FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error
+	/// ///////////////////
+	GetIndexedIds(ctx context.Context) (map[string]struct{}, error)
+	GetTickets(ctx context.Context, ids []string) ([]*pb.Ticket, error)
 
 	// UpdateAssignments update the match assignments for the input ticket ids
 	UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error
