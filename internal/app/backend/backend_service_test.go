@@ -151,6 +151,7 @@ func TestDoReleaseTickets(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.description, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
 			cfg := viper.New()
@@ -272,6 +273,7 @@ func TestDoAssignTickets(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.description, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
 			cfg := viper.New()

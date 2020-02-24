@@ -285,7 +285,7 @@ var (
 
 	pattern_BackendService_AssignTickets_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "backendservice", "tickets"}, "assign", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_BackendService_ReleaseTickets_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "backend", "tickets"}, "release", runtime.AssumeColonVerbOpt(true)))
+	pattern_BackendService_ReleaseTickets_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "backendservice", "tickets"}, "release", runtime.AssumeColonVerbOpt(true)))
 )
 
 var (

@@ -22,9 +22,10 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"strings"
+
 	"github.com/spf13/viper"
 	"open-match.dev/open-match/internal/config"
-	"strings"
 )
 
 const (

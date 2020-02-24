@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -82,7 +83,11 @@ func newRedis(cfg config.View) Service {
 		MaxActive:   cfg.GetInt("redis.pool.maxActive"),
 		IdleTimeout: cfg.GetDuration("redis.pool.idleTimeout"),
 		Wait:        true,
-		TestOnBorrow: func(c redis.Conn, _ time.Time) error {
+		TestOnBorrow: func(c redis.Conn, lastUsed time.Time) error {
+			if time.Since(lastUsed) < 15*time.Second {
+				return nil
+			}
+
 			_, err := c.Do("PING")
 			return err
 		},
@@ -472,6 +477,15 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 	}
 
 	idSet = set.Difference(idSet, idsInIgnoreLists)
+
+	// Do a little randomization to prevent dependency on return order.
+	if len(idSet) > 0 {
+		for i := 0; i < 20; i++ {
+			j := rand.Intn(len(idSet))
+			k := rand.Intn(len(idSet))
+			idSet[j], idSet[k] = idSet[k], idSet[j]
+		}
+	}
 
 	// TODO: finish reworking this after the proto changes.
 	for _, page := range idsToPages(idSet, pageSize) {

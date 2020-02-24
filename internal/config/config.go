@@ -17,9 +17,10 @@ package config
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
-	"log"
 )
 
 // Read sets default to a viper instance and read user config to override these defaults.

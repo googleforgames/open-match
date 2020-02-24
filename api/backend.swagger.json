@@ -26,7 +26,7 @@
   "paths": {
     "/v1/backendservice/matches:fetch": {
       "post": {
-        "summary": "FetchMatches triggers a MatchFunction with the specified MatchProfiles, while each MatchProfile \r\nreturns a set of match proposals. FetchMatches method streams the results back to the caller.\r\nFetchMatches immediately returns an error if it encounters any execution failures.\r\n  - If the synchronizer is enabled, FetchMatch will then call the synchronizer to deduplicate proposals with overlapped tickets.",
+        "summary": "FetchMatches triggers a MatchFunction with the specified MatchProfile and returns a set of match proposals that \nmatch the description of that MatchProfile.\nFetchMatches immediately returns an error if it encounters any execution failures.",
         "operationId": "FetchMatches",
         "responses": {
           "200": {
@@ -38,6 +38,7 @@
           "404": {
             "description": "Returned when the resource does not exist.",
             "schema": {
+              "type": "string",
               "format": "string"
             }
           }
@@ -71,6 +72,7 @@
           "404": {
             "description": "Returned when the resource does not exist.",
             "schema": {
+              "type": "string",
               "format": "string"
             }
           }
@@ -90,9 +92,10 @@
         ]
       }
     },
-    "/v1/backend/tickets:release": {
+    "/v1/backendservice/tickets:release": {
       "post": {
-        "summary": "ReleaseTickets removes the submitted tickets from the list that prevents tickets \r\nthat are awaiting assignment from appearing in MMF queries, effectively putting them back into\r\nthe matchmaking pool",
+        "summary": "ReleaseTickets removes the submitted tickets from the list that prevents tickets \nthat are awaiting assignment from appearing in MMF queries, effectively putting them back into\nthe matchmaking pool",
+        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "ReleaseTickets",
         "responses": {
           "200": {
@@ -104,6 +107,7 @@
           "404": {
             "description": "Returned when the resource does not exist.",
             "schema": {
+              "type": "string",
               "format": "string"
             }
           }
@@ -119,7 +123,7 @@
           }
         ],
         "tags": [
-          "Backend"
+          "BackendService"
         ]
       }
     }
@@ -156,10 +160,10 @@
           "additionalProperties": {
             "$ref": "#/definitions/protobufAny"
           },
-          "description": "Customized information not inspected by Open Match, to be used by the match\r\nmaking function, evaluator, and components making calls to Open Match.\r\nOptional, depending on the requirements of the connected systems."
+          "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
         }
       },
-      "description": "An Assignment represents a game server assignment associated with a Ticket. Open\r\nmatch does not require or inspect any fields on assignment."
+      "description": "An Assignment represents a game server assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
     },
     "openmatchDoubleRangeFilter": {
       "type": "object",
@@ -179,18 +183,18 @@
           "description": "Minimum value."
         }
       },
-      "title": "Filters numerical values to only those within a range.\r\n  double_arg: \"foo\"\r\n  max: 10\r\n  min: 5\r\nmatches:\r\n  {\"foo\": 5}\r\n  {\"foo\": 7.5}\r\n  {\"foo\": 10}\r\ndoes not match:\r\n  {\"foo\": 4}\r\n  {\"foo\": 10.01}\r\n  {\"foo\": \"7.5\"}\r\n  {}"
+      "title": "Filters numerical values to only those within a range.\n  double_arg: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {}"
     },
     "openmatchFetchMatchesRequest": {
       "type": "object",
       "properties": {
         "config": {
           "$ref": "#/definitions/openmatchFunctionConfig",
-          "title": "FunctionConfig specifies a MMF address and client type for Backend to establish connections with the MMF"
+          "description": "A configuration for the MatchFunction server of this FetchMatches call."
         },
         "profile": {
           "$ref": "#/definitions/openmatchMatchProfile",
-          "description": "MatchProfiles that will be sent to thhe MMF specified in the FunctionConfig."
+          "description": "A MatchProfile that will be sent to the MatchFunction server of this FetchMatches call."
         }
       }
     },
@@ -199,7 +203,7 @@
       "properties": {
         "match": {
           "$ref": "#/definitions/openmatchMatch",
-          "description": "A Match generated by the user-defined MMF with the specified MatchProfiles.\r\nA valid Match response will contain at least one ticket."
+          "description": "A Match generated by the user-defined MMF with the specified MatchProfiles.\nA valid Match response will contain at least one ticket."
         }
       }
     },
@@ -254,14 +258,10 @@
           "additionalProperties": {
             "$ref": "#/definitions/protobufAny"
           },
-          "description": "Customized information not inspected by Open Match, to be used by the match\r\nmaking function, evaluator, and components making calls to Open Match.\r\nOptional, depending on the requirements of the connected systems."
+          "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
         }
       },
-<<<<<<< HEAD
-      "description": "A Match is used to represent a completed match object. It can be generated by\r\na MatchFunction as a proposal or can be returned by OpenMatch as a result in\r\nresponse to the FetchMatches call.\r\nWhen a match is returned by the FetchMatches call, it should contain at least \r\none ticket to be considered as valid."
-=======
       "description": "A Match is used to represent a completed match object. It can be generated by\na MatchFunction as a proposal or can be returned by OpenMatch as a result in\nresponse to the FetchMatches call.\nWhen a match is returned by the FetchMatches call, it should contain at least\none ticket to be considered as valid."
->>>>>>> cf8d49052c148a3179904700e12cc8115a47af4e
     },
     "openmatchMatchProfile": {
       "type": "object",
@@ -275,28 +275,17 @@
           "items": {
             "$ref": "#/definitions/openmatchPool"
           },
-<<<<<<< HEAD
-          "description": "Set of pools to be queried when generating a match for this MatchProfile.\r\nThe pool names can be used in empty Rosters to specify composition of a\r\nmatch."
-        },
-        "rosters": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/openmatchRoster"
-          },
-          "description": "Set of Rosters for this match request. Could be empty Rosters used to\r\nindicate the composition of the generated Match or they could be partially\r\npre-populated Ticket list to be used in scenarios such as backfill / join\r\nin progress."
-=======
           "description": "Set of pools to be queried when generating a match for this MatchProfile."
->>>>>>> cf8d49052c148a3179904700e12cc8115a47af4e
         },
         "extensions": {
           "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/protobufAny"
           },
-          "description": "Customized information not inspected by Open Match, to be used by the match\r\nmaking function, evaluator, and components making calls to Open Match.\r\nOptional, depending on the requirements of the connected systems."
+          "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
         }
       },
-      "description": "A MatchProfile is Open Match's representation of a Match specification. It is\r\nused to indicate the criteria for selecting players for a match. A\r\nMatchProfile is the input to the API to get matches and is passed to the\r\nMatchFunction. It contains all the information required by the MatchFunction\r\nto generate match proposals."
+      "description": "A MatchProfile is Open Match's representation of a Match specification. It is\nused to indicate the criteria for selecting players for a match. A\nMatchProfile is the input to the API to get matches and is passed to the\nMatchFunction. It contains all the information required by the MatchFunction\nto generate match proposals."
     },
     "openmatchPool": {
       "type": "object",
@@ -310,7 +299,7 @@
           "items": {
             "$ref": "#/definitions/openmatchDoubleRangeFilter"
           },
-          "description": "Set of Filters indicating the filtering criteria. Selected players must\r\nmatch every Filter."
+          "description": "Set of Filters indicating the filtering criteria. Selected players must\nmatch every Filter."
         },
         "string_equals_filters": {
           "type": "array",
@@ -326,7 +315,6 @@
         }
       }
     },
-<<<<<<< HEAD
     "openmatchReleaseTicketsRequest": {
       "type": "object",
       "properties": {
@@ -335,32 +323,13 @@
           "items": {
             "type": "string"
           },
-          "title": "TicketIds is a list of string representing Open Match generated Ids to be re-enabled for MMF querying\r\nbecause they are no longer awaiting assignment from a previous match result"
+          "title": "TicketIds is a list of string representing Open Match generated Ids to be re-enabled for MMF querying\nbecause they are no longer awaiting assignment from a previous match result"
         }
       }
     },
     "openmatchReleaseTicketsResponse": {
       "type": "object"
     },
-    "openmatchRoster": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "A developer-chosen human-readable name for this Roster."
-        },
-        "ticket_ids": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Tickets belonging to this Roster."
-        }
-      },
-      "description": "A Roster is a named collection of Ticket IDs. It exists so that a Tickets\r\nassociated with a Match can be labelled to belong to a team, sub-team etc. It\r\ncan also be used to represent the current state of a Match in scenarios such\r\nas backfill, join-in-progress etc."
-    },
-=======
->>>>>>> cf8d49052c148a3179904700e12cc8115a47af4e
     "openmatchSearchFields": {
       "type": "object",
       "properties": {
@@ -387,7 +356,7 @@
           "description": "Filterable on presence or absence of given value."
         }
       },
-      "description": "Search fields are the fields which Open Match is aware of, and can be used\r\nwhen specifying filters."
+      "description": "Search fields are the fields which Open Match is aware of, and can be used\nwhen specifying filters."
     },
     "openmatchStringEqualsFilter": {
       "type": "object",
@@ -400,7 +369,7 @@
           "type": "string"
         }
       },
-      "title": "Filters strings exactly equaling a value.\r\n  string_arg: \"foo\"\r\n  value: \"bar\"\r\nmatches:\r\n  {\"foo\": \"bar\"}\r\ndoes not match:\r\n  {\"foo\": \"baz\"}\r\n  {\"bar\": \"foo\"}\r\n  {}"
+      "title": "Filters strings exactly equaling a value.\n  string_arg: \"foo\"\n  value: \"bar\"\nmatches:\n  {\"foo\": \"bar\"}\ndoes not match:\n  {\"foo\": \"baz\"}\n  {\"bar\": \"foo\"}\n  {}"
     },
     "openmatchTagPresentFilter": {
       "type": "object",
@@ -409,7 +378,7 @@
           "type": "string"
         }
       },
-      "title": "Filters to the tag being present on the search_fields.\r\n  tag: \"foo\"\r\nmatches:\r\n  [\"foo\"]\r\n  [\"bar\",\"foo\"]\r\ndoes not match:\r\n  [\"bar\"]\r\n  []"
+      "title": "Filters to the tag being present on the search_fields.\n  tag: \"foo\"\nmatches:\n  [\"foo\"]\n  [\"bar\",\"foo\"]\ndoes not match:\n  [\"bar\"]\n  []"
     },
     "openmatchTicket": {
       "type": "object",
@@ -420,25 +389,21 @@
         },
         "assignment": {
           "$ref": "#/definitions/openmatchAssignment",
-<<<<<<< HEAD
-          "description": "An Assignment represents a game server assignment associated with a Ticket. \r\nOpen Match does not require or inspect any fields on Assignment."
-=======
           "description": "An Assignment represents a game server assignment associated with a Ticket.\nOpen Match does not require or inspect any fields on Assignment."
->>>>>>> cf8d49052c148a3179904700e12cc8115a47af4e
         },
         "search_fields": {
           "$ref": "#/definitions/openmatchSearchFields",
-          "description": "Search fields are the fields which Open Match is aware of, and can be used\r\nwhen specifying filters."
+          "description": "Search fields are the fields which Open Match is aware of, and can be used\nwhen specifying filters."
         },
         "extensions": {
           "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/protobufAny"
           },
-          "description": "Customized information not inspected by Open Match, to be used by the match\r\nmaking function, evaluator, and components making calls to Open Match.\r\nOptional, depending on the requirements of the connected systems."
+          "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
         }
       },
-      "description": "A Ticket is a basic matchmaking entity in Open Match. A Ticket represents either an\r\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\r\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\r\nof SearchFields. Open Match stores the Ticket in state storage and enables an\r\nAssignment to be associated with this Ticket."
+      "description": "A Ticket is a basic matchmaking entity in Open Match. A Ticket represents either an\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\nof SearchFields. Open Match stores the Ticket in state storage and enables an\nAssignment to be associated with this Ticket."
     },
     "protobufAny": {
       "type": "object",
@@ -455,31 +420,6 @@
       },
       "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(\u0026foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := \u0026pb.Foo{...}\n     any, err := ptypes.MarshalAny(foo)\n     ...\n     foo := \u0026pb.Foo{}\n     if err := ptypes.UnmarshalAny(any, foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": \u003cstring\u003e,\n      \"lastName\": \u003cstring\u003e\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
     },
-<<<<<<< HEAD
-    "rpcStatus": {
-      "type": "object",
-      "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int32",
-          "description": "The status code, which should be an enum value of\r\n[google.rpc.Code][google.rpc.Code]."
-        },
-        "message": {
-          "type": "string",
-          "description": "A developer-facing error message, which should be in English. Any\r\nuser-facing error message should be localized and sent in the\r\n[google.rpc.Status.details][google.rpc.Status.details] field, or localized\r\nby the client."
-        },
-        "details": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/protobufAny"
-          },
-          "description": "A list of messages that carry the error details.  There is a common set of\r\nmessage types for APIs to use."
-        }
-      },
-      "description": "The `Status` type defines a logical error model that is suitable for\r\ndifferent programming environments, including REST APIs and RPC APIs. It is\r\nused by [gRPC](https://github.com/grpc). The error model is designed to be:\r\n\r\n- Simple to use and understand for most users\r\n- Flexible enough to meet unexpected needs\r\n\r\n# Overview\r\n\r\nThe `Status` message contains three pieces of data: error code, error\r\nmessage, and error details. The error code should be an enum value of\r\n[google.rpc.Code][google.rpc.Code], but it may accept additional error codes\r\nif needed.  The error message should be a developer-facing English message\r\nthat helps developers *understand* and *resolve* the error. If a localized\r\nuser-facing error message is needed, put the localized message in the error\r\ndetails or localize it in the client. The optional error details may contain\r\narbitrary information about the error. There is a predefined set of error\r\ndetail types in the package `google.rpc` that can be used for common error\r\nconditions.\r\n\r\n# Language mapping\r\n\r\nThe `Status` message is the logical representation of the error model, but it\r\nis not necessarily the actual wire format. When the `Status` message is\r\nexposed in different client libraries and different wire protocols, it can be\r\nmapped differently. For example, it will likely be mapped to some exceptions\r\nin Java, but more likely mapped to some error codes in C.\r\n\r\n# Other uses\r\n\r\nThe error model and the `Status` message can be used in a variety of\r\nenvironments, either with or without APIs, to provide a\r\nconsistent developer experience across different environments.\r\n\r\nExample uses of this error model include:\r\n\r\n- Partial errors. If a service needs to return partial errors to the client,\r\n    it may embed the `Status` in the normal response to indicate the partial\r\n    errors.\r\n\r\n- Workflow errors. A typical workflow has multiple steps. Each step may\r\n    have a `Status` message for error reporting.\r\n\r\n- Batch operations. If a client uses batch request and batch response, the\r\n    `Status` message should be used directly inside batch response, one for\r\n    each error sub-response.\r\n\r\n- Asynchronous operations. If an API call embeds asynchronous operation\r\n    results in its response, the status of those operations should be\r\n    represented directly using the `Status` message.\r\n\r\n- Logging. If some API errors are stored in logs, the message `Status` could\r\n    be used directly after any stripping needed for security/privacy reasons."
-    },
-=======
->>>>>>> cf8d49052c148a3179904700e12cc8115a47af4e
     "runtimeStreamError": {
       "type": "object",
       "properties": {

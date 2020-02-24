@@ -67,7 +67,7 @@ func (m *QueryTicketsRequest) GetPool() *Pool {
 }
 
 type QueryTicketsResponse struct {
-	// Tickets is a list of Ticket representing one or more Tickets which meet all Filter criterias.
+	// Tickets that satisfy all the filtering criteria.
 	Tickets              []*Ticket `protobuf:"bytes,1,rep,name=tickets,proto3" json:"tickets,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`

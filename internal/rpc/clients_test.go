@@ -16,19 +16,20 @@ package rpc
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"testing"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
-	"io/ioutil"
-	"net/http"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/telemetry"
 	shellTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
-	"os"
-	"testing"
 )
 
 func TestSecureGRPCFromConfig(t *testing.T) {

@@ -12,14 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package e2e
+package filter
 
 import (
 	"testing"
 
-	"open-match.dev/open-match/internal/testing/e2e"
+	"open-match.dev/open-match/internal/filter/testcases"
 )
 
-func TestMain(m *testing.M) {
-	e2e.RunMain(m)
+func TestInPool(t *testing.T) {
+	for _, tc := range testcases.IncludedTestCases() {
+		tc := tc
+		t.Run(tc.Name, func(t *testing.T) {
+			if !InPool(tc.Ticket, tc.Pool) {
+				t.Error("ticket should be included in the pool")
+			}
+		})
+	}
+
+	for _, tc := range testcases.ExcludedTestCases() {
+		tc := tc
+		t.Run(tc.Name, func(t *testing.T) {
+			if InPool(tc.Ticket, tc.Pool) {
+				t.Error("ticket should be excluded from the pool")
+			}
+		})
+	}
 }

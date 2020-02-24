@@ -196,7 +196,7 @@ ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS)
 CMDS = $(notdir $(wildcard cmd/*))
 
 # Names of the individual images, ommiting the openmatch prefix.
-IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool evaluator-go-simple base-build
+IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool base-build
 
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
@@ -238,9 +238,6 @@ build-mmf-go-soloduel-image: docker build-base-build-image
 
 build-mmf-go-pool-image: docker build-base-build-image
 	docker build -f test/matchfunction/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG) .
-
-build-evaluator-go-simple-image: docker build-base-build-image
-	docker build -f test/evaluator/Dockerfile -t $(REGISTRY)/openmatch-evaluator-go-simple:$(TAG) -t $(REGISTRY)/openmatch-evaluator-go-simple:$(ALTERNATE_TAG) .
 
 #######################################
 ## push-images / push-<image name>-image: builds and pushes images to your
@@ -398,6 +395,7 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=false \
+		--set open-match-core.redis.enabled=false \
 		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
@@ -406,6 +404,7 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=false \
+		--set open-match-core.redis.enabled=false \
 		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
@@ -414,6 +413,7 @@ install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=false \
+		--set open-match-core.redis.enabled=false \
 		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
 		install/helm/open-match > install/yaml/05-jaeger-chart.yaml
@@ -422,6 +422,7 @@ install/yaml/06-open-match-override-configmap.yaml: build/toolchain/bin/helm$(EX
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=false \
+		--set open-match-core.redis.enabled=false \
 		--set open-match-override.enabled=true \
 		-s templates/om-configmap-override.yaml \
 		install/helm/open-match > install/yaml/06-open-match-override-configmap.yaml
@@ -430,6 +431,7 @@ install/yaml/07-open-match-default-evaluator.yaml: build/toolchain/bin/helm$(EXE
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=false \
+		--set open-match-core.redis.enabled=false \
 		--set open-match-customize.enabled=true \
 		--set open-match-customize.evaluator.enabled=true \
 		install/helm/open-match > install/yaml/07-open-match-default-evaluator.yaml
