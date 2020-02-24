@@ -1,6 +1,13 @@
 ## How to use this framework
 
-This is the framework that we use to benchmark Open Match against different matchmaking scenarios. The `Scenario` struct under the `scenarios/scenarios.go` file defines the parameters that this framework currently support/plan to support. For now (02/01/2020), this framework supports a Battle Royale and a Basic 1v1 matchmaking scenario. You are welcome to write up your own `Scenario`, test it, and share the number that you are able to get to us. 
+This is the framework that we use to benchmark Open Match against different matchmaking scenarios. For now (02/24/2020), this framework supports a Battle Royale, a Basic 1v1 matchmaking, and a Team Shooter scenario. You are welcome to write up your own `Scenario`, test it, and share the number that you are able to get to us. 
+
+1. The `Scenario` struct under the `scenarios/scenarios.go` file defines the parameters that this framework currently support/plan to support.
+2. Each subpackage `battleroyal`, `firstmatch`, and `teamshooter` defines four functions:
+   - Ticket   `func() *pb.Ticket` - Tickets generator
+   - Profiles `func() []*pb.MatchProfile` - Profiles generator
+   - MMF      `MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error)` - Custom matchmaking logic using a MatchProfile and a map struct that contains the mapping from pool name to the tickets of that pool.
+   - Evaluate `Evaluate(stream pb.Evaluator_EvaluateServer) error` - Custom logic implementation of the evaluator.
 
 Follow the instructions below if you want to use any of the existing benchmarking scenarios.
 
