@@ -40,16 +40,31 @@ type queryService struct {
 	cfg           config.View
 	store         statestore.Service
 	queryRequests chan *queryRequest
+
+	// Single item buffered channel.  Holds a value when runQuery can be safely
+	// started.  Basically a channel/select friendly mutex around runQuery
+	// running.
+	canStartRunQuery chan struct{}
+
+	// NOT multithread safe, only to be modified by runQuery, and read when
+	// holding a waitgroup created by runQuery.
+	tc *ticketCache
+}
+
+func newQueryService(cfg config.View) *queryService {
+	return &queryService{
+		cfg:           cfg,
+		store:         statestore.New(cfg),
+		queryRequests: make(chan *queryRequest),
+		tc: &ticketCache{
+			listed: make(map[string]*pb.Ticket),
+		},
+	}
 }
 
 type queryRequest struct {
 	ctx  context.Context
-	resp chan *queryResponse
-}
-
-type queryResponse struct {
-	wg *sync.WaitGroup
-	ts *ticketStash
+	resp chan *sync.WaitGroup
 }
 
 // QueryTickets gets a list of Tickets that match all Filters of the input Pool.
@@ -67,27 +82,34 @@ func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer 
 
 	qr := &queryRequest{
 		ctx:  ctx,
-		resp: make(chan *queryResponse),
-	}
-	select {
-	case <-ctx.Done():
-		logger.Errorf("QueryTickets canceled before request sent.")
-		return ctx.Err()
-	case s.queryRequests <- qr:
+		resp: make(chan *sync.WaitGroup),
 	}
 
-	var qresp *queryResponse
+sendRequest:
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Errorf("QueryTickets canceled before request sent.")
+			return ctx.Err()
+		case <-s.canStartRunQuery:
+			go s.runQuery()
+		case s.queryRequests <- qr:
+			break sendRequest
+		}
+	}
+
+	var wg *sync.WaitGroup
 
 	select {
 	case <-ctx.Done():
 		logger.Errorf("QueryTickets canceled waiting for access.")
 		return ctx.Err()
-	case qresp = <-qr.resp:
+	case wg = <-qr.resp:
 	}
 
 	logger.Errorf("QueryTickets ran query")
-	tickets, err := qresp.ts.query(pool)
-	qresp.wg.Done()
+	tickets, err := s.tc.query(pool)
+	wg.Done()
 
 	if err != nil {
 		return err
@@ -144,19 +166,19 @@ func getPageSize(cfg config.View) int {
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-type ticketStash struct {
+type ticketCache struct {
 	listed map[string]*pb.Ticket
 	err    error
 }
 
-func (ts *ticketStash) query(pool *pb.Pool) ([]*pb.Ticket, error) {
-	if ts.err != nil {
-		return nil, ts.err
+func (tc *ticketCache) query(pool *pb.Pool) ([]*pb.Ticket, error) {
+	if tc.err != nil {
+		return nil, tc.err
 	}
 
 	var results []*pb.Ticket
 
-	for _, ticket := range ts.listed {
+	for _, ticket := range tc.listed {
 		if filter.InPool(ticket, pool) {
 			results = append(results, ticket)
 		}
@@ -166,19 +188,19 @@ func (ts *ticketStash) query(pool *pb.Pool) ([]*pb.Ticket, error) {
 }
 
 // Does not fail, but may set error which will be returned to clients.
-func (ts *ticketStash) update(store statestore.Service) {
-	previousCount := len(ts.listed)
+func (tc *ticketCache) update(store statestore.Service) {
+	previousCount := len(tc.listed)
 
 	currentAll, err := store.GetIndexedIds(context.Background())
 	if err != nil {
-		ts.err = err
+		tc.err = err
 		return
 	}
 
 	deletedCount := 0
-	for id := range ts.listed {
+	for id := range tc.listed {
 		if _, ok := currentAll[id]; !ok {
-			delete(ts.listed, id)
+			delete(tc.listed, id)
 			deletedCount++
 		}
 	}
@@ -186,66 +208,61 @@ func (ts *ticketStash) update(store statestore.Service) {
 	toFetch := []string{}
 
 	for id := range currentAll {
-		if _, ok := ts.listed[id]; !ok {
+		if _, ok := tc.listed[id]; !ok {
 			toFetch = append(toFetch, id)
 		}
 	}
 
 	newTickets, err := store.GetTickets(context.Background(), toFetch)
 	if err != nil {
-		ts.err = err
+		tc.err = err
 		return
 	}
 
 	for _, t := range newTickets {
-		ts.listed[t.Id] = t
+		tc.listed[t.Id] = t
 	}
 
-	logger.Warningf("Previous %d, Deleted %d, toFetch %d, Current %d", previousCount, deletedCount, len(toFetch), len(ts.listed))
-	ts.err = nil
+	logger.Warningf("Previous %d, Deleted %d, toFetch %d, Current %d", previousCount, deletedCount, len(toFetch), len(tc.listed))
+	tc.err = nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-func (s *queryService) runQueryLoop() {
-	ts := &ticketStash{
-		listed: make(map[string]*pb.Ticket),
-	}
+func (s *queryService) runQuery() {
+	defer func() {
+		s.canStartRunQuery <- struct{}{}
+	}()
 
+	// Wait for first query request.
+	reqs := []*queryRequest{<-s.queryRequests}
+
+	// Collect all waiting queries.
+collectAllWaiting:
 	for {
-		// Wait for first query, processing updates while doing so.
-		reqs := []*queryRequest{<-s.queryRequests}
-
-		// Collect all waiting querries.
-	collectAllWaiting:
-		for {
-			select {
-			case req := <-s.queryRequests:
-				reqs = append(reqs, req)
-			default:
-				break collectAllWaiting
-			}
+		select {
+		case req := <-s.queryRequests:
+			reqs = append(reqs, req)
+		default:
+			break collectAllWaiting
 		}
-
-		ts.update(s.store)
-
-		wg := &sync.WaitGroup{}
-
-		// Send ticket stash to query calls.
-		resp := &queryResponse{
-			wg: wg,
-			ts: ts,
-		}
-		for _, req := range reqs {
-			select {
-			case req.resp <- resp:
-				wg.Add(1)
-			case <-req.ctx.Done():
-			}
-		}
-
-		// wait for query calls to finish using ticket stash.
-		wg.Wait()
 	}
+
+	s.tc.update(s.store)
+
+	wg := &sync.WaitGroup{}
+
+	// Send WaitGroup to query calls, letting them run their query on the ticket
+	// cache.
+	for _, req := range reqs {
+		select {
+		case req.resp <- wg:
+			wg.Add(1)
+		case <-req.ctx.Done():
+		}
+	}
+
+	// wait for query calls to finish using ticket cache.
+	wg.Wait()
 }
