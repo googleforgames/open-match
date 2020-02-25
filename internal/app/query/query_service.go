@@ -57,7 +57,6 @@ type queryResponse struct {
 // QueryTickets pages the Tickets by `storage.pool.size` and stream back response.
 //   - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000
 func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.QueryService_QueryTicketsServer) error {
-	logger.Errorf("Starting QueryTickets")
 	pool := req.GetPool()
 	if pool == nil {
 		return status.Error(codes.InvalidArgument, ".pool is required")
