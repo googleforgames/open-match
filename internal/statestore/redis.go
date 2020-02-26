@@ -170,16 +170,7 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	value, err := proto.Marshal(ticket)
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"key":   ticket.GetId(),
-			"error": err.Error(),
-		}).Error("failed to marshal the ticket proto")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	err = redisConn.Send("SET", ticket.GetId(), value)
+	err = redisConn.Send("SET", ticket.GetId(), proto.MarshalTextString(ticket))
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
 			"cmd":   "SET",
@@ -226,7 +217,7 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 	}
 	defer handleConnectionClose(&redisConn)
 
-	value, err := redis.Bytes(redisConn.Do("GET", id))
+	s, err := redis.String(redisConn.Do("GET", id))
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
 			"cmd":   "GET",
@@ -247,7 +238,7 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
-	if value == nil {
+	if len(s) == 0 {
 		msg := fmt.Sprintf("Ticket id:%s not found", id)
 		redisLogger.WithFields(logrus.Fields{
 			"key": id,
@@ -257,12 +248,12 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 	}
 
 	ticket := &pb.Ticket{}
-	err = proto.Unmarshal(value, ticket)
+	err = proto.UnmarshalText(s, ticket)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
 			"key":   id,
 			"error": err.Error(),
-		}).Error("failed to unmarshal the ticket proto")
+		}).Error("failed to unmarshal string rply into ticket")
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
@@ -432,7 +423,7 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
 	var err error
 	var redisConn redis.Conn
-	var ticketBytes [][]byte
+	var ticketStrings []string
 	var idsInFilter, idsInIgnoreLists []string
 
 	redisConn, err = rb.connect(ctx)
@@ -489,7 +480,7 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 
 	// TODO: finish reworking this after the proto changes.
 	for _, page := range idsToPages(idSet, pageSize) {
-		ticketBytes, err = redis.ByteSlices(redisConn.Do("MGET", page...))
+		ticketStrings, err = redis.Strings(redisConn.Do("MGET", page...))
 		if err != nil {
 			redisLogger.WithFields(logrus.Fields{
 				"Command": fmt.Sprintf("MGET %v", page),
@@ -498,11 +489,11 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 		}
 
 		tickets := make([]*pb.Ticket, 0, len(page))
-		for i, b := range ticketBytes {
+		for i, s := range ticketStrings {
 			// Tickets may be deleted by the time we read it from redis.
-			if b != nil {
+			if len(s) != 0 {
 				t := &pb.Ticket{}
-				err = proto.Unmarshal(b, t)
+				err = proto.UnmarshalText(s, t)
 				if err != nil {
 					redisLogger.WithFields(logrus.Fields{
 						"key": page[i],
