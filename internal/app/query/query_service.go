@@ -244,10 +244,11 @@ collectAllWaiting:
 	// Send WaitGroup to query calls, letting them run their query on the ticket
 	// cache.
 	for _, req := range reqs {
+		wg.Add(1)
 		select {
 		case req.resp <- wg:
-			wg.Add(1)
 		case <-req.ctx.Done():
+			wg.Done()
 		}
 	}
 
