@@ -107,7 +107,6 @@ sendRequest:
 	case wg = <-qr.resp:
 	}
 
-	logger.Errorf("QueryTickets ran query")
 	tickets, err := s.tc.query(pool)
 	wg.Done()
 
@@ -223,7 +222,7 @@ func (tc *ticketCache) update(store statestore.Service) {
 		tc.listed[t.Id] = t
 	}
 
-	logger.Warningf("Previous %d, Deleted %d, toFetch %d, Current %d", previousCount, deletedCount, len(toFetch), len(tc.listed))
+	logger.Infof("Ticket Cache update: Previous %d, Deleted %d, Fetched %d, Current %d", previousCount, deletedCount, len(toFetch), len(tc.listed))
 	tc.err = nil
 }
 
