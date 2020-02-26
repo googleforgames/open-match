@@ -51,17 +51,6 @@ type queryService struct {
 	tc *ticketCache
 }
 
-func newQueryService(cfg config.View) *queryService {
-	return &queryService{
-		cfg:           cfg,
-		store:         statestore.New(cfg),
-		queryRequests: make(chan *queryRequest),
-		tc: &ticketCache{
-			listed: make(map[string]*pb.Ticket),
-		},
-	}
-}
-
 type queryRequest struct {
 	ctx  context.Context
 	resp chan *sync.WaitGroup

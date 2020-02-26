@@ -588,22 +588,6 @@ func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []s
 	return nil
 }
 
-func idsToPages(ids []string, pageSize int) [][]interface{} {
-	result := make([][]interface{}, 0, len(ids)/pageSize+1)
-	for i := 0; i < len(ids); i += pageSize {
-		end := i + pageSize
-		if end > len(ids) {
-			end = len(ids)
-		}
-		page := make([]interface{}, end-i)
-		for i, id := range ids[i:end] {
-			page[i] = id
-		}
-		result = append(result, page)
-	}
-	return result
-}
-
 func handleConnectionClose(conn *redis.Conn) {
 	err := (*conn).Close()
 	if err != nil {
