@@ -334,12 +334,7 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	return nil
 }
 
-// FilterTickets returns the Ticket ids and required DoubleArg key-value pairs for the Tickets meeting the specified filtering criteria.
-// map[ticket.Id]map[DoubleArgName][DoubleArgValue]
-// {
-//  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
-//  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
-// }
+// GetIndexedIds returns the ids of all tickets currently indexed.
 func (rb *redisBackend) GetIndexedIds(ctx context.Context) (map[string]struct{}, error) {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
@@ -378,6 +373,8 @@ func (rb *redisBackend) GetIndexedIds(ctx context.Context) (map[string]struct{},
 	return r, nil
 }
 
+// GetTickets returns multiple tickets from storage.  Missing tickets are
+// silently ignored.
 func (rb *redisBackend) GetTickets(ctx context.Context, ids []string) ([]*pb.Ticket, error) {
 	if len(ids) == 0 {
 		return nil, nil

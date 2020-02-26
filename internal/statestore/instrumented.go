@@ -28,7 +28,8 @@ var (
 	mStateStoreDeleteTicketCount               = telemetry.Counter("statestore/deleteticketcount", "number of tickets deleted")
 	mStateStoreIndexTicketCount                = telemetry.Counter("statestore/indexticketcount", "number of tickets indexed")
 	mStateStoreDeindexTicketCount              = telemetry.Counter("statestore/deindexticketcount", "number of tickets deindexed")
-	mStateStoreFilterTicketsCount              = telemetry.Counter("statestore/filterticketcount", "number of tickets that were filtered and returned")
+	mStateStoreGetTicketsCount                 = telemetry.Counter("statestore/getticketscount", "number of bulk ticket retrievals")
+	mStateStoreGetIndexedIdsCount              = telemetry.Counter("statestore/getindexedidscount", "number of bulk indexed id retrievals")
 	mStateStoreUpdateAssignmentsCount          = telemetry.Counter("statestore/updateassignmentcount", "number of tickets assigned")
 	mStateStoreGetAssignmentsCount             = telemetry.Counter("statestore/getassignmentscount", "number of ticket assigned retrieved")
 	mStateStoreAddTicketsToIgnoreListCount     = telemetry.Counter("statestore/addticketstoignorelistcount", "number of tickets moved to ignore list")
@@ -91,26 +92,20 @@ func (is *instrumentedService) DeindexTicket(ctx context.Context, id string) err
 	return is.s.DeindexTicket(ctx, id)
 }
 
-// FilterTickets returns the Ticket ids and required attribute key-value pairs for the Tickets meeting the specified filtering criteria.
-// map[ticket.Id]map[attributeName][attributeValue]
-// {
-//  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
-//  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
-// }
-// func (is *instrumentedService) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
-// 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.FilterTickets")
-// 	defer span.End()
-// 	return is.s.FilterTickets(ctx, pool, pageSize, func(t []*pb.Ticket) error {
-// 		defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreFilterTicketsCount, int64(len(t)))
-// 		return callback(t)
-// 	})
-// }
-
+// GetTickets returns multiple tickets from storage.  Missing tickets are
+// silently ignored.
 func (is *instrumentedService) GetTickets(ctx context.Context, ids []string) ([]*pb.Ticket, error) {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetTickets")
+	defer span.End()
+	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreGetTicketsCount)
 	return is.s.GetTickets(ctx, ids)
 }
 
+// GetIndexedIds returns the ids of all tickets currently indexed.
 func (is *instrumentedService) GetIndexedIds(ctx context.Context) (map[string]struct{}, error) {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetIndexedIds")
+	defer span.End()
+	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreGetIndexedIdsCount)
 	return is.s.GetIndexedIds(ctx)
 }
 
