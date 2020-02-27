@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # When updating Go version, update Dockerfile.ci, Dockerfile.base-build, and go.mod
-FROM golang:1.13.4
+FROM golang:1.14.0
 ENV GO111MODULE=on
 
 WORKDIR /go/src/open-match.dev/open-match
