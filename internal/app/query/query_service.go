@@ -128,7 +128,7 @@ type ticketCache struct {
 
 	wg sync.WaitGroup
 
-	// Mutlithreaded unsafe fields, only to be writen by update, and read when
+	// Mutlithreaded unsafe fields, only to be written by update, and read when
 	// request given the ok.
 	tickets map[string]*pb.Ticket
 	err     error
