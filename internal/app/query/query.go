@@ -18,25 +18,15 @@ import (
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 // BindService creates the query service and binds it to the serving harness.
 func BindService(p *rpc.ServerParams, cfg config.View) error {
 	service := &queryService{
-		cfg:              cfg,
-		store:            statestore.New(cfg),
-		queryRequests:    make(chan *queryRequest),
-		canStartRunQuery: make(chan struct{}, 1),
-		tc: &ticketCache{
-			listed: make(map[string]*pb.Ticket),
-		},
+		cfg: cfg,
+		tc:  newTicketCache(p, cfg),
 	}
-
-	service.canStartRunQuery <- struct{}{}
-
-	p.AddHealthCheckFunc(service.store.HealthCheck)
 
 	p.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterQueryServiceServer(s, service)

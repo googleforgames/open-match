@@ -18,11 +18,13 @@ import (
 	"context"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/filter"
+	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -37,79 +39,37 @@ var (
 // queryService API provides utility functions for common MMF functionality such
 // as retreiving Tickets from state storage.
 type queryService struct {
-	cfg           config.View
-	store         statestore.Service
-	queryRequests chan *queryRequest
-
-	// Single item buffered channel.  Holds a value when runQuery can be safely
-	// started.  Basically a channel/select friendly mutex around runQuery
-	// running.
-	canStartRunQuery chan struct{}
-
-	// NOT multithread safe, only to be modified by runQuery, and read when
-	// holding a waitgroup created by runQuery.
-	tc *ticketCache
+	cfg config.View
+	tc  *ticketCache
 }
 
-type queryRequest struct {
-	ctx  context.Context
-	resp chan *sync.WaitGroup
-}
-
-// QueryTickets gets a list of Tickets that match all Filters of the input Pool.
-//   - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.
-// QueryTickets pages the Tickets by `storage.pool.size` and stream back response.
-//   - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000
 func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.QueryService_QueryTicketsServer) error {
 	pool := req.GetPool()
 	if pool == nil {
 		return status.Error(codes.InvalidArgument, ".pool is required")
 	}
 
-	ctx := responseServer.Context()
-	pSize := getPageSize(s.cfg)
-
-	qr := &queryRequest{
-		ctx:  ctx,
-		resp: make(chan *sync.WaitGroup),
-	}
-
-sendRequest:
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Errorf("QueryTickets canceled before request sent.")
-			return ctx.Err()
-		case <-s.canStartRunQuery:
-			go s.runQuery()
-		case s.queryRequests <- qr:
-			break sendRequest
+	var results []*pb.Ticket
+	err := s.tc.request(responseServer.Context(), func(tickets map[string]*pb.Ticket) {
+		for _, ticket := range tickets {
+			if filter.InPool(ticket, pool) {
+				results = append(results, ticket)
+			}
 		}
-	}
-
-	var wg *sync.WaitGroup
-
-	select {
-	case <-ctx.Done():
-		logger.Errorf("QueryTickets canceled waiting for access.")
-		return ctx.Err()
-	case wg = <-qr.resp:
-	}
-
-	tickets, err := s.tc.query(pool)
-	wg.Done()
-
+	})
 	if err != nil {
 		return err
 	}
-	for start := 0; start < len(tickets); start += pSize {
+
+	pSize := getPageSize(s.cfg)
+	for start := 0; start < len(results); start += pSize {
 		end := start + pSize
-		if end > len(tickets) {
-			end = len(tickets)
+		if end > len(results) {
+			end = len(results)
 		}
 
 		err := responseServer.Send(&pb.QueryTicketsResponse{
-			Tickets: tickets[start:end],
+			Tickets: results[start:end],
 		})
 		if err != nil {
 			return err
@@ -151,44 +111,128 @@ func getPageSize(cfg config.View) int {
 	return pSize
 }
 
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
 
 type ticketCache struct {
-	listed map[string]*pb.Ticket
-	err    error
+	store statestore.Service
+
+	requests chan *cacheRequest
+
+	// Single item buffered channel.  Holds a value when runQuery can be safely
+	// started.  Basically a channel/select friendly mutex around runQuery
+	// running.
+	startRunRequest chan struct{}
+
+	wg sync.WaitGroup
+
+	// Mutlithreaded unsafe fields, only to be writen by update, and read when
+	// request given the ok.
+	tickets map[string]*pb.Ticket
+	err     error
 }
 
-func (tc *ticketCache) query(pool *pb.Pool) ([]*pb.Ticket, error) {
-	if tc.err != nil {
-		return nil, tc.err
+func newTicketCache(p *rpc.ServerParams, cfg config.View) *ticketCache {
+	tc := &ticketCache{
+		store:           statestore.New(cfg),
+		requests:        make(chan *cacheRequest),
+		startRunRequest: make(chan struct{}, 1),
+		tickets:         make(map[string]*pb.Ticket),
 	}
 
-	var results []*pb.Ticket
+	tc.startRunRequest <- struct{}{}
+	p.AddHealthCheckFunc(tc.store.HealthCheck)
 
-	for _, ticket := range tc.listed {
-		if filter.InPool(ticket, pool) {
-			results = append(results, ticket)
+	return tc
+}
+
+type cacheRequest struct {
+	ctx    context.Context
+	runNow chan struct{}
+}
+
+func (tc *ticketCache) request(ctx context.Context, f func(map[string]*pb.Ticket)) error {
+	cr := &cacheRequest{
+		ctx:    ctx,
+		runNow: make(chan struct{}),
+	}
+
+sendRequest:
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.Wrap(ctx.Err(), "ticket cache request canceled before reuest sent.")
+		case <-tc.startRunRequest:
+			go tc.runRequest()
+		case tc.requests <- cr:
+			break sendRequest
 		}
 	}
 
-	return results, nil
+	select {
+	case <-ctx.Done():
+		return errors.Wrap(ctx.Err(), "ticket cache request canceled waiting for access.")
+	case <-cr.runNow:
+		defer tc.wg.Done()
+	}
+
+	if tc.err != nil {
+		return tc.err
+	}
+
+	f(tc.tickets)
+	return nil
 }
 
-// Does not fail, but may set error which will be returned to clients.
-func (tc *ticketCache) update(store statestore.Service) {
-	previousCount := len(tc.listed)
+func (tc *ticketCache) runRequest() {
+	defer func() {
+		tc.startRunRequest <- struct{}{}
+	}()
 
-	currentAll, err := store.GetIndexedIds(context.Background())
+	// Wait for first query request.
+	reqs := []*cacheRequest{<-tc.requests}
+
+	// Collect all waiting queries.
+collectAllWaiting:
+	for {
+		select {
+		case req := <-tc.requests:
+			reqs = append(reqs, req)
+		default:
+			break collectAllWaiting
+		}
+	}
+
+	tc.update()
+
+	// Send WaitGroup to query calls, letting them run their query on the ticket
+	// cache.
+	for _, req := range reqs {
+		tc.wg.Add(1)
+		select {
+		case req.runNow <- struct{}{}:
+		case <-req.ctx.Done():
+			tc.wg.Done()
+		}
+	}
+
+	// wait for requests to finish using ticket cache.
+	tc.wg.Wait()
+}
+
+func (tc *ticketCache) update() {
+	previousCount := len(tc.tickets)
+
+	currentAll, err := tc.store.GetIndexedIds(context.Background())
 	if err != nil {
 		tc.err = err
 		return
 	}
 
 	deletedCount := 0
-	for id := range tc.listed {
+	for id := range tc.tickets {
 		if _, ok := currentAll[id]; !ok {
-			delete(tc.listed, id)
+			delete(tc.tickets, id)
 			deletedCount++
 		}
 	}
@@ -196,61 +240,21 @@ func (tc *ticketCache) update(store statestore.Service) {
 	toFetch := []string{}
 
 	for id := range currentAll {
-		if _, ok := tc.listed[id]; !ok {
+		if _, ok := tc.tickets[id]; !ok {
 			toFetch = append(toFetch, id)
 		}
 	}
 
-	newTickets, err := store.GetTickets(context.Background(), toFetch)
+	newTickets, err := tc.store.GetTickets(context.Background(), toFetch)
 	if err != nil {
 		tc.err = err
 		return
 	}
 
 	for _, t := range newTickets {
-		tc.listed[t.Id] = t
+		tc.tickets[t.Id] = t
 	}
 
-	logger.Infof("Ticket Cache update: Previous %d, Deleted %d, Fetched %d, Current %d", previousCount, deletedCount, len(toFetch), len(tc.listed))
+	logger.Infof("Ticket Cache update: Previous %d, Deleted %d, Fetched %d, Current %d", previousCount, deletedCount, len(toFetch), len(tc.tickets))
 	tc.err = nil
-}
-
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-func (s *queryService) runQuery() {
-	defer func() {
-		s.canStartRunQuery <- struct{}{}
-	}()
-
-	// Wait for first query request.
-	reqs := []*queryRequest{<-s.queryRequests}
-
-	// Collect all waiting queries.
-collectAllWaiting:
-	for {
-		select {
-		case req := <-s.queryRequests:
-			reqs = append(reqs, req)
-		default:
-			break collectAllWaiting
-		}
-	}
-
-	s.tc.update(s.store)
-
-	wg := &sync.WaitGroup{}
-
-	// Send WaitGroup to query calls, letting them run their query on the ticket
-	// cache.
-	for _, req := range reqs {
-		select {
-		case req.resp <- wg:
-			wg.Add(1)
-		case <-req.ctx.Done():
-		}
-	}
-
-	// wait for query calls to finish using ticket cache.
-	wg.Wait()
 }
