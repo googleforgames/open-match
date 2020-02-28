@@ -114,6 +114,8 @@ func getPageSize(cfg config.View) int {
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
 
+// ticketCache unifies concurrent requests into a single cache update, and
+// gives a safe view into that map cache.
 type ticketCache struct {
 	store statestore.Service
 
