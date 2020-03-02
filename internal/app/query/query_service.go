@@ -58,6 +58,7 @@ func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer 
 		}
 	})
 	if err != nil {
+		logger.WithError(err).Error("Failed to run request.")
 		return err
 	}
 
@@ -257,6 +258,6 @@ func (tc *ticketCache) update() {
 		tc.tickets[t.Id] = t
 	}
 
-	logger.Infof("Ticket Cache update: Previous %d, Deleted %d, Fetched %d, Current %d", previousCount, deletedCount, len(toFetch), len(tc.tickets))
+	logger.Debugf("Ticket Cache update: Previous %d, Deleted %d, Fetched %d, Current %d", previousCount, deletedCount, len(toFetch), len(tc.tickets))
 	tc.err = nil
 }
