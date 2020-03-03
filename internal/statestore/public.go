@@ -42,8 +42,8 @@ type Service interface {
 	// DeindexTicket removes specified ticket from the index. The Ticket continues to exist.
 	DeindexTicket(ctx context.Context, id string) error
 
-	// GetIndexedIdSet returns the ids of all tickets currently indexed.
-	GetIndexedIdSet(ctx context.Context) (map[string]struct{}, error)
+	// GetIndexedIDSet returns the ids of all tickets currently indexed.
+	GetIndexedIDSet(ctx context.Context) (map[string]struct{}, error)
 
 	// GetTickets returns multiple tickets from storage.  Missing tickets are
 	// silently ignored.

@@ -226,7 +226,7 @@ collectAllWaiting:
 func (tc *ticketCache) update() {
 	previousCount := len(tc.tickets)
 
-	currentAll, err := tc.store.GetIndexedIdSet(context.Background())
+	currentAll, err := tc.store.GetIndexedIDSet(context.Background())
 	if err != nil {
 		tc.err = err
 		return

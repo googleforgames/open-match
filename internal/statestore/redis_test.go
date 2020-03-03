@@ -123,7 +123,7 @@ func TestIgnoreLists(t *testing.T) {
 	}
 
 	verifyTickets := func(service Service, expectLen int) {
-		ids, err := service.GetIndexedIdSet(ctx)
+		ids, err := service.GetIndexedIDSet(ctx)
 		assert.Nil(err)
 		assert.Equal(expectLen, len(ids))
 	}
@@ -163,7 +163,7 @@ func TestDeleteTicketsFromIgnoreList(t *testing.T) {
 	}
 
 	verifyTickets := func(service Service, expectLen int) {
-		ids, err := service.GetIndexedIdSet(ctx)
+		ids, err := service.GetIndexedIDSet(ctx)
 		assert.Nil(err)
 		assert.Equal(expectLen, len(ids))
 	}

@@ -335,7 +335,7 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 }
 
 // GetIndexedIds returns the ids of all tickets currently indexed.
-func (rb *redisBackend) GetIndexedIdSet(ctx context.Context) (map[string]struct{}, error) {
+func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{}, error) {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return nil, err

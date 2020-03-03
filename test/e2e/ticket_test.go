@@ -237,6 +237,7 @@ func TestReleaseTickets(t *testing.T) {
 				},
 			},
 		})
+		assert.Nil(t, err)
 
 		resp, err := stream.Recv()
 		assert.Nil(t, err)

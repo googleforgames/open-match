@@ -29,7 +29,7 @@ var (
 	mStateStoreIndexTicketCount                = telemetry.Counter("statestore/indexticketcount", "number of tickets indexed")
 	mStateStoreDeindexTicketCount              = telemetry.Counter("statestore/deindexticketcount", "number of tickets deindexed")
 	mStateStoreGetTicketsCount                 = telemetry.Counter("statestore/getticketscount", "number of bulk ticket retrievals")
-	mStateStoreGetIndexedIdSetCount            = telemetry.Counter("statestore/getindexedidsetcount", "number of bulk indexed id retrievals")
+	mStateStoreGetIndexedIDSetCount            = telemetry.Counter("statestore/getindexedidsetcount", "number of bulk indexed id retrievals")
 	mStateStoreUpdateAssignmentsCount          = telemetry.Counter("statestore/updateassignmentcount", "number of tickets assigned")
 	mStateStoreGetAssignmentsCount             = telemetry.Counter("statestore/getassignmentscount", "number of ticket assigned retrieved")
 	mStateStoreAddTicketsToIgnoreListCount     = telemetry.Counter("statestore/addticketstoignorelistcount", "number of tickets moved to ignore list")
@@ -102,11 +102,11 @@ func (is *instrumentedService) GetTickets(ctx context.Context, ids []string) ([]
 }
 
 // GetIndexedIds returns the ids of all tickets currently indexed.
-func (is *instrumentedService) GetIndexedIdSet(ctx context.Context) (map[string]struct{}, error) {
-	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetIndexedIdSet")
+func (is *instrumentedService) GetIndexedIDSet(ctx context.Context) (map[string]struct{}, error) {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetIndexedIDSet")
 	defer span.End()
-	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreGetIndexedIdSetCount)
-	return is.s.GetIndexedIdSet(ctx)
+	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreGetIndexedIDSetCount)
+	return is.s.GetIndexedIDSet(ctx)
 }
 
 // UpdateAssignments update the match assignments for the input ticket ids.
