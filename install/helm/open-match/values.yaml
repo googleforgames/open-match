@@ -166,6 +166,8 @@ open-match-core:
       maxActive: 0
       idleTimeout: 0
       healthCheckTimeout: 300ms
+  swaggerui:
+    enabled: true
 
 # Controls if users need to install scale testing setup for Open Match.
 open-match-scale:
