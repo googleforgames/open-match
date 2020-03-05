@@ -103,7 +103,6 @@ data:
         maxActive: {{ index .Values "open-match-core" "redis" "pool" "maxActive" }}
         idleTimeout: {{ index .Values "open-match-core" "redis" "pool" "idleTimeout" }}
         healthCheckTimeout: {{ index .Values "open-match-core" "redis" "pool" "healthCheckTimeout" }}
-      expiration: 43200
 
     telemetry:
       zpages:

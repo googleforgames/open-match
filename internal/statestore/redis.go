@@ -161,15 +161,6 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("MULTI")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "MULTI",
-			"error": err.Error(),
-		}).Error("state storage operation failed")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
 	value, err := proto.Marshal(ticket)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -179,39 +170,13 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	err = redisConn.Send("SET", ticket.GetId(), value)
+	_, err = redisConn.Do("SET", ticket.GetId(), value)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
 			"cmd":   "SET",
 			"key":   ticket.GetId(),
 			"error": err.Error(),
 		}).Error("failed to set the value for ticket")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	if rb.cfg.IsSet("redis.expiration") {
-		redisTTL := rb.cfg.GetInt("redis.expiration")
-		if redisTTL > 0 {
-			err = redisConn.Send("EXPIRE", ticket.GetId(), redisTTL)
-			if err != nil {
-				redisLogger.WithFields(logrus.Fields{
-					"cmd":   "EXPIRE",
-					"key":   ticket.GetId(),
-					"ttl":   redisTTL,
-					"error": err.Error(),
-				}).Error("failed to set ticket expiration in state storage")
-				return status.Errorf(codes.Internal, "%v", err)
-			}
-		}
-	}
-
-	_, err = redisConn.Do("EXEC")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "EXEC",
-			"key":   ticket.GetId(),
-			"error": err.Error(),
-		}).Error("failed to create ticket in state storage")
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
