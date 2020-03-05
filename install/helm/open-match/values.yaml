@@ -155,8 +155,8 @@ open-match-core:
   enabled: true
   ignoreListTTL: 60000ms
   redis:
-    install: true
-    # If open-match-core.redis.install is set to false, have Open Match components talk to this redis address instead.
+    enabled: true
+    # If open-match-core.redis.enabled is set to false, have Open Match components talk to this redis address instead.
     # Otherwise the default is set to the om-redis instance.
     hostname: # Your redis server address
     port: 6379
@@ -166,6 +166,8 @@ open-match-core:
       maxActive: 0
       idleTimeout: 0
       healthCheckTimeout: 300ms
+  swaggerui:
+    enabled: true
 
 # Controls if users need to install scale testing setup for Open Match.
 open-match-scale:

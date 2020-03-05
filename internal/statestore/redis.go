@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -28,10 +27,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/set"
 	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
+
+const allTickets = "allTickets"
 
 var (
 	redisLogger = logrus.WithFields(logrus.Fields{
@@ -298,58 +298,14 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 	}
 	defer handleConnectionClose(&redisConn)
 
-	indexedFields := extractIndexedFields(ticket)
-
-	err = redisConn.Send("MULTI")
+	err = redisConn.Send("SADD", allTickets, ticket.Id)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "MULTI",
-			"error": err.Error(),
-		}).Error("state storage operation failed")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	{
-		command := make([]interface{}, 0, 1+len(indexedFields))
-		command = append(command, indexCacheName(ticket.Id))
-		for index := range indexedFields {
-			command = append(command, index)
-		}
-		err = redisConn.Send("SADD", command...)
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"cmd":     "SADD",
-				"ticket":  ticket.GetId(),
-				"error":   err.Error(),
-				"indices": command[1:],
-			}).Error("failed to set ticket's indices")
-			return status.Errorf(codes.Internal, "%v", err)
-		}
-	}
-
-	for k, v := range indexedFields {
-		// Index the DoubleArg by value.
-		err = redisConn.Send("ZADD", k, v, ticket.GetId())
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"cmd":       "ZADD",
-				"DoubleArg": k,
-				"value":     v,
-				"ticket":    ticket.GetId(),
-				"error":     err.Error(),
-			}).Error("failed to index ticket DoubleArg")
-			return status.Errorf(codes.Internal, "%v", err)
-		}
-	}
-
-	// Run pipelined Redis commands.
-	_, err = redisConn.Do("EXEC")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "EXEC",
-			"id":    ticket.GetId(),
-			"error": err.Error(),
-		}).Error("failed to index the ticket")
+			"cmd":    "SADD",
+			"ticket": ticket.GetId(),
+			"error":  err.Error(),
+			"key":    allTickets,
+		}).Error("failed to add ticket to all tickets")
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
@@ -364,80 +320,25 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	}
 	defer handleConnectionClose(&redisConn)
 
-	indices, err := redis.Strings(redisConn.Do("SMEMBERS", indexCacheName(id)))
+	err = redisConn.Send("SREM", allTickets, id)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
-			"SMEMBERS": "MULTI",
-			"error":    err.Error(),
-			"ticket":   id,
-		}).Error("failed to retrieve ticket's indexed fields")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	if len(indices) == 0 {
-		return nil
-	}
-
-	err = redisConn.Send("MULTI")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "MULTI",
-			"error": err.Error(),
-		}).Error("state storage operation failed")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	for _, index := range indices {
-		err = redisConn.Send("ZREM", index, id)
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"cmd":   "ZREM",
-				"index": index,
-				"id":    id,
-				"error": err.Error(),
-			}).Error("failed to deindex the ticket")
-			return status.Errorf(codes.Internal, "%v", err)
-		}
-	}
-
-	err = redisConn.Send("DEL", indexCacheName(id))
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "DEL",
+			"cmd":   "SREM",
+			"key":   allTickets,
 			"id":    id,
 			"error": err.Error(),
-		}).Error("failed to remove ticket's indexed fields")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	_, err = redisConn.Do("EXEC")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "EXEC",
-			"id":    id,
-			"error": err.Error(),
-		}).Error("failed to deindex the ticket")
+		}).Error("failed to remove ticket from all tickets")
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
 	return nil
 }
 
-// FilterTickets returns the Ticket ids and required DoubleArg key-value pairs for the Tickets meeting the specified filtering criteria.
-// map[ticket.Id]map[DoubleArgName][DoubleArgValue]
-// {
-//  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
-//  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
-// }
-func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
-	var err error
-	var redisConn redis.Conn
-	var ticketBytes [][]byte
-	var idsInFilter, idsInIgnoreLists []string
-
-	redisConn, err = rb.connect(ctx)
+// GetIndexedIds returns the ids of all tickets currently indexed.
+func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{}, error) {
+	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -447,84 +348,75 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 	startTimeInt := curTime.Add(-ttl).UnixNano()
 
 	// Filter out tickets that are fetched but not assigned within ttl time (ms).
-	idsInIgnoreLists, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, curTimeInt))
+	idsInIgnoreLists, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, curTimeInt))
 	if err != nil {
 		redisLogger.WithError(err).Error("failed to get proposed tickets")
-		return status.Errorf(codes.Internal, err.Error())
+		return nil, status.Errorf(codes.Internal, "error getting ignore list %v", err)
 	}
 
-	// A set of playerIds that satisfies all filters
-	idSet := make([]string, 0)
-
-	// For each filter, do a range query to Redis on Filter.DoubleArg
-	for i, filter := range extractIndexFilters(pool) {
-		// Time Complexity O(logN + M), where N is the number of elements in the DoubleArg set
-		// and M is the number of entries being returned.
-		// TODO: discuss if we need a LIMIT for # of queries being returned
-		idsInFilter, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.name, filter.min, filter.max))
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f", filter.name, filter.min, filter.max),
-			}).WithError(err).Error("Failed to lookup index.")
-			return status.Errorf(codes.Internal, "%v", err)
-		}
-
-		if i == 0 {
-			idSet = idsInFilter
-		} else {
-			idSet = set.Intersection(idSet, idsInFilter)
-		}
+	idsIndexed, err := redis.Strings(redisConn.Do("SMEMBERS", allTickets))
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"Command": "SMEMBER allTickets",
+		}).WithError(err).Error("Failed to lookup all tickets.")
+		return nil, status.Errorf(codes.Internal, "error getting all indexed ticket ids %v", err)
 	}
 
-	idSet = set.Difference(idSet, idsInIgnoreLists)
-
-	// Do a little randomization to prevent dependency on return order.
-	if len(idSet) > 0 {
-		for i := 0; i < 20; i++ {
-			j := rand.Intn(len(idSet))
-			k := rand.Intn(len(idSet))
-			idSet[j], idSet[k] = idSet[k], idSet[j]
-		}
+	r := make(map[string]struct{}, len(idsIndexed))
+	for _, id := range idsIndexed {
+		r[id] = struct{}{}
+	}
+	for _, id := range idsInIgnoreLists {
+		delete(r, id)
 	}
 
-	// TODO: finish reworking this after the proto changes.
-	for _, page := range idsToPages(idSet, pageSize) {
-		ticketBytes, err = redis.ByteSlices(redisConn.Do("MGET", page...))
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"Command": fmt.Sprintf("MGET %v", page),
-			}).WithError(err).Error("Failed to lookup tickets.")
-			return status.Errorf(codes.Internal, "%v", err)
-		}
+	return r, nil
+}
 
-		tickets := make([]*pb.Ticket, 0, len(page))
-		for i, b := range ticketBytes {
-			// Tickets may be deleted by the time we read it from redis.
-			if b != nil {
-				t := &pb.Ticket{}
-				err = proto.Unmarshal(b, t)
-				if err != nil {
-					redisLogger.WithFields(logrus.Fields{
-						"key": page[i],
-					}).WithError(err).Error("Failed to unmarshal ticket from redis.")
-					return status.Errorf(codes.Internal, "%v", err)
-				}
-				tickets = append(tickets, t)
+// GetTickets returns multiple tickets from storage.  Missing tickets are
+// silently ignored.
+func (rb *redisBackend) GetTickets(ctx context.Context, ids []string) ([]*pb.Ticket, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	redisConn, err := rb.connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer handleConnectionClose(&redisConn)
+
+	queryParams := make([]interface{}, len(ids))
+	for i, id := range ids {
+		queryParams[i] = id
+	}
+
+	ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", queryParams...))
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"Command": fmt.Sprintf("MGET %v", ids),
+		}).WithError(err).Error("Failed to lookup tickets.")
+		return nil, status.Errorf(codes.Internal, "%v", err)
+	}
+
+	r := make([]*pb.Ticket, 0, len(ids))
+
+	for i, b := range ticketBytes {
+		// Tickets may be deleted by the time we read it from redis.
+		if b != nil {
+			t := &pb.Ticket{}
+			err = proto.Unmarshal(b, t)
+			if err != nil {
+				redisLogger.WithFields(logrus.Fields{
+					"key": ids[i],
+				}).WithError(err).Error("Failed to unmarshal ticket from redis.")
+				return nil, status.Errorf(codes.Internal, "%v", err)
 			}
-		}
-
-		err = callback(tickets)
-		if err != nil {
-			return status.Errorf(codes.Internal, "%v", err)
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
+			r = append(r, t)
 		}
 	}
 
-	return nil
+	return r, nil
 }
 
 // UpdateAssignments update the match assignments for the input ticket ids.
@@ -694,22 +586,6 @@ func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []s
 	}
 
 	return nil
-}
-
-func idsToPages(ids []string, pageSize int) [][]interface{} {
-	result := make([][]interface{}, 0, len(ids)/pageSize+1)
-	for i := 0; i < len(ids); i += pageSize {
-		end := i + pageSize
-		if end > len(ids) {
-			end = len(ids)
-		}
-		page := make([]interface{}, end-i)
-		for i, id := range ids[i:end] {
-			page[i] = id
-		}
-		result = append(result, page)
-	}
-	return result
 }
 
 func handleConnectionClose(conn *redis.Conn) {
