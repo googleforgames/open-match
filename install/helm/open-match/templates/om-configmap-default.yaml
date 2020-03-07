@@ -86,7 +86,7 @@ data:
         size: 10000
 
     redis:
-{{- if index .Values "open-match-core" "redis" "install" }}
+{{- if index .Values "open-match-core" "redis" "enabled" }}
       hostname: {{ .Values.redis.fullnameOverride }}-master.{{ .Release.Namespace }}.svc.cluster.local
       port: {{ .Values.redis.redisPort }}
       user: {{ .Values.redis.user }}
@@ -103,7 +103,6 @@ data:
         maxActive: {{ index .Values "open-match-core" "redis" "pool" "maxActive" }}
         idleTimeout: {{ index .Values "open-match-core" "redis" "pool" "idleTimeout" }}
         healthCheckTimeout: {{ index .Values "open-match-core" "redis" "pool" "healthCheckTimeout" }}
-      expiration: 43200
 
     telemetry:
       zpages:
