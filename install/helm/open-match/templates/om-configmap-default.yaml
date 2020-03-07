@@ -87,6 +87,7 @@ data:
 
     redis:
 {{- if index .Values "open-match-core" "redis" "enabled" }}
+      sentinelEnabled: {{ index .Values "redis" "sentinel" "enabled" }}
 {{- if index .Values "redis" "sentinel" "enabled"}}
       # Connect to one of the Redis sentinels first to query the current master
       sentinelPort: {{ .Values.redis.sentinel.port }}

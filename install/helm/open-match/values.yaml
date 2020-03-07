@@ -113,7 +113,7 @@ redis:
     maxclients 100000
     maxmemory 300000000
   sentinel:
-    enabled: true
+    enabled: false
     masterSet: om-redis-master
     port: 26379
   master:

@@ -23,7 +23,7 @@ import (
 	"open-match.dev/open-match/internal/statestore"
 )
 
-// New creates a new in memory Redis instance for testing.
+// New creates a new in memory Redis instance with Sentinel for testing.
 func New(t *testing.T, cfg config.Mutable) func() {
 	mredis := miniredis.NewMiniRedis()
 	err := mredis.StartAddr("localhost:0")
@@ -37,6 +37,7 @@ func New(t *testing.T, cfg config.Mutable) func() {
 		t.Fatalf("failed to start minisentinel, %v", err)
 	}
 
+	cfg.Set("redis.sentinelEnabled", true)
 	cfg.Set("redis.sentinelHostname", s.Host())
 	cfg.Set("redis.sentinelPort", s.Port())
 	cfg.Set("redis.sentinelMaster", s.MasterInfo().Name)
