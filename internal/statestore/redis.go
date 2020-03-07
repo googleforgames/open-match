@@ -507,16 +507,16 @@ func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string
 	defer handleConnectionClose(&redisConn)
 
 	currentTime := time.Now().UnixNano()
-	cmds := make([]interface{}, 2*len(ids)+1)
-	cmds[0] = "proposed_ticket_ids"
-	for i, id := range ids {
-		cmds[2*i+1] = currentTime
-		cmds[2*i+2] = id
+	cmds := make([]interface{}, 0, 2*len(ids)+1)
+	cmds = append(cmds, "proposed_ticket_ids")
+	for _, id := range ids {
+		cmds = append(cmds, currentTime)
+		cmds = append(cmds, id)
 	}
 
 	_, err = redisConn.Do("ZADD", cmds...)
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to append proposed tickets to redis")
+		redisLogger.WithError(err).Error("failed to append proposed tickets to ignore list")
 		return status.Error(codes.Internal, err.Error())
 	}
 
@@ -536,9 +536,9 @@ func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []s
 	defer handleConnectionClose(&redisConn)
 
 	cmds := make([]interface{}, len(ids)+1)
-	cmds[0] = "proposed_ticket_ids"
-	for i, id := range ids {
-		cmds[i+1] = id
+	cmds = append(cmds, "proposed_ticket_ids")
+	for _, id := range ids {
+		cmds = append(cmds, id)
 	}
 
 	_, err = redisConn.Do("ZREM", cmds...)
