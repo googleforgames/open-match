@@ -20,42 +20,42 @@
 # The configurations defined here will be applied when deploying Open Match to a Kubernetes cluster.
 # You may choose to override these values to tailor Open Match for your needs.
 #
-# Begins the configuration section for `mmlogic` component in Open Match.
-# mmlogic:
+# Begins the configuration section for `query` component in Open Match.
+# query:
 #
-#   # Specifies om-mmlogic as the in-cluster domain name for the `mmlogic` service.
-#   hostName: om-mmlogic
+#   # Specifies om-query as the in-cluster domain name for the `query` service.
+#   hostName: om-query
 #
-#   # Specifies the port for receiving RESTful HTTP requests in the `mmlogic` service.
+#   # Specifies the port for receiving RESTful HTTP requests in the `query` service.
 #   # Checkouts https://open-match.dev/site/swaggerui/index.html for the RESTful APIs Open Match provides.
 #   httpPort: 51503
 #
-#   # Specifies the port for receiving gRPC calls in the `mmlogic` service.
+#   # Specifies the port for receiving gRPC calls in the `query` service.
 #   # Note that some services may not have grpcPort defined as they don't have gRPC APIs defined.
 #   grpcPort: 50503
 #
-#   # Specifies the port type for the `mmlogic` service, default to ClusterIP - available port types are ClusterIP, NodePort, LoadBalancer, ExternalName.
+#   # Specifies the port type for the `query` service, default to ClusterIP - available port types are ClusterIP, NodePort, LoadBalancer, ExternalName.
 #   # Please see https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types for Type values and their behaviors.
 #   portType: ClusterIP
 #
-#   # Specifies the number of Kubernetes pod replicas per `mmlogic` service, default to 3.
+#   # Specifies the number of Kubernetes pod replicas per `query` service, default to 3.
 #   replicas: 3
 #
-#   # Specifies the image name to be used in a Kubernetes pod for `mmlogic` compoenent.
-#   image: openmatch-mmlogic
+#   # Specifies the image name to be used in a Kubernetes pod for `query` compoenent.
+#   image: openmatch-query
 swaggerui: &swaggerui
   hostName: om-swaggerui
   httpPort: 51500
   portType: ClusterIP
   replicas: 1
   image: openmatch-swaggerui
-mmlogic: &mmlogic
-  hostName: om-mmlogic
+query: &query
+  hostName: om-query
   grpcPort: 50503
   httpPort: 51503
   portType: ClusterIP
   replicas: 3
-  image: openmatch-mmlogic
+  image: openmatch-query
 frontend: &frontend
   hostName: om-frontend
   grpcPort: 50504
@@ -109,8 +109,9 @@ redis:
   usePassword: false
   usePasswordFile: false
   secretMountPath: /opt/bitnami/redis/secrets
-  configmap:
+  configmap: |
     maxclients 100000
+    maxmemory 500000000
   sentinel:
     enabled: true
     masterSet: om-redis-master
@@ -166,19 +167,26 @@ redis:
 #
 # 1. open-match-telemetry: Kubernetes definitions of the integrated monitoring tools along with the core Open Match componenets.
 # 2. open-match-customize: Kubernetes definitions of the customizable template to use Open Match with your own MMFs and Evaluator.
-# 3. open-match-test: Kubernetes definitions of the load testing tools and end-to-end jobs for Open Match.
 ###############################################################################################################################
 
-# Controls if users need to install backend, frontend, mmlogic, om-configmap, and swaggerui.
+# Controls if users need to install backend, frontend, query, om-configmap, and swaggerui.
 open-match-core:
   enabled: true
   ignoreListTTL: 60000ms
   redis:
+    enabled: true
+    # If open-match-core.redis.enabled is set to false, have Open Match components talk to this redis address instead.
+    # Otherwise the default is set to the om-redis instance.
+    hostname: # Your redis server address
+    port: 6379
+    user: 
     pool:
       maxIdle: 500
       maxActive: 500
       idleTimeout: 0
       healthCheckTimeout: 300ms
+  swaggerui:
+    enabled: false
 
 # Controls if users need to install scale testing setup for Open Match.
 open-match-scale:
@@ -198,20 +206,12 @@ open-match-customize:
   enabled: false
   evaluator: *evaluator
   function: *function
-  mmlogic: *mmlogic
+  query: *query
   # You can override the evaluator/mmf image
   # evaluator:
   #   image: [YOUR_EVALUATOR_IMAGE]
   # function:
   #   image: [YOUR_MMF_IMAGE]
-
-open-match-test:
-  # Switch the value between true/false to turn on/off this subchart
-  enabled: false
-  mmlogic: *mmlogic
-  frontend: *frontend
-  backend: *backend
-  synchronizer: *synchronizer
 
 # Global configurations that are visible to all subcharts
 global:

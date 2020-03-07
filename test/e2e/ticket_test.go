@@ -18,6 +18,7 @@ package e2e
 
 import (
 	"context"
+	"io"
 	"testing"
 	"time"
 
@@ -98,7 +99,6 @@ func TestAssignTickets(t *testing.T) {
 						assert.Nil(t, err)
 						// grpc will write something to the reserved fields of this protobuf object, so we have to do comparisons fields by fields.
 						assert.Equal(t, test.wantAssignment.GetConnection(), gtResp.GetAssignment().GetConnection())
-						assert.Equal(t, test.wantAssignment.GetError(), gtResp.GetAssignment().GetError())
 					}
 				}
 			})
@@ -154,12 +154,11 @@ func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
 	assert.Equal(t, got.GetId(), want.GetId())
 	assert.Equal(t, got.SearchFields.DoubleArgs["test-property"], want.SearchFields.DoubleArgs["test-property"])
 	assert.Equal(t, got.GetAssignment().GetConnection(), want.GetAssignment().GetConnection())
-	assert.Equal(t, got.GetAssignment().GetError(), want.GetAssignment().GetError())
 }
 
 // validateDelete validates that the ticket is actually deleted from the state storage.
 // Given that delete is async, this method retries fetch every 100ms up to 5 seconds.
-func validateDelete(ctx context.Context, t *testing.T, fe pb.FrontendClient, id string) {
+func validateDelete(ctx context.Context, t *testing.T, fe pb.FrontendServiceClient, id string) {
 	start := time.Now()
 	for {
 		if time.Since(start) > 5*time.Second {
@@ -178,4 +177,108 @@ func validateDelete(ctx context.Context, t *testing.T, fe pb.FrontendClient, id 
 	}
 
 	assert.Failf(t, "ticket %v not deleted after 5 seconds", id)
+}
+
+func TestEmptyReleaseTicketsRequest(t *testing.T) {
+	om, closer := e2e.New(t)
+	defer closer()
+
+	be := om.MustBackendGRPC()
+	ctx := om.Context()
+
+	resp, err := be.ReleaseTickets(ctx, &pb.ReleaseTicketsRequest{
+		TicketIds: nil,
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, &pb.ReleaseTicketsResponse{}, resp)
+}
+
+func TestReleaseTickets(t *testing.T) {
+	om, closer := e2e.New(t)
+	defer closer()
+
+	fe := om.MustFrontendGRPC()
+	be := om.MustBackendGRPC()
+	q := om.MustQueryServiceGRPC()
+	ctx := om.Context()
+
+	var ticket *pb.Ticket
+
+	{ // Create ticket
+		resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+		assert.Nil(t, err)
+		ticket = resp.Ticket
+		assert.NotEmpty(t, ticket.Id)
+	}
+
+	{ // Ticket present in query
+		stream, err := q.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
+		assert.Nil(t, err)
+
+		resp, err := stream.Recv()
+		assert.Nil(t, err)
+		assert.Equal(t, &pb.QueryTicketsResponse{
+			Tickets: []*pb.Ticket{ticket},
+		}, resp)
+
+		resp, err = stream.Recv()
+		assert.Equal(t, io.EOF, err)
+		assert.Nil(t, resp)
+	}
+
+	{ // Ticket returned from match
+		stream, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{
+			Config: om.MustMmfConfigGRPC(),
+			Profile: &pb.MatchProfile{
+				Name: "test-profile",
+				Pools: []*pb.Pool{
+					{Name: "pool"},
+				},
+			},
+		})
+		assert.Nil(t, err)
+
+		resp, err := stream.Recv()
+		assert.Nil(t, err)
+		assert.Len(t, resp.Match.Tickets, 1)
+		assert.Equal(t, ticket, resp.Match.Tickets[0])
+
+		resp, err = stream.Recv()
+		assert.Equal(t, io.EOF, err)
+		assert.Nil(t, resp)
+	}
+
+	{ // Ticket NOT present in query
+		stream, err := q.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
+		assert.Nil(t, err)
+
+		resp, err := stream.Recv()
+		assert.Equal(t, io.EOF, err)
+		assert.Nil(t, resp)
+	}
+
+	{ // Return ticket
+		resp, err := be.ReleaseTickets(ctx, &pb.ReleaseTicketsRequest{
+			TicketIds: []string{ticket.Id},
+		})
+
+		assert.Nil(t, err)
+		assert.Equal(t, &pb.ReleaseTicketsResponse{}, resp)
+	}
+
+	{ // Ticket present in query
+		stream, err := q.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
+		assert.Nil(t, err)
+
+		resp, err := stream.Recv()
+		assert.Nil(t, err)
+		assert.Equal(t, &pb.QueryTicketsResponse{
+			Tickets: []*pb.Ticket{ticket},
+		}, resp)
+
+		resp, err = stream.Recv()
+		assert.Equal(t, io.EOF, err)
+		assert.Nil(t, resp)
+	}
 }

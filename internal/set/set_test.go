@@ -52,6 +52,7 @@ func TestStringOperations(t *testing.T) {
 	}
 
 	for i, tt := range setTests {
+		tt := tt
 		t.Run(fmt.Sprintf("%#v-%d", tt.op, i), func(t *testing.T) {
 			actual := tt.op(tt.in1, tt.in2)
 			sort.Strings(tt.expected)

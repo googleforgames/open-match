@@ -13,13 +13,20 @@ type synchronizerClient struct {
 }
 
 func newSynchronizerClient(cfg config.View) *synchronizerClient {
-	newInstance := func(cfg config.View) (interface{}, error) {
+	newInstance := func(cfg config.View) (interface{}, func(), error) {
 		conn, err := rpc.GRPCClientFromConfig(cfg, "api.synchronizer")
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		return ipb.NewSynchronizerClient(conn), nil
+		close := func() {
+			err := conn.Close()
+			if err != nil {
+				logger.WithError(err).Warning("Error closing synchronizer client.")
+			}
+		}
+
+		return ipb.NewSynchronizerClient(conn), close, nil
 	}
 
 	return &synchronizerClient{

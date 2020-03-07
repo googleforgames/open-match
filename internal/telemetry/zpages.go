@@ -15,10 +15,11 @@
 package telemetry
 
 import (
-	"github.com/sirupsen/logrus"
-	"go.opencensus.io/zpages"
 	"net/http"
 	"net/http/pprof"
+
+	"github.com/sirupsen/logrus"
+	"go.opencensus.io/zpages"
 	"open-match.dev/open-match/internal/config"
 )
 

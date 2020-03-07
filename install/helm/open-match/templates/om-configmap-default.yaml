@@ -57,10 +57,10 @@ data:
         hostname: "{{ .Values.frontend.hostName }}"
         grpcport: "{{ .Values.frontend.grpcPort }}"
         httpport: "{{ .Values.frontend.httpPort }}"
-      mmlogic:
-        hostname: "{{ .Values.mmlogic.hostName }}"
-        grpcport: "{{ .Values.mmlogic.grpcPort }}"
-        httpport: "{{ .Values.mmlogic.httpPort }}"
+      query:
+        hostname: "{{ .Values.query.hostName }}"
+        grpcport: "{{ .Values.query.grpcPort }}"
+        httpport: "{{ .Values.query.httpPort }}"
       synchronizer:
         hostname: "{{ .Values.synchronizer.hostName }}"
         grpcport: "{{ .Values.synchronizer.grpcPort }}"
@@ -68,6 +68,10 @@ data:
       swaggerui:
         hostname: "{{ .Values.swaggerui.hostName }}"
         httpport: "{{ .Values.swaggerui.httpPort }}"
+      scale-frontend:
+        httpport: "51509"
+      scale-backend:
+        httpport: "51510"
 {{- if .Values.global.tls.enabled }}
       tls:
         trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
@@ -82,11 +86,22 @@ data:
         size: 10000
 
     redis:
+{{- if index .Values "open-match-core" "redis" "enabled" }}
+{{- if index .Values "redis" "sentinel" "enabled"}}
       # Connect to one of the Redis sentinels first to query the current master
       sentinelPort: {{ .Values.redis.sentinel.port }}
       sentinelMaster: {{ .Values.redis.sentinel.masterSet }}
       sentinelHostname: {{ .Values.redis.fullnameOverride }}.{{ .Release.Namespace }}.svc.cluster.local
+{{- else}}
+      hostname: {{ .Values.redis.fullnameOverride }}-master.{{ .Release.Namespace }}.svc.cluster.local
+      port: {{ .Values.redis.redisPort }}
       user: {{ .Values.redis.user }}
+{{- end}}
+{{- else }}
+      hostname: {{ index .Values "open-match-core" "redis" "hostname" }}
+      port: {{ index .Values "open-match-core" "redis" "port" }}
+      user: {{ index .Values "open-match-core" "redis" "user" }}
+{{- end }}
 {{- if .Values.redis.usePassword }}
       passwordPath: {{ .Values.redis.secretMountPath }}/redis-password
 {{- end }}
@@ -95,7 +110,6 @@ data:
         maxActive: {{ index .Values "open-match-core" "redis" "pool" "maxActive" }}
         idleTimeout: {{ index .Values "open-match-core" "redis" "pool" "idleTimeout" }}
         healthCheckTimeout: {{ index .Values "open-match-core" "redis" "pool" "healthCheckTimeout" }}
-      expiration: 43200
 
     telemetry:
       zpages:

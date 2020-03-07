@@ -35,8 +35,8 @@ var (
 )
 
 // MatchFunction is the function signature for the Match Making Function (MMF) to be implemented by the user.
-// The harness will pass the Rosters and PlayerPool for the match profile to this
-// function and it will return the Rosters to be populated in the proposal.
+// The harness will query the Tickets for each Pool and will pass the map of Pool to Tickets to the function
+// and the function will return a list of proposals.
 // Input:
 //  - MatchFunctionParams:
 //			A structure that defines the resources that are available to the match function.
@@ -47,9 +47,9 @@ type MatchFunction func(*MatchFunctionParams) ([]*pb.Match, error)
 // matchFunctionService implements pb.MatchFunctionServer, the server generated
 // by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
 type matchFunctionService struct {
-	cfg           config.View
-	function      MatchFunction
-	mmlogicClient pb.MmLogicClient
+	cfg                config.View
+	function           MatchFunction
+	queryServiceClient pb.QueryServiceClient
 }
 
 // MatchFunctionParams is a protected view for the match function.
@@ -63,10 +63,6 @@ type MatchFunctionParams struct {
 	// 'Extensions' from the MatchProfile.
 	Extensions map[string]*any.Any
 
-	// An array of Rosters. By convention, your input Roster contains players already in
-	// the match, and the names of pools to search when trying to fill an empty slot.
-	Rosters []*pb.Roster
-
 	// A map that contains mappings from pool name to a list of tickets that satisfied the filters in the pool
 	PoolNameToTickets map[string][]*pb.Ticket
 }
@@ -78,7 +74,6 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 		return err
 	}
 
-	// The matchfunction takes in some half-filled/empty rosters, a property bag, and a map[poolNames]tickets to generate match proposals
 	mfParams := &MatchFunctionParams{
 		Logger: logrus.WithFields(logrus.Fields{
 			"app":       "openmatch",
@@ -86,7 +81,6 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 		}),
 		ProfileName:       req.GetProfile().GetName(),
 		Extensions:        req.GetProfile().GetExtensions(),
-		Rosters:           req.GetProfile().GetRosters(),
 		PoolNameToTickets: poolNameToTickets,
 	}
 	// Run the customize match function!
@@ -108,25 +102,25 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 }
 
 func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunctionService, error) {
-	conn, err := rpc.GRPCClientFromConfig(cfg, "api.mmlogic")
+	conn, err := rpc.GRPCClientFromConfig(cfg, "api.query")
 	if err != nil {
-		logger.Errorf("Failed to get MMLogic connection, %v.", err)
+		logger.Errorf("Failed to get QueryService connection, %v.", err)
 		return nil, err
 	}
 
-	mmfService := &matchFunctionService{cfg: cfg, function: fs.Func, mmlogicClient: pb.NewMmLogicClient(conn)}
+	mmfService := &matchFunctionService{cfg: cfg, function: fs.Func, queryServiceClient: pb.NewQueryServiceClient(conn)}
 	return mmfService, nil
 }
 
-// getMatchManifest fetches all the data needed from the mmlogic API.
+// getMatchManifest fetches all the data needed from the queryService API.
 func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.RunRequest) (map[string][]*pb.Ticket, error) {
 	poolNameToTickets := make(map[string][]*pb.Ticket)
 	filterPools := req.GetProfile().GetPools()
 
 	for _, pool := range filterPools {
-		qtClient, err := s.mmlogicClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool}, grpc.WaitForReady(true))
+		qtClient, err := s.queryServiceClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool}, grpc.WaitForReady(true))
 		if err != nil {
-			logger.WithError(err).Error("Failed to get queryTicketClient from mmlogic.")
+			logger.WithError(err).Error("Failed to get queryTicketClient from queryService.")
 			return nil, err
 		}
 

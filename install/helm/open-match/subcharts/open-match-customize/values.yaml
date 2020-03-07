@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Default values for open-match-test.
+# Default values for open-match-customize.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -26,7 +26,7 @@ evaluator:
   enabled: false
   replicas: 3
   portType: ClusterIP
-  image: openmatch-evaluator-go-simple
+  image: openmatch-default-evaluator
 
 evaluatorConfigs: 
   # We use harness to implement the MMFs. MMF itself only requires one configmap but harness expects two,

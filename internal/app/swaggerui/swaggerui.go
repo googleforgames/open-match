@@ -71,7 +71,7 @@ func serve(cfg config.View) {
 	mux.Handle(telemetry.HealthCheckEndpoint, telemetry.NewAlwaysReadyHealthCheck())
 	bindHandler(mux, cfg, "/v1/frontend/", "frontend")
 	bindHandler(mux, cfg, "/v1/backend/", "backend")
-	bindHandler(mux, cfg, "/v1/mmlogic/", "mmlogic")
+	bindHandler(mux, cfg, "/v1/queryservice/", "queryservice")
 	bindHandler(mux, cfg, "/v1/synchronizer/", "synchronizer")
 	bindHandler(mux, cfg, "/v1/evaluator/", "evaluator")
 	bindHandler(mux, cfg, "/v1/matchfunction/", "functions")

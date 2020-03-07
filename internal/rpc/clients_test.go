@@ -16,19 +16,20 @@ package rpc
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"testing"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
-	"io/ioutil"
-	"net/http"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/telemetry"
 	shellTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
-	"os"
-	"testing"
 )
 
 func TestSecureGRPCFromConfig(t *testing.T) {
@@ -98,8 +99,8 @@ func runGrpcClientTests(t *testing.T, assert *assert.Assertions, cfg config.View
 	// Serve a fake frontend server and wait for its full start up
 	ff := &shellTesting.FakeFrontend{}
 	rpcParams.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterFrontendServer(s, ff)
-	}, pb.RegisterFrontendHandlerFromEndpoint)
+		pb.RegisterFrontendServiceServer(s, ff)
+	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
 
 	s := &Server{}
 	defer s.Stop()
@@ -114,7 +115,7 @@ func runGrpcClientTests(t *testing.T, assert *assert.Assertions, cfg config.View
 
 	// Confirm the client works as expected
 	ctx := utilTesting.NewContext(t)
-	feClient := pb.NewFrontendClient(grpcConn)
+	feClient := pb.NewFrontendServiceClient(grpcConn)
 	grpcResp, err := feClient.CreateTicket(ctx, &pb.CreateTicketRequest{})
 	assert.Nil(err)
 	assert.NotNil(grpcResp)
@@ -124,8 +125,8 @@ func runHTTPClientTests(assert *assert.Assertions, cfg config.View, rpcParams *S
 	// Serve a fake frontend server and wait for its full start up
 	ff := &shellTesting.FakeFrontend{}
 	rpcParams.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterFrontendServer(s, ff)
-	}, pb.RegisterFrontendHandlerFromEndpoint)
+		pb.RegisterFrontendServiceServer(s, ff)
+	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
 	s := &Server{}
 	defer s.Stop()
 	waitForStart, err := s.Start(rpcParams)

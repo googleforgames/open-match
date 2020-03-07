@@ -34,13 +34,13 @@ RUN export CLOUD_SDK_REPO="cloud-sdk-stretch" && \
     apt-get update -y && apt-get install google-cloud-sdk google-cloud-sdk-app-engine-go -y -qq
 
 # Install Golang
-# https://github.com/docker-library/golang/blob/master/1.13/stretch/Dockerfile
+# https://github.com/docker-library/golang/blob/master/1.14/stretch/Dockerfile
 RUN mkdir -p /toolchain/golang
 WORKDIR /toolchain/golang
 RUN sudo rm -rf /usr/local/go/
 
 # When updating Go version, update Dockerfile.ci, Dockerfile.base-build, and go.mod
-RUN curl -L https://golang.org/dl/go1.13.4.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
+RUN curl -L https://golang.org/dl/go1.14.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
 
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH

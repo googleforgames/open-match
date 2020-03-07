@@ -19,9 +19,7 @@ import (
 
 	"open-match.dev/open-match/pkg/pb"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	mmfHarness "open-match.dev/open-match/pkg/harness/function/golang"
 )
 
 func TestMakeMatchesDeduplicate(t *testing.T) {
@@ -32,14 +30,7 @@ func TestMakeMatchesDeduplicate(t *testing.T) {
 		"pool2": {{Id: "1"}},
 	}
 
-	p := &mmfHarness.MatchFunctionParams{
-		Logger:            &logrus.Entry{},
-		ProfileName:       "test-profile",
-		Rosters:           []*pb.Roster{},
-		PoolNameToTickets: poolNameToTickets,
-	}
-
-	matches, err := MakeMatches(p)
+	matches, err := makeMatches(poolNameToTickets)
 	assert.Nil(err)
 	assert.Equal(len(matches), 0)
 }
@@ -53,21 +44,12 @@ func TestMakeMatches(t *testing.T) {
 		"pool3": {{Id: "5"}, {Id: "6"}, {Id: "7"}},
 	}
 
-	p := &mmfHarness.MatchFunctionParams{
-		Logger:            &logrus.Entry{},
-		ProfileName:       "test-profile",
-		Rosters:           []*pb.Roster{},
-		PoolNameToTickets: poolNameToTickets,
-	}
-
-	matches, err := MakeMatches(p)
+	matches, err := makeMatches(poolNameToTickets)
 	assert.Nil(err)
 	assert.Equal(len(matches), 3)
 
 	for _, match := range matches {
 		assert.Equal(2, len(match.Tickets))
 		assert.Equal(matchName, match.MatchFunction)
-		assert.Equal(p.ProfileName, match.MatchProfile)
-		assert.Nil(match.Rosters)
 	}
 }

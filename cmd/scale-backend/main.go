@@ -16,8 +16,10 @@ package main
 
 import (
 	"open-match.dev/open-match/examples/scale/backend"
+	"open-match.dev/open-match/internal/app"
+	"open-match.dev/open-match/internal/config"
 )
 
 func main() {
-	backend.Run()
+	app.RunApplication("scale", config.Read, backend.BindService)
 }

@@ -95,8 +95,8 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 
 	serverParams := NewServerParamsFromListeners(tp.grpcLh, tp.proxyLh)
 	serverParams.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterFrontendServer(s, ff)
-	}, pb.RegisterFrontendHandlerFromEndpoint)
+		pb.RegisterFrontendServiceServer(s, ff)
+	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
 
 	serverParams.SetTLSConfiguration(tp.rootPublicCertificateFileData, tp.publicCertificateFileData, tp.privateKeyFileData)
 	s := newTLSServer(serverParams.grpcListener, serverParams.grpcProxyListener)

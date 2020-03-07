@@ -46,14 +46,16 @@ var (
 //  -> m1c ->
 // close incoming when done or timed out | newCutoffSender
 //   -> m2c ->
-// remember return channel m6c for match | fanInFanOut
-//   -> m3c -> (buffered)
-// send to evaluator                     | wrapEvaluator
+// remember return channel m7c for match | fanInFanOut
+//   -> m3c ->
+// setmappings from matchIDs to ticketIDs| cacheMatchIDToTicketIDs
 //   -> m4c -> (buffered)
+// send to evaluator                     | wrapEvaluator
+//   -> m5c -> (buffered)
 // add tickets to ignore list            | addMatchesToIgnoreList
-//   -> m5c ->
+//   -> m6c ->
 // fan out to origin synchronize call    | fanInFanOut
-//   -> (Synchronize call specific ) m6c -> (buffered)
+//   -> (Synchronize call specific ) m7c -> (buffered)
 // return to backend                     | Synchronize
 
 type synchronizerService struct {
@@ -90,7 +92,7 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 	// 2. Receive matches and signals from cycle, send them to backend.
 
 	registration := s.register(stream.Context())
-	m6cBuffer := bufferChannel(registration.m6c)
+	m6cBuffer := bufferStringChannel(registration.m7c)
 	defer func() {
 		for range m6cBuffer {
 		}
@@ -108,7 +110,7 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 				registration.allM1cSent.Done()
 				return
 			}
-			registration.m1c.send(mAndM6c{m: req.Proposal, m6c: registration.m6c})
+			registration.m1c.send(mAndM6c{m: req.Proposal, m7c: registration.m7c})
 		}
 	}()
 
@@ -119,12 +121,12 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 
 	for {
 		select {
-		case matches, ok := <-m6cBuffer:
+		case mIDs, ok := <-m6cBuffer:
 			if !ok {
 				return nil
 			}
-			for _, match := range matches {
-				err = stream.Send(&ipb.SynchronizeResponse{Match: match})
+			for _, mID := range mIDs {
+				err = stream.Send(&ipb.SynchronizeResponse{MatchId: mID})
 				if err != nil {
 					logger.WithFields(logrus.Fields{
 						"error": err.Error(),
@@ -169,7 +171,7 @@ type registrationRequest struct {
 type registration struct {
 	m1c        *cutoffSender
 	allM1cSent *sync.WaitGroup
-	m6c        chan *pb.Match
+	m7c        chan string
 	cancelMmfs chan struct{}
 	cycleCtx   context.Context
 }
@@ -202,10 +204,11 @@ func (s *synchronizerService) runCycle() {
 	m2c := make(chan mAndM6c)
 	m3c := make(chan *pb.Match)
 	m4c := make(chan *pb.Match)
-	m5c := make(chan *pb.Match)
+	m5c := make(chan string)
+	m6c := make(chan string)
 
 	m1c := newCutoffSender(m2c)
-	// m6c, unlike other channels, is specific to a synchronize call.  There are
+	// m7c, unlike other channels, is specific to a synchronize call.  There are
 	// multiple values in a given cycle.
 
 	var allM1cSent sync.WaitGroup
@@ -215,15 +218,18 @@ func (s *synchronizerService) runCycle() {
 	closedOnCycleEnd := make(chan struct{})
 
 	go func() {
-		fanInFanOut(m2c, m3c, m5c)
+		fanInFanOut(m2c, m3c, m6c)
 		// Close response channels after all responses have been sent.
 		for _, r := range registrations {
-			close(r.m6c)
+			close(r.m7c)
 		}
 	}()
-	go s.wrapEvaluator(ctx, cancel, bufferChannel(m3c), m4c)
+
+	matchTickets := &sync.Map{}
+	go s.cacheMatchIDToTicketIDs(matchTickets, m3c, m4c)
+	go s.wrapEvaluator(ctx, cancel, bufferMatchChannel(m4c), m5c)
 	go func() {
-		s.addMatchesToIgnoreList(ctx, cancel, bufferChannel(m4c), m5c)
+		s.addMatchesToIgnoreList(ctx, matchTickets, cancel, bufferStringChannel(m5c), m6c)
 		// Wait for ignore list, but not all matches returned, the next cycle
 		// can start now.
 		close(closedOnCycleEnd)
@@ -239,7 +245,7 @@ Registration:
 			callingCtx = append(callingCtx, req.ctx)
 			r := &registration{
 				m1c:        m1c,
-				m6c:        make(chan *pb.Match),
+				m7c:        make(chan string),
 				cancelMmfs: make(chan struct{}, 1),
 				cycleCtx:   ctx,
 				allM1cSent: &allM1cSent,
@@ -281,16 +287,16 @@ Registration:
 
 type mAndM6c struct {
 	m   *pb.Match
-	m6c chan *pb.Match
+	m7c chan string
 }
 
 // fanInFanOut routes evaluated matches back to it's source synchronize call.
-// Each incoming match is passed along with it's synchronize call's m6c channel.
+// Each incoming match is passed along with it's synchronize call's m7c channel.
 // This channel is remembered in a map, and the match is passed to be evaluated.
 // When a match returns from evaluation, it's ID is looked up in the map and the
 // match is returned on that channel.
-func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match) {
-	m6cMap := make(map[string]chan<- *pb.Match)
+func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m6c <-chan string) {
+	m6cMap := make(map[string]chan<- string)
 
 	defer func(m2c <-chan mAndM6c) {
 		for range m2c {
@@ -301,7 +307,7 @@ func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match)
 		select {
 		case m2, ok := <-m2c:
 			if ok {
-				m6cMap[m2.m.GetMatchId()] = m2.m6c
+				m6cMap[m2.m.GetMatchId()] = m2.m7c
 				m3c <- m2.m
 			} else {
 				close(m3c)
@@ -309,17 +315,17 @@ func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m5c <-chan *pb.Match)
 				m2c = nil
 			}
 
-		case m5, ok := <-m5c:
+		case m5, ok := <-m6c:
 			if !ok {
 				return
 			}
 
-			m6c, ok := m6cMap[m5.GetMatchId()]
+			m7c, ok := m6cMap[m5]
 			if ok {
-				m6c <- m5
+				m7c <- m5
 			} else {
 				logger.WithFields(logrus.Fields{
-					"matchId": m5.GetMatchId(),
+					"matchId": m5,
 				}).Error("Match ID from evaluator does not match any id sent to it.")
 			}
 		}
@@ -381,19 +387,11 @@ func (c *cutoffSender) cutoff() {
 ///////////////////////////////////////
 
 // Calls the evaluator with the matches.
-func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelErrFunc, m3c <-chan []*pb.Match, m4c chan<- *pb.Match) {
-
-	// TODO: Stream through the request.
-
-	proposalList := []*pb.Match{}
-	for matches := range m3c {
-		proposalList = append(proposalList, matches...)
-	}
-
-	matchList, err := s.eval.evaluate(ctx, proposalList)
+func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelErrFunc, m3c <-chan []*pb.Match, m5c chan<- string) {
+	matchIDs, err := s.eval.evaluate(ctx, m3c)
 	if err == nil {
-		for _, m := range matchList {
-			m4c <- m
+		for _, mID := range matchIDs {
+			m5c <- mID
 		}
 	} else {
 		logger.WithFields(logrus.Fields{
@@ -401,7 +399,26 @@ func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelEr
 		}).Error("error calling evaluator, canceling cycle")
 		cancel(fmt.Errorf("error calling evaluator: %w", err))
 	}
+	close(m5c)
+}
+
+///////////////////////////////////////
+///////////////////////////////////////
+
+func (s *synchronizerService) cacheMatchIDToTicketIDs(m *sync.Map, m3c <-chan *pb.Match, m4c chan<- *pb.Match) {
+	for match := range m3c {
+		m.Store(match.GetMatchId(), getTicketIds(match.GetTickets()))
+		m4c <- match
+	}
 	close(m4c)
+}
+
+func getTicketIds(tickets []*pb.Ticket) []string {
+	tids := []string{}
+	for _, ticket := range tickets {
+		tids = append(tids, ticket.GetId())
+	}
+	return tids
 }
 
 ///////////////////////////////////////
@@ -411,29 +428,32 @@ func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelEr
 // ignorelist.  If it partially fails for whatever reason (not all tickets will
 // nessisarily be in the same call), only the matches which can be safely
 // returned to the Synchronize calls are.
-func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, cancel cancelErrFunc, m4c <-chan []*pb.Match, m5c chan<- *pb.Match) {
+func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, m *sync.Map, cancel cancelErrFunc, m5c <-chan []string, m6c chan<- string) {
 	totalMatches := 0
 	successfulMatches := 0
 	var lastErr error
-	for matches := range m4c {
+	for mIDs := range m5c {
 		ids := []string{}
-		for _, match := range matches {
-			for _, ticket := range match.GetTickets() {
-				ids = append(ids, ticket.GetId())
+		for _, mID := range mIDs {
+			tids, ok := m.Load(mID)
+			if ok {
+				ids = append(ids, tids.([]string)...)
+			} else {
+				logger.Errorf("failed to get MatchId %s with its corresponding tickets from the cache", mID)
 			}
 		}
 
 		err := s.store.AddTicketsToIgnoreList(ctx, ids)
 
-		totalMatches += len(matches)
+		totalMatches += len(mIDs)
 		if err == nil {
-			successfulMatches += len(matches)
+			successfulMatches += len(mIDs)
 		} else {
 			lastErr = err
 		}
 
-		for _, match := range matches {
-			m5c <- match
+		for _, mID := range mIDs {
+			m6c <- mID
 		}
 	}
 
@@ -448,7 +468,7 @@ func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, cancel
 			cancel(fmt.Errorf("no matches successfully added to the ignore list.  Last error: %w", lastErr))
 		}
 	}
-	close(m5c)
+	close(m6c)
 }
 
 ///////////////////////////////////////
@@ -483,12 +503,12 @@ func (s *synchronizerService) proposalCollectionInterval() time.Duration {
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-// bufferChannel collects matches from the input, and sends
+// bufferMatchChannel collects matches from the input, and sends
 // slice of matches on the output.  It never (for long) blocks
 // the input channel, always appending to the slice which will
 // next be used for output.  Used before external calls, so that
 // network won't back up internal processing.
-func bufferChannel(in chan *pb.Match) chan []*pb.Match {
+func bufferMatchChannel(in chan *pb.Match) chan []*pb.Match {
 	out := make(chan []*pb.Match)
 	go func() {
 		var a []*pb.Match
@@ -521,16 +541,42 @@ func bufferChannel(in chan *pb.Match) chan []*pb.Match {
 	return out
 }
 
-///////////////////////////////////////
-///////////////////////////////////////
+// bufferStringChannel collects strings from the input, and sends
+// slice of strings on the output.  It never (for long) blocks
+// the input channel, always appending to the slice which will
+// next be used for output.  Used before external calls, so that
+// network won't back up internal processing.
+func bufferStringChannel(in chan string) chan []string {
+	out := make(chan []string)
+	go func() {
+		var a []string
 
-// getMatchIds returns all of the match_id values on the slice of matches.
-func getMatchIds(matches []*pb.Match) []string {
-	var result []string
-	for _, m := range matches {
-		result = append(result, m.GetMatchId())
-	}
-	return result
+	outerLoop:
+		for {
+			mID, ok := <-in
+			if !ok {
+				break outerLoop
+			}
+			a = []string{mID}
+
+			for len(a) > 0 {
+				select {
+				case m, ok := <-in:
+					if !ok {
+						break outerLoop
+					}
+					a = append(a, m)
+				case out <- a:
+					a = nil
+				}
+			}
+		}
+		if len(a) > 0 {
+			out <- a
+		}
+		close(out)
+	}()
+	return out
 }
 
 ///////////////////////////////////////
@@ -552,7 +598,7 @@ func withCancelCause(parent context.Context) (context.Context, cancelErrFunc) {
 		ctx.m.Lock()
 		defer ctx.m.Unlock()
 
-		if err == nil && parent.Err() == nil {
+		if ctx.err == nil && parent.Err() == nil {
 			ctx.err = err
 		}
 		cancel()

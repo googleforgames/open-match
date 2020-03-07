@@ -67,11 +67,11 @@ message FunctionConfig {
 }
 
 message FetchMatchesRequest {
-  // FunctionConfig specifies a MMF address and client type for Backend to establish connections with the MMF
+  // A configuration for the MatchFunction server of this FetchMatches call.
   FunctionConfig config = 1;
 
-  // MatchProfiles that will be sent to thhe MMF specified in the FunctionConfig.
-  repeated MatchProfile profiles = 2;
+  // A MatchProfile that will be sent to the MatchFunction server of this FetchMatches call.
+  MatchProfile profile = 2;
 }
 
 message FetchMatchesResponse {
@@ -79,6 +79,14 @@ message FetchMatchesResponse {
   // A valid Match response will contain at least one ticket.
   Match match = 1;
 }
+
+message ReleaseTicketsRequest{
+  // TicketIds is a list of string representing Open Match generated Ids to be re-enabled for MMF querying
+  // because they are no longer awaiting assignment from a previous match result
+  repeated string ticket_ids = 1;
+}
+
+message ReleaseTicketsResponse {}
 
 message AssignTicketsRequest {
   // TicketIds is a list of strings representing Open Match generated Ids which apply to an Assignment.
@@ -90,15 +98,14 @@ message AssignTicketsRequest {
 
 message AssignTicketsResponse {}
 
-// The Backent service implements APIs to generate matches and handle ticket assignments.
-service Backend {
-  // FetchMatches triggers a MatchFunction with the specified MatchProfiles, while each MatchProfile 
-  // returns a set of match proposals. FetchMatches method streams the results back to the caller.
+// The BackendService implements APIs to generate matches and handle ticket assignments.
+service BackendService {
+  // FetchMatches triggers a MatchFunction with the specified MatchProfile and returns a set of match proposals that 
+  // match the description of that MatchProfile.
   // FetchMatches immediately returns an error if it encounters any execution failures.
-  //   - If the synchronizer is enabled, FetchMatch will then call the synchronizer to deduplicate proposals with overlapped tickets.
   rpc FetchMatches(FetchMatchesRequest) returns (stream FetchMatchesResponse) {
     option (google.api.http) = {
-      post: "/v1/backend/matches:fetch"
+      post: "/v1/backendservice/matches:fetch"
       body: "*"
     };
   }
@@ -106,7 +113,20 @@ service Backend {
   // AssignTickets overwrites the Assignment field of the input TicketIds.
   rpc AssignTickets(AssignTicketsRequest) returns (AssignTicketsResponse) {
     option (google.api.http) = {
-      post: "/v1/backend/tickets:assign"
+      post: "/v1/backendservice/tickets:assign"
+      body: "*"
+    };
+  }
+
+  // ReleaseTickets removes the submitted tickets from the list that prevents tickets 
+  // that are awaiting assignment from appearing in MMF queries, effectively putting them back into
+  // the matchmaking pool
+  // 
+  // BETA FEATURE WARNING:  This call and the associated Request and Response
+  // messages are not finalized and still subject to possible change or removal.
+  rpc ReleaseTickets(ReleaseTicketsRequest) returns (ReleaseTicketsResponse) {
+    option (google.api.http) = {
+      post: "/v1/backendservice/tickets:release"
       body: "*"
     };
   }

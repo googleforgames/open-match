@@ -31,8 +31,8 @@ func BindService(p *rpc.ServerParams, cfg config.View) error {
 
 	p.AddHealthCheckFunc(service.store.HealthCheck)
 	p.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterFrontendServer(s, service)
-	}, pb.RegisterFrontendHandlerFromEndpoint)
+		pb.RegisterFrontendServiceServer(s, service)
+	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
 
 	return nil
 }

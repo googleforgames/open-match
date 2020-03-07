@@ -1,0 +1,80 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package openmatch;
+option go_package = "open-match.dev/open-match/pkg/pb";
+option csharp_namespace = "OpenMatch";
+
+import "api/messages.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  info: {
+    title: "MM Logic (Data Layer)"
+    version: "1.0"
+    contact: {
+      name: "Open Match"
+      url: "https://open-match.dev"
+      email: "open-match-discuss@googlegroups.com"
+    }
+    license: {
+      name: "Apache 2.0 License"
+      url: "https://github.com/googleforgames/open-match/blob/master/LICENSE"
+    }
+  }
+  external_docs: {
+    url: "https://open-match.dev/site/docs/"
+    description: "Open Match Documentation"
+  }
+  schemes: HTTP
+  schemes: HTTPS
+  consumes: "application/json"
+  produces: "application/json"
+  responses: {
+    key: "404"
+    value: {
+      description: "Returned when the resource does not exist."
+      schema: { json_schema: { type: STRING } }
+    }
+  }
+  // TODO Add annotations for security_defintiions.
+  // See
+  // https://github.com/grpc-ecosystem/grpc-gateway/blob/master/examples/proto/examplepb/a_bit_of_everything.proto
+};
+
+message QueryTicketsRequest {
+  // A Pool is consists of a set of Filters.
+  Pool pool = 1;
+}
+
+message QueryTicketsResponse {
+  // Tickets that satisfy all the filtering criteria.
+  repeated Ticket tickets = 1;
+}
+
+// The QueryService service implements helper APIs for Match Function to query Tickets from state storage.
+service QueryService {
+  // QueryTickets gets a list of Tickets that match all Filters of the input Pool.
+  //   - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.
+  // QueryTickets pages the Tickets by `storage.pool.size` and stream back response.
+  //   - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000
+  rpc QueryTickets(QueryTicketsRequest) returns (stream QueryTicketsResponse) {
+    option (google.api.http) = {
+      post: "/v1/queryservice/tickets:query"
+      body: "*"
+    };
+  }
+}
