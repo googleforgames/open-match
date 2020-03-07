@@ -429,8 +429,8 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 		tickets = append(tickets, t)
 	}
 
-	cmds := make([]interface{}, 2*len(tickets))
-	for i, ticket := range tickets {
+	cmds := make([]interface{}, 0, 2*len(tickets))
+	for _, ticket := range tickets {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -449,8 +449,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 				return status.Errorf(codes.Internal, "failed to marshal ticket %s", ticket.GetId())
 			}
 
-			cmds[2*i] = ticket.GetId()
-			cmds[2*i+1] = ticketByte
+			cmds = append(cmds, ticket.GetId(), ticketByte)
 		}
 	}
 
@@ -534,7 +533,7 @@ func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []s
 	}
 	defer handleConnectionClose(&redisConn)
 
-	cmds := make([]interface{}, len(ids)+1)
+	cmds := make([]interface{}, 0, len(ids)+1)
 	cmds = append(cmds, "proposed_ticket_ids")
 	for _, id := range ids {
 		cmds = append(cmds, id)
