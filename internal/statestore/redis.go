@@ -510,8 +510,7 @@ func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string
 	cmds := make([]interface{}, 0, 2*len(ids)+1)
 	cmds = append(cmds, "proposed_ticket_ids")
 	for _, id := range ids {
-		cmds = append(cmds, currentTime)
-		cmds = append(cmds, id)
+		cmds = append(cmds, currentTime, id)
 	}
 
 	_, err = redisConn.Do("ZADD", cmds...)
