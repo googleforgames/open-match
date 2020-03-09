@@ -35,12 +35,23 @@ func TestNoPool(t *testing.T) {
 
 	q := om.MustQueryServiceGRPC()
 
-	stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: nil})
-	require.Nil(t, err)
+	{
+		stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: nil})
+		require.Nil(t, err)
 
-	resp, err := stream.Recv()
-	require.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
-	require.Nil(t, resp)
+		resp, err := stream.Recv()
+		require.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
+		require.Nil(t, resp)
+	}
+
+	{
+		stream, err := q.QueryTicketIds(context.Background(), &pb.QueryTicketIdsRequest{Pool: nil})
+		require.Nil(t, err)
+
+		resp, err := stream.Recv()
+		require.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
+		require.Nil(t, resp)
+	}
 }
 
 func TestNoTickets(t *testing.T) {
@@ -48,12 +59,24 @@ func TestNoTickets(t *testing.T) {
 	defer closer()
 
 	q := om.MustQueryServiceGRPC()
-	stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
-	require.Nil(t, err)
 
-	resp, err := stream.Recv()
-	require.Equal(t, io.EOF, err)
-	require.Nil(t, resp)
+	{
+		stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
+		require.Nil(t, err)
+
+		resp, err := stream.Recv()
+		require.Equal(t, io.EOF, err)
+		require.Nil(t, resp)
+	}
+
+	{
+		stream, err := q.QueryTicketIds(context.Background(), &pb.QueryTicketIdsRequest{Pool: &pb.Pool{}})
+		require.Nil(t, err)
+
+		resp, err := stream.Recv()
+		require.Equal(t, io.EOF, err)
+		require.Nil(t, resp)
+	}
 }
 
 func TestPaging(t *testing.T) {
@@ -114,6 +137,9 @@ func TestTicketFound(t *testing.T) {
 			if !returnedByQuery(t, tc) {
 				require.Fail(t, "Expected to find ticket in pool but didn't.")
 			}
+			if !returnedByQueryID(t, tc) {
+				require.Fail(t, "Expected to find id in pool but didn't.")
+			}
 		})
 	}
 }
@@ -124,6 +150,9 @@ func TestTicketNotFound(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			if returnedByQuery(t, tc) {
 				require.Fail(t, "Expected to not find ticket in pool but did.")
+			}
+			if returnedByQueryID(t, tc) {
+				require.Fail(t, "Expected to not find id in pool but did.")
 			}
 		})
 	}
@@ -161,4 +190,38 @@ func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
 	}
 
 	return len(tickets) == 1
+}
+
+func returnedByQueryID(t *testing.T, tc testcases.TestCase) (found bool) {
+	om, closer := e2e.New(t)
+	defer closer()
+
+	{
+		fe := om.MustFrontendGRPC()
+		resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Ticket)
+		require.Nil(t, err)
+	}
+
+	q := om.MustQueryServiceGRPC()
+	stream, err := q.QueryTicketIds(context.Background(), &pb.QueryTicketIdsRequest{Pool: tc.Pool})
+	require.Nil(t, err)
+
+	ids := []string{}
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		require.Nil(t, err)
+
+		ids = append(ids, resp.GetIds()...)
+	}
+
+	if len(ids) > 1 {
+		require.Fail(t, "More than one ticket found")
+	}
+
+	return len(ids) == 1
 }

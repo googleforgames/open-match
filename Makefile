@@ -726,18 +726,14 @@ service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/swaggerui/swaggeru
 service-binaries: cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION)
 service-binaries: cmd/query/query$(EXE_EXTENSION) cmd/synchronizer/synchronizer$(EXE_EXTENSION)
 
-example-binaries: example-mmf-binaries example-evaluator-binaries
+example-binaries: example-mmf-binaries
 example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
-example-evaluator-binaries: test/evaluator/evaluator$(EXE_EXTENSION)
 
 examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): pkg/pb/query.pb.go pkg/pb/query.pb.gw.go api/query.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
 
 test/matchfunction/matchfunction$(EXE_EXTENSION): pkg/pb/query.pb.go pkg/pb/query.pb.gw.go api/query.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
 	cd $(REPOSITORY_ROOT)/test/matchfunction; $(GO_BUILD_COMMAND)
-
-test/evaluator/evaluator$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
-	cd $(REPOSITORY_ROOT)/test/evaluator; $(GO_BUILD_COMMAND)
 
 tools-binaries: tools/certgen/certgen$(EXE_EXTENSION) tools/reaper/reaper$(EXE_EXTENSION)
 
@@ -749,6 +745,9 @@ cmd/frontend/frontend$(EXE_EXTENSION): pkg/pb/frontend.pb.go pkg/pb/frontend.pb.
 
 cmd/query/query$(EXE_EXTENSION): pkg/pb/query.pb.go pkg/pb/query.pb.gw.go api/query.swagger.json
 	cd $(REPOSITORY_ROOT)/cmd/query; $(GO_BUILD_COMMAND)
+
+cmd/default-evaluator/default-evaluator$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
+	cd $(REPOSITORY_ROOT)/cmd/evaluator; $(GO_BUILD_COMMAND)
 
 cmd/synchronizer/synchronizer$(EXE_EXTENSION): internal/ipb/synchronizer.pb.go
 	cd $(REPOSITORY_ROOT)/cmd/synchronizer; $(GO_BUILD_COMMAND)

@@ -56,24 +56,45 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 message QueryTicketsRequest {
-  // A Pool is consists of a set of Filters.
+  // The Pool representing the set of Filters to be queried.
   Pool pool = 1;
 }
 
 message QueryTicketsResponse {
-  // Tickets that satisfy all the filtering criteria.
+  // Tickets that meet all the filtering criteria requested by the pool.
   repeated Ticket tickets = 1;
+}
+
+message QueryTicketIdsRequest {
+  // The Pool representing the set of Filters to be queried.
+  Pool pool = 1;
+}
+
+message QueryTicketIdsResponse {
+  // TicketIDs that meet all the filtering criteria requested by the pool.
+  repeated string ids = 1;
 }
 
 // The QueryService service implements helper APIs for Match Function to query Tickets from state storage.
 service QueryService {
   // QueryTickets gets a list of Tickets that match all Filters of the input Pool.
   //   - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.
-  // QueryTickets pages the Tickets by `storage.pool.size` and stream back response.
-  //   - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000
+  // QueryTickets pages the Tickets by `storage.pool.size` and stream back responses.
+  //   - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000.
   rpc QueryTickets(QueryTicketsRequest) returns (stream QueryTicketsResponse) {
     option (google.api.http) = {
       post: "/v1/queryservice/tickets:query"
+      body: "*"
+    };
+  }
+
+  // QueryTicketIds gets the list of TicketIDs that meet all the filtering criteria requested by the pool.
+  //   - If the Pool contains no Filters, QueryTicketIds will return all TicketIDs in the state storage.
+  // QueryTicketIds pages the TicketIDs by `storage.pool.size` and stream back responses.
+  //   - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000.
+  rpc QueryTicketIds(QueryTicketIdsRequest) returns (stream QueryTicketIdsResponse) {
+    option (google.api.http) = {
+      post: "/v1/queryservice/ticketids:query"
       body: "*"
     };
   }
