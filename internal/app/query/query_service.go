@@ -88,9 +88,9 @@ func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseSer
 
 	var results []string
 	err := s.tc.request(responseServer.Context(), func(tickets map[string]*pb.Ticket) {
-		for _, ticket := range tickets {
+		for id, ticket := range tickets {
 			if filter.InPool(ticket, pool) {
-				results = append(results, ticket.GetId())
+				results = append(results, id)
 			}
 		}
 	})
