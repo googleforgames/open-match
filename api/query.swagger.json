@@ -24,9 +24,43 @@
     "application/json"
   ],
   "paths": {
+    "/v1/queryservice/ticketids:query": {
+      "post": {
+        "summary": "QueryTicketIds gets the list of TicketIDs that meet all the filtering criteria requested by the pool.\n  - If the Pool contains no Filters, QueryTicketIds will return all TicketIDs in the state storage.\nQueryTicketIds pages the TicketIDs by `storage.pool.size` and stream back responses.\n  - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000.",
+        "operationId": "QueryTicketIds",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "$ref": "#/x-stream-definitions/openmatchQueryTicketIdsResponse"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openmatchQueryTicketIdsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "QueryService"
+        ]
+      }
+    },
     "/v1/queryservice/tickets:query": {
       "post": {
-        "summary": "QueryTickets gets a list of Tickets that match all Filters of the input Pool.\n  - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.\nQueryTickets pages the Tickets by `storage.pool.size` and stream back response.\n  - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000",
+        "summary": "QueryTickets gets a list of Tickets that match all Filters of the input Pool.\n  - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.\nQueryTickets pages the Tickets by `storage.pool.size` and stream back responses.\n  - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000.",
         "operationId": "QueryTickets",
         "responses": {
           "200": {
@@ -125,12 +159,33 @@
         }
       }
     },
+    "openmatchQueryTicketIdsRequest": {
+      "type": "object",
+      "properties": {
+        "pool": {
+          "$ref": "#/definitions/openmatchPool",
+          "description": "The Pool representing the set of Filters to be queried."
+        }
+      }
+    },
+    "openmatchQueryTicketIdsResponse": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "TicketIDs that meet all the filtering criteria requested by the pool."
+        }
+      }
+    },
     "openmatchQueryTicketsRequest": {
       "type": "object",
       "properties": {
         "pool": {
           "$ref": "#/definitions/openmatchPool",
-          "description": "A Pool is consists of a set of Filters."
+          "description": "The Pool representing the set of Filters to be queried."
         }
       }
     },
@@ -142,7 +197,7 @@
           "items": {
             "$ref": "#/definitions/openmatchTicket"
           },
-          "description": "Tickets that satisfy all the filtering criteria."
+          "description": "Tickets that meet all the filtering criteria requested by the pool."
         }
       }
     },
@@ -263,6 +318,18 @@
     }
   },
   "x-stream-definitions": {
+    "openmatchQueryTicketIdsResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/openmatchQueryTicketIdsResponse"
+        },
+        "error": {
+          "$ref": "#/definitions/runtimeStreamError"
+        }
+      },
+      "title": "Stream result of openmatchQueryTicketIdsResponse"
+    },
     "openmatchQueryTicketsResponse": {
       "type": "object",
       "properties": {
