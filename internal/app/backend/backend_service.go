@@ -143,7 +143,7 @@ sendProposals:
 	return nil
 }
 
-func synchronizeRecv(ctx content.Context, syncStream synchronizerStream, m *sync.Map, stream pb.BackendService_FetchMatchesServer, startMmfs chan<- struct{}, cancelMmfs context.CancelFunc) error {
+func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync.Map, stream pb.BackendService_FetchMatchesServer, startMmfs chan<- struct{}, cancelMmfs context.CancelFunc) error {
 	var startMmfsOnce sync.Once
 
 	for {
