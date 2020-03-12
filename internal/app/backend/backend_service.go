@@ -87,7 +87,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		return synchronizeSend(ctx, syncStream, m, proposals)
 	})
 	eg.Go(func() error {
-		return synchronizeRecv(syncStream, m, stream, startMmfs, cancelMmfs)
+		return synchronizeRecv(ctx, syncStream, m, stream, startMmfs, cancelMmfs)
 	})
 
 	var mmfErr error
@@ -143,7 +143,7 @@ sendProposals:
 	return nil
 }
 
-func synchronizeRecv(syncStream synchronizerStream, m *sync.Map, stream pb.BackendService_FetchMatchesServer, startMmfs chan<- struct{}, cancelMmfs context.CancelFunc) error {
+func synchronizeRecv(ctx content.Context, syncStream synchronizerStream, m *sync.Map, stream pb.BackendService_FetchMatchesServer, startMmfs chan<- struct{}, cancelMmfs context.CancelFunc) error {
 	var startMmfsOnce sync.Once
 
 	for {
@@ -166,7 +166,7 @@ func synchronizeRecv(syncStream synchronizerStream, m *sync.Map, stream pb.Backe
 		}
 
 		if match, ok := m.Load(resp.GetMatchId()); ok {
-			telemetry.RecordUnitMeasurement(stream.Context(), mMatchesFetched)
+			telemetry.RecordUnitMeasurement(ctx, mMatchesFetched)
 			err = stream.Send(&pb.FetchMatchesResponse{Match: match.(*pb.Match)})
 			if err != nil {
 				return fmt.Errorf("error sending match to caller of backend: %w", err)
