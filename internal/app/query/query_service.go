@@ -80,6 +80,43 @@ func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer 
 	return nil
 }
 
+func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseServer pb.QueryService_QueryTicketIdsServer) error {
+	pool := req.GetPool()
+	if pool == nil {
+		return status.Error(codes.InvalidArgument, ".pool is required")
+	}
+
+	var results []string
+	err := s.tc.request(responseServer.Context(), func(tickets map[string]*pb.Ticket) {
+		for id, ticket := range tickets {
+			if filter.InPool(ticket, pool) {
+				results = append(results, id)
+			}
+		}
+	})
+	if err != nil {
+		logger.WithError(err).Error("Failed to run request.")
+		return err
+	}
+
+	pSize := getPageSize(s.cfg)
+	for start := 0; start < len(results); start += pSize {
+		end := start + pSize
+		if end > len(results) {
+			end = len(results)
+		}
+
+		err := responseServer.Send(&pb.QueryTicketIdsResponse{
+			Ids: results[start:end],
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func getPageSize(cfg config.View) int {
 	const (
 		name = "storage.page.size"
