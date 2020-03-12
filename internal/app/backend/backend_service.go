@@ -25,11 +25,11 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/ipb"
-	"open-match.dev/open-match/internal/omerror"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/internal/telemetry"
@@ -67,39 +67,38 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		return status.Error(codes.InvalidArgument, ".profile is required")
 	}
 
-	syncStream, err := s.synchronizer.synchronize(stream.Context())
+	// Error group for handling the synchronizer calls only.
+	eg, ctx := errgroup.WithContext(stream.Context())
+	syncStream, err := s.synchronizer.synchronize(ctx)
 	if err != nil {
 		return err
 	}
 
-	mmfCtx, cancelMmfs := context.WithCancel(stream.Context())
+	// The mmf must be canceled if the synchronizer call fails (which will
+	// cancel the context from the error group).  However the synchronizer call
+	// is NOT dependant on the mmf call.
+	mmfCtx, cancelMmfs := context.WithCancel(ctx)
 	// Closed when mmfs should start.
 	startMmfs := make(chan struct{})
 	proposals := make(chan *pb.Match)
 	m := &sync.Map{}
 
-	synchronizerWait := omerror.WaitOnErrors(logger, func() error {
-		return synchronizeSend(stream.Context(), syncStream, m, proposals)
-	}, func() error {
+	eg.Go(func() error {
+		return synchronizeSend(ctx, syncStream, m, proposals)
+	})
+	eg.Go(func() error {
 		return synchronizeRecv(syncStream, m, stream, startMmfs, cancelMmfs)
 	})
 
-	mmfWait := omerror.WaitOnErrors(logger, func() error {
-		select {
-		case <-mmfCtx.Done():
-			return fmt.Errorf("mmf was never started")
-		case <-startMmfs:
-		}
+	var mmfErr error
+	select {
+	case <-mmfCtx.Done():
+		mmfErr = fmt.Errorf("mmf was never started")
+	case <-startMmfs:
+		mmfErr = callMmf(mmfCtx, s.cc, req, proposals)
+	}
 
-		return callMmf(mmfCtx, s.cc, req, proposals)
-	})
-
-	syncErr := synchronizerWait()
-	// Fetch Matches should never block on just the match function.
-	// Must cancel mmfs after synchronizer is done and before checking mmf error
-	// because the synchronizer call could fail while the mmf call blocks.
-	cancelMmfs()
-	mmfErr := mmfWait()
+	syncErr := eg.Wait()
 
 	// TODO: Send mmf error in FetchSummary instead of erroring call.
 	if syncErr != nil || mmfErr != nil {
