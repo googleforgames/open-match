@@ -24,10 +24,10 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/omerror"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -107,6 +107,8 @@ func newGrpcEvaluator(cfg config.View) (evaluator, func(), error) {
 }
 
 func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]string, error) {
+	eg, ctx := errgroup.WithContext(ctx)
+
 	var stream pb.Evaluator_EvaluateClient
 	{ // prevent shadowing err later
 		var err error
@@ -118,7 +120,7 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 
 	results := []string{}
 
-	wait := omerror.WaitOnErrors(evaluatorClientLogger, func() error {
+	eg.Go(func() error {
 		for proposals := range pc {
 			for _, proposal := range proposals {
 				if err := stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
@@ -131,7 +133,9 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 			return fmt.Errorf("failed to close the send direction of evaluator stream, desc: %w", err)
 		}
 		return nil
-	}, func() error {
+	})
+
+	eg.Go(func() error {
 		for {
 			// TODO: add grpc timeouts for this call.
 			resp, err := stream.Recv()
@@ -145,7 +149,7 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 		}
 	})
 
-	err := wait()
+	err := eg.Wait()
 	if err != nil {
 		return nil, err
 	}
