@@ -30,8 +30,7 @@ import (
 )
 
 func TestAssignTickets(t *testing.T) {
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 	fe := om.MustFrontendGRPC()
 	be := om.MustBackendGRPC()
 	ctx := om.Context()
@@ -110,8 +109,7 @@ func TestAssignTickets(t *testing.T) {
 func TestTicketLifeCycle(t *testing.T) {
 	assert := assert.New(t)
 
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 	fe := om.MustFrontendGRPC()
 	assert.NotNil(fe)
 	ctx := om.Context()
@@ -180,8 +178,7 @@ func validateDelete(ctx context.Context, t *testing.T, fe pb.FrontendServiceClie
 }
 
 func TestEmptyReleaseTicketsRequest(t *testing.T) {
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 
 	be := om.MustBackendGRPC()
 	ctx := om.Context()
@@ -195,8 +192,7 @@ func TestEmptyReleaseTicketsRequest(t *testing.T) {
 }
 
 func TestReleaseTickets(t *testing.T) {
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 
 	fe := om.MustFrontendGRPC()
 	be := om.MustBackendGRPC()

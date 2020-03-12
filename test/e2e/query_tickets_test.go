@@ -30,8 +30,7 @@ import (
 )
 
 func TestNoPool(t *testing.T) {
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 
 	q := om.MustQueryServiceGRPC()
 
@@ -55,8 +54,7 @@ func TestNoPool(t *testing.T) {
 }
 
 func TestNoTickets(t *testing.T) {
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 
 	q := om.MustQueryServiceGRPC()
 
@@ -80,8 +78,7 @@ func TestNoTickets(t *testing.T) {
 }
 
 func TestPaging(t *testing.T) {
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 
 	pageSize := 10 // TODO: read from config
 	if pageSize < 1 {
@@ -159,8 +156,7 @@ func TestTicketNotFound(t *testing.T) {
 }
 
 func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 
 	{
 		fe := om.MustFrontendGRPC()
@@ -193,8 +189,7 @@ func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
 }
 
 func returnedByQueryID(t *testing.T, tc testcases.TestCase) (found bool) {
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 
 	{
 		fe := om.MustFrontendGRPC()

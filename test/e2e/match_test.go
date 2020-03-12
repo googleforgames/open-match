@@ -29,8 +29,7 @@ import (
 )
 
 func TestFetchMatches(t *testing.T) {
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 
 	be := om.MustBackendGRPC()
 

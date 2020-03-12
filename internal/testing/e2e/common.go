@@ -54,9 +54,10 @@ type OM interface {
 }
 
 // New creates a new e2e test interface.
-func New(t *testing.T) (OM, func()) {
+func New(t *testing.T) OM {
 	om := zygote.withT(t)
-	return om, om.cleanup
+	t.Cleanup(om.cleanup)
+	return om
 }
 
 // RunMain provides the setup and teardown for Open Match e2e tests.

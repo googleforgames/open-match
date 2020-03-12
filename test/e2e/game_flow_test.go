@@ -29,16 +29,14 @@ import (
 )
 
 func TestServiceHealth(t *testing.T) {
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 	if err := om.HealthCheck(); err != nil {
 		t.Errorf("cluster health checks failed, %s", err)
 	}
 }
 
 func TestGetClients(t *testing.T) {
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 
 	if c := om.MustFrontendGRPC(); c == nil {
 		t.Error("cannot get frontendService client")
@@ -66,8 +64,7 @@ func TestGameMatchWorkFlow(t *testing.T) {
 		8. Call backend.FetchMatches and verify the response does not contain the tickets got deleted.
 	*/
 
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 	fe := om.MustFrontendGRPC()
 	be := om.MustBackendGRPC()
 	mmfCfg := om.MustMmfConfigGRPC()
