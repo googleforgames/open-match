@@ -57,45 +57,82 @@ func (rb *redisBackend) Close() error {
 // newRedis creates a statestore.Service backed by Redis database.
 func newRedis(cfg config.View) Service {
 	return &redisBackend{
-		healthCheckPool: getRedisPool("healthcheck", cfg),
-		redisPool:       getRedisPool("master", cfg),
+		healthCheckPool: getHealthCheckPool(cfg),
+		redisPool:       getRedisPool(cfg),
 		cfg:             cfg,
 	}
 }
 
-func getRedisPool(poolType string, cfg config.View) *redis.Pool {
-	var maxIdle, maxActive int
-	var idleTimeout time.Duration
-	var sentinelPool *redis.Pool
+func getHealthCheckPool(cfg config.View) *redis.Pool {
+	var healthCheckURL string
+	var maxIdle = 3
+	var maxActive = 0
+	var healthCheckTimeout = cfg.GetDuration("redis.pool.healthCheckTimeout")
 
-	if cfg.GetBool("redis.sentinelEnabled") {
-		sentinelAddr := fmt.Sprintf("%s:%s", cfg.GetString("redis.sentinelHostname"), cfg.GetString("redis.sentinelPort"))
-		sentinelURL := redisURLFromAddr(sentinelAddr, cfg)
-		sentinelPool = &redis.Pool{
-			MaxIdle:      maxIdle,
-			MaxActive:    maxActive,
-			IdleTimeout:  idleTimeout,
-			Wait:         true,
-			TestOnBorrow: testOnBorrow,
-			DialContext: func(ctx context.Context) (redis.Conn, error) {
-				if ctx.Err() != nil {
-					return nil, ctx.Err()
-				}
-				redisLogger.WithField("sentinelAddr", sentinelAddr).Debug("Attempting to connect to Redis Sentinel")
-				return redis.DialURL(sentinelURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
-			},
-		}
+	if cfg.IsSet("redis.sentinelHostname") {
+		sentinelAddr := getSentinelAddr(cfg)
+		healthCheckURL = redisURLFromAddr(sentinelAddr, cfg)
+	} else {
+		masterAddr := getMasterAddr(cfg)
+		healthCheckURL = redisURLFromAddr(masterAddr, cfg)
 	}
 
-	switch poolType {
-	case "healthcheck":
-		maxIdle = 3
-		maxActive = 0
-		idleTimeout = 10 * cfg.GetDuration("redis.pool.healthCheckTimeout")
-	default:
-		maxIdle = cfg.GetInt("redis.pool.maxIdle")
-		maxActive = cfg.GetInt("redis.pool.maxActive")
-		idleTimeout = cfg.GetDuration("redis.pool.idleTimeout")
+	return &redis.Pool{
+		MaxIdle:      maxIdle,
+		MaxActive:    maxActive,
+		IdleTimeout:  10 * healthCheckTimeout,
+		Wait:         true,
+		TestOnBorrow: testOnBorrow,
+		DialContext: func(ctx context.Context) (redis.Conn, error) {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return redis.DialURL(healthCheckURL, redis.DialConnectTimeout(healthCheckTimeout), redis.DialReadTimeout(healthCheckTimeout))
+		},
+	}
+}
+
+func getRedisPool(cfg config.View) *redis.Pool {
+	var dialFunc func(context.Context) (redis.Conn, error)
+	maxIdle := cfg.GetInt("redis.pool.maxIdle")
+	maxActive := cfg.GetInt("redis.pool.maxActive")
+	idleTimeout := cfg.GetDuration("redis.pool.idleTimeout")
+
+	if cfg.IsSet("redis.sentinelHostname") {
+		sentinelPool := getSentinelPool(cfg)
+		dialFunc = func(ctx context.Context) (redis.Conn, error) {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+
+			sentinelConn, err := sentinelPool.GetContext(ctx)
+			if err != nil {
+				redisLogger.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("failed to connect to redis sentinel")
+				return nil, status.Errorf(codes.Unavailable, "%v", err)
+			}
+
+			masterInfo, err := redis.Strings(sentinelConn.Do("SENTINEL", "GET-MASTER-ADDR-BY-NAME", cfg.GetString("redis.sentinelMaster")))
+			if err != nil {
+				redisLogger.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("failed to get current master from redis sentinel")
+				return nil, status.Errorf(codes.Unavailable, "%v", err)
+			}
+
+			masterURL := redisURLFromAddr(fmt.Sprintf("%s:%s", masterInfo[0], masterInfo[1]), cfg)
+			return redis.DialURL(masterURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
+		}
+	} else {
+		masterAddr := getMasterAddr(cfg)
+		masterURL := redisURLFromAddr(masterAddr, cfg)
+		dialFunc = func(ctx context.Context) (redis.Conn, error) {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return redis.DialURL(masterURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
+		}
 	}
 
 	return &redis.Pool{
@@ -104,78 +141,30 @@ func getRedisPool(poolType string, cfg config.View) *redis.Pool {
 		IdleTimeout:  idleTimeout,
 		Wait:         true,
 		TestOnBorrow: testOnBorrow,
-		DialContext:  getDialFunc(poolType, cfg, sentinelPool),
+		DialContext:  dialFunc,
 	}
 }
 
-func getDialFunc(poolType string, cfg config.View, sentinelPool *redis.Pool) func(ctx context.Context) (redis.Conn, error) {
+func getSentinelPool(cfg config.View) *redis.Pool {
+	maxIdle := cfg.GetInt("redis.pool.maxIdle")
+	maxActive := cfg.GetInt("redis.pool.maxActive")
 	idleTimeout := cfg.GetDuration("redis.pool.idleTimeout")
-	healthCheckTimeout := cfg.GetDuration("redis.pool.healthCheckTimeout")
 
-	if cfg.GetBool("redis.sentinelEnabled") {
-		sentinelAddr := fmt.Sprintf("%s:%s", cfg.GetString("redis.sentinelHostname"), cfg.GetString("redis.sentinelPort"))
-		sentinelURL := redisURLFromAddr(sentinelAddr, cfg)
-
-		switch poolType {
-		case "healthcheck":
-			return func(ctx context.Context) (redis.Conn, error) {
-				if ctx.Err() != nil {
-					return nil, ctx.Err()
-				}
-				return redis.DialURL(sentinelURL, redis.DialConnectTimeout(healthCheckTimeout), redis.DialReadTimeout(healthCheckTimeout))
+	sentinelAddr := getSentinelAddr(cfg)
+	sentinelURL := redisURLFromAddr(sentinelAddr, cfg)
+	return &redis.Pool{
+		MaxIdle:      maxIdle,
+		MaxActive:    maxActive,
+		IdleTimeout:  idleTimeout,
+		Wait:         true,
+		TestOnBorrow: testOnBorrow,
+		DialContext: func(ctx context.Context) (redis.Conn, error) {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
 			}
-		case "master":
-			return func(ctx context.Context) (redis.Conn, error) {
-				if ctx.Err() != nil {
-					return nil, ctx.Err()
-				}
-
-				sentinelConn, err := sentinelPool.GetContext(ctx)
-				if err != nil {
-					redisLogger.WithFields(logrus.Fields{
-						"error": err.Error(),
-					}).Error("failed to connect to redis sentinel")
-					return nil, status.Errorf(codes.Unavailable, "%v", err)
-				}
-
-				masterInfo, err := redis.Strings(sentinelConn.Do("SENTINEL", "GET-MASTER-ADDR-BY-NAME", cfg.GetString("redis.sentinelMaster")))
-				if err != nil {
-					redisLogger.WithFields(logrus.Fields{
-						"error": err.Error(),
-					}).Error("failed to get current master from redis sentinel")
-					return nil, status.Errorf(codes.Unavailable, "%v", err)
-				}
-
-				masterURL := redisURLFromAddr(fmt.Sprintf("%s:%s", masterInfo[0], masterInfo[1]), cfg)
-				return redis.DialURL(masterURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
-			}
-		default:
-			redisLogger.Fatalf("dial type: %s not supported, sentinelEnabled: %v", poolType, cfg.GetBool("redis.sentinelEnabled"))
-			return nil
-		}
-	} else {
-		masterAddr := fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port"))
-		masterURL := redisURLFromAddr(masterAddr, cfg)
-
-		switch poolType {
-		case "healthcheck":
-			return func(ctx context.Context) (redis.Conn, error) {
-				if ctx.Err() != nil {
-					return nil, ctx.Err()
-				}
-				return redis.DialURL(masterURL, redis.DialConnectTimeout(healthCheckTimeout), redis.DialReadTimeout(healthCheckTimeout))
-			}
-		case "master":
-			return func(ctx context.Context) (redis.Conn, error) {
-				if ctx.Err() != nil {
-					return nil, ctx.Err()
-				}
-				return redis.DialURL(masterURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
-			}
-		default:
-			redisLogger.Fatalf("dial type: %s not supported, sentinelEnabled: %v", poolType, cfg.GetBool("redis.sentinelEnabled"))
-			return nil
-		}
+			redisLogger.WithField("sentinelAddr", sentinelAddr).Debug("Attempting to connect to Redis Sentinel")
+			return redis.DialURL(sentinelURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
+		},
 	}
 }
 
@@ -208,6 +197,14 @@ func testOnBorrow(c redis.Conn, lastUsed time.Time) error {
 
 	_, err := c.Do("PING")
 	return err
+}
+
+func getSentinelAddr(cfg config.View) string {
+	return fmt.Sprintf("%s:%s", cfg.GetString("redis.sentinelHostname"), cfg.GetString("redis.sentinelPort"))
+}
+
+func getMasterAddr(cfg config.View) string {
+	return fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port"))
 }
 
 func redisURLFromAddr(addr string, cfg config.View) string {
