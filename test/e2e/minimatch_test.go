@@ -123,8 +123,7 @@ func TestMinimatch(t *testing.T) {
 			t.Run(fmt.Sprintf("TestMinimatch-%v", test.description), func(t *testing.T) {
 				t.Parallel()
 
-				om, closer := e2e.New(t)
-				defer closer()
+				om := e2e.New(t)
 				fc := test.fcGen(om)
 
 				fe := om.MustFrontendGRPC()
