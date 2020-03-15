@@ -112,6 +112,10 @@ redis:
   configmap: |
     maxclients 100000
     maxmemory 500000000
+  sentinel:
+    enabled: true
+    masterSet: om-redis-master
+    port: 26379
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
     resources:

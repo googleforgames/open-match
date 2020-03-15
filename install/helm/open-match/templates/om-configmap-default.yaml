@@ -87,10 +87,18 @@ data:
 
     redis:
 {{- if index .Values "open-match-core" "redis" "enabled" }}
+{{- if index .Values "redis" "sentinel" "enabled"}}
+      sentinelPort: {{ .Values.redis.sentinel.port }}
+      sentinelMaster: {{ .Values.redis.sentinel.masterSet }}
+      sentinelHostname: {{ .Values.redis.fullnameOverride }}.{{ .Release.Namespace }}.svc.cluster.local
+{{- else}}
+      # Open Match's default Redis setups
       hostname: {{ .Values.redis.fullnameOverride }}-master.{{ .Release.Namespace }}.svc.cluster.local
       port: {{ .Values.redis.redisPort }}
       user: {{ .Values.redis.user }}
+{{- end}}
 {{- else }}
+      # BYO Redis setups
       hostname: {{ index .Values "open-match-core" "redis" "hostname" }}
       port: {{ index .Values "open-match-core" "redis" "port" }}
       user: {{ index .Values "open-match-core" "redis" "user" }}

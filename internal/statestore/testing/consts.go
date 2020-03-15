@@ -18,9 +18,9 @@ import "time"
 
 const (
 	// PoolMaxIdle is the number of maximum idle redis connections in a redis pool
-	PoolMaxIdle = 10
+	PoolMaxIdle = 5
 	// PoolMaxActive is the number of maximum active redis connections in a redis pool
-	PoolMaxActive = 10
+	PoolMaxActive = 5
 	// PoolIdleTimeout is the idle duration allowance of a redis connection a a redis pool
 	PoolIdleTimeout = 10 * time.Second
 	// PoolHealthCheckTimeout is the read/write timeout of a healthcheck HTTP request
