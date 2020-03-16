@@ -27,10 +27,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/set"
 	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
+
+const allTickets = "allTickets"
 
 var (
 	redisLogger = logrus.WithFields(logrus.Fields{
@@ -56,45 +57,82 @@ func (rb *redisBackend) Close() error {
 // newRedis creates a statestore.Service backed by Redis database.
 func newRedis(cfg config.View) Service {
 	return &redisBackend{
-		healthCheckPool: getRedisPool("healthcheck", cfg),
-		redisPool:       getRedisPool("master", cfg),
+		healthCheckPool: getHealthCheckPool(cfg),
+		redisPool:       getRedisPool(cfg),
 		cfg:             cfg,
 	}
 }
 
-func getRedisPool(poolType string, cfg config.View) *redis.Pool {
-	var maxIdle, maxActive int
-	var idleTimeout time.Duration
-	var sentinelPool *redis.Pool
+func getHealthCheckPool(cfg config.View) *redis.Pool {
+	var healthCheckURL string
+	var maxIdle = 3
+	var maxActive = 0
+	var healthCheckTimeout = cfg.GetDuration("redis.pool.healthCheckTimeout")
 
-	if cfg.GetBool("redis.sentinelEnabled") {
-		sentinelAddr := fmt.Sprintf("%s:%s", cfg.GetString("redis.sentinelHostname"), cfg.GetString("redis.sentinelPort"))
-		sentinelURL := redisURLFromAddr(sentinelAddr, cfg, false)
-		sentinelPool = &redis.Pool{
-			MaxIdle:      maxIdle,
-			MaxActive:    maxActive,
-			IdleTimeout:  idleTimeout,
-			Wait:         true,
-			TestOnBorrow: testOnBorrow,
-			DialContext: func(ctx context.Context) (redis.Conn, error) {
-				if ctx.Err() != nil {
-					return nil, ctx.Err()
-				}
-				redisLogger.WithField("sentinelAddr", sentinelAddr).Debug("Attempting to connect to Redis Sentinel")
-				return redis.DialURL(sentinelURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
-			},
-		}
+	if cfg.IsSet("redis.sentinelHostname") {
+		sentinelAddr := getSentinelAddr(cfg)
+		healthCheckURL = redisURLFromAddr(sentinelAddr, cfg, false)
+	} else {
+		masterAddr := getMasterAddr(cfg)
+		healthCheckURL = redisURLFromAddr(masterAddr, cfg, false)
 	}
 
-	switch poolType {
-	case "healthcheck":
-		maxIdle = 3
-		maxActive = 0
-		idleTimeout = 10 * cfg.GetDuration("redis.pool.healthCheckTimeout")
-	default:
-		maxIdle = cfg.GetInt("redis.pool.maxIdle")
-		maxActive = cfg.GetInt("redis.pool.maxActive")
-		idleTimeout = cfg.GetDuration("redis.pool.idleTimeout")
+	return &redis.Pool{
+		MaxIdle:      maxIdle,
+		MaxActive:    maxActive,
+		IdleTimeout:  10 * healthCheckTimeout,
+		Wait:         true,
+		TestOnBorrow: testOnBorrow,
+		DialContext: func(ctx context.Context) (redis.Conn, error) {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return redis.DialURL(healthCheckURL, redis.DialConnectTimeout(healthCheckTimeout), redis.DialReadTimeout(healthCheckTimeout))
+		},
+	}
+}
+
+func getRedisPool(cfg config.View) *redis.Pool {
+	var dialFunc func(context.Context) (redis.Conn, error)
+	maxIdle := cfg.GetInt("redis.pool.maxIdle")
+	maxActive := cfg.GetInt("redis.pool.maxActive")
+	idleTimeout := cfg.GetDuration("redis.pool.idleTimeout")
+
+	if cfg.IsSet("redis.sentinelHostname") {
+		sentinelPool := getSentinelPool(cfg)
+		dialFunc = func(ctx context.Context) (redis.Conn, error) {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+
+			sentinelConn, err := sentinelPool.GetContext(ctx)
+			if err != nil {
+				redisLogger.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("failed to connect to redis sentinel")
+				return nil, status.Errorf(codes.Unavailable, "%v", err)
+			}
+
+			masterInfo, err := redis.Strings(sentinelConn.Do("SENTINEL", "GET-MASTER-ADDR-BY-NAME", cfg.GetString("redis.sentinelMaster")))
+			if err != nil {
+				redisLogger.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("failed to get current master from redis sentinel")
+				return nil, status.Errorf(codes.Unavailable, "%v", err)
+			}
+
+			masterURL := redisURLFromAddr(fmt.Sprintf("%s:%s", masterInfo[0], masterInfo[1]), cfg, true)
+			return redis.DialURL(masterURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
+		}
+	} else {
+		masterAddr := getMasterAddr(cfg)
+		masterURL := redisURLFromAddr(masterAddr, cfg, true)
+		dialFunc = func(ctx context.Context) (redis.Conn, error) {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return redis.DialURL(masterURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
+		}
 	}
 
 	return &redis.Pool{
@@ -103,78 +141,30 @@ func getRedisPool(poolType string, cfg config.View) *redis.Pool {
 		IdleTimeout:  idleTimeout,
 		Wait:         true,
 		TestOnBorrow: testOnBorrow,
-		DialContext:  getDialFunc(poolType, cfg, sentinelPool),
+		DialContext:  dialFunc,
 	}
 }
 
-func getDialFunc(poolType string, cfg config.View, sentinelPool *redis.Pool) func(ctx context.Context) (redis.Conn, error) {
+func getSentinelPool(cfg config.View) *redis.Pool {
+	maxIdle := cfg.GetInt("redis.pool.maxIdle")
+	maxActive := cfg.GetInt("redis.pool.maxActive")
 	idleTimeout := cfg.GetDuration("redis.pool.idleTimeout")
-	healthCheckTimeout := cfg.GetDuration("redis.pool.healthCheckTimeout")
 
-	if cfg.GetBool("redis.sentinelEnabled") {
-		sentinelAddr := fmt.Sprintf("%s:%s", cfg.GetString("redis.sentinelHostname"), cfg.GetString("redis.sentinelPort"))
-		sentinelURL := redisURLFromAddr(sentinelAddr, cfg, false)
-
-		switch poolType {
-		case "healthcheck":
-			return func(ctx context.Context) (redis.Conn, error) {
-				if ctx.Err() != nil {
-					return nil, ctx.Err()
-				}
-				return redis.DialURL(sentinelURL, redis.DialConnectTimeout(healthCheckTimeout), redis.DialReadTimeout(healthCheckTimeout))
+	sentinelAddr := getSentinelAddr(cfg)
+	sentinelURL := redisURLFromAddr(sentinelAddr, cfg, false)
+	return &redis.Pool{
+		MaxIdle:      maxIdle,
+		MaxActive:    maxActive,
+		IdleTimeout:  idleTimeout,
+		Wait:         true,
+		TestOnBorrow: testOnBorrow,
+		DialContext: func(ctx context.Context) (redis.Conn, error) {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
 			}
-		case "master":
-			return func(ctx context.Context) (redis.Conn, error) {
-				if ctx.Err() != nil {
-					return nil, ctx.Err()
-				}
-
-				sentinelConn, err := sentinelPool.GetContext(ctx)
-				if err != nil {
-					redisLogger.WithFields(logrus.Fields{
-						"error": err.Error(),
-					}).Error("failed to connect to redis sentinel")
-					return nil, status.Errorf(codes.Unavailable, "%v", err)
-				}
-
-				masterInfo, err := redis.Strings(sentinelConn.Do("SENTINEL", "GET-MASTER-ADDR-BY-NAME", cfg.GetString("redis.sentinelMaster")))
-				if err != nil {
-					redisLogger.WithFields(logrus.Fields{
-						"error": err.Error(),
-					}).Error("failed to get current master from redis sentinel")
-					return nil, status.Errorf(codes.Unavailable, "%v", err)
-				}
-
-				masterURL := redisURLFromAddr(fmt.Sprintf("%s:%s", masterInfo[0], masterInfo[1]), cfg, true)
-				return redis.DialURL(masterURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
-			}
-		default:
-			redisLogger.Fatalf("dial type: %s not supported, sentinelEnabled: %v", poolType, cfg.GetBool("redis.sentinelEnabled"))
-			return nil
-		}
-	} else {
-		masterAddr := fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port"))
-		masterURL := redisURLFromAddr(masterAddr, cfg, true)
-
-		switch poolType {
-		case "healthcheck":
-			return func(ctx context.Context) (redis.Conn, error) {
-				if ctx.Err() != nil {
-					return nil, ctx.Err()
-				}
-				return redis.DialURL(masterURL, redis.DialConnectTimeout(healthCheckTimeout), redis.DialReadTimeout(healthCheckTimeout))
-			}
-		case "master":
-			return func(ctx context.Context) (redis.Conn, error) {
-				if ctx.Err() != nil {
-					return nil, ctx.Err()
-				}
-				return redis.DialURL(masterURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
-			}
-		default:
-			redisLogger.Fatalf("dial type: %s not supported, sentinelEnabled: %v", poolType, cfg.GetBool("redis.sentinelEnabled"))
-			return nil
-		}
+			redisLogger.WithField("sentinelAddr", sentinelAddr).Debug("Attempting to connect to Redis Sentinel")
+			return redis.DialURL(sentinelURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
+		},
 	}
 }
 
@@ -199,13 +189,22 @@ func (rb *redisBackend) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-func testOnBorrow(c redis.Conn, t time.Time) error {
+func testOnBorrow(c redis.Conn, lastUsed time.Time) error {
 	// Assume the connection is valid if it was used in 30 sec.
-	if time.Since(t) < 30*time.Second {
+	if time.Since(lastUsed) < 15*time.Second {
 		return nil
 	}
+
 	_, err := c.Do("PING")
 	return err
+}
+
+func getSentinelAddr(cfg config.View) string {
+	return fmt.Sprintf("%s:%s", cfg.GetString("redis.sentinelHostname"), cfg.GetString("redis.sentinelPort"))
+}
+
+func getMasterAddr(cfg config.View) string {
+	return fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port"))
 }
 
 func redisURLFromAddr(addr string, cfg config.View, usePassword bool) string {
@@ -250,15 +249,6 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("MULTI")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "MULTI",
-			"error": err.Error(),
-		}).Error("state storage operation failed")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
 	value, err := proto.Marshal(ticket)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -268,39 +258,13 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	err = redisConn.Send("SET", ticket.GetId(), value)
+	_, err = redisConn.Do("SET", ticket.GetId(), value)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
 			"cmd":   "SET",
 			"key":   ticket.GetId(),
 			"error": err.Error(),
 		}).Error("failed to set the value for ticket")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	if rb.cfg.IsSet("redis.expiration") {
-		redisTTL := rb.cfg.GetInt("redis.expiration")
-		if redisTTL > 0 {
-			err = redisConn.Send("EXPIRE", ticket.GetId(), redisTTL)
-			if err != nil {
-				redisLogger.WithFields(logrus.Fields{
-					"cmd":   "EXPIRE",
-					"key":   ticket.GetId(),
-					"ttl":   redisTTL,
-					"error": err.Error(),
-				}).Error("failed to set ticket expiration in state storage")
-				return status.Errorf(codes.Internal, "%v", err)
-			}
-		}
-	}
-
-	_, err = redisConn.Do("EXEC")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "EXEC",
-			"key":   ticket.GetId(),
-			"error": err.Error(),
-		}).Error("failed to create ticket in state storage")
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
@@ -387,58 +351,14 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 	}
 	defer handleConnectionClose(&redisConn)
 
-	indexedFields := extractIndexedFields(ticket)
-
-	err = redisConn.Send("MULTI")
+	err = redisConn.Send("SADD", allTickets, ticket.Id)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "MULTI",
-			"error": err.Error(),
-		}).Error("state storage operation failed")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	{
-		command := make([]interface{}, 0, 1+len(indexedFields))
-		command = append(command, indexCacheName(ticket.Id))
-		for index := range indexedFields {
-			command = append(command, index)
-		}
-		err = redisConn.Send("SADD", command...)
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"cmd":     "SADD",
-				"ticket":  ticket.GetId(),
-				"error":   err.Error(),
-				"indices": command[1:],
-			}).Error("failed to set ticket's indices")
-			return status.Errorf(codes.Internal, "%v", err)
-		}
-	}
-
-	for k, v := range indexedFields {
-		// Index the DoubleArg by value.
-		err = redisConn.Send("ZADD", k, v, ticket.GetId())
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"cmd":       "ZADD",
-				"DoubleArg": k,
-				"value":     v,
-				"ticket":    ticket.GetId(),
-				"error":     err.Error(),
-			}).Error("failed to index ticket DoubleArg")
-			return status.Errorf(codes.Internal, "%v", err)
-		}
-	}
-
-	// Run pipelined Redis commands.
-	_, err = redisConn.Do("EXEC")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "EXEC",
-			"id":    ticket.GetId(),
-			"error": err.Error(),
-		}).Error("failed to index the ticket")
+			"cmd":    "SADD",
+			"ticket": ticket.GetId(),
+			"error":  err.Error(),
+			"key":    allTickets,
+		}).Error("failed to add ticket to all tickets")
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
@@ -453,80 +373,25 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	}
 	defer handleConnectionClose(&redisConn)
 
-	indices, err := redis.Strings(redisConn.Do("SMEMBERS", indexCacheName(id)))
+	err = redisConn.Send("SREM", allTickets, id)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
-			"SMEMBERS": "MULTI",
-			"error":    err.Error(),
-			"ticket":   id,
-		}).Error("failed to retrieve ticket's indexed fields")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	if len(indices) == 0 {
-		return nil
-	}
-
-	err = redisConn.Send("MULTI")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "MULTI",
-			"error": err.Error(),
-		}).Error("state storage operation failed")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	for _, index := range indices {
-		err = redisConn.Send("ZREM", index, id)
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"cmd":   "ZREM",
-				"index": index,
-				"id":    id,
-				"error": err.Error(),
-			}).Error("failed to deindex the ticket")
-			return status.Errorf(codes.Internal, "%v", err)
-		}
-	}
-
-	err = redisConn.Send("DEL", indexCacheName(id))
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "DEL",
+			"cmd":   "SREM",
+			"key":   allTickets,
 			"id":    id,
 			"error": err.Error(),
-		}).Error("failed to remove ticket's indexed fields")
-		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	_, err = redisConn.Do("EXEC")
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "EXEC",
-			"id":    id,
-			"error": err.Error(),
-		}).Error("failed to deindex the ticket")
+		}).Error("failed to remove ticket from all tickets")
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
 	return nil
 }
 
-// FilterTickets returns the Ticket ids and required DoubleArg key-value pairs for the Tickets meeting the specified filtering criteria.
-// map[ticket.Id]map[DoubleArgName][DoubleArgValue]
-// {
-//  "testplayer1": {"ranking" : 56, "loyalty_level": 4},
-//  "testplayer2": {"ranking" : 50, "loyalty_level": 3},
-// }
-func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSize int, callback func([]*pb.Ticket) error) error {
-	var err error
-	var redisConn redis.Conn
-	var ticketBytes [][]byte
-	var idsInFilter, idsInIgnoreLists []string
-
-	redisConn, err = rb.connect(ctx)
+// GetIndexedIds returns the ids of all tickets currently indexed.
+func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{}, error) {
+	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -536,75 +401,75 @@ func (rb *redisBackend) FilterTickets(ctx context.Context, pool *pb.Pool, pageSi
 	startTimeInt := curTime.Add(-ttl).UnixNano()
 
 	// Filter out tickets that are fetched but not assigned within ttl time (ms).
-	idsInIgnoreLists, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, curTimeInt))
+	idsInIgnoreLists, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, curTimeInt))
 	if err != nil {
 		redisLogger.WithError(err).Error("failed to get proposed tickets")
-		return status.Errorf(codes.Internal, err.Error())
+		return nil, status.Errorf(codes.Internal, "error getting ignore list %v", err)
 	}
 
-	// A set of playerIds that satisfies all filters
-	idSet := make([]string, 0)
-
-	// For each filter, do a range query to Redis on Filter.DoubleArg
-	for i, filter := range extractIndexFilters(pool) {
-		// Time Complexity O(logN + M), where N is the number of elements in the DoubleArg set
-		// and M is the number of entries being returned.
-		// TODO: discuss if we need a LIMIT for # of queries being returned
-		idsInFilter, err = redis.Strings(redisConn.Do("ZRANGEBYSCORE", filter.name, filter.min, filter.max))
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"Command": fmt.Sprintf("ZRANGEBYSCORE %s %f %f", filter.name, filter.min, filter.max),
-			}).WithError(err).Error("Failed to lookup index.")
-			return status.Errorf(codes.Internal, "%v", err)
-		}
-
-		if i == 0 {
-			idSet = idsInFilter
-		} else {
-			idSet = set.Intersection(idSet, idsInFilter)
-		}
+	idsIndexed, err := redis.Strings(redisConn.Do("SMEMBERS", allTickets))
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"Command": "SMEMBER allTickets",
+		}).WithError(err).Error("Failed to lookup all tickets.")
+		return nil, status.Errorf(codes.Internal, "error getting all indexed ticket ids %v", err)
 	}
 
-	idSet = set.Difference(idSet, idsInIgnoreLists)
+	r := make(map[string]struct{}, len(idsIndexed))
+	for _, id := range idsIndexed {
+		r[id] = struct{}{}
+	}
+	for _, id := range idsInIgnoreLists {
+		delete(r, id)
+	}
 
-	// TODO: finish reworking this after the proto changes.
-	for _, page := range idsToPages(idSet, pageSize) {
-		ticketBytes, err = redis.ByteSlices(redisConn.Do("MGET", page...))
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"Command": fmt.Sprintf("MGET %v", page),
-			}).WithError(err).Error("Failed to lookup tickets.")
-			return status.Errorf(codes.Internal, "%v", err)
-		}
+	return r, nil
+}
 
-		tickets := make([]*pb.Ticket, 0, len(page))
-		for i, b := range ticketBytes {
-			// Tickets may be deleted by the time we read it from redis.
-			if b != nil {
-				t := &pb.Ticket{}
-				err = proto.Unmarshal(b, t)
-				if err != nil {
-					redisLogger.WithFields(logrus.Fields{
-						"key": page[i],
-					}).WithError(err).Error("Failed to unmarshal ticket from redis.")
-					return status.Errorf(codes.Internal, "%v", err)
-				}
-				tickets = append(tickets, t)
+// GetTickets returns multiple tickets from storage.  Missing tickets are
+// silently ignored.
+func (rb *redisBackend) GetTickets(ctx context.Context, ids []string) ([]*pb.Ticket, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	redisConn, err := rb.connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer handleConnectionClose(&redisConn)
+
+	queryParams := make([]interface{}, len(ids))
+	for i, id := range ids {
+		queryParams[i] = id
+	}
+
+	ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", queryParams...))
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"Command": fmt.Sprintf("MGET %v", ids),
+		}).WithError(err).Error("Failed to lookup tickets.")
+		return nil, status.Errorf(codes.Internal, "%v", err)
+	}
+
+	r := make([]*pb.Ticket, 0, len(ids))
+
+	for i, b := range ticketBytes {
+		// Tickets may be deleted by the time we read it from redis.
+		if b != nil {
+			t := &pb.Ticket{}
+			err = proto.Unmarshal(b, t)
+			if err != nil {
+				redisLogger.WithFields(logrus.Fields{
+					"key": ids[i],
+				}).WithError(err).Error("Failed to unmarshal ticket from redis.")
+				return nil, status.Errorf(codes.Internal, "%v", err)
 			}
-		}
-
-		err = callback(tickets)
-		if err != nil {
-			return status.Errorf(codes.Internal, "%v", err)
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
+			r = append(r, t)
 		}
 	}
 
-	return nil
+	return r, nil
 }
 
 // UpdateAssignments update the match assignments for the input ticket ids.
@@ -615,6 +480,9 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 	if assignment == nil {
 		return status.Error(codes.InvalidArgument, "assignment is nil")
 	}
+	if len(ids) == 0 {
+		return nil
+	}
 
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
@@ -622,28 +490,34 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("MULTI")
+	b := make([]interface{}, len(ids))
+	for i := range ids {
+		b[i] = ids[i]
+	}
+
+	ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", b...))
 	if err != nil {
 		return err
 	}
 
-	// Sanity check to make sure all inputs ids are valid
-	tickets := []*pb.Ticket{}
-	for _, id := range ids {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			var ticket *pb.Ticket
-			ticket, err = rb.GetTicket(ctx, id)
-			if err != nil {
-				redisLogger.WithError(err).Errorf("failed to get ticket %s from redis when updating assignments", id)
-				return err
-			}
-			tickets = append(tickets, ticket)
+	tickets := make([]*pb.Ticket, 0, len(ticketBytes))
+	for i, ticketByte := range ticketBytes {
+		// Tickets may be deleted by the time we read it from redis.
+		if ticketByte == nil {
+			return status.Errorf(codes.NotFound, "failed to get ticket %s from statestore", ids[i])
 		}
+		t := &pb.Ticket{}
+		err = proto.Unmarshal(ticketByte, t)
+		if err != nil {
+			redisLogger.WithFields(logrus.Fields{
+				"key": ids[i],
+			}).WithError(err).Error("Failed to unmarshal ticket from redis.")
+			return status.Errorf(codes.Internal, "%v", err)
+		}
+		tickets = append(tickets, t)
 	}
 
+	cmds := make([]interface{}, 0, 2*len(tickets))
 	for _, ticket := range tickets {
 		select {
 		case <-ctx.Done():
@@ -657,18 +531,19 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, ass
 
 			ticket.Assignment = assignmentCopy
 
-			err = rb.CreateTicket(ctx, ticket)
+			var ticketByte []byte
+			ticketByte, err = proto.Marshal(ticket)
 			if err != nil {
-				redisLogger.WithError(err).Errorf("failed to recreate ticket %#v with new assignment when updating assignments", ticket)
-				return err
+				return status.Errorf(codes.Internal, "failed to marshal ticket %s", ticket.GetId())
 			}
+
+			cmds = append(cmds, ticket.GetId(), ticketByte)
 		}
 	}
 
-	// Run pipelined Redis commands.
-	_, err = redisConn.Do("EXEC")
+	_, err = redisConn.Do("MSET", cmds...)
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to execute update assignments transaction")
+		redisLogger.WithError(err).Errorf("failed to send ticket updates to redis %s", cmds)
 		return err
 	}
 
@@ -708,32 +583,26 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 
 // AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
 func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
 		return err
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("MULTI")
-	if err != nil {
-		redisLogger.WithError(err).Error("failed to pipeline commands for AddTicketsToIgnoreList")
-		return status.Error(codes.Internal, err.Error())
-	}
-
 	currentTime := time.Now().UnixNano()
+	cmds := make([]interface{}, 0, 2*len(ids)+1)
+	cmds = append(cmds, "proposed_ticket_ids")
 	for _, id := range ids {
-		// Index the DoubleArg by value.
-		err = redisConn.Send("ZADD", "proposed_ticket_ids", currentTime, id)
-		if err != nil {
-			redisLogger.WithError(err).Error("failed to append proposed tickets to redis")
-			return status.Error(codes.Internal, err.Error())
-		}
+		cmds = append(cmds, currentTime, id)
 	}
 
-	// Run pipelined Redis commands.
-	_, err = redisConn.Do("EXEC")
+	_, err = redisConn.Do("ZADD", cmds...)
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to execute pipelined commands for AddTicketsToIgnoreList")
+		redisLogger.WithError(err).Error("failed to append proposed tickets to ignore list")
 		return status.Error(codes.Internal, err.Error())
 	}
 
@@ -752,44 +621,19 @@ func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []s
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("MULTI")
-	if err != nil {
-		redisLogger.WithError(err).Error("failed to pipeline commands for DeleteTicketsFromIgnoreList")
-		return status.Error(codes.Internal, err.Error())
-	}
-
+	cmds := make([]interface{}, 0, len(ids)+1)
+	cmds = append(cmds, "proposed_ticket_ids")
 	for _, id := range ids {
-		err = redisConn.Send("ZREM", "proposed_ticket_ids", id)
-		if err != nil {
-			redisLogger.WithError(err).Error("failed to delete proposed tickets from ignore list")
-			return status.Error(codes.Internal, err.Error())
-		}
+		cmds = append(cmds, id)
 	}
 
-	// Run pipelined Redis commands.
-	_, err = redisConn.Do("EXEC")
+	_, err = redisConn.Do("ZREM", cmds...)
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to execute pipelined commands for DeleteTicketsFromIgnoreList")
+		redisLogger.WithError(err).Error("failed to delete proposed tickets from ignore list")
 		return status.Error(codes.Internal, err.Error())
 	}
 
 	return nil
-}
-
-func idsToPages(ids []string, pageSize int) [][]interface{} {
-	result := make([][]interface{}, 0, len(ids)/pageSize+1)
-	for i := 0; i < len(ids); i += pageSize {
-		end := i + pageSize
-		if end > len(ids) {
-			end = len(ids)
-		}
-		page := make([]interface{}, end-i)
-		for i, id := range ids[i:end] {
-			page[i] = id
-		}
-		result = append(result, page)
-	}
-	return result
 }
 
 func handleConnectionClose(conn *redis.Conn) {

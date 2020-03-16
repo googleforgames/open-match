@@ -16,14 +16,14 @@ package frontend
 
 import (
 	"context"
+	"math/rand"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/stats"
 	"go.opencensus.io/trace"
 	"open-match.dev/open-match/examples/scale/scenarios"
-	"open-match.dev/open-match/examples/scale/tickets"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/telemetry"
@@ -35,14 +35,12 @@ var (
 		"app":       "openmatch",
 		"component": "scale.frontend",
 	})
-	activeScenario     = scenarios.ActiveScenario
-	statProcessor      = scenarios.NewStatProcessor()
-	numOfRoutineCreate = 8
-
-	totalCreated uint32
+	activeScenario = scenarios.ActiveScenario
 
 	mTicketsCreated        = telemetry.Counter("scale_frontend_tickets_created", "tickets created")
 	mTicketCreationsFailed = telemetry.Counter("scale_frontend_ticket_creations_failed", "tickets created")
+	mRunnersWaiting        = concurrentGauge(telemetry.Gauge("scale_frontend_runners_waiting", "runners waiting"))
+	mRunnersCreating       = concurrentGauge(telemetry.Gauge("scale_frontend_runners_creating", "runners creating"))
 )
 
 // Run triggers execution of the scale frontend component that creates
@@ -60,77 +58,94 @@ func run(cfg config.View) {
 			"error": err.Error(),
 		}).Fatal("failed to get Frontend connection")
 	}
-	fe := pb.NewFrontendClient(conn)
-
-	w := logger.Writer()
-	defer w.Close()
+	fe := pb.NewFrontendServiceClient(conn)
 
 	ticketQPS := int(activeScenario.FrontendTicketCreatedQPS)
 	ticketTotal := activeScenario.FrontendTotalTicketsToCreate
 
-	for {
-		currentCreated := int(atomic.LoadUint32(&totalCreated))
-		if ticketTotal != -1 && currentCreated >= ticketTotal {
-			break
-		}
+	totalCreated := 0
 
-		// Each inner loop creates TicketCreatedQPS tickets
-		var ticketPerRoutine, ticketModRoutine int
-		start := time.Now()
-
-		if ticketTotal == -1 || currentCreated+ticketQPS <= ticketTotal {
-			ticketPerRoutine = ticketQPS / numOfRoutineCreate
-			ticketModRoutine = ticketQPS % numOfRoutineCreate
-		} else {
-			ticketPerRoutine = (ticketTotal - currentCreated) / numOfRoutineCreate
-			ticketModRoutine = (ticketTotal - currentCreated) % numOfRoutineCreate
-		}
-
-		var wg sync.WaitGroup
-		for i := 0; i < numOfRoutineCreate; i++ {
-			wg.Add(1)
-			if i < ticketModRoutine {
-				go createPerCycle(&wg, fe, ticketPerRoutine+1, start)
-			} else {
-				go createPerCycle(&wg, fe, ticketPerRoutine, start)
+	for range time.Tick(time.Second) {
+		for i := 0; i < ticketQPS; i++ {
+			if ticketTotal == -1 || totalCreated < ticketTotal {
+				go runner(fe)
 			}
 		}
-
-		// Wait for all concurrent creates to complete.
-		wg.Wait()
-		statProcessor.SetStat("TotalCreated", atomic.LoadUint32(&totalCreated))
-		statProcessor.Log(w)
 	}
 }
 
-func createPerCycle(wg *sync.WaitGroup, fe pb.FrontendClient, ticketPerRoutine int, start time.Time) {
-	defer wg.Done()
-	cycleCreated := 0
+func runner(fe pb.FrontendServiceClient) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	for j := 0; j < ticketPerRoutine; j++ {
-		req := &pb.CreateTicketRequest{
-			Ticket: tickets.Ticket(),
-		}
+	g := stateGauge{}
+	defer g.stop()
 
-		ctx, span := trace.StartSpan(context.Background(), "scale.frontend/CreateTicket")
-		defer span.End()
+	g.start(mRunnersWaiting)
+	// A random sleep at the start of the worker evens calls out over the second
+	// period, and makes timing between ticket creation calls a more realistic
+	// poisson distribution.
+	time.Sleep(time.Duration(rand.Int63n(int64(time.Second))))
 
-		timeLeft := start.Add(time.Second).Sub(time.Now())
-		if timeLeft <= 0 {
-			break
-		}
-		ticketsLeft := ticketPerRoutine - cycleCreated
-
-		time.Sleep(timeLeft / time.Duration(ticketsLeft))
-
-		if _, err := fe.CreateTicket(ctx, req); err == nil {
-			cycleCreated++
-			telemetry.RecordUnitMeasurement(ctx, mTicketsCreated)
-		} else {
-			statProcessor.RecordError("failed to create a ticket", err)
-			telemetry.RecordUnitMeasurement(ctx, mTicketCreationsFailed)
-		}
+	g.start(mRunnersCreating)
+	id, err := createTicket(ctx, fe)
+	if err != nil {
+		logger.WithError(err).Error("failed to create a ticket")
+		return
 	}
 
-	atomic.AddUint32(&totalCreated, uint32(cycleCreated))
+	_ = id
+}
+
+func createTicket(ctx context.Context, fe pb.FrontendServiceClient) (string, error) {
+	ctx, span := trace.StartSpan(ctx, "scale.frontend/CreateTicket")
+	defer span.End()
+
+	req := &pb.CreateTicketRequest{
+		Ticket: activeScenario.Ticket(),
+	}
+
+	resp, err := fe.CreateTicket(ctx, req)
+	if err != nil {
+		telemetry.RecordUnitMeasurement(ctx, mTicketCreationsFailed)
+		return "", err
+	}
+
+	telemetry.RecordUnitMeasurement(ctx, mTicketsCreated)
+	return resp.Ticket.Id, nil
+}
+
+// Allows concurrent moficiation of a gauge value by modifying the concurrent
+// value with a delta.
+func concurrentGauge(s *stats.Int64Measure) func(delta int64) {
+	m := sync.Mutex{}
+	v := int64(0)
+	return func(delta int64) {
+		m.Lock()
+		defer m.Unlock()
+
+		v += delta
+		telemetry.SetGauge(context.Background(), s, v)
+	}
+}
+
+// stateGauge will have a single value be applied to one gauge at a time.
+type stateGauge struct {
+	f func(int64)
+}
+
+// start begins a stage measured in a gauge, stopping any previously started
+// stage.
+func (g *stateGauge) start(f func(int64)) {
+	g.stop()
+	g.f = f
+	f(1)
+}
+
+// stop finishes the current stage by decrementing the gauge.
+func (g *stateGauge) stop() {
+	if g.f != nil {
+		g.f(-1)
+		g.f = nil
+	}
 }

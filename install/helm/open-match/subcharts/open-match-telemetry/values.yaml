@@ -135,9 +135,14 @@ grafana:
   adminPassword: openmatch
   service:
     port: 3000
+  # Setup Grafana Alert Notification Channels:
+  # ref: https://grafana.com/docs/grafana/latest/administration/provisioning/#alert-notification-channels
+  # Examples are available at {{ .Values.notifiers }} section:
+  # ref: https://github.com/helm/charts/blob/master/stable/grafana/values.yaml
+  notifiers: {}
   sidecar:
-      dashboards:
-          enabled: true
+    dashboards:
+        enabled: true
   plugins: grafana-piechart-panel
   datasources:
     datasources.yaml:

@@ -25,30 +25,29 @@ import (
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
+	"open-match.dev/open-match/test/matchfunction/mmf"
 )
 
 func TestServiceHealth(t *testing.T) {
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 	if err := om.HealthCheck(); err != nil {
 		t.Errorf("cluster health checks failed, %s", err)
 	}
 }
 
 func TestGetClients(t *testing.T) {
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 
 	if c := om.MustFrontendGRPC(); c == nil {
-		t.Error("cannot get frontend client")
+		t.Error("cannot get frontendService client")
 	}
 
 	if c := om.MustBackendGRPC(); c == nil {
-		t.Error("cannot get backend client")
+		t.Error("cannot get backendService client")
 	}
 
-	if c := om.MustMmLogicGRPC(); c == nil {
-		t.Error("cannot get mmlogic client")
+	if c := om.MustQueryServiceGRPC(); c == nil {
+		t.Error("cannot get queryService client")
 	}
 }
 
@@ -65,8 +64,7 @@ func TestGameMatchWorkFlow(t *testing.T) {
 		8. Call backend.FetchMatches and verify the response does not contain the tickets got deleted.
 	*/
 
-	om, closer := e2e.New(t)
-	defer closer()
+	om := e2e.New(t)
 	fe := om.MustFrontendGRPC()
 	be := om.MustBackendGRPC()
 	mmfCfg := om.MustMmfConfigGRPC()
@@ -132,49 +130,48 @@ func TestGameMatchWorkFlow(t *testing.T) {
 
 	fmReq := &pb.FetchMatchesRequest{
 		Config: mmfCfg,
-		Profiles: []*pb.MatchProfile{
-			{
-				Name: "test-profile",
-				Pools: []*pb.Pool{
-					{
-						Name:               "ticket12",
-						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 6}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
-					},
-					{
-						Name:               "ticket23",
-						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 10}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
-					},
-					{
-						Name:               "ticket5",
-						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 100}, {DoubleArg: e2e.DoubleArgLevel, Min: 17, Max: 25}},
-					},
-					{
-						Name:               "ticket234",
-						DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 17}, {DoubleArg: e2e.DoubleArgLevel, Min: 3, Max: 17}},
-					},
+		Profile: &pb.MatchProfile{
+			Name: "test-profile",
+			Pools: []*pb.Pool{
+				{
+					Name:               "ticket12",
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 6}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
+				},
+				{
+					Name:               "ticket23",
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 10}, {DoubleArg: e2e.DoubleArgLevel, Min: 0, Max: 100}},
+				},
+				{
+					Name:               "ticket5",
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 0, Max: 100}, {DoubleArg: e2e.DoubleArgLevel, Min: 17, Max: 25}},
+				},
+				{
+					Name:               "ticket234",
+					DoubleRangeFilters: []*pb.DoubleRangeFilter{{DoubleArg: e2e.DoubleArgMMR, Min: 3, Max: 17}, {DoubleArg: e2e.DoubleArgLevel, Min: 3, Max: 17}},
 				},
 			},
 		},
 	}
 
 	// 2. Call backend.FetchMatches and expects two matches with the following tickets
-	var wantTickets = [][]*pb.Ticket{{ticket2, ticket3, ticket4}, {ticket5}}
-	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
+	matches := []*pb.Match{MustMakeMatch(ticket2, ticket3, ticket4), MustMakeMatch(ticket5)}
+	validateFetchMatchesResponse(ctx, t, matches, be, fmReq)
 
 	// 3. Call backend.FetchMatches within storage.ignoreListTTL seconds and expects it return a match with ticket1 .
-	wantTickets = [][]*pb.Ticket{{ticket1}}
-	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
+	matches = []*pb.Match{MustMakeMatch(ticket1)}
+	validateFetchMatchesResponse(ctx, t, matches, be, fmReq)
 
 	// 4. Wait for storage.ignoreListTTL seconds and call backend.FetchMatches the third time, expect the same result as step 2.
 	time.Sleep(statestoreTesting.IgnoreListTTL)
-	wantTickets = [][]*pb.Ticket{{ticket2, ticket3, ticket4}, {ticket5}}
-	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
+	matches = []*pb.Match{MustMakeMatch(ticket2, ticket3, ticket4), MustMakeMatch(ticket5)}
+	validateFetchMatchesResponse(ctx, t, matches, be, fmReq)
 
 	// 5. Call backend.AssignTickets to assign DGSs for the tickets in FetchMatches' response
 	var gotAtResp *pb.AssignTicketsResponse
-	for _, tickets := range wantTickets {
+
+	for _, m := range matches {
 		tids := []string{}
-		for _, ticket := range tickets {
+		for _, ticket := range m.Tickets {
 			tids = append(tids, ticket.GetId())
 		}
 		gotAtResp, err = be.AssignTickets(ctx, &pb.AssignTicketsRequest{TicketIds: tids, Assignment: &pb.Assignment{Connection: "agones-1"}}, grpc.WaitForReady(true))
@@ -184,8 +181,8 @@ func TestGameMatchWorkFlow(t *testing.T) {
 
 	// 6. Call backend.FetchMatches and verify it no longer returns tickets got assigned in the previous step.
 	time.Sleep(statestoreTesting.IgnoreListTTL)
-	wantTickets = [][]*pb.Ticket{{ticket1}}
-	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
+	matches = []*pb.Match{MustMakeMatch(ticket1)}
+	validateFetchMatchesResponse(ctx, t, matches, be, fmReq)
 
 	// 7. Call frontend.DeleteTicket to delete the tickets returned in step 6.
 	var gotDtResp *pb.DeleteTicketResponse
@@ -195,11 +192,11 @@ func TestGameMatchWorkFlow(t *testing.T) {
 
 	// 8. Call backend.FetchMatches and verify the response does not contain the tickets got deleted.
 	time.Sleep(statestoreTesting.IgnoreListTTL)
-	wantTickets = [][]*pb.Ticket{}
-	validateFetchMatchesResponse(ctx, t, wantTickets, be, fmReq)
+	matches = []*pb.Match{}
+	validateFetchMatchesResponse(ctx, t, matches, be, fmReq)
 }
 
-func validateFetchMatchesResponse(ctx context.Context, t *testing.T, wantTickets [][]*pb.Ticket, be pb.BackendClient, fmReq *pb.FetchMatchesRequest) {
+func validateFetchMatchesResponse(ctx context.Context, t *testing.T, expectedMatches []*pb.Match, be pb.BackendServiceClient, fmReq *pb.FetchMatchesRequest) {
 	stream, err := be.FetchMatches(ctx, fmReq, grpc.WaitForReady(true))
 	require.Nil(t, err)
 	matches := make([]*pb.Match, 0)
@@ -212,8 +209,13 @@ func validateFetchMatchesResponse(ctx context.Context, t *testing.T, wantTickets
 		matches = append(matches, resp.GetMatch())
 	}
 
-	require.Equal(t, len(wantTickets), len(matches))
-	for _, match := range matches {
-		require.Contains(t, wantTickets, match.GetTickets())
+	require.ElementsMatch(t, expectedMatches, matches)
+}
+
+func MustMakeMatch(tickets ...*pb.Ticket) *pb.Match {
+	m, err := mmf.MakeMatch("test-profile", tickets...)
+	if err != nil {
+		panic(err)
 	}
+	return m
 }

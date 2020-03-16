@@ -15,11 +15,12 @@
 package telemetry
 
 import (
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/url"
 	"testing"
+
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConfigz(t *testing.T) {

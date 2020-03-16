@@ -17,11 +17,12 @@ package telemetry
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/url"
 	"sync/atomic"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func angryHealthCheck(context.Context) error {
@@ -47,6 +48,7 @@ func TestHealthCheck(t *testing.T) {
 		{"angryHealthCheck", []func(context.Context) error{angryHealthCheck}, "I'm angry"},
 	}
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			assertHealthCheck(t, NewHealthCheck(tc.healthChecks), tc.errorString)
 		})

@@ -57,10 +57,10 @@ data:
         hostname: "{{ .Values.frontend.hostName }}"
         grpcport: "{{ .Values.frontend.grpcPort }}"
         httpport: "{{ .Values.frontend.httpPort }}"
-      mmlogic:
-        hostname: "{{ .Values.mmlogic.hostName }}"
-        grpcport: "{{ .Values.mmlogic.grpcPort }}"
-        httpport: "{{ .Values.mmlogic.httpPort }}"
+      query:
+        hostname: "{{ .Values.query.hostName }}"
+        grpcport: "{{ .Values.query.grpcPort }}"
+        httpport: "{{ .Values.query.httpPort }}"
       synchronizer:
         hostname: "{{ .Values.synchronizer.hostName }}"
         grpcport: "{{ .Values.synchronizer.grpcPort }}"
@@ -86,17 +86,24 @@ data:
         size: 10000
 
     redis:
-      sentinelEnabled: {{ .Values.redis.sentinel.enabled }}
-{{- if .Values.redis.sentinel.enabled }}
-      # Connect to one of the Redis sentinels first to query the current master
+{{- if index .Values "open-match-core" "redis" "enabled" }}
+{{- if index .Values "redis" "sentinel" "enabled"}}
       sentinelPort: {{ .Values.redis.sentinel.port }}
       sentinelMaster: {{ .Values.redis.sentinel.masterSet }}
       sentinelHostname: {{ .Values.redis.fullnameOverride }}.{{ .Release.Namespace }}.svc.cluster.local
-{{- else }}
+{{- else}}
+      # Open Match's default Redis setups
       hostname: {{ .Values.redis.fullnameOverride }}-master.{{ .Release.Namespace }}.svc.cluster.local
       port: {{ .Values.redis.redisPort }}
 {{- end }}
       user: {{ .Values.redis.user }}
+{{- end}}
+{{- else }}
+      # BYO Redis setups
+      hostname: {{ index .Values "open-match-core" "redis" "hostname" }}
+      port: {{ index .Values "open-match-core" "redis" "port" }}
+      user: {{ index .Values "open-match-core" "redis" "user" }}
+{{- end }}
 {{- if .Values.redis.usePassword }}
       passwordPath: {{ .Values.redis.secretMountPath }}/redis-password
 {{- end }}
@@ -105,7 +112,6 @@ data:
         maxActive: {{ index .Values "open-match-core" "redis" "pool" "maxActive" }}
         idleTimeout: {{ index .Values "open-match-core" "redis" "pool" "idleTimeout" }}
         healthCheckTimeout: {{ index .Values "open-match-core" "redis" "pool" "healthCheckTimeout" }}
-      expiration: 43200
 
     telemetry:
       zpages:

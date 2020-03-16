@@ -17,282 +17,206 @@
 package e2e
 
 import (
+	"context"
 	"io"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	internalTesting "open-match.dev/open-match/internal/testing"
+	"open-match.dev/open-match/internal/filter/testcases"
 	"open-match.dev/open-match/internal/testing/e2e"
-	e2eTesting "open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
-func TestQueryTickets(t *testing.T) {
-	tests := []struct {
-		description   string
-		pool          *pb.Pool
-		gotTickets    []*pb.Ticket
-		wantCode      codes.Code
-		wantTickets   []*pb.Ticket
-		wantPageCount int
-	}{
-		{
-			description:   "expects invalid argument code since pool is empty",
-			pool:          nil,
-			wantCode:      codes.InvalidArgument,
-			wantTickets:   nil,
-			wantPageCount: 0,
-		},
-		{
-			description: "expects response with no tickets since the store is empty",
-			gotTickets:  []*pb.Ticket{},
-			pool: &pb.Pool{
-				DoubleRangeFilters: []*pb.DoubleRangeFilter{{
-					DoubleArg: "ok",
-				}},
-			},
-			wantCode:      codes.OK,
-			wantTickets:   nil,
-			wantPageCount: 0,
-		},
-		{
-			description: "expects response with no tickets since all tickets in the store are filtered out",
-			gotTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 0, Max: 10, Interval: 2},
-				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
-			),
-			pool: &pb.Pool{
-				DoubleRangeFilters: []*pb.DoubleRangeFilter{{
-					DoubleArg: e2e.DoubleArgDefense,
-				}},
-			},
-			wantCode:      codes.OK,
-			wantTickets:   nil,
-			wantPageCount: 0,
-		},
-		{
-			description: "expects response with 5 tickets with e2e.FloatRangeDoubleArg1=2 and e2e.FloatRangeDoubleArg2 in range of [0,10)",
-			gotTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 0, Max: 10, Interval: 2},
-				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
-			),
-			pool: &pb.Pool{
-				DoubleRangeFilters: []*pb.DoubleRangeFilter{{
-					DoubleArg: e2e.DoubleArgMMR,
-					Min:       1,
-					Max:       3,
-				}},
-			},
-			wantCode: codes.OK,
-			wantTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 2, Max: 3, Interval: 2},
-				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
-			),
-			wantPageCount: 1,
-		},
-		{
-			// Test inclusive filters and paging works as expected
-			description: "expects response with 15 tickets with e2e.FloatRangeDoubleArg1=2,4,6 and e2e.FloatRangeDoubleArg2=[0,10)",
-			gotTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 0, Max: 10, Interval: 2},
-				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
-			),
-			pool: &pb.Pool{
-				DoubleRangeFilters: []*pb.DoubleRangeFilter{{
-					DoubleArg: e2e.DoubleArgMMR,
-					Min:       2,
-					Max:       6,
-				}},
-			},
-			wantCode: codes.OK,
-			wantTickets: internalTesting.GenerateFloatRangeTickets(
-				internalTesting.Property{Name: e2e.DoubleArgMMR, Min: 2, Max: 7, Interval: 2},
-				internalTesting.Property{Name: e2e.DoubleArgLevel, Min: 0, Max: 10, Interval: 2},
-			),
-			wantPageCount: 2,
-		},
-		{
-			description: "expects 1 ticket with tag e2eTesting.ModeDemo",
-			gotTickets: []*pb.Ticket{
-				{
-					SearchFields: &pb.SearchFields{
-						Tags: []string{
-							e2eTesting.ModeDemo,
-						},
-					},
-				},
-				{
-					SearchFields: &pb.SearchFields{
-						Tags: []string{
-							"Foo",
-						},
-					},
-				},
-			},
-			pool: &pb.Pool{
-				TagPresentFilters: []*pb.TagPresentFilter{{
-					Tag: e2e.ModeDemo,
-				}},
-			},
-			wantCode: codes.OK,
-			wantTickets: []*pb.Ticket{
-				{
-					SearchFields: &pb.SearchFields{
-						Tags: []string{
-							e2eTesting.ModeDemo,
-						},
-					},
-				},
-			},
-			wantPageCount: 1,
-		},
-		{
-			// Test StringEquals works as expected
-			description: "expects 1 ticket with property e2eTesting.Role maps to warrior",
-			gotTickets: []*pb.Ticket{
-				{
-					SearchFields: &pb.SearchFields{
-						StringArgs: map[string]string{
-							e2eTesting.Role: "warrior",
-						},
-					},
-				},
-				{
-					SearchFields: &pb.SearchFields{
-						StringArgs: map[string]string{
-							e2eTesting.Role: "rogue",
-						},
-					},
-				},
-			},
-			pool: &pb.Pool{
-				StringEqualsFilters: []*pb.StringEqualsFilter{
-					{
-						StringArg: e2e.Role,
-						Value:     "warrior",
-					},
-				},
-			},
-			wantCode: codes.OK,
-			wantTickets: []*pb.Ticket{
-				{
+func TestNoPool(t *testing.T) {
+	om := e2e.New(t)
 
-					SearchFields: &pb.SearchFields{
-						StringArgs: map[string]string{
-							e2eTesting.Role: "warrior",
-						},
-					},
-				},
-			},
-			wantPageCount: 1,
-		},
-		{
-			// Test all tickets
-			description: "expects all 3 tickets when passing in a pool with no filters",
-			gotTickets: []*pb.Ticket{
-				{
-					SearchFields: &pb.SearchFields{
-						StringArgs: map[string]string{
-							e2eTesting.Role: "warrior",
-						},
-					},
-				},
-				{
-					SearchFields: &pb.SearchFields{
-						Tags: []string{
-							e2eTesting.ModeDemo,
-						},
-					},
-				},
-				{
-					SearchFields: &pb.SearchFields{
-						DoubleArgs: map[string]float64{
-							e2eTesting.DoubleArgMMR: 100,
-						},
-					},
-				},
-			},
-			pool:     &pb.Pool{},
-			wantCode: codes.OK,
-			wantTickets: []*pb.Ticket{
-				{
-					SearchFields: &pb.SearchFields{
-						StringArgs: map[string]string{
-							e2eTesting.Role: "warrior",
-						},
-					},
-				},
-				{
-					SearchFields: &pb.SearchFields{
-						Tags: []string{
-							e2eTesting.ModeDemo,
-						},
-					},
-				},
-				{
-					SearchFields: &pb.SearchFields{
-						DoubleArgs: map[string]float64{
-							e2eTesting.DoubleArgMMR: 100,
-						},
-					},
-				},
-			},
-			wantPageCount: 1,
-		},
+	q := om.MustQueryServiceGRPC()
+
+	{
+		stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: nil})
+		require.Nil(t, err)
+
+		resp, err := stream.Recv()
+		require.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
+		require.Nil(t, resp)
 	}
 
-	t.Run("TestQueryTickets", func(t *testing.T) {
-		for _, test := range tests {
-			test := test
-			t.Run(test.description, func(t *testing.T) {
-				t.Parallel()
+	{
+		stream, err := q.QueryTicketIds(context.Background(), &pb.QueryTicketIdsRequest{Pool: nil})
+		require.Nil(t, err)
 
-				om, closer := e2e.New(t)
-				defer closer()
-				fe := om.MustFrontendGRPC()
-				mml := om.MustMmLogicGRPC()
-				pageCounts := 0
-				ctx := om.Context()
+		resp, err := stream.Recv()
+		require.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
+		require.Nil(t, resp)
+	}
+}
 
-				for _, ticket := range test.gotTickets {
-					resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
-					assert.NotNil(t, resp)
-					assert.Nil(t, err)
-				}
+func TestNoTickets(t *testing.T) {
+	om := e2e.New(t)
 
-				stream, err := mml.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: test.pool})
-				assert.Nil(t, err)
+	q := om.MustQueryServiceGRPC()
 
-				var actualTickets []*pb.Ticket
+	{
+		stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
+		require.Nil(t, err)
 
-				for {
-					resp, err := stream.Recv()
-					if err == io.EOF {
-						break
-					}
-					if err != nil {
-						assert.Equal(t, test.wantCode, status.Convert(err).Code())
-						break
-					}
+		resp, err := stream.Recv()
+		require.Equal(t, io.EOF, err)
+		require.Nil(t, resp)
+	}
 
-					actualTickets = append(actualTickets, resp.Tickets...)
-					pageCounts++
-				}
+	{
+		stream, err := q.QueryTicketIds(context.Background(), &pb.QueryTicketIdsRequest{Pool: &pb.Pool{}})
+		require.Nil(t, err)
 
-				require.Equal(t, len(test.wantTickets), len(actualTickets))
-				// Test fields by fields because of the randomness of the ticket ids...
-				// TODO: this makes testing overcomplicated. Should figure out a way to avoid the randomness
-				// This for loop also relies on the fact that redis range query and the ticket generator both returns tickets in sorted order.
-				// If this fact changes, we might need an ugly nested for loop to do the validness checks.
-				for i := 0; i < len(actualTickets); i++ {
-					assert.Equal(t, test.wantTickets[i].GetAssignment(), actualTickets[i].GetAssignment())
-					assert.Equal(t, test.wantTickets[i].GetSearchFields(), actualTickets[i].GetSearchFields())
-				}
-				assert.Equal(t, test.wantPageCount, pageCounts)
-			})
+		resp, err := stream.Recv()
+		require.Equal(t, io.EOF, err)
+		require.Nil(t, resp)
+	}
+}
+
+func TestPaging(t *testing.T) {
+	om := e2e.New(t)
+
+	pageSize := 10 // TODO: read from config
+	if pageSize < 1 {
+		require.Fail(t, "invalid page size")
+	}
+
+	totalTickets := pageSize*5 + 1
+	expectedIds := map[string]struct{}{}
+
+	fe := om.MustFrontendGRPC()
+	for i := 0; i < totalTickets; i++ {
+		resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Ticket)
+		require.Nil(t, err)
+
+		expectedIds[resp.Ticket.Id] = struct{}{}
+	}
+
+	q := om.MustQueryServiceGRPC()
+	stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
+	require.Nil(t, err)
+
+	foundIds := map[string]struct{}{}
+
+	for i := 0; i < 5; i++ {
+		var resp *pb.QueryTicketsResponse
+		resp, err = stream.Recv()
+		require.Nil(t, err)
+		require.Equal(t, len(resp.Tickets), pageSize)
+
+		for _, ticket := range resp.Tickets {
+			foundIds[ticket.Id] = struct{}{}
 		}
-	})
+	}
+
+	resp, err := stream.Recv()
+	require.Nil(t, err)
+	require.Equal(t, len(resp.Tickets), 1)
+	foundIds[resp.Tickets[0].Id] = struct{}{}
+
+	require.Equal(t, expectedIds, foundIds)
+
+	resp, err = stream.Recv()
+	require.Equal(t, err, io.EOF)
+	require.Nil(t, resp)
+}
+
+func TestTicketFound(t *testing.T) {
+	for _, tc := range testcases.IncludedTestCases() {
+		tc := tc
+		t.Run(tc.Name, func(t *testing.T) {
+			if !returnedByQuery(t, tc) {
+				require.Fail(t, "Expected to find ticket in pool but didn't.")
+			}
+			if !returnedByQueryID(t, tc) {
+				require.Fail(t, "Expected to find id in pool but didn't.")
+			}
+		})
+	}
+}
+
+func TestTicketNotFound(t *testing.T) {
+	for _, tc := range testcases.ExcludedTestCases() {
+		tc := tc
+		t.Run(tc.Name, func(t *testing.T) {
+			if returnedByQuery(t, tc) {
+				require.Fail(t, "Expected to not find ticket in pool but did.")
+			}
+			if returnedByQueryID(t, tc) {
+				require.Fail(t, "Expected to not find id in pool but did.")
+			}
+		})
+	}
+}
+
+func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
+	om := e2e.New(t)
+
+	{
+		fe := om.MustFrontendGRPC()
+		resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Ticket)
+		require.Nil(t, err)
+	}
+
+	q := om.MustQueryServiceGRPC()
+	stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: tc.Pool})
+	require.Nil(t, err)
+
+	tickets := []*pb.Ticket{}
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		require.Nil(t, err)
+
+		tickets = append(tickets, resp.Tickets...)
+	}
+
+	if len(tickets) > 1 {
+		require.Fail(t, "More than one ticket found")
+	}
+
+	return len(tickets) == 1
+}
+
+func returnedByQueryID(t *testing.T, tc testcases.TestCase) (found bool) {
+	om := e2e.New(t)
+
+	{
+		fe := om.MustFrontendGRPC()
+		resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Ticket)
+		require.Nil(t, err)
+	}
+
+	q := om.MustQueryServiceGRPC()
+	stream, err := q.QueryTicketIds(context.Background(), &pb.QueryTicketIdsRequest{Pool: tc.Pool})
+	require.Nil(t, err)
+
+	ids := []string{}
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		require.Nil(t, err)
+
+		ids = append(ids, resp.GetIds()...)
+	}
+
+	if len(ids) > 1 {
+		require.Fail(t, "More than one ticket found")
+	}
+
+	return len(ids) == 1
 }

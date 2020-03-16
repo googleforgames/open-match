@@ -15,9 +15,10 @@
 package rpc
 
 import (
+	"testing"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 const (

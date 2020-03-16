@@ -86,7 +86,7 @@ func runScenario(ctx context.Context, name string, update updater.SetFunc) {
 		panic(err)
 	}
 	defer conn.Close()
-	fe := pb.NewFrontendClient(conn)
+	fe := pb.NewFrontendServiceClient(conn)
 
 	//////////////////////////////////////////////////////////////////////////////
 	s.Status = "Creating Open Match Ticket"

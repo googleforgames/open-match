@@ -127,8 +127,9 @@ func ReapNamespaces(params *Params) error {
 		return errors.Wrap(err, "listing namespace from kubernetes cluster failed")
 	}
 
-	for _, namespace := range namespaces.Items {
-		if !isOrphaned(namespace, params) {
+	for i := 0; i < len(namespaces.Items); i++ {
+		namespace := namespaces.Items[i]
+		if !isOrphaned(&namespace, params) {
 			log.Printf("skipping namespace %s created at %s", namespace.ObjectMeta.Name, namespace.ObjectMeta.CreationTimestamp)
 			continue
 		}
@@ -150,7 +151,7 @@ func fileExists(name string) bool {
 	return err == nil
 }
 
-func isOrphaned(namespace corev1.Namespace, params *Params) bool {
+func isOrphaned(namespace *corev1.Namespace, params *Params) bool {
 	deadline := time.Now().Add(-1 * params.Age).UTC()
 	return namespace.ObjectMeta.CreationTimestamp.Time.Before(deadline) && strings.HasPrefix(namespace.ObjectMeta.Name, "open-match")
 }

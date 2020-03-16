@@ -20,5 +20,3 @@ Steps
 Some templates came from the Grafana Labs site.
 To update copy and paste the URL into the import dashboard page and then click "Share" and save the JSON to a file.
 Do not download the JSON directly from the website.
-
-go-processes.json - https://grafana.com/dashboards/6671

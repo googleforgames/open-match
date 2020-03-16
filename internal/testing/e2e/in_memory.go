@@ -21,18 +21,17 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"open-match.dev/open-match/internal/app/evaluator"
+	"open-match.dev/open-match/internal/app/evaluator/defaulteval"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/rpc"
 	rpcTesting "open-match.dev/open-match/internal/rpc/testing"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	"open-match.dev/open-match/internal/telemetry"
-	"open-match.dev/open-match/internal/testing/evaluator"
 	internalMmf "open-match.dev/open-match/internal/testing/mmf"
 	"open-match.dev/open-match/internal/util"
 	pb "open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/test/matchfunction/mmf"
-
-	"open-match.dev/open-match/test/evaluator/evaluate"
 )
 
 type inmemoryOM struct {
@@ -62,22 +61,22 @@ func createZygote(m *testing.M) (OM, error) {
 	return &inmemoryOM{}, nil
 }
 
-func (iom *inmemoryOM) MustFrontendGRPC() pb.FrontendClient {
+func (iom *inmemoryOM) MustFrontendGRPC() pb.FrontendServiceClient {
 	conn := iom.mainTc.MustGRPC()
 	iom.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewFrontendClient(conn)
+	return pb.NewFrontendServiceClient(conn)
 }
 
-func (iom *inmemoryOM) MustBackendGRPC() pb.BackendClient {
+func (iom *inmemoryOM) MustBackendGRPC() pb.BackendServiceClient {
 	conn := iom.mainTc.MustGRPC()
 	iom.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewBackendClient(conn)
+	return pb.NewBackendServiceClient(conn)
 }
 
-func (iom *inmemoryOM) MustMmLogicGRPC() pb.MmLogicClient {
+func (iom *inmemoryOM) MustQueryServiceGRPC() pb.QueryServiceClient {
 	conn := iom.mainTc.MustGRPC()
 	iom.mc.AddCloseWithErrorFunc(conn.Close)
-	return pb.NewMmLogicClient(conn)
+	return pb.NewQueryServiceClient(conn)
 }
 
 func (iom *inmemoryOM) MustMmfConfigGRPC() *pb.FunctionConfig {
@@ -115,7 +114,7 @@ func (iom *inmemoryOM) cleanupMain() error {
 	return nil
 }
 
-// Create a minimatch test service with function bindings from frontend, backend, and mmlogic.
+// Create a minimatch test service with function bindings from frontendService, backendService, and queryService.
 // Instruct this service to start and connect to a fake storage service.
 func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTesting.TestContext {
 	var closer func()
@@ -152,16 +151,16 @@ func createMinimatchForTest(t *testing.T, evalTc *rpcTesting.TestContext) *rpcTe
 }
 
 // Create a mmf service using a started test server.
-// Inject the port config of mmlogic using that the passed in test server
+// Inject the port config of queryService using that the passed in test server
 func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTesting.TestContext {
 	// TODO: Use insecure for now since minimatch and mmf only works with the same secure mode
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
 
-		// The below configuration is used by GRPC harness to create an mmlogic client to query tickets.
-		cfg.Set("api.mmlogic.hostname", c.GetHostname())
-		cfg.Set("api.mmlogic.grpcport", c.GetGRPCPort())
-		cfg.Set("api.mmlogic.httpport", c.GetHTTPPort())
+		// The below configuration is used by GRPC harness to create an queryService client to query tickets.
+		cfg.Set("api.query.hostname", c.GetHostname())
+		cfg.Set("api.query.grpcport", c.GetGRPCPort())
+		cfg.Set("api.query.httpport", c.GetHTTPPort())
 
 		assert.Nil(t, internalMmf.BindService(p, cfg, &internalMmf.FunctionSettings{
 			Func: mmf.MakeMatches,
@@ -174,7 +173,7 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 func createEvaluatorForTest(t *testing.T) *rpcTesting.TestContext {
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
-		assert.Nil(t, evaluator.BindService(p, cfg, evaluate.Evaluate))
+		assert.Nil(t, evaluator.BindService(p, cfg, defaulteval.Evaluate))
 	})
 
 	return tc

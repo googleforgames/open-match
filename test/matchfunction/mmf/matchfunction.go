@@ -20,10 +20,11 @@
 package mmf
 
 import (
+	"sort"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/pkg/errors"
-	"github.com/rs/xid"
 	internalMmf "open-match.dev/open-match/internal/testing/mmf"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -39,31 +40,13 @@ var (
 // in that pool in the generated match.
 func MakeMatches(params *internalMmf.MatchFunctionParams) ([]*pb.Match, error) {
 	var result []*pb.Match
-	for pool, tickets := range params.PoolNameToTickets {
+	for _, tickets := range params.PoolNameToTickets {
 		if len(tickets) != 0 {
-			roster := &pb.Roster{Name: pool}
-
-			for _, ticket := range tickets {
-				roster.TicketIds = append(roster.GetTicketIds(), ticket.GetId())
-			}
-
-			evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
-				Score: scoreCalculator(tickets),
-			})
+			m, err := MakeMatch(params.ProfileName, tickets...)
 			if err != nil {
-				return nil, errors.Wrap(err, "Failed to marshal DefaultEvaluationCriteria.")
+				return nil, err
 			}
-
-			result = append(result, &pb.Match{
-				MatchId:       xid.New().String(),
-				MatchProfile:  params.ProfileName,
-				MatchFunction: matchName,
-				Tickets:       tickets,
-				Rosters:       []*pb.Roster{roster},
-				Extensions: map[string]*any.Any{
-					"evaluation_input": evaluationInput,
-				},
-			})
+			result = append(result, m)
 		}
 	}
 
@@ -81,4 +64,34 @@ func scoreCalculator(tickets []*pb.Ticket) float64 {
 		}
 	}
 	return matchScore
+}
+
+// MakeMatch creates a match given the provided tickets.
+func MakeMatch(profileName string, tickets ...*pb.Ticket) (*pb.Match, error) {
+	// Keep output deterministic
+	sort.Slice(tickets, func(i, j int) bool {
+		return tickets[i].Id < tickets[j].Id
+	})
+
+	evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
+		Score: scoreCalculator(tickets),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to marshal DefaultEvaluationCriteria.")
+	}
+
+	id := "m"
+	for _, t := range tickets {
+		id += t.Id
+	}
+
+	return &pb.Match{
+		MatchId:       id,
+		MatchProfile:  profileName,
+		MatchFunction: matchName,
+		Tickets:       tickets,
+		Extensions: map[string]*any.Any{
+			"evaluation_input": evaluationInput,
+		},
+	}, nil
 }

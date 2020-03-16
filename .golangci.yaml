@@ -171,17 +171,10 @@ linters:
     - funlen
     - gochecknoglobals
     - goconst
-    - gocritic
     - gocyclo
-    - gofmt
-    - goimports
     - gosec
     - interfacer # deprecated - "A tool that suggests interfaces is prone to bad suggestions"
     - lll
-    - prealloc
-    - scopelint
-    - staticcheck
-    - stylecheck
 
 #linters:
 #  enable-all: true

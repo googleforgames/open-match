@@ -42,11 +42,11 @@ func main() {
 	// Connect to Open Match Backend.
 	conn, err := grpc.Dial(omBackendEndpoint, grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("Failed to connect to Open Match Backend, got %w", err)
+		log.Fatalf("Failed to connect to Open Match Backend, got %s", err.Error())
 	}
 
 	defer conn.Close()
-	be := pb.NewBackendClient(conn)
+	be := pb.NewBackendServiceClient(conn)
 
 	// Generate the profiles to fetch matches for.
 	profiles := generateProfiles()
@@ -62,7 +62,7 @@ func main() {
 				defer wg.Done()
 				matches, err := fetch(be, p)
 				if err != nil {
-					log.Printf("Failed to fetch matches for profile %v, got %w", p.GetName(), err)
+					log.Printf("Failed to fetch matches for profile %v, got %s", p.GetName(), err.Error())
 					return
 				}
 
@@ -71,7 +71,7 @@ func main() {
 				}
 
 				if err := assign(be, matches); err != nil {
-					log.Printf("Failed to assign servers to matches, got %w", err)
+					log.Printf("Failed to assign servers to matches, got %s", err.Error())
 					return
 				}
 			}(&wg, p)
@@ -81,14 +81,14 @@ func main() {
 	}
 }
 
-func fetch(be pb.BackendClient, p *pb.MatchProfile) ([]*pb.Match, error) {
+func fetch(be pb.BackendServiceClient, p *pb.MatchProfile) ([]*pb.Match, error) {
 	req := &pb.FetchMatchesRequest{
 		Config: &pb.FunctionConfig{
 			Host: functionHostName,
 			Port: functionPort,
 			Type: pb.FunctionConfig_GRPC,
 		},
-		Profiles: []*pb.MatchProfile{p},
+		Profile: p,
 	}
 
 	stream, err := be.FetchMatches(context.Background(), req)
@@ -114,7 +114,7 @@ func fetch(be pb.BackendClient, p *pb.MatchProfile) ([]*pb.Match, error) {
 	return result, nil
 }
 
-func assign(be pb.BackendClient, matches []*pb.Match) error {
+func assign(be pb.BackendServiceClient, matches []*pb.Match) error {
 	for _, match := range matches {
 		ticketIDs := []string{}
 		for _, t := range match.GetTickets() {

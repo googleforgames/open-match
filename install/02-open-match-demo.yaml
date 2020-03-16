@@ -20,28 +20,6 @@ metadata:
     app: open-match-demo
     release: open-match-demo
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: customize-configmap
-  namespace: open-match-demo
-  labels:
-    app: open-match-customize
-    component: config
-    release: open-match-demo
-data:
-  matchmaker_config_default.yaml: |-
-    api:
-      functions:
-        hostname: "om-function"
-        grpcport: 50502
-        httpport: 51502
-  matchmaker_config_override.yaml: |-
-    api:
-      mmlogic:
-        hostname: "om-mmlogic.open-match.svc.cluster.local"
-        grpcport: "50503"
----
 kind: Service
 apiVersion: v1
 metadata:
@@ -108,20 +86,8 @@ spec:
         component: matchfunction
         release: open-match-demo
     spec:
-      volumes:
-        - name: customize-config-volume
-          configMap:
-            name: customize-configmap
-        - name: om-config-volume-default
-          configMap:
-            name: customize-configmap
       containers:
       - name: om-function
-        volumeMounts:
-          - name: customize-config-volume
-            mountPath: /app/config/override
-          - name: om-config-volume-default
-            mountPath: /app/config/default
         image: "gcr.io/open-match-public-images/openmatch-mmf-go-soloduel:0.0.0-dev"
         ports:
         - name: grpc

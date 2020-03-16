@@ -15,10 +15,11 @@
 package telemetry
 
 import (
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHelp(t *testing.T) {

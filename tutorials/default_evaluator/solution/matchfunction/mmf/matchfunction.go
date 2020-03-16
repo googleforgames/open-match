@@ -39,16 +39,16 @@ func (s *MatchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 	// Fetch tickets for the pools specified in the Match Profile.
 	log.Printf("Generating proposals for function %v", req.GetProfile().GetName())
 
-	poolTickets, err := matchfunction.QueryPools(stream.Context(), s.mmlogicClient, req.GetProfile().GetPools())
+	poolTickets, err := matchfunction.QueryPools(stream.Context(), s.queryServiceClient, req.GetProfile().GetPools())
 	if err != nil {
-		log.Printf("Failed to query tickets for the given pools, got %w", err)
+		log.Printf("Failed to query tickets for the given pools, got %s", err.Error())
 		return err
 	}
 
 	// Generate proposals.
 	proposals, err := makeMatches(req.GetProfile(), poolTickets)
 	if err != nil {
-		log.Printf("Failed to generate matches, got %w", err)
+		log.Printf("Failed to generate matches, got %s", err.Error())
 		return err
 	}
 
@@ -56,7 +56,7 @@ func (s *MatchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 	// Stream the generated proposals back to Open Match.
 	for _, proposal := range proposals {
 		if err := stream.Send(&pb.RunResponse{Proposal: proposal}); err != nil {
-			log.Printf("Failed to stream proposals to Open Match, got %w", err)
+			log.Printf("Failed to stream proposals to Open Match, got %s", err.Error())
 			return err
 		}
 	}
@@ -92,7 +92,7 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 		})
 
 		if err != nil {
-			log.Printf("Failed to marshal DefaultEvaluationCriteria, got %w.", err)
+			log.Printf("Failed to marshal DefaultEvaluationCriteria, got %s.", err.Error())
 			return nil, fmt.Errorf("Failed to marshal DefaultEvaluationCriteria, got %w", err)
 		}
 

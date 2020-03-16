@@ -61,8 +61,11 @@ message EvaluateRequest {
 }
 
 message EvaluateResponse {
-  // A Match shortlisted by the evaluator representing one of the final results.
-  Match match = 1;
+  // A Match ID representing a shortlisted match returned by the evaluator as the final result.
+  string match_id = 2;
+
+  // Deprecated fields
+  reserved 1;
 }
 
 // The Evaluator service implements APIs used to evaluate and shortlist matches proposed by MMFs.

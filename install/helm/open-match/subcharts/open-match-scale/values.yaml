@@ -28,29 +28,8 @@ configs:
   default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
-    configName: scale-configmap
-  scale-configmap:
-    volumeName: scale-config-volume
+    configName: om-configmap-default
+  override:
+    volumeName: om-config-volume-override
     mountPath: /app/config/override
-    configName: scale-configmap
-
-testConfig:
-  profile: scaleprofiles
-  regions:
-    - region.europe-west1
-    - region.europe-west2
-    - region.europe-west3
-    - region.europe-west4
-  characters:
-    - cleric
-    - knight
-  minRating: 0
-  maxRating: 100
-  ticketsPerMatch: 8
-  multifilter:
-    rangeSize: 10
-    rangeOverlap: 5
-  multipool:
-    rangeSize: 10
-    rangeOverlap: 5
-    characterCount: 4
+    configName: om-configmap-override
