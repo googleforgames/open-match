@@ -165,7 +165,7 @@
           "items": {
             "$ref": "#/definitions/openmatchDoubleRangeFilter"
           },
-          "description": "Set of Filters indicating the filtering criteria. Selected players must\nmatch every Filter."
+          "description": "Set of Filters indicating the filtering criteria. Selected tickets must\nmatch every Filter."
         },
         "string_equals_filters": {
           "type": "array",
@@ -178,8 +178,19 @@
           "items": {
             "$ref": "#/definitions/openmatchTagPresentFilter"
           }
+        },
+        "created_before": {
+          "type": "string",
+          "format": "date-time",
+          "description": "If specified, only Tickets created before the specified time are selected."
+        },
+        "created_after": {
+          "type": "string",
+          "format": "date-time",
+          "description": "If specified, only Tickets created after the specified time are selected."
         }
-      }
+      },
+      "description": "Pool specfies a set of criteria that are used to select a subset of Tickets\nthat meet all the criteria."
     },
     "openmatchRunRequest": {
       "type": "object",
@@ -270,6 +281,11 @@
             "$ref": "#/definitions/protobufAny"
           },
           "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
+        },
+        "create_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Create time represents the time at which this Ticket was created. It is\npopulated by Open Match at the time of Ticket creation."
         }
       },
       "description": "A Ticket is a basic matchmaking entity in Open Match. A Ticket represents either an\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\nof SearchFields. Open Match stores the Ticket in state storage and enables an\nAssignment to be associated with this Ticket."

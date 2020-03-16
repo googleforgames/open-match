@@ -49,10 +49,15 @@ func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer 
 		return status.Error(codes.InvalidArgument, ".pool is required")
 	}
 
+	pf, err := filter.NewPoolFilter(pool)
+	if err != nil {
+		return err
+	}
+
 	var results []*pb.Ticket
-	err := s.tc.request(responseServer.Context(), func(tickets map[string]*pb.Ticket) {
+	err = s.tc.request(responseServer.Context(), func(tickets map[string]*pb.Ticket) {
 		for _, ticket := range tickets {
-			if filter.InPool(ticket, pool) {
+			if pf.In(ticket) {
 				results = append(results, ticket)
 			}
 		}
@@ -86,10 +91,15 @@ func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseSer
 		return status.Error(codes.InvalidArgument, ".pool is required")
 	}
 
+	pf, err := filter.NewPoolFilter(pool)
+	if err != nil {
+		return err
+	}
+
 	var results []string
-	err := s.tc.request(responseServer.Context(), func(tickets map[string]*pb.Ticket) {
+	err = s.tc.request(responseServer.Context(), func(tickets map[string]*pb.Ticket) {
 		for id, ticket := range tickets {
-			if filter.InPool(ticket, pool) {
+			if pf.In(ticket) {
 				results = append(results, id)
 			}
 		}

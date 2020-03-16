@@ -18,18 +18,90 @@
 package filter
 
 import (
+	"time"
+
+	"github.com/golang/protobuf/ptypes"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 var emptySearchFields = &pb.SearchFields{}
 
-// InPool returns whether the ticket meets all the criteria of the pool.
-func InPool(ticket *pb.Ticket, pool *pb.Pool) bool {
+var (
+	logger = logrus.WithFields(logrus.Fields{
+		"app":       "openmatch",
+		"component": "filter",
+	})
+)
+
+// PoolFilter contains all the filtering criteria from a Pool that the Ticket
+// needs to meet to belong to that Pool.
+type PoolFilter struct {
+	DoubleRangeFilters  []*pb.DoubleRangeFilter
+	StringEqualsFilters []*pb.StringEqualsFilter
+	TagPresentFilters   []*pb.TagPresentFilter
+	CreatedBefore       time.Time
+	CreatedAfter        time.Time
+}
+
+// NewPoolFilter validates a Pool's filtering criteria and returns a PoolFilter.
+func NewPoolFilter(pool *pb.Pool) (*PoolFilter, error) {
+	var ca, cb time.Time
+	var err error
+
+	if pool.GetCreatedBefore() != nil {
+		if cb, err = ptypes.Timestamp(pool.GetCreatedBefore()); err != nil {
+			return nil, status.Error(codes.InvalidArgument, ".invalid created_before value")
+		}
+	}
+
+	if pool.GetCreatedAfter() != nil {
+		if ca, err = ptypes.Timestamp(pool.GetCreatedAfter()); err != nil {
+			return nil, status.Error(codes.InvalidArgument, ".invalid created_after value")
+		}
+	}
+
+	return &PoolFilter{
+		DoubleRangeFilters:  pool.GetDoubleRangeFilters(),
+		StringEqualsFilters: pool.GetStringEqualsFilters(),
+		TagPresentFilters:   pool.GetTagPresentFilters(),
+		CreatedBefore:       cb,
+		CreatedAfter:        ca,
+	}, nil
+}
+
+// In returns true if the Ticket meets all the criteria for this PoolFilter.
+func (pf *PoolFilter) In(ticket *pb.Ticket) bool {
 	s := ticket.GetSearchFields()
 	if s == nil {
 		s = emptySearchFields
 	}
-	for _, f := range pool.GetDoubleRangeFilters() {
+
+	if !pf.CreatedAfter.IsZero() || !pf.CreatedBefore.IsZero() {
+		// CreateTime is only populated by Open Match and hence expected to be valid.
+		if ct, err := ptypes.Timestamp(ticket.CreateTime); err == nil {
+			if !pf.CreatedAfter.IsZero() {
+				if !ct.After(pf.CreatedAfter) {
+					return false
+				}
+			}
+
+			if !pf.CreatedBefore.IsZero() {
+				if !ct.Before(pf.CreatedBefore) {
+					return false
+				}
+			}
+		} else {
+			logger.WithFields(logrus.Fields{
+				"error": err.Error(),
+				"id":    ticket.GetId(),
+			}).Error("failed to get time from Timestamp proto")
+		}
+	}
+
+	for _, f := range pf.DoubleRangeFilters {
 		v, ok := s.DoubleArgs[f.DoubleArg]
 		if !ok {
 			return false
@@ -40,7 +112,7 @@ func InPool(ticket *pb.Ticket, pool *pb.Pool) bool {
 		}
 	}
 
-	for _, f := range pool.GetStringEqualsFilters() {
+	for _, f := range pf.StringEqualsFilters {
 		v, ok := s.StringArgs[f.StringArg]
 		if !ok {
 			return false
@@ -51,7 +123,7 @@ func InPool(ticket *pb.Ticket, pool *pb.Pool) bool {
 	}
 
 outer:
-	for _, f := range pool.GetTagPresentFilters() {
+	for _, f := range pf.TagPresentFilters {
 		for _, v := range s.Tags {
 			if v == f.Tag {
 				continue outer
