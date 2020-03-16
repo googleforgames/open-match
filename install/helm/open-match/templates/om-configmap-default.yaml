@@ -95,7 +95,6 @@ data:
       # Open Match's default Redis setups
       hostname: {{ .Values.redis.fullnameOverride }}-master.{{ .Release.Namespace }}.svc.cluster.local
       port: {{ .Values.redis.redisPort }}
-{{- end }}
       user: {{ .Values.redis.user }}
 {{- end}}
 {{- else }}
