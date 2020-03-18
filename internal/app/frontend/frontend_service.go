@@ -53,8 +53,11 @@ var (
 //   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with query.QueryTickets function.
 func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
 	// Perform input validation.
-	if req.GetTicket() == nil {
+	if req.Ticket == nil {
 		return nil, status.Errorf(codes.InvalidArgument, ".ticket is required")
+	}
+	if req.Ticket.Assignment != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "tickets cannot be created with an assignment")
 	}
 
 	return doCreateTicket(ctx, req, s.store)
