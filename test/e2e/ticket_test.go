@@ -302,6 +302,7 @@ func TestCreateTicketErrors(t *testing.T) {
 			"tickets cannot be created with an assignment",
 		},
 	} {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			om := e2e.New(t)
 			fe := om.MustFrontendGRPC()
