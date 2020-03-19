@@ -120,9 +120,6 @@ func TestTicketLifeCycle(t *testing.T) {
 				"test-property": 1,
 			},
 		},
-		Assignment: &pb.Assignment{
-			Connection: "test-tbd",
-		},
 	}
 
 	// Create a ticket, validate that it got an id and set its id in the expected ticket.
@@ -276,5 +273,46 @@ func TestReleaseTickets(t *testing.T) {
 		resp, err = stream.Recv()
 		assert.Equal(t, io.EOF, err)
 		assert.Nil(t, resp)
+	}
+}
+
+func TestCreateTicketErrors(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		req  *pb.CreateTicketRequest
+		code codes.Code
+		msg  string
+	}{
+		{
+			"missing ticket",
+			&pb.CreateTicketRequest{
+				Ticket: nil,
+			},
+			codes.InvalidArgument,
+			".ticket is required",
+		},
+		{
+			"already has assignment",
+			&pb.CreateTicketRequest{
+				Ticket: &pb.Ticket{
+					Assignment: &pb.Assignment{},
+				},
+			},
+			codes.InvalidArgument,
+			"tickets cannot be created with an assignment",
+		},
+	} {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			om := e2e.New(t)
+			fe := om.MustFrontendGRPC()
+			ctx := om.Context()
+
+			resp, err := fe.CreateTicket(ctx, tt.req)
+			assert.Nil(t, resp)
+			s := status.Convert(err)
+			assert.Equal(t, tt.code, s.Code())
+			assert.Equal(t, s.Message(), tt.msg)
+		})
 	}
 }
