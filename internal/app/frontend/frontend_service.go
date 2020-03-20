@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
@@ -53,8 +54,14 @@ var (
 //   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with query.QueryTickets function.
 func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
 	// Perform input validation.
-	if req.GetTicket() == nil {
+	if req.Ticket == nil {
 		return nil, status.Errorf(codes.InvalidArgument, ".ticket is required")
+	}
+	if req.Ticket.Assignment != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "tickets cannot be created with an assignment")
+	}
+	if req.Ticket.CreateTime != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "tickets cannot be created with create time set")
 	}
 
 	return doCreateTicket(ctx, req, s.store)
@@ -68,6 +75,7 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 	}
 
 	ticket.Id = xid.New().String()
+	ticket.CreateTime = ptypes.TimestampNow()
 	err := store.CreateTicket(ctx, ticket)
 	if err != nil {
 		logger.WithFields(logrus.Fields{

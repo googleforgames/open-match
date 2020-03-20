@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -119,9 +120,6 @@ func TestTicketLifeCycle(t *testing.T) {
 			DoubleArgs: map[string]float64{
 				"test-property": 1,
 			},
-		},
-		Assignment: &pb.Assignment{
-			Connection: "test-tbd",
 		},
 	}
 
@@ -276,5 +274,56 @@ func TestReleaseTickets(t *testing.T) {
 		resp, err = stream.Recv()
 		assert.Equal(t, io.EOF, err)
 		assert.Nil(t, resp)
+	}
+}
+
+func TestCreateTicketErrors(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		req  *pb.CreateTicketRequest
+		code codes.Code
+		msg  string
+	}{
+		{
+			"missing ticket",
+			&pb.CreateTicketRequest{
+				Ticket: nil,
+			},
+			codes.InvalidArgument,
+			".ticket is required",
+		},
+		{
+			"already has assignment",
+			&pb.CreateTicketRequest{
+				Ticket: &pb.Ticket{
+					Assignment: &pb.Assignment{},
+				},
+			},
+			codes.InvalidArgument,
+			"tickets cannot be created with an assignment",
+		},
+		{
+			"already has create time",
+			&pb.CreateTicketRequest{
+				Ticket: &pb.Ticket{
+					CreateTime: ptypes.TimestampNow(),
+				},
+			},
+			codes.InvalidArgument,
+			"tickets cannot be created with create time set",
+		},
+	} {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			om := e2e.New(t)
+			fe := om.MustFrontendGRPC()
+			ctx := om.Context()
+
+			resp, err := fe.CreateTicket(ctx, tt.req)
+			assert.Nil(t, resp)
+			s := status.Convert(err)
+			assert.Equal(t, tt.code, s.Code())
+			assert.Equal(t, s.Message(), tt.msg)
+		})
 	}
 }
