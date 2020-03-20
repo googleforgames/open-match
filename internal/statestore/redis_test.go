@@ -369,6 +369,8 @@ func createRedis(t *testing.T, withSentinel bool, withPassword string) (config.V
 		cfg.Set("redis.sentinelPort", s.Port())
 		cfg.Set("redis.sentinelMaster", s.MasterInfo().Name)
 		cfg.Set("redis.sentinelEnabled", true)
+		// TODO: enable sentinel auth test cases when the library support it.
+		cfg.Set("redis.sentinelUsePassword", false)
 	} else {
 		cfg.Set("redis.hostname", mredis.Host())
 		cfg.Set("redis.port", mredis.Port())
@@ -385,6 +387,7 @@ func createRedis(t *testing.T, withSentinel bool, withPassword string) (config.V
 		}
 
 		closerFuncs = append(closerFuncs, func() { os.Remove(tmpFile.Name()) })
+		cfg.Set("redis.usePassword", true)
 		cfg.Set("redis.passwordPath", tmpFile.Name())
 	}
 

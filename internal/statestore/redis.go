@@ -71,10 +71,10 @@ func getHealthCheckPool(cfg config.View) *redis.Pool {
 
 	if cfg.IsSet("redis.sentinelHostname") {
 		sentinelAddr := getSentinelAddr(cfg)
-		healthCheckURL = redisURLFromAddr(sentinelAddr, cfg, false)
+		healthCheckURL = redisURLFromAddr(sentinelAddr, cfg, cfg.GetBool("redis.sentinelUsePassword"))
 	} else {
 		masterAddr := getMasterAddr(cfg)
-		healthCheckURL = redisURLFromAddr(masterAddr, cfg, false)
+		healthCheckURL = redisURLFromAddr(masterAddr, cfg, cfg.GetBool("redis.usePassword"))
 	}
 
 	return &redis.Pool{
@@ -121,12 +121,12 @@ func getRedisPool(cfg config.View) *redis.Pool {
 				return nil, status.Errorf(codes.Unavailable, "%v", err)
 			}
 
-			masterURL := redisURLFromAddr(fmt.Sprintf("%s:%s", masterInfo[0], masterInfo[1]), cfg, true)
+			masterURL := redisURLFromAddr(fmt.Sprintf("%s:%s", masterInfo[0], masterInfo[1]), cfg, cfg.GetBool("redis.usePassword"))
 			return redis.DialURL(masterURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
 		}
 	} else {
 		masterAddr := getMasterAddr(cfg)
-		masterURL := redisURLFromAddr(masterAddr, cfg, true)
+		masterURL := redisURLFromAddr(masterAddr, cfg, cfg.GetBool("redis.usePassword"))
 		dialFunc = func(ctx context.Context) (redis.Conn, error) {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
@@ -151,7 +151,7 @@ func getSentinelPool(cfg config.View) *redis.Pool {
 	idleTimeout := cfg.GetDuration("redis.pool.idleTimeout")
 
 	sentinelAddr := getSentinelAddr(cfg)
-	sentinelURL := redisURLFromAddr(sentinelAddr, cfg, false)
+	sentinelURL := redisURLFromAddr(sentinelAddr, cfg, cfg.GetBool("redis.sentinelUsePassword"))
 	return &redis.Pool{
 		MaxIdle:      maxIdle,
 		MaxActive:    maxActive,
@@ -214,8 +214,8 @@ func redisURLFromAddr(addr string, cfg config.View, usePassword bool) string {
 	// Add redis user and password to connection url if they exist
 	redisURL := "redis://"
 
-	passwordFile := cfg.GetString("redis.passwordPath")
-	if usePassword && len(passwordFile) > 0 {
+	if usePassword {
+		passwordFile := cfg.GetString("redis.passwordPath")
 		redisLogger.Debugf("loading Redis password from file %s", passwordFile)
 		passwordData, err := ioutil.ReadFile(passwordFile)
 		if err != nil {
