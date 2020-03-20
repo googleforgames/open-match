@@ -54,7 +54,9 @@ func TestMeetsCriteria(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestValidPoolFilter(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		pool *pb.Pool
