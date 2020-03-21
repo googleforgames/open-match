@@ -18,7 +18,10 @@ package testcases
 import (
 	"fmt"
 	"math"
+	"time"
 
+	"github.com/golang/protobuf/ptypes"
+	tspb "github.com/golang/protobuf/ptypes/timestamp"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -32,6 +35,7 @@ type TestCase struct {
 // IncludedTestCases returns a list of test cases where using the given filter,
 // the ticket is included in the result.
 func IncludedTestCases() []TestCase {
+	now := time.Now()
 	return []TestCase{
 		{
 			"no filters or fields",
@@ -106,12 +110,41 @@ func IncludedTestCases() []TestCase {
 		},
 
 		multipleFilters(true, true, true),
+
+		{
+			"CreatedBefore simple positive",
+			&pb.Ticket{},
+			&pb.Pool{
+				CreatedBefore: timestamp(now.Add(time.Hour * 1)),
+			},
+		},
+		{
+			"CreatedAfter simple positive",
+			&pb.Ticket{},
+			&pb.Pool{
+				CreatedAfter: timestamp(now.Add(time.Hour * -1)),
+			},
+		},
+		{
+			"Between CreatedBefore and CreatedAfter positive",
+			&pb.Ticket{},
+			&pb.Pool{
+				CreatedBefore: timestamp(now.Add(time.Hour * 1)),
+				CreatedAfter:  timestamp(now.Add(time.Hour * -1)),
+			},
+		},
+		{
+			"No time search criteria positive",
+			&pb.Ticket{},
+			&pb.Pool{},
+		},
 	}
 }
 
 // ExcludedTestCases returns a list of test cases where using the given filter,
 // the ticket is NOT included in the result.
 func ExcludedTestCases() []TestCase {
+	now := time.Now()
 	return []TestCase{
 		{
 			"DoubleRange no SearchFields",
@@ -259,6 +292,37 @@ func ExcludedTestCases() []TestCase {
 			},
 		},
 
+		{
+			"CreatedBefore simple negative",
+			&pb.Ticket{},
+			&pb.Pool{
+				CreatedBefore: timestamp(now.Add(time.Hour * -1)),
+			},
+		},
+		{
+			"CreatedAfter simple negative",
+			&pb.Ticket{},
+			&pb.Pool{
+				CreatedAfter: timestamp(now.Add(time.Hour * 1)),
+			},
+		},
+		{
+			"Created before time range negative",
+			&pb.Ticket{},
+			&pb.Pool{
+				CreatedBefore: timestamp(now.Add(time.Hour * 2)),
+				CreatedAfter:  timestamp(now.Add(time.Hour * 1)),
+			},
+		},
+		{
+			"Created after time range negative",
+			&pb.Ticket{},
+			&pb.Pool{
+				CreatedBefore: timestamp(now.Add(time.Hour * -1)),
+				CreatedAfter:  timestamp(now.Add(time.Hour * -2)),
+			},
+		},
+
 		multipleFilters(false, true, true),
 		multipleFilters(true, false, true),
 		multipleFilters(true, true, false),
@@ -337,4 +401,13 @@ func multipleFilters(doubleRange, stringEquals, tagPresent bool) TestCase {
 			},
 		},
 	}
+}
+
+func timestamp(t time.Time) *tspb.Timestamp {
+	tsp, err := ptypes.TimestampProto(t)
+	if err != nil {
+		panic(err)
+	}
+
+	return tsp
 }

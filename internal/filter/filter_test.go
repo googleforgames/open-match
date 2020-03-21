@@ -17,14 +17,25 @@ package filter
 import (
 	"testing"
 
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/filter/testcases"
+	"open-match.dev/open-match/pkg/pb"
 )
 
-func TestInPool(t *testing.T) {
+func TestMeetsCriteria(t *testing.T) {
 	for _, tc := range testcases.IncludedTestCases() {
 		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
-			if !InPool(tc.Ticket, tc.Pool) {
+			pf, err := NewPoolFilter(tc.Pool)
+			if err != nil {
+				t.Error("pool should be valid")
+			}
+			tc.Ticket.CreateTime = ptypes.TimestampNow()
+			if !pf.In(tc.Ticket) {
 				t.Error("ticket should be included in the pool")
 			}
 		})
@@ -33,9 +44,49 @@ func TestInPool(t *testing.T) {
 	for _, tc := range testcases.ExcludedTestCases() {
 		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
-			if InPool(tc.Ticket, tc.Pool) {
+			pf, err := NewPoolFilter(tc.Pool)
+			if err != nil {
+				t.Error("pool should be valid")
+			}
+			tc.Ticket.CreateTime = ptypes.TimestampNow()
+			if pf.In(tc.Ticket) {
 				t.Error("ticket should be excluded from the pool")
 			}
+		})
+	}
+}
+
+func TestValidPoolFilter(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		pool *pb.Pool
+		code codes.Code
+		msg  string
+	}{
+		{
+			"invalid create before",
+			&pb.Pool{
+				CreatedBefore: &timestamp.Timestamp{Nanos: -1},
+			},
+			codes.InvalidArgument,
+			".invalid created_before value",
+		},
+		{
+			"invalid create after",
+			&pb.Pool{
+				CreatedAfter: &timestamp.Timestamp{Nanos: -1},
+			},
+			codes.InvalidArgument,
+			".invalid created_after value",
+		},
+	} {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			pf, err := NewPoolFilter(tc.pool)
+			assert.Nil(t, pf)
+			s := status.Convert(err)
+			assert.Equal(t, tc.code, s.Code())
+			assert.Equal(t, tc.msg, s.Message())
 		})
 	}
 }

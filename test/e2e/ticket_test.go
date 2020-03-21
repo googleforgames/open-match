@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -300,6 +301,16 @@ func TestCreateTicketErrors(t *testing.T) {
 			},
 			codes.InvalidArgument,
 			"tickets cannot be created with an assignment",
+		},
+		{
+			"already has create time",
+			&pb.CreateTicketRequest{
+				Ticket: &pb.Ticket{
+					CreateTime: ptypes.TimestampNow(),
+				},
+			},
+			codes.InvalidArgument,
+			"tickets cannot be created with create time set",
 		},
 	} {
 		tt := tt
