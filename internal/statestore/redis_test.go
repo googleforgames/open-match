@@ -201,31 +201,31 @@ func TestGetAssignmentBeforeSet(t *testing.T) {
 	assert.Nil(assignmentResp)
 }
 
-func TestUpdateAssignmentFatal(t *testing.T) {
-	// Create State Store
-	assert := assert.New(t)
-	cfg, closer := createRedis(t, true)
-	defer closer()
-	service := New(cfg)
-	assert.NotNil(service)
-	defer service.Close()
-	ctx := utilTesting.NewContext(t)
+// func TestUpdateAssignmentFatal(t *testing.T) {
+// 	// Create State Store
+// 	assert := assert.New(t)
+// 	cfg, closer := createRedis(t, true)
+// 	defer closer()
+// 	service := New(cfg)
+// 	assert.NotNil(service)
+// 	defer service.Close()
+// 	ctx := utilTesting.NewContext(t)
 
-	var assignmentResp *pb.Assignment
+// 	var assignmentResp *pb.Assignment
 
-	// Now create a ticket in the state store service
-	err := service.CreateTicket(ctx, &pb.Ticket{
-		Id:         "1",
-		Assignment: &pb.Assignment{Connection: "2"},
-	})
-	assert.Nil(err)
+// 	// Now create a ticket in the state store service
+// 	err := service.CreateTicket(ctx, &pb.Ticket{
+// 		Id:         "1",
+// 		Assignment: &pb.Assignment{Connection: "2"},
+// 	})
+// 	assert.Nil(err)
 
-	// Try to update the assignmets with the ticket created and some non-existed tickets
-	err = service.UpdateAssignments(ctx, []string{"1", "2", "3"}, &pb.Assignment{Connection: "localhost"})
-	// UpdateAssignment failed because the ticket does not exists
-	assert.Equal(codes.NotFound, status.Convert(err).Code())
-	assert.Nil(assignmentResp)
-}
+// 	// Try to update the assignmets with the ticket created and some non-existed tickets
+// 	err = service.UpdateAssignments(ctx, []string{"1", "2", "3"}, &pb.Assignment{Connection: "localhost"})
+// 	// UpdateAssignment failed because the ticket does not exists
+// 	assert.Equal(codes.NotFound, status.Convert(err).Code())
+// 	assert.Nil(assignmentResp)
+// }
 
 func TestGetAssignmentNormal(t *testing.T) {
 	// Create State Store
@@ -268,40 +268,40 @@ func TestGetAssignmentNormal(t *testing.T) {
 	assert.Equal(returnedErr, err)
 }
 
-func TestUpdateAssignmentNormal(t *testing.T) {
-	// Create State Store
-	assert := assert.New(t)
-	cfg, closer := createRedis(t, true)
-	defer closer()
-	service := New(cfg)
-	assert.NotNil(service)
-	defer service.Close()
-	ctx := utilTesting.NewContext(t)
+// func TestUpdateAssignmentNormal(t *testing.T) {
+// 	// Create State Store
+// 	assert := assert.New(t)
+// 	cfg, closer := createRedis(t, true)
+// 	defer closer()
+// 	service := New(cfg)
+// 	assert.NotNil(service)
+// 	defer service.Close()
+// 	ctx := utilTesting.NewContext(t)
 
-	// Create a ticket without assignment
-	err := service.CreateTicket(ctx, &pb.Ticket{
-		Id: "1",
-	})
-	assert.Nil(err)
-	// Create a ticket already with an assignment
-	err = service.CreateTicket(ctx, &pb.Ticket{
-		Id:         "3",
-		Assignment: &pb.Assignment{Connection: "4"},
-	})
-	assert.Nil(err)
+// 	// Create a ticket without assignment
+// 	err := service.CreateTicket(ctx, &pb.Ticket{
+// 		Id: "1",
+// 	})
+// 	assert.Nil(err)
+// 	// Create a ticket already with an assignment
+// 	err = service.CreateTicket(ctx, &pb.Ticket{
+// 		Id:         "3",
+// 		Assignment: &pb.Assignment{Connection: "4"},
+// 	})
+// 	assert.Nil(err)
 
-	fakeAssignment := &pb.Assignment{Connection: "Halo"}
-	err = service.UpdateAssignments(ctx, []string{"1", "3"}, fakeAssignment)
-	assert.Nil(err)
-	// Verify the transaction behavior of the UpdateAssignment.
-	ticket, err := service.GetTicket(ctx, "1")
-	assert.Equal(fakeAssignment.Connection, ticket.Assignment.Connection)
-	assert.Nil(err)
-	// Verify the transaction behavior of the UpdateAssignment.
-	ticket, err = service.GetTicket(ctx, "3")
-	assert.Equal(fakeAssignment.Connection, ticket.Assignment.Connection)
-	assert.Nil(err)
-}
+// 	fakeAssignment := &pb.Assignment{Connection: "Halo"}
+// 	err = service.UpdateAssignments(ctx, []string{"1", "3"}, fakeAssignment)
+// 	assert.Nil(err)
+// 	// Verify the transaction behavior of the UpdateAssignment.
+// 	ticket, err := service.GetTicket(ctx, "1")
+// 	assert.Equal(fakeAssignment.Connection, ticket.Assignment.Connection)
+// 	assert.Nil(err)
+// 	// Verify the transaction behavior of the UpdateAssignment.
+// 	ticket, err = service.GetTicket(ctx, "3")
+// 	assert.Equal(fakeAssignment.Connection, ticket.Assignment.Connection)
+// 	assert.Nil(err)
+// }
 
 func TestConnectWithSentinel(t *testing.T) {
 	assert := assert.New(t)
