@@ -100,6 +100,7 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 
 	go func() {
 		for {
+			matchIDs := map[string]bool{}
 			req, err := stream.Recv()
 			if err != nil {
 				if err != io.EOF {
@@ -110,6 +111,13 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 				registration.allM1cSent.Done()
 				return
 			}
+			if _, ok := matchIDs[req.GetProposal().GetMatchId()]; ok {
+				logger.WithFields(logrus.Fields{
+					"matchID": req.GetProposal().GetMatchId(),
+				}).Error("found duplicate match ID in the same synchronization cycle")
+				return
+			}
+			matchIDs[req.GetProposal().GetMatchId()] = true
 			registration.m1c.send(mAndM6c{m: req.Proposal, m7c: registration.m7c})
 		}
 	}()
