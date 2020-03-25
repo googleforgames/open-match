@@ -21,6 +21,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/ipb"
@@ -91,75 +93,85 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 	// 1. Receive proposals from backend, send them to cycle.
 	// 2. Receive matches and signals from cycle, send them to backend.
 
-	registration := s.register(stream.Context())
+	eg, ctx := errgroup.WithContext(stream.Context())
+	registration := s.register(ctx)
 	m6cBuffer := bufferStringChannel(registration.m7c)
 	defer func() {
 		for range m6cBuffer {
 		}
 	}()
 
-	go func() {
+	matches := map[string]*pb.Match{}
+	eg.Go(func() error {
+		defer registration.allM1cSent.Done()
+
+		duplicateIDs := []string{}
 		for {
-			matchIDs := map[string]bool{}
 			req, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
 			if err != nil {
-				if err != io.EOF {
-					logger.WithFields(logrus.Fields{
-						"error": err.Error(),
-					}).Error("error streaming in synchronizer from backend")
-				}
-				registration.allM1cSent.Done()
-				return
+				return fmt.Errorf("error streaming in synchronizer from backend, desc: %w", err)
 			}
-			if _, ok := matchIDs[req.GetProposal().GetMatchId()]; ok {
-				logger.WithFields(logrus.Fields{
-					"matchID": req.GetProposal().GetMatchId(),
-				}).Error("found duplicate match ID in the same synchronization cycle")
-				return
+			if _, ok := matches[req.GetProposal().GetMatchId()]; ok {
+				duplicateIDs = append(duplicateIDs, req.GetProposal().GetMatchId())
 			}
-			matchIDs[req.GetProposal().GetMatchId()] = true
-			registration.m1c.send(mAndM6c{m: req.Proposal, m7c: registration.m7c})
+			matches[req.GetProposal().GetMatchId()] = req.GetProposal()
 		}
-	}()
+
+		if len(duplicateIDs) != 0 {
+			return fmt.Errorf("found duplicate matchIDs %s from different FetchMatches calls", duplicateIDs)
+		}
+
+		for _, proposal := range matches {
+			registration.m1c.send(mAndM6c{m: proposal, m7c: registration.m7c})
+		}
+
+		return nil
+	})
 
 	err := stream.Send(&ipb.SynchronizeResponse{StartMmfs: true})
 	if err != nil {
 		return err
 	}
 
-	for {
-		select {
-		case mIDs, ok := <-m6cBuffer:
-			if !ok {
-				return nil
-			}
-			for _, mID := range mIDs {
-				err = stream.Send(&ipb.SynchronizeResponse{MatchId: mID})
+	eg.Go(func() error {
+		for {
+			select {
+			case mIDs, ok := <-m6cBuffer:
+				if !ok {
+					return nil
+				}
+				for _, mID := range mIDs {
+					err = stream.Send(&ipb.SynchronizeResponse{MatchId: mID})
+					if err != nil {
+						logger.WithFields(logrus.Fields{
+							"error": err.Error(),
+						}).Error("error streaming match in synchronizer to backend")
+						return err
+					}
+				}
+			case <-registration.cancelMmfs:
+				err = stream.Send(&ipb.SynchronizeResponse{CancelMmfs: true})
 				if err != nil {
 					logger.WithFields(logrus.Fields{
 						"error": err.Error(),
-					}).Error("error streaming match in synchronizer to backend")
+					}).Error("error streaming mmf cancel in synchronizer to backend")
 					return err
 				}
-			}
-		case <-registration.cancelMmfs:
-			err = stream.Send(&ipb.SynchronizeResponse{CancelMmfs: true})
-			if err != nil {
+			case <-ctx.Done():
 				logger.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("error streaming mmf cancel in synchronizer to backend")
-				return err
+					"error": ctx.Err().Error(),
+				}).Error("error streaming in synchronizer to backend: context is done")
+				return ctx.Err()
+			case <-registration.cycleCtx.Done():
+				return registration.cycleCtx.Err()
 			}
-		case <-stream.Context().Done():
-			logger.WithFields(logrus.Fields{
-				"error": stream.Context().Err().Error(),
-			}).Error("error streaming in synchronizer to backend: context is done")
-			return stream.Context().Err()
-		case <-registration.cycleCtx.Done():
-			return registration.cycleCtx.Err()
 		}
-	}
+	})
 
+	return eg.Wait()
 }
 
 ///////////////////////////////////////

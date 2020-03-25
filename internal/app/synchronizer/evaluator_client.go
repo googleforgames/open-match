@@ -147,9 +147,15 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 			if err != nil {
 				return fmt.Errorf("failed to get response from evaluator client, desc: %w", err)
 			}
-			if !matchIDs[resp.GetMatchId()] {
-				return fmt.Errorf("evaluator returned unmatched/duplicated matchID %s which does not correspond to its input", resp.GetMatchId())
+
+			v, ok := matchIDs[resp.GetMatchId()]
+			if !ok {
+				return fmt.Errorf("evaluator returned unmatched matchID %s which does not correspond to its input", resp.GetMatchId())
 			}
+			if !v {
+				return fmt.Errorf("evaluator returned duplicated matchID %s", resp.GetMatchId())
+			}
+			// TODO: add e2e tests for matchID collision scenarios
 			matchIDs[resp.GetMatchId()] = false
 			results = append(results, resp.GetMatchId())
 		}
