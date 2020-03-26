@@ -119,10 +119,14 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 	}
 
 	results := []string{}
+	matchIDs := &sync.Map{}
 
 	eg.Go(func() error {
 		for proposals := range pc {
 			for _, proposal := range proposals {
+				if _, ok := matchIDs.LoadOrStore(proposal.GetMatchId(), true); ok {
+					return fmt.Errorf("found duplicate matchID %s", proposal.GetMatchId())
+				}
 				if err := stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
 					return fmt.Errorf("failed to send request to evaluator, desc: %w", err)
 				}
@@ -144,6 +148,14 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 			}
 			if err != nil {
 				return fmt.Errorf("failed to get response from evaluator client, desc: %w", err)
+			}
+
+			v, ok := matchIDs.LoadOrStore(resp.GetMatchId(), false)
+			if !ok {
+				return fmt.Errorf("evaluator returned unmatched matchID %s which does not correspond to its input", resp.GetMatchId())
+			}
+			if !v.(bool) {
+				return fmt.Errorf("evaluator returned duplicated matchID %s", resp.GetMatchId())
 			}
 			results = append(results, resp.GetMatchId())
 		}
