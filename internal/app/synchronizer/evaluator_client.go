@@ -153,8 +153,7 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 			v, ok := matchIDs.LoadOrStore(resp.GetMatchId(), false)
 			if !ok {
 				return fmt.Errorf("evaluator returned unmatched matchID %s which does not correspond to its input", resp.GetMatchId())
-			}
-			if !v {
+			} else if !v {
 				return fmt.Errorf("evaluator returned duplicated matchID %s", resp.GetMatchId())
 			}
 			results = append(results, resp.GetMatchId())
