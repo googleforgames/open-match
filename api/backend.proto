@@ -88,7 +88,8 @@ message ReleaseTicketsRequest{
 
 message ReleaseTicketsResponse {}
 
-message AssignTicketsRequest {
+// AssignmentGroup contains an Assignment and the Tickets to which it should be applied. 
+message AssignmentGroup{
   // TicketIds is a list of strings representing Open Match generated Ids which apply to an Assignment.
   repeated string ticket_ids = 1;
 
@@ -96,7 +97,26 @@ message AssignTicketsRequest {
   Assignment assignment = 2;
 }
 
-message AssignTicketsResponse {}
+// AssignmentFailure contains the id of the Ticket that failed the Assignment and the failure status.
+message AssignmentFailure {
+  enum Cause {
+    UNKNOWN = 0;
+    TICKET_NOT_FOUND = 1;
+  }
+
+  string ticket_id = 1;
+  Cause cause = 2;
+}
+
+message AssignTicketsRequest {
+  // Assignments is a list of assignment groups that contain assignment and the Tickets to which they should be applied.
+  repeated AssignmentGroup assignments = 1;
+}
+
+message AssignTicketsResponse {
+  // Failures is a list of all the Tickets that failed assignment along with the cause of failure. 
+  repeated AssignmentFailure failures = 1;
+}
 
 // The BackendService implements APIs to generate matches and handle ticket assignments.
 service BackendService {

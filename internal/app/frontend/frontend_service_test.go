@@ -123,7 +123,15 @@ func TestDoGetAssignments(t *testing.T) {
 				go func(wg *sync.WaitGroup) {
 					for i := 0; i < len(wantAssignments); i++ {
 						time.Sleep(50 * time.Millisecond)
-						assert.Nil(t, store.UpdateAssignments(ctx, []string{testTicket.GetId()}, wantAssignments[i]))
+						_, err := store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
+							Assignments: []*pb.AssignmentGroup{
+								{
+									TicketIds:  []string{testTicket.GetId()},
+									Assignment: wantAssignments[i],
+								},
+							},
+						})
+						assert.Nil(t, err)
 						wg.Done()
 					}
 				}(wg)
