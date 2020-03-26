@@ -173,8 +173,8 @@ func local_request_FrontendService_GetTicket_0(ctx context.Context, marshaler ru
 
 }
 
-func request_FrontendService_GetAssignments_0(ctx context.Context, marshaler runtime.Marshaler, client FrontendServiceClient, req *http.Request, pathParams map[string]string) (FrontendService_GetAssignmentsClient, runtime.ServerMetadata, error) {
-	var protoReq GetAssignmentsRequest
+func request_FrontendService_WatchAssignments_0(ctx context.Context, marshaler runtime.Marshaler, client FrontendServiceClient, req *http.Request, pathParams map[string]string) (FrontendService_WatchAssignmentsClient, runtime.ServerMetadata, error) {
+	var protoReq WatchAssignmentsRequest
 	var metadata runtime.ServerMetadata
 
 	var (
@@ -195,7 +195,7 @@ func request_FrontendService_GetAssignments_0(ctx context.Context, marshaler run
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "ticket_id", err)
 	}
 
-	stream, err := client.GetAssignments(ctx, &protoReq)
+	stream, err := client.WatchAssignments(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
 	}
@@ -273,7 +273,7 @@ func RegisterFrontendServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 
 	})
 
-	mux.Handle("GET", pattern_FrontendService_GetAssignments_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("GET", pattern_FrontendService_WatchAssignments_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -381,7 +381,7 @@ func RegisterFrontendServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 
 	})
 
-	mux.Handle("GET", pattern_FrontendService_GetAssignments_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("GET", pattern_FrontendService_WatchAssignments_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
@@ -390,14 +390,14 @@ func RegisterFrontendServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_FrontendService_GetAssignments_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_FrontendService_WatchAssignments_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_FrontendService_GetAssignments_0(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
+		forward_FrontendService_WatchAssignments_0(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -411,7 +411,7 @@ var (
 
 	pattern_FrontendService_GetTicket_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "frontendservice", "tickets", "ticket_id"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_FrontendService_GetAssignments_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "frontendservice", "tickets", "ticket_id", "assignments"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_FrontendService_WatchAssignments_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "frontendservice", "tickets", "ticket_id", "assignments"}, "", runtime.AssumeColonVerbOpt(true)))
 )
 
 var (
@@ -421,5 +421,5 @@ var (
 
 	forward_FrontendService_GetTicket_0 = runtime.ForwardResponseMessage
 
-	forward_FrontendService_GetAssignments_0 = runtime.ForwardResponseStream
+	forward_FrontendService_WatchAssignments_0 = runtime.ForwardResponseStream
 )

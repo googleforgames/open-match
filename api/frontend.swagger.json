@@ -32,7 +32,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/openmatchCreateTicketResponse"
+              "$ref": "#/definitions/openmatchTicket"
             }
           },
           "404": {
@@ -97,7 +97,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/openmatchDeleteTicketResponse"
+              "properties": {}
             }
           },
           "404": {
@@ -124,13 +124,13 @@
     },
     "/v1/frontendservice/tickets/{ticket_id}/assignments": {
       "get": {
-        "summary": "GetAssignments stream back Assignment of the specified TicketId if it is updated.\n  - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.",
-        "operationId": "GetAssignments",
+        "summary": "WatchAssignments stream back Assignment of the specified TicketId if it is updated.\n  - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.",
+        "operationId": "WatchAssignments",
         "responses": {
           "200": {
             "description": "A successful response.(streaming responses)",
             "schema": {
-              "$ref": "#/x-stream-definitions/openmatchGetAssignmentsResponse"
+              "$ref": "#/x-stream-definitions/openmatchWatchAssignmentsResponse"
             }
           },
           "404": {
@@ -180,27 +180,6 @@
         "ticket": {
           "$ref": "#/definitions/openmatchTicket",
           "description": "A Ticket object with SearchFields defined."
-        }
-      }
-    },
-    "openmatchCreateTicketResponse": {
-      "type": "object",
-      "properties": {
-        "ticket": {
-          "$ref": "#/definitions/openmatchTicket",
-          "description": "A Ticket object with TicketId generated."
-        }
-      }
-    },
-    "openmatchDeleteTicketResponse": {
-      "type": "object"
-    },
-    "openmatchGetAssignmentsResponse": {
-      "type": "object",
-      "properties": {
-        "assignment": {
-          "$ref": "#/definitions/openmatchAssignment",
-          "description": "An updated Assignment of the requested Ticket."
         }
       }
     },
@@ -262,6 +241,15 @@
       },
       "description": "A Ticket is a basic matchmaking entity in Open Match. A Ticket represents either an\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\nof SearchFields. Open Match stores the Ticket in state storage and enables an\nAssignment to be associated with this Ticket."
     },
+    "openmatchWatchAssignmentsResponse": {
+      "type": "object",
+      "properties": {
+        "assignment": {
+          "$ref": "#/definitions/openmatchAssignment",
+          "description": "An updated Assignment of the requested Ticket."
+        }
+      }
+    },
     "protobufAny": {
       "type": "object",
       "properties": {
@@ -304,17 +292,17 @@
     }
   },
   "x-stream-definitions": {
-    "openmatchGetAssignmentsResponse": {
+    "openmatchWatchAssignmentsResponse": {
       "type": "object",
       "properties": {
         "result": {
-          "$ref": "#/definitions/openmatchGetAssignmentsResponse"
+          "$ref": "#/definitions/openmatchWatchAssignmentsResponse"
         },
         "error": {
           "$ref": "#/definitions/runtimeStreamError"
         }
       },
-      "title": "Stream result of openmatchGetAssignmentsResponse"
+      "title": "Stream result of openmatchWatchAssignmentsResponse"
     }
   },
   "externalDocs": {

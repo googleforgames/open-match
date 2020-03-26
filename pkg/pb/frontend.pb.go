@@ -7,6 +7,7 @@ import (
 	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
@@ -66,46 +67,6 @@ func (m *CreateTicketRequest) GetTicket() *Ticket {
 	return nil
 }
 
-type CreateTicketResponse struct {
-	// A Ticket object with TicketId generated.
-	Ticket               *Ticket  `protobuf:"bytes,1,opt,name=ticket,proto3" json:"ticket,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *CreateTicketResponse) Reset()         { *m = CreateTicketResponse{} }
-func (m *CreateTicketResponse) String() string { return proto.CompactTextString(m) }
-func (*CreateTicketResponse) ProtoMessage()    {}
-func (*CreateTicketResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_06c902cf58d2ae57, []int{1}
-}
-
-func (m *CreateTicketResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CreateTicketResponse.Unmarshal(m, b)
-}
-func (m *CreateTicketResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CreateTicketResponse.Marshal(b, m, deterministic)
-}
-func (m *CreateTicketResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CreateTicketResponse.Merge(m, src)
-}
-func (m *CreateTicketResponse) XXX_Size() int {
-	return xxx_messageInfo_CreateTicketResponse.Size(m)
-}
-func (m *CreateTicketResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_CreateTicketResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_CreateTicketResponse proto.InternalMessageInfo
-
-func (m *CreateTicketResponse) GetTicket() *Ticket {
-	if m != nil {
-		return m.Ticket
-	}
-	return nil
-}
-
 type DeleteTicketRequest struct {
 	// A TicketId of a generated Ticket to be deleted.
 	TicketId             string   `protobuf:"bytes,1,opt,name=ticket_id,json=ticketId,proto3" json:"ticket_id,omitempty"`
@@ -118,7 +79,7 @@ func (m *DeleteTicketRequest) Reset()         { *m = DeleteTicketRequest{} }
 func (m *DeleteTicketRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteTicketRequest) ProtoMessage()    {}
 func (*DeleteTicketRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_06c902cf58d2ae57, []int{2}
+	return fileDescriptor_06c902cf58d2ae57, []int{1}
 }
 
 func (m *DeleteTicketRequest) XXX_Unmarshal(b []byte) error {
@@ -146,37 +107,6 @@ func (m *DeleteTicketRequest) GetTicketId() string {
 	return ""
 }
 
-type DeleteTicketResponse struct {
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *DeleteTicketResponse) Reset()         { *m = DeleteTicketResponse{} }
-func (m *DeleteTicketResponse) String() string { return proto.CompactTextString(m) }
-func (*DeleteTicketResponse) ProtoMessage()    {}
-func (*DeleteTicketResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_06c902cf58d2ae57, []int{3}
-}
-
-func (m *DeleteTicketResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_DeleteTicketResponse.Unmarshal(m, b)
-}
-func (m *DeleteTicketResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_DeleteTicketResponse.Marshal(b, m, deterministic)
-}
-func (m *DeleteTicketResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DeleteTicketResponse.Merge(m, src)
-}
-func (m *DeleteTicketResponse) XXX_Size() int {
-	return xxx_messageInfo_DeleteTicketResponse.Size(m)
-}
-func (m *DeleteTicketResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_DeleteTicketResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_DeleteTicketResponse proto.InternalMessageInfo
-
 type GetTicketRequest struct {
 	// A TicketId of a generated Ticket.
 	TicketId             string   `protobuf:"bytes,1,opt,name=ticket_id,json=ticketId,proto3" json:"ticket_id,omitempty"`
@@ -189,7 +119,7 @@ func (m *GetTicketRequest) Reset()         { *m = GetTicketRequest{} }
 func (m *GetTicketRequest) String() string { return proto.CompactTextString(m) }
 func (*GetTicketRequest) ProtoMessage()    {}
 func (*GetTicketRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_06c902cf58d2ae57, []int{4}
+	return fileDescriptor_06c902cf58d2ae57, []int{2}
 }
 
 func (m *GetTicketRequest) XXX_Unmarshal(b []byte) error {
@@ -217,7 +147,7 @@ func (m *GetTicketRequest) GetTicketId() string {
 	return ""
 }
 
-type GetAssignmentsRequest struct {
+type WatchAssignmentsRequest struct {
 	// A TicketId of a generated Ticket to get updates on.
 	TicketId             string   `protobuf:"bytes,1,opt,name=ticket_id,json=ticketId,proto3" json:"ticket_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -225,39 +155,39 @@ type GetAssignmentsRequest struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *GetAssignmentsRequest) Reset()         { *m = GetAssignmentsRequest{} }
-func (m *GetAssignmentsRequest) String() string { return proto.CompactTextString(m) }
-func (*GetAssignmentsRequest) ProtoMessage()    {}
-func (*GetAssignmentsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_06c902cf58d2ae57, []int{5}
+func (m *WatchAssignmentsRequest) Reset()         { *m = WatchAssignmentsRequest{} }
+func (m *WatchAssignmentsRequest) String() string { return proto.CompactTextString(m) }
+func (*WatchAssignmentsRequest) ProtoMessage()    {}
+func (*WatchAssignmentsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_06c902cf58d2ae57, []int{3}
 }
 
-func (m *GetAssignmentsRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_GetAssignmentsRequest.Unmarshal(m, b)
+func (m *WatchAssignmentsRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_WatchAssignmentsRequest.Unmarshal(m, b)
 }
-func (m *GetAssignmentsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_GetAssignmentsRequest.Marshal(b, m, deterministic)
+func (m *WatchAssignmentsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_WatchAssignmentsRequest.Marshal(b, m, deterministic)
 }
-func (m *GetAssignmentsRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetAssignmentsRequest.Merge(m, src)
+func (m *WatchAssignmentsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WatchAssignmentsRequest.Merge(m, src)
 }
-func (m *GetAssignmentsRequest) XXX_Size() int {
-	return xxx_messageInfo_GetAssignmentsRequest.Size(m)
+func (m *WatchAssignmentsRequest) XXX_Size() int {
+	return xxx_messageInfo_WatchAssignmentsRequest.Size(m)
 }
-func (m *GetAssignmentsRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetAssignmentsRequest.DiscardUnknown(m)
+func (m *WatchAssignmentsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_WatchAssignmentsRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_GetAssignmentsRequest proto.InternalMessageInfo
+var xxx_messageInfo_WatchAssignmentsRequest proto.InternalMessageInfo
 
-func (m *GetAssignmentsRequest) GetTicketId() string {
+func (m *WatchAssignmentsRequest) GetTicketId() string {
 	if m != nil {
 		return m.TicketId
 	}
 	return ""
 }
 
-type GetAssignmentsResponse struct {
+type WatchAssignmentsResponse struct {
 	// An updated Assignment of the requested Ticket.
 	Assignment           *Assignment `protobuf:"bytes,1,opt,name=assignment,proto3" json:"assignment,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
@@ -265,32 +195,32 @@ type GetAssignmentsResponse struct {
 	XXX_sizecache        int32       `json:"-"`
 }
 
-func (m *GetAssignmentsResponse) Reset()         { *m = GetAssignmentsResponse{} }
-func (m *GetAssignmentsResponse) String() string { return proto.CompactTextString(m) }
-func (*GetAssignmentsResponse) ProtoMessage()    {}
-func (*GetAssignmentsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_06c902cf58d2ae57, []int{6}
+func (m *WatchAssignmentsResponse) Reset()         { *m = WatchAssignmentsResponse{} }
+func (m *WatchAssignmentsResponse) String() string { return proto.CompactTextString(m) }
+func (*WatchAssignmentsResponse) ProtoMessage()    {}
+func (*WatchAssignmentsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_06c902cf58d2ae57, []int{4}
 }
 
-func (m *GetAssignmentsResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_GetAssignmentsResponse.Unmarshal(m, b)
+func (m *WatchAssignmentsResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_WatchAssignmentsResponse.Unmarshal(m, b)
 }
-func (m *GetAssignmentsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_GetAssignmentsResponse.Marshal(b, m, deterministic)
+func (m *WatchAssignmentsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_WatchAssignmentsResponse.Marshal(b, m, deterministic)
 }
-func (m *GetAssignmentsResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetAssignmentsResponse.Merge(m, src)
+func (m *WatchAssignmentsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WatchAssignmentsResponse.Merge(m, src)
 }
-func (m *GetAssignmentsResponse) XXX_Size() int {
-	return xxx_messageInfo_GetAssignmentsResponse.Size(m)
+func (m *WatchAssignmentsResponse) XXX_Size() int {
+	return xxx_messageInfo_WatchAssignmentsResponse.Size(m)
 }
-func (m *GetAssignmentsResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetAssignmentsResponse.DiscardUnknown(m)
+func (m *WatchAssignmentsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_WatchAssignmentsResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_GetAssignmentsResponse proto.InternalMessageInfo
+var xxx_messageInfo_WatchAssignmentsResponse proto.InternalMessageInfo
 
-func (m *GetAssignmentsResponse) GetAssignment() *Assignment {
+func (m *WatchAssignmentsResponse) GetAssignment() *Assignment {
 	if m != nil {
 		return m.Assignment
 	}
@@ -299,58 +229,57 @@ func (m *GetAssignmentsResponse) GetAssignment() *Assignment {
 
 func init() {
 	proto.RegisterType((*CreateTicketRequest)(nil), "openmatch.CreateTicketRequest")
-	proto.RegisterType((*CreateTicketResponse)(nil), "openmatch.CreateTicketResponse")
 	proto.RegisterType((*DeleteTicketRequest)(nil), "openmatch.DeleteTicketRequest")
-	proto.RegisterType((*DeleteTicketResponse)(nil), "openmatch.DeleteTicketResponse")
 	proto.RegisterType((*GetTicketRequest)(nil), "openmatch.GetTicketRequest")
-	proto.RegisterType((*GetAssignmentsRequest)(nil), "openmatch.GetAssignmentsRequest")
-	proto.RegisterType((*GetAssignmentsResponse)(nil), "openmatch.GetAssignmentsResponse")
+	proto.RegisterType((*WatchAssignmentsRequest)(nil), "openmatch.WatchAssignmentsRequest")
+	proto.RegisterType((*WatchAssignmentsResponse)(nil), "openmatch.WatchAssignmentsResponse")
 }
 
 func init() { proto.RegisterFile("api/frontend.proto", fileDescriptor_06c902cf58d2ae57) }
 
 var fileDescriptor_06c902cf58d2ae57 = []byte{
-	// 640 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x4b, 0x4f, 0x13, 0x51,
-	0x14, 0xce, 0x14, 0x82, 0xf4, 0x48, 0x14, 0x2f, 0x8f, 0x90, 0x62, 0xf4, 0x52, 0x13, 0x95, 0xc6,
-	0xce, 0x2d, 0xa5, 0x6c, 0x20, 0x26, 0x54, 0x40, 0x42, 0x82, 0x92, 0x14, 0xe3, 0xc2, 0x8d, 0x99,
-	0xce, 0x1c, 0xa6, 0x23, 0xed, 0xbd, 0xe3, 0x9c, 0x3b, 0x60, 0x62, 0x4c, 0x8c, 0x5b, 0x77, 0xe8,
-	0xca, 0x9f, 0xe0, 0xd2, 0xbf, 0xe2, 0xca, 0xbd, 0x3f, 0xc4, 0xcc, 0xa3, 0xed, 0xf4, 0x21, 0x81,
-	0xd5, 0x64, 0xce, 0xf9, 0xce, 0xf7, 0x9d, 0xc7, 0x97, 0x0b, 0xcc, 0xf2, 0x3d, 0x71, 0x12, 0x28,
-	0xa9, 0x51, 0x3a, 0xa6, 0x1f, 0x28, 0xad, 0x58, 0x5e, 0xf9, 0x28, 0x3b, 0x96, 0xb6, 0x5b, 0x85,
-	0x38, 0xdd, 0x41, 0x22, 0xcb, 0x45, 0x4a, 0xd2, 0x85, 0xbb, 0xae, 0x52, 0x6e, 0x1b, 0x45, 0x94,
-	0xb2, 0xa4, 0x54, 0xda, 0xd2, 0x9e, 0x92, 0xdd, 0xec, 0x93, 0xf8, 0x63, 0x97, 0x5d, 0x94, 0x65,
-	0x3a, 0xb7, 0x5c, 0x17, 0x03, 0xa1, 0xfc, 0x18, 0x31, 0x8a, 0x2e, 0x6e, 0xc3, 0xdc, 0x4e, 0x80,
-	0x96, 0xc6, 0x57, 0x9e, 0x7d, 0x8a, 0xba, 0x81, 0xef, 0x43, 0x24, 0xcd, 0x56, 0x61, 0x4a, 0xc7,
-	0x81, 0x25, 0x83, 0x1b, 0x8f, 0x6f, 0x56, 0xef, 0x98, 0xbd, 0x96, 0xcc, 0x14, 0x99, 0x02, 0x8a,
-	0x75, 0x98, 0x1f, 0x64, 0x20, 0x5f, 0x49, 0xc2, 0xeb, 0x50, 0x54, 0x61, 0x6e, 0x17, 0xdb, 0x38,
-	0xdc, 0xc4, 0x32, 0xe4, 0x13, 0xc0, 0x5b, 0xcf, 0x89, 0x49, 0xf2, 0x8d, 0xe9, 0x24, 0x70, 0xe0,
-	0x14, 0x17, 0x61, 0x7e, 0xb0, 0x26, 0x91, 0x2d, 0x0a, 0x98, 0xdd, 0x47, 0x7d, 0x0d, 0xa2, 0x1a,
-	0x2c, 0xec, 0xa3, 0xae, 0x13, 0x79, 0xae, 0xec, 0xa0, 0xd4, 0x74, 0xa5, 0xaa, 0x23, 0x58, 0x1c,
-	0xae, 0x4a, 0xe7, 0xde, 0x00, 0xb0, 0x7a, 0xe1, 0x74, 0xf6, 0x85, 0xcc, 0xec, 0xfd, 0x9a, 0x46,
-	0x06, 0x58, 0xbd, 0x98, 0x84, 0xdb, 0xcf, 0x53, 0x1b, 0x1c, 0x63, 0x70, 0xe6, 0xd9, 0xc8, 0xce,
-	0x61, 0x26, 0xbb, 0x5a, 0x76, 0x2f, 0x43, 0x33, 0xe6, 0x6a, 0x85, 0xfb, 0xff, 0xcd, 0xa7, 0xcb,
-	0x79, 0xf8, 0xe5, 0xf7, 0xdf, 0x6f, 0x39, 0x5e, 0x5c, 0x16, 0x67, 0x6b, 0x3d, 0xd3, 0x51, 0xa2,
-	0x26, 0x92, 0xd9, 0x68, 0xd3, 0x28, 0xb1, 0xcf, 0x06, 0xcc, 0x64, 0xb7, 0x3b, 0xa0, 0x3c, 0xe6,
-	0x54, 0x03, 0xca, 0xe3, 0xcf, 0x12, 0x2b, 0xaf, 0x96, 0x1e, 0x5d, 0xa2, 0x2c, 0x3e, 0xf6, 0xf6,
-	0xfd, 0x89, 0xb5, 0x21, 0xdf, 0xbb, 0x23, 0x5b, 0xce, 0xd0, 0x0f, 0x5f, 0xb7, 0x30, 0x6a, 0xac,
-	0xae, 0x1a, 0xbb, 0xb2, 0xda, 0x77, 0x03, 0x6e, 0x0d, 0xde, 0x93, 0xf1, 0x41, 0xcd, 0x51, 0x83,
-	0x14, 0x56, 0x2e, 0x41, 0xa4, 0x63, 0x6f, 0xc5, 0x8d, 0x6c, 0xb0, 0xf5, 0x2b, 0x36, 0x22, 0xfa,
-	0x8e, 0xa0, 0x8a, 0xf1, 0xec, 0xeb, 0xc4, 0x45, 0xfd, 0x4f, 0x8e, 0xfd, 0x32, 0x60, 0xba, 0xeb,
-	0x8d, 0xe2, 0x01, 0xc0, 0x91, 0x8f, 0x92, 0xbf, 0x88, 0x74, 0xd9, 0x62, 0x4b, 0x6b, 0x9f, 0x36,
-	0x85, 0x88, 0x5a, 0x29, 0x27, 0xbd, 0x38, 0x78, 0x56, 0x78, 0xd0, 0xff, 0x2f, 0x3b, 0x1e, 0xd9,
-	0x21, 0xd1, 0x76, 0xf2, 0x6c, 0xb8, 0x81, 0x0a, 0x7d, 0x32, 0x6d, 0xd5, 0x29, 0xbd, 0x06, 0x56,
-	0xf7, 0x2d, 0xbb, 0x85, 0xbc, 0x6a, 0x56, 0xf8, 0xa1, 0x67, 0x63, 0x64, 0xe0, 0xed, 0x2e, 0xa5,
-	0xeb, 0xe9, 0x56, 0xd8, 0x8c, 0x90, 0x22, 0x29, 0x3d, 0x51, 0x81, 0x6b, 0x75, 0x90, 0x32, 0x62,
-	0xa2, 0xd9, 0x56, 0x4d, 0xd1, 0xb1, 0x48, 0x63, 0x20, 0x0e, 0x0f, 0x76, 0xf6, 0x5e, 0x1e, 0xef,
-	0x55, 0x27, 0xd6, 0xcc, 0x4a, 0x29, 0x67, 0xe4, 0xaa, 0xb3, 0x96, 0xef, 0xb7, 0x3d, 0x3b, 0x7e,
-	0x71, 0xc4, 0x3b, 0x52, 0x72, 0x73, 0x24, 0xd2, 0xd8, 0x82, 0x89, 0x5a, 0xa5, 0xc6, 0x6a, 0x50,
-	0x6a, 0xa0, 0x0e, 0x03, 0x89, 0x0e, 0x3f, 0x6f, 0xa1, 0xe4, 0xba, 0x85, 0x3c, 0x40, 0x52, 0x61,
-	0x60, 0x23, 0x77, 0x14, 0x12, 0x97, 0x4a, 0x73, 0xfc, 0xe0, 0x91, 0x36, 0xd9, 0x14, 0x4c, 0xfe,
-	0xc8, 0x19, 0x37, 0x82, 0xa7, 0xb0, 0xd4, 0x5f, 0x06, 0xdf, 0x55, 0x76, 0x18, 0xad, 0x2e, 0x66,
-	0x67, 0x2b, 0xe3, 0x57, 0x23, 0xc8, 0xd3, 0x28, 0x1c, 0x65, 0x93, 0x78, 0xc3, 0x87, 0x52, 0x99,
-	0xb9, 0xfc, 0x53, 0x57, 0xf8, 0xcd, 0x9f, 0xb9, 0x7c, 0xc4, 0x1f, 0xd3, 0x37, 0xa7, 0xe2, 0x27,
-	0x73, 0xfd, 0x5f, 0x00, 0x00, 0x00, 0xff, 0xff, 0xb6, 0x27, 0x68, 0xa0, 0xb3, 0x05, 0x00, 0x00,
+	// 643 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x5f, 0x4f, 0x13, 0x4f,
+	0x14, 0xcd, 0x16, 0xc2, 0x8f, 0xce, 0x8f, 0x44, 0x1c, 0x22, 0x92, 0xd6, 0x98, 0x71, 0x49, 0x54,
+	0x1a, 0xbb, 0x53, 0x0a, 0xf8, 0x00, 0x31, 0x01, 0x01, 0x0d, 0x09, 0x6a, 0x2c, 0x46, 0x13, 0x5f,
+	0xcc, 0x76, 0xf7, 0xb2, 0x1d, 0xe9, 0xce, 0x8c, 0x7b, 0x67, 0x41, 0x63, 0x4c, 0x8c, 0xaf, 0xbe,
+	0xe9, 0x1b, 0x1f, 0xc1, 0x47, 0xbf, 0x8a, 0x4f, 0xbe, 0xfb, 0x41, 0xcc, 0xce, 0xf6, 0xcf, 0x5a,
+	0x2a, 0xc1, 0xa7, 0x66, 0xe7, 0x9e, 0x7b, 0xce, 0xbd, 0xe7, 0xdc, 0x94, 0x50, 0x5f, 0x0b, 0x7e,
+	0x98, 0x28, 0x69, 0x40, 0x86, 0x9e, 0x4e, 0x94, 0x51, 0xb4, 0xac, 0x34, 0xc8, 0xd8, 0x37, 0x41,
+	0xa7, 0x62, 0xcb, 0x31, 0x20, 0xfa, 0x11, 0x60, 0x5e, 0xae, 0x5c, 0x8b, 0x94, 0x8a, 0xba, 0xc0,
+	0xb3, 0x92, 0x2f, 0xa5, 0x32, 0xbe, 0x11, 0x4a, 0xf6, 0xab, 0x77, 0xec, 0x4f, 0x50, 0x8f, 0x40,
+	0xd6, 0xf1, 0xc4, 0x8f, 0x22, 0x48, 0xb8, 0xd2, 0x16, 0x31, 0x06, 0x5d, 0xed, 0x71, 0xd9, 0xaf,
+	0x76, 0x7a, 0xc8, 0x21, 0xd6, 0xe6, 0x5d, 0x5e, 0x74, 0x37, 0xc9, 0xdc, 0x76, 0x02, 0xbe, 0x81,
+	0x67, 0x22, 0x38, 0x02, 0xd3, 0x82, 0x37, 0x29, 0xa0, 0xa1, 0x4b, 0x64, 0xca, 0xd8, 0x87, 0x05,
+	0x87, 0x39, 0xb7, 0xff, 0x6f, 0x5e, 0xf6, 0x06, 0xf3, 0x7a, 0x3d, 0x64, 0x0f, 0xe0, 0x36, 0xc9,
+	0xdc, 0x0e, 0x74, 0x61, 0x94, 0xa1, 0x4a, 0xca, 0x39, 0xe0, 0x95, 0x08, 0x2d, 0x49, 0xb9, 0x35,
+	0x9d, 0x3f, 0xec, 0x85, 0x2e, 0x27, 0xb3, 0x0f, 0xc1, 0xfc, 0x43, 0xc3, 0x5d, 0x72, 0xf5, 0x45,
+	0x26, 0xbe, 0x85, 0x28, 0x22, 0x19, 0x83, 0x34, 0x78, 0xa1, 0xbe, 0xa7, 0x64, 0xe1, 0x6c, 0x1f,
+	0x6a, 0x25, 0x11, 0xe8, 0x1a, 0x21, 0xfe, 0xe0, 0xb9, 0xb7, 0xe7, 0x95, 0xc2, 0x9e, 0xc3, 0x9e,
+	0x56, 0x01, 0xd8, 0xfc, 0x38, 0x49, 0x2e, 0x3d, 0xe8, 0x85, 0x79, 0x00, 0xc9, 0xb1, 0x08, 0x80,
+	0x0a, 0x32, 0x53, 0x74, 0x91, 0x5e, 0x2f, 0xd0, 0x8c, 0xb1, 0xb7, 0x72, 0xd6, 0x4e, 0xf7, 0xe6,
+	0xa7, 0x1f, 0xbf, 0xbe, 0x96, 0x98, 0x5b, 0xe5, 0xc7, 0xcb, 0x83, 0x63, 0xc1, 0x9c, 0x9f, 0xe7,
+	0xfb, 0xe0, 0xba, 0x53, 0xa3, 0x27, 0x64, 0xa6, 0x68, 0xf7, 0x1f, 0x52, 0x63, 0x72, 0xa8, 0xcc,
+	0x7b, 0x79, 0xfc, 0x5e, 0x3f, 0x7e, 0x6f, 0x37, 0x8b, 0xdf, 0xe5, 0x56, 0x6f, 0xa9, 0x76, 0xeb,
+	0x1c, 0x3d, 0xfe, 0x7e, 0xe0, 0xec, 0x07, 0xda, 0x25, 0xe5, 0x41, 0x66, 0xb4, 0x5a, 0x50, 0x1d,
+	0x4d, 0x72, 0xdc, 0x76, 0x3d, 0x35, 0x7a, 0x61, 0xb5, 0x53, 0x87, 0xcc, 0x8e, 0x26, 0x47, 0xdd,
+	0x02, 0xf1, 0x5f, 0xce, 0xa1, 0xb2, 0x78, 0x2e, 0x26, 0x8f, 0xde, 0xdd, 0xb0, 0xe3, 0xac, 0xd1,
+	0x95, 0x0b, 0x8e, 0xc3, 0x87, 0xf9, 0x63, 0xc3, 0xb9, 0xff, 0x79, 0xe2, 0xcb, 0xd6, 0xcf, 0x12,
+	0xfd, 0xee, 0x90, 0xe9, 0xfe, 0x25, 0xb8, 0x7b, 0x84, 0x3c, 0xd1, 0x20, 0xd9, 0xa3, 0x4c, 0x93,
+	0xce, 0x77, 0x8c, 0xd1, 0xb8, 0xce, 0x79, 0x36, 0x4c, 0x3d, 0x9f, 0x26, 0x84, 0xe3, 0xca, 0xe2,
+	0xf0, 0xbb, 0x1e, 0x0a, 0x0c, 0x52, 0xc4, 0xcd, 0x3c, 0x9f, 0x28, 0x51, 0xa9, 0x46, 0x2f, 0x50,
+	0x71, 0xed, 0x39, 0xa1, 0x5b, 0xda, 0x0f, 0x3a, 0xc0, 0x9a, 0x5e, 0x83, 0xed, 0x8b, 0x00, 0xb2,
+	0x73, 0xdd, 0xec, 0x53, 0x46, 0xc2, 0x74, 0xd2, 0x76, 0x86, 0xe4, 0x79, 0xeb, 0xa1, 0x4a, 0x22,
+	0x3f, 0x06, 0x2c, 0x88, 0xf1, 0x76, 0x57, 0xb5, 0x79, 0xec, 0xa3, 0x81, 0x84, 0xef, 0xef, 0x6d,
+	0xef, 0x3e, 0x3e, 0xd8, 0x6d, 0x4e, 0x2c, 0x7b, 0x8d, 0x5a, 0xc9, 0x29, 0x35, 0x67, 0x7d, 0xad,
+	0xbb, 0x22, 0xb0, 0xff, 0x12, 0xfc, 0x35, 0x2a, 0xb9, 0x7e, 0xe6, 0xa5, 0xb5, 0x41, 0x26, 0x56,
+	0x1b, 0xab, 0x74, 0x95, 0xd4, 0x5a, 0x60, 0xd2, 0x44, 0x42, 0xc8, 0x4e, 0x3a, 0x20, 0x99, 0xe9,
+	0x00, 0x4b, 0x00, 0x55, 0x9a, 0x04, 0xc0, 0x42, 0x05, 0xc8, 0xa4, 0x32, 0x0c, 0xde, 0x0a, 0x34,
+	0x1e, 0x9d, 0x22, 0x93, 0xa7, 0x25, 0xe7, 0xbf, 0xe4, 0x1e, 0x59, 0x18, 0x9a, 0xc1, 0x76, 0x54,
+	0x90, 0x66, 0xd6, 0x59, 0x76, 0x7a, 0x63, 0xbc, 0x35, 0x1c, 0x85, 0x01, 0x1e, 0xaa, 0x00, 0xf9,
+	0x4b, 0x36, 0x52, 0x2a, 0xec, 0xa5, 0x8f, 0x22, 0xae, 0xdb, 0xdf, 0x4a, 0xe5, 0x8c, 0xdf, 0xd2,
+	0xb7, 0xa7, 0xec, 0x65, 0xaf, 0xfc, 0x0e, 0x00, 0x00, 0xff, 0xff, 0x05, 0x01, 0x35, 0x43, 0x67,
+	0x05, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -369,17 +298,17 @@ type FrontendServiceClient interface {
 	// A ticket is considered as ready for matchmaking once it is created.
 	//   - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.
 	//   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with query.QueryTickets function.
-	CreateTicket(ctx context.Context, in *CreateTicketRequest, opts ...grpc.CallOption) (*CreateTicketResponse, error)
+	CreateTicket(ctx context.Context, in *CreateTicketRequest, opts ...grpc.CallOption) (*Ticket, error)
 	// DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
 	// The client must delete the Ticket when finished matchmaking with it.
 	//   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
 	// Users may still be able to assign/get a ticket after calling DeleteTicket on it.
-	DeleteTicket(ctx context.Context, in *DeleteTicketRequest, opts ...grpc.CallOption) (*DeleteTicketResponse, error)
+	DeleteTicket(ctx context.Context, in *DeleteTicketRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	// GetTicket get the Ticket associated with the specified TicketId.
 	GetTicket(ctx context.Context, in *GetTicketRequest, opts ...grpc.CallOption) (*Ticket, error)
-	// GetAssignments stream back Assignment of the specified TicketId if it is updated.
+	// WatchAssignments stream back Assignment of the specified TicketId if it is updated.
 	//   - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.
-	GetAssignments(ctx context.Context, in *GetAssignmentsRequest, opts ...grpc.CallOption) (FrontendService_GetAssignmentsClient, error)
+	WatchAssignments(ctx context.Context, in *WatchAssignmentsRequest, opts ...grpc.CallOption) (FrontendService_WatchAssignmentsClient, error)
 }
 
 type frontendServiceClient struct {
@@ -390,8 +319,8 @@ func NewFrontendServiceClient(cc *grpc.ClientConn) FrontendServiceClient {
 	return &frontendServiceClient{cc}
 }
 
-func (c *frontendServiceClient) CreateTicket(ctx context.Context, in *CreateTicketRequest, opts ...grpc.CallOption) (*CreateTicketResponse, error) {
-	out := new(CreateTicketResponse)
+func (c *frontendServiceClient) CreateTicket(ctx context.Context, in *CreateTicketRequest, opts ...grpc.CallOption) (*Ticket, error) {
+	out := new(Ticket)
 	err := c.cc.Invoke(ctx, "/openmatch.FrontendService/CreateTicket", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -399,8 +328,8 @@ func (c *frontendServiceClient) CreateTicket(ctx context.Context, in *CreateTick
 	return out, nil
 }
 
-func (c *frontendServiceClient) DeleteTicket(ctx context.Context, in *DeleteTicketRequest, opts ...grpc.CallOption) (*DeleteTicketResponse, error) {
-	out := new(DeleteTicketResponse)
+func (c *frontendServiceClient) DeleteTicket(ctx context.Context, in *DeleteTicketRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/openmatch.FrontendService/DeleteTicket", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -417,12 +346,12 @@ func (c *frontendServiceClient) GetTicket(ctx context.Context, in *GetTicketRequ
 	return out, nil
 }
 
-func (c *frontendServiceClient) GetAssignments(ctx context.Context, in *GetAssignmentsRequest, opts ...grpc.CallOption) (FrontendService_GetAssignmentsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_FrontendService_serviceDesc.Streams[0], "/openmatch.FrontendService/GetAssignments", opts...)
+func (c *frontendServiceClient) WatchAssignments(ctx context.Context, in *WatchAssignmentsRequest, opts ...grpc.CallOption) (FrontendService_WatchAssignmentsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_FrontendService_serviceDesc.Streams[0], "/openmatch.FrontendService/WatchAssignments", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &frontendServiceGetAssignmentsClient{stream}
+	x := &frontendServiceWatchAssignmentsClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -432,17 +361,17 @@ func (c *frontendServiceClient) GetAssignments(ctx context.Context, in *GetAssig
 	return x, nil
 }
 
-type FrontendService_GetAssignmentsClient interface {
-	Recv() (*GetAssignmentsResponse, error)
+type FrontendService_WatchAssignmentsClient interface {
+	Recv() (*WatchAssignmentsResponse, error)
 	grpc.ClientStream
 }
 
-type frontendServiceGetAssignmentsClient struct {
+type frontendServiceWatchAssignmentsClient struct {
 	grpc.ClientStream
 }
 
-func (x *frontendServiceGetAssignmentsClient) Recv() (*GetAssignmentsResponse, error) {
-	m := new(GetAssignmentsResponse)
+func (x *frontendServiceWatchAssignmentsClient) Recv() (*WatchAssignmentsResponse, error) {
+	m := new(WatchAssignmentsResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -455,34 +384,34 @@ type FrontendServiceServer interface {
 	// A ticket is considered as ready for matchmaking once it is created.
 	//   - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.
 	//   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with query.QueryTickets function.
-	CreateTicket(context.Context, *CreateTicketRequest) (*CreateTicketResponse, error)
+	CreateTicket(context.Context, *CreateTicketRequest) (*Ticket, error)
 	// DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
 	// The client must delete the Ticket when finished matchmaking with it.
 	//   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
 	// Users may still be able to assign/get a ticket after calling DeleteTicket on it.
-	DeleteTicket(context.Context, *DeleteTicketRequest) (*DeleteTicketResponse, error)
+	DeleteTicket(context.Context, *DeleteTicketRequest) (*empty.Empty, error)
 	// GetTicket get the Ticket associated with the specified TicketId.
 	GetTicket(context.Context, *GetTicketRequest) (*Ticket, error)
-	// GetAssignments stream back Assignment of the specified TicketId if it is updated.
+	// WatchAssignments stream back Assignment of the specified TicketId if it is updated.
 	//   - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.
-	GetAssignments(*GetAssignmentsRequest, FrontendService_GetAssignmentsServer) error
+	WatchAssignments(*WatchAssignmentsRequest, FrontendService_WatchAssignmentsServer) error
 }
 
 // UnimplementedFrontendServiceServer can be embedded to have forward compatible implementations.
 type UnimplementedFrontendServiceServer struct {
 }
 
-func (*UnimplementedFrontendServiceServer) CreateTicket(ctx context.Context, req *CreateTicketRequest) (*CreateTicketResponse, error) {
+func (*UnimplementedFrontendServiceServer) CreateTicket(ctx context.Context, req *CreateTicketRequest) (*Ticket, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateTicket not implemented")
 }
-func (*UnimplementedFrontendServiceServer) DeleteTicket(ctx context.Context, req *DeleteTicketRequest) (*DeleteTicketResponse, error) {
+func (*UnimplementedFrontendServiceServer) DeleteTicket(ctx context.Context, req *DeleteTicketRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteTicket not implemented")
 }
 func (*UnimplementedFrontendServiceServer) GetTicket(ctx context.Context, req *GetTicketRequest) (*Ticket, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTicket not implemented")
 }
-func (*UnimplementedFrontendServiceServer) GetAssignments(req *GetAssignmentsRequest, srv FrontendService_GetAssignmentsServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetAssignments not implemented")
+func (*UnimplementedFrontendServiceServer) WatchAssignments(req *WatchAssignmentsRequest, srv FrontendService_WatchAssignmentsServer) error {
+	return status.Errorf(codes.Unimplemented, "method WatchAssignments not implemented")
 }
 
 func RegisterFrontendServiceServer(s *grpc.Server, srv FrontendServiceServer) {
@@ -543,24 +472,24 @@ func _FrontendService_GetTicket_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _FrontendService_GetAssignments_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GetAssignmentsRequest)
+func _FrontendService_WatchAssignments_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchAssignmentsRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(FrontendServiceServer).GetAssignments(m, &frontendServiceGetAssignmentsServer{stream})
+	return srv.(FrontendServiceServer).WatchAssignments(m, &frontendServiceWatchAssignmentsServer{stream})
 }
 
-type FrontendService_GetAssignmentsServer interface {
-	Send(*GetAssignmentsResponse) error
+type FrontendService_WatchAssignmentsServer interface {
+	Send(*WatchAssignmentsResponse) error
 	grpc.ServerStream
 }
 
-type frontendServiceGetAssignmentsServer struct {
+type frontendServiceWatchAssignmentsServer struct {
 	grpc.ServerStream
 }
 
-func (x *frontendServiceGetAssignmentsServer) Send(m *GetAssignmentsResponse) error {
+func (x *frontendServiceWatchAssignmentsServer) Send(m *WatchAssignmentsResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -583,8 +512,8 @@ var _FrontendService_serviceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "GetAssignments",
-			Handler:       _FrontendService_GetAssignments_Handler,
+			StreamName:    "WatchAssignments",
+			Handler:       _FrontendService_WatchAssignments_Handler,
 			ServerStreams: true,
 		},
 	},

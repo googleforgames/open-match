@@ -92,10 +92,9 @@ func TestPaging(t *testing.T) {
 	for i := 0; i < totalTickets; i++ {
 		resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 		require.NotNil(t, resp)
-		require.NotNil(t, resp.Ticket)
 		require.Nil(t, err)
 
-		expectedIds[resp.Ticket.Id] = struct{}{}
+		expectedIds[resp.Id] = struct{}{}
 	}
 
 	q := om.MustQueryServiceGRPC()
@@ -162,7 +161,6 @@ func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
 		fe := om.MustFrontendGRPC()
 		resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})
 		require.NotNil(t, resp)
-		require.NotNil(t, resp.Ticket)
 		require.Nil(t, err)
 	}
 
@@ -195,7 +193,6 @@ func returnedByQueryID(t *testing.T, tc testcases.TestCase) (found bool) {
 		fe := om.MustFrontendGRPC()
 		resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})
 		require.NotNil(t, resp)
-		require.NotNil(t, resp.Ticket)
 		require.Nil(t, err)
 	}
 

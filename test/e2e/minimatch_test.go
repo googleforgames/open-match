@@ -144,7 +144,7 @@ func TestMinimatch(t *testing.T) {
 
 					assert.NotNil(t, resp)
 					assert.Nil(t, err)
-					testTickets[i].id = resp.Ticket.Id
+					testTickets[i].id = resp.Id
 				}
 
 				// poolTickets represents a map of the pool name to all the ticket ids in the pool.

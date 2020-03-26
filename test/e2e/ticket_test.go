@@ -44,11 +44,11 @@ func TestAssignTickets(t *testing.T) {
 	req := &pb.AssignTicketsRequest{
 		Assignments: []*pb.AssignmentGroup{
 			{
-				TicketIds:  []string{t1.Ticket.Id},
+				TicketIds:  []string{t1.Id},
 				Assignment: &pb.Assignment{Connection: "a"},
 			},
 			{
-				TicketIds:  []string{t2.Ticket.Id},
+				TicketIds:  []string{t2.Id},
 				Assignment: &pb.Assignment{Connection: "b"},
 			},
 		},
@@ -58,11 +58,11 @@ func TestAssignTickets(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, &pb.AssignTicketsResponse{}, resp)
 
-	get, err := fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: t1.Ticket.Id})
+	get, err := fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: t1.Id})
 	assert.Nil(t, err)
 	assert.Equal(t, "a", get.Assignment.Connection)
 
-	get, err = fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: t2.Ticket.Id})
+	get, err = fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: t2.Id})
 	assert.Nil(t, err)
 	assert.Equal(t, "b", get.Assignment.Connection)
 }
@@ -95,28 +95,28 @@ func TestAssignTicketsInvalidArgument(t *testing.T) {
 			&pb.AssignTicketsRequest{
 				Assignments: []*pb.AssignmentGroup{
 					{
-						TicketIds:  []string{ctResp.Ticket.Id, ctResp.Ticket.Id},
+						TicketIds:  []string{ctResp.Id, ctResp.Id},
 						Assignment: &pb.Assignment{},
 					},
 				},
 			},
-			"Ticket id " + ctResp.Ticket.Id + " is assigned multiple times in one assign tickets call.",
+			"Ticket id " + ctResp.Id + " is assigned multiple times in one assign tickets call.",
 		},
 		{
 			"ticket used twice two groups",
 			&pb.AssignTicketsRequest{
 				Assignments: []*pb.AssignmentGroup{
 					{
-						TicketIds:  []string{ctResp.Ticket.Id},
+						TicketIds:  []string{ctResp.Id},
 						Assignment: &pb.Assignment{Connection: "a"},
 					},
 					{
-						TicketIds:  []string{ctResp.Ticket.Id},
+						TicketIds:  []string{ctResp.Id},
 						Assignment: &pb.Assignment{Connection: "b"},
 					},
 				},
 			},
-			"Ticket id " + ctResp.Ticket.Id + " is assigned multiple times in one assign tickets call.",
+			"Ticket id " + ctResp.Id + " is assigned multiple times in one assign tickets call.",
 		},
 	} {
 		tt := tt
@@ -143,13 +143,13 @@ func TestAssignTicketsMissingTicket(t *testing.T) {
 	t3, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 	assert.Nil(t, err)
 
-	_, err = fe.DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: t2.Ticket.Id})
+	_, err = fe.DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: t2.Id})
 	assert.Nil(t, err)
 
 	req := &pb.AssignTicketsRequest{
 		Assignments: []*pb.AssignmentGroup{
 			{
-				TicketIds:  []string{t1.Ticket.Id, t2.Ticket.Id, t3.Ticket.Id},
+				TicketIds:  []string{t1.Id, t2.Id, t3.Id},
 				Assignment: &pb.Assignment{Connection: "a"},
 			},
 		},
@@ -160,7 +160,7 @@ func TestAssignTicketsMissingTicket(t *testing.T) {
 	assert.Equal(t, &pb.AssignTicketsResponse{
 		Failures: []*pb.AssignmentFailure{
 			{
-				TicketId: t2.Ticket.Id,
+				TicketId: t2.Id,
 				Cause:    pb.AssignmentFailure_TICKET_NOT_FOUND,
 			},
 		},
@@ -185,14 +185,12 @@ func TestTicketLifeCycle(t *testing.T) {
 	}
 
 	// Create a ticket, validate that it got an id and set its id in the expected ticket.
-	resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
-	assert.NotNil(resp)
+	createResp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
+	assert.NotNil(createResp)
+	assert.NotNil(createResp.GetId())
 	assert.Nil(err)
-	want := resp.Ticket
-	assert.NotNil(want)
-	assert.NotNil(want.GetId())
-	ticket.Id = want.GetId()
-	validateTicket(t, resp.GetTicket(), ticket)
+	ticket.Id = createResp.GetId()
+	validateTicket(t, createResp, ticket)
 
 	// Fetch the ticket and validate that it is identical to the expected ticket.
 	gotTicket, err := fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: ticket.GetId()})
@@ -261,9 +259,9 @@ func TestReleaseTickets(t *testing.T) {
 	var ticket *pb.Ticket
 
 	{ // Create ticket
-		resp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+		var err error
+		ticket, err = fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 		assert.Nil(t, err)
-		ticket = resp.Ticket
 		assert.NotEmpty(t, ticket.Id)
 	}
 
