@@ -174,7 +174,16 @@ func TestGameMatchWorkFlow(t *testing.T) {
 		for _, ticket := range m.Tickets {
 			tids = append(tids, ticket.GetId())
 		}
-		gotAtResp, err = be.AssignTickets(ctx, &pb.AssignTicketsRequest{TicketIds: tids, Assignment: &pb.Assignment{Connection: "agones-1"}}, grpc.WaitForReady(true))
+		req := &pb.AssignTicketsRequest{
+			Assignments: []*pb.AssignmentGroup{
+				&pb.AssignmentGroup{
+					TicketIds:  tids,
+					Assignment: &pb.Assignment{Connection: "agones-1"},
+				},
+			},
+		}
+
+		gotAtResp, err = be.AssignTickets(ctx, req, grpc.WaitForReady(true))
 		require.Nil(t, err)
 		require.NotNil(t, gotAtResp)
 	}

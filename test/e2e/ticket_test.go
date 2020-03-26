@@ -36,74 +36,135 @@ func TestAssignTickets(t *testing.T) {
 	be := om.MustBackendGRPC()
 	ctx := om.Context()
 
-	ctResp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	t1, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	assert.Nil(t, err)
+	t2, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 	assert.Nil(t, err)
 
-	var tt = []struct {
-		description    string
-		ticketIds      []string
-		assignment     *pb.Assignment
-		wantAssignment *pb.Assignment
-		wantCode       codes.Code
-	}{
-		{
-			"expects invalid argument code since request is empty",
-			nil,
-			nil,
-			nil,
-			codes.InvalidArgument,
-		},
-		{
-			"expects invalid argument code since assignment is nil",
-			[]string{"1"},
-			nil,
-			nil,
-			codes.InvalidArgument,
-		},
-		{
-			"expects not found code since ticket id does not exist in the statestore",
-			[]string{"2"},
-			&pb.Assignment{Connection: "localhost"},
-			nil,
-			codes.NotFound,
-		},
-		{
-			"expects not found code since ticket id 'unknown id' does not exist in the statestore",
-			[]string{ctResp.GetTicket().GetId(), "unknown id"},
-			&pb.Assignment{Connection: "localhost"},
-			nil,
-			codes.NotFound,
-		},
-		{
-			"expects ok code",
-			[]string{ctResp.GetTicket().GetId()},
-			&pb.Assignment{Connection: "localhost"},
-			&pb.Assignment{Connection: "localhost"},
-			codes.OK,
+	req := &pb.AssignTicketsRequest{
+		Assignments: []*pb.AssignmentGroup{
+			&pb.AssignmentGroup{
+				TicketIds:  []string{t1.Ticket.Id},
+				Assignment: &pb.Assignment{Connection: "a"},
+			},
+			&pb.AssignmentGroup{
+				TicketIds:  []string{t2.Ticket.Id},
+				Assignment: &pb.Assignment{Connection: "b"},
+			},
 		},
 	}
 
-	t.Run("TestAssignTickets", func(t *testing.T) {
-		for _, test := range tt {
-			test := test
-			t.Run(test.description, func(t *testing.T) {
-				t.Parallel()
-				ctx := om.Context()
-				_, err := be.AssignTickets(ctx, &pb.AssignTicketsRequest{TicketIds: test.ticketIds, Assignment: test.assignment})
-				assert.Equal(t, test.wantCode, status.Convert(err).Code())
+	resp, err := be.AssignTickets(ctx, req)
+	assert.Nil(t, err)
+	assert.Equal(t, &pb.AssignTicketsResponse{}, resp)
 
-				// If assign ticket succeeds, validate the assignment
-				if err == nil {
-					for _, id := range test.ticketIds {
-						gtResp, err := fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: id})
-						assert.Nil(t, err)
-						// grpc will write something to the reserved fields of this protobuf object, so we have to do comparisons fields by fields.
-						assert.Equal(t, test.wantAssignment.GetConnection(), gtResp.GetAssignment().GetConnection())
-					}
-				}
-			})
-		}
-	})
+	get, err := fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: t1.Ticket.Id})
+	assert.Nil(t, err)
+	assert.Equal(t, "a", get.Assignment.Connection)
+
+	get, err = fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: t2.Ticket.Id})
+	assert.Nil(t, err)
+	assert.Equal(t, "b", get.Assignment.Connection)
+}
+
+func TestAssignTicketsInvalidArgument(t *testing.T) {
+	om := e2e.New(t)
+	fe := om.MustFrontendGRPC()
+	be := om.MustBackendGRPC()
+	ctx := om.Context()
+
+	ctResp, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	assert.Nil(t, err)
+
+	for _, tt := range []struct {
+		name string
+		req  *pb.AssignTicketsRequest
+		msg  string
+	}{
+		{
+			"missing assignment",
+			&pb.AssignTicketsRequest{
+				Assignments: []*pb.AssignmentGroup{
+					&pb.AssignmentGroup{},
+				},
+			},
+			"AssignmentGroup.Assignment is required",
+		},
+		{
+			"ticket used twice one group",
+			&pb.AssignTicketsRequest{
+				Assignments: []*pb.AssignmentGroup{
+					&pb.AssignmentGroup{
+						TicketIds:  []string{ctResp.Ticket.Id, ctResp.Ticket.Id},
+						Assignment: &pb.Assignment{},
+					},
+				},
+			},
+			"Ticket id " + ctResp.Ticket.Id + " is assigned multiple times in one assign tickets call.",
+		},
+		{
+			"ticket used twice two groups",
+			&pb.AssignTicketsRequest{
+				Assignments: []*pb.AssignmentGroup{
+					&pb.AssignmentGroup{
+						TicketIds:  []string{ctResp.Ticket.Id},
+						Assignment: &pb.Assignment{Connection: "a"},
+					},
+					&pb.AssignmentGroup{
+						TicketIds:  []string{ctResp.Ticket.Id},
+						Assignment: &pb.Assignment{Connection: "b"},
+					},
+				},
+			},
+			"Ticket id " + ctResp.Ticket.Id + " is assigned multiple times in one assign tickets call.",
+		},
+	} {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := be.AssignTickets(ctx, tt.req)
+			assert.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
+			assert.Equal(t, tt.msg, status.Convert(err).Message())
+		})
+	}
+}
+
+func TestAssignTicketsMissingTicket(t *testing.T) {
+	om := e2e.New(t)
+	fe := om.MustFrontendGRPC()
+	be := om.MustBackendGRPC()
+	ctx := om.Context()
+
+	t1, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	assert.Nil(t, err)
+
+	t2, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	assert.Nil(t, err)
+
+	t3, err := fe.CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	assert.Nil(t, err)
+
+	_, err = fe.DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: t2.Ticket.Id})
+	assert.Nil(t, err)
+
+	req := &pb.AssignTicketsRequest{
+		Assignments: []*pb.AssignmentGroup{
+			&pb.AssignmentGroup{
+				TicketIds:  []string{t1.Ticket.Id, t2.Ticket.Id, t3.Ticket.Id},
+				Assignment: &pb.Assignment{Connection: "a"},
+			},
+		},
+	}
+
+	resp, err := be.AssignTickets(ctx, req)
+	assert.Nil(t, err)
+	assert.Equal(t, &pb.AssignTicketsResponse{
+		Failed: []*pb.AssignmentFailure{
+			&pb.AssignmentFailure{
+				TicketId: t2.Ticket.Id,
+				Cause:    pb.AssignmentFailure_TICKET_NOT_FOUND,
+			},
+		},
+	}, resp)
 }
 
 // TestTicketLifeCycle tests creating, getting and deleting a ticket using Frontend service.

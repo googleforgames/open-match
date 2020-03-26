@@ -492,7 +492,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 
 		for _, id := range a.TicketIds {
 			if _, ok := idToA[id]; ok {
-				return nil, status.Errorf(codes.InvalidArgument, "Ticket id %s is present in multiple assignemnt groups.", id)
+				return nil, status.Errorf(codes.InvalidArgument, "Ticket id %s is assigned multiple times in one assign tickets call.", id)
 			}
 
 			idToA[id] = a.Assignment
