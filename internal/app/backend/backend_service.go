@@ -117,40 +117,25 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	return nil
 }
 
-func synchronizeSend(ctx context.Context, syncStream synchronizerStream, m *sync.Map, pc <-chan *pb.Match) error {
-	duplicateIDs := []string{}
-	proposals := []*pb.Match{}
-
-checkDuplicates:
+func synchronizeSend(ctx context.Context, syncStream synchronizerStream, m *sync.Map, proposals <-chan *pb.Match) error {
+sendProposals:
 	for {
 		select {
 		case <-ctx.Done():
-			break checkDuplicates
-		case p, ok := <-pc:
+			break sendProposals
+		case p, ok := <-proposals:
 			if !ok {
-				break checkDuplicates
+				break sendProposals
 			}
-			if _, ok := m.Load(p.GetMatchId()); ok {
-				duplicateIDs = append(duplicateIDs, p.GetMatchId())
+			id, loaded := m.LoadOrStore(p.GetMatchId(), p)
+			if loaded {
+				return fmt.Errorf("found duplicate matchID %s returned from MMF", id)
 			}
-			m.Store(p.GetMatchId(), p)
-			proposals = append(proposals, p)
-		}
-	}
-
-	if len(duplicateIDs) != 0 {
-		return fmt.Errorf("found duplicate matchIDs %s returned from MMF", duplicateIDs)
-	}
-
-	for _, p := range proposals {
-		if ctx.Err() != nil {
-			break
-		}
-
-		telemetry.RecordUnitMeasurement(ctx, mMatchesSentToEvaluation)
-		err := syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
-		if err != nil {
-			return fmt.Errorf("error sending proposal to synchronizer: %w", err)
+			telemetry.RecordUnitMeasurement(ctx, mMatchesSentToEvaluation)
+			err := syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
+			if err != nil {
+				return fmt.Errorf("error sending proposal to synchronizer: %w", err)
+			}
 		}
 	}
 
