@@ -68,10 +68,8 @@ data:
       swaggerui:
         hostname: "{{ .Values.swaggerui.hostName }}"
         httpport: "{{ .Values.swaggerui.httpPort }}"
-      scale-frontend:
+      scale:
         httpport: "51509"
-      scale-backend:
-        httpport: "51510"
 {{- if .Values.global.tls.enabled }}
       tls:
         trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
@@ -91,6 +89,7 @@ data:
       sentinelPort: {{ .Values.redis.sentinel.port }}
       sentinelMaster: {{ .Values.redis.sentinel.masterSet }}
       sentinelHostname: {{ .Values.redis.fullnameOverride }}.{{ .Release.Namespace }}.svc.cluster.local
+      sentinelUsePassword: {{ .Values.redis.sentinel.usePassword }}
 {{- else}}
       # Open Match's default Redis setups
       hostname: {{ .Values.redis.fullnameOverride }}-master.{{ .Release.Namespace }}.svc.cluster.local
@@ -103,9 +102,8 @@ data:
       port: {{ index .Values "open-match-core" "redis" "port" }}
       user: {{ index .Values "open-match-core" "redis" "user" }}
 {{- end }}
-{{- if .Values.redis.usePassword }}
+      usePassword: {{ .Values.redis.usePassword }}
       passwordPath: {{ .Values.redis.secretMountPath }}/redis-password
-{{- end }}
       pool:
         maxIdle: {{ index .Values "open-match-core" "redis" "pool" "maxIdle" }}
         maxActive: {{ index .Values "open-match-core" "redis" "pool" "maxActive" }}

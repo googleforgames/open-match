@@ -17,11 +17,14 @@ package statestore
 import (
 	"context"
 	"errors"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/Bose/minisentinel"
 	miniredis "github.com/alicebob/miniredis/v2"
+	"github.com/gomodule/redigo/redis"
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -36,7 +39,7 @@ import (
 
 func TestStatestoreSetup(t *testing.T) {
 	assert := assert.New(t)
-	cfg, closer := createRedis(t, true)
+	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
 	assert.NotNil(service)
@@ -46,7 +49,7 @@ func TestStatestoreSetup(t *testing.T) {
 func TestTicketLifecycle(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg, closer := createRedis(t, true)
+	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
 	assert.NotNil(service)
@@ -104,7 +107,7 @@ func TestTicketLifecycle(t *testing.T) {
 func TestIgnoreLists(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg, closer := createRedis(t, true)
+	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
 	assert.NotNil(service)
@@ -144,7 +147,7 @@ func TestIgnoreLists(t *testing.T) {
 func TestDeleteTicketsFromIgnoreList(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg, closer := createRedis(t, true)
+	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
 	assert.NotNil(service)
@@ -183,7 +186,7 @@ func TestDeleteTicketsFromIgnoreList(t *testing.T) {
 func TestGetAssignmentBeforeSet(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg, closer := createRedis(t, true)
+	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
 	assert.NotNil(service)
@@ -204,7 +207,7 @@ func TestGetAssignmentBeforeSet(t *testing.T) {
 func TestGetAssignmentNormal(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
-	cfg, closer := createRedis(t, true)
+	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
 	assert.NotNil(service)
@@ -242,9 +245,16 @@ func TestGetAssignmentNormal(t *testing.T) {
 	assert.Equal(returnedErr, err)
 }
 
-func TestConnectWithSentinel(t *testing.T) {
+func TestConnect(t *testing.T) {
+	testConnect(t, false, "")
+	testConnect(t, false, "redispassword")
+	testConnect(t, true, "")
+	testConnect(t, true, "redispassword")
+}
+
+func testConnect(t *testing.T, withSentinel bool, withPassword string) {
 	assert := assert.New(t)
-	cfg, closer := createRedis(t, true)
+	cfg, closer := createRedis(t, withSentinel, withPassword)
 	defer closer()
 	store := New(cfg)
 	defer store.Close()
@@ -255,40 +265,24 @@ func TestConnectWithSentinel(t *testing.T) {
 	rb, ok := is.s.(*redisBackend)
 	assert.True(ok)
 
-	ctx, cancel := context.WithCancel(ctx)
-	cancel()
 	conn, err := rb.connect(ctx)
-	assert.NotNil(err)
-	assert.Nil(conn)
+	assert.NotNil(conn)
+	assert.Nil(err)
+
+	rply, err := redis.String(conn.Do("PING"))
+	assert.Nil(err)
+	assert.Equal("PONG", rply)
 }
 
-func TestConnectWithoutSentinel(t *testing.T) {
-	assert := assert.New(t)
-	cfg, closer := createRedis(t, false)
-	defer closer()
-	store := New(cfg)
-	defer store.Close()
-	ctx := utilTesting.NewContext(t)
-
-	is, ok := store.(*instrumentedService)
-	assert.True(ok)
-	rb, ok := is.s.(*redisBackend)
-	assert.True(ok)
-
-	ctx, cancel := context.WithCancel(ctx)
-	cancel()
-	conn, err := rb.connect(ctx)
-	assert.NotNil(err)
-	assert.Nil(conn)
-}
-
-func createRedis(t *testing.T, withSentinel bool) (config.View, func()) {
+func createRedis(t *testing.T, withSentinel bool, withPassword string) (config.View, func()) {
 	cfg := viper.New()
+	closerFuncs := []func(){}
 	mredis := miniredis.NewMiniRedis()
 	err := mredis.StartAddr("localhost:0")
 	if err != nil {
 		t.Fatalf("failed to start miniredis, %v", err)
 	}
+	closerFuncs = append(closerFuncs, mredis.Close)
 
 	cfg.Set("redis.pool.maxIdle", 5)
 	cfg.Set("redis.pool.idleTimeout", time.Second)
@@ -302,7 +296,6 @@ func createRedis(t *testing.T, withSentinel bool) (config.View, func()) {
 	cfg.Set("backoff.maxElapsedTime", 100*time.Millisecond)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, true)
 
-	var closer func()
 	if withSentinel {
 		s := minisentinel.NewSentinel(mredis)
 		err = s.StartAddr("localhost:0")
@@ -310,24 +303,36 @@ func createRedis(t *testing.T, withSentinel bool) (config.View, func()) {
 			t.Fatalf("failed to start minisentinel, %v", err)
 		}
 
+		closerFuncs = append(closerFuncs, s.Close)
 		cfg.Set("redis.sentinelHostname", s.Host())
 		cfg.Set("redis.sentinelPort", s.Port())
 		cfg.Set("redis.sentinelMaster", s.MasterInfo().Name)
 		cfg.Set("redis.sentinelEnabled", true)
-
-		closer = func() {
-			s.Close()
-			mredis.Close()
-		}
+		// TODO: enable sentinel auth test cases when the library support it.
+		cfg.Set("redis.sentinelUsePassword", false)
 	} else {
 		cfg.Set("redis.hostname", mredis.Host())
 		cfg.Set("redis.port", mredis.Port())
-		closer = func() {
-			mredis.Close()
-		}
 	}
 
-	return cfg, closer
-}
+	if len(withPassword) > 0 {
+		mredis.RequireAuth(withPassword)
+		tmpFile, err := ioutil.TempFile("", "password")
+		if err != nil {
+			t.Fatal("failed to create temp file for password")
+		}
+		if _, err := tmpFile.WriteString(withPassword); err != nil {
+			t.Fatal("failed to write pw to temp file")
+		}
 
-// TODO: test Redis connection with Auth
+		closerFuncs = append(closerFuncs, func() { os.Remove(tmpFile.Name()) })
+		cfg.Set("redis.usePassword", true)
+		cfg.Set("redis.passwordPath", tmpFile.Name())
+	}
+
+	return cfg, func() {
+		for _, closer := range closerFuncs {
+			closer()
+		}
+	}
+}
