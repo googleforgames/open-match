@@ -102,7 +102,7 @@ func runScenario(ctx context.Context, name string, update updater.SetFunc) {
 		if err != nil {
 			panic(err)
 		}
-		ticketId = resp.Ticket.Id
+		ticketId = resp.Id
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -111,11 +111,11 @@ func runScenario(ctx context.Context, name string, update updater.SetFunc) {
 
 	var assignment *pb.Assignment
 	{
-		req := &pb.GetAssignmentsRequest{
+		req := &pb.WatchAssignmentsRequest{
 			TicketId: ticketId,
 		}
 
-		stream, err := fe.GetAssignments(ctx, req)
+		stream, err := fe.WatchAssignments(ctx, req)
 		for assignment.GetConnection() == "" {
 			resp, err := stream.Recv()
 			if err != nil {

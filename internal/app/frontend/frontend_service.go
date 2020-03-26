@@ -19,6 +19,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
@@ -52,7 +53,7 @@ var (
 // A ticket is considered as ready for matchmaking once it is created.
 //   - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.
 //   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with query.QueryTickets function.
-func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicketRequest) (*pb.CreateTicketResponse, error) {
+func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicketRequest) (*pb.Ticket, error) {
 	// Perform input validation.
 	if req.Ticket == nil {
 		return nil, status.Errorf(codes.InvalidArgument, ".ticket is required")
@@ -67,7 +68,7 @@ func (s *frontendService) CreateTicket(ctx context.Context, req *pb.CreateTicket
 	return doCreateTicket(ctx, req, s.store)
 }
 
-func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store statestore.Service) (*pb.CreateTicketResponse, error) {
+func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store statestore.Service) (*pb.Ticket, error) {
 	// Generate a ticket id and create a Ticket in state storage
 	ticket, ok := proto.Clone(req.Ticket).(*pb.Ticket)
 	if !ok {
@@ -95,20 +96,20 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 	}
 
 	telemetry.RecordUnitMeasurement(ctx, mTicketsCreated)
-	return &pb.CreateTicketResponse{Ticket: ticket}, nil
+	return ticket, nil
 }
 
 // DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
 // The client must delete the Ticket when finished matchmaking with it.
 //   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
 // Users may still be able to assign/get a ticket after calling DeleteTicket on it.
-func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*pb.DeleteTicketResponse, error) {
+func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*empty.Empty, error) {
 	err := doDeleteTicket(ctx, req.GetTicketId(), s.store)
 	if err != nil {
 		return nil, err
 	}
 	telemetry.RecordUnitMeasurement(ctx, mTicketsDeleted)
-	return &pb.DeleteTicketResponse{}, nil
+	return &empty.Empty{}, nil
 }
 
 func doDeleteTicket(ctx context.Context, id string, store statestore.Service) error {
@@ -166,9 +167,9 @@ func doGetTickets(ctx context.Context, id string, store statestore.Service) (*pb
 	return ticket, nil
 }
 
-// GetAssignments stream back Assignment of the specified TicketId if it is updated.
+// WatchAssignments stream back Assignment of the specified TicketId if it is updated.
 //   - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.
-func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream pb.FrontendService_GetAssignmentsServer) error {
+func (s *frontendService) WatchAssignments(req *pb.WatchAssignmentsRequest, stream pb.FrontendService_WatchAssignmentsServer) error {
 	ctx := stream.Context()
 	for {
 		select {
@@ -177,14 +178,14 @@ func (s *frontendService) GetAssignments(req *pb.GetAssignmentsRequest, stream p
 		default:
 			sender := func(assignment *pb.Assignment) error {
 				telemetry.RecordUnitMeasurement(ctx, mTicketAssignmentsRetrieved)
-				return stream.Send(&pb.GetAssignmentsResponse{Assignment: assignment})
+				return stream.Send(&pb.WatchAssignmentsResponse{Assignment: assignment})
 			}
-			return doGetAssignments(ctx, req.GetTicketId(), sender, s.store)
+			return doWatchAssignments(ctx, req.GetTicketId(), sender, s.store)
 		}
 	}
 }
 
-func doGetAssignments(ctx context.Context, id string, sender func(*pb.Assignment) error, store statestore.Service) error {
+func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignment) error, store statestore.Service) error {
 	var currAssignment *pb.Assignment
 	var ok bool
 	callback := func(assignment *pb.Assignment) error {

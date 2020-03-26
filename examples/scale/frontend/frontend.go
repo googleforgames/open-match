@@ -112,7 +112,7 @@ func createTicket(ctx context.Context, fe pb.FrontendServiceClient) (string, err
 	}
 
 	telemetry.RecordUnitMeasurement(ctx, mTicketsCreated)
-	return resp.Ticket.Id, nil
+	return resp.Id, nil
 }
 
 // Allows concurrent moficiation of a gauge value by modifying the concurrent

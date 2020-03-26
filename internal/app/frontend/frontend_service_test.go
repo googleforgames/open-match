@@ -79,16 +79,16 @@ func TestDoCreateTickets(t *testing.T) {
 			res, err := doCreateTicket(ctx, &pb.CreateTicketRequest{Ticket: test.ticket}, store)
 			assert.Equal(t, test.wantCode, status.Convert(err).Code())
 			if err == nil {
-				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetTicket().GetId())
+				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetId())
 				assert.True(t, matched)
 				assert.Nil(t, err)
-				assert.Equal(t, test.ticket.SearchFields.DoubleArgs["test-arg"], res.Ticket.SearchFields.DoubleArgs["test-arg"])
+				assert.Equal(t, test.ticket.SearchFields.DoubleArgs["test-arg"], res.SearchFields.DoubleArgs["test-arg"])
 			}
 		})
 	}
 }
 
-func TestDoGetAssignments(t *testing.T) {
+func TestDoWatchAssignments(t *testing.T) {
 	testTicket := &pb.Ticket{
 		Id: "test-id",
 	}
@@ -154,7 +154,7 @@ func TestDoGetAssignments(t *testing.T) {
 			gotAssignments := []*pb.Assignment{}
 
 			test.preAction(ctx, t, store, test.wantAssignments, &wg)
-			err := doGetAssignments(ctx, testTicket.GetId(), senderGenerator(gotAssignments, len(test.wantAssignments)), store)
+			err := doWatchAssignments(ctx, testTicket.GetId(), senderGenerator(gotAssignments, len(test.wantAssignments)), store)
 			assert.Equal(t, test.wantCode, status.Convert(err).Code())
 
 			wg.Wait()
