@@ -152,12 +152,12 @@
     "openmatchAssignTicketsResponse": {
       "type": "object",
       "properties": {
-        "failed": {
+        "failures": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/openmatchAssignmentFailure"
           },
-          "description": "Failed is a list of all the Tickets that failed assignment along with the cause of failure."
+          "description": "Failures is a list of all the Tickets that failed assignment along with the cause of failure."
         }
       }
     },

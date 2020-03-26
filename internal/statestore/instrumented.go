@@ -109,10 +109,7 @@ func (is *instrumentedService) GetIndexedIDSet(ctx context.Context) (map[string]
 	return is.s.GetIndexedIDSet(ctx)
 }
 
-// UpdateAssignments update the match assignments for the input ticket ids.
-// This function guarantees if any of the input ids does not exists, the state of the storage service won't be altered.
-// However, since Redis does not support transaction roll backs (see https://redis.io/topics/transactions), some of the
-// assignment fields might be partially updated if this function encounters an error halfway through the execution.
+// UpdateAssignments update using the request's specified tickets with assignments.
 func (is *instrumentedService) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.UpdateAssignments")
 	defer span.End()

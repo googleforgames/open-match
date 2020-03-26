@@ -158,7 +158,7 @@ func TestAssignTicketsMissingTicket(t *testing.T) {
 	resp, err := be.AssignTickets(ctx, req)
 	assert.Nil(t, err)
 	assert.Equal(t, &pb.AssignTicketsResponse{
-		Failed: []*pb.AssignmentFailure{
+		Failures: []*pb.AssignmentFailure{
 			{
 				TicketId: t2.Ticket.Id,
 				Cause:    pb.AssignmentFailure_TICKET_NOT_FOUND,

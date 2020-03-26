@@ -472,10 +472,7 @@ func (rb *redisBackend) GetTickets(ctx context.Context, ids []string) ([]*pb.Tic
 	return r, nil
 }
 
-// UpdateAssignments update the match assignments for the input ticket ids.
-// This function guarantees if any of the input ids does not exists, the state of the storage service won't be altered.
-// However, since Redis does not support transaction roll backs (see https://redis.io/topics/transactions), some of the
-// assignment fields might be partially updated if this function encounters an error halfway through the execution.
+// UpdateAssignments update using the request's specified tickets with assignments.
 func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
 	resp := &pb.AssignTicketsResponse{}
 	if len(req.Assignments) == 0 {
@@ -516,7 +513,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 	for i, ticketByte := range ticketBytes {
 		// Tickets may be deleted by the time we read it from redis.
 		if ticketByte == nil {
-			resp.Failed = append(resp.Failed, &pb.AssignmentFailure{
+			resp.Failures = append(resp.Failures, &pb.AssignmentFailure{
 				TicketId: ids[i],
 				Cause:    pb.AssignmentFailure_TICKET_NOT_FOUND,
 			})
@@ -526,7 +523,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 			if err != nil {
 				redisLogger.WithFields(logrus.Fields{
 					"key": ids[i],
-				}).WithError(err).Error("Failed to unmarshal ticket from redis.")
+				}).WithError(err).Error("failed to unmarshal ticket from redis.")
 				return nil, status.Errorf(codes.Internal, "%v", err)
 			}
 			tickets = append(tickets, t)

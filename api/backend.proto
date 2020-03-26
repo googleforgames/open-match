@@ -114,8 +114,8 @@ message AssignTicketsRequest {
 }
 
 message AssignTicketsResponse {
-  // Failed is a list of all the Tickets that failed assignment along with the cause of failure. 
-  repeated AssignmentFailure failed = 1;
+  // Failures is a list of all the Tickets that failed assignment along with the cause of failure. 
+  repeated AssignmentFailure failures = 1;
 }
 
 // The BackendService implements APIs to generate matches and handle ticket assignments.

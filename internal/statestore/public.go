@@ -49,7 +49,7 @@ type Service interface {
 	// silently ignored.
 	GetTickets(ctx context.Context, ids []string) ([]*pb.Ticket, error)
 
-	// UpdateAssignments update the match assignments for the input ticket ids
+	// UpdateAssignments update using the request's specified tickets with assignments.
 	UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error)
 
 	// GetAssignments returns the assignment associated with the input ticket id
