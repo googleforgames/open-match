@@ -129,24 +129,37 @@
     }
   },
   "definitions": {
+    "AssignmentFailureCause": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "TICKET_NOT_FOUND"
+      ],
+      "default": "UNKNOWN"
+    },
     "openmatchAssignTicketsRequest": {
       "type": "object",
       "properties": {
-        "ticket_ids": {
+        "assignments": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/openmatchAssignmentGroup"
           },
-          "description": "TicketIds is a list of strings representing Open Match generated Ids which apply to an Assignment."
-        },
-        "assignment": {
-          "$ref": "#/definitions/openmatchAssignment",
-          "description": "An Assignment specifies game connection related information to be associated with the TicketIds."
+          "description": "Assignments is a list of assignment groups that contain assignment and the Tickets to which they should be applied."
         }
       }
     },
     "openmatchAssignTicketsResponse": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "failures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/openmatchAssignmentFailure"
+          },
+          "description": "Failures is a list of all the Tickets that failed assignment along with the cause of failure."
+        }
+      }
     },
     "openmatchAssignment": {
       "type": "object",
@@ -164,6 +177,35 @@
         }
       },
       "description": "An Assignment represents a game server assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
+    },
+    "openmatchAssignmentFailure": {
+      "type": "object",
+      "properties": {
+        "ticket_id": {
+          "type": "string"
+        },
+        "cause": {
+          "$ref": "#/definitions/AssignmentFailureCause"
+        }
+      },
+      "description": "AssignmentFailure contains the id of the Ticket that failed the Assignment and the failure status."
+    },
+    "openmatchAssignmentGroup": {
+      "type": "object",
+      "properties": {
+        "ticket_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "TicketIds is a list of strings representing Open Match generated Ids which apply to an Assignment."
+        },
+        "assignment": {
+          "$ref": "#/definitions/openmatchAssignment",
+          "description": "An Assignment specifies game connection related information to be associated with the TicketIds."
+        }
+      },
+      "description": "AssignmentGroup contains an Assignment and the Tickets to which it should be applied."
     },
     "openmatchDoubleRangeFilter": {
       "type": "object",

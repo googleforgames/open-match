@@ -472,82 +472,84 @@ func (rb *redisBackend) GetTickets(ctx context.Context, ids []string) ([]*pb.Tic
 	return r, nil
 }
 
-// UpdateAssignments update the match assignments for the input ticket ids.
-// This function guarantees if any of the input ids does not exists, the state of the storage service won't be altered.
-// However, since Redis does not support transaction roll backs (see https://redis.io/topics/transactions), some of the
-// assignment fields might be partially updated if this function encounters an error halfway through the execution.
-func (rb *redisBackend) UpdateAssignments(ctx context.Context, ids []string, assignment *pb.Assignment) error {
-	if assignment == nil {
-		return status.Error(codes.InvalidArgument, "assignment is nil")
+// UpdateAssignments update using the request's specified tickets with assignments.
+func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
+	resp := &pb.AssignTicketsResponse{}
+	if len(req.Assignments) == 0 {
+		return resp, nil
 	}
-	if len(ids) == 0 {
-		return nil
+
+	idToA := make(map[string]*pb.Assignment)
+	ids := make([]string, 0)
+	idsI := make([]interface{}, 0)
+	for _, a := range req.Assignments {
+		if a.Assignment == nil {
+			return nil, status.Error(codes.InvalidArgument, "AssignmentGroup.Assignment is required")
+		}
+
+		for _, id := range a.TicketIds {
+			if _, ok := idToA[id]; ok {
+				return nil, status.Errorf(codes.InvalidArgument, "Ticket id %s is assigned multiple times in one assign tickets call.", id)
+			}
+
+			idToA[id] = a.Assignment
+			ids = append(ids, id)
+			idsI = append(idsI, id)
+		}
 	}
 
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer handleConnectionClose(&redisConn)
 
-	b := make([]interface{}, len(ids))
-	for i := range ids {
-		b[i] = ids[i]
-	}
-
-	ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", b...))
+	ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", idsI...))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tickets := make([]*pb.Ticket, 0, len(ticketBytes))
 	for i, ticketByte := range ticketBytes {
 		// Tickets may be deleted by the time we read it from redis.
 		if ticketByte == nil {
-			return status.Errorf(codes.NotFound, "failed to get ticket %s from statestore", ids[i])
+			resp.Failures = append(resp.Failures, &pb.AssignmentFailure{
+				TicketId: ids[i],
+				Cause:    pb.AssignmentFailure_TICKET_NOT_FOUND,
+			})
+		} else {
+			t := &pb.Ticket{}
+			err = proto.Unmarshal(ticketByte, t)
+			if err != nil {
+				redisLogger.WithFields(logrus.Fields{
+					"key": ids[i],
+				}).WithError(err).Error("failed to unmarshal ticket from redis.")
+				return nil, status.Errorf(codes.Internal, "%v", err)
+			}
+			tickets = append(tickets, t)
 		}
-		t := &pb.Ticket{}
-		err = proto.Unmarshal(ticketByte, t)
-		if err != nil {
-			redisLogger.WithFields(logrus.Fields{
-				"key": ids[i],
-			}).WithError(err).Error("Failed to unmarshal ticket from redis.")
-			return status.Errorf(codes.Internal, "%v", err)
-		}
-		tickets = append(tickets, t)
 	}
 
 	cmds := make([]interface{}, 0, 2*len(tickets))
 	for _, ticket := range tickets {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			assignmentCopy, ok := proto.Clone(assignment).(*pb.Assignment)
-			if !ok {
-				redisLogger.Error("failed to cast assignment object")
-				return status.Error(codes.Internal, "failed to cast to the assignment object")
-			}
+		ticket.Assignment = idToA[ticket.Id]
 
-			ticket.Assignment = assignmentCopy
-
-			var ticketByte []byte
-			ticketByte, err = proto.Marshal(ticket)
-			if err != nil {
-				return status.Errorf(codes.Internal, "failed to marshal ticket %s", ticket.GetId())
-			}
-
-			cmds = append(cmds, ticket.GetId(), ticketByte)
+		var ticketByte []byte
+		ticketByte, err = proto.Marshal(ticket)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to marshal ticket %s", ticket.GetId())
 		}
+
+		cmds = append(cmds, ticket.GetId(), ticketByte)
 	}
 
 	_, err = redisConn.Do("MSET", cmds...)
 	if err != nil {
 		redisLogger.WithError(err).Errorf("failed to send ticket updates to redis %s", cmds)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return resp, nil
 }
 
 // GetAssignments returns the assignment associated with the input ticket id

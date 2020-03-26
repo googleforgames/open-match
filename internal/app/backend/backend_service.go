@@ -306,23 +306,35 @@ func (s *backendService) ReleaseTickets(ctx context.Context, req *pb.ReleaseTick
 
 // AssignTickets overwrites the Assignment field of the input TicketIds.
 func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
-	err := doAssignTickets(ctx, req, s.store)
+	resp, err := doAssignTickets(ctx, req, s.store)
 	if err != nil {
 		logger.WithError(err).Error("failed to update assignments for requested tickets")
 		return nil, err
 	}
 
-	telemetry.RecordNUnitMeasurement(ctx, mTicketsAssigned, int64(len(req.TicketIds)))
-	return &pb.AssignTicketsResponse{}, nil
+	numIds := 0
+	for _, ag := range req.Assignments {
+		numIds += len(ag.TicketIds)
+	}
+
+	telemetry.RecordNUnitMeasurement(ctx, mTicketsAssigned, int64(numIds))
+	return resp, nil
 }
 
-func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) error {
-	err := store.UpdateAssignments(ctx, req.GetTicketIds(), req.GetAssignment())
+func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) (*pb.AssignTicketsResponse, error) {
+	resp, err := store.UpdateAssignments(ctx, req)
 	if err != nil {
 		logger.WithError(err).Error("failed to update assignments")
-		return err
+		return nil, err
 	}
-	for _, id := range req.GetTicketIds() {
+
+	ids := []string{}
+
+	for _, ag := range req.Assignments {
+		ids = append(ids, ag.TicketIds...)
+	}
+
+	for _, id := range ids {
 		err = store.DeindexTicket(ctx, id)
 		// Try to deindex all input tickets. Log without returning an error if the deindexing operation failed.
 		// TODO: consider retry the index operation
@@ -331,13 +343,13 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 		}
 	}
 
-	if err = store.DeleteTicketsFromIgnoreList(ctx, req.GetTicketIds()); err != nil {
+	if err = store.DeleteTicketsFromIgnoreList(ctx, ids); err != nil {
 		logger.WithFields(logrus.Fields{
-			"ticket_ids": req.GetTicketIds(),
+			"ticket_ids": ids,
 		}).Error(err)
 	}
 
-	return nil
+	return resp, nil
 }
 
 func doReleasetickets(ctx context.Context, req *pb.ReleaseTicketsRequest, store statestore.Service) error {
