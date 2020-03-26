@@ -328,9 +328,7 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 	ids := []string{}
 
 	for _, ag := range req.Assignments {
-		for _, id := range ag.TicketIds {
-			ids = append(ids, id)
-		}
+		ids = append(ids, ag.TicketIds...)
 	}
 
 	for _, id := range ids {

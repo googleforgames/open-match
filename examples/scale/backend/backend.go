@@ -161,7 +161,7 @@ func runAssignments(be pb.BackendServiceClient, matchesForAssignment <-chan *pb.
 		if activeScenario.BackendAssignsTickets {
 			_, err := be.AssignTickets(context.Background(), &pb.AssignTicketsRequest{
 				Assignments: []*pb.AssignmentGroup{
-					&pb.AssignmentGroup{
+					{
 						TicketIds: ids,
 						Assignment: &pb.Assignment{
 							Connection: fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),

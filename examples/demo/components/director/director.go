@@ -132,7 +132,7 @@ func run(ds *components.DemoShared) {
 
 		req := &pb.AssignTicketsRequest{
 			Assignments: []*pb.AssignmentGroup{
-				&pb.AssignmentGroup{
+				{
 					TicketIds: ids,
 					Assignment: &pb.Assignment{
 						Connection: fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),

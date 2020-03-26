@@ -43,11 +43,11 @@ func TestAssignTickets(t *testing.T) {
 
 	req := &pb.AssignTicketsRequest{
 		Assignments: []*pb.AssignmentGroup{
-			&pb.AssignmentGroup{
+			{
 				TicketIds:  []string{t1.Ticket.Id},
 				Assignment: &pb.Assignment{Connection: "a"},
 			},
-			&pb.AssignmentGroup{
+			{
 				TicketIds:  []string{t2.Ticket.Id},
 				Assignment: &pb.Assignment{Connection: "b"},
 			},
@@ -85,7 +85,7 @@ func TestAssignTicketsInvalidArgument(t *testing.T) {
 			"missing assignment",
 			&pb.AssignTicketsRequest{
 				Assignments: []*pb.AssignmentGroup{
-					&pb.AssignmentGroup{},
+					{},
 				},
 			},
 			"AssignmentGroup.Assignment is required",
@@ -94,7 +94,7 @@ func TestAssignTicketsInvalidArgument(t *testing.T) {
 			"ticket used twice one group",
 			&pb.AssignTicketsRequest{
 				Assignments: []*pb.AssignmentGroup{
-					&pb.AssignmentGroup{
+					{
 						TicketIds:  []string{ctResp.Ticket.Id, ctResp.Ticket.Id},
 						Assignment: &pb.Assignment{},
 					},
@@ -106,11 +106,11 @@ func TestAssignTicketsInvalidArgument(t *testing.T) {
 			"ticket used twice two groups",
 			&pb.AssignTicketsRequest{
 				Assignments: []*pb.AssignmentGroup{
-					&pb.AssignmentGroup{
+					{
 						TicketIds:  []string{ctResp.Ticket.Id},
 						Assignment: &pb.Assignment{Connection: "a"},
 					},
-					&pb.AssignmentGroup{
+					{
 						TicketIds:  []string{ctResp.Ticket.Id},
 						Assignment: &pb.Assignment{Connection: "b"},
 					},
@@ -148,7 +148,7 @@ func TestAssignTicketsMissingTicket(t *testing.T) {
 
 	req := &pb.AssignTicketsRequest{
 		Assignments: []*pb.AssignmentGroup{
-			&pb.AssignmentGroup{
+			{
 				TicketIds:  []string{t1.Ticket.Id, t2.Ticket.Id, t3.Ticket.Id},
 				Assignment: &pb.Assignment{Connection: "a"},
 			},
@@ -159,7 +159,7 @@ func TestAssignTicketsMissingTicket(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, &pb.AssignTicketsResponse{
 		Failed: []*pb.AssignmentFailure{
-			&pb.AssignmentFailure{
+			{
 				TicketId: t2.Ticket.Id,
 				Cause:    pb.AssignmentFailure_TICKET_NOT_FOUND,
 			},

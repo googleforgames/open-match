@@ -125,7 +125,7 @@ func TestDoGetAssignments(t *testing.T) {
 						time.Sleep(50 * time.Millisecond)
 						_, err := store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
 							Assignments: []*pb.AssignmentGroup{
-								&pb.AssignmentGroup{
+								{
 									TicketIds:  []string{testTicket.GetId()},
 									Assignment: wantAssignments[i],
 								},

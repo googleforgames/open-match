@@ -176,7 +176,7 @@ func TestGameMatchWorkFlow(t *testing.T) {
 		}
 		req := &pb.AssignTicketsRequest{
 			Assignments: []*pb.AssignmentGroup{
-				&pb.AssignmentGroup{
+				{
 					TicketIds:  tids,
 					Assignment: &pb.Assignment{Connection: "agones-1"},
 				},
