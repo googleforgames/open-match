@@ -120,9 +120,13 @@ func assign(be pb.BackendServiceClient, matches []*pb.Match) error {
 
 		conn := fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256))
 		req := &pb.AssignTicketsRequest{
-			TicketIds: ticketIDs,
-			Assignment: &pb.Assignment{
-				Connection: conn,
+			Assignments: []*pb.AssignmentGroup{
+				{
+					TicketIds: ticketIDs,
+					Assignment: &pb.Assignment{
+						Connection: conn,
+					},
+				},
 			},
 		}
 
