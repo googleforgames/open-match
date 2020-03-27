@@ -13,8 +13,8 @@
 # limitations under the License.
 
 apiVersion: v2
-appVersion: "0.0.0-dev"
-version: 0.0.0-dev
+appVersion: "0.10.0"
+version: 0.10.0
 name: open-match
 dependencies:
   - name: redis
