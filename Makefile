@@ -673,9 +673,28 @@ build: assets
 	$(GO) build ./...
 	$(GO) build -tags e2ecluster ./...
 
+define test_folder
+	$(if $(wildcard $(1)/go.mod), \
+		cd $(1) && \
+		$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./... && \
+		$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./... \
+    )
+	$(foreach dir, $(wildcard $(1)/*/.), $(call test_folder, $(dir)))
+endef
+
+define fast_test_folder
+	$(if $(wildcard $(1)/go.mod), \
+		cd $(1) && \
+		$(GO) test ./... \
+    )
+	$(foreach dir, $(wildcard $(1)/*/.), $(call fast_test_folder, $(dir)))
+endef
+
 test: $(ALL_PROTOS) tls-certs third_party/
-	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./...
-	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
+	$(call test_folder,.)
+
+fasttest: $(ALL_PROTOS) tls-certs third_party/
+	$(call fast_test_folder,.)
 
 test-e2e-cluster: all-protos tls-certs third_party/
 	$(HELM) test --timeout 7m30s -v 0 --logs -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(OPEN_MATCH_HELM_NAME)
