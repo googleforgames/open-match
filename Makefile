@@ -777,7 +777,7 @@ ci-reap-namespaces: build/toolchain/bin/reaper$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: GOLANG_TEST_COUNT = 5
-presubmit: clean third_party/ update-chart-deps assets update-deps lint build md-test terraform-test
+presubmit: clean third_party/ update-chart-deps assets update-deps lint build test md-test terraform-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -835,7 +835,7 @@ clean-swagger-docs:
 clean-third-party:
 	rm -rf $(REPOSITORY_ROOT)/third_party/
 
-clean: clean-images clean-third-party clean-build clean-install-yaml clean-secrets clean-terraform clean-third-party clean-protos clean-swagger-docs
+clean: clean-images clean-build clean-install-yaml clean-secrets clean-terraform clean-third-party clean-protos clean-swagger-docs
 
 proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Frontend Health: http://localhost:$(FRONTEND_PORT)/healthz"
