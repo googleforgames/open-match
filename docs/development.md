@@ -9,14 +9,12 @@ To build Open Match you'll need the following applications installed.
 
  * [Git](https://git-scm.com/downloads)
  * [Go](https://golang.org/doc/install)
- * [Python3 with virtualenv](https://wiki.python.org/moin/BeginnersGuide/Download)
  * Make (Mac: install [XCode](https://itunes.apple.com/us/app/xcode/id497799835))
  * [Docker](https://docs.docker.com/install/) including the
    [post-install steps](https://docs.docker.com/install/linux/linux-postinstall/).
 
 Optional Software
 
- * [Google Cloud Platform](gcloud.md)
  * [Visual Studio Code](https://code.visualstudio.com/Download) for IDE.
    Vim and Emacs work to.
  * [VirtualBox](https://www.virtualbox.org/wiki/Downloads) recommended for
@@ -27,8 +25,7 @@ running:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y -q python3 python3-virtualenv virtualenv make \
-  google-cloud-sdk git unzip tar
+sudo apt-get install -y -q make google-cloud-sdk git unzip tar
 ```
 
 *It's recommended that you install Go using their instructions because package
@@ -51,13 +48,11 @@ make
 [create a fork](https://help.github.com/en/articles/fork-a-repo) and use that
 but for purpose of this guide we'll be using the upstream/master.*
 
-## Building
+## Building code and images
 
 ```bash
 # Reset workspace
 make clean
-# Compile all the binaries
-make all -j$(nproc)
 # Run tests
 make test
 # Build all the images.
@@ -87,11 +82,9 @@ default context the Makefile will honor that._
 # GKE cluster: make create-gke-cluster/delete-gke-cluster
 # or create a local Minikube cluster
 make create-gke-cluster
-# Step 2: Download helm and install Tiller in the cluster
-make push-helm
-# Step 3: Build and Push Open Match Images to gcr.io
+# Step 2: Build and Push Open Match Images to gcr.io
 make push-images -j$(nproc)
-# Install Open Match in the cluster.
+# Step 3: Install Open Match in the cluster.
 make install-chart
 
 # Create a proxy to Open Match pods so that you can access them locally.
@@ -105,12 +98,29 @@ make proxy
 make delete-chart
 ```
 
-## Interaction
+## Iterating
+While iterating on the project, you may need to:
+1. Install/Run everything
+2. Make some code changes
+3. Make sure the changes compile by running `make test`
+4. Build and push Docker images to your personal registry by running `make push-images -j$(nproc)`
+5. Deploy the code change by running `make install-chart`
+6. Verify it's working by [looking at the logs](#accessing-logs) or looking at the monitoring dashboard by running `make proxy-grafana`
+7. Tear down Open Match by running `make delete-chart`
 
-Before integrating with Open Match you can manually interact with it to get a feel for how it works.
+## Accessing logs
+To look at Open Match core services' logs, run:
+```bash
+# Replace om-frontend with the service name that you would like to access
+kubectl logs -n open-match svc/om-frontend
+```
 
-`make proxy-ui` exposes the Swagger UI for Open Match locally on your computer.
-You can then go to http://localhost:51500 and view the API as well as interactively call Open Match.
+## API References
+While integrating with Open Match you may want to understand its API surface concepts or interact with it and get a feel for how it works.
+
+The APIs are defined in `proto` format under the `api/` folder, with references available at [open-match.dev](https://open-match.dev/site/docs/reference/api/).
+
+You can also run `make proxy-ui` to exposes the Swagger UI for Open Match locally on your computer after [deploying it to Kubernetes](#deploying-to-kubernetes), then go to http://localhost:51500 and view the REST APIs as well as interactively call Open Match.
 
 By default you will be talking to the frontend server but you can change the target API url to any of the following:
 
@@ -144,55 +154,9 @@ export GOPATH=$HOME/workspace/
 
 ## Pull Requests
 
-If you want to submit a Pull Request there's some tools to help prepare your
-change.
-
-```bash
-# Runs code generators, tests, and linters.
-make presubmit
-```
-
-`make presubmit` catches most of the issues your change can run into. If the
-submit checks fail you can run it locally via,
-
-```bash
-make local-cloud-build
-```
+If you want to submit a Pull Request, `make presubmit` can catch most of the issues your change can run into.
 
 Our [continuous integration](https://console.cloud.google.com/cloud-build/builds?project=open-match-build)
 runs against all PRs. In order to see your build results you'll need to
 become a member of
 [open-match-discuss@googlegroups.com](https://groups.google.com/forum/#!forum/open-match-discuss).
-
-
-## Makefile
-
-The Makefile is the core of Open Match's build process. There's a lot of
-commands but here's a list of the important ones and patterns to remember them.
-
-```bash
-# Help
-make
-
-# Reset workspace (delete all build artifacts)
-make clean
-# Delete auto-generated protobuf code and swagger API docs.
-make clean-protos clean-swagger-docs
-# make clean-* deletes some part of the build outputs.
-
-# Build all Docker images
-make build-images
-# Build frontend docker image.
-make build-frontend-image
-
-# Formats, Vets, and tests the codebase.
-make fmt vet test
-# Same as above also regenerates autogen files.
-make presubmit
-
-# Run website on http://localhost:8080
-make run-site
-
-# Proxy all Open Match processes to view them.
-make proxy
-```
