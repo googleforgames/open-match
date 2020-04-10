@@ -162,9 +162,7 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 		cfg.Set("api.query.grpcport", c.GetGRPCPort())
 		cfg.Set("api.query.httpport", c.GetHTTPPort())
 
-		assert.Nil(t, internalMmf.BindService(p, cfg, &internalMmf.FunctionSettings{
-			Func: mmf.MakeMatches,
-		}))
+		assert.Nil(t, internalMmf.BindServiceFor(mmf.MakeMatches)(p, cfg))
 	})
 	return tc
 }
@@ -173,7 +171,7 @@ func createMatchFunctionForTest(t *testing.T, c *rpcTesting.TestContext) *rpcTes
 func createEvaluatorForTest(t *testing.T) *rpcTesting.TestContext {
 	tc := rpcTesting.MustServeInsecure(t, func(p *rpc.ServerParams) {
 		cfg := viper.New()
-		assert.Nil(t, evaluator.BindService(p, cfg, defaulteval.Evaluate))
+		assert.Nil(t, evaluator.BindServiceFor(defaulteval.Evaluate)(p, cfg))
 	})
 
 	return tc
