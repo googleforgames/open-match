@@ -101,14 +101,14 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 	return nil
 }
 
-func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunctionService, error) {
+func newMatchFunctionService(cfg config.View, mf MatchFunction) (*matchFunctionService, error) {
 	conn, err := rpc.GRPCClientFromConfig(cfg, "api.query")
 	if err != nil {
 		logger.Errorf("Failed to get QueryService connection, %v.", err)
 		return nil, err
 	}
 
-	mmfService := &matchFunctionService{cfg: cfg, function: fs.Func, queryServiceClient: pb.NewQueryServiceClient(conn)}
+	mmfService := &matchFunctionService{cfg: cfg, function: mf, queryServiceClient: pb.NewQueryServiceClient(conn)}
 	return mmfService, nil
 }
 
