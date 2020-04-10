@@ -22,6 +22,7 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+// BindServiceFor creates the match function service and binds it to the serving harness.
 func BindServiceFor(mf MatchFunction) func(p *rpc.ServerParams, cfg config.View) error {
 	return func(p *rpc.ServerParams, cfg config.View) error {
 		service, err := newMatchFunctionService(cfg, mf)

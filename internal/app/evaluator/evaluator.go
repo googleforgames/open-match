@@ -22,6 +22,7 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+// BindServiceFor creates the evaluator service and binds it to the serving harness.
 func BindServiceFor(eval Evaluator) func(p *rpc.ServerParams, cfg config.View) error {
 	return func(p *rpc.ServerParams, cfg config.View) error {
 		p.AddHandleFunc(func(s *grpc.Server) {
