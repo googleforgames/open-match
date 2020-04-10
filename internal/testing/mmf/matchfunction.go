@@ -36,37 +36,3 @@ func BindServiceFor(mf MatchFunction) func(p *rpc.ServerParams, cfg config.View)
 		return nil
 	}
 }
-
-// // RunMatchFunction is a hook for the main() method in the main executable.
-// func RunMatchFunction(settings *FunctionSettings) {
-// 	app.RunApplication("functions", getCfg, func(p *rpc.ServerParams, cfg config.View) error {
-// 		return BindService(p, cfg, settings)
-// 	})
-// }
-
-// // BindService creates the function service to the server Params.
-// func BindService(p *rpc.ServerParams, cfg config.View, fs *FunctionSettings) error {
-// 	service, err := newMatchFunctionService(cfg, fs)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	p.AddHandleFunc(func(s *grpc.Server) {
-// 		pb.RegisterMatchFunctionServer(s, service)
-// 	}, pb.RegisterMatchFunctionHandlerFromEndpoint)
-
-// 	return nil
-// }
-
-// func getCfg() (config.View, error) {
-// 	cfg := viper.New()
-
-// 	cfg.Set("api.functions.hostname", "om-function")
-// 	cfg.Set("api.functions.grpcport", 50502)
-// 	cfg.Set("api.functions.httpport", 51502)
-
-// 	cfg.Set("api.query.hostname", "om-query")
-// 	cfg.Set("api.query.grpcport", 50503)
-
-// 	return cfg, nil
-// }
