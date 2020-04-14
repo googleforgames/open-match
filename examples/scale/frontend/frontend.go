@@ -24,6 +24,7 @@ import (
 	"go.opencensus.io/stats"
 	"go.opencensus.io/trace"
 	"open-match.dev/open-match/examples/scale/scenarios"
+	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/telemetry"
@@ -45,8 +46,8 @@ var (
 
 // Run triggers execution of the scale frontend component that creates
 // tickets at scale in Open Match.
-func BindService(p *rpc.ServerParams, cfg config.View) error {
-	go run(cfg)
+func BindService(p *appmain.Params, b *appmain.Bindings) error {
+	go run(p.Config())
 
 	return nil
 }

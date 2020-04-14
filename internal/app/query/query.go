@@ -16,19 +16,18 @@ package query
 
 import (
 	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 // BindService creates the query service and binds it to the serving harness.
-func BindService(p *rpc.ServerParams, cfg config.View) error {
+func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	service := &queryService{
-		cfg: cfg,
-		tc:  newTicketCache(p, cfg),
+		cfg: p.Config(),
+		tc:  newTicketCache(b, p.Config()),
 	}
 
-	p.AddHandleFunc(func(s *grpc.Server) {
+	b.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterQueryServiceServer(s, service)
 	}, pb.RegisterQueryServiceHandlerFromEndpoint)
 

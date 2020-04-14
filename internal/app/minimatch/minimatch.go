@@ -19,25 +19,24 @@ import (
 	"open-match.dev/open-match/internal/app/frontend"
 	"open-match.dev/open-match/internal/app/query"
 	"open-match.dev/open-match/internal/app/synchronizer"
-	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/appmain"
 )
 
 // BindService creates the minimatch service to the server Params.
-func BindService(p *rpc.ServerParams, cfg config.View) error {
-	if err := backend.BindService(p, cfg); err != nil {
+func BindService(p *appmain.Params, b *appmain.Bindings) error {
+	if err := backend.BindService(p, b); err != nil {
 		return err
 	}
 
-	if err := frontend.BindService(p, cfg); err != nil {
+	if err := frontend.BindService(p, b); err != nil {
 		return err
 	}
 
-	if err := query.BindService(p, cfg); err != nil {
+	if err := query.BindService(p, b); err != nil {
 		return err
 	}
 
-	if err := synchronizer.BindService(p, cfg); err != nil {
+	if err := synchronizer.BindService(p, b); err != nil {
 		return err
 	}
 
