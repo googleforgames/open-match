@@ -17,6 +17,7 @@ package appmain
 
 import (
 	"context"
+
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
@@ -36,24 +37,31 @@ func RunApplication(serverName string, bindService Bind) {
 	StartApplication(serverName, bindService, config.Read)
 }
 
+// Bind is a function which starts an application, and binds it to serving.
 type Bind func(p *Params, b *Bindings) error
 
+// Params are inputs to starting an application.
 type Params struct {
 	config config.View
 }
 
+// Config provides the configuration for the application.
 func (p *Params) Config() config.View {
 	return p.config
 }
 
+// Bindings allows applications to bind various functions to the running servers.
 type Bindings struct {
 	sp *rpc.ServerParams
 }
 
+// AddHealthCheckFunc allows an application to check if it is healthy, and
+// contribute to the overall server health.
 func (b *Bindings) AddHealthCheckFunc(f func(context.Context) error) {
 	b.sp.AddHealthCheckFunc(f)
 }
 
+// AddHandleFunc adds a protobuf service to the grpc server which is starting.
 func (b *Bindings) AddHandleFunc(handlerFunc rpc.GrpcHandler, grpcProxyHandler rpc.GrpcProxyHandler) {
 	b.sp.AddHandleFunc(handlerFunc, grpcProxyHandler)
 }
