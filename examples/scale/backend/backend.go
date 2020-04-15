@@ -25,6 +25,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
 	"open-match.dev/open-match/examples/scale/scenarios"
+	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/telemetry"
@@ -53,8 +54,8 @@ var (
 
 // Run triggers execution of functions that continuously fetch, assign and
 // delete matches.
-func BindService(p *rpc.ServerParams, cfg config.View) error {
-	go run(cfg)
+func BindService(p *appmain.Params, b *appmain.Bindings) error {
+	go run(p.Config())
 	return nil
 }
 

@@ -17,20 +17,19 @@ package mmf
 
 import (
 	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 // BindServiceFor creates the match function service and binds it to the serving harness.
-func BindServiceFor(mf MatchFunction) func(p *rpc.ServerParams, cfg config.View) error {
-	return func(p *rpc.ServerParams, cfg config.View) error {
-		service, err := newMatchFunctionService(cfg, mf)
+func BindServiceFor(mf MatchFunction) appmain.Bind {
+	return func(p *appmain.Params, b *appmain.Bindings) error {
+		service, err := newMatchFunctionService(p.Config(), mf)
 		if err != nil {
 			return err
 		}
 
-		p.AddHandleFunc(func(s *grpc.Server) {
+		b.AddHandleFunc(func(s *grpc.Server) {
 			pb.RegisterMatchFunctionServer(s, service)
 		}, pb.RegisterMatchFunctionHandlerFromEndpoint)
 

@@ -20,12 +20,11 @@
 package main
 
 import (
-	"open-match.dev/open-match/internal/app"
-	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/appmain"
 	internalMmf "open-match.dev/open-match/internal/testing/mmf"
 	"open-match.dev/open-match/test/matchfunction/mmf"
 )
 
 func main() {
-	app.RunApplication("functions", config.Read, internalMmf.BindServiceFor(mmf.MakeMatches))
+	appmain.RunApplication("functions", internalMmf.BindServiceFor(mmf.MakeMatches))
 }

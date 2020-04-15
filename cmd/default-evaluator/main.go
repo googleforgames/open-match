@@ -15,12 +15,11 @@
 package main
 
 import (
-	"open-match.dev/open-match/internal/app"
 	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/app/evaluator/defaulteval"
-	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/appmain"
 )
 
 func main() {
-	app.RunApplication("evaluator", config.Read, evaluator.BindServiceFor(defaulteval.Evaluate))
+	appmain.RunApplication("evaluator", evaluator.BindServiceFor(defaulteval.Evaluate))
 }
