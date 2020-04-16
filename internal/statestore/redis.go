@@ -27,7 +27,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -38,9 +37,6 @@ var (
 		"app":       "openmatch",
 		"component": "statestore.redis",
 	})
-	mRedisConnLatencyMs  = telemetry.HistogramWithBounds("redis/connectlatency", "latency to get a redis connection", "ms", telemetry.HistogramBounds)
-	mRedisConnPoolActive = telemetry.Gauge("redis/connectactivecount", "number of connections in the pool, includes idle plus connections in use")
-	mRedisConnPoolIdle   = telemetry.Gauge("redis/connectidlecount", "number of idle connections in the pool")
 )
 
 type redisBackend struct {
@@ -176,16 +172,11 @@ func (rb *redisBackend) HealthCheck(ctx context.Context) error {
 	}
 	defer handleConnectionClose(&redisConn)
 
-	poolStats := rb.redisPool.Stats()
-	telemetry.SetGauge(ctx, mRedisConnPoolActive, int64(poolStats.ActiveCount))
-	telemetry.SetGauge(ctx, mRedisConnPoolIdle, int64(poolStats.IdleCount))
-
 	_, err = redisConn.Do("PING")
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
 		return status.Errorf(codes.Unavailable, "%v", err)
 	}
-
 	return nil
 }
 
@@ -228,7 +219,6 @@ func redisURLFromAddr(addr string, cfg config.View, usePassword bool) string {
 }
 
 func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
-	startTime := time.Now()
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -236,8 +226,6 @@ func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
 		}).Error("failed to connect to redis")
 		return nil, status.Errorf(codes.Unavailable, "%v", err)
 	}
-	telemetry.RecordNUnitMeasurement(ctx, mRedisConnLatencyMs, time.Since(startTime).Milliseconds())
-
 	return redisConn, nil
 }
 

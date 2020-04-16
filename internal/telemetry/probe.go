@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"sync/atomic"
 
+	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
 )
 
@@ -30,11 +31,6 @@ const (
 	healthStateFirstProbe = int32(0)
 	healthStateHealthy    = int32(1)
 	healthStateUnhealthy  = int32(2)
-)
-
-var (
-	successKey       = tag.MustNewKey("success")
-	mReadinessProbes = Counter("health/readiness", "readiness probes", successKey)
 )
 
 type statefulProbe struct {
@@ -58,11 +54,24 @@ func (sp *statefulProbe) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 					logger.WithError(err).Warningf("%s health check failed. The server will terminate if this continues to happen.", HealthCheckEndpoint)
 				}
 				http.Error(w, err.Error(), http.StatusServiceUnavailable)
-				RecordUnitMeasurement(req.Context(), mReadinessProbes, tag.Insert(successKey, "false"))
+				if err := stats.RecordWithOptions(
+					req.Context(),
+					stats.WithMeasurements(ProbeReadiness.M(1)),
+					stats.WithTags(tag.Insert(tag.MustNewKey("success"), "false")),
+				); err != nil {
+					logger.WithError(err).Error("unable to record health metric")
+				}
 				return
 			}
 		}
-		RecordUnitMeasurement(req.Context(), mReadinessProbes, tag.Insert(successKey, "true"))
+
+		if err := stats.RecordWithOptions(
+			req.Context(),
+			stats.WithMeasurements(ProbeReadiness.M(1)),
+			stats.WithTags(tag.Insert(tag.MustNewKey("success"), "true")),
+		); err != nil {
+			logger.WithError(err).Error("unable to record health metric")
+		}
 		old := atomic.SwapInt32(sp.healthState, healthStateHealthy)
 		if old == healthStateUnhealthy {
 			logger.Infof("%s is healthy again.", HealthCheckEndpoint)

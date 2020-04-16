@@ -23,7 +23,10 @@ import (
 	"strings"
 	"sync"
 
+	"go.opencensus.io/stats"
+
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -49,10 +52,6 @@ var (
 		"app":       "openmatch",
 		"component": "app.backend",
 	})
-	mMatchesFetched          = telemetry.Counter("backend/matches_fetched", "matches fetched")
-	mMatchesSentToEvaluation = telemetry.Counter("backend/matches_sent_to_evaluation", "matches sent to evaluation")
-	mTicketsAssigned         = telemetry.Counter("backend/tickets_assigned", "tickets assigned")
-	mTicketsReleased         = telemetry.Counter("backend/tickets_released", "tickets released")
 )
 
 // FetchMatches triggers a MatchFunction with the specified MatchProfiles, while each MatchProfile
@@ -131,7 +130,6 @@ sendProposals:
 			if loaded {
 				return fmt.Errorf("found duplicate matchID %s returned from MMF", id)
 			}
-			telemetry.RecordUnitMeasurement(ctx, mMatchesSentToEvaluation)
 			err := syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
 			if err != nil {
 				return fmt.Errorf("error sending proposal to synchronizer: %w", err)
@@ -168,9 +166,14 @@ func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync
 			cancelMmfs()
 		}
 
-		if match, ok := m.Load(resp.GetMatchId()); ok {
-			telemetry.RecordUnitMeasurement(ctx, mMatchesFetched)
-			err = stream.Send(&pb.FetchMatchesResponse{Match: match.(*pb.Match)})
+		if v, ok := m.Load(resp.GetMatchId()); ok {
+			match, ok := v.(*pb.Match)
+			if !ok {
+				return fmt.Errorf("error casting sync map value into *pb.Match: %w", err)
+			}
+			stats.Record(ctx, telemetry.TotalBytesPerMatch.M(int64(proto.Size(match))))
+			stats.Record(ctx, telemetry.TicketsPerMatch.M(int64(len(match.GetTickets()))))
+			err = stream.Send(&pb.FetchMatchesResponse{Match: match})
 			if err != nil {
 				return fmt.Errorf("error sending match to caller of backend: %w", err)
 			}
@@ -300,7 +303,7 @@ func (s *backendService) ReleaseTickets(ctx context.Context, req *pb.ReleaseTick
 		return nil, err
 	}
 
-	telemetry.RecordNUnitMeasurement(ctx, mTicketsReleased, int64(len(req.TicketIds)))
+	stats.Record(ctx, telemetry.TicketsReleased.M(int64(len(req.TicketIds))))
 	return &pb.ReleaseTicketsResponse{}, nil
 }
 
@@ -317,7 +320,7 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 		numIds += len(ag.TicketIds)
 	}
 
-	telemetry.RecordNUnitMeasurement(ctx, mTicketsAssigned, int64(numIds))
+	stats.Record(ctx, telemetry.TicketsAssigned.M(int64(numIds)))
 	return resp, nil
 }
 

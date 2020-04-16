@@ -17,23 +17,12 @@ package statestore
 import (
 	"context"
 
+	"github.com/golang/protobuf/proto"
+	"go.opencensus.io/stats"
+
 	"go.opencensus.io/trace"
 	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
-)
-
-var (
-	mStateStoreCreateTicketCount               = telemetry.Counter("statestore/createticketcount", "number of tickets created")
-	mStateStoreGetTicketCount                  = telemetry.Counter("statestore/getticketcount", "number of tickets retrieved")
-	mStateStoreDeleteTicketCount               = telemetry.Counter("statestore/deleteticketcount", "number of tickets deleted")
-	mStateStoreIndexTicketCount                = telemetry.Counter("statestore/indexticketcount", "number of tickets indexed")
-	mStateStoreDeindexTicketCount              = telemetry.Counter("statestore/deindexticketcount", "number of tickets deindexed")
-	mStateStoreGetTicketsCount                 = telemetry.Counter("statestore/getticketscount", "number of bulk ticket retrievals")
-	mStateStoreGetIndexedIDSetCount            = telemetry.Counter("statestore/getindexedidsetcount", "number of bulk indexed id retrievals")
-	mStateStoreUpdateAssignmentsCount          = telemetry.Counter("statestore/updateassignmentcount", "number of tickets assigned")
-	mStateStoreGetAssignmentsCount             = telemetry.Counter("statestore/getassignmentscount", "number of ticket assigned retrieved")
-	mStateStoreAddTicketsToIgnoreListCount     = telemetry.Counter("statestore/addticketstoignorelistcount", "number of tickets moved to ignore list")
-	mStateStoreDeleteTicketFromIgnoreListCount = telemetry.Counter("statestore/deleteticketfromignorelistcount", "number of tickets removed from ignore list")
 )
 
 // instrumentedService is a wrapper for a statestore service that provides instrumentation (metrics and tracing) of the database.
@@ -56,7 +45,13 @@ func (is *instrumentedService) HealthCheck(ctx context.Context) error {
 func (is *instrumentedService) CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.CreateTicket")
 	defer span.End()
-	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreCreateTicketCount)
+
+	sfCount := 0
+	sfCount += len(ticket.GetSearchFields().GetDoubleArgs())
+	sfCount += len(ticket.GetSearchFields().GetStringArgs())
+	sfCount += len(ticket.GetSearchFields().GetTags())
+	defer stats.Record(ctx, telemetry.SearchFieldsPerTicket.M(int64(sfCount)))
+	defer stats.Record(ctx, telemetry.TotalBytesPerTicket.M(int64(proto.Size(ticket))))
 	return is.s.CreateTicket(ctx, ticket)
 }
 
@@ -64,7 +59,6 @@ func (is *instrumentedService) CreateTicket(ctx context.Context, ticket *pb.Tick
 func (is *instrumentedService) GetTicket(ctx context.Context, id string) (*pb.Ticket, error) {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetTicket")
 	defer span.End()
-	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreGetTicketCount)
 	return is.s.GetTicket(ctx, id)
 }
 
@@ -72,7 +66,6 @@ func (is *instrumentedService) GetTicket(ctx context.Context, id string) (*pb.Ti
 func (is *instrumentedService) DeleteTicket(ctx context.Context, id string) error {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeleteTicket")
 	defer span.End()
-	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreDeleteTicketCount)
 	return is.s.DeleteTicket(ctx, id)
 }
 
@@ -80,7 +73,6 @@ func (is *instrumentedService) DeleteTicket(ctx context.Context, id string) erro
 func (is *instrumentedService) IndexTicket(ctx context.Context, ticket *pb.Ticket) error {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.IndexTicket")
 	defer span.End()
-	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreIndexTicketCount)
 	return is.s.IndexTicket(ctx, ticket)
 }
 
@@ -88,7 +80,6 @@ func (is *instrumentedService) IndexTicket(ctx context.Context, ticket *pb.Ticke
 func (is *instrumentedService) DeindexTicket(ctx context.Context, id string) error {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeindexTicket")
 	defer span.End()
-	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreDeindexTicketCount)
 	return is.s.DeindexTicket(ctx, id)
 }
 
@@ -97,7 +88,6 @@ func (is *instrumentedService) DeindexTicket(ctx context.Context, id string) err
 func (is *instrumentedService) GetTickets(ctx context.Context, ids []string) ([]*pb.Ticket, error) {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetTickets")
 	defer span.End()
-	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreGetTicketsCount)
 	return is.s.GetTickets(ctx, ids)
 }
 
@@ -105,7 +95,6 @@ func (is *instrumentedService) GetTickets(ctx context.Context, ids []string) ([]
 func (is *instrumentedService) GetIndexedIDSet(ctx context.Context) (map[string]struct{}, error) {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetIndexedIDSet")
 	defer span.End()
-	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreGetIndexedIDSetCount)
 	return is.s.GetIndexedIDSet(ctx)
 }
 
@@ -113,7 +102,6 @@ func (is *instrumentedService) GetIndexedIDSet(ctx context.Context) (map[string]
 func (is *instrumentedService) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.UpdateAssignments")
 	defer span.End()
-	defer telemetry.RecordUnitMeasurement(ctx, mStateStoreUpdateAssignmentsCount)
 	return is.s.UpdateAssignments(ctx, req)
 }
 
@@ -121,17 +109,13 @@ func (is *instrumentedService) UpdateAssignments(ctx context.Context, req *pb.As
 func (is *instrumentedService) GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetAssignments")
 	defer span.End()
-	return is.s.GetAssignments(ctx, id, func(a *pb.Assignment) error {
-		defer telemetry.RecordUnitMeasurement(ctx, mStateStoreGetAssignmentsCount)
-		return callback(a)
-	})
+	return is.s.GetAssignments(ctx, id, callback)
 }
 
 // AddTicketsToIgnoreList appends new proposed tickets to the proposed sorted set with current timestamp
 func (is *instrumentedService) AddTicketsToIgnoreList(ctx context.Context, ids []string) error {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.AddTicketsToIgnoreList")
 	defer span.End()
-	defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreAddTicketsToIgnoreListCount, int64(len(ids)))
 	return is.s.AddTicketsToIgnoreList(ctx, ids)
 }
 
@@ -139,6 +123,5 @@ func (is *instrumentedService) AddTicketsToIgnoreList(ctx context.Context, ids [
 func (is *instrumentedService) DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) error {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeleteTicketsFromIgnoreList")
 	defer span.End()
-	defer telemetry.RecordNUnitMeasurement(ctx, mStateStoreDeleteTicketFromIgnoreListCount, int64(len(ids)))
 	return is.s.DeleteTicketsFromIgnoreList(ctx, ids)
 }

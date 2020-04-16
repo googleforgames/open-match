@@ -56,6 +56,9 @@ func bindPrometheus(mux *http.ServeMux, cfg config.View) {
 
 	// Register the Prometheus exporters as a stats exporter.
 	view.RegisterExporter(promExporter)
+	if err := view.Register(DefaultViews...); err != nil {
+		logger.WithError(err).Fatalf("failed to register given views to exporters")
+	}
 
 	mux.Handle(endpoint, promExporter)
 

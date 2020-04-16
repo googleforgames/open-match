@@ -18,8 +18,11 @@ package evaluator
 import (
 	"io"
 
+	"go.opencensus.io/stats"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 
 	"github.com/sirupsen/logrus"
@@ -56,6 +59,8 @@ type Params struct {
 // Evaluate is this harness's implementation of the gRPC call defined in
 // api/evaluator.proto.
 func (s *evaluatorService) Evaluate(stream pb.Evaluator_EvaluateServer) error {
+	ctx := stream.Context()
+
 	var matches = []*pb.Match{}
 	for {
 		req, err := stream.Recv()
@@ -67,6 +72,7 @@ func (s *evaluatorService) Evaluate(stream pb.Evaluator_EvaluateServer) error {
 		}
 		matches = append(matches, req.GetMatch())
 	}
+	stats.Record(ctx, telemetry.MatchesPerEvaluateRequest.M(int64(len(matches))))
 
 	// Run the customized evaluator!
 	results, err := s.evaluate(&Params{
@@ -80,6 +86,7 @@ func (s *evaluatorService) Evaluate(stream pb.Evaluator_EvaluateServer) error {
 		return status.Error(codes.Aborted, err.Error())
 	}
 
+	stats.Record(ctx, telemetry.MatchesPerEvaluateResponse.M(int64(len(results))))
 	for _, result := range results {
 		if err := stream.Send(&pb.EvaluateResponse{MatchId: result}); err != nil {
 			return err

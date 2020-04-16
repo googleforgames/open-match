@@ -16,12 +16,16 @@
 package defaulteval
 
 import (
+	"context"
 	"math"
 	"sort"
+
+	"go.opencensus.io/stats"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/app/evaluator"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -83,6 +87,8 @@ func Evaluate(p *evaluator.Params) ([]string, error) {
 	for _, m := range matches {
 		d.maybeAdd(m)
 	}
+
+	stats.Record(context.Background(), telemetry.CollidedMatchesPerEvaluate.M(int64(len(p.Matches)-len(d.resultIDs))))
 
 	return d.resultIDs, nil
 }
