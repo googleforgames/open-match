@@ -35,7 +35,7 @@ evaluatorConfigs:
   default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
-    configName: customize-configmap
+    configName: om-configmap-default
   customize:
     volumeName: customize-config-volume
     mountPath: /app/config/override

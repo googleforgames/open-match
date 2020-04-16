@@ -23,19 +23,17 @@ metadata:
     component: config
     release: {{ .Release.Name }}
 data:
-  matchmaker_config_default.yaml: |-
-    api:
-      functions:
-        hostname: "{{ .Values.function.hostName }}"
-        grpcport: "{{ .Values.function.grpcPort }}"
-        httpport: "{{ .Values.function.httpPort }}"
-      
-      evaluator:
-        hostname: "{{ .Values.evaluator.hostName }}"
-        grpcport: "{{ .Values.evaluator.grpcPort }}"
-        httpport: "{{ .Values.evaluator.httpPort }}"    
   matchmaker_config_override.yaml: |-
     api:
       query:
         hostname: "{{ .Values.query.hostName }}.{{ .Release.Namespace }}.svc.cluster.local"
         grpcport: "{{ .Values.query.grpcPort }}"
+      functions:
+        hostname: "{{ .Values.function.hostName }}"
+        grpcport: "{{ .Values.function.grpcPort }}"
+        httpport: "{{ .Values.function.httpPort }}"
+      evaluator:
+        hostname: "{{ .Values.evaluator.hostName }}"
+        grpcport: "{{ .Values.evaluator.grpcPort }}"
+        httpport: "{{ .Values.evaluator.httpPort }}"
+
