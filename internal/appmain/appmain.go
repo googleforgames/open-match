@@ -17,6 +17,7 @@ package appmain
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -44,7 +45,7 @@ func RunApplication(serverName string, bindService Bind) {
 	// SIGTERM is signaled by k8s when it wants a pod to stop.
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT)
 
-	a, err := StartApplication(serverName, bindService, config.Read)
+	a, err := StartApplication(serverName, bindService, config.Read, net.Listen)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -122,7 +123,7 @@ type App struct {
 
 // StartApplication provides more control over an application than
 // RunApplication.  It is for running in memory tests against your app.
-func StartApplication(serverName string, bindService Bind, getCfg func() (config.View, error)) (*App, error) {
+func StartApplication(serverName string, bindService Bind, getCfg func() (config.View, error), listen func(network, address string) (net.Listener, error)) (*App, error) {
 	a := &App{}
 
 	cfg, err := getCfg()

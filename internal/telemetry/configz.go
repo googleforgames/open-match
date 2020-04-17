@@ -15,13 +15,12 @@
 package telemetry
 
 import (
-	"html/template"
-	"net/http"
-	"sort"
-
 	"bufio"
 	"bytes"
 	"fmt"
+	"html/template"
+	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/spf13/viper"
