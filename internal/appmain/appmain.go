@@ -82,14 +82,8 @@ func (p *Params) Now() func() time.Time {
 
 // Bindings allows applications to bind various functions to the running servers.
 type Bindings struct {
-	sp               *rpc.ServerParams
-	a                *App
-	telemetryHandles []handleCall
-}
-
-type handleCall struct {
-	pattern string
-	handler http.Handler
+	sp *rpc.ServerParams
+	a  *App
 }
 
 // AddHealthCheckFunc allows an application to check if it is healthy, and
@@ -104,11 +98,11 @@ func (b *Bindings) AddHandleFunc(handlerFunc rpc.GrpcHandler, grpcProxyHandler r
 }
 
 func (b *Bindings) TelementryHandle(pattern string, handler http.Handler) {
-	b.telemetryHandles = append(b.telemetryHandles, handleCall{pattern, handler})
+	b.sp.ServeMux.Handle(pattern, handler)
 }
 
 func (b *Bindings) TelementryHandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
-	b.TelementryHandle(pattern, http.HandlerFunc(handler))
+	b.sp.ServeMux.HandleFunc(pattern, handler)
 }
 
 func (b *Bindings) AddCloser(c func()) {
@@ -164,7 +158,15 @@ func StartApplication(serverName string, bindService Bind, getCfg func() (config
 		return nil, err
 	}
 
-	rpc.MustServeForever(sp)
+	s := &rpc.Server{}
+	err = s.Start(sp)
+	if err != nil {
+		a.Stop()
+		return nil, err
+	}
+	b.AddCloser(s.Stop)
+
+	// rpc.MustServeForever(sp)
 
 	return a, nil
 }
