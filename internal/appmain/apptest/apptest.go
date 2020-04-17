@@ -81,6 +81,7 @@ type fullAddr struct {
 	port    string
 }
 
+// TODO: This was more complicated, because reasons, simplify.
 func (f fullAddr) Equal(other fullAddr) bool {
 	return f.network == other.network &&
 		f.port == other.port &&

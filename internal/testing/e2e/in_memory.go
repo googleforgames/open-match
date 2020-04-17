@@ -141,7 +141,7 @@ func newInMemoryEnvironment(t *testing.T) config.View {
 		cfg.Set("api."+name+".grpcport", grpcPort)
 		cfg.Set("api."+name+".httpport", httpPort)
 	}
-	// cfg.Set("storage.page.size", 10)
+	cfg.Set("storage.page.size", 10)
 	// cfg.Set(rpc.ConfigNameEnableRPCLogging, *testOnlyEnableRPCLoggingFlag)
 	// cfg.Set("logging.level", *testOnlyLoggingLevel)
 	// cfg.Set(telemetry.ConfigNameEnableMetrics, *testOnlyEnableMetrics)
@@ -152,8 +152,8 @@ func newInMemoryEnvironment(t *testing.T) config.View {
 
 // configFile is the "cononical" test config.  It exactly matches the configmap
 // which is used in the real cluster tests.
-// TODO: There should be a test which ensures consistency with what is deployed
-// for the e2e real cluster test, and this here.
+// TODO: The above is a lie.  There should be a test which confirm that this
+// does actually match the test config map.
 const configFile = `
 logging:
   level: debug
@@ -198,7 +198,7 @@ synchronizer:
   registrationIntervalMs: 250ms
   proposalCollectionIntervalMs: 20000ms
 
-ignoreListTTL: 500ms
+ignoreListTTL: 60000ms
 storage:
   ignoreListTTL: 60000ms
   page:
