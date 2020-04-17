@@ -16,10 +16,8 @@ package rpc
 
 import (
 	"context"
-	"net/http"
-	"sync"
-
 	"net"
+	"net/http"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
@@ -39,16 +37,14 @@ type insecureServer struct {
 	httpServer   *http.Server
 }
 
-func (s *insecureServer) start(params *ServerParams) (func(), error) {
-	var serverStartWaiter sync.WaitGroup
-
+func (s *insecureServer) start(params *ServerParams) error {
 	s.httpMux = params.ServeMux
 	s.proxyMux = runtime.NewServeMux()
 
 	// Configure the gRPC server.
 	grpcListener, err := s.grpcLh.Obtain()
 	if err != nil {
-		return func() {}, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	s.grpcListener = grpcListener
 
@@ -58,9 +54,7 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 		handlerFunc(s.grpcServer)
 	}
 
-	serverStartWaiter.Add(1)
 	go func() {
-		serverStartWaiter.Done()
 		serverLogger.Infof("Serving gRPC: %s", s.grpcLh.AddrString())
 		gErr := s.grpcServer.Serve(s.grpcListener)
 		if gErr != nil {
@@ -71,7 +65,7 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	// Configure the HTTP proxy server.
 	httpListener, err := s.httpLh.Obtain()
 	if err != nil {
-		return func() {}, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	s.httpListener = httpListener
 
@@ -83,7 +77,7 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 		dialOpts = append(dialOpts, grpc.WithInsecure())
 		if err = handlerFunc(ctx, s.proxyMux, grpcListener.Addr().String(), dialOpts); err != nil {
 			cancel()
-			return func() {}, errors.WithStack(err)
+			return errors.WithStack(err)
 		}
 	}
 
@@ -93,9 +87,7 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 		Addr:    s.httpListener.Addr().String(),
 		Handler: instrumentHTTPHandler(s.httpMux, params),
 	}
-	serverStartWaiter.Add(1)
 	go func() {
-		serverStartWaiter.Done()
 		serverLogger.Infof("Serving HTTP: %s", s.httpLh.AddrString())
 		hErr := s.httpServer.Serve(s.httpListener)
 		defer cancel()
@@ -104,7 +96,7 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 		}
 	}()
 
-	return serverStartWaiter.Wait, nil
+	return nil
 }
 
 func (s *insecureServer) stop() {

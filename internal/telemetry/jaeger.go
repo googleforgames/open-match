@@ -16,40 +16,44 @@ package telemetry
 
 import (
 	"contrib.go.opencensus.io/exporter/jaeger"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
-	"open-match.dev/open-match/internal/config"
 )
 
-func bindJaeger(servicePrefix string, cfg config.View) {
+func bindJaeger(p Params, b Bindings) error {
+	cfg := p.Config()
+
 	if !cfg.GetBool("telemetry.jaeger.enable") {
 		logger.Info("Jaeger Tracing: Disabled")
-		return
+		return nil
 	}
 
 	agentEndpointURI := cfg.GetString("telemetry.jaeger.agentEndpoint")
 	collectorEndpointURI := cfg.GetString("telemetry.jaeger.collectorEndpoint")
-
-	je, err := jaeger.NewExporter(jaeger.Options{
-		AgentEndpoint:     agentEndpointURI,
-		CollectorEndpoint: collectorEndpointURI,
-		ServiceName:       servicePrefix,
-	})
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error":             err,
-			"agentEndpoint":     agentEndpointURI,
-			"collectorEndpoint": collectorEndpointURI,
-		}).Fatalf(
-			"Failed to create the Jaeger exporter: %v", err)
-	}
-
-	// And now finally register it as a Trace Exporter
-	trace.RegisterExporter(je)
-	trace.ApplyConfig(trace.Config{DefaultSampler: trace.ProbabilitySampler(cfg.GetFloat64("telemetry.jaeger.samplerFraction"))})
+	serviceName := p.ServiceName()
+	samplingFraction := cfg.GetFloat64("telemetry.jaeger.samplerFraction")
 
 	logger.WithFields(logrus.Fields{
 		"agentEndpoint":     agentEndpointURI,
 		"collectorEndpoint": collectorEndpointURI,
+		"serviceName":       serviceName,
+		"samplingFraction":  samplingFraction,
 	}).Info("Jaeger Tracing: ENABLED")
+
+	je, err := jaeger.NewExporter(jaeger.Options{
+		AgentEndpoint:     agentEndpointURI,
+		CollectorEndpoint: collectorEndpointURI,
+		ServiceName:       serviceName,
+	})
+	if err != nil {
+		return errors.Wrap(err, "Failed to create the Jaeger exporter")
+	}
+
+	trace.RegisterExporter(je)
+	b.AddCloser(func() {
+		trace.UnregisterExporter(je)
+	})
+
+	return nil
 }

@@ -16,12 +16,10 @@ package rpc
 
 import (
 	"context"
-	"fmt"
-	"net/http"
-	"sync"
-
 	"crypto/tls"
+	"fmt"
 	"net"
+	"net/http"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
@@ -47,9 +45,7 @@ type tlsServer struct {
 	httpServer   *http.Server
 }
 
-func (s *tlsServer) start(params *ServerParams) (func(), error) {
-	var serverStartWaiter sync.WaitGroup
-
+func (s *tlsServer) start(params *ServerParams) error {
 	s.httpMux = params.ServeMux
 	s.proxyMux = runtime.NewServeMux()
 
@@ -57,22 +53,22 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 
 	grpcListener, err := s.grpcLh.Obtain()
 	if err != nil {
-		return func() {}, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	s.grpcListener = grpcListener
 
 	rootCaCert, err := trustedCertificateFromFileData(params.rootCaPublicCertificateFileData)
 	if err != nil {
-		return func() {}, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	certPoolForGrpcEndpoint, err := trustedCertificateFromFileData(params.publicCertificateFileData)
 	if err != nil {
-		return func() {}, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 
 	grpcTLSCertificate, err := certificateFromFileData(params.publicCertificateFileData, params.privateKeyFileData)
 	if err != nil {
-		return func() {}, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	creds := credentials.NewServerTLSFromCert(grpcTLSCertificate)
 	serverOpts := newGRPCServerOptions(params)
@@ -84,9 +80,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 		handlerFunc(s.grpcServer)
 	}
 
-	serverStartWaiter.Add(1)
 	go func() {
-		serverStartWaiter.Done()
 		serverLogger.Infof("Serving gRPC-TLS: %s", s.grpcLh.AddrString())
 		gErr := s.grpcServer.Serve(s.grpcListener)
 		if gErr != nil {
@@ -97,7 +91,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	// Start HTTP server
 	httpListener, err := s.httpLh.Obtain()
 	if err != nil {
-		return func() {}, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	s.httpListener = httpListener
 	// Bind gRPC handlers
@@ -109,7 +103,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	for _, handlerFunc := range params.handlersForGrpcProxy {
 		if err = handlerFunc(ctx, s.proxyMux, grpcAddress, httpsToGrpcProxyOptions); err != nil {
 			cancel()
-			return func() {}, errors.WithStack(err)
+			return errors.WithStack(err)
 		}
 	}
 
@@ -127,9 +121,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 			NextProtos: []string{http2WithTLSVersionID}, // https://github.com/grpc-ecosystem/grpc-gateway/issues/220
 		},
 	}
-	serverStartWaiter.Add(1)
 	go func() {
-		serverStartWaiter.Done()
 		tlsListener := tls.NewListener(s.httpListener, s.httpServer.TLSConfig)
 		serverLogger.Infof("Serving HTTPS: %s", s.httpLh.AddrString())
 		hErr := s.httpServer.Serve(tlsListener)
@@ -139,8 +131,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 		}
 	}()
 
-	// Wait for the servers to come up.
-	return serverStartWaiter.Wait, nil
+	return nil
 }
 
 func (s *tlsServer) stop() {

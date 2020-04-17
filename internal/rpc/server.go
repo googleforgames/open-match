@@ -138,9 +138,7 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 	p.enableMetrics = cfg.GetBool(telemetry.ConfigNameEnableMetrics)
 	p.enableRPCLogging = cfg.GetBool(ConfigNameEnableRPCLogging)
 	p.enableRPCPayloadLogging = logging.IsDebugEnabled(cfg)
-	// TODO: This isn't ideal since telemetry requires config for it to be initialized.
-	// This forces us to initialize readiness probes earlier than necessary.
-	p.closer = telemetry.Setup(prefix, p.ServeMux, cfg)
+
 	return p, nil
 }
 
@@ -207,12 +205,12 @@ type Server struct {
 
 // grpcServerWithProxy this will go away when insecure.go and tls.go are merged into the same server.
 type grpcServerWithProxy interface {
-	start(*ServerParams) (func(), error)
+	start(*ServerParams) error
 	stop()
 }
 
 // Start the gRPC+HTTP(s) REST server.
-func (s *Server) Start(p *ServerParams) (func(), error) {
+func (s *Server) Start(p *ServerParams) error {
 	if p.usingTLS() {
 		s.serverWithProxy = newTLSServer(p.grpcListener, p.grpcProxyListener)
 	} else {
@@ -237,7 +235,7 @@ func startServingIndefinitely(params *ServerParams) (func(), func(), error) {
 	s := &Server{}
 
 	// Start serving traffic.
-	waitForStart, err := s.Start(params)
+	err := s.Start(params)
 	if err != nil {
 		serverLogger.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -248,7 +246,6 @@ func startServingIndefinitely(params *ServerParams) (func(), func(), error) {
 	// Exit when we see a signal
 	waitUntilKilled, forceStopServingFunc := signal.New()
 
-	waitForStart()
 	serveUntilKilledFunc := func() {
 		waitUntilKilled()
 		s.Stop()

@@ -89,11 +89,10 @@ func MustServeTLS(t *testing.T, binder func(*rpc.ServerParams)) *TestContext {
 func bindAndStart(t *testing.T, p *rpc.ServerParams, binder func(*rpc.ServerParams)) *rpc.Server {
 	binder(p)
 	s := &rpc.Server{}
-	waitForStart, err := s.Start(p)
+	err := s.Start(p)
 	if err != nil {
 		t.Fatalf("failed to start server, %v", err)
 	}
-	waitForStart()
 	return s
 }
 

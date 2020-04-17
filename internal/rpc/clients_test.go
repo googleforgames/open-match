@@ -104,9 +104,8 @@ func runGrpcClientTests(t *testing.T, assert *assert.Assertions, cfg config.View
 
 	s := &Server{}
 	defer s.Stop()
-	waitForStart, err := s.Start(rpcParams)
+	err := s.Start(rpcParams)
 	assert.Nil(err)
-	waitForStart()
 
 	// Acquire grpc client
 	grpcConn, err := GRPCClientFromConfig(cfg, "test")
@@ -129,9 +128,8 @@ func runHTTPClientTests(assert *assert.Assertions, cfg config.View, rpcParams *S
 	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
 	s := &Server{}
 	defer s.Stop()
-	waitForStart, err := s.Start(rpcParams)
+	err := s.Start(rpcParams)
 	assert.Nil(err)
-	waitForStart()
 
 	// Acquire http client
 	httpClient, baseURL, err := HTTPClientFromConfig(cfg, "test")

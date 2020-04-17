@@ -102,9 +102,8 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 	s := newTLSServer(serverParams.grpcListener, serverParams.grpcProxyListener)
 	defer s.stop()
 
-	waitForStart, err := s.start(serverParams)
+	err := s.start(serverParams)
 	assert.Nil(err)
-	waitForStart()
 
 	pool, err := trustedCertificateFromFileData(tp.rootPublicCertificateFileData)
 	assert.Nil(err)

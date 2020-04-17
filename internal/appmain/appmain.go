@@ -17,11 +17,17 @@ package appmain
 
 import (
 	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/telemetry"
 )
 
 var (
@@ -34,7 +40,21 @@ var (
 // RunApplication starts and runs the given application forever.  For use in
 // main functions to run the full application.
 func RunApplication(serverName string, bindService Bind) {
-	StartApplication(serverName, bindService, config.Read)
+	c := make(chan os.Signal)
+	// SIGTERM is signaled by k8s when it wants a pod to stop.
+	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT)
+
+	a, err := StartApplication(serverName, bindService, config.Read)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	<-c
+	err = a.Stop()
+	if err != nil {
+		logger.Fatal(err)
+	}
+	logger.Info("Application stopped successfully.")
 }
 
 // Bind is a function which starts an application, and binds it to serving.
@@ -50,9 +70,26 @@ func (p *Params) Config() config.View {
 	return p.config
 }
 
+func (p *Params) ServiceName() string {
+	////////////////////////TODO
+	return ""
+}
+
+func (p *Params) Now() func() time.Time {
+	////////////////////////TODO
+	return time.Now
+}
+
 // Bindings allows applications to bind various functions to the running servers.
 type Bindings struct {
-	sp *rpc.ServerParams
+	sp               *rpc.ServerParams
+	a                *App
+	telemetryHandles []handleCall
+}
+
+type handleCall struct {
+	pattern string
+	handler http.Handler
 }
 
 // AddHealthCheckFunc allows an application to check if it is healthy, and
@@ -66,10 +103,33 @@ func (b *Bindings) AddHandleFunc(handlerFunc rpc.GrpcHandler, grpcProxyHandler r
 	b.sp.AddHandleFunc(handlerFunc, grpcProxyHandler)
 }
 
+func (b *Bindings) TelementryHandle(pattern string, handler http.Handler) {
+	b.telemetryHandles = append(b.telemetryHandles, handleCall{pattern, handler})
+}
+
+func (b *Bindings) TelementryHandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+	b.TelementryHandle(pattern, http.HandlerFunc(handler))
+}
+
+func (b *Bindings) AddCloser(c func()) {
+	b.a.closers = append(b.a.closers, func() error {
+		c()
+		return nil
+	})
+}
+
+func (b *Bindings) AddCloserErr(c func() error) {
+	b.a.closers = append(b.a.closers, c)
+}
+
+type App struct {
+	closers []func() error
+}
+
 // StartApplication provides more control over an application than
 // RunApplication.  It is for running in memory tests against your app.
-func StartApplication(serverName string, bindService Bind, getCfg func() (config.View, error)) {
-	// TODO: Provide way to shut down application, closing all servers and cleaning up resources.
+func StartApplication(serverName string, bindService Bind, getCfg func() (config.View, error)) (*App, error) {
+	a := &App{}
 
 	cfg, err := getCfg()
 	if err != nil {
@@ -85,23 +145,40 @@ func StartApplication(serverName string, bindService Bind, getCfg func() (config
 		}).Fatalf("cannot construct server.")
 	}
 
-	if err := TemporaryBindWrapper(bindService, sp, cfg); err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatalf("failed to bind %s service.", serverName)
-	}
-
-	rpc.MustServeForever(sp)
-}
-
-// TemporaryBindWrapper exists as a shim for testing only.  Once StartApplication
-// can correctly clean up its resources, it will be used instead.
-func TemporaryBindWrapper(bind Bind, sp *rpc.ServerParams, cfg config.View) error {
 	p := &Params{
 		config: cfg,
 	}
 	b := &Bindings{
 		sp: sp,
 	}
-	return bind(p, b)
+
+	err = telemetry.Setup(p, b)
+	if err != nil {
+		a.Stop()
+		return nil, err
+	}
+
+	err = bindService(p, b)
+	if err != nil {
+		a.Stop()
+		return nil, err
+	}
+
+	rpc.MustServeForever(sp)
+
+	return a, nil
+}
+
+func (a *App) Stop() error {
+	// Use closers in reverse order: Since dependencies are created before
+	// their dependants, this helps ensure no dependencies are closed
+	// unexpectedly.
+	var firstErr error
+	for i := len(a.closers); i >= 0; i-- {
+		err := a.closers[i]()
+		if firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
 }

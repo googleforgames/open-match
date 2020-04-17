@@ -39,9 +39,8 @@ func TestInsecureStartStop(t *testing.T) {
 	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
 	s := newInsecureServer(grpcLh, httpLh)
 	defer s.stop()
-	waitForStart, err := s.start(params)
+	err := s.start(params)
 	assert.Nil(err)
-	waitForStart()
 
 	conn, err := grpc.Dial(fmt.Sprintf(":%d", grpcLh.Number()), grpc.WithInsecure())
 	assert.Nil(err)

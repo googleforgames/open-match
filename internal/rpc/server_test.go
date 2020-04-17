@@ -43,9 +43,8 @@ func TestStartStopServer(t *testing.T) {
 	s := &Server{}
 	defer s.Stop()
 
-	waitForStart, err := s.Start(params)
+	err := s.Start(params)
 	assert.Nil(err)
-	waitForStart()
 
 	conn, err := grpc.Dial(fmt.Sprintf(":%d", grpcLh.Number()), grpc.WithInsecure())
 	assert.Nil(err)
