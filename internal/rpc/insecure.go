@@ -26,11 +26,9 @@ import (
 )
 
 type insecureServer struct {
-	grpcLh       *ListenerHolder
 	grpcListener net.Listener
 	grpcServer   *grpc.Server
 
-	httpLh       *ListenerHolder
 	httpListener net.Listener
 	httpMux      *http.ServeMux
 	proxyMux     *runtime.ServeMux
@@ -42,12 +40,6 @@ func (s *insecureServer) start(params *ServerParams) error {
 	s.proxyMux = runtime.NewServeMux()
 
 	// Configure the gRPC server.
-	grpcListener, err := s.grpcLh.Obtain()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	s.grpcListener = grpcListener
-
 	s.grpcServer = grpc.NewServer(newGRPCServerOptions(params)...)
 	// Bind gRPC handlers
 	for _, handlerFunc := range params.handlersForGrpc {
@@ -55,7 +47,7 @@ func (s *insecureServer) start(params *ServerParams) error {
 	}
 
 	go func() {
-		serverLogger.Infof("Serving gRPC: %s", s.grpcLh.AddrString())
+		serverLogger.Infof("Serving gRPC: %s", s.grpcListener.Addr().String())
 		gErr := s.grpcServer.Serve(s.grpcListener)
 		if gErr != nil {
 			return
@@ -63,19 +55,13 @@ func (s *insecureServer) start(params *ServerParams) error {
 	}()
 
 	// Configure the HTTP proxy server.
-	httpListener, err := s.httpLh.Obtain()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	s.httpListener = httpListener
-
 	// Bind gRPC handlers
 	ctx, cancel := context.WithCancel(context.Background())
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
 		dialOpts := newGRPCDialOptions(params.enableMetrics, params.enableRPCLogging, params.enableRPCPayloadLogging)
 		dialOpts = append(dialOpts, grpc.WithInsecure())
-		if err = handlerFunc(ctx, s.proxyMux, grpcListener.Addr().String(), dialOpts); err != nil {
+		if err := handlerFunc(ctx, s.proxyMux, s.grpcListener.Addr().String(), dialOpts); err != nil {
 			cancel()
 			return errors.WithStack(err)
 		}
@@ -88,7 +74,7 @@ func (s *insecureServer) start(params *ServerParams) error {
 		Handler: instrumentHTTPHandler(s.httpMux, params),
 	}
 	go func() {
-		serverLogger.Infof("Serving HTTP: %s", s.httpLh.AddrString())
+		serverLogger.Infof("Serving HTTP: %s", s.httpListener.Addr().String())
 		hErr := s.httpServer.Serve(s.httpListener)
 		defer cancel()
 		if hErr != nil {
@@ -114,9 +100,9 @@ func (s *insecureServer) stop() {
 	}
 }
 
-func newInsecureServer(grpcLh *ListenerHolder, httpLh *ListenerHolder) *insecureServer {
+func newInsecureServer(grpcL, httpL net.Listener) *insecureServer {
 	return &insecureServer{
-		grpcLh: grpcLh,
-		httpLh: httpLh,
+		grpcListener: grpcL,
+		httpListener: httpL,
 	}
 }

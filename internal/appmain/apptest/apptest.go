@@ -20,8 +20,10 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/rpc"
 )
 
 func TestApp(t *testing.T, cfg config.View, listeners []net.Listener, binds ...appmain.Bind) {
@@ -55,7 +57,9 @@ func TestApp(t *testing.T, cfg config.View, listeners []net.Listener, binds ...a
 }
 
 func newFullAddr(network, address string) (fullAddr, error) {
-	a := fullAddr{}
+	a := fullAddr{
+		network: network,
+	}
 	var err error
 	a.host, a.port, err = net.SplitHostPort(address)
 	if err != nil {
@@ -64,13 +68,8 @@ func newFullAddr(network, address string) (fullAddr, error) {
 	// Usually listeners are started with an "unspecified" ip address, which has
 	// several equivilent forms: ":80", "0.0.0.0:80", "[::]:80".  Even if the
 	// callers use the same form, the listeners may return a different form when
-	// asked for its address.  So convert the host to an IP which can be
-	// compared directly, if possible.
-	if a.host == "" {
-		a.host = "0.0.0.0"
-	}
-	a.ip = net.ParseIP(a.host)
-	if a.ip != nil {
+	// asked for its address.  So detect and revert to the simpler form.
+	if net.ParseIP(a.host).IsUnspecified() {
 		a.host = ""
 	}
 	return a, nil
@@ -79,15 +78,13 @@ func newFullAddr(network, address string) (fullAddr, error) {
 type fullAddr struct {
 	network string
 	host    string
-	ip      net.IP
 	port    string
 }
 
 func (f fullAddr) Equal(other fullAddr) bool {
 	return f.network == other.network &&
 		f.port == other.port &&
-		f.host == other.host &&
-		f.ip.Equal(other.ip)
+		f.host == other.host
 }
 
 type listener struct {
@@ -146,4 +143,5 @@ func GRPCClient(t *testing.T, cfg config.View, service string) *grpc.ClientConn 
 			t.Fatal(err)
 		}
 	})
+	return conn
 }

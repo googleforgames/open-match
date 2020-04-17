@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"time"
@@ -68,8 +69,8 @@ type ServerParams struct {
 	handlersForGrpcProxy   []GrpcProxyHandler
 	handlersForHealthCheck []func(context.Context) error
 
-	grpcListener      *ListenerHolder
-	grpcProxyListener *ListenerHolder
+	grpcListener      net.Listener
+	grpcProxyListener net.Listener
 
 	// Root CA public certificate in PEM format.
 	rootCaPublicCertificateFileData []byte
@@ -86,24 +87,18 @@ type ServerParams struct {
 }
 
 // NewServerParamsFromConfig returns server Params initialized from the configuration file.
-func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, error) {
-	grpcLh, err := newFromPortNumber(cfg.GetInt(prefix + ".grpcport"))
+func NewServerParamsFromConfig(cfg config.View, prefix string, listen func(network, address string) (net.Listener, error)) (*ServerParams, error) {
+	grpcL, err := listen("tcp", fmt.Sprintf(":%d", cfg.GetInt(prefix+".grpcport")))
 	if err != nil {
-		serverLogger.Fatal(err)
-		return nil, err
+		return nil, errors.Wrap(err, "can't start listener for grpc")
 	}
-	httpLh, err := newFromPortNumber(cfg.GetInt(prefix + ".httpport"))
+	httpL, err := listen("tcp", fmt.Sprintf(":%d", cfg.GetInt(prefix+".httpport")))
 	if err != nil {
-		closeErr := grpcLh.Close()
-		if closeErr != nil {
-			serverLogger.WithFields(logrus.Fields{
-				"error": closeErr.Error(),
-			}).Info("failed to gRPC close port")
-		}
-		serverLogger.Fatal(err)
-		return nil, err
+		grpcL.Close()
+		return nil, errors.Wrap(err, "can't start listener for http")
 	}
-	p := NewServerParamsFromListeners(grpcLh, httpLh)
+
+	p := NewServerParamsFromListeners(grpcL, httpL)
 
 	certFile := cfg.GetString(configNameServerPublicCertificateFile)
 	privateKeyFile := cfg.GetString(configNameServerPrivateKeyFile)
@@ -142,13 +137,13 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 }
 
 // NewServerParamsFromListeners returns server Params initialized with the ListenerHolder variables.
-func NewServerParamsFromListeners(grpcLh *ListenerHolder, proxyLh *ListenerHolder) *ServerParams {
+func NewServerParamsFromListeners(grpcL net.Listener, proxyL net.Listener) *ServerParams {
 	return &ServerParams{
 		ServeMux:             http.NewServeMux(),
 		handlersForGrpc:      []GrpcHandler{},
 		handlersForGrpcProxy: []GrpcProxyHandler{},
-		grpcListener:         grpcLh,
-		grpcProxyListener:    proxyLh,
+		grpcListener:         grpcL,
+		grpcProxyListener:    proxyL,
 	}
 }
 

@@ -133,7 +133,7 @@ func StartApplication(serverName string, bindService Bind, getCfg func() (config
 		}).Fatalf("cannot read configuration.")
 	}
 	logging.ConfigureLogging(cfg)
-	sp, err := rpc.NewServerParamsFromConfig(cfg, "api."+serverName)
+	sp, err := rpc.NewServerParamsFromConfig(cfg, "api."+serverName, listen)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -144,6 +144,7 @@ func StartApplication(serverName string, bindService Bind, getCfg func() (config
 		config: cfg,
 	}
 	b := &Bindings{
+		a:  a,
 		sp: sp,
 	}
 
@@ -177,7 +178,7 @@ func (a *App) Stop() error {
 	// their dependants, this helps ensure no dependencies are closed
 	// unexpectedly.
 	var firstErr error
-	for i := len(a.closers); i >= 0; i-- {
+	for i := len(a.closers) - 1; i >= 0; i-- {
 		err := a.closers[i]()
 		if firstErr == nil {
 			firstErr = err

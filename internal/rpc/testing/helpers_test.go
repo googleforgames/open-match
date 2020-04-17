@@ -14,53 +14,53 @@
 
 package testing
 
-import (
-	"strings"
-	"testing"
+// import (
+// 	"strings"
+// 	"testing"
 
-	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/pkg/pb"
+// 	"open-match.dev/open-match/internal/rpc"
+// 	"open-match.dev/open-match/pkg/pb"
 
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
-	shellTesting "open-match.dev/open-match/internal/testing"
-)
+// 	"github.com/stretchr/testify/assert"
+// 	"google.golang.org/grpc"
+// 	shellTesting "open-match.dev/open-match/internal/testing"
+// )
 
-// TestMustServerParamsForTesting verifies that a server can stand up in (insecure or TLS) mode.
-func TestMustServe(t *testing.T) {
-	runMustServeTest(t, MustServe)
-}
+// // TestMustServerParamsForTesting verifies that a server can stand up in (insecure or TLS) mode.
+// func TestMustServe(t *testing.T) {
+// 	runMustServeTest(t, MustServe)
+// }
 
-// TestMustServerParamsForTesting verifies that a server can stand up in insecure mode.
-func TestMustServeInsecure(t *testing.T) {
-	runMustServeTest(t, MustServeInsecure)
-}
+// // TestMustServerParamsForTesting verifies that a server can stand up in insecure mode.
+// func TestMustServeInsecure(t *testing.T) {
+// 	runMustServeTest(t, MustServeInsecure)
+// }
 
-// TestMustServerParamsForTesting verifies that a server can stand up in TLS mode.
-func TestMustServeTLS(t *testing.T) {
-	runMustServeTest(t, MustServeTLS)
-}
+// // TestMustServerParamsForTesting verifies that a server can stand up in TLS mode.
+// func TestMustServeTLS(t *testing.T) {
+// 	runMustServeTest(t, MustServeTLS)
+// }
 
-func runMustServeTest(t *testing.T, mustServeFunc func(*testing.T, func(*rpc.ServerParams)) *TestContext) {
-	assert := assert.New(t)
-	ff := &shellTesting.FakeFrontend{}
-	tc := mustServeFunc(t, func(spf *rpc.ServerParams) {
-		spf.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterFrontendServiceServer(s, ff)
-		}, pb.RegisterFrontendServiceHandlerFromEndpoint)
-	})
-	defer tc.Close()
+// func runMustServeTest(t *testing.T, mustServeFunc func(*testing.T, func(*rpc.ServerParams)) *TestContext) {
+// 	assert := assert.New(t)
+// 	ff := &shellTesting.FakeFrontend{}
+// 	tc := mustServeFunc(t, func(spf *rpc.ServerParams) {
+// 		spf.AddHandleFunc(func(s *grpc.Server) {
+// 			pb.RegisterFrontendServiceServer(s, ff)
+// 		}, pb.RegisterFrontendServiceHandlerFromEndpoint)
+// 	})
+// 	defer tc.Close()
 
-	conn := tc.MustGRPC()
-	c := pb.NewFrontendServiceClient(conn)
-	resp, err := c.CreateTicket(tc.Context(), &pb.CreateTicketRequest{})
-	assert.Nil(err)
-	assert.NotNil(resp)
+// 	conn := tc.MustGRPC()
+// 	c := pb.NewFrontendServiceClient(conn)
+// 	resp, err := c.CreateTicket(tc.Context(), &pb.CreateTicketRequest{})
+// 	assert.Nil(err)
+// 	assert.NotNil(resp)
 
-	hc, endpoint := tc.MustHTTP()
-	hResp, err := hc.Post(endpoint+"/v1/frontendservice/tickets", "application/json", strings.NewReader("{}"))
-	assert.Nil(err)
-	if hResp != nil {
-		assert.Equal(200, hResp.StatusCode)
-	}
-}
+// 	hc, endpoint := tc.MustHTTP()
+// 	hResp, err := hc.Post(endpoint+"/v1/frontendservice/tickets", "application/json", strings.NewReader("{}"))
+// 	assert.Nil(err)
+// 	if hResp != nil {
+// 		assert.Equal(200, hResp.StatusCode)
+// 	}
+// }

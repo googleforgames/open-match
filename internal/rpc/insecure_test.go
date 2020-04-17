@@ -29,24 +29,24 @@ import (
 
 func TestInsecureStartStop(t *testing.T) {
 	assert := assert.New(t)
-	grpcLh := MustListen()
-	httpLh := MustListen()
+	grpcL := MustListen()
+	httpL := MustListen()
 	ff := &shellTesting.FakeFrontend{}
 
-	params := NewServerParamsFromListeners(grpcLh, httpLh)
+	params := NewServerParamsFromListeners(grpcL, httpL)
 	params.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServiceServer(s, ff)
 	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
-	s := newInsecureServer(grpcLh, httpLh)
+	s := newInsecureServer(grpcL, httpL)
 	defer s.stop()
 	err := s.start(params)
 	assert.Nil(err)
 
-	conn, err := grpc.Dial(fmt.Sprintf(":%d", grpcLh.Number()), grpc.WithInsecure())
+	conn, err := grpc.Dial(fmt.Sprintf(":%s", MustGetPortNumber(grpcL)), grpc.WithInsecure())
 	assert.Nil(err)
 	defer conn.Close()
 
-	endpoint := fmt.Sprintf("http://localhost:%d", httpLh.Number())
+	endpoint := fmt.Sprintf("http://localhost:%s", MustGetPortNumber(httpL))
 	httpClient := &http.Client{
 		Timeout: time.Second,
 	}

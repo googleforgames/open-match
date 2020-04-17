@@ -17,6 +17,7 @@ package rpc
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"testing"
@@ -158,15 +159,15 @@ func runHTTPClientTests(assert *assert.Assertions, cfg config.View, rpcParams *S
 // Generate a config view and optional TLS key manifests (optional) for testing
 func configureConfigAndKeysForTesting(assert *assert.Assertions, tlsEnabled bool) (config.View, *ServerParams, func()) {
 	// Create netlisteners on random ports used for rpc serving
-	grpcLh := MustListen()
-	httpLh := MustListen()
-	rpcParams := NewServerParamsFromListeners(grpcLh, httpLh)
+	grpcL := MustListen()
+	httpL := MustListen()
+	rpcParams := NewServerParamsFromListeners(grpcL, httpL)
 
 	// Generate a config view with paths to the manifests
 	cfg := viper.New()
 	cfg.Set("test.hostname", "localhost")
-	cfg.Set("test.grpcport", grpcLh.Number())
-	cfg.Set("test.httpport", httpLh.Number())
+	cfg.Set("test.grpcport", MustGetPortNumber(grpcL))
+	cfg.Set("test.httpport", MustGetPortNumber(httpL))
 
 	// Create temporary TLS key files for testing
 	pubFile, err := ioutil.TempFile("", "pub*")
@@ -175,8 +176,8 @@ func configureConfigAndKeysForTesting(assert *assert.Assertions, tlsEnabled bool
 	if tlsEnabled {
 		// Generate public and private key bytes
 		pubBytes, priBytes, err := certgenTesting.CreateCertificateAndPrivateKeyForTesting([]string{
-			fmt.Sprintf("localhost:%d", grpcLh.Number()),
-			fmt.Sprintf("localhost:%d", httpLh.Number()),
+			fmt.Sprintf("localhost:%s", MustGetPortNumber(grpcL)),
+			fmt.Sprintf("localhost:%s", MustGetPortNumber(httpL)),
 		})
 		assert.Nil(err)
 
@@ -191,6 +192,22 @@ func configureConfigAndKeysForTesting(assert *assert.Assertions, tlsEnabled bool
 	}
 
 	return cfg, rpcParams, func() { removeTempFile(assert, pubFile.Name()) }
+}
+
+func MustListen() net.Listener {
+	l, err := net.Listen("tcp", ":0")
+	if err != nil {
+		panic(err)
+	}
+	return l
+}
+
+func MustGetPortNumber(l net.Listener) string {
+	_, port, err := net.SplitHostPort(l.Addr().String())
+	if err != nil {
+		panic(err)
+	}
+	return port
 }
 
 func removeTempFile(assert *assert.Assertions, paths ...string) {

@@ -34,11 +34,9 @@ const (
 )
 
 type tlsServer struct {
-	grpcLh       *ListenerHolder
 	grpcListener net.Listener
 	grpcServer   *grpc.Server
 
-	httpLh       *ListenerHolder
 	httpListener net.Listener
 	httpMux      *http.ServeMux
 	proxyMux     *runtime.ServeMux
@@ -49,13 +47,11 @@ func (s *tlsServer) start(params *ServerParams) error {
 	s.httpMux = params.ServeMux
 	s.proxyMux = runtime.NewServeMux()
 
-	grpcAddress := fmt.Sprintf("localhost:%d", s.grpcLh.Number())
-
-	grpcListener, err := s.grpcLh.Obtain()
+	_, grpcPort, err := net.SplitHostPort(s.grpcListener.Addr().String())
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
-	s.grpcListener = grpcListener
+	grpcAddress := fmt.Sprintf("localhost:%s", grpcPort)
 
 	rootCaCert, err := trustedCertificateFromFileData(params.rootCaPublicCertificateFileData)
 	if err != nil {
@@ -81,7 +77,7 @@ func (s *tlsServer) start(params *ServerParams) error {
 	}
 
 	go func() {
-		serverLogger.Infof("Serving gRPC-TLS: %s", s.grpcLh.AddrString())
+		serverLogger.Infof("Serving gRPC-TLS: %s", s.grpcListener.Addr().String())
 		gErr := s.grpcServer.Serve(s.grpcListener)
 		if gErr != nil {
 			serverLogger.Debugf("error closing gRPC-TLS server: %s", gErr)
@@ -89,11 +85,6 @@ func (s *tlsServer) start(params *ServerParams) error {
 	}()
 
 	// Start HTTP server
-	httpListener, err := s.httpLh.Obtain()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	s.httpListener = httpListener
 	// Bind gRPC handlers
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -123,7 +114,7 @@ func (s *tlsServer) start(params *ServerParams) error {
 	}
 	go func() {
 		tlsListener := tls.NewListener(s.httpListener, s.httpServer.TLSConfig)
-		serverLogger.Infof("Serving HTTPS: %s", s.httpLh.AddrString())
+		serverLogger.Infof("Serving HTTPS: %s", s.httpListener.Addr().String())
 		hErr := s.httpServer.Serve(tlsListener)
 		defer cancel()
 		if hErr != nil {
@@ -149,9 +140,9 @@ func (s *tlsServer) stop() {
 	}
 }
 
-func newTLSServer(grpcLh *ListenerHolder, httpLh *ListenerHolder) *tlsServer {
+func newTLSServer(grpcL, httpL net.Listener) *tlsServer {
 	return &tlsServer{
-		grpcLh: grpcLh,
-		httpLh: httpLh,
+		grpcListener: grpcL,
+		httpListener: httpL,
 	}
 }

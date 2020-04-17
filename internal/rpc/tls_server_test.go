@@ -17,6 +17,7 @@ package rpc
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -32,10 +33,10 @@ import (
 // TestStartStopTlsServerWithCARootedCertificate verifies that we can have a gRPC+TLS+HTTPS server/client work with a single self-signed certificate.
 func TestStartStopTlsServerWithSingleCertificate(t *testing.T) {
 	assert := assert.New(t)
-	grpcLh := MustListen()
-	proxyLh := MustListen()
-	grpcAddress := fmt.Sprintf("localhost:%d", grpcLh.Number())
-	proxyAddress := fmt.Sprintf("localhost:%d", proxyLh.Number())
+	grpcL := MustListen()
+	proxyL := MustListen()
+	grpcAddress := fmt.Sprintf("localhost:%s", MustGetPortNumber(grpcL))
+	proxyAddress := fmt.Sprintf("localhost:%s", MustGetPortNumber(proxyL))
 	allHostnames := []string{grpcAddress, proxyAddress}
 	pub, priv, err := certgenTesting.CreateCertificateAndPrivateKeyForTesting(allHostnames)
 	assert.Nil(err)
@@ -44,8 +45,8 @@ func TestStartStopTlsServerWithSingleCertificate(t *testing.T) {
 		rootPrivateKeyFileData:        priv,
 		publicCertificateFileData:     pub,
 		privateKeyFileData:            priv,
-		grpcLh:                        grpcLh,
-		proxyLh:                       proxyLh,
+		grpcL:                         grpcL,
+		proxyL:                        proxyL,
 		grpcAddress:                   grpcAddress,
 		proxyAddress:                  proxyAddress,
 	})
@@ -54,10 +55,10 @@ func TestStartStopTlsServerWithSingleCertificate(t *testing.T) {
 // TestStartStopTlsServerWithCARootedCertificate verifies that we can have a gRPC+TLS+HTTPS server/client work with a self-signed CA-rooted certificate.
 func TestStartStopTlsServerWithCARootedCertificate(t *testing.T) {
 	assert := assert.New(t)
-	grpcLh := MustListen()
-	proxyLh := MustListen()
-	grpcAddress := fmt.Sprintf("localhost:%d", grpcLh.Number())
-	proxyAddress := fmt.Sprintf("localhost:%d", proxyLh.Number())
+	grpcL := MustListen()
+	proxyL := MustListen()
+	grpcAddress := fmt.Sprintf("localhost:%s", MustGetPortNumber(grpcL))
+	proxyAddress := fmt.Sprintf("localhost:%s", MustGetPortNumber(proxyL))
 	allHostnames := []string{grpcAddress, proxyAddress}
 	rootPub, rootPriv, err := certgenTesting.CreateRootCertificateAndPrivateKeyForTesting(allHostnames)
 	assert.Nil(err)
@@ -70,8 +71,8 @@ func TestStartStopTlsServerWithCARootedCertificate(t *testing.T) {
 		rootPrivateKeyFileData:        rootPriv,
 		publicCertificateFileData:     pub,
 		privateKeyFileData:            priv,
-		grpcLh:                        grpcLh,
-		proxyLh:                       proxyLh,
+		grpcL:                         grpcL,
+		proxyL:                        proxyL,
 		grpcAddress:                   grpcAddress,
 		proxyAddress:                  proxyAddress,
 	})
@@ -82,8 +83,8 @@ type tlsServerTestParams struct {
 	rootPrivateKeyFileData        []byte
 	publicCertificateFileData     []byte
 	privateKeyFileData            []byte
-	grpcLh                        *ListenerHolder
-	proxyLh                       *ListenerHolder
+	grpcL                         net.Listener
+	proxyL                        net.Listener
 	grpcAddress                   string
 	proxyAddress                  string
 }
@@ -93,7 +94,7 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 
 	ff := &shellTesting.FakeFrontend{}
 
-	serverParams := NewServerParamsFromListeners(tp.grpcLh, tp.proxyLh)
+	serverParams := NewServerParamsFromListeners(tp.grpcL, tp.proxyL)
 	serverParams.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServiceServer(s, ff)
 	}, pb.RegisterFrontendServiceHandlerFromEndpoint)

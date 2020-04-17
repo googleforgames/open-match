@@ -32,11 +32,11 @@ import (
 
 func TestStartStopServer(t *testing.T) {
 	assert := assert.New(t)
-	grpcLh := MustListen()
-	httpLh := MustListen()
+	grpcL := MustListen()
+	httpL := MustListen()
 	ff := &shellTesting.FakeFrontend{}
 
-	params := NewServerParamsFromListeners(grpcLh, httpLh)
+	params := NewServerParamsFromListeners(grpcL, httpL)
 	params.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServiceServer(s, ff)
 	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
@@ -46,10 +46,10 @@ func TestStartStopServer(t *testing.T) {
 	err := s.Start(params)
 	assert.Nil(err)
 
-	conn, err := grpc.Dial(fmt.Sprintf(":%d", grpcLh.Number()), grpc.WithInsecure())
+	conn, err := grpc.Dial(fmt.Sprintf(":%s", MustGetPortNumber(grpcL)), grpc.WithInsecure())
 	assert.Nil(err)
 
-	endpoint := fmt.Sprintf("http://localhost:%d", httpLh.Number())
+	endpoint := fmt.Sprintf("http://localhost:%s", MustGetPortNumber(httpL))
 	httpClient := &http.Client{
 		Timeout: time.Second,
 	}
@@ -59,11 +59,11 @@ func TestStartStopServer(t *testing.T) {
 
 // func TestMustServeForever(t *testing.T) {
 // 	assert := assert.New(t)
-// 	grpcLh := MustListen()
-// 	httpLh := MustListen()
+// 	grpcL := MustListen()
+// 	httpL := MustListen()
 // 	ff := &shellTesting.FakeFrontend{}
 
-// 	params := NewServerParamsFromListeners(grpcLh, httpLh)
+// 	params := NewServerParamsFromListeners(grpcL, httpL)
 // 	params.AddHandleFunc(func(s *grpc.Server) {
 // 		pb.RegisterFrontendServiceServer(s, ff)
 // 	}, pb.RegisterFrontendServiceHandlerFromEndpoint)

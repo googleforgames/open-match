@@ -53,8 +53,8 @@ func RunApplication() {
 
 func serve(cfg config.View) {
 	mux := &http.ServeMux{}
-	closer := telemetry.Setup("swaggerui", mux, cfg)
-	defer closer()
+	// closer := telemetry.Setup("swaggerui", mux, cfg)
+	// defer closer()
 	port := cfg.GetInt("api.swaggerui.httpport")
 	baseDir, err := os.Getwd()
 	if err != nil {
