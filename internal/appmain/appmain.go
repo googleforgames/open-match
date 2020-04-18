@@ -22,7 +22,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
@@ -74,11 +73,6 @@ func (p *Params) Config() config.View {
 
 func (p *Params) ServiceName() string {
 	return p.serviceName
-}
-
-func (p *Params) Now() func() time.Time {
-	////////////////////////TODO
-	return time.Now
 }
 
 // Bindings allows applications to bind various functions to the running servers.
