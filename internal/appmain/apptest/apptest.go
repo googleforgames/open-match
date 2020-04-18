@@ -81,35 +81,20 @@ type fullAddr struct {
 	port    string
 }
 
-// TODO: This was more complicated, because reasons, simplify.
-func (f fullAddr) Equal(other fullAddr) bool {
-	return f.network == other.network &&
-		f.port == other.port &&
-		f.host == other.host
-}
-
-type listener struct {
-	used     bool
-	addr     fullAddr
-	listener net.Listener
-}
-
 type listenerStorage struct {
-	l []*listener
+	l map[fullAddr]net.Listener
 }
 
 func newListenerStorage(listeners []net.Listener) (*listenerStorage, error) {
-	ls := &listenerStorage{}
+	ls := &listenerStorage{
+		l: make(map[fullAddr]net.Listener),
+	}
 	for _, l := range listeners {
 		a, err := newFullAddr(l.Addr().Network(), l.Addr().String())
 		if err != nil {
 			return nil, err
 		}
-		ls.l = append(ls.l, &listener{
-			used:     false,
-			addr:     a,
-			listener: l,
-		})
+		ls.l[a] = l
 	}
 	return ls, nil
 }
@@ -120,17 +105,12 @@ func (ls *listenerStorage) listen(network, address string) (net.Listener, error)
 		return nil, err
 	}
 
-	for _, l := range ls.l {
-		if l.addr.Equal(a) {
-			if l.used {
-				return nil, errors.Errorf("Listener for \"%s\" already used", address)
-			} else {
-				l.used = true
-				return l.listener, nil
-			}
-		}
+	l, ok := ls.l[a]
+	if ok {
+		delete(ls.l, a)
+		return l, nil
 	}
-	return nil, errors.Errorf("Listener for \"%s\" was not passed to TestApp", address)
+	return nil, errors.Errorf("Listener for \"%s\" was not passed to TestApp or was already used", address)
 }
 
 func GRPCClient(t *testing.T, cfg config.View, service string) *grpc.ClientConn {

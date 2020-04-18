@@ -163,8 +163,6 @@ func StartApplication(serviceName string, bindService Bind, getCfg func() (confi
 	}
 	b.AddCloser(s.Stop)
 
-	// rpc.MustServeForever(sp)
-
 	return a, nil
 }
 
