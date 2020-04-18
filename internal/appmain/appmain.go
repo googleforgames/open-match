@@ -44,7 +44,7 @@ func RunApplication(serviceName string, bindService Bind) {
 	// SIGTERM is signaled by k8s when it wants a pod to stop.
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT)
 
-	a, err := StartApplication(serviceName, bindService, config.Read, net.Listen)
+	a, err := NewApplication(serviceName, bindService, config.Read, net.Listen)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -120,13 +120,13 @@ func (b *Bindings) AddCloserErr(c func() error) {
 	b.a.closers = append(b.a.closers, c)
 }
 
-// App is used internally for apptest.  Do not use, and use apptest instead.
+// App is used internally, and public only for apptest.  Do not use, and use apptest instead.
 type App struct {
 	closers []func() error
 }
 
-// StartApplication is used internally for apptest.  Do not use, and use apptest instead.
-func StartApplication(serviceName string, bindService Bind, getCfg func() (config.View, error), listen func(network, address string) (net.Listener, error)) (*App, error) {
+// NewApplication is used internally, and public only for apptest.  Do not use, and use apptest instead.
+func NewApplication(serviceName string, bindService Bind, getCfg func() (config.View, error), listen func(network, address string) (net.Listener, error)) (*App, error) {
 	a := &App{}
 
 	cfg, err := getCfg()
@@ -178,7 +178,7 @@ func StartApplication(serviceName string, bindService Bind, getCfg func() (confi
 	return a, nil
 }
 
-// Stop is used internally for apptest.  Do not use, and use apptest instead.
+// Stop is used internally, and public only for apptest.  Do not use, and use apptest instead.
 func (a *App) Stop() error {
 	// Use closers in reverse order: Since dependencies are created before
 	// their dependants, this helps ensure no dependencies are closed

@@ -51,7 +51,7 @@ func TestApp(t *testing.T, cfg config.View, listeners []net.Listener, binds ...a
 		return nil
 	}
 
-	app, err := appmain.StartApplication(ServiceName, bindAll, getCfg, ls.listen)
+	app, err := appmain.NewApplication(ServiceName, bindAll, getCfg, ls.listen)
 	if err != nil {
 		t.Fatal(err)
 	}
