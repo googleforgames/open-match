@@ -48,7 +48,6 @@ type OM interface {
 	// Context provides a context to call remote methods.
 	Context() context.Context
 
-	cleanup()
 	cleanupMain() error
 	withT(t *testing.T) OM
 }
@@ -56,7 +55,6 @@ type OM interface {
 // New creates a new e2e test interface.
 func New(t *testing.T) OM {
 	om := zygote.withT(t)
-	t.Cleanup(om.cleanup)
 	return om
 }
 

@@ -40,7 +40,7 @@ var (
 // RunApplication starts and runs the given application forever.  For use in
 // main functions to run the full application.
 func RunApplication(serviceName string, bindService Bind) {
-	c := make(chan os.Signal)
+	c := make(chan os.Signal, 1)
 	// SIGTERM is signaled by k8s when it wants a pod to stop.
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT)
 
@@ -154,20 +154,23 @@ func StartApplication(serviceName string, bindService Bind, getCfg func() (confi
 
 	err = telemetry.Setup(p, b)
 	if err != nil {
-		a.Stop()
+		surpressedErr := a.Stop() // Don't care about additional errors stopping.
+		_ = surpressedErr
 		return nil, err
 	}
 
 	err = bindService(p, b)
 	if err != nil {
-		a.Stop()
+		surpressedErr := a.Stop() // Don't care about additional errors stopping.
+		_ = surpressedErr
 		return nil, err
 	}
 
 	s := &rpc.Server{}
 	err = s.Start(sp)
 	if err != nil {
-		a.Stop()
+		surpressedErr := a.Stop() // Don't care about additional errors stopping.
+		_ = surpressedErr
 		return nil, err
 	}
 	b.AddCloser(s.Stop)

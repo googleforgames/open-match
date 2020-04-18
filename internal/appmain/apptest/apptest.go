@@ -26,9 +26,13 @@ import (
 	"open-match.dev/open-match/internal/rpc"
 )
 
-// ServiveName is a constant used for all in memory tests.
+// ServiceName is a constant used for all in memory tests.
 const ServiceName = "test"
 
+// TestApp starts an application for testing.  It will automatically stop after
+// the test completes, and immediately fail the test if there is an error
+// starting.  The caller must provide the listers to use for the app, this way
+// the listeners can use a random port, and set the proper values on the config.
 func TestApp(t *testing.T, cfg config.View, listeners []net.Listener, binds ...appmain.Bind) {
 	ls, err := newListenerStorage(listeners)
 	if err != nil {
@@ -39,9 +43,9 @@ func TestApp(t *testing.T, cfg config.View, listeners []net.Listener, binds ...a
 	}
 	bindAll := func(p *appmain.Params, b *appmain.Bindings) error {
 		for _, bind := range binds {
-			err := bind(p, b)
-			if err != nil {
-				return err
+			bindErr := bind(p, b)
+			if bindErr != nil {
+				return bindErr
 			}
 		}
 		return nil
@@ -69,7 +73,7 @@ func newFullAddr(network, address string) (fullAddr, error) {
 		return fullAddr{}, err
 	}
 	// Usually listeners are started with an "unspecified" ip address, which has
-	// several equivilent forms: ":80", "0.0.0.0:80", "[::]:80".  Even if the
+	// several equivalent forms: ":80", "0.0.0.0:80", "[::]:80".  Even if the
 	// callers use the same form, the listeners may return a different form when
 	// asked for its address.  So detect and revert to the simpler form.
 	if net.ParseIP(a.host).IsUnspecified() {
@@ -116,6 +120,9 @@ func (ls *listenerStorage) listen(network, address string) (net.Listener, error)
 	return nil, errors.Errorf("Listener for \"%s\" was not passed to TestApp or was already used", address)
 }
 
+// GRPCClient creates a new client which connects to the specified service. It
+// immediately fails the test if there is an error, and will also automatically
+// close after the test completes.
 func GRPCClient(t *testing.T, cfg config.View, service string) *grpc.ClientConn {
 	conn, err := rpc.GRPCClientFromConfig(cfg, service)
 	if err != nil {

@@ -94,7 +94,8 @@ func NewServerParamsFromConfig(cfg config.View, prefix string, listen func(netwo
 	}
 	httpL, err := listen("tcp", fmt.Sprintf(":%d", cfg.GetInt(prefix+".httpport")))
 	if err != nil {
-		grpcL.Close()
+		surpressedErr := grpcL.Close() // Don't care about additional errors when stopping.
+		_ = surpressedErr
 		return nil, errors.Wrap(err, "can't start listener for http")
 	}
 

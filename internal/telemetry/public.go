@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/trace"
@@ -66,29 +67,24 @@ func configureOpenCensus(p Params, b Bindings) error {
 
 	periodString := p.Config().GetString("telemetry.reportingPeriod")
 	reportingPeriod, err := time.ParseDuration(periodString)
-	if err == nil {
-		logger.WithFields(logrus.Fields{
-			"reportingPeriod": reportingPeriod,
-		}).Info("Telemetry reporting period set")
-	} else {
-		logger.WithFields(logrus.Fields{
-			"error":           err,
-			"reportingPeriod": periodString,
-		}).Warning("Failed to parse telemetry.reportingPeriod, defaulting to 1m")
-		reportingPeriod = time.Minute * 1
+	if err != nil {
+		return errors.Wrap(err, "Unable to parse telemetry.reportingPeriod")
 	}
+	logger.WithFields(logrus.Fields{
+		"reportingPeriod": reportingPeriod,
+	}).Info("Telemetry reporting period set")
 	// Change the frequency of updates to the metrics endpoint
 	view.SetReportingPeriod(reportingPeriod)
 	return nil
 }
 
-// Parms allows appmain to bind telemetry without a circular dependancy.
+// Params allows appmain to bind telemetry without a circular dependency.
 type Params interface {
 	Config() config.View
 	ServiceName() string
 }
 
-// Bindings allows appmain to bind telemetry without a circular dependancy.
+// Bindings allows appmain to bind telemetry without a circular dependency.
 type Bindings interface {
 	TelemetryHandle(pattern string, handler http.Handler)
 	TelemetryHandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))

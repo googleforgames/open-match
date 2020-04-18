@@ -43,11 +43,11 @@ func bindOpenCensusAgent(p Params, b Bindings) error {
 	trace.RegisterExporter(oce)
 	view.RegisterExporter(oce)
 
-	b.AddCloser(func() {
+	b.AddCloserErr(func() error {
 		view.UnregisterExporter(oce)
 		trace.UnregisterExporter(oce)
 		// Before the program stops, please remember to stop the exporter.
-		oce.Stop()
+		return oce.Stop()
 	})
 
 	return nil

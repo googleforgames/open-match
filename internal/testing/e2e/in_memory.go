@@ -29,6 +29,8 @@ import (
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/appmain/apptest"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/telemetry"
 	internalMmf "open-match.dev/open-match/internal/testing/mmf"
 	pb "open-match.dev/open-match/pkg/pb"
 	"open-match.dev/open-match/test/matchfunction/mmf"
@@ -89,9 +91,6 @@ func (iom *inmemoryOM) Context() context.Context {
 	return context.Background()
 }
 
-func (iom *inmemoryOM) cleanup() {
-}
-
 func (iom *inmemoryOM) cleanupMain() error {
 	return nil
 }
@@ -147,9 +146,9 @@ func newInMemoryEnvironment(t *testing.T) config.View {
 		cfg.Set("api."+name+".httpport", httpPort)
 	}
 	cfg.Set("storage.page.size", 10)
-	// cfg.Set(rpc.ConfigNameEnableRPCLogging, *testOnlyEnableRPCLoggingFlag)
-	// cfg.Set("logging.level", *testOnlyLoggingLevel)
-	// cfg.Set(telemetry.ConfigNameEnableMetrics, *testOnlyEnableMetrics)
+	cfg.Set(rpc.ConfigNameEnableRPCLogging, *testOnlyEnableRPCLoggingFlag)
+	cfg.Set("logging.level", *testOnlyLoggingLevel)
+	cfg.Set(telemetry.ConfigNameEnableMetrics, *testOnlyEnableMetrics)
 
 	apptest.TestApp(t, cfg, listeners, minimatch.BindService, internalMmf.BindServiceFor(mmf.MakeMatches), evaluator.BindServiceFor(defaulteval.Evaluate))
 	return cfg
