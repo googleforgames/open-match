@@ -57,29 +57,6 @@ func TestStartStopServer(t *testing.T) {
 	runGrpcWithProxyTests(t, assert, s.serverWithProxy, conn, httpClient, endpoint)
 }
 
-// func TestMustServeForever(t *testing.T) {
-// 	assert := assert.New(t)
-// 	grpcL := MustListen()
-// 	httpL := MustListen()
-// 	ff := &shellTesting.FakeFrontend{}
-
-// 	params := NewServerParamsFromListeners(grpcL, httpL)
-// 	params.AddHandleFunc(func(s *grpc.Server) {
-// 		pb.RegisterFrontendServiceServer(s, ff)
-// 	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
-// 	serveUntilKilledFunc, stopServingFunc, err := startServingIndefinitely(params)
-// 	assert.Nil(err)
-// 	go func() {
-// 		// Wait for 500ms before killing the server.
-// 		// It really doesn't matter if it actually comes up.
-// 		// We just care that the server can respect an unexpected shutdown quickly after starting.
-// 		time.Sleep(time.Millisecond * 500)
-// 		stopServingFunc()
-// 	}()
-// 	serveUntilKilledFunc()
-// 	// This test will intentionally deadlock if the stop function is not respected.
-// }
-
 func runGrpcWithProxyTests(t *testing.T, assert *assert.Assertions, s grpcServerWithProxy, conn *grpc.ClientConn, httpClient *http.Client, endpoint string) {
 	ctx := utilTesting.NewContext(t)
 	feClient := pb.NewFrontendServiceClient(conn)
