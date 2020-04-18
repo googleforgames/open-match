@@ -222,41 +222,6 @@ func (s *Server) Stop() {
 	}
 }
 
-// // startServingIndefinitely creates a server based on the params and begins serving the gRPC and HTTP proxy.
-// // It returns waitUntilKilled() which will wait indefinitely until crash or Ctrl+C is pressed.
-// // forceStopServingFunc() is also returned which is used to force kill the server for tests.
-// func startServingIndefinitely(params *ServerParams) (func(), func(), error) {
-// 	s := &Server{}
-
-// 	// Start serving traffic.
-// 	err := s.Start(params)
-// 	if err != nil {
-// 		serverLogger.WithFields(logrus.Fields{
-// 			"error": err.Error(),
-// 		}).Fatal("Failed to start gRPC and HTTP servers.")
-// 		return func() {}, func() {}, err
-// 	}
-// 	serverLogger.Info("Server has started.")
-// 	// Exit when we see a signal
-// 	waitUntilKilled, forceStopServingFunc := signal.New()
-
-// 	serveUntilKilledFunc := func() {
-// 		waitUntilKilled()
-// 		s.Stop()
-// 		serverLogger.Info("Shutting down server")
-// 	}
-// 	return serveUntilKilledFunc, forceStopServingFunc, nil
-// }
-
-// // MustServeForever is a convenience method for starting a server and running it indefinitely.
-// func MustServeForever(params *ServerParams) {
-// 	serveUntilKilledFunc, _, err := startServingIndefinitely(params)
-// 	if err != nil {
-// 		return
-// 	}
-// 	serveUntilKilledFunc()
-// }
-
 type loggingHTTPHandler struct {
 	handler     http.Handler
 	logPayloads bool
