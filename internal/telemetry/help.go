@@ -54,8 +54,8 @@ func bindHelp(p Params, b Bindings) error {
 		return nil
 	}
 	h := newHelp()
-	b.TelementryHandleFunc(helpEndpoint, h)
-	b.TelementryHandleFunc(helpSecondaryEndpoint, h)
+	b.TelemetryHandleFunc(helpEndpoint, h)
+	b.TelemetryHandleFunc(helpSecondaryEndpoint, h)
 
 	return nil
 }

@@ -68,6 +68,6 @@ func bindPrometheus(p Params, b Bindings) error {
 		view.UnregisterExporter(promExporter)
 	})
 
-	b.TelementryHandle(endpoint, promExporter)
+	b.TelemetryHandle(endpoint, promExporter)
 	return nil
 }

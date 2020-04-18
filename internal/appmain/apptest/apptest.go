@@ -26,6 +26,9 @@ import (
 	"open-match.dev/open-match/internal/rpc"
 )
 
+// ServiveName is a constant used for all in memory tests.
+const ServiceName = "test"
+
 func TestApp(t *testing.T, cfg config.View, listeners []net.Listener, binds ...appmain.Bind) {
 	ls, err := newListenerStorage(listeners)
 	if err != nil {
@@ -44,7 +47,7 @@ func TestApp(t *testing.T, cfg config.View, listeners []net.Listener, binds ...a
 		return nil
 	}
 
-	app, err := appmain.StartApplication("test", bindAll, getCfg, ls.listen)
+	app, err := appmain.StartApplication(ServiceName, bindAll, getCfg, ls.listen)
 	if err != nil {
 		t.Fatal(err)
 	}

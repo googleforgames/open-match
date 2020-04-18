@@ -90,8 +90,8 @@ type Params interface {
 
 // Bindings allows appmain to bind telemetry without a circular dependancy.
 type Bindings interface {
-	TelementryHandle(pattern string, handler http.Handler)
-	TelementryHandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
+	TelemetryHandle(pattern string, handler http.Handler)
+	TelemetryHandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
 	AddCloser(c func())
 	AddCloserErr(c func() error)
 }

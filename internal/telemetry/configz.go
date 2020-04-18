@@ -91,6 +91,6 @@ func bindConfigz(p Params, b Bindings) error {
 	if !cfg.GetBool(configNameTelemetryZpagesEnabled) {
 		return nil
 	}
-	b.TelementryHandle(configEndpoint, &configz{cfg: cfg})
+	b.TelemetryHandle(configEndpoint, &configz{cfg: cfg})
 	return nil
 }

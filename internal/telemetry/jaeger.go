@@ -32,13 +32,11 @@ func bindJaeger(p Params, b Bindings) error {
 	agentEndpointURI := cfg.GetString("telemetry.jaeger.agentEndpoint")
 	collectorEndpointURI := cfg.GetString("telemetry.jaeger.collectorEndpoint")
 	serviceName := p.ServiceName()
-	samplingFraction := cfg.GetFloat64("telemetry.jaeger.samplerFraction")
 
 	logger.WithFields(logrus.Fields{
 		"agentEndpoint":     agentEndpointURI,
 		"collectorEndpoint": collectorEndpointURI,
 		"serviceName":       serviceName,
-		"samplingFraction":  samplingFraction,
 	}).Info("Jaeger Tracing: ENABLED")
 
 	je, err := jaeger.NewExporter(jaeger.Options{

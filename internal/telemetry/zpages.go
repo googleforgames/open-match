@@ -46,7 +46,7 @@ func bindZpages(p Params, b Bindings) error {
 	mux.HandleFunc(debugEndpoint+"/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc(debugEndpoint+"/pprof/trace", pprof.Trace)
 
-	b.TelementryHandle(debugEndpoint, mux)
+	b.TelemetryHandle(debugEndpoint, mux)
 
 	return nil
 }

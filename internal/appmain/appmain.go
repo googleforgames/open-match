@@ -71,6 +71,8 @@ func (p *Params) Config() config.View {
 	return p.config
 }
 
+// ServiceName is a name for the currently running binary specified by
+// RunApplication.
 func (p *Params) ServiceName() string {
 	return p.serviceName
 }
@@ -92,14 +94,18 @@ func (b *Bindings) AddHandleFunc(handlerFunc rpc.GrpcHandler, grpcProxyHandler r
 	b.sp.AddHandleFunc(handlerFunc, grpcProxyHandler)
 }
 
-func (b *Bindings) TelementryHandle(pattern string, handler http.Handler) {
+// TelemetryHandle adds a handler to the mux for serving debug info and metrics.
+func (b *Bindings) TelemetryHandle(pattern string, handler http.Handler) {
 	b.sp.ServeMux.Handle(pattern, handler)
 }
 
-func (b *Bindings) TelementryHandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+// TelemetryHandleFunc adds a handlerfunc to the mux for serving debug info and metrics.
+func (b *Bindings) TelemetryHandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
 	b.sp.ServeMux.HandleFunc(pattern, handler)
 }
 
+// AddCloser specifies a function to be called when the application is being
+// stopped.  Closers are called in reverse order.
 func (b *Bindings) AddCloser(c func()) {
 	b.a.closers = append(b.a.closers, func() error {
 		c()
@@ -107,16 +113,19 @@ func (b *Bindings) AddCloser(c func()) {
 	})
 }
 
+// AddCloserErr specifies a function to be called when the application is being
+// stopped.  Closers are called in reverse order.  The first error returned by
+// a closer will be logged.
 func (b *Bindings) AddCloserErr(c func() error) {
 	b.a.closers = append(b.a.closers, c)
 }
 
+// App is used internally for apptest.  Do not use, and use apptest instead.
 type App struct {
 	closers []func() error
 }
 
-// StartApplication provides more control over an application than
-// RunApplication.  It is for running in memory tests against your app.
+// StartApplication is used internally for apptest.  Do not use, and use apptest instead.
 func StartApplication(serviceName string, bindService Bind, getCfg func() (config.View, error), listen func(network, address string) (net.Listener, error)) (*App, error) {
 	a := &App{}
 
@@ -166,6 +175,7 @@ func StartApplication(serviceName string, bindService Bind, getCfg func() (confi
 	return a, nil
 }
 
+// Stop is used internally for apptest.  Do not use, and use apptest instead.
 func (a *App) Stop() error {
 	// Use closers in reverse order: Since dependencies are created before
 	// their dependants, this helps ensure no dependencies are closed

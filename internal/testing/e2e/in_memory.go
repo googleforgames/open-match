@@ -140,7 +140,7 @@ func newInMemoryEnvironment(t *testing.T) config.View {
 	cfg.Set("redis.sentinelHostname", msentinal.Host())
 	cfg.Set("redis.sentinelPort", msentinal.Port())
 	cfg.Set("redis.sentinelMaster", msentinal.MasterInfo().Name)
-	services := []string{"test", "synchronizer", "backend", "frontend", "query", "function", "evaluator"}
+	services := []string{apptest.ServiceName, "synchronizer", "backend", "frontend", "query", "function", "evaluator"}
 	for _, name := range services {
 		cfg.Set("api."+name+".hostname", "localhost")
 		cfg.Set("api."+name+".grpcport", grpcPort)
