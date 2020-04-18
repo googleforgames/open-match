@@ -97,8 +97,6 @@ func (iom *inmemoryOM) cleanupMain() error {
 }
 
 func newInMemoryEnvironment(t *testing.T) config.View {
-	cfg := viper.New()
-	cfg.ReadConfig(strings.NewReader(configFile))
 
 	mredis := miniredis.NewMiniRedis()
 	err := mredis.StartAddr("localhost:0")
@@ -131,6 +129,13 @@ func newInMemoryEnvironment(t *testing.T) config.View {
 		t.Fatal(err)
 	}
 	listeners := []net.Listener{grpcListener, httpListener}
+
+	cfg := viper.New()
+	cfg.SetConfigType("yaml")
+	err = cfg.ReadConfig(strings.NewReader(configFile))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	cfg.Set("redis.sentinelHostname", msentinal.Host())
 	cfg.Set("redis.sentinelPort", msentinal.Port())
@@ -198,9 +203,8 @@ synchronizer:
   registrationIntervalMs: 250ms
   proposalCollectionIntervalMs: 20000ms
 
-ignoreListTTL: 60000ms
 storage:
-  ignoreListTTL: 60000ms
+  ignoreListTTL: 500ms
   page:
     size: 10000
 
@@ -218,11 +222,12 @@ redis:
     healthCheckTimeout: 300ms
 
 telemetry:
+  reportingPeriod: "1m"
+  traceSamplingFraction: 0.005
   zpages:
     enable: "true"
   jaeger:
     enable: "false"
-    samplerFraction: 0.005
     agentEndpoint: "open-match-jaeger-agent:6831"
     collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
   prometheus:

@@ -40,12 +40,12 @@ var (
 
 // RunApplication starts and runs the given application forever.  For use in
 // main functions to run the full application.
-func RunApplication(serverName string, bindService Bind) {
+func RunApplication(serviceName string, bindService Bind) {
 	c := make(chan os.Signal)
 	// SIGTERM is signaled by k8s when it wants a pod to stop.
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT)
 
-	a, err := StartApplication(serverName, bindService, config.Read, net.Listen)
+	a, err := StartApplication(serviceName, bindService, config.Read, net.Listen)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -63,7 +63,8 @@ type Bind func(p *Params, b *Bindings) error
 
 // Params are inputs to starting an application.
 type Params struct {
-	config config.View
+	config      config.View
+	serviceName string
 }
 
 // Config provides the configuration for the application.
@@ -72,8 +73,7 @@ func (p *Params) Config() config.View {
 }
 
 func (p *Params) ServiceName() string {
-	////////////////////////TODO
-	return ""
+	return p.serviceName
 }
 
 func (p *Params) Now() func() time.Time {
@@ -123,7 +123,7 @@ type App struct {
 
 // StartApplication provides more control over an application than
 // RunApplication.  It is for running in memory tests against your app.
-func StartApplication(serverName string, bindService Bind, getCfg func() (config.View, error), listen func(network, address string) (net.Listener, error)) (*App, error) {
+func StartApplication(serviceName string, bindService Bind, getCfg func() (config.View, error), listen func(network, address string) (net.Listener, error)) (*App, error) {
 	a := &App{}
 
 	cfg, err := getCfg()
@@ -133,7 +133,7 @@ func StartApplication(serverName string, bindService Bind, getCfg func() (config
 		}).Fatalf("cannot read configuration.")
 	}
 	logging.ConfigureLogging(cfg)
-	sp, err := rpc.NewServerParamsFromConfig(cfg, "api."+serverName, listen)
+	sp, err := rpc.NewServerParamsFromConfig(cfg, "api."+serviceName, listen)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -141,7 +141,8 @@ func StartApplication(serverName string, bindService Bind, getCfg func() (config
 	}
 
 	p := &Params{
-		config: cfg,
+		config:      cfg,
+		serviceName: serviceName,
 	}
 	b := &Bindings{
 		a:  a,
