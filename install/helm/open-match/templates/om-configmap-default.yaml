@@ -48,6 +48,7 @@ data:
       # maxElapsedTime caps the retry time (in milliseconds)
       maxElapsedTime: 3000ms
 
+    # Configurations for api.functions and api.scale are used for testing purpose.
     api:
       backend:
         hostname: "{{ .Values.backend.hostName }}"
@@ -58,7 +59,7 @@ data:
         grpcport: "{{ .Values.frontend.grpcPort }}"
         httpport: "{{ .Values.frontend.httpPort }}"
       query:
-        hostname: "{{ .Values.query.hostName }}"
+        hostname: "{{ .Values.query.hostName }}.{{ .Release.Namespace }}.svc.cluster.local"
         grpcport: "{{ .Values.query.grpcPort }}"
         httpport: "{{ .Values.query.httpPort }}"
       synchronizer:
@@ -68,6 +69,10 @@ data:
       swaggerui:
         hostname: "{{ .Values.swaggerui.hostName }}"
         httpport: "{{ .Values.swaggerui.httpPort }}"
+      functions:
+        hostname: "{{ .Values.function.hostName }}"
+        grpcport: "{{ .Values.function.grpcPort }}"
+        httpport: "{{ .Values.function.httpPort }}"
       scale:
         httpport: "51509"
 {{- if .Values.global.tls.enabled }}
