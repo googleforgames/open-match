@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"time"
@@ -37,7 +38,6 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
-	"open-match.dev/open-match/internal/signal"
 	"open-match.dev/open-match/internal/telemetry"
 )
 
@@ -69,8 +69,8 @@ type ServerParams struct {
 	handlersForGrpcProxy   []GrpcProxyHandler
 	handlersForHealthCheck []func(context.Context) error
 
-	grpcListener      *ListenerHolder
-	grpcProxyListener *ListenerHolder
+	grpcListener      net.Listener
+	grpcProxyListener net.Listener
 
 	// Root CA public certificate in PEM format.
 	rootCaPublicCertificateFileData []byte
@@ -87,24 +87,19 @@ type ServerParams struct {
 }
 
 // NewServerParamsFromConfig returns server Params initialized from the configuration file.
-func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, error) {
-	grpcLh, err := newFromPortNumber(cfg.GetInt(prefix + ".grpcport"))
+func NewServerParamsFromConfig(cfg config.View, prefix string, listen func(network, address string) (net.Listener, error)) (*ServerParams, error) {
+	grpcL, err := listen("tcp", fmt.Sprintf(":%d", cfg.GetInt(prefix+".grpcport")))
 	if err != nil {
-		serverLogger.Fatal(err)
-		return nil, err
+		return nil, errors.Wrap(err, "can't start listener for grpc")
 	}
-	httpLh, err := newFromPortNumber(cfg.GetInt(prefix + ".httpport"))
+	httpL, err := listen("tcp", fmt.Sprintf(":%d", cfg.GetInt(prefix+".httpport")))
 	if err != nil {
-		closeErr := grpcLh.Close()
-		if closeErr != nil {
-			serverLogger.WithFields(logrus.Fields{
-				"error": closeErr.Error(),
-			}).Info("failed to gRPC close port")
-		}
-		serverLogger.Fatal(err)
-		return nil, err
+		surpressedErr := grpcL.Close() // Don't care about additional errors when stopping.
+		_ = surpressedErr
+		return nil, errors.Wrap(err, "can't start listener for http")
 	}
-	p := NewServerParamsFromListeners(grpcLh, httpLh)
+
+	p := NewServerParamsFromListeners(grpcL, httpL)
 
 	certFile := cfg.GetString(configNameServerPublicCertificateFile)
 	privateKeyFile := cfg.GetString(configNameServerPrivateKeyFile)
@@ -138,20 +133,18 @@ func NewServerParamsFromConfig(cfg config.View, prefix string) (*ServerParams, e
 	p.enableMetrics = cfg.GetBool(telemetry.ConfigNameEnableMetrics)
 	p.enableRPCLogging = cfg.GetBool(ConfigNameEnableRPCLogging)
 	p.enableRPCPayloadLogging = logging.IsDebugEnabled(cfg)
-	// TODO: This isn't ideal since telemetry requires config for it to be initialized.
-	// This forces us to initialize readiness probes earlier than necessary.
-	p.closer = telemetry.Setup(prefix, p.ServeMux, cfg)
+
 	return p, nil
 }
 
 // NewServerParamsFromListeners returns server Params initialized with the ListenerHolder variables.
-func NewServerParamsFromListeners(grpcLh *ListenerHolder, proxyLh *ListenerHolder) *ServerParams {
+func NewServerParamsFromListeners(grpcL net.Listener, proxyL net.Listener) *ServerParams {
 	return &ServerParams{
 		ServeMux:             http.NewServeMux(),
 		handlersForGrpc:      []GrpcHandler{},
 		handlersForGrpcProxy: []GrpcProxyHandler{},
-		grpcListener:         grpcLh,
-		grpcProxyListener:    proxyLh,
+		grpcListener:         grpcL,
+		grpcProxyListener:    proxyL,
 	}
 }
 
@@ -207,12 +200,12 @@ type Server struct {
 
 // grpcServerWithProxy this will go away when insecure.go and tls.go are merged into the same server.
 type grpcServerWithProxy interface {
-	start(*ServerParams) (func(), error)
+	start(*ServerParams) error
 	stop()
 }
 
 // Start the gRPC+HTTP(s) REST server.
-func (s *Server) Start(p *ServerParams) (func(), error) {
+func (s *Server) Start(p *ServerParams) error {
 	if p.usingTLS() {
 		s.serverWithProxy = newTLSServer(p.grpcListener, p.grpcProxyListener)
 	} else {
@@ -228,42 +221,6 @@ func (s *Server) Stop() {
 	if s.closer != nil {
 		s.closer()
 	}
-}
-
-// startServingIndefinitely creates a server based on the params and begins serving the gRPC and HTTP proxy.
-// It returns waitUntilKilled() which will wait indefinitely until crash or Ctrl+C is pressed.
-// forceStopServingFunc() is also returned which is used to force kill the server for tests.
-func startServingIndefinitely(params *ServerParams) (func(), func(), error) {
-	s := &Server{}
-
-	// Start serving traffic.
-	waitForStart, err := s.Start(params)
-	if err != nil {
-		serverLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatal("Failed to start gRPC and HTTP servers.")
-		return func() {}, func() {}, err
-	}
-	serverLogger.Info("Server has started.")
-	// Exit when we see a signal
-	waitUntilKilled, forceStopServingFunc := signal.New()
-
-	waitForStart()
-	serveUntilKilledFunc := func() {
-		waitUntilKilled()
-		s.Stop()
-		serverLogger.Info("Shutting down server")
-	}
-	return serveUntilKilledFunc, forceStopServingFunc, nil
-}
-
-// MustServeForever is a convenience method for starting a server and running it indefinitely.
-func MustServeForever(params *ServerParams) {
-	serveUntilKilledFunc, _, err := startServingIndefinitely(params)
-	if err != nil {
-		return
-	}
-	serveUntilKilledFunc()
 }
 
 type loggingHTTPHandler struct {

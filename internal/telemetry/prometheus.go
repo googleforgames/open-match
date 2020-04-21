@@ -16,13 +16,11 @@ package telemetry
 
 // Taken from https://opencensus.io/quickstart/go/metrics/#1
 import (
-	"net/http"
-
 	ocPrometheus "contrib.go.opencensus.io/exporter/prometheus"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/stats/view"
-	"open-match.dev/open-match/internal/config"
 )
 
 const (
@@ -30,36 +28,46 @@ const (
 	ConfigNameEnableMetrics = "telemetry.prometheus.enable"
 )
 
-func bindPrometheus(mux *http.ServeMux, cfg config.View) {
+func bindPrometheus(p Params, b Bindings) error {
+	cfg := p.Config()
+
 	if !cfg.GetBool("telemetry.prometheus.enable") {
 		logger.Info("Prometheus Metrics: Disabled")
-		return
+		return nil
 	}
 
 	endpoint := cfg.GetString("telemetry.prometheus.endpoint")
+
+	logger.WithFields(logrus.Fields{
+		"endpoint": endpoint,
+	}).Info("Prometheus Metrics: ENABLED")
+
 	registry := prometheus.NewRegistry()
 	// Register standard prometheus instrumentation.
-	registry.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
-	registry.MustRegister(prometheus.NewGoCollector())
+	err := registry.Register(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+	if err != nil {
+		return errors.Wrap(err, "Failed to register prometheus collector")
+	}
+	err = registry.Register(prometheus.NewGoCollector())
+	if err != nil {
+		return errors.Wrap(err, "Failed to register prometheus collector")
+	}
+
 	promExporter, err := ocPrometheus.NewExporter(
 		ocPrometheus.Options{
 			Namespace: "",
 			Registry:  registry,
 		})
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error":    err,
-			"endpoint": endpoint,
-		}).Fatal(
-			"Failed to initialize OpenCensus exporter to Prometheus")
+		return errors.Wrap(err, "Failed to initialize OpenCensus exporter to Prometheus")
 	}
 
 	// Register the Prometheus exporters as a stats exporter.
 	view.RegisterExporter(promExporter)
+	b.AddCloser(func() {
+		view.UnregisterExporter(promExporter)
+	})
 
-	mux.Handle(endpoint, promExporter)
-
-	logger.WithFields(logrus.Fields{
-		"endpoint": endpoint,
-	}).Info("Prometheus Metrics: ENABLED")
+	b.TelemetryHandle(endpoint, promExporter)
+	return nil
 }
