@@ -56,11 +56,11 @@ func createZygote(m *testing.M) (OM, error) {
 }
 
 func (iom *inmemoryOM) MustFrontendGRPC() pb.FrontendServiceClient {
-	return pb.NewFrontendServiceClient(apptest.GRPCClient(iom.t, iom.cfg, "api.backend"))
+	return pb.NewFrontendServiceClient(apptest.GRPCClient(iom.t, iom.cfg, "api.frontend"))
 }
 
 func (iom *inmemoryOM) MustBackendGRPC() pb.BackendServiceClient {
-	return pb.NewBackendServiceClient(apptest.GRPCClient(iom.t, iom.cfg, "api.frontend"))
+	return pb.NewBackendServiceClient(apptest.GRPCClient(iom.t, iom.cfg, "api.backend"))
 }
 
 func (iom *inmemoryOM) MustQueryServiceGRPC() pb.QueryServiceClient {
