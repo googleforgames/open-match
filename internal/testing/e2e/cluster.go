@@ -174,10 +174,6 @@ func (com *clusterOM) Context() context.Context {
 	return context.Background()
 }
 
-func (com *clusterOM) cleanupMain() error {
-	return nil
-}
-
 func fileExists(name string) bool {
 	_, err := os.Stat(name)
 	return err == nil

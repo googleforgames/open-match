@@ -48,7 +48,6 @@ type OM interface {
 	// Context provides a context to call remote methods.
 	Context() context.Context
 
-	cleanupMain() error
 	withT(t *testing.T) OM
 }
 
@@ -68,13 +67,7 @@ func RunMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("failed to setup framework: %s", err)
 	}
-	defer func() {
-		cErr := z.cleanupMain()
-		if cErr != nil {
-			log.Printf("failed to cleanup resources: %s", cErr)
-		}
-		os.Exit(exitCode)
-	}()
 	zygote = z
 	exitCode = m.Run()
+	os.Exit(exitCode)
 }

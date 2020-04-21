@@ -113,11 +113,11 @@ func (ls *listenerStorage) listen(network, address string) (net.Listener, error)
 	}
 
 	l, ok := ls.l[a]
-	if ok {
-		delete(ls.l, a)
-		return l, nil
+	if !ok {
+		return nil, errors.Errorf("Listener for \"%s\" was not passed to TestApp or was already used", address)
 	}
-	return nil, errors.Errorf("Listener for \"%s\" was not passed to TestApp or was already used", address)
+	delete(ls.l, a)
+	return l, nil
 }
 
 // GRPCClient creates a new client which connects to the specified service. It

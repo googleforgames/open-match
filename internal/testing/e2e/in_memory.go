@@ -60,7 +60,7 @@ func (iom *inmemoryOM) MustFrontendGRPC() pb.FrontendServiceClient {
 }
 
 func (iom *inmemoryOM) MustBackendGRPC() pb.BackendServiceClient {
-	return pb.NewBackendServiceClient(apptest.GRPCClient(iom.t, iom.cfg, "api.backend"))
+	return pb.NewBackendServiceClient(apptest.GRPCClient(iom.t, iom.cfg, "api.frontend"))
 }
 
 func (iom *inmemoryOM) MustQueryServiceGRPC() pb.QueryServiceClient {
@@ -89,10 +89,6 @@ func (iom *inmemoryOM) HealthCheck() error {
 
 func (iom *inmemoryOM) Context() context.Context {
 	return context.Background()
-}
-
-func (iom *inmemoryOM) cleanupMain() error {
-	return nil
 }
 
 func newInMemoryEnvironment(t *testing.T) config.View {
