@@ -85,19 +85,10 @@ func (s *insecureServer) start(params *ServerParams) error {
 	return nil
 }
 
-func (s *insecureServer) stop() {
+func (s *insecureServer) stop() error {
+	// the servers also close their respective listeners.
 	s.grpcServer.Stop()
-	if err := s.grpcListener.Close(); err != nil {
-		serverLogger.Debugf("error closing gRPC listener: %s", err)
-	}
-
-	if err := s.httpServer.Close(); err != nil {
-		serverLogger.Debugf("error closing HTTP server: %s", err)
-	}
-
-	if err := s.httpListener.Close(); err != nil {
-		serverLogger.Debugf("error closing HTTP listener: %s", err)
-	}
+	return s.httpListener.Close()
 }
 
 func newInsecureServer(grpcL, httpL net.Listener) *insecureServer {
