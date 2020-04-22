@@ -69,7 +69,7 @@ data:
         hostname: "{{ .Values.swaggerui.hostName }}"
         httpport: "{{ .Values.swaggerui.httpPort }}"
 
-      # Configurations for api.test and api.scale are used for testing purpose.
+      # Configurations for api.test and api.scale are used for testing.
       test:
         hostname: "test"
         grpcport: "50509"
