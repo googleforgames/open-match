@@ -364,9 +364,9 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 	$(HELM) upgrade $(OPEN_MATCH_HELM_NAME) $(HELM_UPGRADE_FLAGS) --atomic install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.ignoreListTTL=500ms \
 		--set query.replicas=1,frontend.replicas=1,backend.replicas=1 \
-		--set api.evaluator.hostName=test \
-		--set api.evaluator.grpcPort=50508 \
-		--set api.evaluator.httpPort=51508 \
+		--set evaluator.hostName=test \
+		--set evaluator.grpcPort=50509 \
+		--set evaluator.httpPort=51509 \
 		--set redis.master.resources.requests.cpu=0.6,redis.master.resources.requests.memory=300Mi \
 		--set ci=true
 
