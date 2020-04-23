@@ -48,7 +48,6 @@ data:
       # maxElapsedTime caps the retry time (in milliseconds)
       maxElapsedTime: 3000ms
 
-    # Configurations for api.functions and api.scale are used for testing purpose.
     api:
       backend:
         hostname: "{{ .Values.backend.hostName }}"
@@ -69,12 +68,15 @@ data:
       swaggerui:
         hostname: "{{ .Values.swaggerui.hostName }}"
         httpport: "{{ .Values.swaggerui.httpPort }}"
-      functions:
-        hostname: "{{ .Values.function.hostName }}"
-        grpcport: "{{ .Values.function.grpcPort }}"
-        httpport: "{{ .Values.function.httpPort }}"
+
+      # Configurations for api.test and api.scale are used for testing.
+      test:
+        hostname: "test"
+        grpcport: "50509"
+        httpport: "51509"
       scale:
         httpport: "51509"
+
 {{- if .Values.global.tls.enabled }}
       tls:
         trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"

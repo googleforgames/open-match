@@ -363,11 +363,10 @@ install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_HELM_NAME) $(HELM_UPGRADE_FLAGS) --atomic install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.ignoreListTTL=500ms \
-		--set open-match-customize.enabled=true \
-		--set open-match-customize.function.enabled=true \
-		--set open-match-customize.evaluator.enabled=true \
-		--set open-match-customize.function.image=openmatch-mmf-go-pool \
-		--set query.replicas=1,frontend.replicas=1,backend.replicas=1,open-match-customize.evaluator.replicas=1,open-match-customize.function.replicas=1 \
+		--set query.replicas=1,frontend.replicas=1,backend.replicas=1 \
+		--set evaluator.hostName=test \
+		--set evaluator.grpcPort=50509 \
+		--set evaluator.httpPort=51509 \
 		--set redis.master.resources.requests.cpu=0.6,redis.master.resources.requests.memory=300Mi \
 		--set ci=true
 

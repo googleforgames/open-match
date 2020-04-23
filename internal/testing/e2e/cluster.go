@@ -31,8 +31,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
+	"open-match.dev/open-match/internal/app/evaluator"
+	"open-match.dev/open-match/internal/app/evaluator/defaulteval"
+	"open-match.dev/open-match/internal/appmain/apptest"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/rpc"
+	internalMmf "open-match.dev/open-match/internal/testing/mmf"
+	"open-match.dev/open-match/test/matchfunction/mmf"
 
 	pb "open-match.dev/open-match/pkg/pb"
 )
@@ -50,6 +55,8 @@ type clusterOM struct {
 }
 
 func (com *clusterOM) withT(t *testing.T) OM {
+	apptest.RunInCluster(t, internalMmf.BindServiceFor(mmf.MakeMatches), evaluator.BindServiceFor(defaulteval.Evaluate))
+
 	return &clusterOM{
 		kubeClient: com.kubeClient,
 		namespace:  com.namespace,
@@ -100,7 +107,7 @@ func (com *clusterOM) MustQueryServiceGRPC() pb.QueryServiceClient {
 }
 
 func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {
-	host, port := com.getGRPCAddressFromServiceName("om-function")
+	host, port := com.getGRPCAddressFromServiceName("test")
 	return &pb.FunctionConfig{
 		Host: host,
 		Port: port,
@@ -109,7 +116,7 @@ func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {
 }
 
 func (com *clusterOM) MustMmfConfigHTTP() *pb.FunctionConfig {
-	host, port := com.getHTTPAddressFromServiceName("om-function")
+	host, port := com.getHTTPAddressFromServiceName("test")
 	return &pb.FunctionConfig{
 		Host: host,
 		Port: port,

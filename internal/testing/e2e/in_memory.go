@@ -69,16 +69,16 @@ func (iom *inmemoryOM) MustQueryServiceGRPC() pb.QueryServiceClient {
 
 func (iom *inmemoryOM) MustMmfConfigGRPC() *pb.FunctionConfig {
 	return &pb.FunctionConfig{
-		Host: iom.cfg.GetString("api.function.hostname"),
-		Port: int32(iom.cfg.GetInt("api.function.grpcport")),
+		Host: iom.cfg.GetString("api." + apptest.ServiceName + ".hostname"),
+		Port: int32(iom.cfg.GetInt("api." + apptest.ServiceName + ".grpcport")),
 		Type: pb.FunctionConfig_GRPC,
 	}
 }
 
 func (iom *inmemoryOM) MustMmfConfigHTTP() *pb.FunctionConfig {
 	return &pb.FunctionConfig{
-		Host: iom.cfg.GetString("api.function.hostname"),
-		Port: int32(iom.cfg.GetInt("api.function.httpport")),
+		Host: iom.cfg.GetString("api." + apptest.ServiceName + ".hostname"),
+		Port: int32(iom.cfg.GetInt("api." + apptest.ServiceName + ".httpport")),
 		Type: pb.FunctionConfig_REST,
 	}
 }
@@ -135,7 +135,7 @@ func newInMemoryEnvironment(t *testing.T) config.View {
 	cfg.Set("redis.sentinelHostname", msentinal.Host())
 	cfg.Set("redis.sentinelPort", msentinal.Port())
 	cfg.Set("redis.sentinelMaster", msentinal.MasterInfo().Name)
-	services := []string{apptest.ServiceName, "synchronizer", "backend", "frontend", "query", "function", "evaluator"}
+	services := []string{apptest.ServiceName, "synchronizer", "backend", "frontend", "query", "evaluator"}
 	for _, name := range services {
 		cfg.Set("api."+name+".hostname", "localhost")
 		cfg.Set("api."+name+".grpcport", grpcPort)
@@ -190,9 +190,9 @@ api:
   scale:
     httpport: "51509"
   evaluator:
-    hostname: "om-evaluator"
-    grpcport: "50508"
-    httpport: "51508"
+    hostname: "test"
+    grpcport: "50509"
+    httpport: "51509"
 
 synchronizer:
   registrationIntervalMs: 250ms
