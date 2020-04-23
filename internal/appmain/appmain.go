@@ -173,7 +173,7 @@ func NewApplication(serviceName string, bindService Bind, getCfg func() (config.
 		_ = surpressedErr
 		return nil, err
 	}
-	b.AddCloser(s.Stop)
+	b.AddCloserErr(s.Stop)
 
 	return a, nil
 }

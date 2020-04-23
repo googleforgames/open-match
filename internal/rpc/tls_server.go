@@ -125,19 +125,10 @@ func (s *tlsServer) start(params *ServerParams) error {
 	return nil
 }
 
-func (s *tlsServer) stop() {
+func (s *tlsServer) stop() error {
+	// the servers also close their respective listeners.
 	s.grpcServer.Stop()
-	if err := s.grpcListener.Close(); err != nil {
-		serverLogger.Debugf("error closing gRPC-TLS listener: %s", err)
-	}
-
-	if err := s.httpServer.Close(); err != nil {
-		serverLogger.Debugf("error closing HTTPS server: %s", err)
-	}
-
-	if err := s.httpListener.Close(); err != nil {
-		serverLogger.Debugf("error closing HTTPS listener: %s", err)
-	}
+	return s.httpListener.Close()
 }
 
 func newTLSServer(grpcL, httpL net.Listener) *tlsServer {
