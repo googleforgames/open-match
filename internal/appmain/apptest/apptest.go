@@ -41,17 +41,8 @@ func TestApp(t *testing.T, cfg config.View, listeners []net.Listener, binds ...a
 	getCfg := func() (config.View, error) {
 		return cfg, nil
 	}
-	bindAll := func(p *appmain.Params, b *appmain.Bindings) error {
-		for _, bind := range binds {
-			bindErr := bind(p, b)
-			if bindErr != nil {
-				return bindErr
-			}
-		}
-		return nil
-	}
 
-	app, err := appmain.NewApplication(ServiceName, bindAll, getCfg, ls.listen)
+	app, err := appmain.NewApplication(ServiceName, bindAll(binds), getCfg, ls.listen)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,6 +52,34 @@ func TestApp(t *testing.T, cfg config.View, listeners []net.Listener, binds ...a
 			t.Fatal(err)
 		}
 	})
+}
+
+// RunInCluster allows for running services during an in cluster e2e test.
+// This is NOT for running the actual code under test, but instead allow running
+// auxiliary services the code under test might call.
+func RunInCluster(t *testing.T, binds ...appmain.Bind) {
+	app, err := appmain.NewApplication(ServiceName, bindAll(binds), config.Read, net.Listen)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		err := app.Stop()
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
+func bindAll(binds []appmain.Bind) appmain.Bind {
+	return func(p *appmain.Params, b *appmain.Bindings) error {
+		for _, bind := range binds {
+			bindErr := bind(p, b)
+			if bindErr != nil {
+				return bindErr
+			}
+		}
+		return nil
+	}
 }
 
 func newFullAddr(network, address string) (fullAddr, error) {
