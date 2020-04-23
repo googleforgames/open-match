@@ -16,12 +16,12 @@
 package defaulteval
 
 import (
+	"context"
 	"math"
 	"sort"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
-	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -39,11 +39,11 @@ type matchInp struct {
 
 // Evaluate sorts the matches by DefaultEvaluationCriteria.Score (optional),
 // then returns matches which don't collide with previously returned matches.
-func Evaluate(p *evaluator.Params) ([]string, error) {
-	matches := make([]*matchInp, 0, len(p.Matches))
+func Evaluate(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+	matches := make([]*matchInp, 0)
 	nilEvlautionInputs := 0
 
-	for _, m := range p.Matches {
+	for m := range in {
 		// Evaluation criteria is optional, but sort it lower than any matches which
 		// provided criteria.
 		inp := &pb.DefaultEvaluationCriteria{
@@ -84,7 +84,11 @@ func Evaluate(p *evaluator.Params) ([]string, error) {
 		d.maybeAdd(m)
 	}
 
-	return d.resultIDs, nil
+	for _, id := range d.resultIDs {
+		out <- id
+	}
+
+	return nil
 }
 
 type collidingMatch struct {
