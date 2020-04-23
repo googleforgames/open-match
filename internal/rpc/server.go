@@ -83,7 +83,6 @@ type ServerParams struct {
 	enableRPCLogging        bool
 	enableRPCPayloadLogging bool
 	enableMetrics           bool
-	closer                  func()
 }
 
 // NewServerParamsFromConfig returns server Params initialized from the configuration file.
@@ -195,13 +194,12 @@ func (p *ServerParams) invalidate() {
 // All HTTP traffic is served from a common http.ServeMux.
 type Server struct {
 	serverWithProxy grpcServerWithProxy
-	closer          func()
 }
 
 // grpcServerWithProxy this will go away when insecure.go and tls.go are merged into the same server.
 type grpcServerWithProxy interface {
 	start(*ServerParams) error
-	stop()
+	stop() error
 }
 
 // Start the gRPC+HTTP(s) REST server.
@@ -211,16 +209,12 @@ func (s *Server) Start(p *ServerParams) error {
 	} else {
 		s.serverWithProxy = newInsecureServer(p.grpcListener, p.grpcProxyListener)
 	}
-	s.closer = p.closer
 	return s.serverWithProxy.start(p)
 }
 
 // Stop the gRPC+HTTP(s) REST server.
-func (s *Server) Stop() {
-	s.serverWithProxy.stop()
-	if s.closer != nil {
-		s.closer()
-	}
+func (s *Server) Stop() error {
+	return s.serverWithProxy.stop()
 }
 
 type loggingHTTPHandler struct {
