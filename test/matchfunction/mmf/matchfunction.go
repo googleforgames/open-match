@@ -19,79 +19,79 @@
 // matchmaking logic in this function based on your game's requirements.
 package mmf
 
-import (
-	"sort"
+// import (
+// 	"sort"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/pkg/errors"
-	internalMmf "open-match.dev/open-match/internal/testing/mmf"
-	"open-match.dev/open-match/pkg/pb"
-)
+// 	"github.com/golang/protobuf/ptypes"
+// 	"github.com/golang/protobuf/ptypes/any"
+// 	"github.com/pkg/errors"
+// 	internalMmf "open-match.dev/open-match/internal/testing/mmf"
+// 	"open-match.dev/open-match/pkg/pb"
+// )
 
-var (
-	matchName = "pool-based-match"
-)
+// var (
+// 	matchName = "pool-based-match"
+// )
 
-// MakeMatches is where your custom matchmaking logic lives.
-// This is the core match making function that will be triggered by Open Match to generate matches.
-// The goal of this function is to generate predictable matches that can be validated without flakyness.
-// This match function loops through all the pools and generates one match per pool aggregating all players
-// in that pool in the generated match.
-func MakeMatches(params *internalMmf.MatchFunctionParams) ([]*pb.Match, error) {
-	var result []*pb.Match
-	for _, tickets := range params.PoolNameToTickets {
-		if len(tickets) != 0 {
-			m, err := MakeMatch(params.ProfileName, tickets...)
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, m)
-		}
-	}
+// // MakeMatches is where your custom matchmaking logic lives.
+// // This is the core match making function that will be triggered by Open Match to generate matches.
+// // The goal of this function is to generate predictable matches that can be validated without flakyness.
+// // This match function loops through all the pools and generates one match per pool aggregating all players
+// // in that pool in the generated match.
+// func MakeMatches(params *internalMmf.MatchFunctionParams) ([]*pb.Match, error) {
+// 	var result []*pb.Match
+// 	for _, tickets := range params.PoolNameToTickets {
+// 		if len(tickets) != 0 {
+// 			m, err := MakeMatch(params.ProfileName, tickets...)
+// 			if err != nil {
+// 				return nil, err
+// 			}
+// 			result = append(result, m)
+// 		}
+// 	}
 
-	return result, nil
-}
+// 	return result, nil
+// }
 
-// This match function defines the quality of a match as the sum of the Double
-// Args values of all tickets per match.  This is for testing purposes, and not
-// an example of a good score calculation.
-func scoreCalculator(tickets []*pb.Ticket) float64 {
-	matchScore := 0.0
-	for _, ticket := range tickets {
-		for _, v := range ticket.GetSearchFields().GetDoubleArgs() {
-			matchScore += v
-		}
-	}
-	return matchScore
-}
+// // This match function defines the quality of a match as the sum of the Double
+// // Args values of all tickets per match.  This is for testing purposes, and not
+// // an example of a good score calculation.
+// func scoreCalculator(tickets []*pb.Ticket) float64 {
+// 	matchScore := 0.0
+// 	for _, ticket := range tickets {
+// 		for _, v := range ticket.GetSearchFields().GetDoubleArgs() {
+// 			matchScore += v
+// 		}
+// 	}
+// 	return matchScore
+// }
 
-// MakeMatch creates a match given the provided tickets.
-func MakeMatch(profileName string, tickets ...*pb.Ticket) (*pb.Match, error) {
-	// Keep output deterministic
-	sort.Slice(tickets, func(i, j int) bool {
-		return tickets[i].Id < tickets[j].Id
-	})
+// // MakeMatch creates a match given the provided tickets.
+// func MakeMatch(profileName string, tickets ...*pb.Ticket) (*pb.Match, error) {
+// 	// Keep output deterministic
+// 	sort.Slice(tickets, func(i, j int) bool {
+// 		return tickets[i].Id < tickets[j].Id
+// 	})
 
-	evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
-		Score: scoreCalculator(tickets),
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to marshal DefaultEvaluationCriteria.")
-	}
+// 	evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
+// 		Score: scoreCalculator(tickets),
+// 	})
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "Failed to marshal DefaultEvaluationCriteria.")
+// 	}
 
-	id := "m"
-	for _, t := range tickets {
-		id += t.Id
-	}
+// 	id := "m"
+// 	for _, t := range tickets {
+// 		id += t.Id
+// 	}
 
-	return &pb.Match{
-		MatchId:       id,
-		MatchProfile:  profileName,
-		MatchFunction: matchName,
-		Tickets:       tickets,
-		Extensions: map[string]*any.Any{
-			"evaluation_input": evaluationInput,
-		},
-	}, nil
-}
+// 	return &pb.Match{
+// 		MatchId:       id,
+// 		MatchProfile:  profileName,
+// 		MatchFunction: matchName,
+// 		Tickets:       tickets,
+// 		Extensions: map[string]*any.Any{
+// 			"evaluation_input": evaluationInput,
+// 		},
+// 	}, nil
+// }

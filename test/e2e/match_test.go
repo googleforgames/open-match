@@ -16,91 +16,91 @@
 
 package e2e
 
-import (
-	"io"
-	"testing"
+// import (
+// 	"io"
+// 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/testing/e2e"
+// 	"github.com/stretchr/testify/assert"
+// 	"google.golang.org/grpc/codes"
+// 	"google.golang.org/grpc/status"
+// 	"open-match.dev/open-match/internal/testing/e2e"
 
-	"open-match.dev/open-match/pkg/pb"
-)
+// 	"open-match.dev/open-match/pkg/pb"
+// )
 
-func TestFetchMatches(t *testing.T) {
-	om := e2e.New(t)
+// func TestFetchMatches(t *testing.T) {
+// 	om := e2e.New(t)
 
-	be := om.MustBackendGRPC()
+// 	be := om.MustBackendGRPC()
 
-	var tt = []struct {
-		description string
-		fc          *pb.FunctionConfig
-		profile     *pb.MatchProfile
-		wantMatch   []*pb.Match
-		wantCode    codes.Code
-	}{
-		{
-			"expects invalid argument code since request is empty",
-			nil,
-			nil,
-			nil,
-			codes.InvalidArgument,
-		},
-		{
-			"expects unavailable code since there is no mmf being hosted with given function config",
-			&pb.FunctionConfig{
-				Host: "om-function",
-				Port: int32(54321),
-				Type: pb.FunctionConfig_GRPC,
-			},
-			&pb.MatchProfile{Name: "some name"},
-			[]*pb.Match{},
-			codes.Unavailable,
-		},
-		{
-			"expects empty response since the store is empty",
-			om.MustMmfConfigGRPC(),
-			&pb.MatchProfile{Name: "some name"},
-			[]*pb.Match{},
-			codes.OK,
-		},
-	}
+// 	var tt = []struct {
+// 		description string
+// 		fc          *pb.FunctionConfig
+// 		profile     *pb.MatchProfile
+// 		wantMatch   []*pb.Match
+// 		wantCode    codes.Code
+// 	}{
+// 		{
+// 			"expects invalid argument code since request is empty",
+// 			nil,
+// 			nil,
+// 			nil,
+// 			codes.InvalidArgument,
+// 		},
+// 		{
+// 			"expects unavailable code since there is no mmf being hosted with given function config",
+// 			&pb.FunctionConfig{
+// 				Host: "om-function",
+// 				Port: int32(54321),
+// 				Type: pb.FunctionConfig_GRPC,
+// 			},
+// 			&pb.MatchProfile{Name: "some name"},
+// 			[]*pb.Match{},
+// 			codes.Unavailable,
+// 		},
+// 		{
+// 			"expects empty response since the store is empty",
+// 			om.MustMmfConfigGRPC(),
+// 			&pb.MatchProfile{Name: "some name"},
+// 			[]*pb.Match{},
+// 			codes.OK,
+// 		},
+// 	}
 
-	t.Run("TestFetchMatches", func(t *testing.T) {
-		for _, test := range tt {
-			test := test
-			t.Run(test.description, func(t *testing.T) {
-				t.Parallel()
-				ctx := om.Context()
+// 	t.Run("TestFetchMatches", func(t *testing.T) {
+// 		for _, test := range tt {
+// 			test := test
+// 			t.Run(test.description, func(t *testing.T) {
+// 				t.Parallel()
+// 				ctx := om.Context()
 
-				stream, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile})
-				assert.Nil(t, err)
+// 				stream, err := be.FetchMatches(ctx, &pb.FetchMatchesRequest{Config: test.fc, Profile: test.profile})
+// 				assert.Nil(t, err)
 
-				var resp *pb.FetchMatchesResponse
-				var gotMatches []*pb.Match
-				for {
-					resp, err = stream.Recv()
-					if err == io.EOF {
-						break
-					}
-					if err != nil {
-						assert.Contains(t, []codes.Code{test.wantCode, codes.Unknown}, status.Convert(err).Code())
-						break
-					}
-					gotMatches = append(gotMatches, &pb.Match{
-						MatchProfile:  resp.GetMatch().GetMatchProfile(),
-						MatchFunction: resp.GetMatch().GetMatchFunction(),
-						Tickets:       resp.GetMatch().GetTickets(),
-					})
-				}
+// 				var resp *pb.FetchMatchesResponse
+// 				var gotMatches []*pb.Match
+// 				for {
+// 					resp, err = stream.Recv()
+// 					if err == io.EOF {
+// 						break
+// 					}
+// 					if err != nil {
+// 						assert.Contains(t, []codes.Code{test.wantCode, codes.Unknown}, status.Convert(err).Code())
+// 						break
+// 					}
+// 					gotMatches = append(gotMatches, &pb.Match{
+// 						MatchProfile:  resp.GetMatch().GetMatchProfile(),
+// 						MatchFunction: resp.GetMatch().GetMatchFunction(),
+// 						Tickets:       resp.GetMatch().GetTickets(),
+// 					})
+// 				}
 
-				if err == nil {
-					for _, match := range gotMatches {
-						assert.Contains(t, test.wantMatch, match)
-					}
-				}
-			})
-		}
-	})
-}
+// 				if err == nil {
+// 					for _, match := range gotMatches {
+// 						assert.Contains(t, test.wantMatch, match)
+// 					}
+// 				}
+// 			})
+// 		}
+// 	})
+// }

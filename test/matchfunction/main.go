@@ -19,12 +19,12 @@
 // matchmaking logic in this function based on your game's requirements.
 package main
 
-import (
-	"open-match.dev/open-match/internal/appmain"
-	internalMmf "open-match.dev/open-match/internal/testing/mmf"
-	"open-match.dev/open-match/test/matchfunction/mmf"
-)
+// import (
+// 	"open-match.dev/open-match/internal/appmain"
+// 	internalMmf "open-match.dev/open-match/internal/testing/mmf"
+// 	"open-match.dev/open-match/test/matchfunction/mmf"
+// )
 
 func main() {
-	appmain.RunApplication("functions", internalMmf.BindServiceFor(mmf.MakeMatches))
+	// appmain.RunApplication("functions", internalMmf.BindServiceFor(mmf.MakeMatches))
 }

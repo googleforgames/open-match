@@ -1,3 +1,5 @@
+// +build e2ecluster
+
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,12 +16,14 @@
 
 package e2e
 
-// import (
-// 	"testing"
+func TestServiceHealth(t *testing.T) {
+	om := e2e.New(t)
+	if err := om.HealthCheck(); err != nil {
+		t.Errorf("cluster health checks failed, %s", err)
+	}
+}
 
-// 	"open-match.dev/open-match/internal/testing/e2e"
-// )
-
-// func TestMain(m *testing.M) {
-// 	e2e.RunMain(m)
-// }
+func TestConfigMatch() {
+	// TODO
+	t.Errorf("Does not test that in memory config matches cluster's config.")
+}
