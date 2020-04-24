@@ -96,6 +96,15 @@ func New(t *testing.T) *OM {
 	om.be = pb.NewBackendServiceClient(apptest.GRPCClient(t, om.cfg, "api.backend"))
 	om.query = pb.NewQueryServiceClient(apptest.GRPCClient(t, om.cfg, "api.query"))
 
+	t.Cleanup(func() {
+		if om.mmf != nil && !om.mmfCalled {
+			t.Error("MMF set but never called.")
+		}
+		if om.eval != nil && !om.evalCalled {
+			t.Error("Evaluator set but never called.")
+		}
+	})
+
 	return om
 }
 
@@ -106,9 +115,11 @@ type OM struct {
 	be    pb.BackendServiceClient
 	query pb.QueryServiceClient
 
-	fLock sync.Mutex
-	eval  evaluator.Evaluator
-	mmf   mmfService.MatchFunction
+	fLock      sync.Mutex
+	mmf        mmfService.MatchFunction
+	mmfCalled  bool
+	eval       evaluator.Evaluator
+	evalCalled bool
 }
 
 func (om *OM) SetMMF(mmf mmfService.MatchFunction) {
@@ -125,6 +136,7 @@ func (om *OM) SetMMF(mmf mmfService.MatchFunction) {
 func (om *OM) runMMF(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
 	om.fLock.Lock()
 	mmf := om.mmf
+	om.mmfCalled = true
 	om.fLock.Unlock()
 
 	if mmf == nil {
@@ -147,6 +159,7 @@ func (om *OM) SetEvaluator(eval evaluator.Evaluator) {
 func (om *OM) evaluate(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
 	om.fLock.Lock()
 	eval := om.eval
+	om.evalCalled = true
 	om.fLock.Unlock()
 
 	if eval == nil {

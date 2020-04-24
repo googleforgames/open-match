@@ -387,13 +387,9 @@ func (c *cutoffSender) cutoff() {
 ///////////////////////////////////////
 
 // Calls the evaluator with the matches.
-func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelErrFunc, m3c <-chan []*pb.Match, m5c chan<- string) {
-	matchIDs, err := s.eval.evaluate(ctx, m3c)
-	if err == nil {
-		for _, mID := range matchIDs {
-			m5c <- mID
-		}
-	} else {
+func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelErrFunc, m4c <-chan []*pb.Match, m5c chan<- string) {
+	err := s.eval.evaluate(ctx, m4c, m5c)
+	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("error calling evaluator, canceling cycle")

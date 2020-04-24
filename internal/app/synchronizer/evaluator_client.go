@@ -40,7 +40,7 @@ var (
 )
 
 type evaluator interface {
-	evaluate(context.Context, <-chan []*pb.Match) ([]string, error)
+	evaluate(context.Context, <-chan []*pb.Match, chan<- string) error
 }
 
 var errNoEvaluatorType = status.Errorf(codes.FailedPrecondition, "unable to determine evaluator type, either api.evaluator.grpcport or api.evaluator.httpport must be specified in the config")
@@ -66,17 +66,17 @@ type deferredEvaluator struct {
 	cacher *config.Cacher
 }
 
-func (de *deferredEvaluator) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]string, error) {
+func (de *deferredEvaluator) evaluate(ctx context.Context, pc <-chan []*pb.Match, acceptedIds chan<- string) error {
 	e, err := de.cacher.Get()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	matches, err := e.(evaluator).evaluate(ctx, pc)
+	err = e.(evaluator).evaluate(ctx, pc, acceptedIds)
 	if err != nil {
 		de.cacher.ForceReset()
 	}
-	return matches, err
+	return err
 }
 
 type grcpEvaluatorClient struct {
@@ -106,7 +106,7 @@ func newGrpcEvaluator(cfg config.View) (evaluator, func(), error) {
 	}, close, nil
 }
 
-func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]string, error) {
+func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match, acceptedIds chan<- string) error {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	var stream pb.Evaluator_EvaluateClient
@@ -114,17 +114,20 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 		var err error
 		stream, err = ec.evaluator.Evaluate(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("error starting evaluator call: %w", err)
+			return fmt.Errorf("error starting evaluator call: %w", err)
 		}
 	}
 
-	results := []string{}
 	matchIDs := &sync.Map{}
+	println("CYCLE")
 
 	eg.Go(func() error {
 		for proposals := range pc {
 			for _, proposal := range proposals {
+				println("TEEEEEEEEEEEEEEEEEEEEEEEEEEEEST")
+
 				if _, ok := matchIDs.LoadOrStore(proposal.GetMatchId(), true); ok {
+					println("YOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
 					return fmt.Errorf("found duplicate matchID %s", proposal.GetMatchId())
 				}
 				if err := stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
@@ -157,15 +160,15 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 			if !v.(bool) {
 				return fmt.Errorf("evaluator returned duplicated matchID %s", resp.GetMatchId())
 			}
-			results = append(results, resp.GetMatchId())
+			acceptedIds <- resp.GetMatchId()
 		}
 	})
 
 	err := eg.Wait()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return results, nil
+	return nil
 }
 
 type httpEvaluatorClient struct {
@@ -194,7 +197,7 @@ func newHTTPEvaluator(cfg config.View) (evaluator, func(), error) {
 	}, close, nil
 }
 
-func (ec *httpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match) ([]string, error) {
+func (ec *httpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Match, acceptedIds chan<- string) error {
 	reqr, reqw := io.Pipe()
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -227,14 +230,14 @@ func (ec *httpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 
 	req, err := http.NewRequest("POST", ec.baseURL+"/v1/evaluator/matches:evaluate", reqr)
 	if err != nil {
-		return nil, status.Errorf(codes.Aborted, "failed to create evaluator http request, desc: %s", err.Error())
+		return status.Errorf(codes.Aborted, "failed to create evaluator http request, desc: %s", err.Error())
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Transfer-Encoding", "chunked")
 
 	resp, err := ec.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
-		return nil, status.Errorf(codes.Aborted, "failed to get response from evaluator, desc: %s", err.Error())
+		return status.Errorf(codes.Aborted, "failed to get response from evaluator, desc: %s", err.Error())
 	}
 	defer func() {
 		if resp.Body.Close() != nil {
@@ -243,7 +246,6 @@ func (ec *httpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 	}()
 
 	wg.Add(1)
-	var results = []string{}
 	rc := make(chan error, 1)
 	defer close(rc)
 	go func() {
@@ -272,16 +274,16 @@ func (ec *httpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 				rc <- status.Errorf(codes.Unavailable, "failed to execute jsonpb.UnmarshalString(%s, &proposal): %v.", item.Result, err)
 				return
 			}
-			results = append(results, resp.GetMatchId())
+			acceptedIds <- resp.GetMatchId()
 		}
 	}()
 
 	wg.Wait()
 	if len(sc) != 0 {
-		return nil, <-sc
+		return <-sc
 	}
 	if len(rc) != 0 {
-		return nil, <-rc
+		return <-rc
 	}
-	return results, nil
+	return nil
 }

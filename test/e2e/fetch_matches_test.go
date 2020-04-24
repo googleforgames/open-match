@@ -69,3 +69,105 @@ func TestHappyPath(t *testing.T) {
 	require.Equal(t, err, io.EOF)
 	require.Nil(t, resp)
 }
+
+func TestMatchFunctionMatchCollision(t *testing.T) {
+	ctx := context.Background()
+	om := e2e.New(t)
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+
+	t2, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- &pb.Match{
+			MatchId: "1",
+			Tickets: []*pb.Ticket{t1},
+		}
+		out <- &pb.Match{
+			MatchId: "1",
+			Tickets: []*pb.Ticket{t2},
+		}
+		return nil
+	})
+
+	om.SetEvaluator(evaluatorRejectAll)
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	resp, err := stream.Recv()
+	require.Contains(t, err.Error(), "found duplicate matchID")
+	require.Nil(t, resp)
+}
+
+func TestEvaluatorMatchCollision(t *testing.T) {
+	ctx := context.Background()
+	om := e2e.New(t)
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- &pb.Match{
+			MatchId: "1",
+			Tickets: []*pb.Ticket{t1},
+		}
+		return nil
+	})
+
+	om.SetEvaluator(evaluatorAcceptAll)
+
+	s1, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	// Flow first match through before starting second mmf, so the second mmf
+	// is the one which gets the collision error.
+	_, err = s1.Recv()
+	require.Nil(t, err)
+
+	s2, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	resp, err := s2.Recv()
+	require.Nil(t, resp)
+	require.Contains(t, err.Error(), "found duplicate matchID")
+
+	resp, err = s1.Recv()
+	require.Contains(t, err.Error(), "found duplicate matchID")
+	require.Nil(t, resp)
+}
+
+func TestEvaluatorReturnInvalidId(t *testing.T) {
+}
+
+func TestEvaluatorReturnDuplicateMatchId(t *testing.T) {
+
+}
+
+func TestMatchWithNoTickets(t *testing.T) {
+
+}
+
+func evaluatorRejectAll(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+	for range in {
+	}
+	return nil
+}
+
+func evaluatorAcceptAll(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+	for m := range in {
+		out <- m.MatchId
+	}
+	return nil
+}
