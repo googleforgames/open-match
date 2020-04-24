@@ -18,14 +18,11 @@ import (
 	"context"
 	"io"
 	"testing"
-	// "time"
 
-	"github.com/stretchr/testify/require"
-	// "google.golang.org/grpc"
 	"github.com/golang/protobuf/proto"
+	"github.com/stretchr/testify/require"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
-	// "open-match.dev/open-match/test/matchfunction/mmf"
 )
 
 func TestHappyPath(t *testing.T) {
