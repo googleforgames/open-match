@@ -71,6 +71,7 @@ func TestHappyPath(t *testing.T) {
 }
 
 func TestMatchFunctionMatchCollision(t *testing.T) {
+	// TODO: another MMF in same cycle doesn't get error?
 	ctx := context.Background()
 	om := e2e.New(t)
 
@@ -101,7 +102,7 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 	require.Nil(t, err)
 
 	resp, err := stream.Recv()
-	require.Contains(t, err.Error(), "found duplicate matchID")
+	require.Contains(t, err.Error(), "MatchMakingFunction returned same match_id twice: \"1\"")
 	require.Nil(t, resp)
 }
 
@@ -141,21 +142,92 @@ func TestEvaluatorMatchCollision(t *testing.T) {
 
 	resp, err := s2.Recv()
 	require.Nil(t, resp)
-	require.Contains(t, err.Error(), "found duplicate matchID")
+	require.Contains(t, err.Error(), "Multiple match functions used same match_id: \"1\"")
 
 	resp, err = s1.Recv()
-	require.Contains(t, err.Error(), "found duplicate matchID")
+	require.Contains(t, err.Error(), "Multiple match functions used same match_id: \"1\"")
 	require.Nil(t, resp)
 }
 
 func TestEvaluatorReturnInvalidId(t *testing.T) {
+	ctx := context.Background()
+	om := e2e.New(t)
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		out <- "1"
+		return nil
+	})
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	resp, err := stream.Recv()
+	require.Contains(t, err.Error(), "evaluator returned match_id \"1\" which does not correspond to its any match in its input")
+	require.Nil(t, resp)
 }
 
 func TestEvaluatorReturnDuplicateMatchId(t *testing.T) {
+	ctx := context.Background()
+	om := e2e.New(t)
 
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+	t2, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+
+	m := &pb.Match{
+		MatchId: "1",
+		Tickets: []*pb.Ticket{t1, t2},
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- m
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		p, ok := <-in
+		require.True(t, ok)
+		require.True(t, proto.Equal(p, m))
+		_, ok = <-in
+		require.False(t, ok)
+
+		out <- m.MatchId
+		out <- m.MatchId
+		return nil
+	})
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	_, err = stream.Recv()
+
+	// May recieve up to one match
+	if err == nil {
+		_, err = stream.Recv()
+	}
+	require.Contains(t, err.Error(), "evaluator returned same match_id twice: \"1\"")
 }
 
 func TestMatchWithNoTickets(t *testing.T) {
+
+}
+
+func TestEvaluatorError(t *testing.T) {
+
+}
+
+func TestMMFError(t *testing.T) {
 
 }
 

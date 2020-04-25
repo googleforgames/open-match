@@ -123,7 +123,11 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 		select {
 		case mIDs, ok := <-m6cBuffer:
 			if !ok {
-				return nil
+				// Prevent race: An error will result in this channel being
+				// closed as part of cleanup.  If it's especially fast, it may
+				// beat the context done case, so be sure to return any
+				// potential error.
+				return registration.cycleCtx.Err()
 			}
 			for _, mID := range mIDs {
 				err = stream.Send(&ipb.SynchronizeResponse{MatchId: mID})
@@ -148,6 +152,7 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 			}).Error("error streaming in synchronizer to backend: context is done")
 			return stream.Context().Err()
 		case <-registration.cycleCtx.Done():
+			println("RETURNING ERRROR FROM SYNCHRONIZER")
 			return registration.cycleCtx.Err()
 		}
 	}

@@ -127,9 +127,9 @@ sendProposals:
 			if !ok {
 				break sendProposals
 			}
-			id, loaded := m.LoadOrStore(p.GetMatchId(), p)
+			_, loaded := m.LoadOrStore(p.GetMatchId(), p)
 			if loaded {
-				return fmt.Errorf("found duplicate matchID %s returned from MMF", id)
+				return fmt.Errorf("MatchMakingFunction returned same match_id twice: \"%s\"", p.GetMatchId())
 			}
 			telemetry.RecordUnitMeasurement(ctx, mMatchesSentToEvaluation)
 			err := syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
