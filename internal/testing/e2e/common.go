@@ -239,8 +239,8 @@ api:
     httpport: "51509"
 
 synchronizer:
-  registrationIntervalMs: 250ms
-  proposalCollectionIntervalMs: 20000ms
+  registrationIntervalMs: 100ms
+  proposalCollectionIntervalMs: 100ms
 
 storage:
   ignoreListTTL: 500ms

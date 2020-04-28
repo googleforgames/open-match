@@ -205,7 +205,7 @@ func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 	}
 	client := pb.NewMatchFunctionClient(conn)
 
-	stream, err := client.Run(ctx, &pb.RunRequest{Profile: profile})
+	stream, err := client.Run(ctx, &pb.RunRequest{Profile: profile}, grpc.WaitForReady(true))
 	if err != nil {
 		logger.WithError(err).Error("failed to run match function for profile")
 		return err

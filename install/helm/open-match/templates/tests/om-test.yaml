@@ -96,4 +96,8 @@ spec:
     - "-race"
     - "-tags"
     - "e2ecluster"
+    - "-run"
+    - "TestHappyPath"
+    - "-count"
+    - "5"
   restartPolicy: Never

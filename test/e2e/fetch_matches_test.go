@@ -20,11 +20,13 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
+// TestHappyPath does a simple test of sucessfully creating a match with two tickets.
 func TestHappyPath(t *testing.T) {
 	ctx := context.Background()
 	om := e2e.New(t)
@@ -70,6 +72,8 @@ func TestHappyPath(t *testing.T) {
 	require.Nil(t, resp)
 }
 
+// TestMatchFunctionMatchCollision covers two matches with the same id coming
+// from the same MMF generates an error to the fetch matches call.
 func TestMatchFunctionMatchCollision(t *testing.T) {
 	// TODO: another MMF in same cycle doesn't get error?
 	ctx := context.Background()
@@ -106,7 +110,10 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 	require.Nil(t, resp)
 }
 
-func TestEvaluatorMatchCollision(t *testing.T) {
+// TestSynchronizerMatchCollision covers two different MMFs generating matches
+// with the same id, and causing all fetch match calls to fail with an error
+// indicating this occured.
+func TestSynchronizerMatchCollision(t *testing.T) {
 	ctx := context.Background()
 	om := e2e.New(t)
 
@@ -149,6 +156,8 @@ func TestEvaluatorMatchCollision(t *testing.T) {
 	require.Nil(t, resp)
 }
 
+// TestEvaluatorReturnInvalidId covers the evaluator returning an ID which does
+// not correspond to any match passed to it.
 func TestEvaluatorReturnInvalidId(t *testing.T) {
 	ctx := context.Background()
 	om := e2e.New(t)
@@ -173,6 +182,8 @@ func TestEvaluatorReturnInvalidId(t *testing.T) {
 	require.Nil(t, resp)
 }
 
+// TestEvaluatorReturnDuplicateMatchId covers the evaluator returning the same
+// match id twice, which causes an error for fetch match callers.
 func TestEvaluatorReturnDuplicateMatchId(t *testing.T) {
 	ctx := context.Background()
 	om := e2e.New(t)
@@ -219,16 +230,101 @@ func TestEvaluatorReturnDuplicateMatchId(t *testing.T) {
 	require.Contains(t, err.Error(), "evaluator returned same match_id twice: \"1\"")
 }
 
+// TestMatchWithNoTickets covers that it is valid to create a match with no
+// tickets specified.  This is a questionable use case, but it works currently
+// so it probably shouldn't be changed without significant justification.
 func TestMatchWithNoTickets(t *testing.T) {
+	ctx := context.Background()
+	om := e2e.New(t)
 
+	m := &pb.Match{
+		MatchId: "1",
+		Tickets: nil,
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- m
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		p, ok := <-in
+		require.True(t, ok)
+		require.True(t, proto.Equal(p, m))
+		_, ok = <-in
+		require.False(t, ok)
+
+		out <- m.MatchId
+		return nil
+	})
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	resp, err := stream.Recv()
+	require.Nil(t, err)
+	require.True(t, proto.Equal(m, resp.Match))
+
+	resp, err = stream.Recv()
+	require.Equal(t, err, io.EOF)
+	require.Nil(t, resp)
 }
 
+// TestEvaluatorError covers an evaluator returning an error message, and
+// ensuring that the error message is returned to the fetch matches call.
 func TestEvaluatorError(t *testing.T) {
+	ctx := context.Background()
+	om := e2e.New(t)
 
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		return errors.New("my custom error")
+	})
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	resp, err := stream.Recv()
+
+	require.Contains(t, err.Error(), "my custom error")
+	require.Nil(t, resp)
 }
 
+// TestEvaluatorError covers an MMF returning an error message, and ensuring
+// that the error message is returned to the fetch matches call.
 func TestMMFError(t *testing.T) {
+	ctx := context.Background()
+	om := e2e.New(t)
 
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		return errors.New("my custom error")
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		_, ok := <-in
+		require.False(t, ok)
+		return nil
+	})
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	resp, err := stream.Recv()
+
+	require.Contains(t, err.Error(), "my custom error")
+	require.Nil(t, resp)
 }
 
 func evaluatorRejectAll(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {

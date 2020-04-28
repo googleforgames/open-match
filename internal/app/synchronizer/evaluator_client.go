@@ -25,6 +25,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
@@ -112,7 +113,7 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 	var stream pb.Evaluator_EvaluateClient
 	{ // prevent shadowing err later
 		var err error
-		stream, err = ec.evaluator.Evaluate(ctx)
+		stream, err = ec.evaluator.Evaluate(ctx, grpc.WaitForReady(true))
 		if err != nil {
 			return fmt.Errorf("error starting evaluator call: %w", err)
 		}
