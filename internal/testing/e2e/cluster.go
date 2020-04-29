@@ -20,7 +20,7 @@ import (
 	"context"
 	"testing"
 
-	"google.golang.org/grpc/resolver"
+	// "google.golang.org/grpc/resolver"
 	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/appmain/apptest"
 	"open-match.dev/open-match/internal/config"
@@ -55,11 +55,18 @@ func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction)
 	return cfg
 }
 
-func init() {
-	// Reset the gRPC resolver to passthrough for end-to-end out-of-cluster testings.
-	// DNS resolver is unsupported for end-to-end local testings.
-	resolver.SetDefaultScheme("dns")
-}
+// func TestMain(m *testing.M) {
+
+// 	exitCode := m.Run()
+
+// 	os.Exit(exitCode)
+// }
+
+// func init() {
+// 	// Reset the gRPC resolver to passthrough for end-to-end out-of-cluster testings.
+// 	// DNS resolver is unsupported for end-to-end local testings.
+// 	resolver.SetDefaultScheme("dns")
+// }
 
 // type clusterOM struct {
 // 	kubeClient kubernetes.Interface

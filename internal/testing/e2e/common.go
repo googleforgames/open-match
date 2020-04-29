@@ -91,12 +91,9 @@ func New(t *testing.T) *OM {
 	om := &OM{
 		t: t,
 	}
-	om.cfg = start(t, om.evaluate, om.runMMF)
-	om.fe = pb.NewFrontendServiceClient(apptest.GRPCClient(t, om.cfg, "api.frontend"))
-	om.be = pb.NewBackendServiceClient(apptest.GRPCClient(t, om.cfg, "api.backend"))
-	om.query = pb.NewQueryServiceClient(apptest.GRPCClient(t, om.cfg, "api.query"))
-
 	t.Cleanup(func() {
+		// Set this cleanup before starting servers, so that servers will be
+		// stopped before this runs.
 		if om.mmf != nil && !om.mmfCalled {
 			t.Error("MMF set but never called.")
 		}
@@ -104,6 +101,11 @@ func New(t *testing.T) *OM {
 			t.Error("Evaluator set but never called.")
 		}
 	})
+
+	om.cfg = start(t, om.evaluate, om.runMMF)
+	om.fe = pb.NewFrontendServiceClient(apptest.GRPCClient(t, om.cfg, "api.frontend"))
+	om.be = pb.NewBackendServiceClient(apptest.GRPCClient(t, om.cfg, "api.backend"))
+	om.query = pb.NewQueryServiceClient(apptest.GRPCClient(t, om.cfg, "api.query"))
 
 	return om
 }

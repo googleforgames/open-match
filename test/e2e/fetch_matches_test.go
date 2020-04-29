@@ -128,7 +128,16 @@ func TestSynchronizerMatchCollision(t *testing.T) {
 		return nil
 	})
 
-	om.SetEvaluator(evaluatorAcceptAll)
+	timesEvaluatorCalled := 0
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		timesEvaluatorCalled++
+		require.Equal(t, 1, timesEvaluatorCalled)
+		for m := range in {
+			out <- m.MatchId
+		}
+		return nil
+	})
 
 	s1, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
 		Config:  om.MMFConfigGRPC(),
