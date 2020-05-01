@@ -14,27 +14,27 @@
 
 package e2e
 
-var (
-	zygote OM
-)
+// var (
+// 	zygote OM
+// )
 
-const (
-	// Map1BeginnerPool is a pool name.
-	Map1BeginnerPool = "map1beginner"
-	// Map1AdvancedPool is pool name.
-	Map1AdvancedPool = "map1advanced"
-	// Map2BeginnerPool is pool name.
-	Map2BeginnerPool = "map2beginner"
-	// Map2AdvancedPool is pool name.
-	Map2AdvancedPool = "map2advanced"
-	// DoubleArgMMR is an index used to test DoubleRangeFilter.
-	DoubleArgMMR = "attribute.mmr"
-	// DoubleArgLevel is an index used to test DoubleRangeFilter.
-	DoubleArgLevel = "attribute.level"
-	// DoubleArgDefense is an index used to test DoubleRangeFilter.
-	DoubleArgDefense = "attribute.defense"
-	// ModeDemo is an index used to test BoolEqualsFilter
-	ModeDemo = "mode.demo"
-	// Role is an index used to test StringEqualsFilter
-	Role = "char"
-)
+// const (
+// 	// Map1BeginnerPool is a pool name.
+// 	Map1BeginnerPool = "map1beginner"
+// 	// Map1AdvancedPool is pool name.
+// 	Map1AdvancedPool = "map1advanced"
+// 	// Map2BeginnerPool is pool name.
+// 	Map2BeginnerPool = "map2beginner"
+// 	// Map2AdvancedPool is pool name.
+// 	Map2AdvancedPool = "map2advanced"
+// 	// DoubleArgMMR is an index used to test DoubleRangeFilter.
+// 	DoubleArgMMR = "attribute.mmr"
+// 	// DoubleArgLevel is an index used to test DoubleRangeFilter.
+// 	DoubleArgLevel = "attribute.level"
+// 	// DoubleArgDefense is an index used to test DoubleRangeFilter.
+// 	DoubleArgDefense = "attribute.defense"
+// 	// ModeDemo is an index used to test BoolEqualsFilter
+// 	ModeDemo = "mode.demo"
+// 	// Role is an index used to test StringEqualsFilter
+// 	Role = "char"
+// )
