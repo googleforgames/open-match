@@ -22,6 +22,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -332,6 +334,67 @@ func TestMMFError(t *testing.T) {
 	resp, err := stream.Recv()
 
 	require.Contains(t, err.Error(), "my custom error")
+	require.Nil(t, resp)
+}
+
+// TestNoMatches covers that returning no matches is acceptable.
+func TestNoMatches(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		_, ok := <-in
+		require.False(t, ok)
+
+		return nil
+	})
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	resp, err := stream.Recv()
+	require.Equal(t, err, io.EOF)
+	require.Nil(t, resp)
+}
+
+// TestNoMatches covers missing the profile field on fetch matches.
+func TestNoProfile(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: nil,
+	})
+	require.Nil(t, err)
+
+	resp, err := stream.Recv()
+	require.Equal(t, ".profile is required", status.Convert(err).Message())
+	require.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
+	require.Nil(t, resp)
+}
+
+// TestNoConfig covers missing the config field on fetch matches.
+func TestNoConfig(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  nil,
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	resp, err := stream.Recv()
+	require.Equal(t, ".config is required", status.Convert(err).Message())
+	require.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
 	require.Nil(t, resp)
 }
 
