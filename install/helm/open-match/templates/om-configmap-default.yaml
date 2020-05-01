@@ -58,7 +58,7 @@ data:
         grpcport: "{{ .Values.frontend.grpcPort }}"
         httpport: "{{ .Values.frontend.httpPort }}"
       query:
-        hostname: "{{ .Values.query.hostName }}.{{ .Release.Namespace }}.svc.cluster.local"
+        hostname: "{{ .Values.query.hostName }}"
         grpcport: "{{ .Values.query.grpcPort }}"
         httpport: "{{ .Values.query.httpPort }}"
       synchronizer:
@@ -88,7 +88,7 @@ data:
     storage:
       ignoreListTTL: {{ index .Values "open-match-core" "ignoreListTTL" }}
       page:
-        size: 10000
+        size: {{ index .Values "open-match-core" "pageSize" }}
 
     redis:
 {{- if index .Values "open-match-core" "redis" "enabled" }}

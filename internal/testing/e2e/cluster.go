@@ -18,18 +18,26 @@ package e2e
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	// "google.golang.org/grpc/resolver"
 	"open-match.dev/open-match/internal/app/evaluator"
-	"open-match.dev/open-match/internal/appmain/apptest"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
 	mmfService "open-match.dev/open-match/internal/testing/mmf"
 )
 
 func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction) config.View {
-	apptest.RunInCluster(t, mmfService.BindServiceFor(mmf), evaluator.BindServiceFor(eval))
+	clusterLock.Lock()
+	t.Cleanup(func() {
+		clusterLock.Unlock()
+	})
+	if !clusterStarted {
+		t.Fatal("Cluster not started")
+	}
+	clusterEval = eval
+	clusterMMF = mmf
 
 	cfg, err := config.Read()
 	if err != nil {
@@ -55,12 +63,10 @@ func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction)
 	return cfg
 }
 
-// func TestMain(m *testing.M) {
-
-// 	exitCode := m.Run()
-
-// 	os.Exit(exitCode)
-// }
+var clusterLock sync.Mutex
+var clusterEval evaluator.Evaluator
+var clusterMMF mmfService.MatchFunction
+var clusterStarted bool
 
 // func init() {
 // 	// Reset the gRPC resolver to passthrough for end-to-end out-of-cluster testings.

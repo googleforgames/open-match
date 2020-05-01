@@ -35,63 +35,14 @@ var (
 	testOnlyLoggingLevel         = flag.String("test_only_log_level", "info", "Sets the log level for tests.")
 )
 
-// // OM is the interface for communicating with Open Match.
-// type OM interface {
-// 	// MustFrontendGRPC returns a gRPC client to frontend server.
-// 	MustFrontendGRPC() pb.FrontendServiceClient
-// 	// MustBackendGRPC returns a gRPC client to backend server.
-// 	MustBackendGRPC() pb.BackendServiceClient
-// 	// MustQueryServiceGRPC returns a gRPC client to query server.
-// 	MustQueryServiceGRPC() pb.QueryServiceClient
-// 	// HealthCheck probes the cluster for readiness.
-// 	HealthCheck() error
-// 	// MustMmfConfigGRPC returns a grpc match function config for backend server.
-// 	MustMmfConfigGRPC() *pb.FunctionConfig
-// 	// MustMmfConfigHTTP returns a http match function config for backend server.
-// 	MustMmfConfigHTTP() *pb.FunctionConfig
-// 	// Context provides a context to call remote methods.
-// 	Context() context.Context
-
-// 	withT(t *testing.T) OM
-// }
-
-// // New creates a new e2e test interface.
-// func New(t *testing.T) OM {
-// 	om := zygote.withT(t)
-// 	return om
-// }
-
-// // RunMain provides the setup and teardown for Open Match e2e tests.
-// func RunMain(m *testing.M) {
-// 	// Reset the gRPC resolver to passthrough for end-to-end out-of-cluster testings.
-// 	// DNS resolver is unsupported for end-to-end local testings.
-// 	resolver.SetDefaultScheme("passthrough")
-// 	var exitCode int
-// 	z, err := createZygote(m)
-// 	if err != nil {
-// 		log.Fatalf("failed to setup framework: %s", err)
-// 	}
-// 	zygote = z
-// 	exitCode = m.Run()
-// 	os.Exit(exitCode)
-// }
-
-// // OM contains ways to access Open Match.
-// type OM interface {
-// 	Frontend() pb.FrontendServiceClient
-// 	Backend() pb.BackendServiceClient
-// 	Query() pb.QueryServiceClient
-// 	MmfConfigGRPC() *pb.FunctionConfig
-// 	MmfConfigHTTP() *pb.FunctionConfig
-
-// 	Set
-// }
-
-func New(t *testing.T) *OM {
-	om := &OM{
+func newOM(t *testing.T) *om {
+	om := &om{
 		t: t,
 	}
 	t.Cleanup(func() {
+		om.running.Wait()
+		om.fLock.Lock()
+		defer om.fLock.Unlock()
 		// Set this cleanup before starting servers, so that servers will be
 		// stopped before this runs.
 		if om.mmf != nil && !om.mmfCalled {
@@ -110,13 +61,14 @@ func New(t *testing.T) *OM {
 	return om
 }
 
-type OM struct {
+type om struct {
 	t     *testing.T
 	cfg   config.View
 	fe    pb.FrontendServiceClient
 	be    pb.BackendServiceClient
 	query pb.QueryServiceClient
 
+	running    sync.WaitGroup
 	fLock      sync.Mutex
 	mmf        mmfService.MatchFunction
 	mmfCalled  bool
@@ -124,7 +76,7 @@ type OM struct {
 	evalCalled bool
 }
 
-func (om *OM) SetMMF(mmf mmfService.MatchFunction) {
+func (om *om) SetMMF(mmf mmfService.MatchFunction) {
 	om.fLock.Lock()
 	defer om.fLock.Unlock()
 
@@ -135,7 +87,9 @@ func (om *OM) SetMMF(mmf mmfService.MatchFunction) {
 	om.t.Fatal("Matchmaking function set multiple times")
 }
 
-func (om *OM) runMMF(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+func (om *om) runMMF(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+	om.running.Add(1)
+	defer om.running.Done()
 	om.fLock.Lock()
 	mmf := om.mmf
 	om.mmfCalled = true
@@ -147,7 +101,7 @@ func (om *OM) runMMF(ctx context.Context, profile *pb.MatchProfile, out chan<- *
 	return mmf(ctx, profile, out)
 }
 
-func (om *OM) SetEvaluator(eval evaluator.Evaluator) {
+func (om *om) SetEvaluator(eval evaluator.Evaluator) {
 	om.fLock.Lock()
 	defer om.fLock.Unlock()
 
@@ -158,7 +112,9 @@ func (om *OM) SetEvaluator(eval evaluator.Evaluator) {
 	om.t.Fatal("Evaluator function set multiple times")
 }
 
-func (om *OM) evaluate(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+func (om *om) evaluate(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+	om.running.Add(1)
+	defer om.running.Done()
 	om.fLock.Lock()
 	eval := om.eval
 	om.evalCalled = true
@@ -170,19 +126,19 @@ func (om *OM) evaluate(ctx context.Context, in <-chan *pb.Match, out chan<- stri
 	return eval(ctx, in, out)
 }
 
-func (om *OM) Frontend() pb.FrontendServiceClient {
+func (om *om) Frontend() pb.FrontendServiceClient {
 	return om.fe
 }
 
-func (om *OM) Backend() pb.BackendServiceClient {
+func (om *om) Backend() pb.BackendServiceClient {
 	return om.be
 }
 
-func (om *OM) Query() pb.QueryServiceClient {
+func (om *om) Query() pb.QueryServiceClient {
 	return om.query
 }
 
-func (om *OM) MMFConfigGRPC() *pb.FunctionConfig {
+func (om *om) MMFConfigGRPC() *pb.FunctionConfig {
 	return &pb.FunctionConfig{
 		Host: om.cfg.GetString("api." + apptest.ServiceName + ".hostname"),
 		Port: int32(om.cfg.GetInt("api." + apptest.ServiceName + ".grpcport")),
@@ -190,7 +146,7 @@ func (om *OM) MMFConfigGRPC() *pb.FunctionConfig {
 	}
 }
 
-func (om *OM) MMFConfigHTTP() *pb.FunctionConfig {
+func (om *om) MMFConfigHTTP() *pb.FunctionConfig {
 	return &pb.FunctionConfig{
 		Host: om.cfg.GetString("api." + apptest.ServiceName + ".hostname"),
 		Port: int32(om.cfg.GetInt("api." + apptest.ServiceName + ".httpport")),
@@ -239,15 +195,20 @@ api:
     hostname: "test"
     grpcport: "50509"
     httpport: "51509"
+  test:
+    hostname: "test"
+    grpcport: "50509"
+    httpport: "51509"
+
 
 synchronizer:
   registrationIntervalMs: 100ms
   proposalCollectionIntervalMs: 100ms
 
 storage:
-  ignoreListTTL: 500ms
+  ignoreListTTL: 100ms
   page:
-    size: 10000
+    size: 10
 
 redis:
   sentinelPort: 26379
@@ -257,14 +218,14 @@ redis:
   usePassword: false
   passwordPath: /opt/bitnami/redis/secrets/redis-password
   pool:
-    maxIdle: 500
-    maxActive: 500
+    maxIdle: 200
+    maxActive: 0
     idleTimeout: 0
     healthCheckTimeout: 300ms
 
 telemetry:
   reportingPeriod: "1m"
-  traceSamplingFraction: 0.005
+  traceSamplingFraction: "0.01"
   zpages:
     enable: "true"
   jaeger:

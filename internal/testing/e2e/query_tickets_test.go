@@ -1,5 +1,3 @@
-// +build !e2ecluster
-
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,12 +23,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/filter/testcases"
-	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 func TestNoPool(t *testing.T) {
-	om := e2e.New(t)
+	om := newOM(t)
 
 	{
 		stream, err := om.Query().QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: nil})
@@ -52,7 +49,7 @@ func TestNoPool(t *testing.T) {
 }
 
 func TestNoTickets(t *testing.T) {
-	om := e2e.New(t)
+	om := newOM(t)
 
 	{
 		stream, err := om.Query().QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
@@ -74,7 +71,7 @@ func TestNoTickets(t *testing.T) {
 }
 
 func TestPaging(t *testing.T) {
-	om := e2e.New(t)
+	om := newOM(t)
 
 	pageSize := 10 // TODO: read from config
 	if pageSize < 1 {
@@ -101,7 +98,7 @@ func TestPaging(t *testing.T) {
 		var resp *pb.QueryTicketsResponse
 		resp, err = stream.Recv()
 		require.Nil(t, err)
-		require.Equal(t, len(resp.Tickets), pageSize)
+		require.Equal(t, pageSize, len(resp.Tickets))
 
 		for _, ticket := range resp.Tickets {
 			foundIds[ticket.Id] = struct{}{}
@@ -153,7 +150,7 @@ func TestTicketNotFound(t *testing.T) {
 }
 
 func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
-	om := e2e.New(t)
+	om := newOM(t)
 
 	{
 		resp, err := om.Frontend().CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})
@@ -183,7 +180,7 @@ func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
 }
 
 func returnedByQueryID(t *testing.T, tc testcases.TestCase) (found bool) {
-	om := e2e.New(t)
+	om := newOM(t)
 
 	{
 		resp, err := om.Frontend().CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})

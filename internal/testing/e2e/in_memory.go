@@ -1,4 +1,5 @@
 // +build !e2ecluster
+
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,61 +32,6 @@ import (
 	"open-match.dev/open-match/internal/telemetry"
 	mmfService "open-match.dev/open-match/internal/testing/mmf"
 )
-
-// type inmemoryOM struct {
-// 	cfg config.View
-// 	t   *testing.T
-// }
-
-// func (iom *inmemoryOM) withT(t *testing.T) OM {
-// 	cfg := newInMemoryEnvironment(t)
-
-// 	om := &inmemoryOM{
-// 		cfg: cfg,
-// 		t:   t,
-// 	}
-// 	return om
-// }
-
-// func createZygote(m *testing.M) (OM, error) {
-// 	return &inmemoryOM{}, nil
-// }
-
-// func (iom *inmemoryOM) MustFrontendGRPC() pb.FrontendServiceClient {
-// 	return pb.NewFrontendServiceClient(apptest.GRPCClient(iom.t, iom.cfg, "api.frontend"))
-// }
-
-// func (iom *inmemoryOM) MustBackendGRPC() pb.BackendServiceClient {
-// 	return pb.NewBackendServiceClient(apptest.GRPCClient(iom.t, iom.cfg, "api.backend"))
-// }
-
-// func (iom *inmemoryOM) MustQueryServiceGRPC() pb.QueryServiceClient {
-// 	return pb.NewQueryServiceClient(apptest.GRPCClient(iom.t, iom.cfg, "api.query"))
-// }
-
-// func (iom *inmemoryOM) MustMmfConfigGRPC() *pb.FunctionConfig {
-// 	return &pb.FunctionConfig{
-// 		Host: iom.cfg.GetString("api." + apptest.ServiceName + ".hostname"),
-// 		Port: int32(iom.cfg.GetInt("api." + apptest.ServiceName + ".grpcport")),
-// 		Type: pb.FunctionConfig_GRPC,
-// 	}
-// }
-
-// func (iom *inmemoryOM) MustMmfConfigHTTP() *pb.FunctionConfig {
-// 	return &pb.FunctionConfig{
-// 		Host: iom.cfg.GetString("api." + apptest.ServiceName + ".hostname"),
-// 		Port: int32(iom.cfg.GetInt("api." + apptest.ServiceName + ".httpport")),
-// 		Type: pb.FunctionConfig_REST,
-// 	}
-// }
-
-// func (iom *inmemoryOM) HealthCheck() error {
-// 	return nil
-// }
-
-// func (iom *inmemoryOM) Context() context.Context {
-// 	return context.Background()
-// }
 
 func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction) config.View {
 	mredis := miniredis.NewMiniRedis()
@@ -136,7 +82,6 @@ func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction)
 		cfg.Set("api."+name+".grpcport", grpcPort)
 		cfg.Set("api."+name+".httpport", httpPort)
 	}
-	cfg.Set("storage.page.size", 10)
 	cfg.Set(rpc.ConfigNameEnableRPCLogging, *testOnlyEnableRPCLoggingFlag)
 	cfg.Set("logging.level", *testOnlyLoggingLevel)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, *testOnlyEnableMetrics)

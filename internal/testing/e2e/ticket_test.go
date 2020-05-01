@@ -21,25 +21,24 @@ import (
 	// 	"time"
 
 	"github.com/golang/protobuf/ptypes"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 // TestAssignTickets covers assigning multiple tickets, using two different
 // assignment groups.
 func TestAssignTickets(t *testing.T) {
-	om := e2e.New(t)
+	om := newOM(t)
 	ctx := context.Background()
 
 	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	t2, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	t3, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	req := &pb.AssignTicketsRequest{
 		Assignments: []*pb.AssignmentGroup{
@@ -55,30 +54,30 @@ func TestAssignTickets(t *testing.T) {
 	}
 
 	resp, err := om.Backend().AssignTickets(ctx, req)
-	assert.Nil(t, err)
-	assert.Equal(t, &pb.AssignTicketsResponse{}, resp)
+	require.Nil(t, err)
+	require.Equal(t, &pb.AssignTicketsResponse{}, resp)
 
 	get, err := om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: t1.Id})
-	assert.Nil(t, err)
-	assert.Equal(t, "a", get.Assignment.Connection)
+	require.Nil(t, err)
+	require.Equal(t, "a", get.Assignment.Connection)
 
 	get, err = om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: t2.Id})
-	assert.Nil(t, err)
-	assert.Equal(t, "b", get.Assignment.Connection)
+	require.Nil(t, err)
+	require.Equal(t, "b", get.Assignment.Connection)
 
 	get, err = om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: t3.Id})
-	assert.Nil(t, err)
-	assert.Equal(t, "b", get.Assignment.Connection)
+	require.Nil(t, err)
+	require.Equal(t, "b", get.Assignment.Connection)
 }
 
 // TestAssignTicketsInvalidArgument covers various invalid calls to assign
 // tickets.
 func TestAssignTicketsInvalidArgument(t *testing.T) {
-	om := e2e.New(t)
+	om := newOM(t)
 	ctx := context.Background()
 
 	ctResp, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	for _, tt := range []struct {
 		name string
@@ -126,8 +125,8 @@ func TestAssignTicketsInvalidArgument(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := om.Backend().AssignTickets(ctx, tt.req)
-			assert.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
-			assert.Equal(t, tt.msg, status.Convert(err).Message())
+			require.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
+			require.Equal(t, tt.msg, status.Convert(err).Message())
 		})
 	}
 }
@@ -136,20 +135,20 @@ func TestAssignTicketsInvalidArgument(t *testing.T) {
 // being assigned, the assign tickets calls succeeds, however it returns a
 // notice that the ticket was missing.
 func TestAssignTicketsMissingTicket(t *testing.T) {
-	om := e2e.New(t)
+	om := newOM(t)
 	ctx := context.Background()
 
 	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	t2, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	t3, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	_, err = om.Frontend().DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: t2.Id})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	req := &pb.AssignTicketsRequest{
 		Assignments: []*pb.AssignmentGroup{
@@ -161,8 +160,8 @@ func TestAssignTicketsMissingTicket(t *testing.T) {
 	}
 
 	resp, err := om.Backend().AssignTickets(ctx, req)
-	assert.Nil(t, err)
-	assert.Equal(t, &pb.AssignTicketsResponse{
+	require.Nil(t, err)
+	require.Equal(t, &pb.AssignTicketsResponse{
 		Failures: []*pb.AssignmentFailure{
 			{
 				TicketId: t2.Id,
@@ -173,28 +172,28 @@ func TestAssignTicketsMissingTicket(t *testing.T) {
 }
 
 func TestTicketDelete(t *testing.T) {
-	om := e2e.New(t)
+	om := newOM(t)
 	ctx := context.Background()
 
 	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	_, err = om.Frontend().DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: t1.Id})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	resp, err := om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: t1.Id})
-	assert.Nil(t, resp)
-	assert.Equal(t, "Ticket id:"+t1.Id+" not found", status.Convert(err).Message())
-	assert.Equal(t, codes.NotFound, status.Convert(err).Code())
+	require.Nil(t, resp)
+	require.Equal(t, "Ticket id:"+t1.Id+" not found", status.Convert(err).Message())
+	require.Equal(t, codes.NotFound, status.Convert(err).Code())
 }
 
 // // TestTicketLifeCycle tests creating, getting and deleting a ticket using Frontend service.
 // func TestTicketLifeCycle(t *testing.T) {
-// 	assert := assert.New(t)
+// 	require := require.New(t)
 
-// 	om := e2e.New(t)
+// 	om := newOM(t)
 // 	fe := om.MustFrontendGRPC()
-// 	assert.NotNil(fe)
+// 	require.NotNil(fe)
 // 	ctx := om.Context()
 
 // 	ticket := &pb.Ticket{
@@ -207,29 +206,29 @@ func TestTicketDelete(t *testing.T) {
 
 // 	// Create a ticket, validate that it got an id and set its id in the expected ticket.
 // 	createResp, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: ticket})
-// 	assert.NotNil(createResp)
-// 	assert.NotNil(createResp.GetId())
-// 	assert.Nil(err)
+// 	require.NotNil(createResp)
+// 	require.NotNil(createResp.GetId())
+// 	require.Nil(err)
 // 	ticket.Id = createResp.GetId()
 // 	validateTicket(t, createResp, ticket)
 
 // 	// Fetch the ticket and validate that it is identical to the expected ticket.
 // 	gotTicket, err := fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: ticket.GetId()})
-// 	assert.NotNil(gotTicket)
-// 	assert.Nil(err)
+// 	require.NotNil(gotTicket)
+// 	require.Nil(err)
 // 	validateTicket(t, gotTicket, ticket)
 
 // 	// Delete the ticket and validate that it was actually deleted.
 // 	_, err = fe.DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: ticket.GetId()})
-// 	assert.Nil(err)
+// 	require.Nil(err)
 // 	validateDelete(ctx, t, fe, ticket.GetId())
 // }
 
 // // validateTicket validates that the fetched ticket is identical to the expected ticket.
 // func validateTicket(t *testing.T, got *pb.Ticket, want *pb.Ticket) {
-// 	assert.Equal(t, got.GetId(), want.GetId())
-// 	assert.Equal(t, got.SearchFields.DoubleArgs["test-property"], want.SearchFields.DoubleArgs["test-property"])
-// 	assert.Equal(t, got.GetAssignment().GetConnection(), want.GetAssignment().GetConnection())
+// 	require.Equal(t, got.GetId(), want.GetId())
+// 	require.Equal(t, got.SearchFields.DoubleArgs["test-property"], want.SearchFields.DoubleArgs["test-property"])
+// 	require.Equal(t, got.GetAssignment().GetConnection(), want.GetAssignment().GetConnection())
 // }
 
 // // validateDelete validates that the ticket is actually deleted from the state storage.
@@ -245,34 +244,34 @@ func TestTicketDelete(t *testing.T) {
 // 		_, err := fe.GetTicket(ctx, &pb.GetTicketRequest{TicketId: id})
 // 		if err != nil {
 // 			// Only failure to fetch with NotFound should be considered as success.
-// 			assert.Equal(t, status.Code(err), codes.NotFound)
+// 			require.Equal(t, status.Code(err), codes.NotFound)
 // 			return
 // 		}
 
 // 		time.Sleep(100 * time.Millisecond)
 // 	}
 
-// 	assert.Failf(t, "ticket %v not deleted after 5 seconds", id)
+// 	require.Failf(t, "ticket %v not deleted after 5 seconds", id)
 // }
 
 // TestEmptyReleaseTicketsRequest covers that it is valid to not have any ticket
 // ids when releasing tickets.  (though it's not really doing anything...)
 func TestEmptyReleaseTicketsRequest(t *testing.T) {
-	om := e2e.New(t)
+	om := newOM(t)
 	ctx := context.Background()
 
 	resp, err := om.Backend().ReleaseTickets(ctx, &pb.ReleaseTicketsRequest{
 		TicketIds: nil,
 	})
 
-	assert.Nil(t, err)
-	assert.Equal(t, &pb.ReleaseTicketsResponse{}, resp)
+	require.Nil(t, err)
+	require.Equal(t, &pb.ReleaseTicketsResponse{}, resp)
 }
 
 // TestReleaseTickets covers that tickets returned from matches are no longer
 // returned by query tickets, but will return after being released.
 func TestReleaseTickets(t *testing.T) {
-	om := e2e.New(t)
+	om := newOM(t)
 	ctx := context.Background()
 
 	var ticket *pb.Ticket
@@ -280,22 +279,22 @@ func TestReleaseTickets(t *testing.T) {
 	{ // Create ticket
 		var err error
 		ticket, err = om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-		assert.Nil(t, err)
-		assert.NotEmpty(t, ticket.Id)
+		require.Nil(t, err)
+		require.NotEmpty(t, ticket.Id)
 	}
 
 	{ // Ticket present in query
 		stream, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		resp, err := stream.Recv()
-		assert.Nil(t, err)
-		assert.Len(t, resp.Tickets, 1)
-		assert.Equal(t, ticket.Id, resp.Tickets[0].Id)
+		require.Nil(t, err)
+		require.Len(t, resp.Tickets, 1)
+		require.Equal(t, ticket.Id, resp.Tickets[0].Id)
 
 		resp, err = stream.Recv()
-		assert.Equal(t, io.EOF, err)
-		assert.Nil(t, resp)
+		require.Equal(t, io.EOF, err)
+		require.Nil(t, resp)
 	}
 
 	{ // Ticket returned from match
@@ -317,25 +316,25 @@ func TestReleaseTickets(t *testing.T) {
 				},
 			},
 		})
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		resp, err := stream.Recv()
-		assert.Nil(t, err)
-		assert.Len(t, resp.Match.Tickets, 1)
-		assert.Equal(t, ticket.Id, resp.Match.Tickets[0].Id)
+		require.Nil(t, err)
+		require.Len(t, resp.Match.Tickets, 1)
+		require.Equal(t, ticket.Id, resp.Match.Tickets[0].Id)
 
 		resp, err = stream.Recv()
-		assert.Equal(t, io.EOF, err)
-		assert.Nil(t, resp)
+		require.Equal(t, io.EOF, err)
+		require.Nil(t, resp)
 	}
 
 	{ // Ticket NOT present in query
 		stream, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		resp, err := stream.Recv()
-		assert.Equal(t, io.EOF, err)
-		assert.Nil(t, resp)
+		require.Equal(t, io.EOF, err)
+		require.Nil(t, resp)
 	}
 
 	{ // Return ticket
@@ -343,22 +342,22 @@ func TestReleaseTickets(t *testing.T) {
 			TicketIds: []string{ticket.Id},
 		})
 
-		assert.Nil(t, err)
-		assert.Equal(t, &pb.ReleaseTicketsResponse{}, resp)
+		require.Nil(t, err)
+		require.Equal(t, &pb.ReleaseTicketsResponse{}, resp)
 	}
 
 	{ // Ticket present in query
 		stream, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		resp, err := stream.Recv()
-		assert.Nil(t, err)
-		assert.Len(t, resp.Tickets, 1)
-		assert.Equal(t, ticket.Id, resp.Tickets[0].Id)
+		require.Nil(t, err)
+		require.Len(t, resp.Tickets, 1)
+		require.Equal(t, ticket.Id, resp.Tickets[0].Id)
 
 		resp, err = stream.Recv()
-		assert.Equal(t, io.EOF, err)
-		assert.Nil(t, resp)
+		require.Equal(t, io.EOF, err)
+		require.Nil(t, resp)
 	}
 }
 
@@ -400,14 +399,14 @@ func TestCreateTicketErrors(t *testing.T) {
 	} {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			om := e2e.New(t)
+			om := newOM(t)
 			ctx := context.Background()
 
 			resp, err := om.Frontend().CreateTicket(ctx, tt.req)
-			assert.Nil(t, resp)
+			require.Nil(t, resp)
 			s := status.Convert(err)
-			assert.Equal(t, tt.code, s.Code())
-			assert.Equal(t, s.Message(), tt.msg)
+			require.Equal(t, tt.code, s.Code())
+			require.Equal(t, s.Message(), tt.msg)
 		})
 	}
 }

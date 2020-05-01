@@ -22,14 +22,13 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
-	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 // TestHappyPath does a simple test of sucessfully creating a match with two tickets.
 func TestHappyPath(t *testing.T) {
 	ctx := context.Background()
-	om := e2e.New(t)
+	om := newOM(t)
 
 	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 	require.Nil(t, err)
@@ -77,7 +76,7 @@ func TestHappyPath(t *testing.T) {
 func TestMatchFunctionMatchCollision(t *testing.T) {
 	// TODO: another MMF in same cycle doesn't get error?
 	ctx := context.Background()
-	om := e2e.New(t)
+	om := newOM(t)
 
 	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 	require.Nil(t, err)
@@ -115,7 +114,7 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 // indicating this occured.
 func TestSynchronizerMatchCollision(t *testing.T) {
 	ctx := context.Background()
-	om := e2e.New(t)
+	om := newOM(t)
 
 	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 	require.Nil(t, err)
@@ -169,7 +168,7 @@ func TestSynchronizerMatchCollision(t *testing.T) {
 // not correspond to any match passed to it.
 func TestEvaluatorReturnInvalidId(t *testing.T) {
 	ctx := context.Background()
-	om := e2e.New(t)
+	om := newOM(t)
 
 	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
 		return nil
@@ -195,7 +194,7 @@ func TestEvaluatorReturnInvalidId(t *testing.T) {
 // match id twice, which causes an error for fetch match callers.
 func TestEvaluatorReturnDuplicateMatchId(t *testing.T) {
 	ctx := context.Background()
-	om := e2e.New(t)
+	om := newOM(t)
 
 	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 	require.Nil(t, err)
@@ -244,7 +243,7 @@ func TestEvaluatorReturnDuplicateMatchId(t *testing.T) {
 // so it probably shouldn't be changed without significant justification.
 func TestMatchWithNoTickets(t *testing.T) {
 	ctx := context.Background()
-	om := e2e.New(t)
+	om := newOM(t)
 
 	m := &pb.Match{
 		MatchId: "1",
@@ -286,7 +285,7 @@ func TestMatchWithNoTickets(t *testing.T) {
 // ensuring that the error message is returned to the fetch matches call.
 func TestEvaluatorError(t *testing.T) {
 	ctx := context.Background()
-	om := e2e.New(t)
+	om := newOM(t)
 
 	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
 		return nil
@@ -312,7 +311,7 @@ func TestEvaluatorError(t *testing.T) {
 // that the error message is returned to the fetch matches call.
 func TestMMFError(t *testing.T) {
 	ctx := context.Background()
-	om := e2e.New(t)
+	om := newOM(t)
 
 	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
 		return errors.New("my custom error")
