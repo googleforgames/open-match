@@ -20,7 +20,6 @@ import (
 	"sync"
 	"testing"
 
-	// "google.golang.org/grpc/resolver"
 	"github.com/pkg/errors"
 	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/appmain/apptest"
