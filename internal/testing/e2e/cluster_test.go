@@ -25,6 +25,10 @@ import (
 	// "google.golang.org/grpc/resolver"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/appmain/apptest"
 	"open-match.dev/open-match/internal/config"
@@ -33,12 +37,29 @@ import (
 	"strings"
 )
 
-// func TestServiceHealth(t *testing.T) {
-// 	om := e2e.New(t)
-// 	if err := om.HealthCheck(); err != nil {
-// 		t.Errorf("cluster health checks failed, %s", err)
-// 	}
-// }
+func TestServiceHealth(t *testing.T) {
+	kubeconfig, err := rest.InClusterConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(kubeconfig)
+	if err != nil {
+		t.Fatalf("%s: creating Kubernetes client from config failed\nconfig= %+v", err, kubeconfig)
+	}
+
+	namespace := os.Getenv("NAMESPACE")
+
+	podList, err := kubeClient.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, pod := range podList.Items {
+		if app, ok := pod.ObjectMeta.Labels["app"]; ok && app == "open-match" && pod.Status.Phase != corev1.PodRunning {
+			t.Errorf("pod %+v is not running.", pod)
+		}
+	}
+}
 
 func TestMain(m *testing.M) {
 	clusterStarted = true

@@ -401,11 +401,11 @@ func TestTicketReleaseByTimeout(t *testing.T) {
 	}
 }
 
+// TestCreateTicketErrors covers invalid arguments when calling create ticket.
 func TestCreateTicketErrors(t *testing.T) {
 	for _, tt := range []struct {
 		name string
 		req  *pb.CreateTicketRequest
-		code codes.Code
 		msg  string
 	}{
 		{
@@ -413,7 +413,6 @@ func TestCreateTicketErrors(t *testing.T) {
 			&pb.CreateTicketRequest{
 				Ticket: nil,
 			},
-			codes.InvalidArgument,
 			".ticket is required",
 		},
 		{
@@ -423,7 +422,6 @@ func TestCreateTicketErrors(t *testing.T) {
 					Assignment: &pb.Assignment{},
 				},
 			},
-			codes.InvalidArgument,
 			"tickets cannot be created with an assignment",
 		},
 		{
@@ -433,7 +431,6 @@ func TestCreateTicketErrors(t *testing.T) {
 					CreateTime: ptypes.TimestampNow(),
 				},
 			},
-			codes.InvalidArgument,
 			"tickets cannot be created with create time set",
 		},
 	} {
@@ -445,8 +442,43 @@ func TestCreateTicketErrors(t *testing.T) {
 			resp, err := om.Frontend().CreateTicket(ctx, tt.req)
 			require.Nil(t, resp)
 			s := status.Convert(err)
-			require.Equal(t, tt.code, s.Code())
+			require.Equal(t, codes.InvalidArgument, s.Code())
 			require.Equal(t, s.Message(), tt.msg)
 		})
 	}
+}
+
+// TestAssignedTicketsNotReturnedByQuery covers that when a ticket has been
+// assigned, it will no longer be returned by query.
+func TestAssignedTicketsNotReturnedByQuery(t *testing.T) {
+	om := newOM(t)
+	ctx := context.Background()
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+
+	returned := func() bool {
+		stream, err := om.Query().QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
+		require.Nil(t, err)
+
+		_, err = stream.Recv()
+		return err != io.EOF
+	}
+
+	require.True(t, returned())
+
+	req := &pb.AssignTicketsRequest{
+		Assignments: []*pb.AssignmentGroup{
+			{
+				TicketIds:  []string{t1.Id},
+				Assignment: &pb.Assignment{Connection: "a"},
+			},
+		},
+	}
+
+	resp, err := om.Backend().AssignTickets(ctx, req)
+	require.Nil(t, err)
+	require.Equal(t, &pb.AssignTicketsResponse{}, resp)
+
+	require.False(t, returned())
 }
