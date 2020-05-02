@@ -152,7 +152,6 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 			}).Error("error streaming in synchronizer to backend: context is done")
 			return stream.Context().Err()
 		case <-registration.cycleCtx.Done():
-			println("RETURNING ERRROR FROM SYNCHRONIZER")
 			return registration.cycleCtx.Err()
 		}
 	}

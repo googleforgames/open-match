@@ -17,13 +17,16 @@ package e2e
 import (
 	"context"
 	"io"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -98,7 +101,11 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 		return nil
 	})
 
-	om.SetEvaluator(evaluatorRejectAll)
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		for range in {
+		}
+		return nil
+	})
 
 	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
 		Config:  om.MMFConfigGRPC(),
@@ -398,15 +405,347 @@ func TestNoConfig(t *testing.T) {
 	require.Nil(t, resp)
 }
 
-func evaluatorRejectAll(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
-	for range in {
-	}
-	return nil
+// TestCancel covers a fetch matches call canceling also causing mmf and
+// evaluator to cancel.
+func TestCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	om := newOM(t)
+
+	startTime := time.Now()
+
+	wgStarted := sync.WaitGroup{}
+	wgStarted.Add(2)
+	wgFinished := sync.WaitGroup{}
+	wgFinished.Add(2)
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		wgStarted.Done()
+		<-ctx.Done()
+		require.Equal(t, ctx.Err(), context.Canceled)
+		wgFinished.Done()
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		wgStarted.Done()
+		<-ctx.Done()
+		require.Equal(t, ctx.Err(), context.Canceled)
+		wgFinished.Done()
+		return nil
+	})
+
+	_, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	wgStarted.Wait()
+	cancel()
+	wgFinished.Wait()
+
+	// The evaluator is only canceled after the registration window completes.
+	require.True(t, time.Since(startTime) > time.Millisecond*100, "%s", time.Since(startTime))
 }
 
-func evaluatorAcceptAll(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
-	for m := range in {
-		out <- m.MatchId
+// TestStreaming covers that matches can stream through the mmf, evaluator, and
+// return to the fetch matches call.  At no point are all matches accumulated
+// and then passed on.  This keeps things efficiently moving.
+func TestStreaming(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+	t2, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+
+	m1 := &pb.Match{
+		MatchId: "1",
+		Tickets: []*pb.Ticket{t1},
 	}
-	return nil
+	m2 := &pb.Match{
+		MatchId: "2",
+		Tickets: []*pb.Ticket{t2},
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- m1
+		wg.Wait()
+		out <- m2
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		<-in
+		out <- "1"
+		wg.Wait()
+		<-in
+		out <- "2"
+
+		_, ok := <-in
+		require.False(t, ok)
+		return nil
+	})
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	resp, err := stream.Recv()
+	require.Nil(t, err)
+	require.True(t, proto.Equal(m1, resp.Match))
+
+	wg.Done()
+
+	resp, err = stream.Recv()
+	require.Nil(t, err)
+	require.True(t, proto.Equal(m2, resp.Match))
+
+	resp, err = stream.Recv()
+	require.Equal(t, err, io.EOF)
+	require.Nil(t, resp)
+}
+
+// TestRegistrationWindow covers a synchronization cycle waiting for the
+// registration window before closing the evaluator.  However it also does not
+// wait until the proposal window has closed if the mmfs have already returned.
+func TestRegistrationWindow(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	startTime := time.Now()
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		_, ok := <-in
+		require.False(t, ok)
+
+		require.True(t, time.Since(startTime) > time.Millisecond*100, "%s", time.Since(startTime))
+		return nil
+	})
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	resp, err := stream.Recv()
+	require.Equal(t, err, io.EOF)
+	require.Nil(t, resp)
+	require.True(t, time.Since(startTime) > time.Millisecond*100, "%s", time.Since(startTime))
+}
+
+// TestProposalWindowClose covers that a long running match function will get
+// canceled so that the cycle can complete.
+func TestProposalWindowClose(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	startTime := time.Now()
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		<-ctx.Done()
+		require.Equal(t, ctx.Err(), context.Canceled)
+		require.True(t, time.Since(startTime) > time.Millisecond*200, "%s", time.Since(startTime))
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		_, ok := <-in
+		require.False(t, ok)
+		require.True(t, time.Since(startTime) > time.Millisecond*200, "%s", time.Since(startTime))
+		return nil
+	})
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	resp, err := stream.Recv()
+	require.Contains(t, err.Error(), "context canceled")
+	require.Nil(t, resp)
+
+	require.True(t, time.Since(startTime) > time.Millisecond*200, "%s", time.Since(startTime))
+}
+
+// TestMultipleFetchCalls covers multiple fetch matches calls running in the
+// same cycle, using the same evaluator call, and having matches routed back to
+// the correct caller.
+func TestMultipleFetchCalls(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+	t2, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+
+	m1 := &pb.Match{
+		MatchId: "1",
+		Tickets: []*pb.Ticket{t1},
+	}
+	m2 := &pb.Match{
+		MatchId: "2",
+		Tickets: []*pb.Ticket{t2},
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		if profile.Name == "one" {
+			out <- m1
+		} else if profile.Name == "two" {
+			out <- m2
+		} else {
+			return errors.New("Unknown profile")
+		}
+
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		ids := []string{}
+		for m := range in {
+			ids = append(ids, m.MatchId)
+		}
+		require.ElementsMatch(t, ids, []string{"1", "2"})
+		for _, id := range ids {
+			out <- id
+		}
+		return nil
+	})
+
+	s1, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config: om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{
+			Name: "one",
+		},
+	})
+	require.Nil(t, err)
+
+	s2, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config: om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{
+			Name: "two",
+		},
+	})
+	require.Nil(t, err)
+
+	resp, err := s1.Recv()
+	require.Nil(t, err)
+	require.True(t, proto.Equal(m1, resp.Match))
+
+	resp, err = s1.Recv()
+	require.Equal(t, err, io.EOF)
+	require.Nil(t, resp)
+
+	resp, err = s2.Recv()
+	require.Nil(t, err)
+	require.True(t, proto.Equal(m2, resp.Match))
+
+	resp, err = s2.Recv()
+	require.Equal(t, err, io.EOF)
+	require.Nil(t, resp)
+}
+
+// TestSlowBackendDoesntBlock covers that after the evaluator has returned, a
+// new cycle can start despite and slow fetch matches caller.  Additionally, it
+// confirms that the tickets are marked as pending, so the second cycle won't be
+// using any of the tickets returned by the first cycle.
+func TestSlowBackendDoesntBlock(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+	t2, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+
+	m1 := &pb.Match{
+		MatchId: "1",
+		Tickets: []*pb.Ticket{t1},
+	}
+	m2 := &pb.Match{
+		MatchId: "2",
+		Tickets: []*pb.Ticket{t2},
+	}
+
+	evaluatorDone := make(chan struct{})
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		pool, err := matchfunction.QueryPool(ctx, om.Query(), &pb.Pool{})
+		require.Nil(t, err)
+		ids := []string{}
+		for _, t := range pool {
+			ids = append(ids, t.Id)
+		}
+
+		if profile.Name == "one" {
+			require.ElementsMatch(t, ids, []string{t1.Id, t2.Id})
+			out <- m1
+		} else if profile.Name == "two" {
+			require.ElementsMatch(t, ids, []string{t2.Id})
+			out <- m2
+		} else {
+			return errors.New("Unknown profile")
+		}
+
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		m := <-in
+		_, ok := <-in
+		require.False(t, ok)
+		out <- m.MatchId
+
+		evaluatorDone <- struct{}{}
+		return nil
+	})
+
+	s1, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config: om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{
+			Name: "one",
+		},
+	})
+	require.Nil(t, err)
+
+	<-evaluatorDone
+
+	s2, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config: om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{
+			Name: "two",
+		},
+	})
+	require.Nil(t, err)
+
+	<-evaluatorDone
+
+	resp, err := s2.Recv()
+	require.Nil(t, err)
+	require.True(t, proto.Equal(m2, resp.Match))
+
+	resp, err = s2.Recv()
+	require.Equal(t, err, io.EOF)
+	require.Nil(t, resp)
+
+	resp, err = s1.Recv()
+	require.Nil(t, err)
+	require.True(t, proto.Equal(m1, resp.Match))
+
+	resp, err = s1.Recv()
+	require.Equal(t, err, io.EOF)
+	require.Nil(t, resp)
 }
