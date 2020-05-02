@@ -22,7 +22,6 @@ import (
 	"os"
 	"testing"
 
-	// "google.golang.org/grpc/resolver"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
