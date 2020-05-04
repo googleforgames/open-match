@@ -21,5 +21,5 @@ import (
 )
 
 func main() {
-	appmain.RunApplication("evaluator", evaluator.BindServiceFor(defaulteval.Evaluate))
+	appmain.RunApplication("evaluator", evaluator.BindServiceFor(evaluator.Evaluator{EvaluateFunc: defaulteval.Evaluate, Binders: defaulteval.Binders}))
 }

@@ -35,7 +35,6 @@ import (
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
-	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -171,8 +170,8 @@ func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync
 			if !ok {
 				return fmt.Errorf("error casting sync map value into *pb.Match: %w", err)
 			}
-			stats.Record(ctx, telemetry.TotalBytesPerMatch.M(int64(proto.Size(match))))
-			stats.Record(ctx, telemetry.TicketsPerMatch.M(int64(len(match.GetTickets()))))
+			stats.Record(ctx, totalBytesPerMatch.M(int64(proto.Size(match))))
+			stats.Record(ctx, ticketsPerMatch.M(int64(len(match.GetTickets()))))
 			err = stream.Send(&pb.FetchMatchesResponse{Match: match})
 			if err != nil {
 				return fmt.Errorf("error sending match to caller of backend: %w", err)
@@ -303,7 +302,7 @@ func (s *backendService) ReleaseTickets(ctx context.Context, req *pb.ReleaseTick
 		return nil, err
 	}
 
-	stats.Record(ctx, telemetry.TicketsReleased.M(int64(len(req.TicketIds))))
+	stats.Record(ctx, ticketsReleased.M(int64(len(req.TicketIds))))
 	return &pb.ReleaseTicketsResponse{}, nil
 }
 
@@ -320,7 +319,7 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 		numIds += len(ag.TicketIds)
 	}
 
-	stats.Record(ctx, telemetry.TicketsAssigned.M(int64(numIds)))
+	stats.Record(ctx, ticketsAssigned.M(int64(numIds)))
 	return resp, nil
 }
 

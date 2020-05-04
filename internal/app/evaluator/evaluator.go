@@ -16,18 +16,47 @@
 package evaluator
 
 import (
+	"go.opencensus.io/stats"
+	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/appmain"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
+)
+
+var (
+	matchesPerEvaluateRequest  = stats.Int64("openmatch.dev/evaluator/matches_per_request", "Number of matches sent to the evaluator per request", stats.UnitDimensionless)
+	matchesPerEvaluateResponse = stats.Int64("openmatch.dev/evaluator/matches_per_response", "Number of matches returned by the evaluator per response", stats.UnitDimensionless)
+
+	matchesPerEvaluateRequestView = telemetry.MeasureToView(
+		matchesPerEvaluateRequest,
+		"openmatch.dev/evaluator/matches_per_request",
+		"Number of matches sent to the evaluator per request",
+		telemetry.DefaultCountDistribution,
+	)
+	matchesPerEvaluateResponseView = telemetry.MeasureToView(
+		matchesPerEvaluateResponse,
+		"openmatch.dev/evaluator/matches_per_response",
+		"Number of matches sent to the evaluator per response",
+		telemetry.DefaultCountDistribution,
+	)
 )
 
 // BindServiceFor creates the evaluator service and binds it to the serving harness.
 func BindServiceFor(eval Evaluator) appmain.Bind {
 	return func(p *appmain.Params, b *appmain.Bindings) error {
 		b.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterEvaluatorServer(s, &evaluatorService{evaluate: eval})
+			pb.RegisterEvaluatorServer(s, &evaluatorService{eval})
 		}, pb.RegisterEvaluatorHandlerFromEndpoint)
-
+		if err := eval.Binders(); err != nil {
+			logger.WithError(err).Fatalf("failed to register binder functions for the input evaluator")
+		}
+		if err := view.Register(
+			matchesPerEvaluateRequestView,
+			matchesPerEvaluateResponseView,
+		); err != nil {
+			logger.WithError(err).Fatalf("failed to register given views to exporters")
+		}
 		return nil
 	}
 }

@@ -15,10 +15,38 @@
 package synchronizer
 
 import (
+	"go.opencensus.io/stats"
+	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/internal/telemetry"
+)
+
+var (
+	iterationLatency        = stats.Float64("openmatch.dev/synchronizer/iteration_latency", "Time elapsed of each synchronizer iteration", stats.UnitMilliseconds)
+	registrationWaitTime    = stats.Float64("openmatch.dev/synchronizer/registration_wait_time", "Time elapsed of registration wait time", stats.UnitMilliseconds)
+	registrationMMFDoneTime = stats.Float64("openmatch.dev/synchronizer/registration_mmf_done_time", "Time elapsed wasted in registration window with done MMFs", stats.UnitMilliseconds)
+
+	iterationLatencyView = telemetry.MeasureToView(
+		iterationLatency,
+		"openmatch.dev/synchronizer/iteration_latency",
+		"Time elapsed of each synchronizer iteration",
+		telemetry.DefaultMillisecondsDistribution,
+	)
+	registrationWaitTimeView = telemetry.MeasureToView(
+		registrationWaitTime,
+		"openmatch.dev/synchronizer/registration_wait_time",
+		"Time elapsed of registration wait time",
+		telemetry.DefaultMillisecondsDistribution,
+	)
+	registrationMMFDoneTimeView = telemetry.MeasureToView(
+		registrationMMFDoneTime,
+		"openmatch.dev/synchronizer/registration_mmf_done_time",
+		"Time elapsed wasted in registration window with done MMFs",
+		telemetry.DefaultMillisecondsDistribution,
+	)
 )
 
 // BindService creates the synchronizer service and binds it to the serving harness.
@@ -29,6 +57,12 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	b.AddHandleFunc(func(s *grpc.Server) {
 		ipb.RegisterSynchronizerServer(s, service)
 	}, nil)
-
+	if err := view.Register(
+		iterationLatencyView,
+		registrationWaitTimeView,
+		registrationMMFDoneTimeView,
+	); err != nil {
+		logger.WithError(err).Fatalf("failed to register given views to exporters")
+	}
 	return nil
 }

@@ -15,10 +15,31 @@
 package frontend
 
 import (
+	"go.opencensus.io/stats"
+	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
+)
+
+var (
+	totalBytesPerTicket   = stats.Int64("openmatch.dev/total_bytes_per_ticket", "Total bytes per ticket", stats.UnitBytes)
+	searchFieldsPerTicket = stats.Int64("openmatch.dev/searchfields_per_ticket", "Searchfields per ticket", stats.UnitDimensionless)
+
+	totalBytesPerTicketView = telemetry.MeasureToView(
+		totalBytesPerTicket,
+		"openmatch.dev/total_bytes_per_ticket",
+		"Total bytes per ticket",
+		telemetry.DefaultBytesDistribution,
+	)
+	searchFieldsPerTicketView = telemetry.MeasureToView(
+		searchFieldsPerTicket,
+		"openmatch.dev/searchfields_per_ticket",
+		"SearchFields per ticket",
+		telemetry.DefaultCountDistribution,
+	)
 )
 
 // BindService creates the frontend service and binds it to the serving harness.
@@ -32,6 +53,11 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	b.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServiceServer(s, service)
 	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
-
+	if err := view.Register(
+		totalBytesPerTicketView,
+		searchFieldsPerTicketView,
+	); err != nil {
+		logger.WithError(err).Fatalf("failed to register given views to exporters")
+	}
 	return nil
 }

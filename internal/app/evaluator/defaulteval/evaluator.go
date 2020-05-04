@@ -24,6 +24,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/stats/view"
 	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
@@ -34,11 +35,24 @@ var (
 		"app":       "evaluator",
 		"component": "evaluator.default",
 	})
+
+	collidedMatchesPerEvaluate     = stats.Int64("openmatch.dev/evaluator/collided_matches_per_call", "Number of collided matches per default evaluator call", stats.UnitDimensionless)
+	collidedMatchesPerEvaluateView = telemetry.MeasureToView(
+		collidedMatchesPerEvaluate,
+		"openmatch.dev/evaluator/collided_matches_per_call",
+		"Number of collided matches per default evaluator call",
+		view.Sum(),
+	)
 )
 
 type matchInp struct {
 	match *pb.Match
 	inp   *pb.DefaultEvaluationCriteria
+}
+
+// Binders define the initialization steps for this evaluator
+func Binders() error {
+	return view.Register(collidedMatchesPerEvaluateView)
 }
 
 // Evaluate sorts the matches by DefaultEvaluationCriteria.Score (optional),
@@ -88,7 +102,7 @@ func Evaluate(p *evaluator.Params) ([]string, error) {
 		d.maybeAdd(m)
 	}
 
-	stats.Record(context.Background(), telemetry.CollidedMatchesPerEvaluate.M(int64(len(p.Matches)-len(d.resultIDs))))
+	stats.Record(context.Background(), collidedMatchesPerEvaluate.M(int64(len(p.Matches)-len(d.resultIDs))))
 
 	return d.resultIDs, nil
 }

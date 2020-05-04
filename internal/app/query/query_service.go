@@ -29,7 +29,6 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/filter"
 	"open-match.dev/open-match/internal/statestore"
-	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -71,7 +70,7 @@ func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer 
 		logger.WithError(err).Error("Failed to run request.")
 		return err
 	}
-	stats.Record(ctx, telemetry.TicketsPerQuery.M(int64(len(results))))
+	stats.Record(ctx, ticketsPerQuery.M(int64(len(results))))
 
 	pSize := getPageSize(s.cfg)
 	for start := 0; start < len(results); start += pSize {
@@ -115,7 +114,7 @@ func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseSer
 		logger.WithError(err).Error("Failed to run request.")
 		return err
 	}
-	stats.Record(ctx, telemetry.TicketsPerQuery.M(int64(len(results))))
+	stats.Record(ctx, ticketsPerQuery.M(int64(len(results))))
 
 	pSize := getPageSize(s.cfg)
 	for start := 0; start < len(results); start += pSize {
@@ -262,7 +261,7 @@ collectAllWaiting:
 	}
 
 	tc.update()
-	stats.Record(context.Background(), telemetry.QueryCacheWaitingQueries.M(int64(len(reqs))))
+	stats.Record(context.Background(), cacheWaitingQueries.M(int64(len(reqs))))
 
 	// Send WaitGroup to query calls, letting them run their query on the ticket
 	// cache.
@@ -315,9 +314,9 @@ func (tc *ticketCache) update() {
 		tc.tickets[t.Id] = t
 	}
 
-	stats.Record(context.Background(), telemetry.QueryCacheTotalItems.M(int64(previousCount)))
-	stats.Record(context.Background(), telemetry.QueryCacheDeltaItems.M(int64(deletedCount+len(toFetch))))
-	stats.Record(context.Background(), telemetry.QueryCacheUpdateLatency.M(float64(time.Since(st))/float64(time.Millisecond)))
+	stats.Record(context.Background(), cacheTotalItems.M(int64(previousCount)))
+	stats.Record(context.Background(), cacheDeltaItems.M(int64(deletedCount+len(toFetch))))
+	stats.Record(context.Background(), cacheUpdateLatency.M(float64(time.Since(st))/float64(time.Millisecond)))
 
 	logger.Debugf("Ticket Cache update: Previous %d, Deleted %d, Fetched %d, Current %d", previousCount, deletedCount, len(toFetch), len(tc.tickets))
 	tc.err = nil

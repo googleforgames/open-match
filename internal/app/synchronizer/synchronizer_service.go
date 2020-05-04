@@ -27,7 +27,6 @@ import (
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/statestore"
-	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -186,7 +185,7 @@ func (s synchronizerService) register(ctx context.Context) *registration {
 	}
 
 	st := time.Now()
-	defer stats.Record(ctx, telemetry.SynchronizerRegistrationWaitTime.M(float64(time.Since(st))/float64(time.Millisecond)))
+	defer stats.Record(ctx, registrationWaitTime.M(float64(time.Since(st))/float64(time.Millisecond)))
 	for {
 		select {
 		case s.synchronizeRegistration <- req:
@@ -276,7 +275,7 @@ Registration:
 	go func() {
 		allM1cSent.Wait()
 		m1c.cutoff()
-		stats.Record(ctx, telemetry.SynchronizerRegistrationMMFDoneTime.M(float64((s.registrationInterval()-time.Since(rst))/time.Millisecond)))
+		stats.Record(ctx, registrationMMFDoneTime.M(float64((s.registrationInterval()-time.Since(rst))/time.Millisecond)))
 	}()
 
 	cancelProposalCollection := time.AfterFunc(s.proposalCollectionInterval(), func() {
@@ -286,7 +285,7 @@ Registration:
 		}
 	})
 	<-closedOnCycleEnd
-	stats.Record(ctx, telemetry.SynchronizerIterationLatency.M(float64(time.Since(cst)/time.Millisecond)))
+	stats.Record(ctx, iterationLatency.M(float64(time.Since(cst)/time.Millisecond)))
 
 	// Clean up in case it was never needed.
 	cancelProposalCollection.Stop()
