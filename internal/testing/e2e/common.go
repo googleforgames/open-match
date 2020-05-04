@@ -212,7 +212,7 @@ storage:
 redis:
   sentinelPort: 26379
   sentinelMaster: om-redis-master
-  sentinelHostname: om-redis.open-match.svc.cluster.local
+  sentinelHostname: om-redis
   sentinelUsePassword: 
   usePassword: false
   passwordPath: /opt/bitnami/redis/secrets/redis-password
@@ -237,6 +237,6 @@ telemetry:
     serviceDiscovery: "true"
   stackdriverMetrics:
     enable: "false"
-    gcpProjectId: "sredig-gaming-test"
+    gcpProjectId: "intentionally-invalid-value"
     prefix: "open_match"
 `
