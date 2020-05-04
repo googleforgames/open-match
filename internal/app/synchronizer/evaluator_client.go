@@ -124,7 +124,7 @@ func (ec *grcpEvaluatorClient) evaluate(ctx context.Context, pc <-chan []*pb.Mat
 			for _, proposal := range proposals {
 
 				if _, ok := matchIDs.LoadOrStore(proposal.GetMatchId(), true); ok {
-					return fmt.Errorf("Multiple match functions used same match_id: \"%s\"", proposal.GetMatchId())
+					return fmt.Errorf("multiple match functions used same match_id: \"%s\"", proposal.GetMatchId())
 				}
 				if err := stream.Send(&pb.EvaluateRequest{Match: proposal}); err != nil {
 					return fmt.Errorf("failed to send request to evaluator, desc: %w", err)

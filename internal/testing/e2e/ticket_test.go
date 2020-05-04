@@ -454,9 +454,6 @@ func TestAssignedTicketsNotReturnedByQuery(t *testing.T) {
 	om := newOM(t)
 	ctx := context.Background()
 
-	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	require.Nil(t, err)
-
 	returned := func() bool {
 		stream, err := om.Query().QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
 		require.Nil(t, err)
@@ -464,6 +461,9 @@ func TestAssignedTicketsNotReturnedByQuery(t *testing.T) {
 		_, err = stream.Recv()
 		return err != io.EOF
 	}
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
 
 	require.True(t, returned())
 

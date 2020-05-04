@@ -92,6 +92,7 @@ func getHealthCheckPool(cfg config.View) *redis.Pool {
 	}
 }
 
+// GetRedisPool configures a new pool to connect to redis given the config.
 func GetRedisPool(cfg config.View) *redis.Pool {
 	var dialFunc func(context.Context) (redis.Conn, error)
 	maxIdle := cfg.GetInt("redis.pool.maxIdle")

@@ -151,11 +151,11 @@ var fileDescriptor_2b5069a21f149a55 = []byte{
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
-var _ grpc.ClientConn
+var _ grpc.ClientConnInterface
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
+const _ = grpc.SupportPackageIsVersion6
 
 // MatchFunctionClient is the client API for MatchFunction service.
 //
@@ -168,10 +168,10 @@ type MatchFunctionClient interface {
 }
 
 type matchFunctionClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewMatchFunctionClient(cc *grpc.ClientConn) MatchFunctionClient {
+func NewMatchFunctionClient(cc grpc.ClientConnInterface) MatchFunctionClient {
 	return &matchFunctionClient{cc}
 }
 

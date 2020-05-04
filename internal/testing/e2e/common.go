@@ -69,10 +69,10 @@ type om struct {
 
 	running    sync.WaitGroup
 	fLock      sync.Mutex
-	mmf        mmfService.MatchFunction
 	mmfCalled  bool
-	eval       evaluator.Evaluator
 	evalCalled bool
+	mmf        mmfService.MatchFunction
+	eval       evaluator.Evaluator
 }
 
 func (om *om) SetMMF(mmf mmfService.MatchFunction) {

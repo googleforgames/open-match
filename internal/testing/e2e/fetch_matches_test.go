@@ -30,7 +30,7 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// TestHappyPath does a simple test of sucessfully creating a match with two tickets.
+// TestHappyPath does a simple test of successfully creating a match with two tickets.
 func TestHappyPath(t *testing.T) {
 	ctx := context.Background()
 	om := newOM(t)
@@ -120,7 +120,7 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 
 // TestSynchronizerMatchCollision covers two different MMFs generating matches
 // with the same id, and causing all fetch match calls to fail with an error
-// indicating this occured.
+// indicating this occurred.
 func TestSynchronizerMatchCollision(t *testing.T) {
 	ctx := context.Background()
 	om := newOM(t)
@@ -166,10 +166,10 @@ func TestSynchronizerMatchCollision(t *testing.T) {
 
 	resp, err := s2.Recv()
 	require.Nil(t, resp)
-	require.Contains(t, err.Error(), "Multiple match functions used same match_id: \"1\"")
+	require.Contains(t, err.Error(), "multiple match functions used same match_id: \"1\"")
 
 	resp, err = s1.Recv()
-	require.Contains(t, err.Error(), "Multiple match functions used same match_id: \"1\"")
+	require.Contains(t, err.Error(), "multiple match functions used same match_id: \"1\"")
 	require.Nil(t, resp)
 }
 
@@ -240,7 +240,7 @@ func TestEvaluatorReturnDuplicateMatchId(t *testing.T) {
 
 	_, err = stream.Recv()
 
-	// May recieve up to one match
+	// May receive up to one match
 	if err == nil {
 		_, err = stream.Recv()
 	}
@@ -602,11 +602,12 @@ func TestMultipleFetchCalls(t *testing.T) {
 	}
 
 	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
-		if profile.Name == "one" {
+		switch profile.Name {
+		case "one":
 			out <- m1
-		} else if profile.Name == "two" {
+		case "two":
 			out <- m2
-		} else {
+		default:
 			return errors.New("Unknown profile")
 		}
 
@@ -683,20 +684,21 @@ func TestSlowBackendDoesntBlock(t *testing.T) {
 	evaluatorDone := make(chan struct{})
 
 	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
-		pool, err := matchfunction.QueryPool(ctx, om.Query(), &pb.Pool{})
-		require.Nil(t, err)
+		pool, mmfErr := matchfunction.QueryPool(ctx, om.Query(), &pb.Pool{})
+		require.Nil(t, mmfErr)
 		ids := []string{}
 		for _, t := range pool {
 			ids = append(ids, t.Id)
 		}
 
-		if profile.Name == "one" {
+		switch profile.Name {
+		case "one":
 			require.ElementsMatch(t, ids, []string{t1.Id, t2.Id})
 			out <- m1
-		} else if profile.Name == "two" {
+		case "two":
 			require.ElementsMatch(t, ids, []string{t2.Id})
 			out <- m2
-		} else {
+		default:
 			return errors.New("Unknown profile")
 		}
 

@@ -238,11 +238,11 @@ var fileDescriptor_5ec7651f31a90698 = []byte{
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
-var _ grpc.ClientConn
+var _ grpc.ClientConnInterface
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
+const _ = grpc.SupportPackageIsVersion6
 
 // QueryServiceClient is the client API for QueryService service.
 //
@@ -261,10 +261,10 @@ type QueryServiceClient interface {
 }
 
 type queryServiceClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewQueryServiceClient(cc *grpc.ClientConn) QueryServiceClient {
+func NewQueryServiceClient(cc grpc.ClientConnInterface) QueryServiceClient {
 	return &queryServiceClient{cc}
 }
 
