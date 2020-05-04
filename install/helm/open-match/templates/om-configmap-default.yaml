@@ -58,7 +58,7 @@ data:
         grpcport: "{{ .Values.frontend.grpcPort }}"
         httpport: "{{ .Values.frontend.httpPort }}"
       query:
-        hostname: "{{ .Values.query.hostName }}"
+        hostname: "{{ .Values.query.hostName }}.{{ .Release.Namespace }}.svc.cluster.local"
         grpcport: "{{ .Values.query.grpcPort }}"
         httpport: "{{ .Values.query.httpPort }}"
       synchronizer:
@@ -68,8 +68,15 @@ data:
       swaggerui:
         hostname: "{{ .Values.swaggerui.hostName }}"
         httpport: "{{ .Values.swaggerui.httpPort }}"
+
+      # Configurations for api.test and api.scale are used for testing.
+      test:
+        hostname: "test"
+        grpcport: "50509"
+        httpport: "51509"
       scale:
         httpport: "51509"
+
 {{- if .Values.global.tls.enabled }}
       tls:
         trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
@@ -111,11 +118,12 @@ data:
         healthCheckTimeout: {{ index .Values "open-match-core" "redis" "pool" "healthCheckTimeout" }}
 
     telemetry:
+      reportingPeriod: "{{ .Values.global.telemetry.reportingPeriod }}"
+      traceSamplingFraction: "{{ .Values.global.telemetry.traceSamplingFraction }}"
       zpages:
         enable: "{{ .Values.global.telemetry.zpages.enabled }}"
       jaeger:
         enable: "{{ .Values.global.telemetry.jaeger.enabled }}"
-        samplerFraction: {{ .Values.global.telemetry.jaeger.samplerFraction }}
         agentEndpoint: "{{ .Values.global.telemetry.jaeger.agentEndpoint }}"
         collectorEndpoint: "{{ .Values.global.telemetry.jaeger.collectorEndpoint }}"
       prometheus:

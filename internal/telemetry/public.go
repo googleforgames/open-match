@@ -18,10 +18,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/stats/view"
+	"go.opencensus.io/trace"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/util"
 )
 
 var (
@@ -32,31 +33,61 @@ var (
 )
 
 // Setup configures the telemetry for the server.
-func Setup(servicePrefix string, mux *http.ServeMux, cfg config.View) func() {
-	mc := util.NewMultiClose()
-	periodString := cfg.GetString("telemetry.reportingPeriod")
-	reportingPeriod, err := time.ParseDuration(periodString)
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error":           err,
-			"reportingPeriod": periodString,
-		}).Info("Failed to parse telemetry.reportingPeriod, defaulting to 1m")
-		reportingPeriod = time.Minute * 1
+func Setup(p Params, b Bindings) error {
+	bindings := []func(p Params, b Bindings) error{
+		configureOpenCensus,
+		bindJaeger,
+		bindPrometheus,
+		bindStackDriverMetrics,
+		bindOpenCensusAgent,
+		bindZpages,
+		bindHelp,
+		bindConfigz,
 	}
 
-	bindJaeger(servicePrefix, cfg)
-	bindPrometheus(mux, cfg)
-	mc.AddCloseFunc(bindStackDriverMetrics(cfg))
-	mc.AddCloseWithErrorFunc(bindOpenCensusAgent(cfg))
-	bindZpages(mux, cfg)
-	bindHelp(mux, cfg)
-	bindConfigz(mux, cfg)
+	for _, f := range bindings {
+		err := f(p, b)
+		if err != nil {
+			return err
+		}
+	}
 
-	// Change the frequency of updates to the metrics endpoint
-	view.SetReportingPeriod(reportingPeriod)
+	return nil
+}
 
+func configureOpenCensus(p Params, b Bindings) error {
+	// There's no way to undo these options, but the next startup will override
+	// them.
+
+	samplingFraction := p.Config().GetFloat64("telemetry.traceSamplingFraction")
+	logger.WithFields(logrus.Fields{
+		"samplingFraction": samplingFraction,
+	}).Info("Tracing sampler fraction set")
+	trace.ApplyConfig(trace.Config{DefaultSampler: trace.ProbabilitySampler(samplingFraction)})
+
+	periodString := p.Config().GetString("telemetry.reportingPeriod")
+	reportingPeriod, err := time.ParseDuration(periodString)
+	if err != nil {
+		return errors.Wrap(err, "Unable to parse telemetry.reportingPeriod")
+	}
 	logger.WithFields(logrus.Fields{
 		"reportingPeriod": reportingPeriod,
-	}).Info("telemetry has been configured.")
-	return mc.Close
+	}).Info("Telemetry reporting period set")
+	// Change the frequency of updates to the metrics endpoint
+	view.SetReportingPeriod(reportingPeriod)
+	return nil
+}
+
+// Params allows appmain to bind telemetry without a circular dependency.
+type Params interface {
+	Config() config.View
+	ServiceName() string
+}
+
+// Bindings allows appmain to bind telemetry without a circular dependency.
+type Bindings interface {
+	TelemetryHandle(pattern string, handler http.Handler)
+	TelemetryHandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
+	AddCloser(c func())
+	AddCloserErr(c func() error)
 }

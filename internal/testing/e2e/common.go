@@ -48,15 +48,12 @@ type OM interface {
 	// Context provides a context to call remote methods.
 	Context() context.Context
 
-	cleanup()
-	cleanupMain() error
 	withT(t *testing.T) OM
 }
 
 // New creates a new e2e test interface.
 func New(t *testing.T) OM {
 	om := zygote.withT(t)
-	t.Cleanup(om.cleanup)
 	return om
 }
 
@@ -70,13 +67,7 @@ func RunMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("failed to setup framework: %s", err)
 	}
-	defer func() {
-		cErr := z.cleanupMain()
-		if cErr != nil {
-			log.Printf("failed to cleanup resources: %s", cErr)
-		}
-		os.Exit(exitCode)
-	}()
 	zygote = z
 	exitCode = m.Run()
+	os.Exit(exitCode)
 }

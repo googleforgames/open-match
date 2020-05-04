@@ -31,9 +31,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
+	"open-match.dev/open-match/internal/app/evaluator"
+	"open-match.dev/open-match/internal/app/evaluator/defaulteval"
+	"open-match.dev/open-match/internal/appmain/apptest"
 	"open-match.dev/open-match/internal/logging"
 	"open-match.dev/open-match/internal/rpc"
-	"open-match.dev/open-match/internal/util"
+	internalMmf "open-match.dev/open-match/internal/testing/mmf"
+	"open-match.dev/open-match/test/matchfunction/mmf"
 
 	pb "open-match.dev/open-match/pkg/pb"
 )
@@ -48,15 +52,15 @@ type clusterOM struct {
 	kubeClient kubernetes.Interface
 	namespace  string
 	t          *testing.T
-	mc         *util.MultiClose
 }
 
 func (com *clusterOM) withT(t *testing.T) OM {
+	apptest.RunInCluster(t, internalMmf.BindServiceFor(mmf.MakeMatches), evaluator.BindServiceFor(defaulteval.Evaluate))
+
 	return &clusterOM{
 		kubeClient: com.kubeClient,
 		namespace:  com.namespace,
 		t:          t,
-		mc:         util.NewMultiClose(),
 	}
 }
 
@@ -65,7 +69,12 @@ func (com *clusterOM) MustFrontendGRPC() pb.FrontendServiceClient {
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
-	com.mc.AddCloseWithErrorFunc(conn.Close)
+	com.t.Cleanup(func() {
+		closeErr := conn.Close()
+		if closeErr != nil {
+			com.t.Fatal(closeErr)
+		}
+	})
 	return pb.NewFrontendServiceClient(conn)
 }
 
@@ -74,7 +83,12 @@ func (com *clusterOM) MustBackendGRPC() pb.BackendServiceClient {
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
-	com.mc.AddCloseWithErrorFunc(conn.Close)
+	com.t.Cleanup(func() {
+		closeErr := conn.Close()
+		if closeErr != nil {
+			com.t.Fatal(closeErr)
+		}
+	})
 	return pb.NewBackendServiceClient(conn)
 }
 
@@ -83,12 +97,17 @@ func (com *clusterOM) MustQueryServiceGRPC() pb.QueryServiceClient {
 	if err != nil {
 		com.t.Fatalf("cannot create gRPC client, %s", err)
 	}
-	com.mc.AddCloseWithErrorFunc(conn.Close)
+	com.t.Cleanup(func() {
+		closeErr := conn.Close()
+		if closeErr != nil {
+			com.t.Fatal(closeErr)
+		}
+	})
 	return pb.NewQueryServiceClient(conn)
 }
 
 func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {
-	host, port := com.getGRPCAddressFromServiceName("om-function")
+	host, port := com.getGRPCAddressFromServiceName("test")
 	return &pb.FunctionConfig{
 		Host: host,
 		Port: port,
@@ -97,7 +116,7 @@ func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {
 }
 
 func (com *clusterOM) MustMmfConfigHTTP() *pb.FunctionConfig {
-	host, port := com.getHTTPAddressFromServiceName("om-function")
+	host, port := com.getHTTPAddressFromServiceName("test")
 	return &pb.FunctionConfig{
 		Host: host,
 		Port: port,
@@ -160,14 +179,6 @@ func (com *clusterOM) HealthCheck() error {
 
 func (com *clusterOM) Context() context.Context {
 	return context.Background()
-}
-
-func (com *clusterOM) cleanup() {
-	com.mc.Close()
-}
-
-func (com *clusterOM) cleanupMain() error {
-	return nil
 }
 
 func fileExists(name string) bool {
