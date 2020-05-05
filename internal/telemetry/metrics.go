@@ -119,14 +119,3 @@ func counterView(s *stats.Int64Measure, tags ...tag.Key) *view.View {
 	}
 	return v
 }
-
-// MeasureToView convert an Opencensus measure to Prometheus metric
-func MeasureToView(s stats.Measure, metricName, metricDesc string, aggregation *view.Aggregation) *view.View {
-	v := &view.View{
-		Name:        metricName,
-		Description: metricDesc,
-		Measure:     s,
-		Aggregation: aggregation,
-	}
-	return v
-}

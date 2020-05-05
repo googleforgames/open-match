@@ -31,7 +31,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
-	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/app/evaluator/defaulteval"
 	"open-match.dev/open-match/internal/appmain/apptest"
 	"open-match.dev/open-match/internal/logging"
@@ -55,7 +54,7 @@ type clusterOM struct {
 }
 
 func (com *clusterOM) withT(t *testing.T) OM {
-	apptest.RunInCluster(t, internalMmf.BindServiceFor(mmf.MakeMatches), evaluator.BindServiceFor(evaluator.Evaluator{EvaluateFunc: defaulteval.Evaluate, Binders: defaulteval.Binders}))
+	apptest.RunInCluster(t, internalMmf.BindServiceFor(mmf.MakeMatches), defaulteval.BinderServices())
 
 	return &clusterOM{
 		kubeClient: com.kubeClient,

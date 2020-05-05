@@ -114,7 +114,7 @@ func TestEvaluate(t *testing.T) {
 		test := test
 		t.Run(test.description, func(t *testing.T) {
 			t.Parallel()
-			gotMatchIDs, err := Evaluate(&evaluator.Params{Matches: test.testMatches})
+			gotMatchIDs, err := evaluate(&evaluator.Params{Matches: test.testMatches})
 
 			assert.Nil(t, err)
 			assert.Equal(t, len(test.wantMatchIDs), len(gotMatchIDs))

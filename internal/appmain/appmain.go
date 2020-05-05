@@ -23,6 +23,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"go.opencensus.io/stats/view"
+
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/logging"
@@ -79,14 +81,27 @@ func (p *Params) ServiceName() string {
 
 // Bindings allows applications to bind various functions to the running servers.
 type Bindings struct {
-	sp *rpc.ServerParams
-	a  *App
+	sp       *rpc.ServerParams
+	a        *App
+	firstErr error
 }
 
 // AddHealthCheckFunc allows an application to check if it is healthy, and
 // contribute to the overall server health.
 func (b *Bindings) AddHealthCheckFunc(f func(context.Context) error) {
 	b.sp.AddHealthCheckFunc(f)
+}
+
+// RegisterViews begins collecting data for the given views.
+func (b *Bindings) RegisterViews(v ...*view.View) {
+	if err := view.Register(v...); err != nil {
+		b.firstErr = err
+		return
+	}
+
+	b.AddCloser(func() {
+		view.Unregister(v...)
+	})
 }
 
 // AddHandleFunc adds a protobuf service to the grpc server which is starting.
@@ -164,6 +179,11 @@ func NewApplication(serviceName string, bindService Bind, getCfg func() (config.
 		surpressedErr := a.Stop() // Don't care about additional errors stopping.
 		_ = surpressedErr
 		return nil, err
+	}
+	if b.firstErr != nil {
+		surpressedErr := a.Stop() // Don't care about additional errors stopping.
+		_ = surpressedErr
+		return nil, b.firstErr
 	}
 
 	s := &rpc.Server{}

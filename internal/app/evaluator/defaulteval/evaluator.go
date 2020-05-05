@@ -26,7 +26,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/stats/view"
 	"open-match.dev/open-match/internal/app/evaluator"
-	"open-match.dev/open-match/internal/telemetry"
+	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -37,12 +37,12 @@ var (
 	})
 
 	collidedMatchesPerEvaluate     = stats.Int64("openmatch.dev/evaluator/collided_matches_per_call", "Number of collided matches per default evaluator call", stats.UnitDimensionless)
-	collidedMatchesPerEvaluateView = telemetry.MeasureToView(
-		collidedMatchesPerEvaluate,
-		"openmatch.dev/evaluator/collided_matches_per_call",
-		"Number of collided matches per default evaluator call",
-		view.Sum(),
-	)
+	collidedMatchesPerEvaluateView = &view.View{
+		Measure:     collidedMatchesPerEvaluate,
+		Name:        "openmatch.dev/evaluator/collided_matches_per_call",
+		Description: "Number of collided matches per default evaluator call",
+		Aggregation: view.Sum(),
+	}
 )
 
 type matchInp struct {
@@ -50,14 +50,20 @@ type matchInp struct {
 	inp   *pb.DefaultEvaluationCriteria
 }
 
-// Binders define the initialization steps for this evaluator
-func Binders() error {
-	return view.Register(collidedMatchesPerEvaluateView)
+// BinderServices define the initialization steps for this evaluator
+func BinderServices() appmain.Bind {
+	return func(p *appmain.Params, b *appmain.Bindings) error {
+		if err := evaluator.BindServiceFor(evaluate)(p, b); err != nil {
+			return err
+		}
+		b.RegisterViews(collidedMatchesPerEvaluateView)
+		return nil
+	}
 }
 
 // Evaluate sorts the matches by DefaultEvaluationCriteria.Score (optional),
 // then returns matches which don't collide with previously returned matches.
-func Evaluate(p *evaluator.Params) ([]string, error) {
+func evaluate(p *evaluator.Params) ([]string, error) {
 	matches := make([]*matchInp, 0, len(p.Matches))
 	nilEvlautionInputs := 0
 

@@ -28,18 +28,18 @@ var (
 	matchesPerEvaluateRequest  = stats.Int64("openmatch.dev/evaluator/matches_per_request", "Number of matches sent to the evaluator per request", stats.UnitDimensionless)
 	matchesPerEvaluateResponse = stats.Int64("openmatch.dev/evaluator/matches_per_response", "Number of matches returned by the evaluator per response", stats.UnitDimensionless)
 
-	matchesPerEvaluateRequestView = telemetry.MeasureToView(
-		matchesPerEvaluateRequest,
-		"openmatch.dev/evaluator/matches_per_request",
-		"Number of matches sent to the evaluator per request",
-		telemetry.DefaultCountDistribution,
-	)
-	matchesPerEvaluateResponseView = telemetry.MeasureToView(
-		matchesPerEvaluateResponse,
-		"openmatch.dev/evaluator/matches_per_response",
-		"Number of matches sent to the evaluator per response",
-		telemetry.DefaultCountDistribution,
-	)
+	matchesPerEvaluateRequestView = &view.View{
+		Measure:     matchesPerEvaluateRequest,
+		Name:        "openmatch.dev/evaluator/matches_per_request",
+		Description: "Number of matches sent to the evaluator per request",
+		Aggregation: telemetry.DefaultCountDistribution,
+	}
+	matchesPerEvaluateResponseView = &view.View{
+		Measure:     matchesPerEvaluateResponse,
+		Name:        "openmatch.dev/evaluator/matches_per_response",
+		Description: "Number of matches sent to the evaluator per response",
+		Aggregation: telemetry.DefaultCountDistribution,
+	}
 )
 
 // BindServiceFor creates the evaluator service and binds it to the serving harness.
@@ -48,15 +48,10 @@ func BindServiceFor(eval Evaluator) appmain.Bind {
 		b.AddHandleFunc(func(s *grpc.Server) {
 			pb.RegisterEvaluatorServer(s, &evaluatorService{eval})
 		}, pb.RegisterEvaluatorHandlerFromEndpoint)
-		if err := eval.Binders(); err != nil {
-			logger.WithError(err).Fatalf("failed to register binder functions for the input evaluator")
-		}
-		if err := view.Register(
+		b.RegisterViews(
 			matchesPerEvaluateRequestView,
 			matchesPerEvaluateResponseView,
-		); err != nil {
-			logger.WithError(err).Fatalf("failed to register given views to exporters")
-		}
+		)
 		return nil
 	}
 }

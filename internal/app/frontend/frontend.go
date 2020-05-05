@@ -28,18 +28,18 @@ var (
 	totalBytesPerTicket   = stats.Int64("openmatch.dev/total_bytes_per_ticket", "Total bytes per ticket", stats.UnitBytes)
 	searchFieldsPerTicket = stats.Int64("openmatch.dev/searchfields_per_ticket", "Searchfields per ticket", stats.UnitDimensionless)
 
-	totalBytesPerTicketView = telemetry.MeasureToView(
-		totalBytesPerTicket,
-		"openmatch.dev/total_bytes_per_ticket",
-		"Total bytes per ticket",
-		telemetry.DefaultBytesDistribution,
-	)
-	searchFieldsPerTicketView = telemetry.MeasureToView(
-		searchFieldsPerTicket,
-		"openmatch.dev/searchfields_per_ticket",
-		"SearchFields per ticket",
-		telemetry.DefaultCountDistribution,
-	)
+	totalBytesPerTicketView = &view.View{
+		Measure:     totalBytesPerTicket,
+		Name:        "openmatch.dev/total_bytes_per_ticket",
+		Description: "Total bytes per ticket",
+		Aggregation: telemetry.DefaultBytesDistribution,
+	}
+	searchFieldsPerTicketView = &view.View{
+		Measure:     searchFieldsPerTicket,
+		Name:        "openmatch.dev/searchfields_per_ticket",
+		Description: "SearchFields per ticket",
+		Aggregation: telemetry.DefaultCountDistribution,
+	}
 )
 
 // BindService creates the frontend service and binds it to the serving harness.
@@ -53,11 +53,9 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	b.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServiceServer(s, service)
 	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
-	if err := view.Register(
+	b.RegisterViews(
 		totalBytesPerTicketView,
 		searchFieldsPerTicketView,
-	); err != nil {
-		logger.WithError(err).Fatalf("failed to register given views to exporters")
-	}
+	)
 	return nil
 }
