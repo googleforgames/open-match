@@ -20,16 +20,11 @@
 package main
 
 import (
+	"open-match.dev/open-match/internal/appmain"
 	internalMmf "open-match.dev/open-match/internal/testing/mmf"
 	"open-match.dev/open-match/test/matchfunction/mmf"
 )
 
 func main() {
-	// Invoke the harness to setup a GRPC service that handles requests to run the
-	// match function. The harness itself queries open match for player pools for
-	// the specified request and passes the pools to the match function to generate
-	// proposals.
-	internalMmf.RunMatchFunction(&internalMmf.FunctionSettings{
-		Func: mmf.MakeMatches,
-	})
+	appmain.RunApplication("functions", internalMmf.BindServiceFor(mmf.MakeMatches))
 }

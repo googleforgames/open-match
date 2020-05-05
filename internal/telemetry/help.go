@@ -17,8 +17,6 @@ package telemetry
 import (
 	"fmt"
 	"net/http"
-
-	"open-match.dev/open-match/internal/config"
 )
 
 const (
@@ -51,11 +49,13 @@ func newHelp() func(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func bindHelp(mux *http.ServeMux, cfg config.View) {
-	if !cfg.GetBool(configNameTelemetryZpagesEnabled) {
-		return
+func bindHelp(p Params, b Bindings) error {
+	if !p.Config().GetBool(configNameTelemetryZpagesEnabled) {
+		return nil
 	}
 	h := newHelp()
-	mux.HandleFunc(helpEndpoint, h)
-	mux.HandleFunc(helpSecondaryEndpoint, h)
+	b.TelemetryHandleFunc(helpEndpoint, h)
+	b.TelemetryHandleFunc(helpSecondaryEndpoint, h)
+
+	return nil
 }

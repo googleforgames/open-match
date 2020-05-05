@@ -16,43 +16,45 @@ package telemetry
 
 import (
 	"contrib.go.opencensus.io/exporter/stackdriver"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/trace"
-	"open-match.dev/open-match/internal/config"
 )
 
-func bindStackDriverMetrics(cfg config.View) func() {
+func bindStackDriverMetrics(p Params, b Bindings) error {
+	cfg := p.Config()
+
 	if !cfg.GetBool("telemetry.stackdriverMetrics.enable") {
 		logger.Info("StackDriver Metrics: Disabled")
-		return func() {}
+		return nil
 	}
 	gcpProjectID := cfg.GetString("telemetry.stackdriverMetrics.gcpProjectId")
 	metricPrefix := cfg.GetString("telemetry.stackdriverMetrics.prefix")
-	sd, err := stackdriver.NewExporter(stackdriver.Options{
-		ProjectID: gcpProjectID,
-		// MetricPrefix helps uniquely identify your metrics.
-		MetricPrefix: metricPrefix,
-	})
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error":        err,
-			"gcpProjectID": gcpProjectID,
-			"metricPrefix": metricPrefix,
-		}).Fatal("Failed to initialize OpenCensus exporter to Stack Driver")
-	}
-
-	// Register it as a metrics exporter
-	view.RegisterExporter(sd)
-
-	// Register it as a trace exporter
-	trace.RegisterExporter(sd)
 
 	logger.WithFields(logrus.Fields{
 		"gcpProjectID": gcpProjectID,
 		"metricPrefix": metricPrefix,
 	}).Info("StackDriver Metrics: ENABLED")
 
-	// It is imperative to invoke flush before your main function exits
-	return sd.Flush
+	sd, err := stackdriver.NewExporter(stackdriver.Options{
+		ProjectID: gcpProjectID,
+		// MetricPrefix helps uniquely identify your metrics.
+		MetricPrefix: metricPrefix,
+	})
+	if err != nil {
+		return errors.Wrap(err, "Failed to initialize OpenCensus exporter to Stack Driver")
+	}
+
+	view.RegisterExporter(sd)
+	trace.RegisterExporter(sd)
+
+	b.AddCloser(func() {
+		view.UnregisterExporter(sd)
+		trace.UnregisterExporter(sd)
+		// It is imperative to invoke flush before your main function exits
+		sd.Flush()
+	})
+
+	return nil
 }

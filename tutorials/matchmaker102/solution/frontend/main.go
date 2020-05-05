@@ -52,8 +52,8 @@ func main() {
 				log.Fatalf("Failed to Create Ticket, got %s", err.Error())
 			}
 
-			log.Println("Ticket created successfully, id:", resp.Ticket.Id)
-			go deleteOnAssign(fe, resp.Ticket)
+			log.Println("Ticket created successfully, id:", resp.Id)
+			go deleteOnAssign(fe, resp)
 		}
 	}
 }

@@ -11,14 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package main
 
 import (
 	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/app/evaluator/defaulteval"
+	"open-match.dev/open-match/internal/appmain"
 )
 
 func main() {
-	// Invoke the harness to setup a GRPC service that handles requests to run the evaluator.
-	evaluator.RunEvaluator(defaulteval.Evaluate)
+	appmain.RunApplication("evaluator", evaluator.BindServiceFor(defaulteval.Evaluate))
 }

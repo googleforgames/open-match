@@ -16,22 +16,22 @@ package backend
 
 import (
 	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 // BindService creates the backend service and binds it to the serving harness.
-func BindService(p *rpc.ServerParams, cfg config.View) error {
+func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	service := &backendService{
-		synchronizer: newSynchronizerClient(cfg),
-		store:        statestore.New(cfg),
-		cc:           rpc.NewClientCache(cfg),
+		synchronizer: newSynchronizerClient(p.Config()),
+		store:        statestore.New(p.Config()),
+		cc:           rpc.NewClientCache(p.Config()),
 	}
 
-	p.AddHealthCheckFunc(service.store.HealthCheck)
-	p.AddHandleFunc(func(s *grpc.Server) {
+	b.AddHealthCheckFunc(service.store.HealthCheck)
+	b.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterBackendServiceServer(s, service)
 	}, pb.RegisterBackendServiceHandlerFromEndpoint)
 

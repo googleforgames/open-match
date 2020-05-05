@@ -16,35 +16,18 @@
 package evaluator
 
 import (
-	"github.com/spf13/viper"
 	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/app"
-	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// RunEvaluator is a hook for the main() method in the main executable.
-func RunEvaluator(eval Evaluator) {
-	app.RunApplication("evaluator", getCfg, func(p *rpc.ServerParams, cfg config.View) error {
-		return BindService(p, cfg, eval)
-	})
-}
+// BindServiceFor creates the evaluator service and binds it to the serving harness.
+func BindServiceFor(eval Evaluator) appmain.Bind {
+	return func(p *appmain.Params, b *appmain.Bindings) error {
+		b.AddHandleFunc(func(s *grpc.Server) {
+			pb.RegisterEvaluatorServer(s, &evaluatorService{evaluate: eval})
+		}, pb.RegisterEvaluatorHandlerFromEndpoint)
 
-// BindService creates the evaluator service to the server Params.
-func BindService(p *rpc.ServerParams, cfg config.View, eval Evaluator) error {
-	p.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterEvaluatorServer(s, &evaluatorService{evaluate: eval})
-	}, pb.RegisterEvaluatorHandlerFromEndpoint)
-
-	return nil
-}
-
-func getCfg() (config.View, error) {
-	cfg := viper.New()
-	cfg.Set("api.evaluator.hostname", "om-evaluator")
-	cfg.Set("api.evaluator.grpcport", 50508)
-	cfg.Set("api.evaluator.httpport", 51508)
-
-	return cfg, nil
+		return nil
+	}
 }

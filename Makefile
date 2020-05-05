@@ -67,6 +67,8 @@ MINIKUBE_VERSION = latest
 GOLANGCI_VERSION = 1.18.0
 KIND_VERSION = 0.5.1
 SWAGGERUI_VERSION = 3.24.2
+GOOGLE_APIS_VERSION = aba342359b6743353195ca53f944fe71e6fb6cd4
+GRPC_GATEWAY_VERSION = 1.14.3
 TERRAFORM_VERSION = 0.12.13
 CHART_TESTING_VERSION = 2.4.0
 
@@ -77,7 +79,6 @@ ENABLE_SECURITY_HARDENING = 0
 GO = GO111MODULE=on go
 # Defines the absolute local directory of the open-match project
 REPOSITORY_ROOT := $(patsubst %/,%,$(dir $(abspath $(MAKEFILE_LIST))))
-GO_BUILD_COMMAND = CGO_ENABLED=0 $(GO) build -a -installsuffix cgo .
 BUILD_DIR = $(REPOSITORY_ROOT)/build
 TOOLCHAIN_DIR = $(BUILD_DIR)/toolchain
 TOOLCHAIN_BIN = $(TOOLCHAIN_DIR)/bin
@@ -362,11 +363,10 @@ install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_HELM_NAME) $(HELM_UPGRADE_FLAGS) --atomic install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.ignoreListTTL=500ms \
-		--set open-match-customize.enabled=true \
-		--set open-match-customize.function.enabled=true \
-		--set open-match-customize.evaluator.enabled=true \
-		--set open-match-customize.function.image=openmatch-mmf-go-pool \
-		--set query.replicas=1,frontend.replicas=1,backend.replicas=1,open-match-customize.evaluator.replicas=1,open-match-customize.function.replicas=1 \
+		--set query.replicas=1,frontend.replicas=1,backend.replicas=1 \
+		--set evaluator.hostName=test \
+		--set evaluator.grpcPort=50509 \
+		--set evaluator.httpPort=51509 \
 		--set redis.master.resources.requests.cpu=0.6,redis.master.resources.requests.memory=300Mi \
 		--set ci=true
 
@@ -535,13 +535,13 @@ build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	cd $(TOOLCHAIN_BIN) && $(GO) build -i -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
-build/toolchain/bin/certgen$(EXE_EXTENSION): tools/certgen/certgen$(EXE_EXTENSION)
+build/toolchain/bin/certgen$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
-	cp -f $(REPOSITORY_ROOT)/tools/certgen/certgen$(EXE_EXTENSION) $(CERTGEN)
+	cd $(TOOLCHAIN_BIN) && $(GO) build $(REPOSITORY_ROOT)/tools/certgen/
 
-build/toolchain/bin/reaper$(EXE_EXTENSION): tools/reaper/reaper$(EXE_EXTENSION)
+build/toolchain/bin/reaper$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
-	cp -f $(REPOSITORY_ROOT)/tools/reaper/reaper$(EXE_EXTENSION) $(TOOLCHAIN_BIN)/reaper$(EXE_EXTENSION)
+	cd $(TOOLCHAIN_BIN) && $(GO) build $(REPOSITORY_ROOT)/tools/reaper/
 
 # Fake target for docker
 docker: no-sudo
@@ -591,7 +591,7 @@ get-kind-kubeconfig: build/toolchain/bin/kind$(EXE_EXTENSION)
 delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(KIND) delete cluster
 
-create-gke-cluster: GKE_VERSION = 1.14.8-gke.17 # gcloud beta container get-server-config --zone us-west1-a
+create-gke-cluster: GKE_VERSION = 1.14.10-gke.32 # gcloud beta container get-server-config --zone us-west1-a
 create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
@@ -739,57 +739,6 @@ build/cmd/demo-%/COPY_PHONY:
 	mkdir -p $(BUILD_DIR)/cmd/demo-$*/
 	cp -r examples/demo/static $(BUILD_DIR)/cmd/demo-$*/static
 
-all: service-binaries example-binaries tools-binaries
-
-service-binaries: cmd/minimatch/minimatch$(EXE_EXTENSION) cmd/swaggerui/swaggerui$(EXE_EXTENSION)
-service-binaries: cmd/backend/backend$(EXE_EXTENSION) cmd/frontend/frontend$(EXE_EXTENSION)
-service-binaries: cmd/query/query$(EXE_EXTENSION) cmd/synchronizer/synchronizer$(EXE_EXTENSION)
-
-example-binaries: example-mmf-binaries
-example-mmf-binaries: examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
-
-examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION): pkg/pb/query.pb.go pkg/pb/query.pb.gw.go api/query.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
-	cd $(REPOSITORY_ROOT)/examples/functions/golang/soloduel; $(GO_BUILD_COMMAND)
-
-test/matchfunction/matchfunction$(EXE_EXTENSION): pkg/pb/query.pb.go pkg/pb/query.pb.gw.go api/query.swagger.json pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
-	cd $(REPOSITORY_ROOT)/test/matchfunction; $(GO_BUILD_COMMAND)
-
-tools-binaries: tools/certgen/certgen$(EXE_EXTENSION) tools/reaper/reaper$(EXE_EXTENSION)
-
-cmd/backend/backend$(EXE_EXTENSION): pkg/pb/backend.pb.go pkg/pb/backend.pb.gw.go api/backend.swagger.json
-	cd $(REPOSITORY_ROOT)/cmd/backend; $(GO_BUILD_COMMAND)
-
-cmd/frontend/frontend$(EXE_EXTENSION): pkg/pb/frontend.pb.go pkg/pb/frontend.pb.gw.go api/frontend.swagger.json
-	cd $(REPOSITORY_ROOT)/cmd/frontend; $(GO_BUILD_COMMAND)
-
-cmd/query/query$(EXE_EXTENSION): pkg/pb/query.pb.go pkg/pb/query.pb.gw.go api/query.swagger.json
-	cd $(REPOSITORY_ROOT)/cmd/query; $(GO_BUILD_COMMAND)
-
-cmd/default-evaluator/default-evaluator$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
-	cd $(REPOSITORY_ROOT)/cmd/evaluator; $(GO_BUILD_COMMAND)
-
-cmd/synchronizer/synchronizer$(EXE_EXTENSION): internal/ipb/synchronizer.pb.go
-	cd $(REPOSITORY_ROOT)/cmd/synchronizer; $(GO_BUILD_COMMAND)
-
-# Note: This list of dependencies is long but only add file references here. If you add a .PHONY dependency make will always rebuild it.
-cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/backend.pb.go pkg/pb/backend.pb.gw.go api/backend.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/frontend.pb.go pkg/pb/frontend.pb.gw.go api/frontend.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/query.pb.go pkg/pb/query.pb.gw.go api/query.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/evaluator.pb.go pkg/pb/evaluator.pb.gw.go api/evaluator.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/matchfunction.pb.go pkg/pb/matchfunction.pb.gw.go api/matchfunction.swagger.json
-cmd/minimatch/minimatch$(EXE_EXTENSION): pkg/pb/messages.pb.go
-cmd/minimatch/minimatch$(EXE_EXTENSION): internal/ipb/synchronizer.pb.go
-	cd $(REPOSITORY_ROOT)/cmd/minimatch; $(GO_BUILD_COMMAND)
-
-cmd/swaggerui/swaggerui$(EXE_EXTENSION): third_party/swaggerui/
-	cd $(REPOSITORY_ROOT)/cmd/swaggerui; $(GO_BUILD_COMMAND)
-
-tools/certgen/certgen$(EXE_EXTENSION):
-	cd $(REPOSITORY_ROOT)/tools/certgen/ && $(GO_BUILD_COMMAND)
-
-tools/reaper/reaper$(EXE_EXTENSION):
-	cd $(REPOSITORY_ROOT)/tools/reaper/ && $(GO_BUILD_COMMAND)
-
 build/policies/binauthz.yaml: install/policies/binauthz.yaml
 	mkdir -p $(BUILD_DIR)/policies
 	cp -f $(REPOSITORY_ROOT)/install/policies/binauthz.yaml $(BUILD_DIR)/policies/binauthz.yaml
@@ -846,7 +795,7 @@ ci-reap-namespaces: build/toolchain/bin/reaper$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: GOLANG_TEST_COUNT = 5
-presubmit: clean third_party/ update-chart-deps assets update-deps lint build install-toolchain test md-test terraform-test
+presubmit: clean third_party/ update-chart-deps assets update-deps lint build test md-test terraform-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
@@ -880,19 +829,6 @@ clean-protos:
 	rm -rf $(REPOSITORY_ROOT)/pkg/pb/
 	rm -rf $(REPOSITORY_ROOT)/internal/ipb/
 
-clean-binaries:
-	rm -rf $(REPOSITORY_ROOT)/cmd/backend/backend$(EXE_EXTENSION)
-	rm -rf $(REPOSITORY_ROOT)/cmd/synchronizer/synchronizer$(EXE_EXTENSION)
-	rm -rf $(REPOSITORY_ROOT)/cmd/frontend/frontend$(EXE_EXTENSION)
-	rm -rf $(REPOSITORY_ROOT)/cmd/query/query$(EXE_EXTENSION)
-	rm -rf $(REPOSITORY_ROOT)/cmd/minimatch/minimatch$(EXE_EXTENSION)
-	rm -rf $(REPOSITORY_ROOT)/examples/functions/golang/soloduel/soloduel$(EXE_EXTENSION)
-	rm -rf $(REPOSITORY_ROOT)/test/matchfunction/matchfunction$(EXE_EXTENSION)
-	rm -rf $(REPOSITORY_ROOT)/test/evaluator/evaluator$(EXE_EXTENSION)
-	rm -rf $(REPOSITORY_ROOT)/cmd/swaggerui/swaggerui$(EXE_EXTENSION)
-	rm -rf $(REPOSITORY_ROOT)/tools/certgen/certgen$(EXE_EXTENSION)
-	rm -rf $(REPOSITORY_ROOT)/tools/reaper/reaper$(EXE_EXTENSION)
-
 clean-terraform:
 	rm -rf $(REPOSITORY_ROOT)/install/terraform/.terraform/
 
@@ -917,7 +853,7 @@ clean-swagger-docs:
 clean-third-party:
 	rm -rf $(REPOSITORY_ROOT)/third_party/
 
-clean: clean-images clean-binaries clean-build clean-install-yaml clean-secrets clean-terraform clean-third-party clean-protos clean-swagger-docs
+clean: clean-images clean-build clean-install-yaml clean-secrets clean-terraform clean-third-party clean-protos clean-swagger-docs
 
 proxy-frontend: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Frontend Health: http://localhost:$(FRONTEND_PORT)/healthz"
@@ -984,18 +920,18 @@ third_party/google/api:
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
 	mkdir -p $(REPOSITORY_ROOT)/third_party/google/api
 	mkdir -p $(REPOSITORY_ROOT)/third_party/google/rpc
-	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L https://github.com/googleapis/googleapis/archive/master.zip
+	curl -o $(TOOLCHAIN_DIR)/googleapis-temp/googleapis.zip -L https://github.com/googleapis/googleapis/archive/$(GOOGLE_APIS_VERSION).zip
 	(cd $(TOOLCHAIN_DIR)/googleapis-temp/; unzip -q -o googleapis.zip)
-	cp -f $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/api/*.proto $(REPOSITORY_ROOT)/third_party/google/api/
-	cp -f $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-master/google/rpc/*.proto $(REPOSITORY_ROOT)/third_party/google/rpc/
+	cp -f $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-$(GOOGLE_APIS_VERSION)/google/api/*.proto $(REPOSITORY_ROOT)/third_party/google/api/
+	cp -f $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-$(GOOGLE_APIS_VERSION)/google/rpc/*.proto $(REPOSITORY_ROOT)/third_party/google/rpc/
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
 
 third_party/protoc-gen-swagger/options:
 	mkdir -p $(TOOLCHAIN_DIR)/grpc-gateway-temp/
 	mkdir -p $(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options
-	curl -o $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway.zip -L https://github.com/grpc-ecosystem/grpc-gateway/archive/master.zip
+	curl -o $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway.zip -L https://github.com/grpc-ecosystem/grpc-gateway/archive/v$(GRPC_GATEWAY_VERSION).zip
 	(cd $(TOOLCHAIN_DIR)/grpc-gateway-temp/; unzip -q -o grpc-gateway.zip)
-	cp -f $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-master/protoc-gen-swagger/options/*.proto $(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options/
+	cp -f $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-$(GRPC_GATEWAY_VERSION)/protoc-gen-swagger/options/*.proto $(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options/
 	rm -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp
 
 third_party/swaggerui/:

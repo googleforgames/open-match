@@ -264,11 +264,12 @@ global:
   # requires pod-level annotation to customize its scrape path.
   # See definitions in templates/_helpers.tpl - "prometheus.annotations" section for details
   telemetry:
+    reportingPeriod: "1m"
+    traceSamplingFraction: 0.005 # What fraction of traces to sample.
     zpages:
       enabled: true
     jaeger:
       enabled: false
-      samplerFraction: 0.005 # Configures a sampler that samples a given fraction of traces.
       agentEndpoint: "open-match-jaeger-agent:6831"
       collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
     prometheus:
@@ -280,4 +281,3 @@ global:
       prefix: "open_match"
     grafana:
       enabled: false
-    reportingPeriod: "1m"

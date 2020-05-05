@@ -16,49 +16,23 @@
 package mmf
 
 import (
-	"github.com/spf13/viper"
 	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/app"
-	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// FunctionSettings is a collection of parameters used to customize matchfunction views.
-type FunctionSettings struct {
-	Func MatchFunction
-}
+// BindServiceFor creates the match function service and binds it to the serving harness.
+func BindServiceFor(mf MatchFunction) appmain.Bind {
+	return func(p *appmain.Params, b *appmain.Bindings) error {
+		service, err := newMatchFunctionService(p.Config(), mf)
+		if err != nil {
+			return err
+		}
 
-// RunMatchFunction is a hook for the main() method in the main executable.
-func RunMatchFunction(settings *FunctionSettings) {
-	app.RunApplication("functions", getCfg, func(p *rpc.ServerParams, cfg config.View) error {
-		return BindService(p, cfg, settings)
-	})
-}
+		b.AddHandleFunc(func(s *grpc.Server) {
+			pb.RegisterMatchFunctionServer(s, service)
+		}, pb.RegisterMatchFunctionHandlerFromEndpoint)
 
-// BindService creates the function service to the server Params.
-func BindService(p *rpc.ServerParams, cfg config.View, fs *FunctionSettings) error {
-	service, err := newMatchFunctionService(cfg, fs)
-	if err != nil {
-		return err
+		return nil
 	}
-
-	p.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterMatchFunctionServer(s, service)
-	}, pb.RegisterMatchFunctionHandlerFromEndpoint)
-
-	return nil
-}
-
-func getCfg() (config.View, error) {
-	cfg := viper.New()
-
-	cfg.Set("api.functions.hostname", "om-function")
-	cfg.Set("api.functions.grpcport", 50502)
-	cfg.Set("api.functions.httpport", 51502)
-
-	cfg.Set("api.query.hostname", "om-query")
-	cfg.Set("api.query.grpcport", 50503)
-
-	return cfg, nil
 }

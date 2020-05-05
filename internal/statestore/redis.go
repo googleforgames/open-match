@@ -397,11 +397,11 @@ func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{
 
 	ttl := rb.cfg.GetDuration("storage.ignoreListTTL")
 	curTime := time.Now()
-	curTimeInt := curTime.UnixNano()
+	endTimeInt := curTime.Add(time.Hour).UnixNano()
 	startTimeInt := curTime.Add(-ttl).UnixNano()
 
 	// Filter out tickets that are fetched but not assigned within ttl time (ms).
-	idsInIgnoreLists, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, curTimeInt))
+	idsInIgnoreLists, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, endTimeInt))
 	if err != nil {
 		redisLogger.WithError(err).Error("failed to get proposed tickets")
 		return nil, status.Errorf(codes.Internal, "error getting ignore list %v", err)

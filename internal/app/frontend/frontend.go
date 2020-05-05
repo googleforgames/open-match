@@ -16,21 +16,20 @@ package frontend
 
 import (
 	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 // BindService creates the frontend service and binds it to the serving harness.
-func BindService(p *rpc.ServerParams, cfg config.View) error {
+func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	service := &frontendService{
-		cfg:   cfg,
-		store: statestore.New(cfg),
+		cfg:   p.Config(),
+		store: statestore.New(p.Config()),
 	}
 
-	p.AddHealthCheckFunc(service.store.HealthCheck)
-	p.AddHandleFunc(func(s *grpc.Server) {
+	b.AddHealthCheckFunc(service.store.HealthCheck)
+	b.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServiceServer(s, service)
 	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
 

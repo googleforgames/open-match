@@ -16,18 +16,17 @@ package synchronizer
 
 import (
 	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/ipb"
-	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
 )
 
 // BindService creates the synchronizer service and binds it to the serving harness.
-func BindService(p *rpc.ServerParams, cfg config.View) error {
-	store := statestore.New(cfg)
-	service := newSynchronizerService(cfg, newEvaluator(cfg), store)
-	p.AddHealthCheckFunc(store.HealthCheck)
-	p.AddHandleFunc(func(s *grpc.Server) {
+func BindService(p *appmain.Params, b *appmain.Bindings) error {
+	store := statestore.New(p.Config())
+	service := newSynchronizerService(p.Config(), newEvaluator(p.Config()), store)
+	b.AddHealthCheckFunc(store.HealthCheck)
+	b.AddHandleFunc(func(s *grpc.Server) {
 		ipb.RegisterSynchronizerServer(s, service)
 	}, nil)
 
