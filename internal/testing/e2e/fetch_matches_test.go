@@ -751,3 +751,49 @@ func TestSlowBackendDoesntBlock(t *testing.T) {
 	require.Equal(t, err, io.EOF)
 	require.Nil(t, resp)
 }
+
+// TestHTTPMMF covers calling the MMF with http config instead of gRPC.
+func TestHTTPMMF(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+	t2, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+
+	m := &pb.Match{
+		MatchId: "1",
+		Tickets: []*pb.Ticket{t1, t2},
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- m
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		p, ok := <-in
+		require.True(t, ok)
+		require.True(t, proto.Equal(p, m))
+		_, ok = <-in
+		require.False(t, ok)
+
+		out <- m.MatchId
+		return nil
+	})
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigHTTP(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	resp, err := stream.Recv()
+	require.Nil(t, err)
+	require.True(t, proto.Equal(m, resp.Match))
+
+	resp, err = stream.Recv()
+	require.Equal(t, err, io.EOF)
+	require.Nil(t, resp)
+}
