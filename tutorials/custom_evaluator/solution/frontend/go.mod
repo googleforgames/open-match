@@ -7,4 +7,4 @@ require (
 	open-match.dev/open-match v0.0.0-dev
 )
 
-replace open-match.dev/open-match v0.0.0-dev => ../../../../../open-match
+replace open-match.dev/open-match v0.0.0-dev => ../../../../
