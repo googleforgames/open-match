@@ -19,6 +19,7 @@ import (
 	"flag"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"open-match.dev/open-match/internal/app/evaluator"
@@ -152,6 +153,12 @@ func (om *om) MMFConfigHTTP() *pb.FunctionConfig {
 		Type: pb.FunctionConfig_REST,
 	}
 }
+
+// Testing constants which must match the configuration.  Not parsed in test so
+// that parsing bugs can't hide logic bugs.
+const registrationIntervalMs = time.Millisecond * 200
+const proposalCollectionIntervalMs = time.Millisecond * 200
+const ignoreListTTL = time.Millisecond * 200
 
 // configFile is the "cononical" test config.  It exactly matches the configmap
 // which is used in the real cluster tests.
