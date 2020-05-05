@@ -155,11 +155,11 @@ var fileDescriptor_35ff6b85fea1c4b7 = []byte{
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
-var _ grpc.ClientConnInterface
+var _ grpc.ClientConn
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion6
+const _ = grpc.SupportPackageIsVersion4
 
 // SynchronizerClient is the client API for Synchronizer service.
 //
@@ -171,10 +171,10 @@ type SynchronizerClient interface {
 }
 
 type synchronizerClient struct {
-	cc grpc.ClientConnInterface
+	cc *grpc.ClientConn
 }
 
-func NewSynchronizerClient(cc grpc.ClientConnInterface) SynchronizerClient {
+func NewSynchronizerClient(cc *grpc.ClientConn) SynchronizerClient {
 	return &synchronizerClient{cc}
 }
 
