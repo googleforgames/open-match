@@ -445,7 +445,7 @@ func TestCancel(t *testing.T) {
 	wgFinished.Wait()
 
 	// The evaluator is only canceled after the registration window completes.
-	require.True(t, time.Since(startTime) > time.Millisecond*100, "%s", time.Since(startTime))
+	require.True(t, time.Since(startTime) > time.Millisecond*200, "%s", time.Since(startTime))
 }
 
 // TestStreaming covers that matches can stream through the mmf, evaluator, and
@@ -529,7 +529,7 @@ func TestRegistrationWindow(t *testing.T) {
 		_, ok := <-in
 		require.False(t, ok)
 
-		require.True(t, time.Since(startTime) > time.Millisecond*100, "%s", time.Since(startTime))
+		require.True(t, time.Since(startTime) > time.Millisecond*200, "%s", time.Since(startTime))
 		return nil
 	})
 
@@ -542,7 +542,7 @@ func TestRegistrationWindow(t *testing.T) {
 	resp, err := stream.Recv()
 	require.Equal(t, err, io.EOF)
 	require.Nil(t, resp)
-	require.True(t, time.Since(startTime) > time.Millisecond*100, "%s", time.Since(startTime))
+	require.True(t, time.Since(startTime) > time.Millisecond*200, "%s", time.Since(startTime))
 }
 
 // TestProposalWindowClose covers that a long running match function will get
@@ -556,14 +556,14 @@ func TestProposalWindowClose(t *testing.T) {
 	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
 		<-ctx.Done()
 		require.Equal(t, ctx.Err(), context.Canceled)
-		require.True(t, time.Since(startTime) > time.Millisecond*200, "%s", time.Since(startTime))
+		require.True(t, time.Since(startTime) > time.Millisecond*400, "%s", time.Since(startTime))
 		return nil
 	})
 
 	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
 		_, ok := <-in
 		require.False(t, ok)
-		require.True(t, time.Since(startTime) > time.Millisecond*200, "%s", time.Since(startTime))
+		require.True(t, time.Since(startTime) > time.Millisecond*400, "%s", time.Since(startTime))
 		return nil
 	})
 
@@ -577,7 +577,7 @@ func TestProposalWindowClose(t *testing.T) {
 	require.Contains(t, err.Error(), "context canceled")
 	require.Nil(t, resp)
 
-	require.True(t, time.Since(startTime) > time.Millisecond*200, "%s", time.Since(startTime))
+	require.True(t, time.Since(startTime) > time.Millisecond*400, "%s", time.Since(startTime))
 }
 
 // TestMultipleFetchCalls covers multiple fetch matches calls running in the

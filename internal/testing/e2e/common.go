@@ -201,11 +201,11 @@ api:
 
 
 synchronizer:
-  registrationIntervalMs: 100ms
-  proposalCollectionIntervalMs: 100ms
+  registrationIntervalMs: 200ms
+  proposalCollectionIntervalMs: 200ms
 
 storage:
-  ignoreListTTL: 100ms
+  ignoreListTTL: 200ms
   page:
     size: 10
 
