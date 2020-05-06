@@ -20,5 +20,5 @@ import (
 )
 
 func main() {
-	appmain.RunApplication("evaluator", defaulteval.BinderServices)
+	appmain.RunApplication("evaluator", defaulteval.BinderService)
 }

@@ -94,8 +94,10 @@ func (b *Bindings) AddHealthCheckFunc(f func(context.Context) error) {
 
 // RegisterViews begins collecting data for the given views.
 func (b *Bindings) RegisterViews(v ...*view.View) {
-	if err := view.Register(v...); err != nil && b.firstErr == nil {
-		b.firstErr = err
+	if err := view.Register(v...); err != nil {
+		if b.firstErr == nil {
+			b.firstErr = err
+		}
 		return
 	}
 

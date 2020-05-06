@@ -50,8 +50,8 @@ type matchInp struct {
 	inp   *pb.DefaultEvaluationCriteria
 }
 
-// BinderServices define the initialization steps for this evaluator
-func BinderServices(p *appmain.Params, b *appmain.Bindings) error {
+// BinderService define the initialization steps for this evaluator
+func BinderService(p *appmain.Params, b *appmain.Bindings) error {
 	if err := evaluator.BindServiceFor(evaluate)(p, b); err != nil {
 		return err
 	}
