@@ -58,7 +58,7 @@ func (rb *redisBackend) Close() error {
 func newRedis(cfg config.View) Service {
 	return &redisBackend{
 		healthCheckPool: getHealthCheckPool(cfg),
-		redisPool:       getRedisPool(cfg),
+		redisPool:       GetRedisPool(cfg),
 		cfg:             cfg,
 	}
 }
@@ -92,7 +92,8 @@ func getHealthCheckPool(cfg config.View) *redis.Pool {
 	}
 }
 
-func getRedisPool(cfg config.View) *redis.Pool {
+// GetRedisPool configures a new pool to connect to redis given the config.
+func GetRedisPool(cfg config.View) *redis.Pool {
 	var dialFunc func(context.Context) (redis.Conn, error)
 	maxIdle := cfg.GetInt("redis.pool.maxIdle")
 	maxActive := cfg.GetInt("redis.pool.maxActive")

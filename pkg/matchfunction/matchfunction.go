@@ -24,8 +24,8 @@ import (
 )
 
 // QueryPool queries queryService and returns the tickets that belong to the specified pool.
-func QueryPool(ctx context.Context, mml pb.QueryServiceClient, pool *pb.Pool) ([]*pb.Ticket, error) {
-	query, err := mml.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
+func QueryPool(ctx context.Context, queryClient pb.QueryServiceClient, pool *pb.Pool) ([]*pb.Ticket, error) {
+	query, err := queryClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool})
 	if err != nil {
 		return nil, fmt.Errorf("error calling queryService.QueryTickets: %w", err)
 	}
@@ -46,7 +46,7 @@ func QueryPool(ctx context.Context, mml pb.QueryServiceClient, pool *pb.Pool) ([
 }
 
 // QueryPools queries queryService and returns the a map of pool names to the tickets belonging to those pools.
-func QueryPools(ctx context.Context, mml pb.QueryServiceClient, pools []*pb.Pool) (map[string][]*pb.Ticket, error) {
+func QueryPools(ctx context.Context, queryClient pb.QueryServiceClient, pools []*pb.Pool) (map[string][]*pb.Ticket, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	type result struct {
@@ -61,7 +61,7 @@ func QueryPools(ctx context.Context, mml pb.QueryServiceClient, pools []*pb.Pool
 			r := result{
 				name: pool.Name,
 			}
-			r.tickets, r.err = QueryPool(ctx, mml, pool)
+			r.tickets, r.err = QueryPool(ctx, queryClient, pool)
 			select {
 			case results <- r:
 			case <-ctx.Done():
