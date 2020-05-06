@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"open-match.dev/open-match/internal/appmain/contextcause"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/statestore"
@@ -203,7 +204,7 @@ func (s synchronizerService) register(ctx context.Context) *registration {
 
 func (s *synchronizerService) runCycle() {
 	/////////////////////////////////////// Initialize cycle
-	ctx, cancel := withCancelCause(context.Background())
+	ctx, cancel := contextcause.WithCancelCause(context.Background())
 
 	m2c := make(chan mAndM6c)
 	m3c := make(chan *pb.Match)
@@ -391,7 +392,7 @@ func (c *cutoffSender) cutoff() {
 ///////////////////////////////////////
 
 // Calls the evaluator with the matches.
-func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelErrFunc, m4c <-chan []*pb.Match, m5c chan<- string) {
+func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel contextcause.CancelErrFunc, m4c <-chan []*pb.Match, m5c chan<- string) {
 	err := s.eval.evaluate(ctx, m4c, m5c)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
@@ -428,7 +429,7 @@ func getTicketIds(tickets []*pb.Ticket) []string {
 // ignorelist.  If it partially fails for whatever reason (not all tickets will
 // nessisarily be in the same call), only the matches which can be safely
 // returned to the Synchronize calls are.
-func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, m *sync.Map, cancel cancelErrFunc, m5c <-chan []string, m6c chan<- string) {
+func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, m *sync.Map, cancel contextcause.CancelErrFunc, m5c <-chan []string, m6c chan<- string) {
 	totalMatches := 0
 	successfulMatches := 0
 	var lastErr error
@@ -577,47 +578,4 @@ func bufferStringChannel(in chan string) chan []string {
 		close(out)
 	}()
 	return out
-}
-
-///////////////////////////////////////
-///////////////////////////////////////
-
-// withCancelCause returns a copy of parent with a new Done channel. The
-// returned context's Done channel is closed when the returned cancel function
-// is called or when the parent context's Done channel is closed, whichever
-// happens first.  Unlike the conext package's WithCancel, the cancel func takes
-// an error, and will return that error on subsequent calls to Err().
-func withCancelCause(parent context.Context) (context.Context, cancelErrFunc) {
-	parent, cancel := context.WithCancel(parent)
-
-	ctx := &contextWithCancelCause{
-		Context: parent,
-	}
-
-	return ctx, func(err error) {
-		ctx.m.Lock()
-		defer ctx.m.Unlock()
-
-		if ctx.err == nil && parent.Err() == nil {
-			ctx.err = err
-		}
-		cancel()
-	}
-}
-
-type cancelErrFunc func(err error)
-
-type contextWithCancelCause struct {
-	context.Context
-	m   sync.Mutex
-	err error
-}
-
-func (ctx *contextWithCancelCause) Err() error {
-	ctx.m.Lock()
-	defer ctx.m.Unlock()
-	if ctx.err == nil {
-		return ctx.Context.Err()
-	}
-	return ctx.err
 }

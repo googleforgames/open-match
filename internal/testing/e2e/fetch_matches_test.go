@@ -574,7 +574,7 @@ func TestProposalWindowClose(t *testing.T) {
 	require.Nil(t, err)
 
 	resp, err := stream.Recv()
-	require.Contains(t, err.Error(), "context canceled")
+	require.Contains(t, err.Error(), "match function ran longer than proposal window, canceling")
 	require.Nil(t, resp)
 
 	require.True(t, time.Since(startTime) > registrationIntervalMs+proposalCollectionIntervalMs, "%s", time.Since(startTime))
