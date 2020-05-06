@@ -82,6 +82,7 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 		ticketsPerQueryView,
 		cacheTotalItemsView,
 		cacheUpdateView,
+		cacheFetchedItemsView,
 		cacheWaitingQueriesView,
 		cacheUpdateLatencyView,
 	)
