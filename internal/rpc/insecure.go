@@ -77,8 +77,8 @@ func (s *insecureServer) start(params *ServerParams) error {
 		serverLogger.Infof("Serving HTTP: %s", s.httpListener.Addr().String())
 		hErr := s.httpServer.Serve(s.httpListener)
 		defer cancel()
-		if hErr != nil {
-			serverLogger.Debugf("error closing gRPC server: %s", hErr)
+		if hErr != nil && hErr != http.ErrServerClosed {
+			serverLogger.Debugf("error serving HTTP: %s", hErr)
 		}
 	}()
 
@@ -87,8 +87,9 @@ func (s *insecureServer) start(params *ServerParams) error {
 
 func (s *insecureServer) stop() error {
 	// the servers also close their respective listeners.
-	s.grpcServer.Stop()
-	return s.httpListener.Close()
+	err := s.httpServer.Shutdown(context.Background())
+	s.grpcServer.GracefulStop()
+	return err
 }
 
 func newInsecureServer(grpcL, httpL net.Listener) *insecureServer {

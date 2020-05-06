@@ -1,5 +1,3 @@
-// +build !e2ecluster
-
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,17 +23,14 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/filter/testcases"
-	"open-match.dev/open-match/internal/testing/e2e"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 func TestNoPool(t *testing.T) {
-	om := e2e.New(t)
-
-	q := om.MustQueryServiceGRPC()
+	om := newOM(t)
 
 	{
-		stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: nil})
+		stream, err := om.Query().QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: nil})
 		require.Nil(t, err)
 
 		resp, err := stream.Recv()
@@ -44,7 +39,7 @@ func TestNoPool(t *testing.T) {
 	}
 
 	{
-		stream, err := q.QueryTicketIds(context.Background(), &pb.QueryTicketIdsRequest{Pool: nil})
+		stream, err := om.Query().QueryTicketIds(context.Background(), &pb.QueryTicketIdsRequest{Pool: nil})
 		require.Nil(t, err)
 
 		resp, err := stream.Recv()
@@ -54,12 +49,10 @@ func TestNoPool(t *testing.T) {
 }
 
 func TestNoTickets(t *testing.T) {
-	om := e2e.New(t)
-
-	q := om.MustQueryServiceGRPC()
+	om := newOM(t)
 
 	{
-		stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
+		stream, err := om.Query().QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
 		require.Nil(t, err)
 
 		resp, err := stream.Recv()
@@ -68,7 +61,7 @@ func TestNoTickets(t *testing.T) {
 	}
 
 	{
-		stream, err := q.QueryTicketIds(context.Background(), &pb.QueryTicketIdsRequest{Pool: &pb.Pool{}})
+		stream, err := om.Query().QueryTicketIds(context.Background(), &pb.QueryTicketIdsRequest{Pool: &pb.Pool{}})
 		require.Nil(t, err)
 
 		resp, err := stream.Recv()
@@ -78,7 +71,7 @@ func TestNoTickets(t *testing.T) {
 }
 
 func TestPaging(t *testing.T) {
-	om := e2e.New(t)
+	om := newOM(t)
 
 	pageSize := 10 // TODO: read from config
 	if pageSize < 1 {
@@ -88,17 +81,15 @@ func TestPaging(t *testing.T) {
 	totalTickets := pageSize*5 + 1
 	expectedIds := map[string]struct{}{}
 
-	fe := om.MustFrontendGRPC()
 	for i := 0; i < totalTickets; i++ {
-		resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+		resp, err := om.Frontend().CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 		require.NotNil(t, resp)
 		require.Nil(t, err)
 
 		expectedIds[resp.Id] = struct{}{}
 	}
 
-	q := om.MustQueryServiceGRPC()
-	stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
+	stream, err := om.Query().QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
 	require.Nil(t, err)
 
 	foundIds := map[string]struct{}{}
@@ -107,7 +98,7 @@ func TestPaging(t *testing.T) {
 		var resp *pb.QueryTicketsResponse
 		resp, err = stream.Recv()
 		require.Nil(t, err)
-		require.Equal(t, len(resp.Tickets), pageSize)
+		require.Equal(t, pageSize, len(resp.Tickets))
 
 		for _, ticket := range resp.Tickets {
 			foundIds[ticket.Id] = struct{}{}
@@ -129,10 +120,12 @@ func TestPaging(t *testing.T) {
 func TestTicketFound(t *testing.T) {
 	for _, tc := range testcases.IncludedTestCases() {
 		tc := tc
-		t.Run(tc.Name, func(t *testing.T) {
+		t.Run("QueryTickets_"+tc.Name, func(t *testing.T) {
 			if !returnedByQuery(t, tc) {
 				require.Fail(t, "Expected to find ticket in pool but didn't.")
 			}
+		})
+		t.Run("QueryTicketIds_"+tc.Name, func(t *testing.T) {
 			if !returnedByQueryID(t, tc) {
 				require.Fail(t, "Expected to find id in pool but didn't.")
 			}
@@ -143,10 +136,12 @@ func TestTicketFound(t *testing.T) {
 func TestTicketNotFound(t *testing.T) {
 	for _, tc := range testcases.ExcludedTestCases() {
 		tc := tc
-		t.Run(tc.Name, func(t *testing.T) {
+		t.Run("QueryTickets_"+tc.Name, func(t *testing.T) {
 			if returnedByQuery(t, tc) {
 				require.Fail(t, "Expected to not find ticket in pool but did.")
 			}
+		})
+		t.Run("QueryTicketIds_"+tc.Name, func(t *testing.T) {
 			if returnedByQueryID(t, tc) {
 				require.Fail(t, "Expected to not find id in pool but did.")
 			}
@@ -155,17 +150,15 @@ func TestTicketNotFound(t *testing.T) {
 }
 
 func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
-	om := e2e.New(t)
+	om := newOM(t)
 
 	{
-		fe := om.MustFrontendGRPC()
-		resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})
+		resp, err := om.Frontend().CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})
 		require.NotNil(t, resp)
 		require.Nil(t, err)
 	}
 
-	q := om.MustQueryServiceGRPC()
-	stream, err := q.QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: tc.Pool})
+	stream, err := om.Query().QueryTickets(context.Background(), &pb.QueryTicketsRequest{Pool: tc.Pool})
 	require.Nil(t, err)
 
 	tickets := []*pb.Ticket{}
@@ -187,17 +180,15 @@ func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
 }
 
 func returnedByQueryID(t *testing.T, tc testcases.TestCase) (found bool) {
-	om := e2e.New(t)
+	om := newOM(t)
 
 	{
-		fe := om.MustFrontendGRPC()
-		resp, err := fe.CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})
+		resp, err := om.Frontend().CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})
 		require.NotNil(t, resp)
 		require.Nil(t, err)
 	}
 
-	q := om.MustQueryServiceGRPC()
-	stream, err := q.QueryTicketIds(context.Background(), &pb.QueryTicketIdsRequest{Pool: tc.Pool})
+	stream, err := om.Query().QueryTicketIds(context.Background(), &pb.QueryTicketIdsRequest{Pool: tc.Pool})
 	require.Nil(t, err)
 
 	ids := []string{}

@@ -197,7 +197,7 @@ ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS)
 CMDS = $(notdir $(wildcard cmd/*))
 
 # Names of the individual images, ommiting the openmatch prefix.
-IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool base-build
+IMAGES = $(CMDS) mmf-go-soloduel base-build
 
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
@@ -236,9 +236,6 @@ $(foreach CMD,$(CMDS),build-$(CMD)-image): build-%-image: docker build-base-buil
 
 build-mmf-go-soloduel-image: docker build-base-build-image
 	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
-
-build-mmf-go-pool-image: docker build-base-build-image
-	docker build -f test/matchfunction/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG) .
 
 #######################################
 ## push-images / push-<image name>-image: builds and pushes images to your
@@ -367,6 +364,11 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 		--set evaluator.hostName=test \
 		--set evaluator.grpcPort=50509 \
 		--set evaluator.httpPort=51509 \
+		--set open-match-core.registrationIntervalMs=200ms \
+		--set open-match-core.proposalCollectionIntervalMs=200ms \
+		--set open-match-core.ignoreListTTL=200ms \
+		--set open-match-core.pageSize=10 \
+		--set global.gcpProjectId=intentionally-invalid-value \
 		--set redis.master.resources.requests.cpu=0.6,redis.master.resources.requests.memory=300Mi \
 		--set ci=true
 

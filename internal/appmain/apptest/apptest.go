@@ -57,17 +57,16 @@ func TestApp(t *testing.T, cfg config.View, listeners []net.Listener, binds ...a
 // RunInCluster allows for running services during an in cluster e2e test.
 // This is NOT for running the actual code under test, but instead allow running
 // auxiliary services the code under test might call.
-func RunInCluster(t *testing.T, binds ...appmain.Bind) {
-	app, err := appmain.NewApplication(ServiceName, bindAll(binds), config.Read, net.Listen)
-	if err != nil {
-		t.Fatal(err)
+func RunInCluster(binds ...appmain.Bind) (func() error, error) {
+	readConfig := func() (config.View, error) {
+		return config.Read()
 	}
-	t.Cleanup(func() {
-		err := app.Stop()
-		if err != nil {
-			t.Fatal(err)
-		}
-	})
+
+	app, err := appmain.NewApplication(ServiceName, bindAll(binds), readConfig, net.Listen)
+	if err != nil {
+		return nil, err
+	}
+	return app.Stop, nil
 }
 
 func bindAll(binds []appmain.Bind) appmain.Bind {
