@@ -87,6 +87,6 @@ func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction)
 	cfg.Set("logging.level", *testOnlyLoggingLevel)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, *testOnlyEnableMetrics)
 
-	apptest.TestApp(t, cfg, listeners, minimatch.BindService, mmfService.BindServiceFor(mmf), defaulteval.BinderService)
+	apptest.TestApp(t, cfg, listeners, minimatch.BindService, mmfService.BindServiceFor(mmf), defaulteval.BindService)
 	return cfg
 }
