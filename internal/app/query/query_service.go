@@ -315,8 +315,8 @@ func (tc *ticketCache) update() {
 	}
 
 	stats.Record(context.Background(), cacheTotalItems.M(int64(previousCount)))
+	stats.Record(context.Background(), cacheFetchedItems.M(len(toFetch)))
 	stats.Record(context.Background(), cacheUpdateLatency.M(float64(time.Since(st))/float64(time.Millisecond)))
-	stats.Record(context.Background(), cacheUpdateLatency.M(len(toFetch)))
 
 	logger.Debugf("Ticket Cache update: Previous %d, Deleted %d, Fetched %d, Current %d", previousCount, deletedCount, len(toFetch), len(tc.tickets))
 	tc.err = nil
