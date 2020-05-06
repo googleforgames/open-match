@@ -1,4 +1,5 @@
 // +build !e2ecluster
+
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +17,6 @@
 package e2e
 
 import (
-	"context"
 	"net"
 	"strings"
 	"testing"
@@ -24,74 +24,17 @@ import (
 	"github.com/Bose/minisentinel"
 	miniredis "github.com/alicebob/miniredis/v2"
 	"github.com/spf13/viper"
+	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/app/evaluator/defaulteval"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/appmain/apptest"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/telemetry"
-	internalMmf "open-match.dev/open-match/internal/testing/mmf"
-	pb "open-match.dev/open-match/pkg/pb"
-	"open-match.dev/open-match/test/matchfunction/mmf"
+	mmfService "open-match.dev/open-match/internal/testing/mmf"
 )
 
-type inmemoryOM struct {
-	cfg config.View
-	t   *testing.T
-}
-
-func (iom *inmemoryOM) withT(t *testing.T) OM {
-	cfg := newInMemoryEnvironment(t)
-
-	om := &inmemoryOM{
-		cfg: cfg,
-		t:   t,
-	}
-	return om
-}
-
-func createZygote(m *testing.M) (OM, error) {
-	return &inmemoryOM{}, nil
-}
-
-func (iom *inmemoryOM) MustFrontendGRPC() pb.FrontendServiceClient {
-	return pb.NewFrontendServiceClient(apptest.GRPCClient(iom.t, iom.cfg, "api.frontend"))
-}
-
-func (iom *inmemoryOM) MustBackendGRPC() pb.BackendServiceClient {
-	return pb.NewBackendServiceClient(apptest.GRPCClient(iom.t, iom.cfg, "api.backend"))
-}
-
-func (iom *inmemoryOM) MustQueryServiceGRPC() pb.QueryServiceClient {
-	return pb.NewQueryServiceClient(apptest.GRPCClient(iom.t, iom.cfg, "api.query"))
-}
-
-func (iom *inmemoryOM) MustMmfConfigGRPC() *pb.FunctionConfig {
-	return &pb.FunctionConfig{
-		Host: iom.cfg.GetString("api." + apptest.ServiceName + ".hostname"),
-		Port: int32(iom.cfg.GetInt("api." + apptest.ServiceName + ".grpcport")),
-		Type: pb.FunctionConfig_GRPC,
-	}
-}
-
-func (iom *inmemoryOM) MustMmfConfigHTTP() *pb.FunctionConfig {
-	return &pb.FunctionConfig{
-		Host: iom.cfg.GetString("api." + apptest.ServiceName + ".hostname"),
-		Port: int32(iom.cfg.GetInt("api." + apptest.ServiceName + ".httpport")),
-		Type: pb.FunctionConfig_REST,
-	}
-}
-
-func (iom *inmemoryOM) HealthCheck() error {
-	return nil
-}
-
-func (iom *inmemoryOM) Context() context.Context {
-	return context.Background()
-}
-
-func newInMemoryEnvironment(t *testing.T) config.View {
-
+func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction) config.View {
 	mredis := miniredis.NewMiniRedis()
 	err := mredis.StartAddr("localhost:0")
 	if err != nil {
@@ -140,96 +83,10 @@ func newInMemoryEnvironment(t *testing.T) config.View {
 		cfg.Set("api."+name+".grpcport", grpcPort)
 		cfg.Set("api."+name+".httpport", httpPort)
 	}
-	cfg.Set("storage.page.size", 10)
 	cfg.Set(rpc.ConfigNameEnableRPCLogging, *testOnlyEnableRPCLoggingFlag)
 	cfg.Set("logging.level", *testOnlyLoggingLevel)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, *testOnlyEnableMetrics)
 
-	apptest.TestApp(t, cfg, listeners, minimatch.BindService, internalMmf.BindServiceFor(mmf.MakeMatches), defaulteval.BinderService)
+	apptest.TestApp(t, cfg, listeners, minimatch.BindService, mmfService.BindServiceFor(mmf), defaulteval.BinderService)
 	return cfg
 }
-
-// configFile is the "cononical" test config.  It exactly matches the configmap
-// which is used in the real cluster tests.
-// TODO: The above is a lie.  There should be a test which confirm that this
-// does actually match the test config map.
-const configFile = `
-logging:
-  level: debug
-  format: text
-  rpc: false
-
-backoff:
-  initialInterval: 100ms
-  maxInterval: 500ms
-  multiplier: 1.5
-  randFactor: 0.5
-  maxElapsedTime: 3000ms
-
-api:
-  backend:
-    hostname: "om-backend"
-    grpcport: "50505"
-    httpport: "51505"
-  frontend:
-    hostname: "om-frontend"
-    grpcport: "50504"
-    httpport: "51504"
-  query:
-    hostname: "om-query"
-    grpcport: "50503"
-    httpport: "51503"
-  synchronizer:
-    hostname: "om-synchronizer"
-    grpcport: "50506"
-    httpport: "51506"
-  swaggerui:
-    hostname: "om-swaggerui"
-    httpport: "51500"
-  scale:
-    httpport: "51509"
-  evaluator:
-    hostname: "test"
-    grpcport: "50509"
-    httpport: "51509"
-
-synchronizer:
-  registrationIntervalMs: 250ms
-  proposalCollectionIntervalMs: 20000ms
-
-storage:
-  ignoreListTTL: 500ms
-  page:
-    size: 10000
-
-redis:
-  sentinelPort: 26379
-  sentinelMaster: om-redis-master
-  sentinelHostname: om-redis.open-match.svc.cluster.local
-  sentinelUsePassword: 
-  usePassword: false
-  passwordPath: /opt/bitnami/redis/secrets/redis-password
-  pool:
-    maxIdle: 500
-    maxActive: 500
-    idleTimeout: 0
-    healthCheckTimeout: 300ms
-
-telemetry:
-  reportingPeriod: "1m"
-  traceSamplingFraction: 0.005
-  zpages:
-    enable: "true"
-  jaeger:
-    enable: "false"
-    agentEndpoint: "open-match-jaeger-agent:6831"
-    collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
-  prometheus:
-    enable: "false"
-    endpoint: "/metrics"
-    serviceDiscovery: "true"
-  stackdriverMetrics:
-    enable: "false"
-    gcpProjectId: "sredig-gaming-test"
-    prefix: "open_match"
-`

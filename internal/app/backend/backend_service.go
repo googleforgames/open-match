@@ -58,10 +58,10 @@ var (
 // FetchMatches immediately returns an error if it encounters any execution failures.
 //   - If the synchronizer is enabled, FetchMatch will then call the synchronizer to deduplicate proposals with overlapped tickets.
 func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.BackendService_FetchMatchesServer) error {
-	if req.GetConfig() == nil {
+	if req.Config == nil {
 		return status.Error(codes.InvalidArgument, ".config is required")
 	}
-	if req.GetProfile() == nil {
+	if req.Profile == nil {
 		return status.Error(codes.InvalidArgument, ".profile is required")
 	}
 
@@ -125,9 +125,9 @@ sendProposals:
 			if !ok {
 				break sendProposals
 			}
-			id, loaded := m.LoadOrStore(p.GetMatchId(), p)
+			_, loaded := m.LoadOrStore(p.GetMatchId(), p)
 			if loaded {
-				return fmt.Errorf("found duplicate matchID %s returned from MMF", id)
+				return fmt.Errorf("MatchMakingFunction returned same match_id twice: \"%s\"", p.GetMatchId())
 			}
 			err := syncStream.Send(&ipb.SynchronizeRequest{Proposal: p})
 			if err != nil {

@@ -46,7 +46,11 @@ func RunApplication(serviceName string, bindService Bind) {
 	// SIGTERM is signaled by k8s when it wants a pod to stop.
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT)
 
-	a, err := NewApplication(serviceName, bindService, config.Read, net.Listen)
+	readConfig := func() (config.View, error) {
+		return config.Read()
+	}
+
+	a, err := NewApplication(serviceName, bindService, readConfig, net.Listen)
 	if err != nil {
 		logger.Fatal(err)
 	}

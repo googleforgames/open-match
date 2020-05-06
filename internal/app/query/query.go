@@ -26,6 +26,7 @@ import (
 var (
 	ticketsPerQuery     = stats.Int64("open-match.dev/query/tickets_per_query", "Number of tickets per query", stats.UnitDimensionless)
 	cacheTotalItems     = stats.Int64("open-match.dev/query/total_cache_items", "Total number of tickets query service cached", stats.UnitDimensionless)
+	cacheFetchedItems   = stats.Int64("open-match.dev/query/fetched_items", "Number of fetched items in total", stats.UnitDimensionless)
 	cacheWaitingQueries = stats.Int64("open-match.dev/query/waiting_queries", "Number of waiting queries in the last update", stats.UnitDimensionless)
 	cacheUpdateLatency  = stats.Float64("open-match.dev/query/update_latency", "Time elapsed of each query cache update", stats.UnitMilliseconds)
 
@@ -40,6 +41,12 @@ var (
 		Name:        "open-match.dev/query/total_cache_items",
 		Description: "Total number of tickets query service cached",
 		Aggregation: view.LastValue(),
+	}
+	cacheFetchedItemsView = &view.View{
+		Measure:     cacheFetchedItems,
+		Name:        "open-match.dev/query/total_fetched_items",
+		Description: "Total number of fetched tickets",
+		Aggregation: view.Count(),
 	}
 	cacheUpdateView = &view.View{
 		Measure:     cacheWaitingQueries,

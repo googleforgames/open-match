@@ -18,187 +18,52 @@ package e2e
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"os"
+	"sync"
 	"testing"
 
-	"github.com/pkg/errors"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/resolver"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/rest"
-	"open-match.dev/open-match/internal/app/evaluator/defaulteval"
-	"open-match.dev/open-match/internal/appmain/apptest"
-	"open-match.dev/open-match/internal/logging"
-	"open-match.dev/open-match/internal/rpc"
-	internalMmf "open-match.dev/open-match/internal/testing/mmf"
-	"open-match.dev/open-match/test/matchfunction/mmf"
-
-	pb "open-match.dev/open-match/pkg/pb"
+	// "google.golang.org/grpc/resolver"
+	"open-match.dev/open-match/internal/app/evaluator"
+	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/statestore"
+	mmfService "open-match.dev/open-match/internal/testing/mmf"
 )
 
-func init() {
-	// Reset the gRPC resolver to passthrough for end-to-end out-of-cluster testings.
-	// DNS resolver is unsupported for end-to-end local testings.
-	resolver.SetDefaultScheme("dns")
-}
-
-type clusterOM struct {
-	kubeClient kubernetes.Interface
-	namespace  string
-	t          *testing.T
-}
-
-func (com *clusterOM) withT(t *testing.T) OM {
-	apptest.RunInCluster(t, internalMmf.BindServiceFor(mmf.MakeMatches), defaulteval.BinderServices)
-
-	return &clusterOM{
-		kubeClient: com.kubeClient,
-		namespace:  com.namespace,
-		t:          t,
+func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction) config.View {
+	clusterLock.Lock()
+	t.Cleanup(func() {
+		clusterLock.Unlock()
+	})
+	if !clusterStarted {
+		t.Fatal("Cluster not started")
 	}
-}
+	clusterEval = eval
+	clusterMMF = mmf
 
-func (com *clusterOM) MustFrontendGRPC() pb.FrontendServiceClient {
-	conn, err := com.getGRPCClientFromServiceName("om-frontend")
+	cfg, err := config.Read()
 	if err != nil {
-		com.t.Fatalf("cannot create gRPC client, %s", err)
+		t.Fatal(err)
 	}
-	com.t.Cleanup(func() {
-		closeErr := conn.Close()
-		if closeErr != nil {
-			com.t.Fatal(closeErr)
+
+	t.Cleanup(func() {
+		pool := statestore.GetRedisPool(cfg)
+		conn, err := pool.GetContext(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = conn.Do("FLUSHALL")
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = pool.Close()
+		if err != nil {
+			t.Fatal(err)
 		}
 	})
-	return pb.NewFrontendServiceClient(conn)
+
+	return cfg
 }
 
-func (com *clusterOM) MustBackendGRPC() pb.BackendServiceClient {
-	conn, err := com.getGRPCClientFromServiceName("om-backend")
-	if err != nil {
-		com.t.Fatalf("cannot create gRPC client, %s", err)
-	}
-	com.t.Cleanup(func() {
-		closeErr := conn.Close()
-		if closeErr != nil {
-			com.t.Fatal(closeErr)
-		}
-	})
-	return pb.NewBackendServiceClient(conn)
-}
-
-func (com *clusterOM) MustQueryServiceGRPC() pb.QueryServiceClient {
-	conn, err := com.getGRPCClientFromServiceName("om-query")
-	if err != nil {
-		com.t.Fatalf("cannot create gRPC client, %s", err)
-	}
-	com.t.Cleanup(func() {
-		closeErr := conn.Close()
-		if closeErr != nil {
-			com.t.Fatal(closeErr)
-		}
-	})
-	return pb.NewQueryServiceClient(conn)
-}
-
-func (com *clusterOM) MustMmfConfigGRPC() *pb.FunctionConfig {
-	host, port := com.getGRPCAddressFromServiceName("test")
-	return &pb.FunctionConfig{
-		Host: host,
-		Port: port,
-		Type: pb.FunctionConfig_GRPC,
-	}
-}
-
-func (com *clusterOM) MustMmfConfigHTTP() *pb.FunctionConfig {
-	host, port := com.getHTTPAddressFromServiceName("test")
-	return &pb.FunctionConfig{
-		Host: host,
-		Port: port,
-		Type: pb.FunctionConfig_REST,
-	}
-}
-
-func (com *clusterOM) getAddressFromServiceName(serviceName, portName string) (string, int32) {
-	endpoints, err := com.kubeClient.CoreV1().Endpoints(com.namespace).Get(serviceName, metav1.GetOptions{})
-	if err != nil {
-		com.t.Fatalf("cannot get service definition for %s, %s", serviceName, err.Error())
-	}
-	if len(endpoints.Subsets) == 0 || len(endpoints.Subsets[0].Addresses) == 0 {
-		com.t.Fatalf("service %s does not have an available endpoint", serviceName)
-	}
-
-	var port int32
-	for _, endpointsPort := range endpoints.Subsets[0].Ports {
-		if endpointsPort.Name == portName {
-			port = endpointsPort.Port
-		}
-	}
-	return endpoints.Subsets[0].Addresses[0].IP, port
-}
-
-func (com *clusterOM) getGRPCAddressFromServiceName(serviceName string) (string, int32) {
-	return com.getAddressFromServiceName(serviceName, "grpc")
-}
-
-func (com *clusterOM) getHTTPAddressFromServiceName(serviceName string) (string, int32) {
-	return com.getAddressFromServiceName(serviceName, "http")
-}
-
-func (com *clusterOM) getGRPCClientFromServiceName(serviceName string) (*grpc.ClientConn, error) {
-	ipAddress, port := com.getGRPCAddressFromServiceName(serviceName)
-	conn, err := rpc.GRPCClientFromParams(&rpc.ClientParams{
-		Address:                 fmt.Sprintf("%s:%d", ipAddress, int(port)),
-		EnableRPCLogging:        *testOnlyEnableRPCLoggingFlag,
-		EnableRPCPayloadLogging: logging.IsDebugLevel(*testOnlyLoggingLevel),
-		EnableMetrics:           *testOnlyEnableMetrics,
-	})
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot connect to gRPC %s:%d", ipAddress, port)
-	}
-	return conn, nil
-}
-
-func (com *clusterOM) HealthCheck() error {
-	podList, err := com.kubeClient.CoreV1().Pods(com.namespace).List(metav1.ListOptions{})
-	if err != nil {
-		return errors.Wrap(err, "cannot get pods list")
-	}
-	for _, pod := range podList.Items {
-		if app, ok := pod.ObjectMeta.Labels["app"]; ok && app == "open-match" && pod.Status.Phase != corev1.PodRunning {
-			return errors.Errorf("pod %+v is not running.", pod)
-		}
-	}
-	return nil
-}
-
-func (com *clusterOM) Context() context.Context {
-	return context.Background()
-}
-
-func fileExists(name string) bool {
-	_, err := os.Stat(name)
-	return err == nil
-}
-
-func createZygote(m *testing.M) (OM, error) {
-	// creates the in-cluster config
-	kubeconfig, err := rest.InClusterConfig()
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	kubeClient, err := kubernetes.NewForConfig(kubeconfig)
-	if err != nil {
-		return nil, errors.Wrapf(err, "creating Kubernetes client from config failed\nconfig= %+v", kubeconfig)
-	}
-
-	return &clusterOM{
-		kubeClient: kubeClient,
-		namespace:  os.Getenv("NAMESPACE"),
-	}, nil
-}
+var clusterLock sync.Mutex
+var clusterEval evaluator.Evaluator
+var clusterMMF mmfService.MatchFunction
+var clusterStarted bool

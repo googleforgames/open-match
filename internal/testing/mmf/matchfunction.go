@@ -22,11 +22,10 @@ import (
 )
 
 // BindServiceFor creates the match function service and binds it to the serving harness.
-func BindServiceFor(mf MatchFunction) appmain.Bind {
+func BindServiceFor(mmf MatchFunction) appmain.Bind {
 	return func(p *appmain.Params, b *appmain.Bindings) error {
-		service, err := newMatchFunctionService(p.Config(), mf)
-		if err != nil {
-			return err
+		service := &matchFunctionService{
+			mmf: mmf,
 		}
 
 		b.AddHandleFunc(func(s *grpc.Server) {
