@@ -25,12 +25,22 @@ metadata:
     release: {{ .Release.Name }}
 data:
   matchmaker_config_override.yaml: |-
+    # Length of time between first fetch matches call, and when no further fetch
+    # matches calls will join the current evaluation/synchronization cycle, 
+    # instead waiting for the next cycle.
+    registrationInterval:  {{ index .Values "open-match-core" "registrationInterval" }}
+    # Length of time after match function as started before it will be canceled,
+    # and evaluator call input is EOF.
+    proposalCollectionInterval: {{ index .Values "open-match-core" "proposalCollectionInterval" }}
+    # Time after a ticket has been returned from fetch matches (marked as pending)
+    # before it automatically becomes active again and will be returned by query
+    # calls.
+    pendingReleaseTimeout: {{ index .Values "open-match-core" "pendingReleaseTimeout" }}
+    # Maximum number of tickets to return on a single QueryTicketsResponse.
+    queryPageSize: {{ index .Values "open-match-core" "queryPageSize" }}
     api:
       evaluator:
         hostname: "{{ .Values.evaluator.hostName }}"
         grpcport: "{{ .Values.evaluator.grpcPort }}"
         httpport: "{{ .Values.evaluator.httpPort }}"
-    synchronizer:
-      registrationIntervalMs:  {{ index .Values "open-match-core" "registrationIntervalMs" }}
-      proposalCollectionIntervalMs: {{ index .Values "open-match-core" "proposalCollectionIntervalMs" }}
 {{- end }}

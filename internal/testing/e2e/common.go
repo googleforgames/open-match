@@ -156,13 +156,18 @@ func (om *om) MMFConfigHTTP() *pb.FunctionConfig {
 
 // Testing constants which must match the configuration.  Not parsed in test so
 // that parsing bugs can't hide logic bugs.
-const registrationIntervalMs = time.Millisecond * 200
-const proposalCollectionIntervalMs = time.Millisecond * 200
-const ignoreListTTL = time.Millisecond * 200
+const registrationInterval = time.Millisecond * 200
+const proposalCollectionInterval = time.Millisecond * 200
+const pendingReleaseTimeout = time.Millisecond * 200
 
 // configFile is the "cononical" test config.  It exactly matches the configmap
 // which is used in the real cluster tests.
 const configFile = `
+registrationInterval: 200ms
+proposalCollectionInterval: 200ms
+pendingReleaseTimeout: 200ms
+queryPageSize: 10
+
 logging:
   level: debug
   format: text
@@ -205,16 +210,6 @@ api:
     hostname: "test"
     grpcport: "50509"
     httpport: "51509"
-
-
-synchronizer:
-  registrationIntervalMs: 200ms
-  proposalCollectionIntervalMs: 200ms
-
-storage:
-  ignoreListTTL: 200ms
-  page:
-    size: 10
 
 redis:
   sentinelPort: 26379

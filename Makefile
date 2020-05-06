@@ -359,15 +359,14 @@ install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 # install-ci-chart will install open-match-core with pool based mmf for end-to-end in-cluster test.
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_HELM_NAME) $(HELM_UPGRADE_FLAGS) --atomic install/helm/open-match $(HELM_IMAGE_FLAGS) \
-		--set open-match-core.ignoreListTTL=500ms \
 		--set query.replicas=1,frontend.replicas=1,backend.replicas=1 \
 		--set evaluator.hostName=test \
 		--set evaluator.grpcPort=50509 \
 		--set evaluator.httpPort=51509 \
-		--set open-match-core.registrationIntervalMs=200ms \
-		--set open-match-core.proposalCollectionIntervalMs=200ms \
-		--set open-match-core.ignoreListTTL=200ms \
-		--set open-match-core.pageSize=10 \
+		--set open-match-core.registrationInterval=200ms \
+		--set open-match-core.proposalCollectionInterval=200ms \
+		--set open-match-core.pendingReleaseTimeout=200ms \
+		--set open-match-core.queryPageSize=10 \
 		--set global.gcpProjectId=intentionally-invalid-value \
 		--set redis.master.resources.requests.cpu=0.6,redis.master.resources.requests.memory=300Mi \
 		--set ci=true

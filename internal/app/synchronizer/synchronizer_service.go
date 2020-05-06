@@ -476,7 +476,7 @@ func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, m *syn
 
 func (s *synchronizerService) registrationInterval() time.Duration {
 	const (
-		name            = "synchronizer.registrationIntervalMs"
+		name            = "synchronizer.registrationInterval"
 		defaultInterval = time.Second
 	)
 
@@ -489,7 +489,7 @@ func (s *synchronizerService) registrationInterval() time.Duration {
 
 func (s *synchronizerService) proposalCollectionInterval() time.Duration {
 	const (
-		name            = "synchronizer.proposalCollectionIntervalMs"
+		name            = "synchronizer.proposalCollectionInterval"
 		defaultInterval = 10 * time.Second
 	)
 

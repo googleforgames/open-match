@@ -32,5 +32,5 @@ data:
         grpcport: "50508"
     synchronizer:
       enabled: true
-      registrationIntervalMs: 3000ms
-      proposalCollectionIntervalMs: 2000ms
+      registrationInterval: 3000ms
+      proposalCollectionInterval: 2000ms

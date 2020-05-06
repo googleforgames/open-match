@@ -172,7 +172,19 @@ redis:
 # Controls if users need to install backend, frontend, query, om-configmap, and swaggerui.
 open-match-core:
   enabled: true
-  ignoreListTTL: 60000ms
+  # Length of time between first fetch matches call, and when no further fetch
+  # matches calls will join the current evaluation/synchronization cycle, 
+  # instead waiting for the next cycle.
+  registrationInterval: 250ms
+  # Length of time after match function as started before it will be canceled,
+  # and evaluator call input is EOF.
+  proposalCollectionInterval: 20000ms
+  # Time after a ticket has been returned from fetch matches (marked as pending)
+  # before it automatically becomes active again and will be returned by query
+  # calls.
+  pendingReleaseTimeout: 60000ms
+  # Maximum number of tickets to return on a single QueryTicketsResponse.
+  queryPageSize: 10000
   redis:
     enabled: true
     # If open-match-core.redis.enabled is set to false, have Open Match components talk to this redis address instead.

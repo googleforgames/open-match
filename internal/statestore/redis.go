@@ -396,7 +396,7 @@ func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{
 	}
 	defer handleConnectionClose(&redisConn)
 
-	ttl := rb.cfg.GetDuration("storage.ignoreListTTL")
+	ttl := rb.cfg.GetDuration("storage.pendingReleaseTimeout")
 	curTime := time.Now()
 	endTimeInt := curTime.Add(time.Hour).UnixNano()
 	startTimeInt := curTime.Add(-ttl).UnixNano()
