@@ -36,10 +36,10 @@ var (
 		"component": "evaluator.default",
 	})
 
-	collidedMatchesPerEvaluate     = stats.Int64("openmatch.dev/evaluator/collided_matches_per_call", "Number of collided matches per default evaluator call", stats.UnitDimensionless)
+	collidedMatchesPerEvaluate     = stats.Int64("open-match.dev/defaulteval/collided_matches_per_call", "Number of collided matches per default evaluator call", stats.UnitDimensionless)
 	collidedMatchesPerEvaluateView = &view.View{
 		Measure:     collidedMatchesPerEvaluate,
-		Name:        "openmatch.dev/evaluator/collided_matches_per_call",
+		Name:        "open-match.dev/defaulteval/collided_matches_per_call",
 		Description: "Number of collided matches per default evaluator call",
 		Aggregation: view.Sum(),
 	}
@@ -51,14 +51,12 @@ type matchInp struct {
 }
 
 // BinderServices define the initialization steps for this evaluator
-func BinderServices() appmain.Bind {
-	return func(p *appmain.Params, b *appmain.Bindings) error {
-		if err := evaluator.BindServiceFor(evaluate)(p, b); err != nil {
-			return err
-		}
-		b.RegisterViews(collidedMatchesPerEvaluateView)
-		return nil
+func BinderServices(p *appmain.Params, b *appmain.Bindings) error {
+	if err := evaluator.BindServiceFor(evaluate)(p, b); err != nil {
+		return err
 	}
+	b.RegisterViews(collidedMatchesPerEvaluateView)
+	return nil
 }
 
 // Evaluate sorts the matches by DefaultEvaluationCriteria.Score (optional),

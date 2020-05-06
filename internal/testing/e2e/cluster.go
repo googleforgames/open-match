@@ -54,7 +54,7 @@ type clusterOM struct {
 }
 
 func (com *clusterOM) withT(t *testing.T) OM {
-	apptest.RunInCluster(t, internalMmf.BindServiceFor(mmf.MakeMatches), defaulteval.BinderServices())
+	apptest.RunInCluster(t, internalMmf.BindServiceFor(mmf.MakeMatches), defaulteval.BinderServices)
 
 	return &clusterOM{
 		kubeClient: com.kubeClient,

@@ -25,18 +25,18 @@ import (
 )
 
 var (
-	totalBytesPerTicket   = stats.Int64("openmatch.dev/total_bytes_per_ticket", "Total bytes per ticket", stats.UnitBytes)
-	searchFieldsPerTicket = stats.Int64("openmatch.dev/searchfields_per_ticket", "Searchfields per ticket", stats.UnitDimensionless)
+	totalBytesPerTicket   = stats.Int64("open-match.dev/frontend/total_bytes_per_ticket", "Total bytes per ticket", stats.UnitBytes)
+	searchFieldsPerTicket = stats.Int64("open-match.dev/frontend/searchfields_per_ticket", "Searchfields per ticket", stats.UnitDimensionless)
 
 	totalBytesPerTicketView = &view.View{
 		Measure:     totalBytesPerTicket,
-		Name:        "openmatch.dev/total_bytes_per_ticket",
+		Name:        "open-match.dev/frontend/total_bytes_per_ticket",
 		Description: "Total bytes per ticket",
 		Aggregation: telemetry.DefaultBytesDistribution,
 	}
 	searchFieldsPerTicketView = &view.View{
 		Measure:     searchFieldsPerTicket,
-		Name:        "openmatch.dev/searchfields_per_ticket",
+		Name:        "open-match.dev/frontend/searchfields_per_ticket",
 		Description: "SearchFields per ticket",
 		Aggregation: telemetry.DefaultCountDistribution,
 	}

@@ -25,18 +25,18 @@ import (
 )
 
 var (
-	matchesPerEvaluateRequest  = stats.Int64("openmatch.dev/evaluator/matches_per_request", "Number of matches sent to the evaluator per request", stats.UnitDimensionless)
-	matchesPerEvaluateResponse = stats.Int64("openmatch.dev/evaluator/matches_per_response", "Number of matches returned by the evaluator per response", stats.UnitDimensionless)
+	matchesPerEvaluateRequest  = stats.Int64("open-match.dev/evaluator/matches_per_request", "Number of matches sent to the evaluator per request", stats.UnitDimensionless)
+	matchesPerEvaluateResponse = stats.Int64("open-match.dev/evaluator/matches_per_response", "Number of matches returned by the evaluator per response", stats.UnitDimensionless)
 
 	matchesPerEvaluateRequestView = &view.View{
 		Measure:     matchesPerEvaluateRequest,
-		Name:        "openmatch.dev/evaluator/matches_per_request",
+		Name:        "open-match.dev/evaluator/matches_per_request",
 		Description: "Number of matches sent to the evaluator per request",
 		Aggregation: telemetry.DefaultCountDistribution,
 	}
 	matchesPerEvaluateResponseView = &view.View{
 		Measure:     matchesPerEvaluateResponse,
-		Name:        "openmatch.dev/evaluator/matches_per_response",
+		Name:        "open-match.dev/evaluator/matches_per_response",
 		Description: "Number of matches sent to the evaluator per response",
 		Aggregation: telemetry.DefaultCountDistribution,
 	}

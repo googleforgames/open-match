@@ -24,45 +24,38 @@ import (
 )
 
 var (
-	ticketsPerQuery     = stats.Int64("openmatch.dev/query/tickets_per_query", "Number of tickets per query", stats.UnitDimensionless)
-	cacheTotalItems     = stats.Int64("openmatch.dev/query/total_cache_items", "Total number of tickets query service cached", stats.UnitDimensionless)
-	cacheDeltaItems     = stats.Int64("openmatch.dev/query/delta_cache_items", "Number of tickets added by query service in the last update", stats.UnitDimensionless)
-	cacheWaitingQueries = stats.Int64("openmatch.dev/query/waiting_queries", "Number of waiting queries in the last update", stats.UnitDimensionless)
-	cacheUpdateLatency  = stats.Float64("openmatch.dev/query/update_latency", "Time elapsed of each query cache update", stats.UnitMilliseconds)
+	ticketsPerQuery     = stats.Int64("open-match.dev/query/tickets_per_query", "Number of tickets per query", stats.UnitDimensionless)
+	cacheTotalItems     = stats.Int64("open-match.dev/query/total_cache_items", "Total number of tickets query service cached", stats.UnitDimensionless)
+	cacheWaitingQueries = stats.Int64("open-match.dev/query/waiting_queries", "Number of waiting queries in the last update", stats.UnitDimensionless)
+	cacheUpdateLatency  = stats.Float64("open-match.dev/query/update_latency", "Time elapsed of each query cache update", stats.UnitMilliseconds)
 
 	ticketsPerQueryView = &view.View{
 		Measure:     ticketsPerQuery,
-		Name:        "openmatch.dev/query/tickets_per_query",
+		Name:        "open-match.dev/query/tickets_per_query",
 		Description: "Tickets per query",
 		Aggregation: telemetry.DefaultMillisecondsDistribution,
 	}
 	cacheTotalItemsView = &view.View{
 		Measure:     cacheTotalItems,
-		Name:        "openmatch.dev/query/total_cache_items",
+		Name:        "open-match.dev/query/total_cache_items",
 		Description: "Total number of tickets query service cached",
-		Aggregation: view.LastValue(),
-	}
-	cacheDeltaItemsView = &view.View{
-		Measure:     cacheDeltaItems,
-		Name:        "openmatch.dev/query/delta_cache_items",
-		Description: "Number of tickets cache delta items",
 		Aggregation: view.LastValue(),
 	}
 	cacheUpdateView = &view.View{
 		Measure:     cacheWaitingQueries,
-		Name:        "openmatch.dev/query/cache_updates",
+		Name:        "open-match.dev/query/cache_updates",
 		Description: "Number of query cache updates in total",
 		Aggregation: view.Count(),
 	}
 	cacheWaitingQueriesView = &view.View{
 		Measure:     cacheWaitingQueries,
-		Name:        "openmatch.dev/query/waiting_requests",
+		Name:        "open-match.dev/query/waiting_requests",
 		Description: "Number of waiting requests in total",
-		Aggregation: telemetry.DefaultMillisecondsDistribution,
+		Aggregation: telemetry.DefaultCountDistribution,
 	}
 	cacheUpdateLatencyView = &view.View{
 		Measure:     cacheUpdateLatency,
-		Name:        "openmatch.dev/query/update_latency",
+		Name:        "open-match.dev/query/update_latency",
 		Description: "Time elapsed of each query cache update",
 		Aggregation: telemetry.DefaultMillisecondsDistribution,
 	}
@@ -81,7 +74,6 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	b.RegisterViews(
 		ticketsPerQueryView,
 		cacheTotalItemsView,
-		cacheDeltaItemsView,
 		cacheUpdateView,
 		cacheWaitingQueriesView,
 		cacheUpdateLatencyView,

@@ -145,7 +145,7 @@ func newInMemoryEnvironment(t *testing.T) config.View {
 	cfg.Set("logging.level", *testOnlyLoggingLevel)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, *testOnlyEnableMetrics)
 
-	apptest.TestApp(t, cfg, listeners, minimatch.BindService, internalMmf.BindServiceFor(mmf.MakeMatches), defaulteval.BinderServices())
+	apptest.TestApp(t, cfg, listeners, minimatch.BindService, internalMmf.BindServiceFor(mmf.MakeMatches), defaulteval.BinderServices)
 	return cfg
 }
 

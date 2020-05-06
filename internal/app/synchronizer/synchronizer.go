@@ -25,25 +25,25 @@ import (
 )
 
 var (
-	iterationLatency        = stats.Float64("openmatch.dev/synchronizer/iteration_latency", "Time elapsed of each synchronizer iteration", stats.UnitMilliseconds)
-	registrationWaitTime    = stats.Float64("openmatch.dev/synchronizer/registration_wait_time", "Time elapsed of registration wait time", stats.UnitMilliseconds)
-	registrationMMFDoneTime = stats.Float64("openmatch.dev/synchronizer/registration_mmf_done_time", "Time elapsed wasted in registration window with done MMFs", stats.UnitMilliseconds)
+	iterationLatency        = stats.Float64("open-match.dev/synchronizer/iteration_latency", "Time elapsed of each synchronizer iteration", stats.UnitMilliseconds)
+	registrationWaitTime    = stats.Float64("open-match.dev/synchronizer/registration_wait_time", "Time elapsed of registration wait time", stats.UnitMilliseconds)
+	registrationMMFDoneTime = stats.Float64("open-match.dev/synchronizer/registration_mmf_done_time", "Time elapsed wasted in registration window with done MMFs", stats.UnitMilliseconds)
 
 	iterationLatencyView = &view.View{
 		Measure:     iterationLatency,
-		Name:        "openmatch.dev/synchronizer/iteration_latency",
+		Name:        "open-match.dev/synchronizer/iteration_latency",
 		Description: "Time elapsed of each synchronizer iteration",
 		Aggregation: telemetry.DefaultMillisecondsDistribution,
 	}
 	registrationWaitTimeView = &view.View{
 		Measure:     registrationWaitTime,
-		Name:        "openmatch.dev/synchronizer/registration_wait_time",
+		Name:        "open-match.dev/synchronizer/registration_wait_time",
 		Description: "Time elapsed of registration wait time",
 		Aggregation: telemetry.DefaultMillisecondsDistribution,
 	}
 	registrationMMFDoneTimeView = &view.View{
 		Measure:     registrationMMFDoneTime,
-		Name:        "openmatch.dev/synchronizer/registration_mmf_done_time",
+		Name:        "open-match.dev/synchronizer/registration_mmf_done_time",
 		Description: "Time elapsed wasted in registration window with done MMFs",
 		Aggregation: telemetry.DefaultMillisecondsDistribution,
 	}

@@ -26,38 +26,38 @@ import (
 )
 
 var (
-	totalBytesPerMatch = stats.Int64("openmatch.dev/total_bytes_per_match", "Total bytes per match", stats.UnitBytes)
-	ticketsPerMatch    = stats.Int64("openmatch.dev/tickets_per_match", "Number of tickets per match", stats.UnitDimensionless)
-	ticketsReleased    = stats.Int64("openmatch.dev/tickets_released", "Number of tickets released per request", stats.UnitDimensionless)
-	ticketsAssigned    = stats.Int64("openmatch.dev/tickets_assigned", "Number of tickets assigned per request", stats.UnitDimensionless)
+	totalBytesPerMatch = stats.Int64("open-match.dev/backend/total_bytes_per_match", "Total bytes per match", stats.UnitBytes)
+	ticketsPerMatch    = stats.Int64("open-match.dev/backend/tickets_per_match", "Number of tickets per match", stats.UnitDimensionless)
+	ticketsReleased    = stats.Int64("open-match.dev/backend/tickets_released", "Number of tickets released per request", stats.UnitDimensionless)
+	ticketsAssigned    = stats.Int64("open-match.dev/backend/tickets_assigned", "Number of tickets assigned per request", stats.UnitDimensionless)
 
 	totalMatchesView = &view.View{
 		Measure:     totalBytesPerMatch,
-		Name:        "openmatch.dev/total_matches",
+		Name:        "open-match.dev/backend/total_matches",
 		Description: "Total number of matches",
 		Aggregation: view.Count(),
 	}
 	totalBytesPerMatchView = &view.View{
 		Measure:     totalBytesPerMatch,
-		Name:        "openmatch.dev/total_bytes_per_match",
+		Name:        "open-match.dev/backend/total_bytes_per_match",
 		Description: "Total bytes per match",
 		Aggregation: telemetry.DefaultBytesDistribution,
 	}
 	ticketsPerMatchView = &view.View{
 		Measure:     ticketsPerMatch,
-		Name:        "openmatch.dev/tickets_per_match",
+		Name:        "open-match.dev/backend/tickets_per_match",
 		Description: "Tickets per ticket",
 		Aggregation: telemetry.DefaultCountDistribution,
 	}
 	ticketsAssignedView = &view.View{
 		Measure:     ticketsAssigned,
-		Name:        "openmatch.dev/tickets_assigned",
+		Name:        "open-match.dev/backend/tickets_assigned",
 		Description: "Number of tickets assigned per request",
 		Aggregation: view.Sum(),
 	}
 	ticketsReleasedView = &view.View{
 		Measure:     ticketsReleased,
-		Name:        "openmatch.dev/tickets_released",
+		Name:        "open-match.dev/backend/tickets_released",
 		Description: "Number of tickets released per request",
 		Aggregation: view.Sum(),
 	}
