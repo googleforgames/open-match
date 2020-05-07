@@ -121,7 +121,7 @@ func TestEvaluate(t *testing.T) {
 			}
 			close(in)
 
-			err := Evaluate(context.Background(), in, out)
+			err := evaluate(context.Background(), in, out)
 			assert.Nil(t, err)
 
 			gotMatchIDs := []string{}
