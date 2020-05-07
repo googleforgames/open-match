@@ -140,7 +140,7 @@ func TestIgnoreLists(t *testing.T) {
 	verifyTickets(service, len(tickets)-3)
 
 	// Sleep until the ignore list expired and verify we still have all the tickets
-	time.Sleep(cfg.GetDuration("storage.pendingReleaseTimeout"))
+	time.Sleep(cfg.GetDuration("pendingReleaseTimeout"))
 	verifyTickets(service, len(tickets))
 }
 
@@ -288,7 +288,7 @@ func createRedis(t *testing.T, withSentinel bool, withPassword string) (config.V
 	cfg.Set("redis.pool.idleTimeout", time.Second)
 	cfg.Set("redis.pool.healthCheckTimeout", 100*time.Millisecond)
 	cfg.Set("redis.pool.maxActive", 5)
-	cfg.Set("storage.pendingReleaseTimeout", "200ms")
+	cfg.Set("pendingReleaseTimeout", "200ms")
 	cfg.Set("backoff.initialInterval", 100*time.Millisecond)
 	cfg.Set("backoff.randFactor", 0.5)
 	cfg.Set("backoff.multiplier", 0.5)
