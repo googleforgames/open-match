@@ -15,10 +15,31 @@
 package frontend
 
 import (
+	"go.opencensus.io/stats"
+	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
+)
+
+var (
+	totalBytesPerTicket   = stats.Int64("open-match.dev/frontend/total_bytes_per_ticket", "Total bytes per ticket", stats.UnitBytes)
+	searchFieldsPerTicket = stats.Int64("open-match.dev/frontend/searchfields_per_ticket", "Searchfields per ticket", stats.UnitDimensionless)
+
+	totalBytesPerTicketView = &view.View{
+		Measure:     totalBytesPerTicket,
+		Name:        "open-match.dev/frontend/total_bytes_per_ticket",
+		Description: "Total bytes per ticket",
+		Aggregation: telemetry.DefaultBytesDistribution,
+	}
+	searchFieldsPerTicketView = &view.View{
+		Measure:     searchFieldsPerTicket,
+		Name:        "open-match.dev/frontend/searchfields_per_ticket",
+		Description: "SearchFields per ticket",
+		Aggregation: telemetry.DefaultCountDistribution,
+	}
 )
 
 // BindService creates the frontend service and binds it to the serving harness.
@@ -32,6 +53,9 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	b.AddHandleFunc(func(s *grpc.Server) {
 		pb.RegisterFrontendServiceServer(s, service)
 	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
-
+	b.RegisterViews(
+		totalBytesPerTicketView,
+		searchFieldsPerTicketView,
+	)
 	return nil
 }
