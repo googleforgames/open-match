@@ -20,6 +20,7 @@ import (
 	"io"
 
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/stats"
 	"golang.org/x/sync/errgroup"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -77,12 +78,16 @@ func (s *evaluatorService) Evaluate(stream pb.Evaluator_EvaluateServer) error {
 			for range out {
 			}
 		}()
+
+		count := 0
 		for id := range out {
 			err := stream.Send(&pb.EvaluateResponse{MatchId: id})
 			if err != nil {
 				return err
 			}
+			count++
 		}
+		stats.Record(ctx, matchesPerEvaluateResponse.M(int64(count)))
 		return nil
 	})
 
