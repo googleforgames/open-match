@@ -34,19 +34,19 @@ var (
 		Measure:     ticketsPerQuery,
 		Name:        "open-match.dev/query/tickets_per_query",
 		Description: "Tickets per query",
-		Aggregation: telemetry.DefaultMillisecondsDistribution,
+		Aggregation: telemetry.DefaultCountDistribution,
 	}
 	cacheTotalItemsView = &view.View{
 		Measure:     cacheTotalItems,
-		Name:        "open-match.dev/query/total_cache_items",
-		Description: "Total number of tickets query service cached",
+		Name:        "open-match.dev/query/total_cached_items",
+		Description: "Total number of cached tickets",
 		Aggregation: view.LastValue(),
 	}
 	cacheFetchedItemsView = &view.View{
 		Measure:     cacheFetchedItems,
 		Name:        "open-match.dev/query/total_fetched_items",
 		Description: "Total number of fetched tickets",
-		Aggregation: view.Count(),
+		Aggregation: view.Sum(),
 	}
 	cacheUpdateView = &view.View{
 		Measure:     cacheWaitingQueries,
