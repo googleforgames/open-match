@@ -24,7 +24,7 @@ import (
 )
 
 // Read sets default to a viper instance and read user config to override these defaults.
-func Read() (View, error) {
+func Read() (*viper.Viper, error) {
 	var err error
 	// read configs from config/default/matchmaker_config_default.yaml
 	// matchmaker_config_default provides default values for all of the possible tunnable parameters in Open Match

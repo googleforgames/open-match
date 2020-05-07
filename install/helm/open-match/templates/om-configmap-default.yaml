@@ -68,8 +68,15 @@ data:
       swaggerui:
         hostname: "{{ .Values.swaggerui.hostName }}"
         httpport: "{{ .Values.swaggerui.httpPort }}"
+
+      # Configurations for api.test and api.scale are used for testing.
+      test:
+        hostname: "test"
+        grpcport: "50509"
+        httpport: "51509"
       scale:
         httpport: "51509"
+
 {{- if .Values.global.tls.enabled }}
       tls:
         trustedCertificatePath: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
@@ -81,14 +88,14 @@ data:
     storage:
       ignoreListTTL: {{ index .Values "open-match-core" "ignoreListTTL" }}
       page:
-        size: 10000
+        size: {{ index .Values "open-match-core" "pageSize" }}
 
     redis:
 {{- if index .Values "open-match-core" "redis" "enabled" }}
 {{- if index .Values "redis" "sentinel" "enabled"}}
       sentinelPort: {{ .Values.redis.sentinel.port }}
       sentinelMaster: {{ .Values.redis.sentinel.masterSet }}
-      sentinelHostname: {{ .Values.redis.fullnameOverride }}.{{ .Release.Namespace }}.svc.cluster.local
+      sentinelHostname: {{ .Values.redis.fullnameOverride }}
       sentinelUsePassword: {{ .Values.redis.sentinel.usePassword }}
 {{- else}}
       # Open Match's default Redis setups
@@ -111,11 +118,12 @@ data:
         healthCheckTimeout: {{ index .Values "open-match-core" "redis" "pool" "healthCheckTimeout" }}
 
     telemetry:
+      reportingPeriod: "{{ .Values.global.telemetry.reportingPeriod }}"
+      traceSamplingFraction: "{{ .Values.global.telemetry.traceSamplingFraction }}"
       zpages:
         enable: "{{ .Values.global.telemetry.zpages.enabled }}"
       jaeger:
         enable: "{{ .Values.global.telemetry.jaeger.enabled }}"
-        samplerFraction: {{ .Values.global.telemetry.jaeger.samplerFraction }}
         agentEndpoint: "{{ .Values.global.telemetry.jaeger.agentEndpoint }}"
         collectorEndpoint: "{{ .Values.global.telemetry.jaeger.collectorEndpoint }}"
       prometheus:

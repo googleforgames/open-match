@@ -17,11 +17,7 @@ package statestore
 import (
 	"context"
 
-	"github.com/golang/protobuf/proto"
-	"go.opencensus.io/stats"
-
 	"go.opencensus.io/trace"
-	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -45,13 +41,6 @@ func (is *instrumentedService) HealthCheck(ctx context.Context) error {
 func (is *instrumentedService) CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.CreateTicket")
 	defer span.End()
-
-	sfCount := 0
-	sfCount += len(ticket.GetSearchFields().GetDoubleArgs())
-	sfCount += len(ticket.GetSearchFields().GetStringArgs())
-	sfCount += len(ticket.GetSearchFields().GetTags())
-	defer stats.Record(ctx, telemetry.SearchFieldsPerTicket.M(int64(sfCount)))
-	defer stats.Record(ctx, telemetry.TotalBytesPerTicket.M(int64(proto.Size(ticket))))
 	return is.s.CreateTicket(ctx, ticket)
 }
 

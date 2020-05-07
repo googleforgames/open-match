@@ -16,10 +16,8 @@ package rpc
 
 import (
 	"context"
-	"net/http"
-	"sync"
-
 	"net"
+	"net/http"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
@@ -28,40 +26,28 @@ import (
 )
 
 type insecureServer struct {
-	grpcLh       *ListenerHolder
 	grpcListener net.Listener
 	grpcServer   *grpc.Server
 
-	httpLh       *ListenerHolder
 	httpListener net.Listener
 	httpMux      *http.ServeMux
 	proxyMux     *runtime.ServeMux
 	httpServer   *http.Server
 }
 
-func (s *insecureServer) start(params *ServerParams) (func(), error) {
-	var serverStartWaiter sync.WaitGroup
-
+func (s *insecureServer) start(params *ServerParams) error {
 	s.httpMux = params.ServeMux
 	s.proxyMux = runtime.NewServeMux()
 
 	// Configure the gRPC server.
-	grpcListener, err := s.grpcLh.Obtain()
-	if err != nil {
-		return func() {}, errors.WithStack(err)
-	}
-	s.grpcListener = grpcListener
-
 	s.grpcServer = grpc.NewServer(newGRPCServerOptions(params)...)
 	// Bind gRPC handlers
 	for _, handlerFunc := range params.handlersForGrpc {
 		handlerFunc(s.grpcServer)
 	}
 
-	serverStartWaiter.Add(1)
 	go func() {
-		serverStartWaiter.Done()
-		serverLogger.Infof("Serving gRPC: %s", s.grpcLh.AddrString())
+		serverLogger.Infof("Serving gRPC: %s", s.grpcListener.Addr().String())
 		gErr := s.grpcServer.Serve(s.grpcListener)
 		if gErr != nil {
 			return
@@ -69,21 +55,15 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 	}()
 
 	// Configure the HTTP proxy server.
-	httpListener, err := s.httpLh.Obtain()
-	if err != nil {
-		return func() {}, errors.WithStack(err)
-	}
-	s.httpListener = httpListener
-
 	// Bind gRPC handlers
 	ctx, cancel := context.WithCancel(context.Background())
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
 		dialOpts := newGRPCDialOptions(params.enableMetrics, params.enableRPCLogging, params.enableRPCPayloadLogging)
 		dialOpts = append(dialOpts, grpc.WithInsecure())
-		if err = handlerFunc(ctx, s.proxyMux, grpcListener.Addr().String(), dialOpts); err != nil {
+		if err := handlerFunc(ctx, s.proxyMux, s.grpcListener.Addr().String(), dialOpts); err != nil {
 			cancel()
-			return func() {}, errors.WithStack(err)
+			return errors.WithStack(err)
 		}
 	}
 
@@ -93,38 +73,28 @@ func (s *insecureServer) start(params *ServerParams) (func(), error) {
 		Addr:    s.httpListener.Addr().String(),
 		Handler: instrumentHTTPHandler(s.httpMux, params),
 	}
-	serverStartWaiter.Add(1)
 	go func() {
-		serverStartWaiter.Done()
-		serverLogger.Infof("Serving HTTP: %s", s.httpLh.AddrString())
+		serverLogger.Infof("Serving HTTP: %s", s.httpListener.Addr().String())
 		hErr := s.httpServer.Serve(s.httpListener)
 		defer cancel()
-		if hErr != nil {
-			serverLogger.Debugf("error closing gRPC server: %s", hErr)
+		if hErr != nil && hErr != http.ErrServerClosed {
+			serverLogger.Debugf("error serving HTTP: %s", hErr)
 		}
 	}()
 
-	return serverStartWaiter.Wait, nil
+	return nil
 }
 
-func (s *insecureServer) stop() {
-	s.grpcServer.Stop()
-	if err := s.grpcListener.Close(); err != nil {
-		serverLogger.Debugf("error closing gRPC listener: %s", err)
-	}
-
-	if err := s.httpServer.Close(); err != nil {
-		serverLogger.Debugf("error closing HTTP server: %s", err)
-	}
-
-	if err := s.httpListener.Close(); err != nil {
-		serverLogger.Debugf("error closing HTTP listener: %s", err)
-	}
+func (s *insecureServer) stop() error {
+	// the servers also close their respective listeners.
+	err := s.httpServer.Shutdown(context.Background())
+	s.grpcServer.GracefulStop()
+	return err
 }
 
-func newInsecureServer(grpcLh *ListenerHolder, httpLh *ListenerHolder) *insecureServer {
+func newInsecureServer(grpcL, httpL net.Listener) *insecureServer {
 	return &insecureServer{
-		grpcLh: grpcLh,
-		httpLh: httpLh,
+		grpcListener: grpcL,
+		httpListener: httpL,
 	}
 }

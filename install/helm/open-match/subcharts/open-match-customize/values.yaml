@@ -35,11 +35,11 @@ evaluatorConfigs:
   default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
-    configName: customize-configmap
+    configName: om-configmap-default
   customize:
-    volumeName: customize-config-volume
+    volumeName: om-config-volume-override
     mountPath: /app/config/override
-    configName: customize-configmap
+    configName: om-configmap-override
 
 mmfConfigs:
   # We use harness to implement the MMFs. MMF itself only requires one configmap but harness expects two,
@@ -48,8 +48,8 @@ mmfConfigs:
   default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
-    configName: customize-configmap
+    configName: om-configmap-default
   customize:
-    volumeName: customize-config-volume
+    volumeName: om-config-volume-override
     mountPath: /app/config/override
-    configName: customize-configmap
+    configName: om-configmap-override

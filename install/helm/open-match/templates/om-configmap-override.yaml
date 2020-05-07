@@ -31,6 +31,6 @@ data:
         grpcport: "{{ .Values.evaluator.grpcPort }}"
         httpport: "{{ .Values.evaluator.httpPort }}"
     synchronizer:
-      registrationIntervalMs: 250ms
-      proposalCollectionIntervalMs: 20000ms
+      registrationIntervalMs:  {{ index .Values "open-match-core" "registrationIntervalMs" }}
+      proposalCollectionIntervalMs: {{ index .Values "open-match-core" "proposalCollectionIntervalMs" }}
 {{- end }}

@@ -20,7 +20,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/zpages"
-	"open-match.dev/open-match/internal/config"
 )
 
 const (
@@ -28,11 +27,17 @@ const (
 	configNameTelemetryZpagesEnabled = "telemetry.zpages.enable"
 )
 
-func bindZpages(mux *http.ServeMux, cfg config.View) {
-	if !cfg.GetBool(configNameTelemetryZpagesEnabled) {
+func bindZpages(p Params, b Bindings) error {
+	if !p.Config().GetBool(configNameTelemetryZpagesEnabled) {
 		logger.Info("zPages: Disabled")
-		return
+		return nil
 	}
+	logger.WithFields(logrus.Fields{
+		"endpoint": debugEndpoint,
+	}).Info("zPages: ENABLED")
+
+	mux := http.NewServeMux()
+
 	zpages.Handle(mux, debugEndpoint)
 
 	mux.HandleFunc(debugEndpoint+"/pprof/", pprof.Index)
@@ -41,7 +46,7 @@ func bindZpages(mux *http.ServeMux, cfg config.View) {
 	mux.HandleFunc(debugEndpoint+"/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc(debugEndpoint+"/pprof/trace", pprof.Trace)
 
-	logger.WithFields(logrus.Fields{
-		"endpoint": debugEndpoint,
-	}).Info("zPages: ENABLED")
+	b.TelemetryHandle(debugEndpoint, mux)
+
+	return nil
 }

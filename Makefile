@@ -197,7 +197,7 @@ ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS)
 CMDS = $(notdir $(wildcard cmd/*))
 
 # Names of the individual images, ommiting the openmatch prefix.
-IMAGES = $(CMDS) mmf-go-soloduel mmf-go-pool base-build
+IMAGES = $(CMDS) mmf-go-soloduel base-build
 
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
@@ -236,9 +236,6 @@ $(foreach CMD,$(CMDS),build-$(CMD)-image): build-%-image: docker build-base-buil
 
 build-mmf-go-soloduel-image: docker build-base-build-image
 	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
-
-build-mmf-go-pool-image: docker build-base-build-image
-	docker build -f test/matchfunction/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-pool:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-pool:$(ALTERNATE_TAG) .
 
 #######################################
 ## push-images / push-<image name>-image: builds and pushes images to your
@@ -363,11 +360,15 @@ install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_HELM_NAME) $(HELM_UPGRADE_FLAGS) --atomic install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.ignoreListTTL=500ms \
-		--set open-match-customize.enabled=true \
-		--set open-match-customize.function.enabled=true \
-		--set open-match-customize.evaluator.enabled=true \
-		--set open-match-customize.function.image=openmatch-mmf-go-pool \
-		--set query.replicas=1,frontend.replicas=1,backend.replicas=1,open-match-customize.evaluator.replicas=1,open-match-customize.function.replicas=1 \
+		--set query.replicas=1,frontend.replicas=1,backend.replicas=1 \
+		--set evaluator.hostName=test \
+		--set evaluator.grpcPort=50509 \
+		--set evaluator.httpPort=51509 \
+		--set open-match-core.registrationIntervalMs=200ms \
+		--set open-match-core.proposalCollectionIntervalMs=200ms \
+		--set open-match-core.ignoreListTTL=200ms \
+		--set open-match-core.pageSize=10 \
+		--set global.gcpProjectId=intentionally-invalid-value \
 		--set redis.master.resources.requests.cpu=0.6,redis.master.resources.requests.memory=300Mi \
 		--set ci=true
 
@@ -674,9 +675,28 @@ build: assets
 	$(GO) build ./...
 	$(GO) build -tags e2ecluster ./...
 
+define test_folder
+	$(if $(wildcard $(1)/go.mod), \
+		cd $(1) && \
+		$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./... && \
+		$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./... \
+    )
+	$(foreach dir, $(wildcard $(1)/*/.), $(call test_folder, $(dir)))
+endef
+
+define fast_test_folder
+	$(if $(wildcard $(1)/go.mod), \
+		cd $(1) && \
+		$(GO) test ./... \
+    )
+	$(foreach dir, $(wildcard $(1)/*/.), $(call fast_test_folder, $(dir)))
+endef
+
 test: $(ALL_PROTOS) tls-certs third_party/
-	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./...
-	$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./...
+	$(call test_folder,.)
+
+fasttest: $(ALL_PROTOS) tls-certs third_party/
+	$(call fast_test_folder,.)
 
 test-e2e-cluster: all-protos tls-certs third_party/
 	$(HELM) test --timeout 7m30s -v 0 --logs -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(OPEN_MATCH_HELM_NAME)

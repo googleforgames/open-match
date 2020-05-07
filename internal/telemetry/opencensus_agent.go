@@ -16,31 +16,39 @@ package telemetry
 
 import (
 	"contrib.go.opencensus.io/exporter/ocagent"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/trace"
-	"open-match.dev/open-match/internal/config"
 )
 
-func bindOpenCensusAgent(cfg config.View) func() error {
+func bindOpenCensusAgent(p Params, b Bindings) error {
+	cfg := p.Config()
+
 	if !cfg.GetBool("telemetry.opencensusAgent.enable") {
 		logger.Info("OpenCensus Agent: Disabled")
-		return func() error { return nil }
+		return nil
 	}
 
 	agentEndpoint := cfg.GetString("telemetry.opencensusAgent.agentEndpoint")
+	logger.WithFields(logrus.Fields{
+		"agentEndpoint": agentEndpoint,
+	}).Info("OpenCensus Agent: ENABLED")
+
 	oce, err := ocagent.NewExporter(ocagent.WithAddress(agentEndpoint), ocagent.WithInsecure(), ocagent.WithServiceName("open-match"))
 	if err != nil {
-		logger.WithError(err).Fatalf("Failed to create a new ocagent exporter")
+		return errors.Wrap(err, "Failed to create a new ocagent exporter")
 	}
 
 	trace.RegisterExporter(oce)
 	view.RegisterExporter(oce)
 
-	logger.WithFields(logrus.Fields{
-		"agentEndpoint": agentEndpoint,
-	}).Info("OpenCensus Agent: ENABLED")
+	b.AddCloserErr(func() error {
+		view.UnregisterExporter(oce)
+		trace.UnregisterExporter(oce)
+		// Before the program stops, please remember to stop the exporter.
+		return oce.Stop()
+	})
 
-	// Before the program stops, please remember to stop the exporter.
-	return oce.Stop
+	return nil
 }
