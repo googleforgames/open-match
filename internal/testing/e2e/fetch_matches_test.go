@@ -79,7 +79,6 @@ func TestHappyPath(t *testing.T) {
 // TestMatchFunctionMatchCollision covers two matches with the same id coming
 // from the same MMF generates an error to the fetch matches call.
 func TestMatchFunctionMatchCollision(t *testing.T) {
-	// TODO: another MMF in same cycle doesn't get error?
 	ctx := context.Background()
 	om := newOM(t)
 
@@ -90,31 +89,62 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 	require.Nil(t, err)
 
 	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
-		out <- &pb.Match{
-			MatchId: "1",
-			Tickets: []*pb.Ticket{t1},
-		}
-		out <- &pb.Match{
-			MatchId: "1",
-			Tickets: []*pb.Ticket{t2},
+		switch profile.Name {
+		case "error":
+			out <- &pb.Match{
+				MatchId: "1",
+				Tickets: []*pb.Ticket{t1},
+			}
+			out <- &pb.Match{
+				MatchId: "1",
+				Tickets: []*pb.Ticket{t2},
+			}
+		case "success":
+			out <- &pb.Match{
+				MatchId: "3",
+				Tickets: []*pb.Ticket{t2},
+			}
+		default:
+			panic("Unknown profile!")
 		}
 		return nil
 	})
 
 	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
-		for range in {
+		for m := range in {
+			if m.MatchId == "3" {
+				out <- "3"
+			}
 		}
 		return nil
 	})
 
-	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
-		Config:  om.MMFConfigGRPC(),
-		Profile: &pb.MatchProfile{},
+	s1, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config: om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{
+			Name: "error",
+		},
 	})
 	require.Nil(t, err)
 
-	resp, err := stream.Recv()
+	resp, err := s1.Recv()
 	require.Contains(t, err.Error(), "MatchMakingFunction returned same match_id twice: \"1\"")
+	require.Nil(t, resp)
+
+	s2, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config: om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{
+			Name: "success",
+		},
+	})
+	require.Nil(t, err)
+
+	resp, err = s2.Recv()
+	require.Nil(t, err)
+	require.True(t, proto.Equal(t2, resp.Match.Tickets[0]))
+
+	resp, err = s2.Recv()
+	require.Equal(t, err, io.EOF)
 	require.Nil(t, resp)
 }
 
