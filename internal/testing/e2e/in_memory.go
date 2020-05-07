@@ -25,7 +25,6 @@ import (
 	miniredis "github.com/alicebob/miniredis/v2"
 	"github.com/spf13/viper"
 	"open-match.dev/open-match/internal/app/evaluator"
-	"open-match.dev/open-match/internal/app/evaluator/defaulteval"
 	"open-match.dev/open-match/internal/app/minimatch"
 	"open-match.dev/open-match/internal/appmain/apptest"
 	"open-match.dev/open-match/internal/config"
@@ -87,6 +86,6 @@ func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction)
 	cfg.Set("logging.level", *testOnlyLoggingLevel)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, *testOnlyEnableMetrics)
 
-	apptest.TestApp(t, cfg, listeners, minimatch.BindService, mmfService.BindServiceFor(mmf), defaulteval.BindService)
+	apptest.TestApp(t, cfg, listeners, minimatch.BindService, mmfService.BindServiceFor(mmf), evaluator.BindServiceFor(eval))
 	return cfg
 }
