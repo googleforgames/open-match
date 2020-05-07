@@ -89,14 +89,16 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 	t2, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 	require.Nil(t, err)
 
-	// Channel funkyness ensure that functions run in the same cycle.
-	startSErr := make(chan struct{})
-	sendSuccessMatch := make(chan struct{})
+	// Both mmf runs wait for the other to start before sending results, to
+	// ensure they run in the same cycle.
+	errorMMFStarted := make(chan struct{})
+	successMMFStarted := make(chan struct{})
 
 	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
 		switch profile.Name {
 		case "error":
-			close(sendSuccessMatch)
+			close(errorMMFStarted)
+			<-successMMFStarted
 			out <- &pb.Match{
 				MatchId: "1",
 				Tickets: []*pb.Ticket{t1},
@@ -106,8 +108,8 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 				Tickets: []*pb.Ticket{t2},
 			}
 		case "success":
-			close(startSErr)
-			<-sendSuccessMatch
+			close(successMMFStarted)
+			<-errorMMFStarted
 			out <- &pb.Match{
 				MatchId: "3",
 				Tickets: []*pb.Ticket{t2},
@@ -129,20 +131,18 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 
 	startTime := time.Now()
 
-	sSuccess, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
-		Config: om.MMFConfigGRPC(),
-		Profile: &pb.MatchProfile{
-			Name: "success",
-		},
-	})
-	require.Nil(t, err)
-
-	<-startSErr
-
 	sError, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
 		Config: om.MMFConfigGRPC(),
 		Profile: &pb.MatchProfile{
 			Name: "error",
+		},
+	})
+	require.Nil(t, err)
+
+	sSuccess, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config: om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{
+			Name: "success",
 		},
 	})
 	require.Nil(t, err)
