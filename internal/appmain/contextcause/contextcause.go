@@ -42,6 +42,8 @@ func WithCancelCause(parent context.Context) (context.Context, CancelErrFunc) {
 	}
 }
 
+// CancelErrFunc cancels a context simular to context.CancelFunc.  However it
+// indicates why the context was canceled with the provided error.
 type CancelErrFunc func(err error)
 
 type contextWithCancelCause struct {

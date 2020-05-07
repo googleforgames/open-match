@@ -211,7 +211,7 @@ func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 	if err != nil {
 		logger.WithError(err).Error("failed to run match function for profile")
 		if ctx.Err() != nil {
-			// gRPC likes to surpress the context's error, so stop that.
+			// gRPC likes to suppress the context's error, so stop that.
 			return ctx.Err()
 		}
 		return err
@@ -225,7 +225,7 @@ func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 		if err != nil {
 			logger.Errorf("%v.Run() error, %v\n", client, err)
 			if ctx.Err() != nil {
-				// gRPC likes to surpress the context's error, so stop that.
+				// gRPC likes to suppress the context's error, so stop that.
 				return ctx.Err()
 			}
 			return err

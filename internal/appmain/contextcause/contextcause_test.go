@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testErr = errors.New("testErr")
+var errExample = errors.New("errExample")
 
 func TestCauseOverride(t *testing.T) {
 	parent, cancelParent := context.WithCancel(context.Background())
@@ -34,15 +34,15 @@ func TestCauseOverride(t *testing.T) {
 	default:
 	}
 
-	cancel(testErr)
+	cancel(errExample)
 	<-ctx.Done()
-	require.Equal(t, testErr, ctx.Err())
+	require.Equal(t, errExample, ctx.Err())
 
 	cancel(errors.New("second error"))
-	require.Equal(t, testErr, ctx.Err())
+	require.Equal(t, errExample, ctx.Err())
 
 	cancelParent()
-	require.Equal(t, testErr, ctx.Err())
+	require.Equal(t, errExample, ctx.Err())
 }
 
 func TestParentCanceledFirst(t *testing.T) {
@@ -59,6 +59,6 @@ func TestParentCanceledFirst(t *testing.T) {
 	<-ctx.Done()
 	require.Equal(t, context.Canceled, ctx.Err())
 
-	cancel(testErr)
+	cancel(errExample)
 	require.Equal(t, context.Canceled, ctx.Err())
 }
