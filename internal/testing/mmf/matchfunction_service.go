@@ -17,131 +17,41 @@ package mmf
 
 import (
 	"context"
-	"io"
 
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/rpc"
+	"golang.org/x/sync/errgroup"
 	"open-match.dev/open-match/pkg/pb"
 )
 
-var (
-	logger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "matchfunction.harness.golang",
-	})
-)
-
 // MatchFunction is the function signature for the Match Making Function (MMF) to be implemented by the user.
-// The harness will query the Tickets for each Pool and will pass the map of Pool to Tickets to the function
-// and the function will return a list of proposals.
-// Input:
-//  - MatchFunctionParams:
-//			A structure that defines the resources that are available to the match function.
-//			Developers can choose to add context to the structure such that match function has the ability
-//			to cancel a stream response/request or to limit match function by sharing a static and protected view.
-type MatchFunction func(*MatchFunctionParams) ([]*pb.Match, error)
+type MatchFunction func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error
 
-// matchFunctionService implements pb.MatchFunctionServer, the server generated
-// by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
 type matchFunctionService struct {
-	cfg                config.View
-	function           MatchFunction
-	queryServiceClient pb.QueryServiceClient
+	mmf MatchFunction
 }
 
-// MatchFunctionParams is a protected view for the match function.
-type MatchFunctionParams struct {
-	// Logger is used to generate error/debug logs
-	Logger *logrus.Entry
-
-	// 'Name' from the MatchProfile.
-	ProfileName string
-
-	// 'Extensions' from the MatchProfile.
-	Extensions map[string]*any.Any
-
-	// A map that contains mappings from pool name to a list of tickets that satisfied the filters in the pool
-	PoolNameToTickets map[string][]*pb.Ticket
-}
-
-// Run is this harness's implementation of the gRPC call defined in api/matchfunction.proto.
 func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
-	poolNameToTickets, err := s.getMatchManifest(stream.Context(), req)
-	if err != nil {
-		return err
-	}
+	g, ctx := errgroup.WithContext(stream.Context())
 
-	mfParams := &MatchFunctionParams{
-		Logger: logrus.WithFields(logrus.Fields{
-			"app":       "openmatch",
-			"component": "matchfunction.implementation",
-		}),
-		ProfileName:       req.GetProfile().GetName(),
-		Extensions:        req.GetProfile().GetExtensions(),
-		PoolNameToTickets: poolNameToTickets,
-	}
-	// Run the customize match function!
-	proposals, err := s.function(mfParams)
-	if err != nil {
-		return err
-	}
-	logger.WithFields(logrus.Fields{
-		"proposals": proposals,
-	}).Trace("proposals returned by match function")
+	out := make(chan *pb.Match)
 
-	for _, proposal := range proposals {
-		if err := stream.Send(&pb.RunResponse{Proposal: proposal}); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func newMatchFunctionService(cfg config.View, fs *FunctionSettings) (*matchFunctionService, error) {
-	conn, err := rpc.GRPCClientFromConfig(cfg, "api.query")
-	if err != nil {
-		logger.Errorf("Failed to get QueryService connection, %v.", err)
-		return nil, err
-	}
-
-	mmfService := &matchFunctionService{cfg: cfg, function: fs.Func, queryServiceClient: pb.NewQueryServiceClient(conn)}
-	return mmfService, nil
-}
-
-// getMatchManifest fetches all the data needed from the queryService API.
-func (s *matchFunctionService) getMatchManifest(ctx context.Context, req *pb.RunRequest) (map[string][]*pb.Ticket, error) {
-	poolNameToTickets := make(map[string][]*pb.Ticket)
-	filterPools := req.GetProfile().GetPools()
-
-	for _, pool := range filterPools {
-		qtClient, err := s.queryServiceClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool}, grpc.WaitForReady(true))
-		if err != nil {
-			logger.WithError(err).Error("Failed to get queryTicketClient from queryService.")
-			return nil, err
-		}
-
-		// Aggregate tickets by poolName
-		poolTickets := make([]*pb.Ticket, 0)
-		for {
-			qtResponse, err := qtClient.Recv()
-			if err == io.EOF {
-				logger.Trace("Received all results from the queryTicketClient.")
-				// Break when all results are received
-				break
+	g.Go(func() error {
+		defer close(out)
+		return s.mmf(ctx, req.Profile, out)
+	})
+	g.Go(func() error {
+		defer func() {
+			for range out {
 			}
+		}()
 
+		for m := range out {
+			err := stream.Send(&pb.RunResponse{Proposal: m})
 			if err != nil {
-				logger.WithError(err).Error("Failed to receive a response from the queryTicketClient.")
-				return nil, err
+				return err
 			}
-			poolTickets = append(poolTickets, qtResponse.Tickets...)
 		}
-		poolNameToTickets[pool.GetName()] = poolTickets
-	}
+		return nil
+	})
 
-	return poolNameToTickets, nil
+	return g.Wait()
 }

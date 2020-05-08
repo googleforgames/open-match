@@ -27,7 +27,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -38,9 +37,6 @@ var (
 		"app":       "openmatch",
 		"component": "statestore.redis",
 	})
-	mRedisConnLatencyMs  = telemetry.HistogramWithBounds("redis/connectlatency", "latency to get a redis connection", "ms", telemetry.HistogramBounds)
-	mRedisConnPoolActive = telemetry.Gauge("redis/connectactivecount", "number of connections in the pool, includes idle plus connections in use")
-	mRedisConnPoolIdle   = telemetry.Gauge("redis/connectidlecount", "number of idle connections in the pool")
 )
 
 type redisBackend struct {
@@ -58,7 +54,7 @@ func (rb *redisBackend) Close() error {
 func newRedis(cfg config.View) Service {
 	return &redisBackend{
 		healthCheckPool: getHealthCheckPool(cfg),
-		redisPool:       getRedisPool(cfg),
+		redisPool:       GetRedisPool(cfg),
 		cfg:             cfg,
 	}
 }
@@ -92,7 +88,8 @@ func getHealthCheckPool(cfg config.View) *redis.Pool {
 	}
 }
 
-func getRedisPool(cfg config.View) *redis.Pool {
+// GetRedisPool configures a new pool to connect to redis given the config.
+func GetRedisPool(cfg config.View) *redis.Pool {
 	var dialFunc func(context.Context) (redis.Conn, error)
 	maxIdle := cfg.GetInt("redis.pool.maxIdle")
 	maxActive := cfg.GetInt("redis.pool.maxActive")
@@ -176,16 +173,11 @@ func (rb *redisBackend) HealthCheck(ctx context.Context) error {
 	}
 	defer handleConnectionClose(&redisConn)
 
-	poolStats := rb.redisPool.Stats()
-	telemetry.SetGauge(ctx, mRedisConnPoolActive, int64(poolStats.ActiveCount))
-	telemetry.SetGauge(ctx, mRedisConnPoolIdle, int64(poolStats.IdleCount))
-
 	_, err = redisConn.Do("PING")
 	// Encountered an issue getting a connection from the pool.
 	if err != nil {
 		return status.Errorf(codes.Unavailable, "%v", err)
 	}
-
 	return nil
 }
 
@@ -228,7 +220,6 @@ func redisURLFromAddr(addr string, cfg config.View, usePassword bool) string {
 }
 
 func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
-	startTime := time.Now()
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
 		redisLogger.WithFields(logrus.Fields{
@@ -236,8 +227,6 @@ func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
 		}).Error("failed to connect to redis")
 		return nil, status.Errorf(codes.Unavailable, "%v", err)
 	}
-	telemetry.RecordNUnitMeasurement(ctx, mRedisConnLatencyMs, time.Since(startTime).Milliseconds())
-
 	return redisConn, nil
 }
 
@@ -397,11 +386,11 @@ func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{
 
 	ttl := rb.cfg.GetDuration("storage.ignoreListTTL")
 	curTime := time.Now()
-	curTimeInt := curTime.UnixNano()
+	endTimeInt := curTime.Add(time.Hour).UnixNano()
 	startTimeInt := curTime.Add(-ttl).UnixNano()
 
 	// Filter out tickets that are fetched but not assigned within ttl time (ms).
-	idsInIgnoreLists, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, curTimeInt))
+	idsInIgnoreLists, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, endTimeInt))
 	if err != nil {
 		redisLogger.WithError(err).Error("failed to get proposed tickets")
 		return nil, status.Errorf(codes.Internal, "error getting ignore list %v", err)

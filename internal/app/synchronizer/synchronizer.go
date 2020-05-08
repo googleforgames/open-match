@@ -15,21 +15,52 @@
 package synchronizer
 
 import (
+	"go.opencensus.io/stats"
+	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/ipb"
-	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
+	"open-match.dev/open-match/internal/telemetry"
+)
+
+var (
+	iterationLatency        = stats.Float64("open-match.dev/synchronizer/iteration_latency", "Time elapsed of each synchronizer iteration", stats.UnitMilliseconds)
+	registrationWaitTime    = stats.Float64("open-match.dev/synchronizer/registration_wait_time", "Time elapsed of registration wait time", stats.UnitMilliseconds)
+	registrationMMFDoneTime = stats.Float64("open-match.dev/synchronizer/registration_mmf_done_time", "Time elapsed wasted in registration window with done MMFs", stats.UnitMilliseconds)
+
+	iterationLatencyView = &view.View{
+		Measure:     iterationLatency,
+		Name:        "open-match.dev/synchronizer/iteration_latency",
+		Description: "Time elapsed of each synchronizer iteration",
+		Aggregation: telemetry.DefaultMillisecondsDistribution,
+	}
+	registrationWaitTimeView = &view.View{
+		Measure:     registrationWaitTime,
+		Name:        "open-match.dev/synchronizer/registration_wait_time",
+		Description: "Time elapsed of registration wait time",
+		Aggregation: telemetry.DefaultMillisecondsDistribution,
+	}
+	registrationMMFDoneTimeView = &view.View{
+		Measure:     registrationMMFDoneTime,
+		Name:        "open-match.dev/synchronizer/registration_mmf_done_time",
+		Description: "Time elapsed wasted in registration window with done MMFs",
+		Aggregation: telemetry.DefaultMillisecondsDistribution,
+	}
 )
 
 // BindService creates the synchronizer service and binds it to the serving harness.
-func BindService(p *rpc.ServerParams, cfg config.View) error {
-	store := statestore.New(cfg)
-	service := newSynchronizerService(cfg, newEvaluator(cfg), store)
-	p.AddHealthCheckFunc(store.HealthCheck)
-	p.AddHandleFunc(func(s *grpc.Server) {
+func BindService(p *appmain.Params, b *appmain.Bindings) error {
+	store := statestore.New(p.Config())
+	service := newSynchronizerService(p.Config(), newEvaluator(p.Config()), store)
+	b.AddHealthCheckFunc(store.HealthCheck)
+	b.AddHandleFunc(func(s *grpc.Server) {
 		ipb.RegisterSynchronizerServer(s, service)
 	}, nil)
-
+	b.RegisterViews(
+		iterationLatencyView,
+		registrationWaitTimeView,
+		registrationMMFDoneTimeView,
+	)
 	return nil
 }

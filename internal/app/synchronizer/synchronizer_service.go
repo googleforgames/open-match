@@ -21,6 +21,8 @@ import (
 	"sync"
 	"time"
 
+	"go.opencensus.io/stats"
+
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/ipb"
@@ -123,7 +125,11 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 		select {
 		case mIDs, ok := <-m6cBuffer:
 			if !ok {
-				return nil
+				// Prevent race: An error will result in this channel being
+				// closed as part of cleanup.  If it's especially fast, it may
+				// beat the context done case, so be sure to return any
+				// potential error.
+				return registration.cycleCtx.Err()
 			}
 			for _, mID := range mIDs {
 				err = stream.Send(&ipb.SynchronizeResponse{MatchId: mID})
@@ -181,6 +187,9 @@ func (s synchronizerService) register(ctx context.Context) *registration {
 		resp: make(chan *registration),
 		ctx:  ctx,
 	}
+
+	st := time.Now()
+	defer stats.Record(ctx, registrationWaitTime.M(float64(time.Since(st))/float64(time.Millisecond)))
 	for {
 		select {
 		case s.synchronizeRegistration <- req:
@@ -198,6 +207,7 @@ func (s synchronizerService) register(ctx context.Context) *registration {
 ///////////////////////////////////////
 
 func (s *synchronizerService) runCycle() {
+	cst := time.Now()
 	/////////////////////////////////////// Initialize cycle
 	ctx, cancel := withCancelCause(context.Background())
 
@@ -236,6 +246,7 @@ func (s *synchronizerService) runCycle() {
 	}()
 
 	/////////////////////////////////////// Run Registration Period
+	rst := time.Now()
 	closeRegistration := time.After(s.registrationInterval())
 Registration:
 	for {
@@ -268,6 +279,7 @@ Registration:
 	go func() {
 		allM1cSent.Wait()
 		m1c.cutoff()
+		stats.Record(ctx, registrationMMFDoneTime.M(float64((s.registrationInterval()-time.Since(rst))/time.Millisecond)))
 	}()
 
 	cancelProposalCollection := time.AfterFunc(s.proposalCollectionInterval(), func() {
@@ -277,6 +289,7 @@ Registration:
 		}
 	})
 	<-closedOnCycleEnd
+	stats.Record(ctx, iterationLatency.M(float64(time.Since(cst)/time.Millisecond)))
 
 	// Clean up in case it was never needed.
 	cancelProposalCollection.Stop()
@@ -387,13 +400,9 @@ func (c *cutoffSender) cutoff() {
 ///////////////////////////////////////
 
 // Calls the evaluator with the matches.
-func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelErrFunc, m3c <-chan []*pb.Match, m5c chan<- string) {
-	matchIDs, err := s.eval.evaluate(ctx, m3c)
-	if err == nil {
-		for _, mID := range matchIDs {
-			m5c <- mID
-		}
-	} else {
+func (s *synchronizerService) wrapEvaluator(ctx context.Context, cancel cancelErrFunc, m4c <-chan []*pb.Match, m5c chan<- string) {
+	err := s.eval.evaluate(ctx, m4c, m5c)
+	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("error calling evaluator, canceling cycle")

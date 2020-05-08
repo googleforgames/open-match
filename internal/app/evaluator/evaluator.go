@@ -16,35 +16,42 @@
 package evaluator
 
 import (
-	"github.com/spf13/viper"
+	"go.opencensus.io/stats"
+	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
-	"open-match.dev/open-match/internal/app"
-	"open-match.dev/open-match/internal/config"
-	"open-match.dev/open-match/internal/rpc"
+	"open-match.dev/open-match/internal/appmain"
+	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// RunEvaluator is a hook for the main() method in the main executable.
-func RunEvaluator(eval Evaluator) {
-	app.RunApplication("evaluator", getCfg, func(p *rpc.ServerParams, cfg config.View) error {
-		return BindService(p, cfg, eval)
-	})
-}
+var (
+	matchesPerEvaluateRequest  = stats.Int64("open-match.dev/evaluator/matches_per_request", "Number of matches sent to the evaluator per request", stats.UnitDimensionless)
+	matchesPerEvaluateResponse = stats.Int64("open-match.dev/evaluator/matches_per_response", "Number of matches returned by the evaluator per response", stats.UnitDimensionless)
 
-// BindService creates the evaluator service to the server Params.
-func BindService(p *rpc.ServerParams, cfg config.View, eval Evaluator) error {
-	p.AddHandleFunc(func(s *grpc.Server) {
-		pb.RegisterEvaluatorServer(s, &evaluatorService{evaluate: eval})
-	}, pb.RegisterEvaluatorHandlerFromEndpoint)
+	matchesPerEvaluateRequestView = &view.View{
+		Measure:     matchesPerEvaluateRequest,
+		Name:        "open-match.dev/evaluator/matches_per_request",
+		Description: "Number of matches sent to the evaluator per request",
+		Aggregation: telemetry.DefaultCountDistribution,
+	}
+	matchesPerEvaluateResponseView = &view.View{
+		Measure:     matchesPerEvaluateResponse,
+		Name:        "open-match.dev/evaluator/matches_per_response",
+		Description: "Number of matches sent to the evaluator per response",
+		Aggregation: telemetry.DefaultCountDistribution,
+	}
+)
 
-	return nil
-}
-
-func getCfg() (config.View, error) {
-	cfg := viper.New()
-	cfg.Set("api.evaluator.hostname", "om-evaluator")
-	cfg.Set("api.evaluator.grpcport", 50508)
-	cfg.Set("api.evaluator.httpport", 51508)
-
-	return cfg, nil
+// BindServiceFor creates the evaluator service and binds it to the serving harness.
+func BindServiceFor(eval Evaluator) appmain.Bind {
+	return func(p *appmain.Params, b *appmain.Bindings) error {
+		b.AddHandleFunc(func(s *grpc.Server) {
+			pb.RegisterEvaluatorServer(s, &evaluatorService{eval})
+		}, pb.RegisterEvaluatorHandlerFromEndpoint)
+		b.RegisterViews(
+			matchesPerEvaluateRequestView,
+			matchesPerEvaluateResponseView,
+		)
+		return nil
+	}
 }

@@ -1,24 +1,81 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: test
+  namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+  labels:
+    app: {{ template "openmatch.name" . }}
+    component: test
+    release: {{ .Release.Name }}
+spec:
+  selector:
+    app: {{ template "openmatch.name" . }}
+    component: test
+    release: {{ .Release.Name }}
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: 50509
+  - name: http
+    protocol: TCP
+    port: 51509
+---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: om-test
+  name: test
   namespace: {{ .Release.Namespace }}
   annotations: 
     {{- include "openmatch.chartmeta" . | nindent 4 }}
     "helm.sh/hook": test-success
   labels:
     app: {{ template "openmatch.name" . }}
-    component: om-test
+    component: test
     release: {{ .Release.Name }}
 spec:
   # Specifies the duration in seconds relative to the startTime that the job may be active before the system tries to terminate it.
   activeDeadlineSeconds: 900
   serviceAccountName: open-match-test-service
   automountServiceAccountToken: true
+  volumes:
+  - configMap:
+      defaultMode: 420
+      name: om-configmap-default
+    name: om-config-volume-default
+  - configMap:
+      defaultMode: 420
+      name: om-configmap-override
+    name: om-config-volume-override
   containers:
-  - image: "{{ .Values.global.image.registry }}/openmatch-base-build:{{ .Values.global.image.tag }}"
+  - name: "test"
+    volumeMounts:
+    - mountPath: /app/config/default
+      name: om-config-volume-default
+    - mountPath: /app/config/override
+      name: om-config-volume-override
+    image: "{{ .Values.global.image.registry }}/openmatch-base-build:{{ .Values.global.image.tag }}"
+    ports:
+    - name: grpc
+      containerPort: 50509
+    - name: http
+      containerPort: 51509
     imagePullPolicy: Always
-    name: om-test
+    name: test
     resources:
       limits:
         memory: 800Mi
@@ -32,7 +89,7 @@ spec:
     command: ["go"]
     args:
     - "test"
-    - "./test/e2e"
+    - "./internal/testing/e2e"
     - "-v"
     - "-timeout"
     - "150s"

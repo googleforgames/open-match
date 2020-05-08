@@ -16,12 +16,17 @@
 package defaulteval
 
 import (
+	"context"
 	"math"
 	"sort"
 
+	"go.opencensus.io/stats"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/stats/view"
 	"open-match.dev/open-match/internal/app/evaluator"
+	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -30,6 +35,14 @@ var (
 		"app":       "evaluator",
 		"component": "evaluator.default",
 	})
+
+	collidedMatchesPerEvaluate     = stats.Int64("open-match.dev/defaulteval/collided_matches_per_call", "Number of collided matches per default evaluator call", stats.UnitDimensionless)
+	collidedMatchesPerEvaluateView = &view.View{
+		Measure:     collidedMatchesPerEvaluate,
+		Name:        "open-match.dev/defaulteval/collided_matches_per_call",
+		Description: "Number of collided matches per default evaluator call",
+		Aggregation: view.Sum(),
+	}
 )
 
 type matchInp struct {
@@ -37,13 +50,22 @@ type matchInp struct {
 	inp   *pb.DefaultEvaluationCriteria
 }
 
-// Evaluate sorts the matches by DefaultEvaluationCriteria.Score (optional),
+// BindService define the initialization steps for this evaluator
+func BindService(p *appmain.Params, b *appmain.Bindings) error {
+	if err := evaluator.BindServiceFor(evaluate)(p, b); err != nil {
+		return err
+	}
+	b.RegisterViews(collidedMatchesPerEvaluateView)
+	return nil
+}
+
+// evaluate sorts the matches by DefaultEvaluationCriteria.Score (optional),
 // then returns matches which don't collide with previously returned matches.
-func Evaluate(p *evaluator.Params) ([]string, error) {
-	matches := make([]*matchInp, 0, len(p.Matches))
+func evaluate(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+	matches := make([]*matchInp, 0)
 	nilEvlautionInputs := 0
 
-	for _, m := range p.Matches {
+	for m := range in {
 		// Evaluation criteria is optional, but sort it lower than any matches which
 		// provided criteria.
 		inp := &pb.DefaultEvaluationCriteria{
@@ -84,7 +106,13 @@ func Evaluate(p *evaluator.Params) ([]string, error) {
 		d.maybeAdd(m)
 	}
 
-	return d.resultIDs, nil
+	stats.Record(context.Background(), collidedMatchesPerEvaluate.M(int64(len(matches)-len(d.resultIDs))))
+
+	for _, id := range d.resultIDs {
+		out <- id
+	}
+
+	return nil
 }
 
 type collidingMatch struct {

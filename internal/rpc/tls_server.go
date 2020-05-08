@@ -16,12 +16,10 @@ package rpc
 
 import (
 	"context"
-	"fmt"
-	"net/http"
-	"sync"
-
 	"crypto/tls"
+	"fmt"
 	"net"
+	"net/http"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
@@ -36,43 +34,37 @@ const (
 )
 
 type tlsServer struct {
-	grpcLh       *ListenerHolder
 	grpcListener net.Listener
 	grpcServer   *grpc.Server
 
-	httpLh       *ListenerHolder
 	httpListener net.Listener
 	httpMux      *http.ServeMux
 	proxyMux     *runtime.ServeMux
 	httpServer   *http.Server
 }
 
-func (s *tlsServer) start(params *ServerParams) (func(), error) {
-	var serverStartWaiter sync.WaitGroup
-
+func (s *tlsServer) start(params *ServerParams) error {
 	s.httpMux = params.ServeMux
 	s.proxyMux = runtime.NewServeMux()
 
-	grpcAddress := fmt.Sprintf("localhost:%d", s.grpcLh.Number())
-
-	grpcListener, err := s.grpcLh.Obtain()
+	_, grpcPort, err := net.SplitHostPort(s.grpcListener.Addr().String())
 	if err != nil {
-		return func() {}, errors.WithStack(err)
+		return err
 	}
-	s.grpcListener = grpcListener
+	grpcAddress := fmt.Sprintf("localhost:%s", grpcPort)
 
 	rootCaCert, err := trustedCertificateFromFileData(params.rootCaPublicCertificateFileData)
 	if err != nil {
-		return func() {}, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	certPoolForGrpcEndpoint, err := trustedCertificateFromFileData(params.publicCertificateFileData)
 	if err != nil {
-		return func() {}, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 
 	grpcTLSCertificate, err := certificateFromFileData(params.publicCertificateFileData, params.privateKeyFileData)
 	if err != nil {
-		return func() {}, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	creds := credentials.NewServerTLSFromCert(grpcTLSCertificate)
 	serverOpts := newGRPCServerOptions(params)
@@ -84,10 +76,8 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 		handlerFunc(s.grpcServer)
 	}
 
-	serverStartWaiter.Add(1)
 	go func() {
-		serverStartWaiter.Done()
-		serverLogger.Infof("Serving gRPC-TLS: %s", s.grpcLh.AddrString())
+		serverLogger.Infof("Serving gRPC-TLS: %s", s.grpcListener.Addr().String())
 		gErr := s.grpcServer.Serve(s.grpcListener)
 		if gErr != nil {
 			serverLogger.Debugf("error closing gRPC-TLS server: %s", gErr)
@@ -95,11 +85,6 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	}()
 
 	// Start HTTP server
-	httpListener, err := s.httpLh.Obtain()
-	if err != nil {
-		return func() {}, errors.WithStack(err)
-	}
-	s.httpListener = httpListener
 	// Bind gRPC handlers
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -109,7 +94,7 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 	for _, handlerFunc := range params.handlersForGrpcProxy {
 		if err = handlerFunc(ctx, s.proxyMux, grpcAddress, httpsToGrpcProxyOptions); err != nil {
 			cancel()
-			return func() {}, errors.WithStack(err)
+			return errors.WithStack(err)
 		}
 	}
 
@@ -127,40 +112,29 @@ func (s *tlsServer) start(params *ServerParams) (func(), error) {
 			NextProtos: []string{http2WithTLSVersionID}, // https://github.com/grpc-ecosystem/grpc-gateway/issues/220
 		},
 	}
-	serverStartWaiter.Add(1)
 	go func() {
-		serverStartWaiter.Done()
 		tlsListener := tls.NewListener(s.httpListener, s.httpServer.TLSConfig)
-		serverLogger.Infof("Serving HTTPS: %s", s.httpLh.AddrString())
+		serverLogger.Infof("Serving HTTPS: %s", s.httpListener.Addr().String())
 		hErr := s.httpServer.Serve(tlsListener)
 		defer cancel()
-		if hErr != nil {
-			serverLogger.Debugf("error closing server: %s", hErr)
+		if hErr != nil && hErr != http.ErrServerClosed {
+			serverLogger.Debugf("error serving HTTP: %s", hErr)
 		}
 	}()
 
-	// Wait for the servers to come up.
-	return serverStartWaiter.Wait, nil
+	return nil
 }
 
-func (s *tlsServer) stop() {
-	s.grpcServer.Stop()
-	if err := s.grpcListener.Close(); err != nil {
-		serverLogger.Debugf("error closing gRPC-TLS listener: %s", err)
-	}
-
-	if err := s.httpServer.Close(); err != nil {
-		serverLogger.Debugf("error closing HTTPS server: %s", err)
-	}
-
-	if err := s.httpListener.Close(); err != nil {
-		serverLogger.Debugf("error closing HTTPS listener: %s", err)
-	}
+func (s *tlsServer) stop() error {
+	// the servers also close their respective listeners.
+	err := s.httpServer.Shutdown(context.Background())
+	s.grpcServer.GracefulStop()
+	return err
 }
 
-func newTLSServer(grpcLh *ListenerHolder, httpLh *ListenerHolder) *tlsServer {
+func newTLSServer(grpcL, httpL net.Listener) *tlsServer {
 	return &tlsServer{
-		grpcLh: grpcLh,
-		httpLh: httpLh,
+		grpcListener: grpcL,
+		httpListener: httpL,
 	}
 }

@@ -15,13 +15,12 @@
 package telemetry
 
 import (
-	"html/template"
-	"net/http"
-	"sort"
-
 	"bufio"
 	"bytes"
 	"fmt"
+	"html/template"
+	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -87,9 +86,11 @@ func (cz *configz) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	fmt.Print(s)
 }
 
-func bindConfigz(mux *http.ServeMux, cfg config.View) {
+func bindConfigz(p Params, b Bindings) error {
+	cfg := p.Config()
 	if !cfg.GetBool(configNameTelemetryZpagesEnabled) {
-		return
+		return nil
 	}
-	mux.Handle(configEndpoint, &configz{cfg: cfg})
+	b.TelemetryHandle(configEndpoint, &configz{cfg: cfg})
+	return nil
 }

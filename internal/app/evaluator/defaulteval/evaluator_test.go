@@ -15,13 +15,13 @@
 package defaulteval
 
 import (
+	"context"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/assert"
-	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -114,9 +114,21 @@ func TestEvaluate(t *testing.T) {
 		test := test
 		t.Run(test.description, func(t *testing.T) {
 			t.Parallel()
-			gotMatchIDs, err := Evaluate(&evaluator.Params{Matches: test.testMatches})
+			in := make(chan *pb.Match, 10)
+			out := make(chan string, 10)
+			for _, m := range test.testMatches {
+				in <- m
+			}
+			close(in)
 
+			err := evaluate(context.Background(), in, out)
 			assert.Nil(t, err)
+
+			gotMatchIDs := []string{}
+			close(out)
+			for id := range out {
+				gotMatchIDs = append(gotMatchIDs, id)
+			}
 			assert.Equal(t, len(test.wantMatchIDs), len(gotMatchIDs))
 
 			for _, mID := range gotMatchIDs {
