@@ -36,5 +36,6 @@ const (
 	// MaxInterval is the maximum retry interval of a backoff strategy
 	MaxInterval = 300 * time.Millisecond
 	// MaxElapsedTime is the maximum total retry time of a backoff stragegy
-	MaxElapsedTime = 1000 * time.Millisecond
+	MaxElapsedTime        = 1000 * time.Millisecond
+	assignedDeleteTimeout = 200 * time.Millisecond
 )

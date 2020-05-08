@@ -28,7 +28,7 @@ import (
 	mmfService "open-match.dev/open-match/internal/testing/mmf"
 )
 
-func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction) config.View {
+func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction) (config.View, func(time.Duration)) {
 	clusterLock.Lock()
 	t.Cleanup(func() {
 		clusterLock.Unlock()
@@ -60,7 +60,7 @@ func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction)
 		}
 	})
 
-	return cfg
+	return cfg, time.Sleep
 }
 
 var clusterLock sync.Mutex

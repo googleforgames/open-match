@@ -367,6 +367,7 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 		--set open-match-core.registrationIntervalMs=200ms \
 		--set open-match-core.proposalCollectionIntervalMs=200ms \
 		--set open-match-core.ignoreListTTL=200ms \
+		--set open-match-core.assignedDeleteTimeout=200ms \
 		--set open-match-core.pageSize=10 \
 		--set global.gcpProjectId=intentionally-invalid-value \
 		--set redis.master.resources.requests.cpu=0.6,redis.master.resources.requests.memory=300Mi \

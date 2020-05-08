@@ -33,4 +33,5 @@ data:
     synchronizer:
       registrationIntervalMs:  {{ index .Values "open-match-core" "registrationIntervalMs" }}
       proposalCollectionIntervalMs: {{ index .Values "open-match-core" "proposalCollectionIntervalMs" }}
+    assignedDeleteTimeout: {{ index .Values "open-match-core" "proposalCollectionIntervalMs" }}
 {{- end }}

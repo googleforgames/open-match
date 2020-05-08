@@ -173,6 +173,7 @@ redis:
 open-match-core:
   enabled: true
   ignoreListTTL: 60000ms
+  assignedDeleteTimeout: 10m
   redis:
     enabled: true
     # If open-match-core.redis.enabled is set to false, have Open Match components talk to this redis address instead.
