@@ -22,12 +22,12 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/stats"
 	"go.opencensus.io/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
-	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -43,10 +43,6 @@ var (
 		"app":       "openmatch",
 		"component": "app.frontend",
 	})
-	mTicketsCreated             = telemetry.Counter("frontend/tickets_created", "tickets created")
-	mTicketsDeleted             = telemetry.Counter("frontend/tickets_deleted", "tickets deleted")
-	mTicketsRetrieved           = telemetry.Counter("frontend/tickets_retrieved", "tickets retrieved")
-	mTicketAssignmentsRetrieved = telemetry.Counter("frontend/tickets_assignments_retrieved", "ticket assignments retrieved")
 )
 
 // CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.
@@ -77,6 +73,14 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 
 	ticket.Id = xid.New().String()
 	ticket.CreateTime = ptypes.TimestampNow()
+
+	sfCount := 0
+	sfCount += len(ticket.GetSearchFields().GetDoubleArgs())
+	sfCount += len(ticket.GetSearchFields().GetStringArgs())
+	sfCount += len(ticket.GetSearchFields().GetTags())
+	stats.Record(ctx, searchFieldsPerTicket.M(int64(sfCount)))
+	stats.Record(ctx, totalBytesPerTicket.M(int64(proto.Size(ticket))))
+
 	err := store.CreateTicket(ctx, ticket)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
@@ -95,7 +99,6 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 		return nil, err
 	}
 
-	telemetry.RecordUnitMeasurement(ctx, mTicketsCreated)
 	return ticket, nil
 }
 
@@ -108,7 +111,6 @@ func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicket
 	if err != nil {
 		return nil, err
 	}
-	telemetry.RecordUnitMeasurement(ctx, mTicketsDeleted)
 	return &empty.Empty{}, nil
 }
 
@@ -150,7 +152,6 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 
 // GetTicket get the Ticket associated with the specified TicketId.
 func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketRequest) (*pb.Ticket, error) {
-	telemetry.RecordUnitMeasurement(ctx, mTicketsRetrieved)
 	return doGetTickets(ctx, req.GetTicketId(), s.store)
 }
 
@@ -177,7 +178,6 @@ func (s *frontendService) WatchAssignments(req *pb.WatchAssignmentsRequest, stre
 			return ctx.Err()
 		default:
 			sender := func(assignment *pb.Assignment) error {
-				telemetry.RecordUnitMeasurement(ctx, mTicketAssignmentsRetrieved)
 				return stream.Send(&pb.WatchAssignmentsResponse{Assignment: assignment})
 			}
 			return doWatchAssignments(ctx, req.GetTicketId(), sender, s.store)

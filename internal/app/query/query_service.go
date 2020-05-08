@@ -17,6 +17,9 @@ package query
 import (
 	"context"
 	"sync"
+	"time"
+
+	"go.opencensus.io/stats"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -44,6 +47,7 @@ type queryService struct {
 }
 
 func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.QueryService_QueryTicketsServer) error {
+	ctx := responseServer.Context()
 	pool := req.GetPool()
 	if pool == nil {
 		return status.Error(codes.InvalidArgument, ".pool is required")
@@ -55,7 +59,7 @@ func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer 
 	}
 
 	var results []*pb.Ticket
-	err = s.tc.request(responseServer.Context(), func(tickets map[string]*pb.Ticket) {
+	err = s.tc.request(ctx, func(tickets map[string]*pb.Ticket) {
 		for _, ticket := range tickets {
 			if pf.In(ticket) {
 				results = append(results, ticket)
@@ -66,6 +70,7 @@ func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer 
 		logger.WithError(err).Error("Failed to run request.")
 		return err
 	}
+	stats.Record(ctx, ticketsPerQuery.M(int64(len(results))))
 
 	pSize := getPageSize(s.cfg)
 	for start := 0; start < len(results); start += pSize {
@@ -86,6 +91,7 @@ func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer 
 }
 
 func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseServer pb.QueryService_QueryTicketIdsServer) error {
+	ctx := responseServer.Context()
 	pool := req.GetPool()
 	if pool == nil {
 		return status.Error(codes.InvalidArgument, ".pool is required")
@@ -97,7 +103,7 @@ func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseSer
 	}
 
 	var results []string
-	err = s.tc.request(responseServer.Context(), func(tickets map[string]*pb.Ticket) {
+	err = s.tc.request(ctx, func(tickets map[string]*pb.Ticket) {
 		for id, ticket := range tickets {
 			if pf.In(ticket) {
 				results = append(results, id)
@@ -108,6 +114,7 @@ func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseSer
 		logger.WithError(err).Error("Failed to run request.")
 		return err
 	}
+	stats.Record(ctx, ticketsPerQuery.M(int64(len(results))))
 
 	pSize := getPageSize(s.cfg)
 	for start := 0; start < len(results); start += pSize {
@@ -129,7 +136,7 @@ func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseSer
 
 func getPageSize(cfg config.View) int {
 	const (
-		name = "storage.page.size"
+		name = "queryPageSize"
 		// Minimum number of tickets to be returned in a streamed response for QueryTickets. This value
 		// will be used if page size is configured lower than the minimum value.
 		minPageSize int = 10
@@ -145,7 +152,7 @@ func getPageSize(cfg config.View) int {
 		return defaultPageSize
 	}
 
-	pSize := cfg.GetInt("storage.page.size")
+	pSize := cfg.GetInt(name)
 	if pSize < minPageSize {
 		logger.Infof("page size %v is lower than the minimum limit of %v", pSize, maxPageSize)
 		pSize = minPageSize
@@ -254,6 +261,7 @@ collectAllWaiting:
 	}
 
 	tc.update()
+	stats.Record(context.Background(), cacheWaitingQueries.M(int64(len(reqs))))
 
 	// Send WaitGroup to query calls, letting them run their query on the ticket
 	// cache.
@@ -271,6 +279,7 @@ collectAllWaiting:
 }
 
 func (tc *ticketCache) update() {
+	st := time.Now()
 	previousCount := len(tc.tickets)
 
 	currentAll, err := tc.store.GetIndexedIDSet(context.Background())
@@ -304,6 +313,10 @@ func (tc *ticketCache) update() {
 	for _, t := range newTickets {
 		tc.tickets[t.Id] = t
 	}
+
+	stats.Record(context.Background(), cacheTotalItems.M(int64(previousCount)))
+	stats.Record(context.Background(), cacheFetchedItems.M(int64(len(toFetch))))
+	stats.Record(context.Background(), cacheUpdateLatency.M(float64(time.Since(st))/float64(time.Millisecond)))
 
 	logger.Debugf("Ticket Cache update: Previous %d, Deleted %d, Fetched %d, Current %d", previousCount, deletedCount, len(toFetch), len(tc.tickets))
 	tc.err = nil

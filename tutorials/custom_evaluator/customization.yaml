@@ -30,7 +30,7 @@ data:
       evaluator:
         hostname: "custom-eval-tutorial-evaluator.custom-eval-tutorial.svc.cluster.local"
         grpcport: "50508"
-    synchronizer:
-      enabled: true
-      registrationIntervalMs: 3000ms
-      proposalCollectionIntervalMs: 2000ms
+    pendingReleaseTimeout: 60000ms
+    registrationInterval: 250ms
+    proposalCollectionInterval: 20000ms
+    queryPageSize: 10000

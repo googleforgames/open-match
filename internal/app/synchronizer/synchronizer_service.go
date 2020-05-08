@@ -21,6 +21,8 @@ import (
 	"sync"
 	"time"
 
+	"go.opencensus.io/stats"
+
 	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/internal/appmain/contextcause"
 	"open-match.dev/open-match/internal/config"
@@ -186,6 +188,9 @@ func (s synchronizerService) register(ctx context.Context) *registration {
 		resp: make(chan *registration),
 		ctx:  ctx,
 	}
+
+	st := time.Now()
+	defer stats.Record(ctx, registrationWaitTime.M(float64(time.Since(st))/float64(time.Millisecond)))
 	for {
 		select {
 		case s.synchronizeRegistration <- req:
@@ -203,6 +208,7 @@ func (s synchronizerService) register(ctx context.Context) *registration {
 ///////////////////////////////////////
 
 func (s *synchronizerService) runCycle() {
+	cst := time.Now()
 	/////////////////////////////////////// Initialize cycle
 	ctx, cancel := contextcause.WithCancelCause(context.Background())
 
@@ -241,6 +247,7 @@ func (s *synchronizerService) runCycle() {
 	}()
 
 	/////////////////////////////////////// Run Registration Period
+	rst := time.Now()
 	closeRegistration := time.After(s.registrationInterval())
 Registration:
 	for {
@@ -273,6 +280,7 @@ Registration:
 	go func() {
 		allM1cSent.Wait()
 		m1c.cutoff()
+		stats.Record(ctx, registrationMMFDoneTime.M(float64((s.registrationInterval()-time.Since(rst))/time.Millisecond)))
 	}()
 
 	cancelProposalCollection := time.AfterFunc(s.proposalCollectionInterval(), func() {
@@ -282,6 +290,7 @@ Registration:
 		}
 	})
 	<-closedOnCycleEnd
+	stats.Record(ctx, iterationLatency.M(float64(time.Since(cst)/time.Millisecond)))
 
 	// Clean up in case it was never needed.
 	cancelProposalCollection.Stop()
@@ -477,7 +486,7 @@ func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, m *syn
 
 func (s *synchronizerService) registrationInterval() time.Duration {
 	const (
-		name            = "synchronizer.registrationIntervalMs"
+		name            = "registrationInterval"
 		defaultInterval = time.Second
 	)
 
@@ -490,7 +499,7 @@ func (s *synchronizerService) registrationInterval() time.Duration {
 
 func (s *synchronizerService) proposalCollectionInterval() time.Duration {
 	const (
-		name            = "synchronizer.proposalCollectionIntervalMs"
+		name            = "proposalCollectionInterval"
 		defaultInterval = 10 * time.Second
 	)
 

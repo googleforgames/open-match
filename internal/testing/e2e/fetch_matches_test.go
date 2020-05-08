@@ -77,9 +77,9 @@ func TestHappyPath(t *testing.T) {
 }
 
 // TestMatchFunctionMatchCollision covers two matches with the same id coming
-// from the same MMF generates an error to the fetch matches call.
+// from the same MMF generates an error to the fetch matches call.  Also ensures
+// another function running in the same cycle does not experience an error.
 func TestMatchFunctionMatchCollision(t *testing.T) {
-	// TODO: another MMF in same cycle doesn't get error?
 	ctx := context.Background()
 	om := newOM(t)
 
@@ -89,32 +89,76 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 	t2, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 	require.Nil(t, err)
 
+	// Both mmf runs wait for the other to start before sending results, to
+	// ensure they run in the same cycle.
+	errorMMFStarted := make(chan struct{})
+	successMMFStarted := make(chan struct{})
+
 	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
-		out <- &pb.Match{
-			MatchId: "1",
-			Tickets: []*pb.Ticket{t1},
-		}
-		out <- &pb.Match{
-			MatchId: "1",
-			Tickets: []*pb.Ticket{t2},
+		switch profile.Name {
+		case "error":
+			close(errorMMFStarted)
+			<-successMMFStarted
+			out <- &pb.Match{
+				MatchId: "1",
+				Tickets: []*pb.Ticket{t1},
+			}
+			out <- &pb.Match{
+				MatchId: "1",
+				Tickets: []*pb.Ticket{t2},
+			}
+		case "success":
+			close(successMMFStarted)
+			<-errorMMFStarted
+			out <- &pb.Match{
+				MatchId: "3",
+				Tickets: []*pb.Ticket{t2},
+			}
+		default:
+			panic("Unknown profile!")
 		}
 		return nil
 	})
 
 	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
-		for range in {
+		for m := range in {
+			if m.MatchId == "3" {
+				out <- "3"
+			}
 		}
 		return nil
 	})
 
-	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
-		Config:  om.MMFConfigGRPC(),
-		Profile: &pb.MatchProfile{},
+	startTime := time.Now()
+
+	sError, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config: om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{
+			Name: "error",
+		},
 	})
 	require.Nil(t, err)
 
-	resp, err := stream.Recv()
+	sSuccess, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config: om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{
+			Name: "success",
+		},
+	})
+	require.Nil(t, err)
+
+	resp, err := sError.Recv()
 	require.Contains(t, err.Error(), "MatchMakingFunction returned same match_id twice: \"1\"")
+	require.Nil(t, resp)
+
+	resp, err = sSuccess.Recv()
+	require.Nil(t, err)
+	require.True(t, proto.Equal(t2, resp.Match.Tickets[0]))
+
+	require.True(t, time.Since(startTime) < registrationInterval, "%s", time.Since(startTime))
+
+	resp, err = sSuccess.Recv()
+	require.Equal(t, err, io.EOF)
 	require.Nil(t, resp)
 }
 
@@ -445,7 +489,7 @@ func TestCancel(t *testing.T) {
 	wgFinished.Wait()
 
 	// The evaluator is only canceled after the registration window completes.
-	require.True(t, time.Since(startTime) > registrationIntervalMs, "%s", time.Since(startTime))
+	require.True(t, time.Since(startTime) > registrationInterval, "%s", time.Since(startTime))
 }
 
 // TestStreaming covers that matches can stream through the mmf, evaluator, and
@@ -529,7 +573,7 @@ func TestRegistrationWindow(t *testing.T) {
 		_, ok := <-in
 		require.False(t, ok)
 
-		require.True(t, time.Since(startTime) > registrationIntervalMs, "%s", time.Since(startTime))
+		require.True(t, time.Since(startTime) > registrationInterval, "%s", time.Since(startTime))
 		return nil
 	})
 
@@ -542,7 +586,7 @@ func TestRegistrationWindow(t *testing.T) {
 	resp, err := stream.Recv()
 	require.Equal(t, err, io.EOF)
 	require.Nil(t, resp)
-	require.True(t, time.Since(startTime) > registrationIntervalMs, "%s", time.Since(startTime))
+	require.True(t, time.Since(startTime) > registrationInterval, "%s", time.Since(startTime))
 }
 
 // TestProposalWindowClose covers that a long running match function will get
@@ -556,14 +600,14 @@ func TestProposalWindowClose(t *testing.T) {
 	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
 		<-ctx.Done()
 		require.Equal(t, ctx.Err(), context.Canceled)
-		require.True(t, time.Since(startTime) > registrationIntervalMs+proposalCollectionIntervalMs, "%s", time.Since(startTime))
+		require.True(t, time.Since(startTime) > registrationInterval+proposalCollectionInterval, "%s", time.Since(startTime))
 		return nil
 	})
 
 	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
 		_, ok := <-in
 		require.False(t, ok)
-		require.True(t, time.Since(startTime) > registrationIntervalMs+proposalCollectionIntervalMs, "%s", time.Since(startTime))
+		require.True(t, time.Since(startTime) > registrationInterval+proposalCollectionInterval, "%s", time.Since(startTime))
 		return nil
 	})
 
@@ -577,7 +621,7 @@ func TestProposalWindowClose(t *testing.T) {
 	require.Contains(t, err.Error(), "match function ran longer than proposal window, canceling")
 	require.Nil(t, resp)
 
-	require.True(t, time.Since(startTime) > registrationIntervalMs+proposalCollectionIntervalMs, "%s", time.Since(startTime))
+	require.True(t, time.Since(startTime) > registrationInterval+proposalCollectionInterval, "%s", time.Since(startTime))
 }
 
 // TestMultipleFetchCalls covers multiple fetch matches calls running in the
