@@ -85,11 +85,6 @@ data:
         rootcertificatefile: "{{.Values.global.tls.rootca.mountPath}}/public.cert"
 {{- end }}
 
-    storage:
-      ignoreListTTL: {{ index .Values "open-match-core" "ignoreListTTL" }}
-      page:
-        size: {{ index .Values "open-match-core" "pageSize" }}
-
     redis:
 {{- if index .Values "open-match-core" "redis" "enabled" }}
 {{- if index .Values "redis" "sentinel" "enabled"}}

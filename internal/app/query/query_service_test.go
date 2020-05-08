@@ -35,21 +35,21 @@ func TestGetPageSize(t *testing.T) {
 		{
 			"set",
 			func(cfg config.Mutable) {
-				cfg.Set("storage.page.size", "2156")
+				cfg.Set("queryPageSize", "2156")
 			},
 			2156,
 		},
 		{
 			"low",
 			func(cfg config.Mutable) {
-				cfg.Set("storage.page.size", "9")
+				cfg.Set("queryPageSize", "9")
 			},
 			10,
 		},
 		{
 			"high",
 			func(cfg config.Mutable) {
-				cfg.Set("storage.page.size", "10001")
+				cfg.Set("queryPageSize", "10001")
 			},
 			10000,
 		},
