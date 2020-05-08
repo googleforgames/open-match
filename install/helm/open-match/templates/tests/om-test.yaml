@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if .Values.ci }}
+
 kind: Service
 apiVersion: v1
 metadata:
@@ -97,3 +99,5 @@ spec:
     - "-tags"
     - "e2ecluster"
   restartPolicy: Never
+
+{{- end }}
