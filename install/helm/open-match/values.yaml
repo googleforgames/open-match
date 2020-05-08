@@ -157,10 +157,10 @@ redis:
 # Controls if users need to install backend, frontend, query, om-configmap, and swaggerui.
 open-match-core:
   enabled: true
-  ignoreListTTL: 60000ms
-  registrationIntervalMs: 250ms
-  proposalCollectionIntervalMs: 20000ms
-  pageSize: 10000
+  pendingReleaseTimeout: 60000ms
+  registrationInterval: 250ms
+  proposalCollectionInterval: 20000ms
+  queryPageSize: 10000
   redis:
     enabled: true
     # If open-match-core.redis.enabled is set to false, have Open Match components talk to this redis address instead.

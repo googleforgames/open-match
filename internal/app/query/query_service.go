@@ -136,7 +136,7 @@ func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseSer
 
 func getPageSize(cfg config.View) int {
 	const (
-		name = "storage.page.size"
+		name = "queryPageSize"
 		// Minimum number of tickets to be returned in a streamed response for QueryTickets. This value
 		// will be used if page size is configured lower than the minimum value.
 		minPageSize int = 10
@@ -152,7 +152,7 @@ func getPageSize(cfg config.View) int {
 		return defaultPageSize
 	}
 
-	pSize := cfg.GetInt("storage.page.size")
+	pSize := cfg.GetInt(name)
 	if pSize < minPageSize {
 		logger.Infof("page size %v is lower than the minimum limit of %v", pSize, maxPageSize)
 		pSize = minPageSize

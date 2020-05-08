@@ -304,7 +304,7 @@ func TestReleaseTickets(t *testing.T) {
 
 	// Ensure that the release timeout did NOT have enough time to affect this
 	// test.
-	require.True(t, time.Since(matchReturnedAt) < ignoreListTTL, "%s", time.Since(matchReturnedAt))
+	require.True(t, time.Since(matchReturnedAt) < pendingReleaseTimeout, "%s", time.Since(matchReturnedAt))
 }
 
 // TestReleaseTickets covers that tickets are released after a time if returned
@@ -383,7 +383,7 @@ func TestTicketReleaseByTimeout(t *testing.T) {
 	}
 
 	{ // Return ticket
-		time.Sleep(ignoreListTTL)
+		time.Sleep(pendingReleaseTimeout)
 	}
 
 	{ // Ticket present in query
