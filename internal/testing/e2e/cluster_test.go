@@ -104,7 +104,3 @@ func TestConfigMatch(t *testing.T) {
 
 	require.Equal(t, cfgMemory.AllSettings(), cfg.AllSettings())
 }
-
-func TestIntendedFailure(t *testing.T) {
-	t.Fatal("Task failed successfully!")
-}
