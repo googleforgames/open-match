@@ -40,9 +40,9 @@ func newOM(t *testing.T) *om {
 		t: t,
 	}
 	t.Cleanup(func() {
-		om.running.Wait()
 		om.fLock.Lock()
 		defer om.fLock.Unlock()
+		om.running.Wait()
 		// Set this cleanup before starting servers, so that servers will be
 		// stopped before this runs.
 		if om.mmf != nil && !om.mmfCalled {
@@ -92,9 +92,9 @@ func (om *om) SetMMF(mmf mmfService.MatchFunction) {
 }
 
 func (om *om) runMMF(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+	om.fLock.Lock()
 	om.running.Add(1)
 	defer om.running.Done()
-	om.fLock.Lock()
 	mmf := om.mmf
 	om.mmfCalled = true
 	om.fLock.Unlock()
@@ -117,9 +117,9 @@ func (om *om) SetEvaluator(eval evaluator.Evaluator) {
 }
 
 func (om *om) evaluate(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+	om.fLock.Lock()
 	om.running.Add(1)
 	defer om.running.Done()
-	om.fLock.Lock()
 	eval := om.eval
 	om.evalCalled = true
 	om.fLock.Unlock()
