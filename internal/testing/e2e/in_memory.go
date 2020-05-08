@@ -20,6 +20,7 @@ import (
 	"net"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Bose/minisentinel"
 	miniredis "github.com/alicebob/miniredis/v2"
@@ -33,7 +34,7 @@ import (
 	mmfService "open-match.dev/open-match/internal/testing/mmf"
 )
 
-func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction) config.View {
+func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction) (config.View, func(time.Duration)) {
 	mredis := miniredis.NewMiniRedis()
 	err := mredis.StartAddr("localhost:0")
 	if err != nil {
@@ -87,5 +88,5 @@ func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, *testOnlyEnableMetrics)
 
 	apptest.TestApp(t, cfg, listeners, minimatch.BindService, mmfService.BindServiceFor(mmf), evaluator.BindServiceFor(eval))
-	return cfg
+	return cfg, mredis.FastForward
 }

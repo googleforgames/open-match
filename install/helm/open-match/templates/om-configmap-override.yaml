@@ -36,6 +36,8 @@ data:
     # before it automatically becomes active again and will be returned by query
     # calls.
     pendingReleaseTimeout: {{ index .Values "open-match-core" "pendingReleaseTimeout" }}
+    # Time after a ticket has been assigned before it is automatically delted.
+    assignedDeleteTimeout: {{ index .Values "open-match-core" "assignedDeleteTimeout" }}
     # Maximum number of tickets to return on a single QueryTicketsResponse.
     queryPageSize: {{ index .Values "open-match-core" "queryPageSize" }}
     api:

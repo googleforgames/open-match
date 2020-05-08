@@ -23,6 +23,7 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -518,8 +519,12 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 			tickets = append(tickets, t)
 		}
 	}
+	assignmentTimeout := rb.cfg.GetDuration("assignedDeleteTimeout") / time.Millisecond
+	err = redisConn.Send("MULTI")
+	if err != nil {
+		return nil, errors.Wrap(err, "error starting redis multi")
+	}
 
-	cmds := make([]interface{}, 0, 2*len(tickets))
 	for _, ticket := range tickets {
 		ticket.Assignment = idToA[ticket.Id]
 
@@ -529,13 +534,36 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 			return nil, status.Errorf(codes.Internal, "failed to marshal ticket %s", ticket.GetId())
 		}
 
-		cmds = append(cmds, ticket.GetId(), ticketByte)
+		err = redisConn.Send("SET", ticket.Id, ticketByte, "PX", int64(assignmentTimeout), "XX")
+		if err != nil {
+			return nil, errors.Wrap(err, "error sending ticket assignment set")
+		}
 	}
 
-	_, err = redisConn.Do("MSET", cmds...)
+	wasSet, err := redis.Values(redisConn.Do("EXEC"))
 	if err != nil {
-		redisLogger.WithError(err).Errorf("failed to send ticket updates to redis %s", cmds)
-		return nil, err
+		return nil, errors.Wrap(err, "error executing assignment set")
+	}
+
+	if len(wasSet) != len(tickets) {
+		return nil, status.Errorf(codes.Internal, "sent %d tickets to redis, but received %d back", len(tickets), len(wasSet))
+	}
+
+	for i, ticket := range tickets {
+		v, err := redis.String(wasSet[i], nil)
+		if err == redis.ErrNil {
+			resp.Failures = append(resp.Failures, &pb.AssignmentFailure{
+				TicketId: ticket.Id,
+				Cause:    pb.AssignmentFailure_TICKET_NOT_FOUND,
+			})
+			continue
+		}
+		if err != nil {
+			return nil, errors.Wrap(err, "unexpected error from redis multi set")
+		}
+		if v != "OK" {
+			return nil, status.Errorf(codes.Internal, "unexpected response from redis: %s", v)
+		}
 	}
 
 	return resp, nil

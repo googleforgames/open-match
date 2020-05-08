@@ -53,7 +53,7 @@ func newOM(t *testing.T) *om {
 		}
 	})
 
-	om.cfg = start(t, om.evaluate, om.runMMF)
+	om.cfg, om.AdvanceTTLTime = start(t, om.evaluate, om.runMMF)
 	om.fe = pb.NewFrontendServiceClient(apptest.GRPCClient(t, om.cfg, "api.frontend"))
 	om.be = pb.NewBackendServiceClient(apptest.GRPCClient(t, om.cfg, "api.backend"))
 	om.query = pb.NewQueryServiceClient(apptest.GRPCClient(t, om.cfg, "api.query"))
@@ -67,6 +67,10 @@ type om struct {
 	fe    pb.FrontendServiceClient
 	be    pb.BackendServiceClient
 	query pb.QueryServiceClient
+
+	// For local tests, advances the mini-redis ttl time.  For in cluster tests,
+	// just sleeps.
+	AdvanceTTLTime func(time.Duration)
 
 	running    sync.WaitGroup
 	fLock      sync.Mutex
@@ -159,6 +163,7 @@ func (om *om) MMFConfigHTTP() *pb.FunctionConfig {
 const registrationInterval = time.Millisecond * 200
 const proposalCollectionInterval = time.Millisecond * 200
 const pendingReleaseTimeout = time.Millisecond * 200
+const assignedDeleteTimeout = time.Millisecond * 200
 
 // configFile is the "cononical" test config.  It exactly matches the configmap
 // which is used in the real cluster tests.
@@ -166,6 +171,7 @@ const configFile = `
 registrationInterval: 200ms
 proposalCollectionInterval: 200ms
 pendingReleaseTimeout: 200ms
+assignedDeleteTimeout: 200ms
 queryPageSize: 10
 
 logging:

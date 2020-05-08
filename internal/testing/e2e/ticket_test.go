@@ -482,3 +482,37 @@ func TestAssignedTicketsNotReturnedByQuery(t *testing.T) {
 
 	require.False(t, returned())
 }
+
+// TestAssignedTicketDeleteTimeout covers assigned tickets being deleted after
+// a timeout.
+func TestAssignedTicketDeleteTimeout(t *testing.T) {
+	om := newOM(t)
+	ctx := context.Background()
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+
+	req := &pb.AssignTicketsRequest{
+		Assignments: []*pb.AssignmentGroup{
+			{
+				TicketIds:  []string{t1.Id},
+				Assignment: &pb.Assignment{Connection: "a"},
+			},
+		},
+	}
+
+	resp, err := om.Backend().AssignTickets(ctx, req)
+	require.Nil(t, err)
+	require.Equal(t, &pb.AssignTicketsResponse{}, resp)
+
+	get, err := om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: t1.Id})
+	require.Nil(t, err)
+	require.Equal(t, "a", get.Assignment.Connection)
+
+	om.AdvanceTTLTime(assignedDeleteTimeout)
+
+	get, err = om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: t1.Id})
+	require.Nil(t, get)
+	require.Equal(t, codes.NotFound, status.Convert(err).Code())
+
+}

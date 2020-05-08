@@ -20,15 +20,15 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
-	// "google.golang.org/grpc/resolver"
 	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
 	mmfService "open-match.dev/open-match/internal/testing/mmf"
 )
 
-func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction) config.View {
+func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction) (config.View, func(time.Duration)) {
 	clusterLock.Lock()
 	t.Cleanup(func() {
 		clusterLock.Unlock()
@@ -60,7 +60,7 @@ func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction)
 		}
 	})
 
-	return cfg
+	return cfg, time.Sleep
 }
 
 var clusterLock sync.Mutex
