@@ -27,11 +27,13 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/appmain/contextcause"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/rpc"
 	"open-match.dev/open-match/internal/statestore"
@@ -75,7 +77,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	// The mmf must be canceled if the synchronizer call fails (which will
 	// cancel the context from the error group).  However the synchronizer call
 	// is NOT dependant on the mmf call.
-	mmfCtx, cancelMmfs := context.WithCancel(ctx)
+	mmfCtx, cancelMmfs := contextcause.WithCancelCause(ctx)
 	// Closed when mmfs should start.
 	startMmfs := make(chan struct{})
 	proposals := make(chan *pb.Match)
@@ -143,7 +145,7 @@ sendProposals:
 	return nil
 }
 
-func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync.Map, stream pb.BackendService_FetchMatchesServer, startMmfs chan<- struct{}, cancelMmfs context.CancelFunc) error {
+func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync.Map, stream pb.BackendService_FetchMatchesServer, startMmfs chan<- struct{}, cancelMmfs contextcause.CancelErrFunc) error {
 	var startMmfsOnce sync.Once
 
 	for {
@@ -162,7 +164,7 @@ func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync
 		}
 
 		if resp.CancelMmfs {
-			cancelMmfs()
+			cancelMmfs(errors.New("match function ran longer than proposal window, canceling"))
 		}
 
 		if v, ok := m.Load(resp.GetMatchId()); ok {
@@ -210,6 +212,10 @@ func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 	stream, err := client.Run(ctx, &pb.RunRequest{Profile: profile})
 	if err != nil {
 		logger.WithError(err).Error("failed to run match function for profile")
+		if ctx.Err() != nil {
+			// gRPC likes to suppress the context's error, so stop that.
+			return ctx.Err()
+		}
 		return err
 	}
 
@@ -220,6 +226,10 @@ func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 		}
 		if err != nil {
 			logger.Errorf("%v.Run() error, %v\n", client, err)
+			if ctx.Err() != nil {
+				// gRPC likes to suppress the context's error, so stop that.
+				return ctx.Err()
+			}
 			return err
 		}
 		select {
