@@ -95,9 +95,7 @@ service FrontendService {
   }
 
   // DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
-  // The client must delete the Ticket when finished matchmaking with it. 
-  //   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
-  // Users may still be able to assign/get a ticket after calling DeleteTicket on it.
+  // The client should delete the Ticket when finished matchmaking with it. 
   rpc DeleteTicket(DeleteTicketRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/v1/frontendservice/tickets/{ticket_id}"
