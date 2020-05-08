@@ -21,16 +21,18 @@ import "google/rpc/status.proto";
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
-// A Ticket is a basic matchmaking entity in Open Match. A Ticket represents either an
-// individual 'Player' or a 'Group' of players. Open Match will not interpret
-// what the Ticket represents but just treat it as a matchmaking unit with a set
-// of SearchFields. Open Match stores the Ticket in state storage and enables an
-// Assignment to be associated with this Ticket.
+// A Ticket is a basic matchmaking entity in Open Match. A Ticket may represent
+// an individual 'Player', a 'Group' of players, or any other concepts unique to
+// your use case. Open Match will not interpret what the Ticket represents but
+// just treat it as a matchmaking unit with a set of SearchFields. Open Match
+// stores the Ticket in state storage and enables an Assignment to be set on the
+// Ticket.
 message Ticket {
   // Id represents an auto-generated Id issued by Open Match.
   string id = 1;
 
-  // An Assignment represents a game server assignment associated with a Ticket.
+  // An Assignment represents a game server assignment associated with a Ticket,
+  // or whatever finalized matched state means for your use case.
   // Open Match does not require or inspect any fields on Assignment.
   Assignment assignment = 3;
 
@@ -43,8 +45,8 @@ message Ticket {
   // Optional, depending on the requirements of the connected systems.
   map<string, google.protobuf.Any> extensions = 5;
 
-  // Create time represents the time at which this Ticket was created. It is
-  // populated by Open Match at the time of Ticket creation.
+  // Create time is the time the Ticket was created. It is populated by Open
+  // Match at the time of Ticket creation.
   google.protobuf.Timestamp create_time = 6;
 
   // Deprecated fields.
@@ -64,8 +66,8 @@ message SearchFields {
   repeated string tags = 3;
 }
 
-// An Assignment represents a game server assignment associated with a Ticket. Open
-// match does not require or inspect any fields on assignment.
+// An Assignment represents a game server assignment associated with a Ticket.
+// Open Match does not require or inspect any fields on assignment.
 message Assignment {
   // Connection information for this Assignment.
   string connection = 1;
