@@ -24,10 +24,6 @@ The [Open Match Development guide](docs/development.md) has detailed instruction
 on getting the source code, making changes, testing and submitting a pull request
 to Open Match.
 
-## Disclaimer
-
-This software is currently alpha, and subject to change.
-
 ## Support
 
 * [Slack Channel](https://open-match.slack.com/) ([Signup](https://join.slack.com/t/open-match/shared_invite/enQtNDM1NjcxNTY4MTgzLTM5ZWQxNjc1YWI3MzJmN2RiMWJmYWI0ZjFiNzNkZmNkMWQ3YWU5OGVkNzA5Yzc4OGVkOGU5MTc0OTA5ZTA5NDU))
