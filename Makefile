@@ -703,8 +703,7 @@ fasttest: $(ALL_PROTOS) tls-certs third_party/
 	$(call fast_test_folder,.)
 
 test-e2e-cluster: all-protos tls-certs third_party/
-	$(HELM) test --timeout 7m30s -v 0 --logs -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(OPEN_MATCH_HELM_NAME) \
-		--set ci=true
+	$(HELM) test --timeout 7m30s -v 0 --logs -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(OPEN_MATCH_HELM_NAME)
 
 fmt:
 	$(GO) fmt ./...
