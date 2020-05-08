@@ -155,7 +155,7 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 	require.Nil(t, err)
 	require.True(t, proto.Equal(t2, resp.Match.Tickets[0]))
 
-	require.True(t, time.Since(startTime) < registrationIntervalMs, "%s", time.Since(startTime))
+	require.True(t, time.Since(startTime) < registrationInterval, "%s", time.Since(startTime))
 
 	resp, err = sSuccess.Recv()
 	require.Equal(t, err, io.EOF)
