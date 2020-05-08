@@ -20,8 +20,8 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
-	// "google.golang.org/grpc/resolver"
 	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
