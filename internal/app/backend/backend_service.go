@@ -316,6 +316,14 @@ func (s *backendService) ReleaseTickets(ctx context.Context, req *pb.ReleaseTick
 	return &pb.ReleaseTicketsResponse{}, nil
 }
 
+func (s *backendService) ReleaseAllTickets(ctx context.Context, req *pb.ReleaseAllTicketsRequest) (*pb.ReleaseAllTicketsResponse, error) {
+	err := s.store.ReleaseAllTickets(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.ReleaseAllTicketsResponse{}, nil
+}
+
 // AssignTickets overwrites the Assignment field of the input TicketIds.
 func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
 	resp, err := doAssignTickets(ctx, req, s.store)

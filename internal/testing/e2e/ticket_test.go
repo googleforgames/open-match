@@ -307,6 +307,88 @@ func TestReleaseTickets(t *testing.T) {
 	require.True(t, time.Since(matchReturnedAt) < pendingReleaseTimeout, "%s", time.Since(matchReturnedAt))
 }
 
+// TestReleaseAllTickets covers that tickets are released and returned by query
+// after calling ReleaseAllTickets.  Does test available fetch matches, not
+// after fetch matches, as that's covered by TestReleaseTickets.
+func TestReleaseAllTickets(t *testing.T) {
+	om := newOM(t)
+	ctx := context.Background()
+
+	var ticket *pb.Ticket
+
+	{ // Create ticket
+		var err error
+		ticket, err = om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+		require.Nil(t, err)
+		require.NotEmpty(t, ticket.Id)
+	}
+
+	var matchReturnedAt time.Time
+
+	{ // Ticket returned from match
+		om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+			out <- &pb.Match{
+				MatchId: "1",
+				Tickets: []*pb.Ticket{ticket},
+			}
+			return nil
+		})
+		om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+			m := <-in
+			_, ok := <-in
+			require.False(t, ok)
+			matchReturnedAt = time.Now()
+			out <- m.MatchId
+			return nil
+		})
+
+		stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+			Config: om.MMFConfigGRPC(),
+			Profile: &pb.MatchProfile{
+				Name: "test-profile",
+				Pools: []*pb.Pool{
+					{Name: "pool"},
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		resp, err := stream.Recv()
+		require.Nil(t, err)
+		require.Len(t, resp.Match.Tickets, 1)
+		require.Equal(t, ticket.Id, resp.Match.Tickets[0].Id)
+
+		resp, err = stream.Recv()
+		require.Equal(t, io.EOF, err)
+		require.Nil(t, resp)
+	}
+
+	{ // Return ticket
+		resp, err := om.Backend().ReleaseAllTickets(ctx, &pb.ReleaseAllTicketsRequest{})
+
+		require.Nil(t, err)
+		require.Equal(t, &pb.ReleaseAllTicketsResponse{}, resp)
+	}
+
+	{ // Ticket present in query
+		stream, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{}})
+		require.Nil(t, err)
+
+		resp, err := stream.Recv()
+		require.Nil(t, err)
+		require.Len(t, resp.Tickets, 1)
+		require.Equal(t, ticket.Id, resp.Tickets[0].Id)
+
+		resp, err = stream.Recv()
+		require.Equal(t, io.EOF, err)
+		require.Nil(t, resp)
+	}
+
+	// Ensure that the release timeout did NOT have enough time to affect this
+	// test.
+	require.True(t, time.Since(matchReturnedAt) < pendingReleaseTimeout, "%s", time.Since(matchReturnedAt))
+}
+
 // TestReleaseTickets covers that tickets are released after a time if returned
 // by a match but not assigned
 func TestTicketReleaseByTimeout(t *testing.T) {

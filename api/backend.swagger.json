@@ -126,6 +126,41 @@
           "BackendService"
         ]
       }
+    },
+    "/v1/backendservice/tickets:releaseall": {
+      "post": {
+        "summary": "ReleaseAllTickets moves all tickets from the pending state, to the active\nstate. This enables them to be returned by query, and find different\nmatches.",
+        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "ReleaseAllTickets",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/openmatchReleaseAllTicketsResponse"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openmatchReleaseAllTicketsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "BackendService"
+        ]
+      }
     }
   },
   "definitions": {
@@ -367,6 +402,12 @@
         }
       },
       "description": "Pool specfies a set of criteria that are used to select a subset of Tickets\nthat meet all the criteria."
+    },
+    "openmatchReleaseAllTicketsRequest": {
+      "type": "object"
+    },
+    "openmatchReleaseAllTicketsResponse": {
+      "type": "object"
     },
     "openmatchReleaseTicketsRequest": {
       "type": "object",

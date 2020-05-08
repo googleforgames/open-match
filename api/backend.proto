@@ -88,6 +88,10 @@ message ReleaseTicketsRequest{
 
 message ReleaseTicketsResponse {}
 
+message ReleaseAllTicketsRequest{}
+
+message ReleaseAllTicketsResponse {}
+
 // AssignmentGroup contains an Assignment and the Tickets to which it should be applied. 
 message AssignmentGroup{
   // TicketIds is a list of strings representing Open Match generated Ids which apply to an Assignment.
@@ -148,6 +152,19 @@ service BackendService {
   rpc ReleaseTickets(ReleaseTicketsRequest) returns (ReleaseTicketsResponse) {
     option (google.api.http) = {
       post: "/v1/backendservice/tickets:release"
+      body: "*"
+    };
+  }
+
+  // ReleaseAllTickets moves all tickets from the pending state, to the active
+  // state. This enables them to be returned by query, and find different
+  // matches.
+  // 
+  // BETA FEATURE WARNING:  This call and the associated Request and Response
+  // messages are not finalized and still subject to possible change or removal.
+  rpc ReleaseAllTickets(ReleaseAllTicketsRequest) returns (ReleaseAllTicketsResponse) {
+    option (google.api.http) = {
+      post: "/v1/backendservice/tickets:releaseall"
       body: "*"
     };
   }

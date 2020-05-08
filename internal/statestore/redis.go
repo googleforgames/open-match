@@ -655,6 +655,17 @@ func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []s
 	return nil
 }
 
+func (rb *redisBackend) ReleaseAllTickets(ctx context.Context) error {
+	redisConn, err := rb.connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer handleConnectionClose(&redisConn)
+
+	_, err = redisConn.Do("DEL", "proposed_ticket_ids")
+	return err
+}
+
 func handleConnectionClose(conn *redis.Conn) {
 	err := (*conn).Close()
 	if err != nil {
