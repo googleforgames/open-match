@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{{- if index .Values.ci }}
+{{- if .Values.ci }}
 
 # This applies om-test-role to the open-match-test-service account under the release namespace. 
 kind: RoleBinding
