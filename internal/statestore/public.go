@@ -61,6 +61,9 @@ type Service interface {
 	// DeleteTicketsFromIgnoreList deletes tickets from the proposed sorted set
 	DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) error
 
+	// ReleaseAllTickets releases all pending tickets back to active
+	ReleaseAllTickets(ctx context.Context) error
+
 	// Closes the connection to the underlying storage.
 	Close() error
 }
