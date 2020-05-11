@@ -76,7 +76,7 @@
           "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
         }
       },
-      "description": "An Assignment represents a game server assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
+      "description": "An Assignment represents a game server assignment associated with a Ticket.\nOpen Match does not require or inspect any fields on assignment."
     },
     "openmatchEvaluateRequest": {
       "type": "object",
@@ -165,7 +165,7 @@
         },
         "assignment": {
           "$ref": "#/definitions/openmatchAssignment",
-          "description": "An Assignment represents a game server assignment associated with a Ticket.\nOpen Match does not require or inspect any fields on Assignment."
+          "description": "An Assignment represents a game server assignment associated with a Ticket,\nor whatever finalized matched state means for your use case.\nOpen Match does not require or inspect any fields on Assignment."
         },
         "search_fields": {
           "$ref": "#/definitions/openmatchSearchFields",
@@ -181,10 +181,10 @@
         "create_time": {
           "type": "string",
           "format": "date-time",
-          "description": "Create time represents the time at which this Ticket was created. It is\npopulated by Open Match at the time of Ticket creation."
+          "description": "Create time is the time the Ticket was created. It is populated by Open\nMatch at the time of Ticket creation."
         }
       },
-      "description": "A Ticket is a basic matchmaking entity in Open Match. A Ticket represents either an\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\nof SearchFields. Open Match stores the Ticket in state storage and enables an\nAssignment to be associated with this Ticket."
+      "description": "A Ticket is a basic matchmaking entity in Open Match. A Ticket may represent\nan individual 'Player', a 'Group' of players, or any other concepts unique to\nyour use case. Open Match will not interpret what the Ticket represents but\njust treat it as a matchmaking unit with a set of SearchFields. Open Match\nstores the Ticket in state storage and enables an Assignment to be set on the\nTicket."
     },
     "protobufAny": {
       "type": "object",
