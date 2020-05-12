@@ -383,5 +383,7 @@ k8s.io/api v0.0.0-20191004102255-dacd7df5a50b/go.mod h1:iuAfoD4hCxJ8Onx9kaTIt30j
 k8s.io/apimachinery v0.0.0-20191004074956-01f8b7d1121a/go.mod h1:ccL7Eh7zubPUSh9A3USN90/OzHNSVN6zxzde07TDCL0=
 k8s.io/client-go v0.0.0-20191004102537-eb5b9a8cfde7/go.mod h1:7vJpHMYJwNQCWgzmNV+VYUl1zCObLyodBc8nIyt8L5s=
 k8s.io/klog v1.0.0/go.mod h1:4Bi6QPql/J/LkTDqv7R/cd3hPo4k2DG6Ptcz060Ez5I=
+open-match.dev/open-match v1.0.0-rc.1 h1:akVXjbqp6WhG/g75G8tn3hQT6KyWqJG7gFc7ZOVxSBk=
+open-match.dev/open-match v1.0.0-rc.1/go.mod h1:hBk3r7rerpyMM0kA05QFGyb5HgYtdqlXiPt5kZ8UIBc=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
