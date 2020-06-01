@@ -106,7 +106,7 @@ steps:
 
 - id: 'Test: Services'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'GOLANG_TEST_COUNT=10', 'test']
+  args: ['make', 'GOLANG_TEST_COUNT=10', 'test']
   volumes:
   - name: 'go-vol'
     path: '/go'
