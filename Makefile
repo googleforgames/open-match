@@ -215,6 +215,9 @@ local-cloud-build: gcloud
 ## "openmatch-" prefix on the image name and tags.
 ##
 
+list-images:
+	@echo $(IMAGES)
+
 #######################################
 ## build-images / build-<image name>-image: builds images locally
 ##
