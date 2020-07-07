@@ -25,7 +25,7 @@ const (
 	PoolIdleTimeout = 10 * time.Second
 	// PoolHealthCheckTimeout is the read/write timeout of a healthcheck HTTP request
 	PoolHealthCheckTimeout = 100 * time.Millisecond
-	// pendingReleaseTimeout is the time to live duration of Open Match ignore list settings
+	// pendingReleaseTimeout is the time to live duration of Open Match pending release settings
 	pendingReleaseTimeout = 500 * time.Millisecond
 	// InitialInterval is the initial backoff time of a backoff strategy
 	InitialInterval = 30 * time.Millisecond

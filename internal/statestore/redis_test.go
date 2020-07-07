@@ -104,7 +104,7 @@ func TestTicketLifecycle(t *testing.T) {
 	assert.NotNil(err)
 }
 
-func TestIgnoreLists(t *testing.T) {
+func TestPendingReleases(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg, closer := createRedis(t, true, "")
@@ -135,16 +135,16 @@ func TestIgnoreLists(t *testing.T) {
 	// Verify all tickets are created and returned
 	verifyTickets(service, len(tickets))
 
-	// Add the first three tickets to the ignore list and verify changes are reflected in the result
-	assert.Nil(service.AddTicketsToIgnoreList(ctx, ticketIds[:3]))
+	// Add the first three tickets to the pending release and verify changes are reflected in the result
+	assert.Nil(service.AddTicketsToPendingRelease(ctx, ticketIds[:3]))
 	verifyTickets(service, len(tickets)-3)
 
-	// Sleep until the ignore list expired and verify we still have all the tickets
+	// Sleep until the pending release expired and verify we still have all the tickets
 	time.Sleep(cfg.GetDuration("pendingReleaseTimeout"))
 	verifyTickets(service, len(tickets))
 }
 
-func TestDeleteTicketsFromIgnoreList(t *testing.T) {
+func TestDeleteTicketsFromPendingRelease(t *testing.T) {
 	// Create State Store
 	assert := assert.New(t)
 	cfg, closer := createRedis(t, true, "")
@@ -175,11 +175,11 @@ func TestDeleteTicketsFromIgnoreList(t *testing.T) {
 	// Verify all tickets are created and returned
 	verifyTickets(service, len(tickets))
 
-	// Add the first three tickets to the ignore list and verify changes are reflected in the result
-	assert.Nil(service.AddTicketsToIgnoreList(ctx, ticketIds[:3]))
+	// Add the first three tickets to the pending release and verify changes are reflected in the result
+	assert.Nil(service.AddTicketsToPendingRelease(ctx, ticketIds[:3]))
 	verifyTickets(service, len(tickets)-3)
 
-	assert.Nil(service.DeleteTicketsFromIgnoreList(ctx, ticketIds[:3]))
+	assert.Nil(service.DeleteTicketsFromPendingRelease(ctx, ticketIds[:3]))
 	verifyTickets(service, len(tickets))
 }
 
