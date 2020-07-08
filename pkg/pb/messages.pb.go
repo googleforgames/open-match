@@ -23,15 +23,17 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-// A Ticket is a basic matchmaking entity in Open Match. A Ticket represents either an
-// individual 'Player' or a 'Group' of players. Open Match will not interpret
-// what the Ticket represents but just treat it as a matchmaking unit with a set
-// of SearchFields. Open Match stores the Ticket in state storage and enables an
-// Assignment to be associated with this Ticket.
+// A Ticket is a basic matchmaking entity in Open Match. A Ticket may represent
+// an individual 'Player', a 'Group' of players, or any other concepts unique to
+// your use case. Open Match will not interpret what the Ticket represents but
+// just treat it as a matchmaking unit with a set of SearchFields. Open Match
+// stores the Ticket in state storage and enables an Assignment to be set on the
+// Ticket.
 type Ticket struct {
 	// Id represents an auto-generated Id issued by Open Match.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// An Assignment represents a game server assignment associated with a Ticket.
+	// An Assignment represents a game server assignment associated with a Ticket,
+	// or whatever finalized matched state means for your use case.
 	// Open Match does not require or inspect any fields on Assignment.
 	Assignment *Assignment `protobuf:"bytes,3,opt,name=assignment,proto3" json:"assignment,omitempty"`
 	// Search fields are the fields which Open Match is aware of, and can be used
@@ -41,8 +43,8 @@ type Ticket struct {
 	// making function, evaluator, and components making calls to Open Match.
 	// Optional, depending on the requirements of the connected systems.
 	Extensions map[string]*any.Any `protobuf:"bytes,5,rep,name=extensions,proto3" json:"extensions,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// Create time represents the time at which this Ticket was created. It is
-	// populated by Open Match at the time of Ticket creation.
+	// Create time is the time the Ticket was created. It is populated by Open
+	// Match at the time of Ticket creation.
 	CreateTime           *timestamp.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
@@ -169,8 +171,8 @@ func (m *SearchFields) GetTags() []string {
 	return nil
 }
 
-// An Assignment represents a game server assignment associated with a Ticket. Open
-// match does not require or inspect any fields on assignment.
+// An Assignment represents a game server assignment associated with a Ticket.
+// Open Match does not require or inspect any fields on assignment.
 type Assignment struct {
 	// Connection information for this Assignment.
 	Connection string `protobuf:"bytes,1,opt,name=connection,proto3" json:"connection,omitempty"`
