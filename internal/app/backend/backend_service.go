@@ -308,7 +308,7 @@ func callHTTPMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 func (s *backendService) ReleaseTickets(ctx context.Context, req *pb.ReleaseTicketsRequest) (*pb.ReleaseTicketsResponse, error) {
 	err := doReleasetickets(ctx, req, s.store)
 	if err != nil {
-		logger.WithError(err).Error("failed to remove the awaiting tickets from the ignore list for requested tickets")
+		logger.WithError(err).Error("failed to remove the awaiting tickets from the pending release for requested tickets")
 		return nil, err
 	}
 
@@ -363,7 +363,7 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 		}
 	}
 
-	if err = store.DeleteTicketsFromIgnoreList(ctx, ids); err != nil {
+	if err = store.DeleteTicketsFromPendingRelease(ctx, ids); err != nil {
 		logger.WithFields(logrus.Fields{
 			"ticket_ids": ids,
 		}).Error(err)
@@ -373,11 +373,11 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 }
 
 func doReleasetickets(ctx context.Context, req *pb.ReleaseTicketsRequest, store statestore.Service) error {
-	err := store.DeleteTicketsFromIgnoreList(ctx, req.GetTicketIds())
+	err := store.DeleteTicketsFromPendingRelease(ctx, req.GetTicketIds())
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"ticket_ids": req.GetTicketIds(),
-		}).WithError(err).Error("failed to delete the tickets from the ignore list")
+		}).WithError(err).Error("failed to delete the tickets from the pending release list")
 		return err
 	}
 

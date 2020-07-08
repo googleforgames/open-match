@@ -391,10 +391,10 @@ func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{
 	startTimeInt := curTime.Add(-ttl).UnixNano()
 
 	// Filter out tickets that are fetched but not assigned within ttl time (ms).
-	idsInIgnoreLists, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, endTimeInt))
+	idsInPendingReleases, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, endTimeInt))
 	if err != nil {
 		redisLogger.WithError(err).Error("failed to get proposed tickets")
-		return nil, status.Errorf(codes.Internal, "error getting ignore list %v", err)
+		return nil, status.Errorf(codes.Internal, "error getting pending release %v", err)
 	}
 
 	idsIndexed, err := redis.Strings(redisConn.Do("SMEMBERS", allTickets))
@@ -409,7 +409,7 @@ func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{
 	for _, id := range idsIndexed {
 		r[id] = struct{}{}
 	}
-	for _, id := range idsInIgnoreLists {
+	for _, id := range idsInPendingReleases {
 		delete(r, id)
 	}
 
@@ -600,8 +600,8 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 	return nil
 }
 
-// AddProposedTickets appends new proposed tickets to the proposed sorted set with current timestamp
-func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string) error {
+// AddTicketsToPendingRelease appends new proposed tickets to the proposed sorted set with current timestamp
+func (rb *redisBackend) AddTicketsToPendingRelease(ctx context.Context, ids []string) error {
 	if len(ids) == 0 {
 		return nil
 	}
@@ -621,15 +621,15 @@ func (rb *redisBackend) AddTicketsToIgnoreList(ctx context.Context, ids []string
 
 	_, err = redisConn.Do("ZADD", cmds...)
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to append proposed tickets to ignore list")
+		redisLogger.WithError(err).Error("failed to append proposed tickets to pending release")
 		return status.Error(codes.Internal, err.Error())
 	}
 
 	return nil
 }
 
-// DeleteTicketsFromIgnoreList deletes tickets from the proposed sorted set
-func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) error {
+// DeleteTicketsFromPendingRelease deletes tickets from the proposed sorted set
+func (rb *redisBackend) DeleteTicketsFromPendingRelease(ctx context.Context, ids []string) error {
 	if len(ids) == 0 {
 		return nil
 	}
@@ -648,7 +648,7 @@ func (rb *redisBackend) DeleteTicketsFromIgnoreList(ctx context.Context, ids []s
 
 	_, err = redisConn.Do("ZREM", cmds...)
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to delete proposed tickets from ignore list")
+		redisLogger.WithError(err).Error("failed to delete proposed tickets from pending release")
 		return status.Error(codes.Internal, err.Error())
 	}
 
