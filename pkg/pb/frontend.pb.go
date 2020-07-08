@@ -300,9 +300,7 @@ type FrontendServiceClient interface {
 	//   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with query.QueryTickets function.
 	CreateTicket(ctx context.Context, in *CreateTicketRequest, opts ...grpc.CallOption) (*Ticket, error)
 	// DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
-	// The client must delete the Ticket when finished matchmaking with it.
-	//   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
-	// Users may still be able to assign/get a ticket after calling DeleteTicket on it.
+	// The client should delete the Ticket when finished matchmaking with it.
 	DeleteTicket(ctx context.Context, in *DeleteTicketRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	// GetTicket get the Ticket associated with the specified TicketId.
 	GetTicket(ctx context.Context, in *GetTicketRequest, opts ...grpc.CallOption) (*Ticket, error)
@@ -386,9 +384,7 @@ type FrontendServiceServer interface {
 	//   - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with query.QueryTickets function.
 	CreateTicket(context.Context, *CreateTicketRequest) (*Ticket, error)
 	// DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
-	// The client must delete the Ticket when finished matchmaking with it.
-	//   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
-	// Users may still be able to assign/get a ticket after calling DeleteTicket on it.
+	// The client should delete the Ticket when finished matchmaking with it.
 	DeleteTicket(context.Context, *DeleteTicketRequest) (*empty.Empty, error)
 	// GetTicket get the Ticket associated with the specified TicketId.
 	GetTicket(context.Context, *GetTicketRequest) (*Ticket, error)
