@@ -265,7 +265,7 @@ func callHTTPMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 
 	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
-		return status.Errorf(codes.Internal, "failed to get response from mmf run for proile %s: %s", profile.Name, err.Error())
+		return status.Errorf(codes.Internal, "failed to get response from mmf run for profile %s: %s", profile.Name, err.Error())
 	}
 	defer func() {
 		err = resp.Body.Close()
