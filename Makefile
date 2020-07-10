@@ -123,7 +123,7 @@ GCLOUD = gcloud --quiet
 OPEN_MATCH_HELM_NAME = open-match
 OPEN_MATCH_KUBERNETES_NAMESPACE = open-match
 OPEN_MATCH_SECRETS_DIR = $(REPOSITORY_ROOT)/install/helm/open-match/secrets
-GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep account: | cut -c 10-)
+GCLOUD_ACCOUNT_EMAIL = $(shell gcloud auth list --format yaml | grep ACTIVE -a2 | grep account: | cut -c 10-)
 _GCB_POST_SUBMIT ?= 0
 # Latest version triggers builds of :latest images.
 _GCB_LATEST_VERSION ?= undefined
@@ -600,6 +600,9 @@ get-kind-kubeconfig: build/toolchain/bin/kind$(EXE_EXTENSION)
 delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(KIND) delete cluster
 
+create-cluster-role-binding:
+	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
+
 create-gke-cluster: GKE_VERSION = 1.14.10-gke.45 # gcloud beta container get-server-config --zone us-west1-a
 create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
@@ -609,7 +612,8 @@ create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
 		--cluster-version $(GKE_VERSION) \
 		--image-type cos_containerd \
 		--tags open-match
-	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
+	$(MAKE) create-cluster-role-binding
+	
 
 delete-gke-cluster: gcloud
 	-$(GCLOUD) $(GCP_PROJECT_FLAG) container clusters delete $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) $(GCLOUD_EXTRA_FLAGS)
