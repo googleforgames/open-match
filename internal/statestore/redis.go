@@ -407,7 +407,7 @@ func (rb *redisBackend) GetTickets(ctx context.Context, ids []string) ([]*pb.Tic
 }
 
 // UpdateAssignments update using the request's specified tickets with assignments.
-func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
+func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest, callback func(*pb.Ticket, *pb.Assignment) error) (*pb.AssignTicketsResponse, error) {
 	resp := &pb.AssignTicketsResponse{}
 	if len(req.Assignments) == 0 {
 		return resp, nil
@@ -479,6 +479,13 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 		err = redisConn.Send("SET", ticket.Id, ticketByte, "PX", int64(assignmentTimeout), "XX")
 		if err != nil {
 			return nil, errors.Wrap(err, "error sending ticket assignment set")
+		}
+
+		if callback != nil {
+			err = callback(ticket, ticket.Assignment)
+			if err != nil {
+				redisLogger.WithError(err).Errorf("could't record time to assigment for ticket %s", ticket.Id)
+			}
 		}
 	}
 

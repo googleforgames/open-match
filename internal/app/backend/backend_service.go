@@ -18,10 +18,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/golang/protobuf/ptypes"
 	"io"
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"go.opencensus.io/stats"
 
@@ -342,7 +344,7 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 }
 
 func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) (*pb.AssignTicketsResponse, error) {
-	resp, err := store.UpdateAssignments(ctx, req)
+	resp, err := store.UpdateAssignments(ctx, req, computeTimeToAssignment(ctx))
 	if err != nil {
 		logger.WithError(err).Error("failed to update assignments")
 		return nil, err
@@ -382,4 +384,22 @@ func doReleasetickets(ctx context.Context, req *pb.ReleaseTicketsRequest, store 
 	}
 
 	return nil
+}
+
+func computeTimeToAssignment(ctx context.Context) func(*pb.Ticket, *pb.Assignment) error {
+	return func(ticket *pb.Ticket, assignment *pb.Assignment) error {
+		if assignment == nil {
+			return fmt.Errorf("assignment for ticket %s is nil", ticket.Id)
+		}
+
+		now := time.Now()
+		created, err := ptypes.Timestamp(ticket.CreateTime)
+		if err != nil {
+			return err
+		}
+
+		stats.Record(ctx, ticketsTimeToAssignment.M(now.Sub(created).Milliseconds()))
+
+		return nil
+	}
 }

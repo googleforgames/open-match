@@ -130,7 +130,7 @@ func TestDoWatchAssignments(t *testing.T) {
 									Assignment: wantAssignments[i],
 								},
 							},
-						})
+						}, nil)
 						require.Nil(t, err)
 						wg.Done()
 					}
