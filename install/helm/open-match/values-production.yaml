@@ -104,7 +104,6 @@ configs:
 # https://hub.helm.sh/charts/stable/redis
 # https://github.com/helm/charts/tree/master/stable/redis
 redis:
-  fullnameOverride: om-redis
   redisPort: 6379
   usePassword: false
   usePasswordFile: false
@@ -133,7 +132,6 @@ redis:
     slaveCount: 3
   serviceAccount:
     create: true
-    name: open-match-redis-service
   slave:
     persistence:
       enabled: false

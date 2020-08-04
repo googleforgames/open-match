@@ -92,7 +92,7 @@ resources:
 {{- if .Values.redis.usePassword }}
 - name: redis-password
   secret:
-    secretName: {{ .Values.redis.fullnameOverride }}
+    secretName: {{ include "call-nested" (list . "redis" "redis.fullname") }}
 {{- end -}}
 {{- end -}}
 
@@ -135,3 +135,20 @@ minReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.minReplicas }}
 maxReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.maxReplicas }}
 targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoScaler.targetCPUUtilizationPercentage }}
 {{- end -}}
+
+{{/*
+Call templates from sub-charts in a synthesized context, workaround for https://github.com/helm/helm/issues/3920
+Mainly useful for things like `{{ include "call-nested" (list . "redis" "redis.fullname") }}`
+https://github.com/helm/helm/issues/4535#issuecomment-416022809
+https://github.com/helm/helm/issues/4535#issuecomment-477778391
+*/}}
+{{- define "call-nested" }}
+{{- $dot := index . 0 }}
+{{- $subchart := index . 1 | splitList "." }}
+{{- $template := index . 2 }}
+{{- $values := $dot.Values }}
+{{- range $subchart }}
+{{- $values = index $values . }}
+{{- end }}
+{{- include $template (dict "Chart" (dict "Name" (last $subchart)) "Values" $values "Release" $dot.Release "Capabilities" $dot.Capabilities) }}
+{{- end }}

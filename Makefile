@@ -462,7 +462,7 @@ set-redis-password:
 		read REDIS_PASSWORD; \
 		stty echo; \
 		printf "\n"; \
-		$(KUBECTL) create secret generic om-redis -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
+		$(KUBECTL) create secret generic open-match-redis -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
 
 install-toolchain: install-kubernetes-tools install-protoc-tools install-openmatch-tools
 install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/terraform$(EXE_EXTENSION)
