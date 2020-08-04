@@ -159,7 +159,7 @@ open-match-core:
   enabled: true
 
   # Length of time between first fetch matches call, and when no further fetch
-  # matches calls will join the current evaluation/synchronization cycle, 
+  # matches calls will join the current evaluation/synchronization cycle,
   # instead waiting for the next cycle.
   registrationInterval: 250ms
   # Length of time after match function as started before it will be canceled,
@@ -180,7 +180,7 @@ open-match-core:
     # Otherwise the default is set to the om-redis instance.
     hostname: # Your redis server address
     port: 6379
-    user: 
+    user:
     pool:
       maxIdle: 200
       maxActive: 0
@@ -259,7 +259,6 @@ global:
     registry: gcr.io/open-match-public-images
     tag: 0.0.0-dev
     pullPolicy: Always
-
 
   # Expose the telemetry configurations to all subcharts because prometheus, for example,
   # requires pod-level annotation to customize its scrape path.
