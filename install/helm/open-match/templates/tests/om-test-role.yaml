@@ -24,13 +24,12 @@ metadata:
     app: {{ template "openmatch.name" . }}
     release: {{ .Release.Name }}
 rules:
-# Define om-test-role to use om-core-podsecuritypolicy
 - apiGroups:
   - extensions
   resources:
   - podsecuritypolicies
   resourceNames:
-  - om-core-podsecuritypolicy
+  - {{ include "openmatch.fullname" . }}-core-podsecuritypolicy
   verbs:
   - use
 # Grant om-test-role get & list permission for k8s endpoints and pods resources
