@@ -69,7 +69,7 @@ spec:
         {{- include "openmatch.volumes.configs" (dict "configs" .Values.configs) | nindent 8}}
         {{- include "openmatch.volumes.tls" . | nindent 8}}
         {{- include "openmatch.volumes.withredis" . | nindent 8 }}
-      serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
+      serviceAccountName: {{ include "openmatch.serviceAccount.name" . }}
       containers:
       - name: {{ .Values.synchronizer.hostName }}
         volumeMounts:

@@ -244,8 +244,8 @@ global:
       limits:
         memory: 3Gi
         cpu: 2
-    # Defines a service account which provides an identity for processes that run in a Pod in Open Match.
-    serviceAccount: open-match-unprivileged-service
+    # Overrides the name of the service account which provides an identity for processes that run in a Pod in Open Match.
+    serviceAccount:
     # Use this field if you need to override the port type for all services defined in this chart
     service:
       portType:

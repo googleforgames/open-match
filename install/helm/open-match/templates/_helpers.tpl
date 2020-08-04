@@ -26,12 +26,14 @@ Expand the name of the chart.
 Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
+Instead of .Chart.Name, we hard-code "open-match" as we need to call this from subcharts, but get the
+same result as if called from this chart.
 */}}
 {{- define "openmatch.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- $name := default "open-match" .Values.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -152,6 +154,10 @@ readinessProbe:
 minReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.minReplicas }}
 maxReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.maxReplicas }}
 targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoScaler.targetCPUUtilizationPercentage }}
+{{- end -}}
+
+{{- define "openmatch.serviceAccount.name" -}}
+{{- .Values.global.kubernetes.serviceAccount | default (printf "%s-unprivileged-service" (include "openmatch.fullname" . ) ) -}}
 {{- end -}}
 
 {{/*
