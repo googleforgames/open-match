@@ -222,7 +222,6 @@ open-match-customize:
   enabled: false
   evaluator: *evaluator
   function: *function
-  query: *query
   # You can override the evaluator/mmf image
   # evaluator:
   #   image: [YOUR_EVALUATOR_IMAGE]
