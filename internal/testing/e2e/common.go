@@ -209,11 +209,11 @@ api:
   scale:
     httpport: "51509"
   evaluator:
-    hostname: "test"
+    hostname: "open-match-test"
     grpcport: "50509"
     httpport: "51509"
   test:
-    hostname: "test"
+    hostname: "open-match-test"
     grpcport: "50509"
     httpport: "51509"
 

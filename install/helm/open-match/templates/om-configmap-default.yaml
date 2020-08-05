@@ -71,7 +71,7 @@ data:
 
       # Configurations for api.test and api.scale are used for testing.
       test:
-        hostname: "test"
+        hostname: "{{ include "openmatch.fullname" . }}-test"
         grpcport: "50509"
         httpport: "51509"
       scale:

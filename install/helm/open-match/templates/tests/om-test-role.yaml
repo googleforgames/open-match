@@ -17,7 +17,7 @@
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: om-test-role
+  name: {{ include "openmatch.fullname" . }}-test-role
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -32,7 +32,7 @@ rules:
   - {{ include "openmatch.fullname" . }}-core-podsecuritypolicy
   verbs:
   - use
-# Grant om-test-role get & list permission for k8s endpoints and pods resources
+# Grant this role get & list permission for k8s endpoints and pods resources
 # Required for e2e in-cluster testing.
 - apiGroups:
   - ""

@@ -17,7 +17,7 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: test
+  name: {{ include "openmatch.fullname" . }}-test
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -40,7 +40,7 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: test
+  name: {{ include "openmatch.fullname" . }}-test
   namespace: {{ .Release.Namespace }}
   annotations: 
     {{- include "openmatch.chartmeta" . | nindent 4 }}
@@ -52,7 +52,7 @@ metadata:
 spec:
   # Specifies the duration in seconds relative to the startTime that the job may be active before the system tries to terminate it.
   activeDeadlineSeconds: 900
-  serviceAccountName: open-match-test-service
+  serviceAccountName: {{ include "openmatch.fullname" . }}-test-service
   automountServiceAccountToken: true
   volumes:
   - configMap:
@@ -64,7 +64,7 @@ spec:
       name: om-configmap-override
     name: om-config-volume-override
   containers:
-  - name: "test"
+  - name: {{ include "openmatch.fullname" . }}-test
     volumeMounts:
     - mountPath: /app/config/default
       name: om-config-volume-default
