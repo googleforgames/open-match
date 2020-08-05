@@ -57,11 +57,11 @@ spec:
   volumes:
   - configMap:
       defaultMode: 420
-      name: om-configmap-default
+      name: {{ include "openmatch.configmap.default" . }}
     name: om-config-volume-default
   - configMap:
       defaultMode: 420
-      name: om-configmap-override
+      name: {{ include "openmatch.configmap.override" . }}
     name: om-config-volume-override
   containers:
   - name: {{ include "openmatch.fullname" . }}-test

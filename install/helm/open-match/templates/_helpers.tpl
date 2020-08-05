@@ -77,7 +77,7 @@ resources:
 {{- range $configIndex, $configValues := .configs }}
 - name: {{ $configValues.volumeName }}
   configMap:
-    name: {{ $configValues.configName }}
+    name: {{ tpl $configValues.configName $ }}
 {{- end }}
 {{- end -}}
 
@@ -182,6 +182,14 @@ targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoSc
 
 {{- define "openmatch.evaluator.hostName" -}}
 {{- .Values.evaluator.hostName | default (printf "%s-evaluator" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
+{{- define "openmatch.configmap.default" -}}
+{{- printf "%s-configmap-default" (include "openmatch.fullname" . ) -}}
+{{- end -}}
+
+{{- define "openmatch.configmap.override" -}}
+{{- printf "%s-configmap-override" (include "openmatch.fullname" . ) -}}
 {{- end -}}
 
 {{/*
