@@ -193,8 +193,6 @@ open-match-core:
 open-match-scale:
   # Switch the value between true/false to turn on/off this subchart
   enabled: false
-  frontend: *frontend
-  backend: *backend
 
 # Controls if users need to install the monitoring tools in Open Match.
 open-match-telemetry:
