@@ -19,14 +19,12 @@
 Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
-Instead of .Chart.Name, we hard-code "open-match" as we need to call this from subcharts, but get the
-same result as if called from this chart.
 */}}
-{{- define "openmatch.fullname" -}}
+{{- define "openmatchscale.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default "open-match" .Values.nameOverride }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -35,10 +33,10 @@ same result as if called from this chart.
 {{- end }}
 {{- end }}
 
-{{- define "openmatch.scaleBackend.hostName" -}}
-{{- .Values.scaleBackend.hostName | default (printf "%s-scale-backend" (include "openmatch.fullname" . ) ) -}}
+{{- define "openmatchscale.scaleBackend.hostName" -}}
+{{- .Values.scaleBackend.hostName | default (printf "%s-backend" (include "openmatchscale.fullname" . ) ) -}}
 {{- end -}}
 
-{{- define "openmatch.scaleFrontend.hostName" -}}
-{{- .Values.scaleFrontend.hostName | default (printf "%s-scale-frontend" (include "openmatch.fullname" . ) ) -}}
+{{- define "openmatchscale.scaleFrontend.hostName" -}}
+{{- .Values.scaleFrontend.hostName | default (printf "%s-frontend" (include "openmatchscale.fullname" . ) ) -}}
 {{- end -}}
