@@ -94,10 +94,10 @@ resources:
 {{- if .Values.global.tls.enabled }}
 - name: tls-server-volume
   secret:
-    secretName: om-tls-server
+    secretName: {{ include "openmatch.fullname" . }}-tls-server
 - name: root-ca-volume
   secret:
-    secretName: om-tls-rootca
+    secretName: {{ include "openmatch.fullname" . }}-tls-rootca
 {{- end -}}
 {{- end -}}
 
