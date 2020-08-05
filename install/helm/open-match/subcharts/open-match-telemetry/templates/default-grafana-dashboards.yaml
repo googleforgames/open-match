@@ -16,7 +16,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: open-match-dashboards
+  name: {{ include "openmatch.fullname" . }}-dashboards
   labels:
      grafana_dashboard: "1"
 data:

@@ -16,7 +16,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: open-match-scale-dashboard
+  name: {{ include "openmatch.fullname" . }}-scale-dashboard
   namespace: {{ .Release.Namespace }}
   labels:
      grafana_dashboard: "1"
