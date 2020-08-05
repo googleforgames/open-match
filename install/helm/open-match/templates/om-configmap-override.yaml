@@ -42,7 +42,7 @@ data:
     queryPageSize: {{ index .Values "open-match-core" "queryPageSize" }}
     api:
       evaluator:
-        hostname: "{{ .Values.evaluator.hostName }}"
+        hostname: "{{ include "openmatch.evaluator.hostName" . }}"
         grpcport: "{{ .Values.evaluator.grpcPort }}"
         httpport: "{{ .Values.evaluator.httpPort }}"
 {{- end }}

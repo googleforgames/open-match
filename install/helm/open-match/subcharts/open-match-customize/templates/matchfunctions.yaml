@@ -18,7 +18,7 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: {{ .Values.function.hostName }}
+  name: {{ include "openmatchcustomize.function.hostName" . }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -46,20 +46,20 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ .Values.function.hostName }}
+  name: {{ include "openmatchcustomize.function.hostName" . }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ .Values.function.hostName }}
+    name: {{ include "openmatchcustomize.function.hostName" . }}
   {{- include "openmatch.HorizontalPodAutoscaler.spec.common" . | nindent 2 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.function.hostName }}
+  name: {{ include "openmatchcustomize.function.hostName" . }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -88,7 +88,7 @@ spec:
         {{- include "openmatch.volumes.tls" . | nindent 8}}
       serviceAccountName: {{ include "openmatch.serviceAccount.name" . }}
       containers:
-      - name: {{ .Values.function.hostName }}
+      - name: {{ include "openmatchcustomize.function.hostName" . }}
         volumeMounts:
           {{- include "openmatch.volumemounts.configs" (dict "configs" .Values.mmfConfigs) | nindent 10 }}
           {{- include "openmatch.volumemounts.tls" . | nindent 10 }}

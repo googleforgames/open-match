@@ -160,6 +160,30 @@ targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoSc
 {{- .Values.global.kubernetes.serviceAccount | default (printf "%s-unprivileged-service" (include "openmatch.fullname" . ) ) -}}
 {{- end -}}
 
+{{- define "openmatch.swaggerui.hostName" -}}
+{{- .Values.swaggerui.hostName | default (printf "%s-swaggerui" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
+{{- define "openmatch.query.hostName" -}}
+{{- .Values.query.hostName | default (printf "%s-query" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
+{{- define "openmatch.frontend.hostName" -}}
+{{- .Values.frontend.hostName | default (printf "%s-frontend" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
+{{- define "openmatch.backend.hostName" -}}
+{{- .Values.backend.hostName | default (printf "%s-backend" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
+{{- define "openmatch.synchronizer.hostName" -}}
+{{- .Values.synchronizer.hostName | default (printf "%s-synchronizer" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
+{{- define "openmatch.evaluator.hostName" -}}
+{{- .Values.evaluator.hostName | default (printf "%s-evaluator" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
 {{/*
 Call templates from sub-charts in a synthesized context, workaround for https://github.com/helm/helm/issues/3920
 Mainly useful for things like `{{ include "call-nested" (list . "redis" "redis.fullname") }}`

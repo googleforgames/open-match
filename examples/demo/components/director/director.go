@@ -68,7 +68,7 @@ func run(ds *components.DemoShared) {
 	ds.Update(s)
 
 	// See https://open-match.dev/site/docs/guides/api/
-	conn, err := grpc.Dial("om-backend.open-match.svc.cluster.local:50505", grpc.WithInsecure())
+	conn, err := grpc.Dial("open-match-backend.open-match.svc.cluster.local:50505", grpc.WithInsecure())
 	if err != nil {
 		panic(err)
 	}

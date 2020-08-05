@@ -23,7 +23,7 @@
 # Begins the configuration section for `query` component in Open Match.
 # query:
 #
-#   # Specifies om-query as the in-cluster domain name for the `query` service.
+#   # Override the default in-cluster domain name for the `query` service to om-query.
 #   hostName: om-query
 #
 #   # Specifies the port for receiving RESTful HTTP requests in the `query` service.
@@ -44,46 +44,46 @@
 #   # Specifies the image name to be used in a Kubernetes pod for `query` compoenent.
 #   image: openmatch-query
 swaggerui: &swaggerui
-  hostName: om-swaggerui
+  hostName:
   httpPort: 51500
   portType: ClusterIP
   replicas: 1
   image: openmatch-swaggerui
 query: &query
-  hostName: om-query
+  hostName:
   grpcPort: 50503
   httpPort: 51503
   portType: ClusterIP
   replicas: 3
   image: openmatch-query
 frontend: &frontend
-  hostName: om-frontend
+  hostName:
   grpcPort: 50504
   httpPort: 51504
   portType: ClusterIP
   replicas: 3
   image: openmatch-frontend
 backend: &backend
-  hostName: om-backend
+  hostName:
   grpcPort: 50505
   httpPort: 51505
   portType: ClusterIP
   replicas: 3
   image: openmatch-backend
 synchronizer: &synchronizer
-  hostName: om-synchronizer
+  hostName:
   grpcPort: 50506
   httpPort: 51506
   portType: ClusterIP
   replicas: 1
   image: openmatch-synchronizer
 evaluator: &evaluator
-  hostName: om-evaluator
+  hostName:
   grpcPort: 50508
   httpPort: 51508
   replicas: 3
 function: &function
-  hostName: om-function
+  hostName:
   grpcPort: 50502
   httpPort: 51502
   replicas: 3

@@ -50,23 +50,23 @@ data:
 
     api:
       backend:
-        hostname: "{{ .Values.backend.hostName }}"
+        hostname: "{{ include "openmatch.backend.hostName" . }}"
         grpcport: "{{ .Values.backend.grpcPort }}"
         httpport: "{{ .Values.backend.httpPort }}"
       frontend:
-        hostname: "{{ .Values.frontend.hostName }}"
+        hostname: "{{ include "openmatch.frontend.hostName" . }}"
         grpcport: "{{ .Values.frontend.grpcPort }}"
         httpport: "{{ .Values.frontend.httpPort }}"
       query:
-        hostname: "{{ .Values.query.hostName }}"
+        hostname: "{{ include "openmatch.query.hostName" . }}"
         grpcport: "{{ .Values.query.grpcPort }}"
         httpport: "{{ .Values.query.httpPort }}"
       synchronizer:
-        hostname: "{{ .Values.synchronizer.hostName }}"
+        hostname: "{{ include "openmatch.synchronizer.hostName" . }}"
         grpcport: "{{ .Values.synchronizer.grpcPort }}"
         httpport: "{{ .Values.synchronizer.httpPort }}"
       swaggerui:
-        hostname: "{{ .Values.swaggerui.hostName }}"
+        hostname: "{{ include "openmatch.swaggerui.hostName" . }}"
         httpport: "{{ .Values.swaggerui.httpPort }}"
 
       # Configurations for api.test and api.scale are used for testing.

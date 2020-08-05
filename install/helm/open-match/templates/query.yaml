@@ -16,7 +16,7 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: {{ .Values.query.hostName }}
+  name: {{ include "openmatch.query.hostName" . }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -44,19 +44,19 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ .Values.query.hostName }}
+  name: {{ include "openmatch.query.hostName" . }}
   namespace: {{ .Release.Namespace }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ .Values.query.hostName }}
+    name: {{ include "openmatch.query.hostName" . }}
   {{- include "openmatch.HorizontalPodAutoscaler.spec.common" . | nindent 2 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.query.hostName }}
+  name: {{ include "openmatch.query.hostName" . }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -87,7 +87,7 @@ spec:
         {{- include "openmatch.volumes.withredis" . | nindent 8 }}
       serviceAccountName: {{ include "openmatch.serviceAccount.name" . }}
       containers:
-      - name: {{ .Values.query.hostName }}
+      - name: {{ include "openmatch.query.hostName" . }}
         volumeMounts:
           {{- include "openmatch.volumemounts.configs" (dict "configs" .Values.configs) | nindent 10 }}
           {{- include "openmatch.volumemounts.tls" . | nindent 10 }}

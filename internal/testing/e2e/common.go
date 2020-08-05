@@ -188,23 +188,23 @@ backoff:
 
 api:
   backend:
-    hostname: "om-backend"
+    hostname: "open-match-backend"
     grpcport: "50505"
     httpport: "51505"
   frontend:
-    hostname: "om-frontend"
+    hostname: "open-match-frontend"
     grpcport: "50504"
     httpport: "51504"
   query:
-    hostname: "om-query"
+    hostname: "open-match-query"
     grpcport: "50503"
     httpport: "51503"
   synchronizer:
-    hostname: "om-synchronizer"
+    hostname: "open-match-synchronizer"
     grpcport: "50506"
     httpport: "51506"
   swaggerui:
-    hostname: "om-swaggerui"
+    hostname: "open-match-swaggerui"
     httpport: "51500"
   scale:
     httpport: "51509"
