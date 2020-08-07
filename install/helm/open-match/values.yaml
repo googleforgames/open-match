@@ -267,8 +267,8 @@ global:
       enabled: true
     jaeger:
       enabled: false
-      agentEndpoint: "open-match-jaeger-agent:6831"
-      collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
+      agentEndpoint: '{{ include "openmatch.jaeger.agent" . }}'
+      collectorEndpoint: '{{ include "openmatch.jaeger.collector" . }}'
     prometheus:
       enabled: false
       endpoint: "/metrics"

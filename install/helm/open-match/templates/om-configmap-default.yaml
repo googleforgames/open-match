@@ -119,8 +119,8 @@ data:
         enable: "{{ .Values.global.telemetry.zpages.enabled }}"
       jaeger:
         enable: "{{ .Values.global.telemetry.jaeger.enabled }}"
-        agentEndpoint: "{{ .Values.global.telemetry.jaeger.agentEndpoint }}"
-        collectorEndpoint: "{{ .Values.global.telemetry.jaeger.collectorEndpoint }}"
+        agentEndpoint: "{{ tpl .Values.global.telemetry.jaeger.agentEndpoint . }}"
+        collectorEndpoint: "{{ tpl .Values.global.telemetry.jaeger.collectorEndpoint . }}"
       prometheus:
         enable: "{{ .Values.global.telemetry.prometheus.enabled }}"
         endpoint: "{{ .Values.global.telemetry.prometheus.endpoint }}"

@@ -389,9 +389,12 @@ install/yaml/: TAG = $(BASE_VERSION)
 endif
 install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml install/yaml/06-open-match-override-configmap.yaml install/yaml/07-open-match-default-evaluator.yaml
 
+# We have to hard-code the Jaeger endpoints as we are excluding Jaeger, so Helm cannot determine the endpoints from the Jaeger subchart
 install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
+		--set-string global.telemetry.jaeger.agentEndpoint="$(OPEN_MATCH_HELM_NAME)-jaeger-agent:6831" \
+		--set-string global.telemetry.jaeger.collectorEndpoint="http://$(OPEN_MATCH_HELM_NAME)-jaeger-collector:14268/api/traces" \
 		install/helm/open-match > install/yaml/01-open-match-core.yaml
 
 install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)

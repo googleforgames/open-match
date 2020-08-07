@@ -237,8 +237,8 @@ telemetry:
     enable: "true"
   jaeger:
     enable: "false"
-    agentEndpoint: "open-match-jaeger-agent:6831"
-    collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
+    agentEndpoint: ""
+    collectorEndpoint: ""
   prometheus:
     enable: "false"
     endpoint: "/metrics"

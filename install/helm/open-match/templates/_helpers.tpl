@@ -192,6 +192,22 @@ targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoSc
 {{- printf "%s-configmap-override" (include "openmatch.fullname" . ) -}}
 {{- end -}}
 
+{{- define "openmatch.jaeger.agent" -}}
+{{- if index .Values "open-match-telemetry" "enabled" -}}
+{{- if index .Values "open-match-telemetry" "jaeger" "enabled" -}}
+{{ include "call-nested" (list . "open-match-telemetry.jaeger" "jaeger.agent.name") }}:6831
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "openmatch.jaeger.collector" -}}
+{{- if index .Values "open-match-telemetry" "enabled" -}}
+{{- if index .Values "open-match-telemetry" "jaeger" "enabled" -}}
+http://{{ include "call-nested" (list . "open-match-telemetry.jaeger" "jaeger.collector.name") }}:14268/api/traces
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
 {{/*
 Call templates from sub-charts in a synthesized context, workaround for https://github.com/helm/helm/issues/3920
 Mainly useful for things like `{{ include "call-nested" (list . "redis" "redis.fullname") }}`
