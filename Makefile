@@ -412,6 +412,7 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set global.telemetry.prometheus.enabled=true \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
+# We have to hard-code the Prometheus Server URL as we are excluding Prometheus, so Helm cannot determine the URL from the Prometheus subchart
 install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
@@ -419,6 +420,7 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-core.redis.enabled=false \
 		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
+		--set-string global.telemetry.grafana.prometheusServer="http://$(OPEN_MATCH_HELM_NAME)-prometheus-server.$(OPEN_MATCH_KUBERNETES_NAMESPACE).svc.cluster.local:80/" \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
 
 install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)

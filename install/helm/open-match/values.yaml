@@ -278,3 +278,5 @@ global:
       prefix: "open_match"
     grafana:
       enabled: false
+      # This will be called with `tpl` in the open-match-telemetry subchart namespace.
+      prometheusServer: 'http://{{ include "call-nested" (list . "prometheus" "prometheus.server.fullname") }}.{{ .Release.Namespace }}.svc.cluster.local:80/'
