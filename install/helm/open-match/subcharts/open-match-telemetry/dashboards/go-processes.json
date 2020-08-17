@@ -62,7 +62,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg by (pod_name) (\n  sum(\n    rate(container_cpu_usage_seconds_total{pod_name=~\"om-.*\", container_name!=\"POD\"}[5m])\n  ) by (pod_name, container_name) \n  \n  /\n  \n  sum(\n    container_spec_cpu_quota{pod_name=~\"om-.*\", container_name!=\"POD\"} / container_spec_cpu_period{pod_name=~\"om-.*\", container_name!=\"POD\"}\n  ) by (pod_name, container_name) \n  \n  * \n  \n  100\n)",
+          "expr": "avg by (pod_name) (\n\nsum(\n  rate(container_cpu_usage_seconds_total{container_name!=\"POD\"}[5m]) * on (pod_name) group_left(label_app) max by (pod_name, label_app) (label_replace(kube_pod_labels{label_app=\"open-match\"}, \"pod_name\", \"$1\", \"pod\", \"(.*)\"))\n) by (pod_name, container_name)\n\n/\n\nsum(\n  (container_spec_cpu_quota{container_name!=\"POD\"} * on (pod_name) group_left(label_app) max by (pod_name, label_app) (label_replace(kube_pod_labels{label_app=\"open-match\"}, \"pod_name\", \"$1\", \"pod\", \"(.*)\")))\n  /\n  (container_spec_cpu_period{container_name!=\"POD\"} * on (pod_name) group_left(label_app) max by (pod_name, label_app) (label_replace(kube_pod_labels{label_app=\"open-match\"}, \"pod_name\", \"$1\", \"pod\", \"(.*)\")))\n) by (pod_name, container_name)\n\n*\n\n100\n)\n",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{pod_name}}",
@@ -155,7 +155,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg by (component) (go_goroutines{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"})",
+          "expr": "avg by (component) (go_goroutines{app=~\"open-match\"})",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{component}}",
@@ -256,7 +256,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg by (component,app) (process_resident_memory_bytes{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"})",
+          "expr": "avg by (component,app) (process_resident_memory_bytes{app=~\"open-match\"})",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{component}} - resident",
@@ -265,7 +265,7 @@
           "step": 4
         },
         {
-          "expr": "avg by (component,app) (process_virtual_memory_bytes{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"})",
+          "expr": "avg by (component,app) (process_virtual_memory_bytes{app=~\"open-match\"})",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{component}} - virtual",
@@ -365,7 +365,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg by (component) (deriv(process_resident_memory_bytes{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"}[$interval]))",
+          "expr": "avg by (component) (deriv(process_resident_memory_bytes{app=~\"open-match\"}[$interval]))",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{component}} - resident",
@@ -374,7 +374,7 @@
           "step": 4
         },
         {
-          "expr": "avg by (component) (deriv(process_virtual_memory_bytes{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"}[$interval]))",
+          "expr": "avg by (component) (deriv(process_virtual_memory_bytes{app=~\"open-match\"}[$interval]))",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{component}} - virtual",
@@ -475,7 +475,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg by (component) (go_memstats_alloc_bytes{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"})",
+          "expr": "avg by (component) (go_memstats_alloc_bytes{app=~\"open-match\"})",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{component}} - bytes allocated",
@@ -484,7 +484,7 @@
           "step": 4
         },
         {
-          "expr": "avg by (component) (rate(go_memstats_alloc_bytes_total{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"}[$interval]))",
+          "expr": "avg by (component) (rate(go_memstats_alloc_bytes_total{app=~\"open-match\"}[$interval]))",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{component}} - alloc rate",
@@ -493,7 +493,7 @@
           "step": 4
         },
         {
-          "expr": "avg by (component) (go_memstats_stack_inuse_bytes{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"})",
+          "expr": "avg by (component) (go_memstats_stack_inuse_bytes{app=~\"open-match\"})",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{component}} - stack inuse",
@@ -502,7 +502,7 @@
           "step": 4
         },
         {
-          "expr": "avg by (component) (go_memstats_heap_inuse_bytes{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"})",
+          "expr": "avg by (component) (go_memstats_heap_inuse_bytes{app=~\"open-match\"})",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 2,
@@ -604,7 +604,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg by (component) (deriv(go_memstats_alloc_bytes{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"}[$interval]))",
+          "expr": "avg by (component) (deriv(go_memstats_alloc_bytes{app=~\"open-match\"}[$interval]))",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{component}} - bytes allocated",
@@ -613,7 +613,7 @@
           "step": 4
         },
         {
-          "expr": "avg by (component) (deriv(go_memstats_stack_inuse_bytes{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"}[$interval]))",
+          "expr": "avg by (component) (deriv(go_memstats_stack_inuse_bytes{app=~\"open-match\"}[$interval]))",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{component}} - stack inuse",
@@ -622,7 +622,7 @@
           "step": 4
         },
         {
-          "expr": "avg by (component) (deriv(go_memstats_heap_inuse_bytes{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"}[$interval]))",
+          "expr": "avg by (component) (deriv(go_memstats_heap_inuse_bytes{app=~\"open-match\"}[$interval]))",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 2,
@@ -719,7 +719,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg by (component) (process_open_fds{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"})",
+          "expr": "avg by (component) (process_open_fds{app=~\"open-match\"})",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{component}}",
@@ -815,7 +815,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg by (component) (deriv(process_open_fds{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"}[$interval]))",
+          "expr": "avg by (component) (deriv(process_open_fds{app=~\"open-match\"}[$interval]))",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{component}}",
@@ -911,7 +911,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg by (component, quantile) (go_gc_duration_seconds{app=~\"open-match\", kubernetes_pod_name=~\"om-.*\"})",
+          "expr": "avg by (component, quantile) (go_gc_duration_seconds{app=~\"open-match\"})",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{component}}: {{quantile}}",

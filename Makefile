@@ -363,7 +363,7 @@ install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_HELM_NAME) $(HELM_UPGRADE_FLAGS) --atomic install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set query.replicas=1,frontend.replicas=1,backend.replicas=1 \
-		--set evaluator.hostName=test \
+		--set evaluator.hostName=open-match-test \
 		--set evaluator.grpcPort=50509 \
 		--set evaluator.httpPort=51509 \
 		--set open-match-core.registrationInterval=200ms \
@@ -389,9 +389,12 @@ install/yaml/: TAG = $(BASE_VERSION)
 endif
 install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml install/yaml/06-open-match-override-configmap.yaml install/yaml/07-open-match-default-evaluator.yaml
 
+# We have to hard-code the Jaeger endpoints as we are excluding Jaeger, so Helm cannot determine the endpoints from the Jaeger subchart
 install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
+		--set-string global.telemetry.jaeger.agentEndpoint="$(OPEN_MATCH_HELM_NAME)-jaeger-agent:6831" \
+		--set-string global.telemetry.jaeger.collectorEndpoint="http://$(OPEN_MATCH_HELM_NAME)-jaeger-collector:14268/api/traces" \
 		install/helm/open-match > install/yaml/01-open-match-core.yaml
 
 install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -409,6 +412,7 @@ install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set global.telemetry.prometheus.enabled=true \
 		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
 
+# We have to hard-code the Prometheus Server URL as we are excluding Prometheus, so Helm cannot determine the URL from the Prometheus subchart
 install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
@@ -416,6 +420,7 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-core.redis.enabled=false \
 		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
+		--set-string global.telemetry.grafana.prometheusServer="http://$(OPEN_MATCH_HELM_NAME)-prometheus-server.$(OPEN_MATCH_KUBERNETES_NAMESPACE).svc.cluster.local:80/" \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
 
 install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -462,7 +467,7 @@ set-redis-password:
 		read REDIS_PASSWORD; \
 		stty echo; \
 		printf "\n"; \
-		$(KUBECTL) create secret generic om-redis -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
+		$(KUBECTL) create secret generic open-match-redis -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
 
 install-toolchain: install-kubernetes-tools install-protoc-tools install-openmatch-tools
 install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/terraform$(EXE_EXTENSION)

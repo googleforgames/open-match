@@ -16,7 +16,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: om-configmap-override
+  name: {{ include "openmatch.configmap.override" . }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -42,7 +42,7 @@ data:
     queryPageSize: {{ index .Values "open-match-core" "queryPageSize" }}
     api:
       evaluator:
-        hostname: "{{ .Values.evaluator.hostName }}"
+        hostname: "{{ include "openmatch.evaluator.hostName" . }}"
         grpcport: "{{ .Values.evaluator.grpcPort }}"
         httpport: "{{ .Values.evaluator.httpPort }}"
 {{- end }}

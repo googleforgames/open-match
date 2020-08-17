@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	queryServiceAddress = "om-query.open-match.svc.cluster.local:50503" // Address of the QueryService Endpoint.
+	queryServiceAddress = "open-match-query.open-match.svc.cluster.local:50503" // Address of the QueryService Endpoint.
 
 	logger = logrus.WithFields(logrus.Fields{
 		"app": "scale",

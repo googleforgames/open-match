@@ -188,39 +188,39 @@ backoff:
 
 api:
   backend:
-    hostname: "om-backend"
+    hostname: "open-match-backend"
     grpcport: "50505"
     httpport: "51505"
   frontend:
-    hostname: "om-frontend"
+    hostname: "open-match-frontend"
     grpcport: "50504"
     httpport: "51504"
   query:
-    hostname: "om-query"
+    hostname: "open-match-query"
     grpcport: "50503"
     httpport: "51503"
   synchronizer:
-    hostname: "om-synchronizer"
+    hostname: "open-match-synchronizer"
     grpcport: "50506"
     httpport: "51506"
   swaggerui:
-    hostname: "om-swaggerui"
+    hostname: "open-match-swaggerui"
     httpport: "51500"
   scale:
     httpport: "51509"
   evaluator:
-    hostname: "test"
+    hostname: "open-match-test"
     grpcport: "50509"
     httpport: "51509"
   test:
-    hostname: "test"
+    hostname: "open-match-test"
     grpcport: "50509"
     httpport: "51509"
 
 redis:
   sentinelPort: 26379
   sentinelMaster: om-redis-master
-  sentinelHostname: om-redis
+  sentinelHostname: open-match-redis
   sentinelUsePassword: 
   usePassword: false
   passwordPath: /opt/bitnami/redis/secrets/redis-password
@@ -237,8 +237,8 @@ telemetry:
     enable: "true"
   jaeger:
     enable: "false"
-    agentEndpoint: "open-match-jaeger-agent:6831"
-    collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
+    agentEndpoint: ""
+    collectorEndpoint: ""
   prometheus:
     enable: "false"
     endpoint: "/metrics"
