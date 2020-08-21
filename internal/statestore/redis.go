@@ -484,7 +484,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 		if callback != nil {
 			err = callback(ticket, ticket.Assignment)
 			if err != nil {
-				redisLogger.WithError(err).Errorf("could't record time to assigment for ticket %s", ticket.Id)
+				redisLogger.WithError(err).Errorf("failed to run update assignment callback for ticket %s", ticket.Id)
 			}
 		}
 	}

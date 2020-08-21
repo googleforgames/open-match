@@ -16,6 +16,7 @@ package statestore
 
 import (
 	"context"
+
 	"go.opencensus.io/trace"
 	"open-match.dev/open-match/pkg/pb"
 )
