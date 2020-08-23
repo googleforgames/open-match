@@ -28,6 +28,7 @@ import (
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
@@ -90,11 +91,13 @@ func TestTicketLifecycle(t *testing.T) {
 
 	// Validate Ticket retrival
 	result, err := service.GetTicket(ctx, ticket.Id)
-	assert.Nil(err)
-	assert.NotNil(result)
+	require.NoError(t, err)
+	require.NotNil(t, result)
 	assert.Equal(ticket.Id, result.Id)
 	assert.Equal(ticket.SearchFields.DoubleArgs["testindex1"], result.SearchFields.DoubleArgs["testindex1"])
-	assert.Equal(ticket.Assignment.Connection, result.Assignment.Connection)
+	if assert.NotNil(result.Assignment) {
+		assert.Equal(ticket.Assignment.Connection, result.Assignment.Connection)
+	}
 
 	// Validate Ticket deletion
 	err = service.DeleteTicket(ctx, id)
@@ -266,8 +269,8 @@ func testConnect(t *testing.T, withSentinel bool, withPassword string) {
 	assert.True(ok)
 
 	conn, err := rb.connect(ctx)
-	assert.NotNil(conn)
-	assert.Nil(err)
+	require.NoError(t, err)
+	require.NotNil(t, conn)
 
 	rply, err := redis.String(conn.Do("PING"))
 	assert.Nil(err)
