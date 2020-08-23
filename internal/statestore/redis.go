@@ -223,18 +223,22 @@ func redisURLFromAddr(addr string, cfg config.View, usePassword bool) string {
 func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Error("failed to connect to redis")
-		return nil, status.Errorf(codes.Unavailable, "%v", err)
+		return nil, status.Errorf(codes.Unavailable, "failed to connect to redis: %v", err)
 	}
 	return redisConn, nil
 }
 
 // CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
 func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
+	if ticket == nil {
+		return errors.New("nil ticket provided")
+	}
+
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Errorf("error in CreateTicket, id: %s", ticket.Id)
 		return err
 	}
 	defer handleConnectionClose(&redisConn)
@@ -265,6 +269,9 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, error) {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Errorf("error in GetTicket, id: %s", id)
 		return nil, err
 	}
 	defer handleConnectionClose(&redisConn)
@@ -316,6 +323,9 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Errorf("error in DeleteTicket, id: %s", id)
 		return err
 	}
 	defer handleConnectionClose(&redisConn)
@@ -335,8 +345,15 @@ func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) error {
 
 // IndexTicket indexes the Ticket id for the configured index fields.
 func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) error {
+	if ticket == nil {
+		return errors.New("nil ticket provided")
+	}
+
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Errorf("error in IndexTicket, id: %s", ticket.Id)
 		return err
 	}
 	defer handleConnectionClose(&redisConn)
@@ -359,6 +376,9 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Errorf("error in DeindexTicket, id: %s", id)
 		return err
 	}
 	defer handleConnectionClose(&redisConn)
@@ -381,6 +401,9 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{}, error) {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("error in GetIndexedIDSet")
 		return nil, err
 	}
 	defer handleConnectionClose(&redisConn)
@@ -425,6 +448,9 @@ func (rb *redisBackend) GetTickets(ctx context.Context, ids []string) ([]*pb.Tic
 
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("error in GetTickets")
 		return nil, err
 	}
 	defer handleConnectionClose(&redisConn)
@@ -464,6 +490,10 @@ func (rb *redisBackend) GetTickets(ctx context.Context, ids []string) ([]*pb.Tic
 
 // UpdateAssignments update using the request's specified tickets with assignments.
 func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
+	if req == nil {
+		return nil, errors.New("nil AssignTicketsRequest provided")
+	}
+
 	resp := &pb.AssignTicketsResponse{}
 	if len(req.Assignments) == 0 {
 		return resp, nil
@@ -490,6 +520,9 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("error in UpdateAssignments")
 		return nil, err
 	}
 	defer handleConnectionClose(&redisConn)
@@ -573,6 +606,9 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Errorf("error in GetAssignments, id: %s", id)
 		return err
 	}
 	defer handleConnectionClose(&redisConn)
@@ -581,7 +617,6 @@ func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback 
 		var ticket *pb.Ticket
 		ticket, err = rb.GetTicket(ctx, id)
 		if err != nil {
-			redisLogger.WithError(err).Errorf("failed to get ticket %s when executing get assignments", id)
 			return backoff.Permanent(err)
 		}
 
@@ -608,6 +643,9 @@ func (rb *redisBackend) AddTicketsToPendingRelease(ctx context.Context, ids []st
 
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("error in AddTicketsToPendingRelease")
 		return err
 	}
 	defer handleConnectionClose(&redisConn)
@@ -636,6 +674,9 @@ func (rb *redisBackend) DeleteTicketsFromPendingRelease(ctx context.Context, ids
 
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("error in DeleteTicketsFromPendingRelease")
 		return err
 	}
 	defer handleConnectionClose(&redisConn)
@@ -658,6 +699,9 @@ func (rb *redisBackend) DeleteTicketsFromPendingRelease(ctx context.Context, ids
 func (rb *redisBackend) ReleaseAllTickets(ctx context.Context) error {
 	redisConn, err := rb.connect(ctx)
 	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("error in ReleaseAllTickets")
 		return err
 	}
 	defer handleConnectionClose(&redisConn)
