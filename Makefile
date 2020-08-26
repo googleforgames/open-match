@@ -392,30 +392,30 @@ endif
 install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml install/yaml/06-open-match-override-configmap.yaml install/yaml/07-open-match-default-evaluator.yaml
 
 # We have to hard-code the Jaeger endpoints as we are excluding Jaeger, so Helm cannot determine the endpoints from the Jaeger subchart
-install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) build/chart/open-match-$(BASE_VERSION).tgz
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set-string global.telemetry.jaeger.agentEndpoint="$(OPEN_MATCH_HELM_NAME)-jaeger-agent:6831" \
 		--set-string global.telemetry.jaeger.collectorEndpoint="http://$(OPEN_MATCH_HELM_NAME)-jaeger-collector:14268/api/traces" \
-		install/helm/open-match > install/yaml/01-open-match-core.yaml
+		build/chart/open-match-$(BASE_VERSION).tgz > install/yaml/01-open-match-core.yaml
 
-install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+install/yaml/02-open-match-demo.yaml:
 	mkdir -p install/yaml/
 	cp $(REPOSITORY_ROOT)/install/02-open-match-demo.yaml $(REPOSITORY_ROOT)/install/yaml/02-open-match-demo.yaml
 	$(SED_REPLACE) 's|0.0.0-dev|$(TAG)|g' $(REPOSITORY_ROOT)/install/yaml/02-open-match-demo.yaml
 	$(SED_REPLACE) 's|gcr.io/open-match-public-images|$(REGISTRY)|g' $(REPOSITORY_ROOT)/install/yaml/02-open-match-demo.yaml
 
-install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+install/yaml/03-prometheus-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) build/chart/open-match-$(BASE_VERSION).tgz
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=false \
 		--set open-match-core.redis.enabled=false \
 		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
-		install/helm/open-match > install/yaml/03-prometheus-chart.yaml
+		build/chart/open-match-$(BASE_VERSION).tgz > install/yaml/03-prometheus-chart.yaml
 
 # We have to hard-code the Prometheus Server URL as we are excluding Prometheus, so Helm cannot determine the URL from the Prometheus subchart
-install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) build/chart/open-match-$(BASE_VERSION).tgz
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=false \
@@ -423,36 +423,36 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set-string global.telemetry.grafana.prometheusServer="http://$(OPEN_MATCH_HELM_NAME)-prometheus-server.$(OPEN_MATCH_KUBERNETES_NAMESPACE).svc.cluster.local:80/" \
-		install/helm/open-match > install/yaml/04-grafana-chart.yaml
+		build/chart/open-match-$(BASE_VERSION).tgz > install/yaml/04-grafana-chart.yaml
 
-install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) build/chart/open-match-$(BASE_VERSION).tgz
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=false \
 		--set open-match-core.redis.enabled=false \
 		--set open-match-telemetry.enabled=true \
 		--set global.telemetry.jaeger.enabled=true \
-		install/helm/open-match > install/yaml/05-jaeger-chart.yaml
+		build/chart/open-match-$(BASE_VERSION).tgz > install/yaml/05-jaeger-chart.yaml
 
-install/yaml/06-open-match-override-configmap.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+install/yaml/06-open-match-override-configmap.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) build/chart/open-match-$(BASE_VERSION).tgz
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=false \
 		--set open-match-core.redis.enabled=false \
 		--set open-match-override.enabled=true \
 		-s templates/om-configmap-override.yaml \
-		install/helm/open-match > install/yaml/06-open-match-override-configmap.yaml
+		build/chart/open-match-$(BASE_VERSION).tgz > install/yaml/06-open-match-override-configmap.yaml
 
-install/yaml/07-open-match-default-evaluator.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+install/yaml/07-open-match-default-evaluator.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) build/chart/open-match-$(BASE_VERSION).tgz
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-core.enabled=false \
 		--set open-match-core.redis.enabled=false \
 		--set open-match-customize.enabled=true \
 		--set open-match-customize.evaluator.enabled=true \
-		install/helm/open-match > install/yaml/07-open-match-default-evaluator.yaml
+		build/chart/open-match-$(BASE_VERSION).tgz > install/yaml/07-open-match-default-evaluator.yaml
 
-install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
+install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) build/chart/open-match-$(BASE_VERSION).tgz
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
 		--set open-match-customize.enabled=true \
@@ -461,7 +461,7 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
-		install/helm/open-match > install/yaml/install.yaml
+		build/chart/open-match-$(BASE_VERSION).tgz > install/yaml/install.yaml
 
 set-redis-password:
 	@stty -echo; \
