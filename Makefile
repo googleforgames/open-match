@@ -298,7 +298,7 @@ lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/ct$(EXE
 patch-chart-image-tag:
 	$(SED_REPLACE) 's|    tag: .*|    tag: $(TAG)|g' $(REPOSITORY_ROOT)/install/helm/open-match/values.yaml
 
-build/chart/open-match-$(BASE_VERSION).tgz: build/toolchain/bin/helm$(EXE_EXTENSION) lint-chart patch-chart-image-tag
+build/chart/open-match-$(BASE_VERSION).tgz: build/toolchain/bin/helm$(EXE_EXTENSION) lint-chart patch-chart-image-tag update-chart-deps
 	mkdir -p $(BUILD_DIR)/chart/
 	$(HELM) package -d $(BUILD_DIR)/chart/ --version $(BASE_VERSION) --app-version $(TAG) $(REPOSITORY_ROOT)/install/helm/open-match
 
@@ -393,7 +393,7 @@ ifneq ($(BASE_VERSION), 0.0.0-dev)
 install/yaml/: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
 install/yaml/: TAG = $(BASE_VERSION)
 endif
-install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml install/yaml/06-open-match-override-configmap.yaml install/yaml/07-open-match-default-evaluator.yaml
+install/yaml/: install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml install/yaml/06-open-match-override-configmap.yaml install/yaml/07-open-match-default-evaluator.yaml
 
 # We have to hard-code the Jaeger endpoints as we are excluding Jaeger, so Helm cannot determine the endpoints from the Jaeger subchart
 install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) build/chart/open-match-$(BASE_VERSION).tgz
