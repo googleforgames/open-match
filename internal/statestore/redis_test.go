@@ -27,7 +27,6 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/rs/xid"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -39,21 +38,19 @@ import (
 )
 
 func TestStatestoreSetup(t *testing.T) {
-	assert := assert.New(t)
 	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
-	assert.NotNil(service)
+	require.NotNil(t, service)
 	defer service.Close()
 }
 
 func TestTicketLifecycle(t *testing.T) {
 	// Create State Store
-	assert := assert.New(t)
 	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
-	assert.NotNil(service)
+	require.NotNil(t, service)
 	defer service.Close()
 
 	ctx := utilTesting.NewContext(t)
@@ -74,46 +71,44 @@ func TestTicketLifecycle(t *testing.T) {
 
 	// Validate that GetTicket fails for a Ticket that does not exist.
 	_, err := service.GetTicket(ctx, id)
-	assert.NotNil(err)
-	assert.Equal(status.Code(err), codes.NotFound)
+	require.NotNil(t, err)
+	require.Equal(t, status.Code(err), codes.NotFound)
 
 	// Validate nonexisting Ticket deletion
 	err = service.DeleteTicket(ctx, id)
-	assert.Nil(err)
+	require.Nil(t, err)
 
 	// Validate nonexisting Ticket deindexing
 	err = service.DeindexTicket(ctx, id)
-	assert.Nil(err)
+	require.Nil(t, err)
 
 	// Validate Ticket creation
 	err = service.CreateTicket(ctx, ticket)
-	assert.Nil(err)
+	require.Nil(t, err)
 
 	// Validate Ticket retrival
 	result, err := service.GetTicket(ctx, ticket.Id)
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.Equal(ticket.Id, result.Id)
-	assert.Equal(ticket.SearchFields.DoubleArgs["testindex1"], result.SearchFields.DoubleArgs["testindex1"])
-	if assert.NotNil(result.Assignment) {
-		assert.Equal(ticket.Assignment.Connection, result.Assignment.Connection)
-	}
+	require.Equal(t, ticket.Id, result.Id)
+	require.Equal(t, ticket.SearchFields.DoubleArgs["testindex1"], result.SearchFields.DoubleArgs["testindex1"])
+	require.NotNil(t, result.Assignment)
+	require.Equal(t, ticket.Assignment.Connection, result.Assignment.Connection)
 
 	// Validate Ticket deletion
 	err = service.DeleteTicket(ctx, id)
-	assert.Nil(err)
+	require.Nil(t, err)
 
 	_, err = service.GetTicket(ctx, id)
-	assert.NotNil(err)
+	require.NotNil(t, err)
 }
 
 func TestPendingReleases(t *testing.T) {
 	// Create State Store
-	assert := assert.New(t)
 	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
-	assert.NotNil(service)
+	require.NotNil(t, service)
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
@@ -124,22 +119,22 @@ func TestPendingReleases(t *testing.T) {
 
 	ticketIds := []string{}
 	for _, ticket := range tickets {
-		assert.Nil(service.CreateTicket(ctx, ticket))
-		assert.Nil(service.IndexTicket(ctx, ticket))
+		require.Nil(t, service.CreateTicket(ctx, ticket))
+		require.Nil(t, service.IndexTicket(ctx, ticket))
 		ticketIds = append(ticketIds, ticket.GetId())
 	}
 
 	verifyTickets := func(service Service, expectLen int) {
 		ids, err := service.GetIndexedIDSet(ctx)
-		assert.Nil(err)
-		assert.Equal(expectLen, len(ids))
+		require.Nil(t, err)
+		require.Equal(t, expectLen, len(ids))
 	}
 
 	// Verify all tickets are created and returned
 	verifyTickets(service, len(tickets))
 
 	// Add the first three tickets to the pending release and verify changes are reflected in the result
-	assert.Nil(service.AddTicketsToPendingRelease(ctx, ticketIds[:3]))
+	require.Nil(t, service.AddTicketsToPendingRelease(ctx, ticketIds[:3]))
 	verifyTickets(service, len(tickets)-3)
 
 	// Sleep until the pending release expired and verify we still have all the tickets
@@ -149,11 +144,10 @@ func TestPendingReleases(t *testing.T) {
 
 func TestDeleteTicketsFromPendingRelease(t *testing.T) {
 	// Create State Store
-	assert := assert.New(t)
 	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
-	assert.NotNil(service)
+	require.NotNil(t, service)
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
@@ -164,35 +158,34 @@ func TestDeleteTicketsFromPendingRelease(t *testing.T) {
 
 	ticketIds := []string{}
 	for _, ticket := range tickets {
-		assert.Nil(service.CreateTicket(ctx, ticket))
-		assert.Nil(service.IndexTicket(ctx, ticket))
+		require.Nil(t, service.CreateTicket(ctx, ticket))
+		require.Nil(t, service.IndexTicket(ctx, ticket))
 		ticketIds = append(ticketIds, ticket.GetId())
 	}
 
 	verifyTickets := func(service Service, expectLen int) {
 		ids, err := service.GetIndexedIDSet(ctx)
-		assert.Nil(err)
-		assert.Equal(expectLen, len(ids))
+		require.Nil(t, err)
+		require.Equal(t, expectLen, len(ids))
 	}
 
 	// Verify all tickets are created and returned
 	verifyTickets(service, len(tickets))
 
 	// Add the first three tickets to the pending release and verify changes are reflected in the result
-	assert.Nil(service.AddTicketsToPendingRelease(ctx, ticketIds[:3]))
+	require.Nil(t, service.AddTicketsToPendingRelease(ctx, ticketIds[:3]))
 	verifyTickets(service, len(tickets)-3)
 
-	assert.Nil(service.DeleteTicketsFromPendingRelease(ctx, ticketIds[:3]))
+	require.Nil(t, service.DeleteTicketsFromPendingRelease(ctx, ticketIds[:3]))
 	verifyTickets(service, len(tickets))
 }
 
 func TestGetAssignmentBeforeSet(t *testing.T) {
 	// Create State Store
-	assert := assert.New(t)
 	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
-	assert.NotNil(service)
+	require.NotNil(t, service)
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
@@ -203,17 +196,16 @@ func TestGetAssignmentBeforeSet(t *testing.T) {
 		return nil
 	})
 	// GetAssignment failed because the ticket does not exists
-	assert.Equal(status.Convert(err).Code(), codes.NotFound)
-	assert.Nil(assignmentResp)
+	require.Equal(t, status.Convert(err).Code(), codes.NotFound)
+	require.Nil(t, assignmentResp)
 }
 
 func TestGetAssignmentNormal(t *testing.T) {
 	// Create State Store
-	assert := assert.New(t)
 	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
-	assert.NotNil(service)
+	require.NotNil(t, service)
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
@@ -221,7 +213,7 @@ func TestGetAssignmentNormal(t *testing.T) {
 		Id:         "1",
 		Assignment: &pb.Assignment{Connection: "2"},
 	})
-	assert.Nil(err)
+	require.Nil(t, err)
 
 	var assignmentResp *pb.Assignment
 	ctx, cancel := context.WithCancel(ctx)
@@ -236,7 +228,7 @@ func TestGetAssignmentNormal(t *testing.T) {
 			return returnedErr
 		} else if callbackCount > 0 {
 			// Test the assignment returned was successfully passed in to the callback function
-			assert.Equal(assignmentResp.Connection, "2")
+			require.Equal(t, assignmentResp.Connection, "2")
 		}
 
 		callbackCount++
@@ -244,8 +236,8 @@ func TestGetAssignmentNormal(t *testing.T) {
 	})
 
 	// Test GetAssignments was retried for 5 times and returned with expected error
-	assert.Equal(5, callbackCount)
-	assert.Equal(returnedErr, err)
+	require.Equal(t, 5, callbackCount)
+	require.Equal(t, returnedErr, err)
 }
 
 func TestConnect(t *testing.T) {
@@ -256,7 +248,6 @@ func TestConnect(t *testing.T) {
 }
 
 func testConnect(t *testing.T, withSentinel bool, withPassword string) {
-	assert := assert.New(t)
 	cfg, closer := createRedis(t, withSentinel, withPassword)
 	defer closer()
 	store := New(cfg)
@@ -264,17 +255,17 @@ func testConnect(t *testing.T, withSentinel bool, withPassword string) {
 	ctx := utilTesting.NewContext(t)
 
 	is, ok := store.(*instrumentedService)
-	assert.True(ok)
+	require.True(t, ok)
 	rb, ok := is.s.(*redisBackend)
-	assert.True(ok)
+	require.True(t, ok)
 
 	conn, err := rb.connect(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, conn)
 
 	rply, err := redis.String(conn.Do("PING"))
-	assert.Nil(err)
-	assert.Equal("PONG", rply)
+	require.Nil(t, err)
+	require.Equal(t, "PONG", rply)
 }
 
 func createRedis(t *testing.T, withSentinel bool, withPassword string) (config.View, func()) {
