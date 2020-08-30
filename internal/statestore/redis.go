@@ -220,45 +220,23 @@ func redisURLFromAddr(addr string, cfg config.View, usePassword bool) string {
 	return redisURL + addr
 }
 
-func (rb *redisBackend) connect(ctx context.Context) (redis.Conn, error) {
-	redisConn, err := rb.redisPool.GetContext(ctx)
-	if err != nil {
-		return nil, status.Errorf(codes.Unavailable, "failed to connect to redis: %v", err)
-	}
-	return redisConn, nil
-}
-
 // CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
 func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
-	if ticket == nil {
-		return errors.New("nil ticket provided")
-	}
-
-	redisConn, err := rb.connect(ctx)
+	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Errorf("error in CreateTicket, id: %s", ticket.Id)
-		return err
+		return status.Errorf(codes.Unavailable, "CreateTicket, id: %s, failed to connect to redis: %v", ticket.GetId(), err)
 	}
 	defer handleConnectionClose(&redisConn)
 
 	value, err := proto.Marshal(ticket)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"key":   ticket.GetId(),
-			"error": err.Error(),
-		}).Error("failed to marshal the ticket proto")
+		err = errors.Wrapf(err, "failed to marshal the ticket proto, id: %s", ticket.GetId())
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
 	_, err = redisConn.Do("SET", ticket.GetId(), value)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "SET",
-			"key":   ticket.GetId(),
-			"error": err.Error(),
-		}).Error("failed to set the value for ticket")
+		err = errors.Wrapf(err, "failed to set the value for ticket, id: %s", ticket.GetId())
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
@@ -267,52 +245,33 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 
 // GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
 func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, error) {
-	redisConn, err := rb.connect(ctx)
+	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Errorf("error in GetTicket, id: %s", id)
-		return nil, err
+		return nil, status.Errorf(codes.Unavailable, "GetTicket, id: %s, failed to connect to redis: %v", id, err)
 	}
 	defer handleConnectionClose(&redisConn)
 
 	value, err := redis.Bytes(redisConn.Do("GET", id))
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "GET",
-			"key":   id,
-			"error": err.Error(),
-		}).Error("failed to get the ticket from state storage")
-
 		// Return NotFound if redigo did not find the ticket in storage.
 		if err == redis.ErrNil {
 			msg := fmt.Sprintf("Ticket id:%s not found", id)
-			redisLogger.WithFields(logrus.Fields{
-				"key": id,
-				"cmd": "GET",
-			}).Error(msg)
 			return nil, status.Error(codes.NotFound, msg)
 		}
 
+		err = errors.Wrapf(err, "failed to get the ticket from state storage, id: %s", id)
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
 	if value == nil {
 		msg := fmt.Sprintf("Ticket id:%s not found", id)
-		redisLogger.WithFields(logrus.Fields{
-			"key": id,
-			"cmd": "GET",
-		}).Error(msg)
 		return nil, status.Error(codes.NotFound, msg)
 	}
 
 	ticket := &pb.Ticket{}
 	err = proto.Unmarshal(value, ticket)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"key":   id,
-			"error": err.Error(),
-		}).Error("failed to unmarshal the ticket proto")
+		err = errors.Wrapf(err, "failed to unmarshal the ticket proto, id: %s", id)
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
@@ -321,22 +280,15 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 
 // DeleteTicket removes the Ticket with the specified id from state storage.
 func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) error {
-	redisConn, err := rb.connect(ctx)
+	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Errorf("error in DeleteTicket, id: %s", id)
-		return err
+		return status.Errorf(codes.Unavailable, "DeleteTicket, id: %s, failed to connect to redis: %v", id, err)
 	}
 	defer handleConnectionClose(&redisConn)
 
 	_, err = redisConn.Do("DEL", id)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "DEL",
-			"key":   id,
-			"error": err.Error(),
-		}).Error("failed to delete the ticket from state storage")
+		err = errors.Wrapf(err, "failed to delete the ticket from state storage, id: %s", id)
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
@@ -345,27 +297,15 @@ func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) error {
 
 // IndexTicket indexes the Ticket id for the configured index fields.
 func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) error {
-	if ticket == nil {
-		return errors.New("nil ticket provided")
-	}
-
-	redisConn, err := rb.connect(ctx)
+	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Errorf("error in IndexTicket, id: %s", ticket.Id)
-		return err
+		return status.Errorf(codes.Unavailable, "IndexTicket, id: %s, failed to connect to redis: %v", ticket.GetId(), err)
 	}
 	defer handleConnectionClose(&redisConn)
 
 	err = redisConn.Send("SADD", allTickets, ticket.Id)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":    "SADD",
-			"ticket": ticket.GetId(),
-			"error":  err.Error(),
-			"key":    allTickets,
-		}).Error("failed to add ticket to all tickets")
+		err = errors.Wrapf(err, "failed to add ticket to all tickets, id: %s", ticket.Id)
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
@@ -374,23 +314,15 @@ func (rb *redisBackend) IndexTicket(ctx context.Context, ticket *pb.Ticket) erro
 
 // DeindexTicket removes the indexing for the specified Ticket. Only the indexes are removed but the Ticket continues to exist.
 func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
-	redisConn, err := rb.connect(ctx)
+	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Errorf("error in DeindexTicket, id: %s", id)
-		return err
+		return status.Errorf(codes.Unavailable, "DeindexTicket, id: %s, failed to connect to redis: %v", id, err)
 	}
 	defer handleConnectionClose(&redisConn)
 
 	err = redisConn.Send("SREM", allTickets, id)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"cmd":   "SREM",
-			"key":   allTickets,
-			"id":    id,
-			"error": err.Error(),
-		}).Error("failed to remove ticket from all tickets")
+		err = errors.Wrapf(err, "failed to remove ticket from all tickets, id: %s", id)
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
@@ -399,12 +331,9 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 
 // GetIndexedIds returns the ids of all tickets currently indexed.
 func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{}, error) {
-	redisConn, err := rb.connect(ctx)
+	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Error("error in GetIndexedIDSet")
-		return nil, err
+		return nil, status.Errorf(codes.Unavailable, "GetIndexedIDSet, failed to connect to redis: %v", err)
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -416,15 +345,11 @@ func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{
 	// Filter out tickets that are fetched but not assigned within ttl time (ms).
 	idsInPendingReleases, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, endTimeInt))
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to get proposed tickets")
 		return nil, status.Errorf(codes.Internal, "error getting pending release %v", err)
 	}
 
 	idsIndexed, err := redis.Strings(redisConn.Do("SMEMBERS", allTickets))
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"Command": "SMEMBER allTickets",
-		}).WithError(err).Error("Failed to lookup all tickets.")
 		return nil, status.Errorf(codes.Internal, "error getting all indexed ticket ids %v", err)
 	}
 
@@ -446,12 +371,9 @@ func (rb *redisBackend) GetTickets(ctx context.Context, ids []string) ([]*pb.Tic
 		return nil, nil
 	}
 
-	redisConn, err := rb.connect(ctx)
+	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Error("error in GetTickets")
-		return nil, err
+		return nil, status.Errorf(codes.Unavailable, "GetTickets, failed to connect to redis: %v", err)
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -462,9 +384,7 @@ func (rb *redisBackend) GetTickets(ctx context.Context, ids []string) ([]*pb.Tic
 
 	ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", queryParams...))
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"Command": fmt.Sprintf("MGET %v", ids),
-		}).WithError(err).Error("Failed to lookup tickets.")
+		err = errors.Wrapf(err, "failed to lookup tickets %v", ids)
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
@@ -476,9 +396,7 @@ func (rb *redisBackend) GetTickets(ctx context.Context, ids []string) ([]*pb.Tic
 			t := &pb.Ticket{}
 			err = proto.Unmarshal(b, t)
 			if err != nil {
-				redisLogger.WithFields(logrus.Fields{
-					"key": ids[i],
-				}).WithError(err).Error("Failed to unmarshal ticket from redis.")
+				err = errors.Wrapf(err, "failed to unmarshal ticket from redis, key %s", ids[i])
 				return nil, status.Errorf(codes.Internal, "%v", err)
 			}
 			r = append(r, t)
@@ -490,10 +408,6 @@ func (rb *redisBackend) GetTickets(ctx context.Context, ids []string) ([]*pb.Tic
 
 // UpdateAssignments update using the request's specified tickets with assignments.
 func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
-	if req == nil {
-		return nil, errors.New("nil AssignTicketsRequest provided")
-	}
-
 	resp := &pb.AssignTicketsResponse{}
 	if len(req.Assignments) == 0 {
 		return resp, nil
@@ -518,12 +432,9 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 		}
 	}
 
-	redisConn, err := rb.connect(ctx)
+	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Error("error in UpdateAssignments")
-		return nil, err
+		return nil, status.Errorf(codes.Unavailable, "UpdateAssignments, failed to connect to redis: %v", err)
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -544,9 +455,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 			t := &pb.Ticket{}
 			err = proto.Unmarshal(ticketByte, t)
 			if err != nil {
-				redisLogger.WithFields(logrus.Fields{
-					"key": ids[i],
-				}).WithError(err).Error("failed to unmarshal ticket from redis.")
+				err = errors.Wrapf(err, "failed to unmarshal ticket from redis %s", ids[i])
 				return nil, status.Errorf(codes.Internal, "%v", err)
 			}
 			tickets = append(tickets, t)
@@ -604,12 +513,9 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 
 // GetAssignments returns the assignment associated with the input ticket id
 func (rb *redisBackend) GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error {
-	redisConn, err := rb.connect(ctx)
+	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Errorf("error in GetAssignments, id: %s", id)
-		return err
+		return status.Errorf(codes.Unavailable, "GetAssignments, id: %s, failed to connect to redis: %v", id, err)
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -641,12 +547,9 @@ func (rb *redisBackend) AddTicketsToPendingRelease(ctx context.Context, ids []st
 		return nil
 	}
 
-	redisConn, err := rb.connect(ctx)
+	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Error("error in AddTicketsToPendingRelease")
-		return err
+		return status.Errorf(codes.Unavailable, "AddTicketsToPendingRelease, failed to connect to redis: %v", err)
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -659,7 +562,7 @@ func (rb *redisBackend) AddTicketsToPendingRelease(ctx context.Context, ids []st
 
 	_, err = redisConn.Do("ZADD", cmds...)
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to append proposed tickets to pending release")
+		err = errors.Wrap(err, "failed to append proposed tickets to pending release")
 		return status.Error(codes.Internal, err.Error())
 	}
 
@@ -672,12 +575,9 @@ func (rb *redisBackend) DeleteTicketsFromPendingRelease(ctx context.Context, ids
 		return nil
 	}
 
-	redisConn, err := rb.connect(ctx)
+	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Error("error in DeleteTicketsFromPendingRelease")
-		return err
+		return status.Errorf(codes.Unavailable, "DeleteTicketsFromPendingRelease, failed to connect to redis: %v", err)
 	}
 	defer handleConnectionClose(&redisConn)
 
@@ -689,7 +589,7 @@ func (rb *redisBackend) DeleteTicketsFromPendingRelease(ctx context.Context, ids
 
 	_, err = redisConn.Do("ZREM", cmds...)
 	if err != nil {
-		redisLogger.WithError(err).Error("failed to delete proposed tickets from pending release")
+		err = errors.Wrap(err, "failed to delete proposed tickets from pending release")
 		return status.Error(codes.Internal, err.Error())
 	}
 
@@ -697,12 +597,9 @@ func (rb *redisBackend) DeleteTicketsFromPendingRelease(ctx context.Context, ids
 }
 
 func (rb *redisBackend) ReleaseAllTickets(ctx context.Context) error {
-	redisConn, err := rb.connect(ctx)
+	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Error("error in ReleaseAllTickets")
-		return err
+		return status.Errorf(codes.Unavailable, "ReleaseAllTickets, failed to connect to redis: %v", err)
 	}
 	defer handleConnectionClose(&redisConn)
 

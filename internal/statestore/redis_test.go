@@ -259,7 +259,7 @@ func testConnect(t *testing.T, withSentinel bool, withPassword string) {
 	rb, ok := is.s.(*redisBackend)
 	require.True(t, ok)
 
-	conn, err := rb.connect(ctx)
+	conn, err := rb.redisPool.GetContext(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, conn)
 
