@@ -21,7 +21,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -122,17 +122,17 @@ func TestEvaluate(t *testing.T) {
 			close(in)
 
 			err := evaluate(context.Background(), in, out)
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			gotMatchIDs := []string{}
 			close(out)
 			for id := range out {
 				gotMatchIDs = append(gotMatchIDs, id)
 			}
-			assert.Equal(t, len(test.wantMatchIDs), len(gotMatchIDs))
+			require.Equal(t, len(test.wantMatchIDs), len(gotMatchIDs))
 
 			for _, mID := range gotMatchIDs {
-				assert.Contains(t, test.wantMatchIDs, mID)
+				require.Contains(t, test.wantMatchIDs, mID)
 			}
 		})
 	}
