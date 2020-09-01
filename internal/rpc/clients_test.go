@@ -84,8 +84,7 @@ func TestSanitizeHTTPAddress(t *testing.T) {
 		{"https://om-test:54321", true, "https://om-test:54321", nil},
 	}
 
-	for _, testCase := range tests {
-		tc := testCase
+	for _, tc := range tests {
 		description := fmt.Sprintf("sanitizeHTTPAddress(%s, %t) => (%s, %v)", tc.address, tc.preferHTTPS, tc.expected, tc.err)
 		t.Run(description, func(t *testing.T) {
 			assert := assert.New(t)

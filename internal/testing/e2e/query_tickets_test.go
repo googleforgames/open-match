@@ -119,7 +119,6 @@ func TestPaging(t *testing.T) {
 
 func TestTicketFound(t *testing.T) {
 	for _, tc := range testcases.IncludedTestCases() {
-		tc := tc
 		t.Run("QueryTickets_"+tc.Name, func(t *testing.T) {
 			if !returnedByQuery(t, tc) {
 				require.Fail(t, "Expected to find ticket in pool but didn't.")
@@ -135,7 +134,6 @@ func TestTicketFound(t *testing.T) {
 
 func TestTicketNotFound(t *testing.T) {
 	for _, tc := range testcases.ExcludedTestCases() {
-		tc := tc
 		t.Run("QueryTickets_"+tc.Name, func(t *testing.T) {
 			if returnedByQuery(t, tc) {
 				require.Fail(t, "Expected to not find ticket in pool but did.")

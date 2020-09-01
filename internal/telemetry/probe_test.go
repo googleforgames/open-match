@@ -48,7 +48,6 @@ func TestHealthCheck(t *testing.T) {
 		{"angryHealthCheck", []func(context.Context) error{angryHealthCheck}, "I'm angry"},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			assertHealthCheck(t, NewHealthCheck(tc.healthChecks), tc.errorString)
 		})

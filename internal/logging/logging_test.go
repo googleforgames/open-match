@@ -35,7 +35,6 @@ func TestNewFormatter(t *testing.T) {
 		{"text", &logrus.TextFormatter{}},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(fmt.Sprintf("newFormatter(%s) => %s", tc.in, tc.expected), func(t *testing.T) {
 			assert := assert.New(t)
 			actual := newFormatter(tc.in)
@@ -58,7 +57,6 @@ func TestIsDebugLevel(t *testing.T) {
 		{logrus.PanicLevel, false},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(fmt.Sprintf("isDebugLevel(%s) => %t", tc.in, tc.expected), func(t *testing.T) {
 			assert := assert.New(t)
 			actual := isDebugLevel(tc.in)
@@ -85,7 +83,6 @@ func TestToLevel(t *testing.T) {
 		{"nothing", logrus.InfoLevel},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(fmt.Sprintf("toLevel(%s) => %s", tc.in, tc.expected), func(t *testing.T) {
 			assert := assert.New(t)
 			actual := toLevel(tc.in)

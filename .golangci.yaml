@@ -186,6 +186,7 @@ issues:
   # excluded by default patterns execute `golangci-lint run --help`
   exclude:
     - abcdef
+    - Using the variable on range scope .* in function literal
 
   # Excluding configuration per-path, per-linter, per-text and per-source
   exclude-rules:

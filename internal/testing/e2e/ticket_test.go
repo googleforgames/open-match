@@ -122,7 +122,6 @@ func TestAssignTicketsInvalidArgument(t *testing.T) {
 			"Ticket id " + ctResp.Id + " is assigned multiple times in one assign tickets call.",
 		},
 	} {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := om.Backend().AssignTickets(ctx, tt.req)
 			require.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
@@ -516,7 +515,6 @@ func TestCreateTicketErrors(t *testing.T) {
 			"tickets cannot be created with create time set",
 		},
 	} {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			om := newOM(t)
 			ctx := context.Background()

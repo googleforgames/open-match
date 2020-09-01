@@ -28,7 +28,6 @@ import (
 
 func TestMeetsCriteria(t *testing.T) {
 	for _, tc := range testcases.IncludedTestCases() {
-		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			pf, err := NewPoolFilter(tc.Pool)
 			if err != nil {
@@ -42,7 +41,6 @@ func TestMeetsCriteria(t *testing.T) {
 	}
 
 	for _, tc := range testcases.ExcludedTestCases() {
-		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			pf, err := NewPoolFilter(tc.Pool)
 			if err != nil {
@@ -80,7 +78,6 @@ func TestValidPoolFilter(t *testing.T) {
 			".invalid created_after value",
 		},
 	} {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			pf, err := NewPoolFilter(tc.pool)
 			assert.Nil(t, pf)

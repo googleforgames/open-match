@@ -96,7 +96,6 @@ func TestBadValues(t *testing.T) {
 		{"validity duration is required, otherwise the certificate would immediately expire", "pub.cert", "priv.key", &Params{Hostnames: []string{"127.0.0.1"}, RSAKeyLength: 2048}},
 	}
 	for _, testCase := range testCases {
-		testCase := testCase
 		t.Run(testCase.errorString, func(t *testing.T) {
 			err := CreateCertificateAndPrivateKeyFiles(
 				testCase.pub,
@@ -130,7 +129,6 @@ func TestExpandHostnames(t *testing.T) {
 		},
 	}
 	for _, testCase := range testCases {
-		testCase := testCase
 		t.Run(fmt.Sprintf("expandHostnames(%s) => %s", testCase.input, testCase.expected), func(t *testing.T) {
 			assert := assert.New(t)
 			actual := expandHostnames(testCase.input)

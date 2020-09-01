@@ -111,7 +111,6 @@ func TestEvaluate(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.description, func(t *testing.T) {
 			t.Parallel()
 			in := make(chan *pb.Match, 10)
