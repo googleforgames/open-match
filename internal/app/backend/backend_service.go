@@ -104,13 +104,8 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 
 	// TODO: Send mmf error in FetchSummary instead of erroring call.
 	if syncErr != nil || mmfErr != nil {
-		logger.WithFields(logrus.Fields{
-			"syncErr": syncErr,
-			"mmfErr":  mmfErr,
-		}).Error("error(s) in FetchMatches call.")
-
 		return fmt.Errorf(
-			"error(s) in FetchMatches call. syncErr=[%s], mmfErr=[%s]",
+			"error(s) in FetchMatches call. syncErr=[%v], mmfErr=[%v]",
 			syncErr,
 			mmfErr,
 		)
@@ -203,20 +198,16 @@ func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 	var conn *grpc.ClientConn
 	conn, err := cc.GetGRPC(address)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error":    err.Error(),
-			"function": address,
-		}).Error("failed to establish grpc client connection to match function")
-		return status.Error(codes.InvalidArgument, "failed to connect to match function")
+		return status.Error(codes.InvalidArgument, "failed to establish grpc client connection to match function")
 	}
 	client := pb.NewMatchFunctionClient(conn)
 
 	stream, err := client.Run(ctx, &pb.RunRequest{Profile: profile})
 	if err != nil {
-		logger.WithError(err).Error("failed to run match function for profile")
+		err = errors.Wrap(err, "failed to run match function for profile")
 		if ctx.Err() != nil {
 			// gRPC likes to suppress the context's error, so stop that.
-			return ctx.Err()
+			err = errors.Wrap(err, ctx.Err().Error())
 		}
 		return err
 	}
@@ -227,10 +218,10 @@ func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 			break
 		}
 		if err != nil {
-			logger.Errorf("%v.Run() error, %v\n", client, err)
+			err = errors.Wrapf(err, "%v.Run() error, %v", client, err)
 			if ctx.Err() != nil {
 				// gRPC likes to suppress the context's error, so stop that.
-				return ctx.Err()
+				err = errors.Wrap(err, ctx.Err().Error())
 			}
 			return err
 		}
@@ -247,11 +238,8 @@ func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 func callHTTPMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProfile, address string, proposals chan<- *pb.Match) error {
 	client, baseURL, err := cc.GetHTTP(address)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error":    err.Error(),
-			"function": address,
-		}).Error("failed to establish rest client connection to match function")
-		return status.Error(codes.InvalidArgument, "failed to connect to match function")
+		err = errors.Wrapf(err, "failed to establish rest client connection to match function: %s", address)
+		return status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var m jsonpb.Marshaler
@@ -308,9 +296,9 @@ func callHTTPMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 }
 
 func (s *backendService) ReleaseTickets(ctx context.Context, req *pb.ReleaseTicketsRequest) (*pb.ReleaseTicketsResponse, error) {
-	err := doReleasetickets(ctx, req, s.store)
+	err := s.store.DeleteTicketsFromPendingRelease(ctx, req.GetTicketIds())
 	if err != nil {
-		logger.WithError(err).Error("failed to remove the awaiting tickets from the pending release for requested tickets")
+		err = errors.Wrap(err, "failed to remove the awaiting tickets from the pending release for requested tickets")
 		return nil, err
 	}
 
@@ -330,7 +318,6 @@ func (s *backendService) ReleaseAllTickets(ctx context.Context, req *pb.ReleaseA
 func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
 	resp, err := doAssignTickets(ctx, req, s.store)
 	if err != nil {
-		logger.WithError(err).Error("failed to update assignments for requested tickets")
 		return nil, err
 	}
 
@@ -346,7 +333,6 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) (*pb.AssignTicketsResponse, error) {
 	resp, tickets, err := store.UpdateAssignments(ctx, req)
 	if err != nil {
-		logger.WithError(err).Error("failed to update assignments")
 		return nil, err
 	}
 
@@ -379,18 +365,6 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 	}
 
 	return resp, nil
-}
-
-func doReleasetickets(ctx context.Context, req *pb.ReleaseTicketsRequest, store statestore.Service) error {
-	err := store.DeleteTicketsFromPendingRelease(ctx, req.GetTicketIds())
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"ticket_ids": req.GetTicketIds(),
-		}).WithError(err).Error("failed to delete the tickets from the pending release list")
-		return err
-	}
-
-	return nil
 }
 
 func recordTimeToAssignment(ctx context.Context, ticket *pb.Ticket) error {
