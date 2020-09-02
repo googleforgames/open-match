@@ -19,6 +19,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/stats"
 	"golang.org/x/sync/errgroup"
@@ -95,8 +96,5 @@ func (s *evaluatorService) Evaluate(stream pb.Evaluator_EvaluateServer) error {
 	})
 
 	err := g.Wait()
-	if err != nil {
-		logger.WithError(err).Error("Error in evaluator.Evaluate")
-	}
-	return err
+	return errors.Wrap(err, "Error in evaluator.Evaluate")
 }
