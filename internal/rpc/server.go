@@ -283,6 +283,9 @@ func newGRPCServerOptions(params *ServerParams) []grpc.ServerOption {
 		}
 	}
 
+	// TODO: add unary interceptor once all redundant logs are removed
+	si = append(si, serverStreamInterceptor)
+
 	if params.enableMetrics {
 		opts = append(opts, grpc.StatsHandler(&ocgrpc.ServerHandler{}))
 	}
@@ -296,4 +299,15 @@ func newGRPCServerOptions(params *ServerParams) []grpc.ServerOption {
 				PermitWithoutStream: true,
 			},
 		))
+}
+
+func serverStreamInterceptor(srv interface{},
+	stream grpc.ServerStream,
+	info *grpc.StreamServerInfo,
+	handler grpc.StreamHandler) error {
+	err := handler(srv, stream)
+	if err != nil {
+		serverLogger.Error(err)
+	}
+	return err
 }
