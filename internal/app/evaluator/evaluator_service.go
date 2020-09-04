@@ -20,17 +20,9 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"go.opencensus.io/stats"
 	"golang.org/x/sync/errgroup"
 	"open-match.dev/open-match/pkg/pb"
-)
-
-var (
-	logger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "evaluator.harness.golang",
-	})
 )
 
 // Evaluator is the function signature for the Evaluator to be implemented by
