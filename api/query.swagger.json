@@ -26,7 +26,7 @@
   "paths": {
     "/v1/queryservice/ticketids:query": {
       "post": {
-        "summary": "QueryTicketIds gets the list of TicketIDs that meet all the filtering criteria requested by the pool.\n  - If the Pool contains no Filters, QueryTicketIds will return all TicketIDs in the state storage.\nQueryTicketIds pages the TicketIDs by `queryPageSize` and stream back responses.\n  - queryPageSize is default to 1000 if not set, and has a mininum of 10 and maximum of 10000.",
+        "summary": "QueryTicketIds gets the list of TicketIDs that meet all the filtering criteria requested by the pool.\n  - If the Pool contains no Filters, QueryTicketIds will return all TicketIDs in the state storage.\nQueryTicketIds pages the TicketIDs by `queryPageSize` and stream back responses.\n  - queryPageSize is default to 1000 if not set, and has a minimum of 10 and maximum of 10000.",
         "operationId": "QueryTicketIds",
         "responses": {
           "200": {
@@ -60,7 +60,7 @@
     },
     "/v1/queryservice/tickets:query": {
       "post": {
-        "summary": "QueryTickets gets a list of Tickets that match all Filters of the input Pool.\n  - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.\nQueryTickets pages the Tickets by `queryPageSize` and stream back responses.\n  - queryPageSize is default to 1000 if not set, and has a mininum of 10 and maximum of 10000.",
+        "summary": "QueryTickets gets a list of Tickets that match all Filters of the input Pool.\n  - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.\nQueryTickets pages the Tickets by `queryPageSize` and stream back responses.\n  - queryPageSize is default to 1000 if not set, and has a minimum of 10 and maximum of 10000.",
         "operationId": "QueryTickets",
         "responses": {
           "200": {
