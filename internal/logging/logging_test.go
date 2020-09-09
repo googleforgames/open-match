@@ -21,7 +21,7 @@ import (
 
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewFormatter(t *testing.T) {
@@ -37,9 +37,9 @@ func TestNewFormatter(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(fmt.Sprintf("newFormatter(%s) => %s", tc.in, tc.expected), func(t *testing.T) {
-			assert := assert.New(t)
+			require := require.New(t)
 			actual := newFormatter(tc.in)
-			assert.Equal(reflect.TypeOf(tc.expected), reflect.TypeOf(actual))
+			require.Equal(reflect.TypeOf(tc.expected), reflect.TypeOf(actual))
 		})
 	}
 }
@@ -60,9 +60,9 @@ func TestIsDebugLevel(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(fmt.Sprintf("isDebugLevel(%s) => %t", tc.in, tc.expected), func(t *testing.T) {
-			assert := assert.New(t)
+			require := require.New(t)
 			actual := isDebugLevel(tc.in)
-			assert.Equal(tc.expected, actual)
+			require.Equal(tc.expected, actual)
 		})
 	}
 }
@@ -87,9 +87,9 @@ func TestToLevel(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(fmt.Sprintf("toLevel(%s) => %s", tc.in, tc.expected), func(t *testing.T) {
-			assert := assert.New(t)
+			require := require.New(t)
 			actual := toLevel(tc.in)
-			assert.Equal(tc.expected, actual)
+			require.Equal(tc.expected, actual)
 		})
 	}
 }

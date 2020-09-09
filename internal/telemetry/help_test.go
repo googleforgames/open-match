@@ -19,12 +19,12 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHelp(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 	h := newHelp()
-	assert.HTTPSuccess(h, http.MethodGet, "/", url.Values{}, "")
-	assert.HTTPBodyContains(h, http.MethodGet, "/", url.Values{}, `Open Match Server Help`)
+	require.HTTPSuccess(h, http.MethodGet, "/", url.Values{}, "")
+	require.HTTPBodyContains(h, http.MethodGet, "/", url.Values{}, `Open Match Server Help`)
 }

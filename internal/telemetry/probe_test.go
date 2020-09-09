@@ -22,7 +22,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func angryHealthCheck(context.Context) error {
@@ -56,22 +56,22 @@ func TestHealthCheck(t *testing.T) {
 }
 
 func assertHealthCheck(t *testing.T, hc http.Handler, errorString string) {
-	assert := assert.New(t)
+	require := require.New(t)
 	sp, ok := hc.(*statefulProbe)
-	assert.True(ok)
-	assert.Equal(healthStateFirstProbe, atomic.LoadInt32(sp.healthState))
+	require.True(ok)
+	require.Equal(healthStateFirstProbe, atomic.LoadInt32(sp.healthState))
 
 	hcFunc := func(w http.ResponseWriter, r *http.Request) {
 		hc.ServeHTTP(w, r)
 	}
-	assert.HTTPSuccess(hcFunc, http.MethodGet, "/", url.Values{}, "ok")
+	require.HTTPSuccess(hcFunc, http.MethodGet, "/", url.Values{}, "ok")
 	// A readiness probe has not happened yet so it's still in "first state"
-	assert.Equal(healthStateFirstProbe, atomic.LoadInt32(sp.healthState))
+	require.Equal(healthStateFirstProbe, atomic.LoadInt32(sp.healthState))
 	if errorString == "" {
-		assert.HTTPSuccess(hcFunc, http.MethodGet, "/", url.Values{"readiness": []string{"true"}}, "ok")
-		assert.Equal(healthStateHealthy, atomic.LoadInt32(sp.healthState))
+		require.HTTPSuccess(hcFunc, http.MethodGet, "/", url.Values{"readiness": []string{"true"}}, "ok")
+		require.Equal(healthStateHealthy, atomic.LoadInt32(sp.healthState))
 	} else {
-		assert.HTTPError(hcFunc, http.MethodGet, "/", url.Values{"readiness": []string{"true"}}, errorString)
-		assert.Equal(healthStateUnhealthy, atomic.LoadInt32(sp.healthState))
+		require.HTTPError(hcFunc, http.MethodGet, "/", url.Values{"readiness": []string{"true"}}, errorString)
+		require.Equal(healthStateUnhealthy, atomic.LoadInt32(sp.healthState))
 	}
 }
