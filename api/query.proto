@@ -80,7 +80,7 @@ service QueryService {
   // QueryTickets gets a list of Tickets that match all Filters of the input Pool.
   //   - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.
   // QueryTickets pages the Tickets by `queryPageSize` and stream back responses.
-  //   - queryPageSize is default to 1000 if not set, and has a mininum of 10 and maximum of 10000.
+  //   - queryPageSize is default to 1000 if not set, and has a minimum of 10 and maximum of 10000.
   rpc QueryTickets(QueryTicketsRequest) returns (stream QueryTicketsResponse) {
     option (google.api.http) = {
       post: "/v1/queryservice/tickets:query"
@@ -91,7 +91,7 @@ service QueryService {
   // QueryTicketIds gets the list of TicketIDs that meet all the filtering criteria requested by the pool.
   //   - If the Pool contains no Filters, QueryTicketIds will return all TicketIDs in the state storage.
   // QueryTicketIds pages the TicketIDs by `queryPageSize` and stream back responses.
-  //   - queryPageSize is default to 1000 if not set, and has a mininum of 10 and maximum of 10000.
+  //   - queryPageSize is default to 1000 if not set, and has a minimum of 10 and maximum of 10000.
   rpc QueryTicketIds(QueryTicketIdsRequest) returns (stream QueryTicketIdsResponse) {
     option (google.api.http) = {
       post: "/v1/queryservice/ticketids:query"
