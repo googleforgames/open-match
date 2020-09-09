@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	shellTesting "open-match.dev/open-match/internal/testing"
@@ -32,14 +32,14 @@ import (
 
 // TestStartStopTlsServerWithCARootedCertificate verifies that we can have a gRPC+TLS+HTTPS server/client work with a single self-signed certificate.
 func TestStartStopTlsServerWithSingleCertificate(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 	grpcL := MustListen()
 	proxyL := MustListen()
 	grpcAddress := fmt.Sprintf("localhost:%s", MustGetPortNumber(grpcL))
 	proxyAddress := fmt.Sprintf("localhost:%s", MustGetPortNumber(proxyL))
 	allHostnames := []string{grpcAddress, proxyAddress}
 	pub, priv, err := certgenTesting.CreateCertificateAndPrivateKeyForTesting(allHostnames)
-	assert.Nil(err)
+	require.Nil(err)
 	runTestStartStopTLSServer(t, &tlsServerTestParams{
 		rootPublicCertificateFileData: pub,
 		rootPrivateKeyFileData:        priv,
@@ -54,17 +54,17 @@ func TestStartStopTlsServerWithSingleCertificate(t *testing.T) {
 
 // TestStartStopTlsServerWithCARootedCertificate verifies that we can have a gRPC+TLS+HTTPS server/client work with a self-signed CA-rooted certificate.
 func TestStartStopTlsServerWithCARootedCertificate(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 	grpcL := MustListen()
 	proxyL := MustListen()
 	grpcAddress := fmt.Sprintf("localhost:%s", MustGetPortNumber(grpcL))
 	proxyAddress := fmt.Sprintf("localhost:%s", MustGetPortNumber(proxyL))
 	allHostnames := []string{grpcAddress, proxyAddress}
 	rootPub, rootPriv, err := certgenTesting.CreateRootCertificateAndPrivateKeyForTesting(allHostnames)
-	assert.Nil(err)
+	require.Nil(err)
 
 	pub, priv, err := certgenTesting.CreateDerivedCertificateAndPrivateKeyForTesting(rootPub, rootPriv, allHostnames)
-	assert.Nil(err)
+	require.Nil(err)
 
 	runTestStartStopTLSServer(t, &tlsServerTestParams{
 		rootPublicCertificateFileData: rootPub,
@@ -90,7 +90,7 @@ type tlsServerTestParams struct {
 }
 
 func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	ff := &shellTesting.FakeFrontend{}
 
@@ -104,16 +104,16 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 	defer s.stop()
 
 	err := s.start(serverParams)
-	assert.Nil(err)
+	require.Nil(err)
 
 	pool, err := trustedCertificateFromFileData(tp.rootPublicCertificateFileData)
-	assert.Nil(err)
+	require.Nil(err)
 
 	conn, err := grpc.Dial(tp.grpcAddress, grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(pool, tp.grpcAddress)))
-	assert.Nil(err)
+	require.Nil(err)
 
 	tlsCert, err := certificateFromFileData(tp.publicCertificateFileData, tp.privateKeyFileData)
-	assert.Nil(err)
+	require.Nil(err)
 	tlsTransport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			ServerName:   tp.proxyAddress,
@@ -126,5 +126,5 @@ func runTestStartStopTLSServer(t *testing.T, tp *tlsServerTestParams) {
 		Timeout:   time.Second * 10,
 		Transport: tlsTransport,
 	}
-	runGrpcWithProxyTests(t, assert, s, conn, httpClient, httpsEndpoint)
+	runGrpcWithProxyTests(t, require, s, conn, httpClient, httpsEndpoint)
 }
