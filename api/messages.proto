@@ -103,6 +103,14 @@ message DoubleRangeFilter {
 
   // Minimum value.
   double min = 3;
+
+  enum Exclude {
+    NONE = 0;
+    MIN = 1;
+    MAX = 2;
+    BOTH = 3;
+  }
+  Exclude exclude = 4;
 }
 
 // Filters strings exactly equaling a value.

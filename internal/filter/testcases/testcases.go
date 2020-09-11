@@ -138,6 +138,46 @@ func IncludedTestCases() []TestCase {
 			&pb.Ticket{},
 			&pb.Pool{},
 		},
+		{
+			"double range inclusive BOTH bounds: lower",
+			&pb.Ticket{
+				SearchFields: &pb.SearchFields{
+					DoubleArgs: map[string]float64{
+						"field": 0,
+					},
+				},
+			},
+			&pb.Pool{
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{
+					{
+						DoubleArg: "field",
+						Min:       0,
+						Max:       1,
+						Exclude:   pb.DoubleRangeFilter_NONE,
+					},
+				},
+			},
+		},
+		{
+			"double range inclusive BOTH bounds: upper",
+			&pb.Ticket{
+				SearchFields: &pb.SearchFields{
+					DoubleArgs: map[string]float64{
+						"field": 1,
+					},
+				},
+			},
+			&pb.Pool{
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{
+					{
+						DoubleArg: "field",
+						Min:       0,
+						Max:       1,
+						Exclude:   pb.DoubleRangeFilter_NONE,
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -182,7 +222,6 @@ func ExcludedTestCases() []TestCase {
 				},
 			},
 		},
-
 		{
 			"double range missing field",
 			&pb.Ticket{
@@ -202,7 +241,6 @@ func ExcludedTestCases() []TestCase {
 				},
 			},
 		},
-
 		simpleDoubleRange("valueTooLow", -1, 0, 10),
 		simpleDoubleRange("valueTooHigh", 11, 0, 10),
 		simpleDoubleRange("minIsNan", 5, math.NaN(), 10),
@@ -326,6 +364,87 @@ func ExcludedTestCases() []TestCase {
 		multipleFilters(false, true, true),
 		multipleFilters(true, false, true),
 		multipleFilters(true, true, false),
+
+		{
+			"double range exclusive upper bound",
+			&pb.Ticket{
+				SearchFields: &pb.SearchFields{
+					DoubleArgs: map[string]float64{
+						"field": 1,
+					},
+				},
+			},
+			&pb.Pool{
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{
+					{
+						DoubleArg: "field",
+						Min:       0,
+						Max:       1,
+						Exclude:   pb.DoubleRangeFilter_MAX,
+					},
+				},
+			},
+		},
+		{
+			"double range exclusive lower bound",
+			&pb.Ticket{
+				SearchFields: &pb.SearchFields{
+					DoubleArgs: map[string]float64{
+						"field": 0,
+					},
+				},
+			},
+			&pb.Pool{
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{
+					{
+						DoubleArg: "field",
+						Min:       0,
+						Max:       1,
+						Exclude:   pb.DoubleRangeFilter_MIN,
+					},
+				},
+			},
+		},
+		{
+			"double range exclusive BOTH bounds: lower",
+			&pb.Ticket{
+				SearchFields: &pb.SearchFields{
+					DoubleArgs: map[string]float64{
+						"field": 0,
+					},
+				},
+			},
+			&pb.Pool{
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{
+					{
+						DoubleArg: "field",
+						Min:       0,
+						Max:       1,
+						Exclude:   pb.DoubleRangeFilter_BOTH,
+					},
+				},
+			},
+		},
+		{
+			"double range exclusive BOTH bounds: upper",
+			&pb.Ticket{
+				SearchFields: &pb.SearchFields{
+					DoubleArgs: map[string]float64{
+						"field": 1,
+					},
+				},
+			},
+			&pb.Pool{
+				DoubleRangeFilters: []*pb.DoubleRangeFilter{
+					{
+						DoubleArg: "field",
+						Min:       0,
+						Max:       1,
+						Exclude:   pb.DoubleRangeFilter_BOTH,
+					},
+				},
+			},
+		},
 	}
 }
 

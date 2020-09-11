@@ -106,10 +106,27 @@ func (pf *PoolFilter) In(ticket *pb.Ticket) bool {
 		if !ok {
 			return false
 		}
-		// Not simplified so that NaN cases are handled correctly.
-		if !(v >= f.Min && v <= f.Max) {
-			return false
+
+		switch f.Exclude {
+		case pb.DoubleRangeFilter_NONE:
+			// Not simplified so that NaN cases are handled correctly.
+			if !(v >= f.Min && v <= f.Max) {
+				return false
+			}
+		case pb.DoubleRangeFilter_MIN:
+			if !(v > f.Min && v <= f.Max) {
+				return false
+			}
+		case pb.DoubleRangeFilter_MAX:
+			if !(v >= f.Min && v < f.Max) {
+				return false
+			}
+		case pb.DoubleRangeFilter_BOTH:
+			if !(v > f.Min && v < f.Max) {
+				return false
+			}
 		}
+
 	}
 
 	for _, f := range pf.StringEqualsFilters {
