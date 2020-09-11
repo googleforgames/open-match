@@ -407,10 +407,10 @@ func (rb *redisBackend) GetTickets(ctx context.Context, ids []string) ([]*pb.Tic
 }
 
 // UpdateAssignments update using the request's specified tickets with assignments.
-func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest, callback func(*pb.Ticket, *pb.Assignment) error) (*pb.AssignTicketsResponse, error) {
+func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, []*pb.Ticket, error) {
 	resp := &pb.AssignTicketsResponse{}
 	if len(req.Assignments) == 0 {
-		return resp, nil
+		return resp, []*pb.Ticket{}, nil
 	}
 
 	idToA := make(map[string]*pb.Assignment)
@@ -418,12 +418,12 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 	idsI := make([]interface{}, 0)
 	for _, a := range req.Assignments {
 		if a.Assignment == nil {
-			return nil, status.Error(codes.InvalidArgument, "AssignmentGroup.Assignment is required")
+			return nil, nil, status.Error(codes.InvalidArgument, "AssignmentGroup.Assignment is required")
 		}
 
 		for _, id := range a.TicketIds {
 			if _, ok := idToA[id]; ok {
-				return nil, status.Errorf(codes.InvalidArgument, "Ticket id %s is assigned multiple times in one assign tickets call.", id)
+				return nil, nil, status.Errorf(codes.InvalidArgument, "Ticket id %s is assigned multiple times in one assign tickets call.", id)
 			}
 
 			idToA[id] = a.Assignment
@@ -434,13 +434,13 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Unavailable, "UpdateAssignments, failed to connect to redis: %v", err)
+		return nil, nil, status.Errorf(codes.Unavailable, "UpdateAssignments, failed to connect to redis: %v", err)
 	}
 	defer handleConnectionClose(&redisConn)
 
 	ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", idsI...))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	tickets := make([]*pb.Ticket, 0, len(ticketBytes))
@@ -456,7 +456,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 			err = proto.Unmarshal(ticketByte, t)
 			if err != nil {
 				err = errors.Wrapf(err, "failed to unmarshal ticket from redis %s", ids[i])
-				return nil, status.Errorf(codes.Internal, "%v", err)
+				return nil, nil, status.Errorf(codes.Internal, "%v", err)
 			}
 			tickets = append(tickets, t)
 		}
@@ -464,7 +464,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 	assignmentTimeout := rb.cfg.GetDuration("assignedDeleteTimeout") / time.Millisecond
 	err = redisConn.Send("MULTI")
 	if err != nil {
-		return nil, errors.Wrap(err, "error starting redis multi")
+		return nil, nil, errors.Wrap(err, "error starting redis multi")
 	}
 
 	for _, ticket := range tickets {
@@ -473,29 +473,22 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 		var ticketByte []byte
 		ticketByte, err = proto.Marshal(ticket)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to marshal ticket %s", ticket.GetId())
+			return nil, nil, status.Errorf(codes.Internal, "failed to marshal ticket %s", ticket.GetId())
 		}
 
 		err = redisConn.Send("SET", ticket.Id, ticketByte, "PX", int64(assignmentTimeout), "XX")
 		if err != nil {
-			return nil, errors.Wrap(err, "error sending ticket assignment set")
-		}
-
-		if callback != nil {
-			err = callback(ticket, ticket.Assignment)
-			if err != nil {
-				redisLogger.WithError(err).Errorf("failed to run update assignment callback for ticket %s", ticket.Id)
-			}
+			return nil, nil, errors.Wrap(err, "error sending ticket assignment set")
 		}
 	}
 
 	wasSet, err := redis.Values(redisConn.Do("EXEC"))
 	if err != nil {
-		return nil, errors.Wrap(err, "error executing assignment set")
+		return nil, nil, errors.Wrap(err, "error executing assignment set")
 	}
 
 	if len(wasSet) != len(tickets) {
-		return nil, status.Errorf(codes.Internal, "sent %d tickets to redis, but received %d back", len(tickets), len(wasSet))
+		return nil, nil, status.Errorf(codes.Internal, "sent %d tickets to redis, but received %d back", len(tickets), len(wasSet))
 	}
 
 	for i, ticket := range tickets {
@@ -508,14 +501,14 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 			continue
 		}
 		if err != nil {
-			return nil, errors.Wrap(err, "unexpected error from redis multi set")
+			return nil, nil, errors.Wrap(err, "unexpected error from redis multi set")
 		}
 		if v != "OK" {
-			return nil, status.Errorf(codes.Internal, "unexpected response from redis: %s", v)
+			return nil, nil, status.Errorf(codes.Internal, "unexpected response from redis: %s", v)
 		}
 	}
 
-	return resp, nil
+	return resp, tickets, nil
 }
 
 // GetAssignments returns the assignment associated with the input ticket id
