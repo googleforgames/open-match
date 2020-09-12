@@ -247,6 +247,83 @@ func TestConnect(t *testing.T) {
 	testConnect(t, true, "redispassword")
 }
 
+func TestHealthCheck(t *testing.T) {
+	cfg, closer := createRedis(t, true, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+
+	// OK
+	ctx := utilTesting.NewContext(t)
+	err := service.HealthCheck(ctx)
+	require.NoError(t, err)
+
+	// Error expected
+	closer()
+	err = service.HealthCheck(ctx)
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+}
+
+func TestCreateTicket(t *testing.T) {
+	cfg, closer := createRedis(t, true, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	var testCases = []struct {
+		description     string
+		ticket          *pb.Ticket
+		expectedCode    codes.Code
+		expectedMessage string
+	}{
+		{
+			description: "ok",
+			ticket: &pb.Ticket{
+				Id:         "1",
+				Assignment: &pb.Assignment{Connection: "2"},
+			},
+			expectedCode:    codes.OK,
+			expectedMessage: "",
+		},
+		{
+			description:     "nil ticket passed, err expected",
+			ticket:          nil,
+			expectedCode:    codes.Internal,
+			expectedMessage: "failed to marshal the ticket proto, id: : proto: Marshal called with nil",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.description, func(t *testing.T) {
+			err := service.CreateTicket(ctx, tc.ticket)
+			if tc.expectedCode == codes.OK {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String())
+				require.Contains(t, status.Convert(err).Message(), tc.expectedMessage)
+			}
+		})
+	}
+
+	// pass expired context, err expected
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	service = New(cfg)
+	err := service.CreateTicket(ctx, &pb.Ticket{
+		Id:         "222",
+		Assignment: &pb.Assignment{Connection: "2"},
+	})
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), "CreateTicket, id: 222, failed to connect to redis:")
+}
+
 func testConnect(t *testing.T, withSentinel bool, withPassword string) {
 	cfg, closer := createRedis(t, withSentinel, withPassword)
 	defer closer()
