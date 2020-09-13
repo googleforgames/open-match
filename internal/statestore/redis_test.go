@@ -17,6 +17,7 @@ package statestore
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -311,7 +312,7 @@ func TestCreateTicket(t *testing.T) {
 		})
 	}
 
-	// pass expired context, err expected
+	// pass an expired context, err expected
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	service = New(cfg)
@@ -322,6 +323,84 @@ func TestCreateTicket(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), "CreateTicket, id: 222, failed to connect to redis:")
+}
+
+func TestGetTicket(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+
+	ctx := utilTesting.NewContext(t)
+
+	err := service.CreateTicket(ctx, &pb.Ticket{
+		Id:         "mockTicketID",
+		Assignment: &pb.Assignment{Connection: "2"},
+	})
+	require.NoError(t, err)
+
+	c, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
+	require.NoError(t, err)
+	_, err = c.Do("SET", "wrong-type-key", "wrong-type-value")
+	require.NoError(t, err)
+
+	var testCases = []struct {
+		description     string
+		ticketID        string
+		expectedCode    codes.Code
+		expectedMessage string
+	}{
+		{
+			description:     "ticket is found",
+			ticketID:        "mockTicketID",
+			expectedCode:    codes.OK,
+			expectedMessage: "",
+		},
+		{
+			description:     "empty id passed, err expected",
+			ticketID:        "",
+			expectedCode:    codes.NotFound,
+			expectedMessage: "Ticket id: not found",
+		},
+		{
+			description:     "wrong id passed, err expected",
+			ticketID:        "123456",
+			expectedCode:    codes.NotFound,
+			expectedMessage: "Ticket id:123456 not found",
+		},
+		{
+			description:     "item of a wrong type is requested, err expected",
+			ticketID:        "wrong-type-key",
+			expectedCode:    codes.Internal,
+			expectedMessage: "failed to unmarshal the ticket proto, id: wrong-type-key: proto: can't skip unknown wire type",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.description, func(t *testing.T) {
+			ticketActual, err := service.GetTicket(ctx, tc.ticketID)
+			if tc.expectedCode == codes.OK {
+				require.NoError(t, err)
+				require.NotNil(t, ticketActual)
+			} else {
+				require.Error(t, err)
+				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String())
+				require.Contains(t, status.Convert(err).Message(), tc.expectedMessage)
+			}
+		})
+	}
+
+	// pass an expired context, err expected
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	service = New(cfg)
+	res, err := service.GetTicket(ctx, "12345")
+	require.Error(t, err)
+	require.Nil(t, res)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), "GetTicket, id: 12345, failed to connect to redis:")
 }
 
 func testConnect(t *testing.T, withSentinel bool, withPassword string) {
