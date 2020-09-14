@@ -403,6 +403,159 @@ func TestGetTicket(t *testing.T) {
 	require.Contains(t, status.Convert(err).Message(), "GetTicket, id: 12345, failed to connect to redis:")
 }
 
+func TestDeleteTicket(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+
+	ctx := utilTesting.NewContext(t)
+
+	err := service.CreateTicket(ctx, &pb.Ticket{
+		Id:         "mockTicketID",
+		Assignment: &pb.Assignment{Connection: "2"},
+	})
+	require.NoError(t, err)
+
+	var testCases = []struct {
+		description     string
+		ticketID        string
+		expectedCode    codes.Code
+		expectedMessage string
+	}{
+		{
+			description:     "ticket is found and deleted",
+			ticketID:        "mockTicketID",
+			expectedCode:    codes.OK,
+			expectedMessage: "",
+		},
+		{
+			description:     "empty id passed, no err expected",
+			ticketID:        "",
+			expectedCode:    codes.OK,
+			expectedMessage: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.description, func(t *testing.T) {
+			err := service.DeleteTicket(ctx, tc.ticketID)
+			if tc.expectedCode == codes.OK {
+				require.NoError(t, err)
+
+				if tc.ticketID != "" {
+					_, err := service.GetTicket(ctx, tc.ticketID)
+					require.Error(t, err)
+					require.Equal(t, codes.NotFound.String(), status.Convert(err).Code().String())
+				}
+			} else {
+				require.Error(t, err)
+				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String())
+				require.Contains(t, status.Convert(err).Message(), tc.expectedMessage)
+			}
+		})
+	}
+
+	// pass an expired context, err expected
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	service = New(cfg)
+	err = service.DeleteTicket(ctx, "12345")
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), "DeleteTicket, id: 12345, failed to connect to redis:")
+}
+
+func TestIndexTicket(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+
+	ctx := utilTesting.NewContext(t)
+
+	// tickets should be indexed normally
+	for i := 1; i < 3; i++ {
+		tmp := &pb.Ticket{
+			Id:         fmt.Sprintf("mockTicketID-%d", i),
+			Assignment: &pb.Assignment{Connection: "2"},
+		}
+		err := service.CreateTicket(ctx, tmp)
+		require.NoError(t, err)
+		err = service.IndexTicket(ctx, tmp)
+		require.NoError(t, err)
+	}
+
+	c, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
+	require.NoError(t, err)
+	idsIndexed, err := redis.Strings(c.Do("SMEMBERS", "allTickets"))
+	require.NoError(t, err)
+	require.Len(t, idsIndexed, 2)
+	require.Equal(t, "mockTicketID-1", idsIndexed[0])
+	require.Equal(t, "mockTicketID-2", idsIndexed[1])
+
+	// pass an expired context, err expected
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	service = New(cfg)
+	err = service.IndexTicket(ctx, &pb.Ticket{
+		Id:         "12345",
+		Assignment: &pb.Assignment{Connection: "2"},
+	})
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), "IndexTicket, id: 12345, failed to connect to redis:")
+}
+
+func TestDeindexTicket(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+
+	ctx := utilTesting.NewContext(t)
+
+	for i := 1; i < 3; i++ {
+		tmp := &pb.Ticket{
+			Id:         fmt.Sprintf("mockTicketID-%d", i),
+			Assignment: &pb.Assignment{Connection: "2"},
+		}
+		err := service.CreateTicket(ctx, tmp)
+		require.NoError(t, err)
+		err = service.IndexTicket(ctx, tmp)
+		require.NoError(t, err)
+	}
+
+	c, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
+	require.NoError(t, err)
+	idsIndexed, err := redis.Strings(c.Do("SMEMBERS", "allTickets"))
+	require.NoError(t, err)
+	require.Len(t, idsIndexed, 2)
+	require.Equal(t, "mockTicketID-1", idsIndexed[0])
+	require.Equal(t, "mockTicketID-2", idsIndexed[1])
+
+	// deindex and check that there is only 1 ticket in the returned slice
+	err = service.DeindexTicket(ctx, "mockTicketID-2")
+	require.NoError(t, err)
+	idsIndexed, err = redis.Strings(c.Do("SMEMBERS", "allTickets"))
+	require.NoError(t, err)
+	require.Len(t, idsIndexed, 1)
+	require.Equal(t, "mockTicketID-1", idsIndexed[0])
+
+	// pass an expired context, err expected
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	service = New(cfg)
+	err = service.DeindexTicket(ctx, "12345")
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), "DeindexTicket, id: 12345, failed to connect to redis:")
+}
+
 func testConnect(t *testing.T, withSentinel bool, withPassword string) {
 	cfg, closer := createRedis(t, withSentinel, withPassword)
 	defer closer()
