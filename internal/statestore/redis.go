@@ -491,6 +491,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 		return nil, nil, status.Errorf(codes.Internal, "sent %d tickets to redis, but received %d back", len(tickets), len(wasSet))
 	}
 
+	var assignedTickets []*pb.Ticket
 	for i, ticket := range tickets {
 		v, err := redis.String(wasSet[i], nil)
 		if err == redis.ErrNil {
@@ -506,9 +507,10 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 		if v != "OK" {
 			return nil, nil, status.Errorf(codes.Internal, "unexpected response from redis: %s", v)
 		}
+		assignedTickets = append(assignedTickets, ticket)
 	}
 
-	return resp, tickets, nil
+	return resp, assignedTickets, nil
 }
 
 // GetAssignments returns the assignment associated with the input ticket id
