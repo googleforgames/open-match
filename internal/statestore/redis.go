@@ -491,7 +491,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 		return nil, nil, status.Errorf(codes.Internal, "sent %d tickets to redis, but received %d back", len(tickets), len(wasSet))
 	}
 
-	var assignedTickets []*pb.Ticket
+	assignedTickets := make([]*pb.Ticket, 0, len(tickets))
 	for i, ticket := range tickets {
 		v, err := redis.String(wasSet[i], nil)
 		if err == redis.ErrNil {
