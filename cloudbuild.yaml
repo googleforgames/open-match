@@ -153,7 +153,7 @@ steps:
 
 artifacts:
     objects:
-        location: gs://open-match-build-artifacts/output/
+        location: '${_ARTIFACTS_BUCKET}'
         paths:
             - install/yaml/install.yaml
             - install/yaml/01-open-match-core.yaml
@@ -167,7 +167,9 @@ substitutions:
     _OM_VERSION: "0.0.0-dev"
     _GCB_POST_SUBMIT: "0"
     _GCB_LATEST_VERSION: "undefined"
-logsBucket: 'gs://open-match-build-logs/'
+    _ARTIFACTS_BUCKET: "gs://open-match-build-artifacts/output/"
+    _LOGS_BUCKET: "gs://open-match-build-logs/"
+logsBucket: '${_LOGS_BUCKET}'
 options:
   sourceProvenanceHash: ['SHA256']
   machineType: 'N1_HIGHCPU_32'
