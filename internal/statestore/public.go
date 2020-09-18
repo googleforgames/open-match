@@ -50,7 +50,7 @@ type Service interface {
 	GetTickets(ctx context.Context, ids []string) ([]*pb.Ticket, error)
 
 	// UpdateAssignments update using the request's specified tickets with assignments.
-	UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error)
+	UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, []*pb.Ticket, error)
 
 	// GetAssignments returns the assignment associated with the input ticket id
 	GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error

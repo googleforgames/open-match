@@ -22,11 +22,13 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"go.opencensus.io/stats"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -342,10 +344,17 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 }
 
 func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) (*pb.AssignTicketsResponse, error) {
-	resp, err := store.UpdateAssignments(ctx, req)
+	resp, tickets, err := store.UpdateAssignments(ctx, req)
 	if err != nil {
 		logger.WithError(err).Error("failed to update assignments")
 		return nil, err
+	}
+
+	for _, ticket := range tickets {
+		err = recordTimeToAssignment(ctx, ticket)
+		if err != nil {
+			logger.WithError(err).Errorf("failed to record time to assignment for ticket %s", ticket.Id)
+		}
 	}
 
 	ids := []string{}
@@ -380,6 +389,22 @@ func doReleasetickets(ctx context.Context, req *pb.ReleaseTicketsRequest, store 
 		}).WithError(err).Error("failed to delete the tickets from the pending release list")
 		return err
 	}
+
+	return nil
+}
+
+func recordTimeToAssignment(ctx context.Context, ticket *pb.Ticket) error {
+	if ticket.Assignment == nil {
+		return fmt.Errorf("assignment for ticket %s is nil", ticket.Id)
+	}
+
+	now := time.Now()
+	created, err := ptypes.Timestamp(ticket.CreateTime)
+	if err != nil {
+		return err
+	}
+
+	stats.Record(ctx, ticketsTimeToAssignment.M(now.Sub(created).Milliseconds()))
 
 	return nil
 }

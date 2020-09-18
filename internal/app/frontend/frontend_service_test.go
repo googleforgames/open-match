@@ -123,7 +123,7 @@ func TestDoWatchAssignments(t *testing.T) {
 				go func(wg *sync.WaitGroup) {
 					for i := 0; i < len(wantAssignments); i++ {
 						time.Sleep(50 * time.Millisecond)
-						_, err := store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
+						_, _, err := store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
 							Assignments: []*pb.AssignmentGroup{
 								{
 									TicketIds:  []string{testTicket.GetId()},

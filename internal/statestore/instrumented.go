@@ -77,7 +77,7 @@ func (is *instrumentedService) GetIndexedIDSet(ctx context.Context) (map[string]
 	return is.s.GetIndexedIDSet(ctx)
 }
 
-func (is *instrumentedService) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
+func (is *instrumentedService) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, []*pb.Ticket, error) {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.UpdateAssignments")
 	defer span.End()
 	return is.s.UpdateAssignments(ctx, req)
