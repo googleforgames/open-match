@@ -114,23 +114,22 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 	return matches, nil
 }
 
-// This match function defines the quality of a match as the difference of the highest and lowest skill
-// ratings. When deduplicating overlapping matches, the evaluator will pick the match with the lowest score,
-// thus picking the one match with a closer gap in skill levels. Negating the skill level allows the lower
-scores to actually be the highest when considered. This will be polished in the custom evaluator example of this sample.
 func computeQuality(tickets []*pb.Ticket) float64 {
-	score := 0.0
+	quality := 0.0
 	high := 0.0
-	low := 0.0
+	// Low is set to first tickets skill level. If a lower skill is encountered, it will be updated
+	low := tickets[0].SearchFields.DoubleArgs["mmr"]
 	for _, ticket := range tickets {
 		if high < ticket.SearchFields.DoubleArgs["mmr"] {
 			high = ticket.SearchFields.DoubleArgs["mmr"]
 		}
+		// TO DO: Compute accurate low
 		if low > ticket.SearchFields.DoubleArgs["mmr"] {
-			low = ticket.SearchFields.DoubleArgs["mmm"]
+			low = ticket.SearchFields.DoubleArgs["mmr"]
 		}
 	}
+	// default evaluator looks for match scores with highest value first. The higher the difference the worst the match is. Negating will cause higher differences to be worst value. Concrete fix or custom evaluation coming
 	quality = (high - low) * -1
 
-	return score
+	return quality
 }
