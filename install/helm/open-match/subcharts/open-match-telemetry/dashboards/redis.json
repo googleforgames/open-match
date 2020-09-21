@@ -348,14 +348,14 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{pod_name=~\"om-redis.*\", name!~\".*prometheus.*\", image!=\"\", container_name!=\"POD\"}[5m])) by (pod_name)",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{name!~\".*prometheus.*\", image!=\"\", container_name!=\"POD\"}[5m]) * on (pod_name) group_left(label_app) max by (pod_name, label_app) (label_replace(kube_pod_labels{label_app=\"redis\"}, \"pod_name\", \"$1\", \"pod\", \"(.*)\"))) by (pod_name)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{pod_name}} usage",
           "refId": "A"
         },
         {
-          "expr": "sum(kube_pod_container_resource_limits_cpu_cores{pod=~\"om-redis.*\"}) by (pod)",
+          "expr": "sum(kube_pod_container_resource_limits_cpu_cores * on (pod) group_left(label_app) max by (pod, label_app) (kube_pod_labels{label_app=\"redis\"})) by (pod)",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
@@ -363,7 +363,7 @@
           "refId": "B"
         },
         {
-          "expr": "sum(kube_pod_container_resource_requests_cpu_cores{pod=~\"om-redis.*\"}) by (pod)",
+          "expr": "sum(kube_pod_container_resource_requests_cpu_cores * on (pod) group_left(label_app) max by (pod, label_app) (kube_pod_labels{label_app=\"redis\"})) by (pod)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "request",

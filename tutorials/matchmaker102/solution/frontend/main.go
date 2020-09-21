@@ -27,7 +27,7 @@ import (
 
 const (
 	// The endpoint for the Open Match Frontend service.
-	omFrontendEndpoint = "om-frontend.open-match.svc.cluster.local:50504"
+	omFrontendEndpoint = "open-match-frontend.open-match.svc.cluster.local:50504"
 	// Number of tickets created per iteration
 	ticketsPerIter = 20
 )

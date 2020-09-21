@@ -43,7 +43,7 @@ var (
 
 // Streams from multiple GRPC calls of matches are combined on a single channel.
 // These matches are sent to the evaluator, then the tickets are added to the
-// ignore list.  Finally the matches are returned to the calling stream.
+// pending release list.  Finally the matches are returned to the calling stream.
 
 // receive from backend                  | Synchronize
 //  -> m1c ->
@@ -55,7 +55,7 @@ var (
 //   -> m4c -> (buffered)
 // send to evaluator                     | wrapEvaluator
 //   -> m5c -> (buffered)
-// add tickets to ignore list            | addMatchesToIgnoreList
+// add tickets to pending release            | addMatchesToPendingRelease
 //   -> m6c ->
 // fan out to origin synchronize call    | fanInFanOut
 //   -> (Synchronize call specific ) m7c -> (buffered)
@@ -240,8 +240,8 @@ func (s *synchronizerService) runCycle() {
 	go s.cacheMatchIDToTicketIDs(matchTickets, m3c, m4c)
 	go s.wrapEvaluator(ctx, cancel, bufferMatchChannel(m4c), m5c)
 	go func() {
-		s.addMatchesToIgnoreList(ctx, matchTickets, cancel, bufferStringChannel(m5c), m6c)
-		// Wait for ignore list, but not all matches returned, the next cycle
+		s.addMatchesToPendingRelease(ctx, matchTickets, cancel, bufferStringChannel(m5c), m6c)
+		// Wait for pending release, but not all matches returned, the next cycle
 		// can start now.
 		close(closedOnCycleEnd)
 	}()
@@ -435,10 +435,10 @@ func getTicketIds(tickets []*pb.Ticket) []string {
 ///////////////////////////////////////
 
 // Calls statestore to add all of the tickets returned by the evaluator to the
-// ignorelist.  If it partially fails for whatever reason (not all tickets will
+// pendingRelease list.  If it partially fails for whatever reason (not all tickets will
 // nessisarily be in the same call), only the matches which can be safely
 // returned to the Synchronize calls are.
-func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, m *sync.Map, cancel contextcause.CancelErrFunc, m5c <-chan []string, m6c chan<- string) {
+func (s *synchronizerService) addMatchesToPendingRelease(ctx context.Context, m *sync.Map, cancel contextcause.CancelErrFunc, m5c <-chan []string, m6c chan<- string) {
 	totalMatches := 0
 	successfulMatches := 0
 	var lastErr error
@@ -453,7 +453,7 @@ func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, m *syn
 			}
 		}
 
-		err := s.store.AddTicketsToIgnoreList(ctx, ids)
+		err := s.store.AddTicketsToPendingRelease(ctx, ids)
 
 		totalMatches += len(mIDs)
 		if err == nil {
@@ -472,10 +472,10 @@ func (s *synchronizerService) addMatchesToIgnoreList(ctx context.Context, m *syn
 			"error":             lastErr.Error(),
 			"totalMatches":      totalMatches,
 			"successfulMatches": successfulMatches,
-		}).Error("some or all matches were not successfully added to the ignore list, failed matches dropped")
+		}).Error("some or all matches were not successfully added to the pending release, failed matches dropped")
 
 		if successfulMatches == 0 {
-			cancel(fmt.Errorf("no matches successfully added to the ignore list.  Last error: %w", lastErr))
+			cancel(fmt.Errorf("no matches successfully added to the pending release.  Last error: %w", lastErr))
 		}
 	}
 	close(m6c)

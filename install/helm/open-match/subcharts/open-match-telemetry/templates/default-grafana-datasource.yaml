@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,16 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "openmatchscale.fullname" . }}-dashboard
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "openmatch.fullname" . }}-datasource
   labels:
-     grafana_dashboard: "1"
+     grafana_datasource: "1"
 data:
-  {{- (.Files.Glob "dashboards/*.json").AsConfig | nindent 2 }}
+    datasource.yaml: |-
+      apiVersion: 1
+      datasources:
+      - name: Prometheus
+        type: prometheus
+        url: {{ tpl .Values.global.telemetry.grafana.prometheusServer . }}
+        access: proxy
+        isDefault: true
 {{- end }}

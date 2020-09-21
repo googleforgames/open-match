@@ -22,11 +22,13 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"go.opencensus.io/stats"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -265,7 +267,7 @@ func callHTTPMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 
 	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
-		return status.Errorf(codes.Internal, "failed to get response from mmf run for proile %s: %s", profile.Name, err.Error())
+		return status.Errorf(codes.Internal, "failed to get response from mmf run for profile %s: %s", profile.Name, err.Error())
 	}
 	defer func() {
 		err = resp.Body.Close()
@@ -308,7 +310,7 @@ func callHTTPMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 func (s *backendService) ReleaseTickets(ctx context.Context, req *pb.ReleaseTicketsRequest) (*pb.ReleaseTicketsResponse, error) {
 	err := doReleasetickets(ctx, req, s.store)
 	if err != nil {
-		logger.WithError(err).Error("failed to remove the awaiting tickets from the ignore list for requested tickets")
+		logger.WithError(err).Error("failed to remove the awaiting tickets from the pending release for requested tickets")
 		return nil, err
 	}
 
@@ -342,10 +344,17 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 }
 
 func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) (*pb.AssignTicketsResponse, error) {
-	resp, err := store.UpdateAssignments(ctx, req)
+	resp, tickets, err := store.UpdateAssignments(ctx, req)
 	if err != nil {
 		logger.WithError(err).Error("failed to update assignments")
 		return nil, err
+	}
+
+	for _, ticket := range tickets {
+		err = recordTimeToAssignment(ctx, ticket)
+		if err != nil {
+			logger.WithError(err).Errorf("failed to record time to assignment for ticket %s", ticket.Id)
+		}
 	}
 
 	ids := []string{}
@@ -363,7 +372,7 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 		}
 	}
 
-	if err = store.DeleteTicketsFromIgnoreList(ctx, ids); err != nil {
+	if err = store.DeleteTicketsFromPendingRelease(ctx, ids); err != nil {
 		logger.WithFields(logrus.Fields{
 			"ticket_ids": ids,
 		}).Error(err)
@@ -373,13 +382,29 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 }
 
 func doReleasetickets(ctx context.Context, req *pb.ReleaseTicketsRequest, store statestore.Service) error {
-	err := store.DeleteTicketsFromIgnoreList(ctx, req.GetTicketIds())
+	err := store.DeleteTicketsFromPendingRelease(ctx, req.GetTicketIds())
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"ticket_ids": req.GetTicketIds(),
-		}).WithError(err).Error("failed to delete the tickets from the ignore list")
+		}).WithError(err).Error("failed to delete the tickets from the pending release list")
 		return err
 	}
+
+	return nil
+}
+
+func recordTimeToAssignment(ctx context.Context, ticket *pb.Ticket) error {
+	if ticket.Assignment == nil {
+		return fmt.Errorf("assignment for ticket %s is nil", ticket.Id)
+	}
+
+	now := time.Now()
+	created, err := ptypes.Timestamp(ticket.CreateTime)
+	if err != nil {
+		return err
+	}
+
+	stats.Record(ctx, ticketsTimeToAssignment.M(now.Sub(created).Milliseconds()))
 
 	return nil
 }

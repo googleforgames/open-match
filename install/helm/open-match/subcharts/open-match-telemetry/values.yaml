@@ -142,17 +142,10 @@ grafana:
   notifiers: {}
   sidecar:
     dashboards:
-        enabled: true
+      enabled: true
+    datasources:
+      enabled: true
   plugins: grafana-piechart-panel
-  datasources:
-    datasources.yaml:
-      apiVersion: 1
-      datasources:
-      - name: Prometheus
-        type: prometheus
-        url: http://open-match-prometheus-server.{{ .Release.Namespace }}.svc.cluster.local:80/
-        access: proxy
-        isDefault: true
 
 jaeger:
   enabled: true

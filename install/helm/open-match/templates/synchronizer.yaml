@@ -16,7 +16,7 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: {{ .Values.synchronizer.hostName }}
+  name: {{ include "openmatch.synchronizer.hostName" . }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -40,7 +40,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.synchronizer.hostName }}
+  name: {{ include "openmatch.synchronizer.hostName" . }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -66,12 +66,12 @@ spec:
     spec:
       {{- include "openmatch.labels.nodegrouping" . | nindent 6 }}
       volumes:
-        {{- include "openmatch.volumes.configs" (dict "configs" .Values.configs) | nindent 8}}
+        {{- include "openmatch.volumes.configs" (. | merge (dict "configs" .Values.configs)) | nindent 8}}
         {{- include "openmatch.volumes.tls" . | nindent 8}}
         {{- include "openmatch.volumes.withredis" . | nindent 8 }}
-      serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
+      serviceAccountName: {{ include "openmatch.serviceAccount.name" . }}
       containers:
-      - name: {{ .Values.synchronizer.hostName }}
+      - name: {{ include "openmatch.synchronizer.hostName" . }}
         volumeMounts:
           {{- include "openmatch.volumemounts.configs" (dict "configs" .Values.configs) | nindent 10 }}
           {{- include "openmatch.volumemounts.tls" . | nindent 10 }}

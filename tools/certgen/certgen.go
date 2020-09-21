@@ -30,16 +30,16 @@ var (
 	// serviceAddresses is a list of all the HTTP hostname:port combinations for generating a TLS certificate.
 	// It appears that gRPC does not care about validating the port number so we only add the HTTP addresses here.
 	serviceAddressList = []string{
-		"om-backend:51505",
+		"open-match-backend:51505",
 		"om-demo:51507",
 		"om-demoevaluator:51508",
 		"om-demofunction:51502",
 		"om-e2eevaluator:51518",
 		"om-e2ematchfunction:51512",
-		"om-frontend:51504",
-		"om-query:51503",
-		"om-swaggerui:51500",
-		"om-synchronizer:51506",
+		"open-match-frontend:51504",
+		"open-match-query:51503",
+		"open-match-swaggerui:51500",
+		"open-match-synchronizer:51506",
 	}
 	caFlag                    = flag.Bool("ca", false, "Create a root certificate. Use if you want a chain of trust with other certificates.")
 	rootPublicCertificateFlag = flag.String("rootpubliccertificate", "", "(optional) Path to root certificate file. If set the output certificate is rooted from this certificate.")
