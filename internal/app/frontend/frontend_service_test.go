@@ -264,7 +264,7 @@ func TestDoGetTicket(t *testing.T) {
 
 			test.preAction(ctx, cancel, store)
 
-			ticket, err := doGetTickets(ctx, fakeTicket.GetId(), store)
+			ticket, err := store.GetTicket(ctx, fakeTicket.GetId())
 			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
 
 			if err == nil {

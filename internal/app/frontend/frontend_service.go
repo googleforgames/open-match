@@ -83,19 +83,11 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 
 	err := store.CreateTicket(ctx, ticket)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error":  err.Error(),
-			"ticket": ticket,
-		}).Error("failed to create the ticket")
 		return nil, err
 	}
 
 	err = store.IndexTicket(ctx, ticket)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error":  err.Error(),
-			"ticket": ticket,
-		}).Error("failed to index the ticket")
 		return nil, err
 	}
 
@@ -118,10 +110,6 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 	// Deindex this Ticket to remove it from matchmaking pool.
 	err := store.DeindexTicket(ctx, id)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-			"id":    id,
-		}).Error("failed to deindex the ticket")
 		return err
 	}
 
@@ -152,20 +140,7 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 
 // GetTicket get the Ticket associated with the specified TicketId.
 func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketRequest) (*pb.Ticket, error) {
-	return doGetTickets(ctx, req.GetTicketId(), s.store)
-}
-
-func doGetTickets(ctx context.Context, id string, store statestore.Service) (*pb.Ticket, error) {
-	ticket, err := store.GetTicket(ctx, id)
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-			"id":    id,
-		}).Error("failed to get the ticket")
-		return nil, err
-	}
-
-	return ticket, nil
+	return s.store.GetTicket(ctx, req.GetTicketId())
 }
 
 // WatchAssignments stream back Assignment of the specified TicketId if it is updated.
@@ -197,7 +172,6 @@ func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignme
 
 			err := sender(currAssignment)
 			if err != nil {
-				logger.WithError(err).Error("failed to send Redis response to grpc server")
 				return status.Errorf(codes.Aborted, err.Error())
 			}
 		}
