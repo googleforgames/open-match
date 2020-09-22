@@ -33,7 +33,6 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/telemetry"
-	internalTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -102,44 +101,6 @@ func TestTicketLifecycle(t *testing.T) {
 
 	_, err = service.GetTicket(ctx, id)
 	require.NotNil(t, err)
-}
-
-func TestDeleteTicketsFromPendingRelease(t *testing.T) {
-	// Create State Store
-	cfg, closer := createRedis(t, true, "")
-	defer closer()
-	service := New(cfg)
-	require.NotNil(t, service)
-	defer service.Close()
-	ctx := utilTesting.NewContext(t)
-
-	tickets := internalTesting.GenerateFloatRangeTickets(
-		internalTesting.Property{Name: "testindex1", Min: 0, Max: 10, Interval: 2},
-		internalTesting.Property{Name: "testindex2", Min: 0, Max: 10, Interval: 2},
-	)
-
-	ticketIds := []string{}
-	for _, ticket := range tickets {
-		require.Nil(t, service.CreateTicket(ctx, ticket))
-		require.Nil(t, service.IndexTicket(ctx, ticket))
-		ticketIds = append(ticketIds, ticket.GetId())
-	}
-
-	verifyTickets := func(service Service, expectLen int) {
-		ids, err := service.GetIndexedIDSet(ctx)
-		require.Nil(t, err)
-		require.Equal(t, expectLen, len(ids))
-	}
-
-	// Verify all tickets are created and returned
-	verifyTickets(service, len(tickets))
-
-	// Add the first three tickets to the pending release and verify changes are reflected in the result
-	require.Nil(t, service.AddTicketsToPendingRelease(ctx, ticketIds[:3]))
-	verifyTickets(service, len(tickets)-3)
-
-	require.Nil(t, service.DeleteTicketsFromPendingRelease(ctx, ticketIds[:3]))
-	verifyTickets(service, len(tickets))
 }
 
 func TestGetAssignmentBeforeSet(t *testing.T) {
@@ -527,7 +488,6 @@ func TestGetIndexedIDSet(t *testing.T) {
 	// Add the first ticket to the pending release and verify changes are reflected in the result
 	redis.Strings(c.Do("ZADD", "proposed_ticket_ids", time.Now().UnixNano(), "mockTicketID-0"))
 
-	// Add the first three tickets to the pending release and verify changes are reflected in the result
 	verifyTickets(service, tickets[1:2])
 
 	// Sleep until the pending release expired and verify we still have all the tickets
@@ -575,6 +535,148 @@ func TestGetTickets(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), "GetTickets, failed to connect to redis:")
+}
+
+func TestDeleteTicketsFromPendingRelease(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	tickets, ids := generateTickets(ctx, t, service, 2)
+
+	verifyTickets := func(service Service, tickets []*pb.Ticket) {
+		ids, err := service.GetIndexedIDSet(ctx)
+		require.Nil(t, err)
+		require.Equal(t, len(tickets), len(ids))
+
+		for _, tt := range tickets {
+			_, ok := ids[tt.GetId()]
+			require.True(t, ok)
+		}
+	}
+
+	// Verify all tickets are created and returned
+	verifyTickets(service, tickets)
+
+	c, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
+	require.NoError(t, err)
+	// Add the first ticket to the pending release and verify changes are reflected in the result
+	redis.Strings(c.Do("ZADD", "proposed_ticket_ids", time.Now().UnixNano(), ids[0]))
+
+	// Verrify 1 ticket is indexed
+	verifyTickets(service, tickets[1:2])
+
+	require.NoError(t, service.DeleteTicketsFromPendingRelease(ctx, ids[:1]))
+
+	// Verify that ticket is deleted from indexed set
+	verifyTickets(service, tickets)
+
+	// Pass an empty ids slice
+	empty := []string{}
+	require.NoError(t, service.DeleteTicketsFromPendingRelease(ctx, empty))
+
+	// Pass an expired context, err expected
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	service = New(cfg)
+	err = service.DeleteTicketsFromPendingRelease(ctx, ids)
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), "DeleteTicketsFromPendingRelease, failed to connect to redis:")
+}
+
+func TestReleaseAllTickets(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	tickets, ids := generateTickets(ctx, t, service, 2)
+
+	verifyTickets := func(service Service, tickets []*pb.Ticket) {
+		ids, err := service.GetIndexedIDSet(ctx)
+		require.Nil(t, err)
+		require.Equal(t, len(tickets), len(ids))
+
+		for _, tt := range tickets {
+			_, ok := ids[tt.GetId()]
+			require.True(t, ok)
+		}
+	}
+
+	// Verify all tickets are created and returned
+	verifyTickets(service, tickets)
+
+	c, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
+	require.NoError(t, err)
+	// Add the first ticket to the pending release and verify changes are reflected in the result
+	redis.Strings(c.Do("ZADD", "proposed_ticket_ids", time.Now().UnixNano(), ids[0]))
+
+	// Verrify 1 ticket is indexed
+	verifyTickets(service, tickets[1:2])
+
+	require.NoError(t, service.ReleaseAllTickets(ctx))
+
+	// Verify that ticket is deleted from indexed set
+	verifyTickets(service, tickets)
+
+	// Pass an expired context, err expected
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	service = New(cfg)
+	err = service.ReleaseAllTickets(ctx)
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), "ReleaseAllTickets, failed to connect to redis:")
+}
+
+func TestAddTicketsToPendingRelease(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	tickets, ids := generateTickets(ctx, t, service, 2)
+
+	verifyTickets := func(service Service, tickets []*pb.Ticket) {
+		ids, err := service.GetIndexedIDSet(ctx)
+		require.Nil(t, err)
+		require.Equal(t, len(tickets), len(ids))
+
+		for _, tt := range tickets {
+			_, ok := ids[tt.GetId()]
+			require.True(t, ok)
+		}
+	}
+
+	// Verify all tickets are created and returned
+	verifyTickets(service, tickets)
+
+	// Add 1st ticket to pending release state
+	require.NoError(t, service.AddTicketsToPendingRelease(ctx, ids[:1]))
+
+	// Verrify 1 ticket is indexed
+	verifyTickets(service, tickets[1:2])
+
+	// Pass an empty ids slice
+	empty := []string{}
+	require.NoError(t, service.AddTicketsToPendingRelease(ctx, empty))
+
+	// Pass an expired context, err expected
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	service = New(cfg)
+	err := service.AddTicketsToPendingRelease(ctx, ids)
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), "AddTicketsToPendingRelease, failed to connect to redis:")
 }
 
 func testConnect(t *testing.T, withSentinel bool, withPassword string) {
@@ -668,9 +770,8 @@ func generateTickets(ctx context.Context, t *testing.T, service Service, amount 
 
 	for i := 0; i < amount; i++ {
 		tmp := &pb.Ticket{
-			Id:            fmt.Sprintf("mockTicketID-%d", i),
-			Assignment:    &pb.Assignment{Connection: "2"},
-			XXX_sizecache: 1,
+			Id:         fmt.Sprintf("mockTicketID-%d", i),
+			Assignment: &pb.Assignment{Connection: "2"},
 		}
 		require.NoError(t, service.CreateTicket(ctx, tmp))
 		require.NoError(t, service.IndexTicket(ctx, tmp))
