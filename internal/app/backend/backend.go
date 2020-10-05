@@ -26,10 +26,11 @@ import (
 )
 
 var (
-	totalBytesPerMatch = stats.Int64("open-match.dev/backend/total_bytes_per_match", "Total bytes per match", stats.UnitBytes)
-	ticketsPerMatch    = stats.Int64("open-match.dev/backend/tickets_per_match", "Number of tickets per match", stats.UnitDimensionless)
-	ticketsReleased    = stats.Int64("open-match.dev/backend/tickets_released", "Number of tickets released per request", stats.UnitDimensionless)
-	ticketsAssigned    = stats.Int64("open-match.dev/backend/tickets_assigned", "Number of tickets assigned per request", stats.UnitDimensionless)
+	totalBytesPerMatch      = stats.Int64("open-match.dev/backend/total_bytes_per_match", "Total bytes per match", stats.UnitBytes)
+	ticketsPerMatch         = stats.Int64("open-match.dev/backend/tickets_per_match", "Number of tickets per match", stats.UnitDimensionless)
+	ticketsReleased         = stats.Int64("open-match.dev/backend/tickets_released", "Number of tickets released per request", stats.UnitDimensionless)
+	ticketsAssigned         = stats.Int64("open-match.dev/backend/tickets_assigned", "Number of tickets assigned per request", stats.UnitDimensionless)
+	ticketsTimeToAssignment = stats.Int64("open-match.dev/backend/ticket_time_to_assignment", "Time to assignment for tickets", stats.UnitMilliseconds)
 
 	totalMatchesView = &view.View{
 		Measure:     totalBytesPerMatch,
@@ -61,6 +62,13 @@ var (
 		Description: "Number of tickets released per request",
 		Aggregation: view.Sum(),
 	}
+
+	ticketsTimeToAssignmentView = &view.View{
+		Measure:     ticketsTimeToAssignment,
+		Name:        "open-match.dev/backend/ticket_time_to_assignment",
+		Description: "Time to assignment for tickets",
+		Aggregation: telemetry.DefaultMillisecondsDistribution,
+	}
 )
 
 // BindService creates the backend service and binds it to the serving harness.
@@ -81,6 +89,7 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 		ticketsPerMatchView,
 		ticketsAssignedView,
 		ticketsReleasedView,
+		ticketsTimeToAssignmentView,
 	)
 	return nil
 }

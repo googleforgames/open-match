@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/telemetry"
 	shellTesting "open-match.dev/open-match/internal/testing"
@@ -31,7 +31,7 @@ import (
 )
 
 func TestStartStopServer(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 	grpcL := MustListen()
 	httpL := MustListen()
 	ff := &shellTesting.FakeFrontend{}
@@ -44,57 +44,57 @@ func TestStartStopServer(t *testing.T) {
 	defer s.Stop()
 
 	err := s.Start(params)
-	assert.Nil(err)
+	require.Nil(err)
 
 	conn, err := grpc.Dial(fmt.Sprintf(":%s", MustGetPortNumber(grpcL)), grpc.WithInsecure())
-	assert.Nil(err)
+	require.Nil(err)
 
 	endpoint := fmt.Sprintf("http://localhost:%s", MustGetPortNumber(httpL))
 	httpClient := &http.Client{
 		Timeout: time.Second,
 	}
 
-	runGrpcWithProxyTests(t, assert, s.serverWithProxy, conn, httpClient, endpoint)
+	runGrpcWithProxyTests(t, require, s.serverWithProxy, conn, httpClient, endpoint)
 }
 
-func runGrpcWithProxyTests(t *testing.T, assert *assert.Assertions, s grpcServerWithProxy, conn *grpc.ClientConn, httpClient *http.Client, endpoint string) {
+func runGrpcWithProxyTests(t *testing.T, require *require.Assertions, s grpcServerWithProxy, conn *grpc.ClientConn, httpClient *http.Client, endpoint string) {
 	ctx := utilTesting.NewContext(t)
 	feClient := pb.NewFrontendServiceClient(conn)
 	grpcResp, err := feClient.CreateTicket(ctx, &pb.CreateTicketRequest{})
-	assert.Nil(err)
-	assert.NotNil(grpcResp)
+	require.Nil(err)
+	require.NotNil(grpcResp)
 
 	httpReq, err := http.NewRequest(http.MethodPost, endpoint+"/v1/frontendservice/tickets", strings.NewReader("{}"))
-	assert.Nil(err)
-	assert.NotNil(httpReq)
+	require.Nil(err)
+	require.NotNil(httpReq)
 	httpResp, err := httpClient.Do(httpReq)
-	assert.Nil(err)
-	assert.NotNil(httpResp)
+	require.Nil(err)
+	require.NotNil(httpResp)
 	defer func() {
 		if httpResp != nil {
 			httpResp.Body.Close()
 		}
 	}()
 	body, err := ioutil.ReadAll(httpResp.Body)
-	assert.Nil(err)
-	assert.Equal(200, httpResp.StatusCode)
-	assert.Equal("{}", string(body))
+	require.Nil(err)
+	require.Equal(200, httpResp.StatusCode)
+	require.Equal("{}", string(body))
 
 	httpReq, err = http.NewRequest(http.MethodGet, endpoint+telemetry.HealthCheckEndpoint, nil)
-	assert.Nil(err)
+	require.Nil(err)
 
 	httpResp, err = httpClient.Do(httpReq)
-	assert.Nil(err)
-	assert.NotNil(httpResp)
+	require.Nil(err)
+	require.NotNil(httpResp)
 	defer func() {
 		if httpResp != nil {
 			httpResp.Body.Close()
 		}
 	}()
 	body, err = ioutil.ReadAll(httpResp.Body)
-	assert.Nil(err)
-	assert.Equal(200, httpResp.StatusCode)
-	assert.Equal("ok", string(body))
+	require.Nil(err)
+	require.Equal(200, httpResp.StatusCode)
+	require.Equal("ok", string(body))
 
 	s.stop()
 }

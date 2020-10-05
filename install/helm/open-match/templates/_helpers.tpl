@@ -23,6 +23,26 @@ Expand the name of the chart.
 {{- end -}}
 
 {{/*
+Create a default fully qualified app name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+If release name contains chart name it will be used as a full name.
+Instead of .Chart.Name, we hard-code "open-match" as we need to call this from subcharts, but get the
+same result as if called from this chart.
+*/}}
+{{- define "openmatch.fullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default "open-match" .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 Render chart metadata labels: "chart", "heritage" unless "openmatch.noChartMeta" is set.
 */}}
 {{- define "openmatch.chartmeta" -}}
@@ -57,7 +77,7 @@ resources:
 {{- range $configIndex, $configValues := .configs }}
 - name: {{ $configValues.volumeName }}
   configMap:
-    name: {{ $configValues.configName }}
+    name: {{ tpl $configValues.configName $ }}
 {{- end }}
 {{- end -}}
 
@@ -74,10 +94,10 @@ resources:
 {{- if .Values.global.tls.enabled }}
 - name: tls-server-volume
   secret:
-    secretName: om-tls-server
+    secretName: {{ include "openmatch.fullname" . }}-tls-server
 - name: root-ca-volume
   secret:
-    secretName: om-tls-rootca
+    secretName: {{ include "openmatch.fullname" . }}-tls-rootca
 {{- end -}}
 {{- end -}}
 
@@ -92,7 +112,7 @@ resources:
 {{- if .Values.redis.usePassword }}
 - name: redis-password
   secret:
-    secretName: {{ .Values.redis.fullnameOverride }}
+    secretName: {{ include "call-nested" (list . "redis" "redis.fullname") }}
 {{- end -}}
 {{- end -}}
 
@@ -135,3 +155,72 @@ minReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.minReplicas }}
 maxReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.maxReplicas }}
 targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoScaler.targetCPUUtilizationPercentage }}
 {{- end -}}
+
+{{- define "openmatch.serviceAccount.name" -}}
+{{- .Values.global.kubernetes.serviceAccount | default (printf "%s-unprivileged-service" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
+{{- define "openmatch.swaggerui.hostName" -}}
+{{- .Values.swaggerui.hostName | default (printf "%s-swaggerui" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
+{{- define "openmatch.query.hostName" -}}
+{{- .Values.query.hostName | default (printf "%s-query" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
+{{- define "openmatch.frontend.hostName" -}}
+{{- .Values.frontend.hostName | default (printf "%s-frontend" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
+{{- define "openmatch.backend.hostName" -}}
+{{- .Values.backend.hostName | default (printf "%s-backend" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
+{{- define "openmatch.synchronizer.hostName" -}}
+{{- .Values.synchronizer.hostName | default (printf "%s-synchronizer" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
+{{- define "openmatch.evaluator.hostName" -}}
+{{- .Values.evaluator.hostName | default (printf "%s-evaluator" (include "openmatch.fullname" . ) ) -}}
+{{- end -}}
+
+{{- define "openmatch.configmap.default" -}}
+{{- printf "%s-configmap-default" (include "openmatch.fullname" . ) -}}
+{{- end -}}
+
+{{- define "openmatch.configmap.override" -}}
+{{- printf "%s-configmap-override" (include "openmatch.fullname" . ) -}}
+{{- end -}}
+
+{{- define "openmatch.jaeger.agent" -}}
+{{- if index .Values "open-match-telemetry" "enabled" -}}
+{{- if index .Values "open-match-telemetry" "jaeger" "enabled" -}}
+{{ include "call-nested" (list . "open-match-telemetry.jaeger" "jaeger.agent.name") }}:6831
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "openmatch.jaeger.collector" -}}
+{{- if index .Values "open-match-telemetry" "enabled" -}}
+{{- if index .Values "open-match-telemetry" "jaeger" "enabled" -}}
+http://{{ include "call-nested" (list . "open-match-telemetry.jaeger" "jaeger.collector.name") }}:14268/api/traces
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Call templates from sub-charts in a synthesized context, workaround for https://github.com/helm/helm/issues/3920
+Mainly useful for things like `{{ include "call-nested" (list . "redis" "redis.fullname") }}`
+https://github.com/helm/helm/issues/4535#issuecomment-416022809
+https://github.com/helm/helm/issues/4535#issuecomment-477778391
+*/}}
+{{- define "call-nested" }}
+{{- $dot := index . 0 }}
+{{- $subchart := index . 1 | splitList "." }}
+{{- $template := index . 2 }}
+{{- $values := $dot.Values }}
+{{- range $subchart }}
+{{- $values = index $values . }}
+{{- end }}
+{{- include $template (dict "Chart" (dict "Name" (last $subchart)) "Values" $values "Release" $dot.Release "Capabilities" $dot.Capabilities) }}
+{{- end }}

@@ -18,7 +18,7 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: {{ .Values.evaluator.hostName }}
+  name: {{ include "openmatch.evaluator.hostName" . }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -46,20 +46,20 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ .Values.evaluator.hostName }}
+  name: {{ include "openmatch.evaluator.hostName" . }}
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ .Values.evaluator.hostName }}
+    name: {{ include "openmatch.evaluator.hostName" . }}
   {{- include "openmatch.HorizontalPodAutoscaler.spec.common" . | nindent 2 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.evaluator.hostName }}
+  name: {{ include "openmatch.evaluator.hostName" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "openmatch.name" . }}
@@ -83,11 +83,11 @@ spec:
         release: {{ .Release.Name }}
     spec:
       volumes:
-        {{- include "openmatch.volumes.configs" (dict "configs" .Values.evaluatorConfigs) | nindent 8}}
+        {{- include "openmatch.volumes.configs" (. | merge (dict "configs" .Values.evaluatorConfigs)) | nindent 8}}
         {{- include "openmatch.volumes.tls" . | nindent 8}}
-      serviceAccountName: {{ .Values.global.kubernetes.serviceAccount }}
+      serviceAccountName: {{ include "openmatch.serviceAccount.name" . }}
       containers:
-      - name: {{ .Values.evaluator.hostName }}
+      - name: {{ include "openmatch.evaluator.hostName" . }}
         volumeMounts:
           {{- include "openmatch.volumemounts.configs" (dict "configs" .Values.evaluatorConfigs) | nindent 10 }}
           {{- include "openmatch.volumemounts.tls" . | nindent 10 }}

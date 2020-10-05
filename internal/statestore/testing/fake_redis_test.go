@@ -18,14 +18,13 @@ import (
 	"testing"
 
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"open-match.dev/open-match/internal/statestore"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 func TestFakeStatestore(t *testing.T) {
-	assert := assert.New(t)
 	cfg := viper.New()
 	closer := New(t, cfg)
 	defer closer()
@@ -35,8 +34,8 @@ func TestFakeStatestore(t *testing.T) {
 	ticket := &pb.Ticket{
 		Id: "abc",
 	}
-	assert.Nil(s.CreateTicket(ctx, ticket))
+	require.Nil(t, s.CreateTicket(ctx, ticket))
 	retrievedTicket, err := s.GetTicket(ctx, "abc")
-	assert.Nil(err)
-	assert.Equal(ticket.Id, retrievedTicket.Id)
+	require.Nil(t, err)
+	require.Equal(t, ticket.Id, retrievedTicket.Id)
 }

@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/statestore"
@@ -77,12 +77,12 @@ func TestDoCreateTickets(t *testing.T) {
 			test.preAction(cancel)
 
 			res, err := doCreateTicket(ctx, &pb.CreateTicketRequest{Ticket: test.ticket}, store)
-			assert.Equal(t, test.wantCode, status.Convert(err).Code())
+			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
 			if err == nil {
 				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetId())
-				assert.True(t, matched)
-				assert.Nil(t, err)
-				assert.Equal(t, test.ticket.SearchFields.DoubleArgs["test-arg"], res.SearchFields.DoubleArgs["test-arg"])
+				require.True(t, matched)
+				require.Nil(t, err)
+				require.Equal(t, test.ticket.SearchFields.DoubleArgs["test-arg"], res.SearchFields.DoubleArgs["test-arg"])
 			}
 		})
 	}
@@ -118,12 +118,12 @@ func TestDoWatchAssignments(t *testing.T) {
 		{
 			description: "expect two assignment reads from preAction writes and fail in grpc aborted code",
 			preAction: func(ctx context.Context, t *testing.T, store statestore.Service, wantAssignments []*pb.Assignment, wg *sync.WaitGroup) {
-				assert.Nil(t, store.CreateTicket(ctx, testTicket))
+				require.Nil(t, store.CreateTicket(ctx, testTicket))
 
 				go func(wg *sync.WaitGroup) {
 					for i := 0; i < len(wantAssignments); i++ {
 						time.Sleep(50 * time.Millisecond)
-						_, err := store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
+						_, _, err := store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
 							Assignments: []*pb.AssignmentGroup{
 								{
 									TicketIds:  []string{testTicket.GetId()},
@@ -131,7 +131,7 @@ func TestDoWatchAssignments(t *testing.T) {
 								},
 							},
 						})
-						assert.Nil(t, err)
+						require.Nil(t, err)
 						wg.Done()
 					}
 				}(wg)
@@ -155,11 +155,11 @@ func TestDoWatchAssignments(t *testing.T) {
 
 			test.preAction(ctx, t, store, test.wantAssignments, &wg)
 			err := doWatchAssignments(ctx, testTicket.GetId(), senderGenerator(gotAssignments, len(test.wantAssignments)), store)
-			assert.Equal(t, test.wantCode, status.Convert(err).Code())
+			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
 
 			wg.Wait()
 			for i := 0; i < len(gotAssignments); i++ {
-				assert.Equal(t, gotAssignments[i], test.wantAssignments[i])
+				require.Equal(t, gotAssignments[i], test.wantAssignments[i])
 			}
 		})
 	}
@@ -211,7 +211,7 @@ func TestDoDeleteTicket(t *testing.T) {
 			test.preAction(ctx, cancel, store)
 
 			err := doDeleteTicket(ctx, fakeTicket.GetId(), store)
-			assert.Equal(t, test.wantCode, status.Convert(err).Code())
+			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
 		})
 	}
 }
@@ -264,12 +264,12 @@ func TestDoGetTicket(t *testing.T) {
 
 			test.preAction(ctx, cancel, store)
 
-			ticket, err := doGetTickets(ctx, fakeTicket.GetId(), store)
-			assert.Equal(t, test.wantCode, status.Convert(err).Code())
+			ticket, err := store.GetTicket(ctx, fakeTicket.GetId())
+			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
 
 			if err == nil {
-				assert.Equal(t, test.wantTicket.GetId(), ticket.GetId())
-				assert.Equal(t, test.wantTicket.SearchFields.DoubleArgs, ticket.SearchFields.DoubleArgs)
+				require.Equal(t, test.wantTicket.GetId(), ticket.GetId())
+				require.Equal(t, test.wantTicket.SearchFields.DoubleArgs, ticket.SearchFields.DoubleArgs)
 			}
 		})
 	}

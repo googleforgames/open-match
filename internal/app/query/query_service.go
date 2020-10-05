@@ -67,7 +67,7 @@ func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer 
 		}
 	})
 	if err != nil {
-		logger.WithError(err).Error("Failed to run request.")
+		err = errors.Wrap(err, "QueryTickets: failed to run request")
 		return err
 	}
 	stats.Record(ctx, ticketsPerQuery.M(int64(len(results))))
@@ -111,7 +111,7 @@ func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseSer
 		}
 	})
 	if err != nil {
-		logger.WithError(err).Error("Failed to run request.")
+		err = errors.Wrap(err, "QueryTicketIds: failed to run request")
 		return err
 	}
 	stats.Record(ctx, ticketsPerQuery.M(int64(len(results))))
