@@ -46,7 +46,6 @@ func TestStatestoreSetup(t *testing.T) {
 }
 
 func TestTicketLifecycle(t *testing.T) {
-	// Create State Store
 	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
@@ -104,7 +103,6 @@ func TestTicketLifecycle(t *testing.T) {
 }
 
 func TestGetAssignmentBeforeSet(t *testing.T) {
-	// Create State Store
 	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
@@ -124,7 +122,6 @@ func TestGetAssignmentBeforeSet(t *testing.T) {
 }
 
 func TestGetAssignmentNormal(t *testing.T) {
-	// Create State Store
 	cfg, closer := createRedis(t, true, "")
 	defer closer()
 	service := New(cfg)
@@ -161,6 +158,196 @@ func TestGetAssignmentNormal(t *testing.T) {
 	// Test GetAssignments was retried for 5 times and returned with expected error
 	require.Equal(t, 5, callbackCount)
 	require.Equal(t, returnedErr, err)
+
+	// Pass an expired context, err expected
+	ctx, cancel = context.WithCancel(context.Background())
+	cancel()
+	service = New(cfg)
+	err = service.GetAssignments(ctx, "1", func(assignment *pb.Assignment) error { return nil })
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), "GetAssignments, id: 1, failed to connect to redis:")
+}
+
+func TestUpdateAssignments(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	err := service.CreateTicket(ctx, &pb.Ticket{
+		Id:         "1",
+		Assignment: &pb.Assignment{Connection: "2"},
+	})
+	require.Nil(t, err)
+
+	c, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
+	require.NoError(t, err)
+	_, err = c.Do("SET", "wrong-type-key", "wrong-type-value")
+	require.NoError(t, err)
+
+	type expected struct {
+		resp               *pb.AssignTicketsResponse
+		errCode            codes.Code
+		errMessage         string
+		assignedTicketsIDs []string
+	}
+
+	var testCases = []struct {
+		description string
+		request     *pb.AssignTicketsRequest
+		expected
+	}{
+		{
+			description: "no assignments, empty response is returned",
+			request:     &pb.AssignTicketsRequest{},
+			expected: expected{
+				resp:               &pb.AssignTicketsResponse{},
+				errCode:            codes.OK,
+				errMessage:         "",
+				assignedTicketsIDs: []string{},
+			},
+		},
+		{
+			description: "updated assignments, no errors",
+			request: &pb.AssignTicketsRequest{
+				Assignments: []*pb.AssignmentGroup{
+					{
+						TicketIds:  []string{"1"},
+						Assignment: &pb.Assignment{Connection: "2"},
+					},
+				},
+			},
+			expected: expected{
+				resp:               &pb.AssignTicketsResponse{},
+				errCode:            codes.OK,
+				errMessage:         "",
+				assignedTicketsIDs: []string{"1"},
+			},
+		},
+		{
+			description: "nil assignment, error expected",
+			request: &pb.AssignTicketsRequest{
+				Assignments: []*pb.AssignmentGroup{
+					{
+						TicketIds:  []string{"1"},
+						Assignment: nil,
+					},
+				},
+			},
+			expected: expected{
+				resp:               nil,
+				errCode:            codes.InvalidArgument,
+				errMessage:         "AssignmentGroup.Assignment is required",
+				assignedTicketsIDs: []string{},
+			},
+		},
+		{
+			description: "ticket is assigned multiple times, error expected",
+			request: &pb.AssignTicketsRequest{
+				Assignments: []*pb.AssignmentGroup{
+					{
+						TicketIds:  []string{"1"},
+						Assignment: &pb.Assignment{Connection: "2"},
+					},
+					{
+						TicketIds:  []string{"1"},
+						Assignment: &pb.Assignment{Connection: "2"},
+					},
+				},
+			},
+			expected: expected{
+				resp:               nil,
+				errCode:            codes.InvalidArgument,
+				errMessage:         "Ticket id 1 is assigned multiple times in one assign tickets call",
+				assignedTicketsIDs: []string{},
+			},
+		},
+		{
+			description: "ticket doesn't exist, no error, response failure expected",
+			request: &pb.AssignTicketsRequest{
+				Assignments: []*pb.AssignmentGroup{
+					{
+						TicketIds:  []string{"11111"},
+						Assignment: &pb.Assignment{Connection: "2"},
+					},
+				},
+			},
+			expected: expected{
+				resp: &pb.AssignTicketsResponse{
+					Failures: []*pb.AssignmentFailure{{
+						TicketId: "11111",
+						Cause:    pb.AssignmentFailure_TICKET_NOT_FOUND,
+					}},
+				},
+				errCode:            codes.OK,
+				errMessage:         "",
+				assignedTicketsIDs: []string{},
+			},
+		},
+		{
+			description: "wrong value, error expected",
+			request: &pb.AssignTicketsRequest{
+				Assignments: []*pb.AssignmentGroup{
+					{
+						TicketIds:  []string{"wrong-type-key"},
+						Assignment: &pb.Assignment{Connection: "2"},
+					},
+				},
+			},
+			expected: expected{
+				resp:               nil,
+				errCode:            codes.Internal,
+				errMessage:         "failed to unmarshal ticket from redis wrong-type-key",
+				assignedTicketsIDs: []string{},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.description, func(t *testing.T) {
+			resp, ticketsAssignedActual, errActual := service.UpdateAssignments(ctx, tc.request)
+			if tc.expected.errCode != codes.OK {
+				require.Error(t, errActual)
+				require.Equal(t, tc.expected.errCode.String(), status.Convert(errActual).Code().String())
+				require.Contains(t, status.Convert(errActual).Message(), tc.expected.errMessage)
+			} else {
+				require.NoError(t, errActual)
+				require.Equal(t, tc.expected.resp, resp)
+				require.Equal(t, len(tc.expected.assignedTicketsIDs), len(ticketsAssignedActual))
+
+				for _, ticket := range ticketsAssignedActual {
+					found := false
+					for _, id := range tc.expected.assignedTicketsIDs {
+						if ticket.GetId() == id {
+							found = true
+							break
+						}
+					}
+					require.Truef(t, found, "assigned ticket ID %s is not found in an expected slice", ticket.GetId())
+				}
+			}
+		})
+	}
+
+	// Pass an expired context, err expected
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	service = New(cfg)
+	_, _, err = service.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
+		Assignments: []*pb.AssignmentGroup{
+			{
+				TicketIds:  []string{"11111"},
+				Assignment: &pb.Assignment{Connection: "2"},
+			},
+		},
+	})
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), "UpdateAssignments, failed to connect to redis: context canceled")
 }
 
 func TestConnect(t *testing.T) {
@@ -283,13 +470,13 @@ func TestGetTicket(t *testing.T) {
 			description:     "empty id passed, err expected",
 			ticketID:        "",
 			expectedCode:    codes.NotFound,
-			expectedMessage: "Ticket id: not found",
+			expectedMessage: "Ticket id:  not found",
 		},
 		{
 			description:     "wrong id passed, err expected",
 			ticketID:        "123456",
 			expectedCode:    codes.NotFound,
-			expectedMessage: "Ticket id:123456 not found",
+			expectedMessage: "Ticket id: 123456 not found",
 		},
 		{
 			description:     "item of a wrong type is requested, err expected",
@@ -302,14 +489,14 @@ func TestGetTicket(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
-			ticketActual, err := service.GetTicket(ctx, tc.ticketID)
+			ticketActual, errActual := service.GetTicket(ctx, tc.ticketID)
 			if tc.expectedCode == codes.OK {
-				require.NoError(t, err)
+				require.NoError(t, errActual)
 				require.NotNil(t, ticketActual)
 			} else {
-				require.Error(t, err)
-				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String())
-				require.Contains(t, status.Convert(err).Message(), tc.expectedMessage)
+				require.Error(t, errActual)
+				require.Equal(t, tc.expectedCode.String(), status.Convert(errActual).Code().String())
+				require.Contains(t, status.Convert(errActual).Message(), tc.expectedMessage)
 			}
 		})
 	}
@@ -363,19 +550,19 @@ func TestDeleteTicket(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
-			err := service.DeleteTicket(ctx, tc.ticketID)
+			errActual := service.DeleteTicket(ctx, tc.ticketID)
 			if tc.expectedCode == codes.OK {
-				require.NoError(t, err)
+				require.NoError(t, errActual)
 
 				if tc.ticketID != "" {
-					_, err := service.GetTicket(ctx, tc.ticketID)
-					require.Error(t, err)
-					require.Equal(t, codes.NotFound.String(), status.Convert(err).Code().String())
+					_, errGetTicket := service.GetTicket(ctx, tc.ticketID)
+					require.Error(t, errGetTicket)
+					require.Equal(t, codes.NotFound.String(), status.Convert(errGetTicket).Code().String())
 				}
 			} else {
-				require.Error(t, err)
-				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String())
-				require.Contains(t, status.Convert(err).Message(), tc.expectedMessage)
+				require.Error(t, errActual)
+				require.Equal(t, tc.expectedCode.String(), status.Convert(errActual).Code().String())
+				require.Contains(t, status.Convert(errActual).Message(), tc.expectedMessage)
 			}
 		})
 	}
@@ -566,7 +753,7 @@ func TestDeleteTicketsFromPendingRelease(t *testing.T) {
 	// Add the first ticket to the pending release and verify changes are reflected in the result
 	redis.Strings(c.Do("ZADD", "proposed_ticket_ids", time.Now().UnixNano(), ids[0]))
 
-	// Verrify 1 ticket is indexed
+	// Verify 1 ticket is indexed
 	verifyTickets(service, tickets[1:2])
 
 	require.NoError(t, service.DeleteTicketsFromPendingRelease(ctx, ids[:1]))
@@ -617,7 +804,7 @@ func TestReleaseAllTickets(t *testing.T) {
 	// Add the first ticket to the pending release and verify changes are reflected in the result
 	redis.Strings(c.Do("ZADD", "proposed_ticket_ids", time.Now().UnixNano(), ids[0]))
 
-	// Verrify 1 ticket is indexed
+	// Verify 1 ticket is indexed
 	verifyTickets(service, tickets[1:2])
 
 	require.NoError(t, service.ReleaseAllTickets(ctx))
@@ -662,7 +849,7 @@ func TestAddTicketsToPendingRelease(t *testing.T) {
 	// Add 1st ticket to pending release state
 	require.NoError(t, service.AddTicketsToPendingRelease(ctx, ids[:1]))
 
-	// Verrify 1 ticket is indexed
+	// Verify 1 ticket is indexed
 	verifyTickets(service, tickets[1:2])
 
 	// Pass an empty ids slice
@@ -721,6 +908,7 @@ func createRedis(t *testing.T, withSentinel bool, withPassword string) (config.V
 	cfg.Set("backoff.maxInterval", 300*time.Millisecond)
 	cfg.Set("backoff.maxElapsedTime", 100*time.Millisecond)
 	cfg.Set(telemetry.ConfigNameEnableMetrics, true)
+	cfg.Set("assignedDeleteTimeout", 1000*time.Millisecond)
 
 	if withSentinel {
 		s := minisentinel.NewSentinel(mredis)
@@ -763,6 +951,7 @@ func createRedis(t *testing.T, withSentinel bool, withPassword string) (config.V
 	}
 }
 
+//nolint: unparam
 // generateTickets creates a proper amount of ticket, returns a slice of tickets and a slice of tickets ids
 func generateTickets(ctx context.Context, t *testing.T, service Service, amount int) ([]*pb.Ticket, []string) {
 	tickets := make([]*pb.Ticket, 0, amount)
