@@ -17,6 +17,7 @@ package mmf
 import (
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -31,7 +32,7 @@ import (
 // a Match Proposal. It continues to generate proposals till one of the pools
 // runs out of Tickets.
 const (
-	matchName              = "basic-matchfunction"
+	matchName              = "skill-matchfunction"
 	ticketsPerPoolPerMatch = 4
 )
 
@@ -66,17 +67,23 @@ func (s *MatchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 }
 
 func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
+	// Create a colletion to hold match proposals
 	var matches []*pb.Match
 	count := 0
 	for {
 		insufficientTickets := false
+		// Create a collection to hold tickets selected for a match
 		matchTickets := []*pb.Ticket{}
 		for pool, tickets := range poolTickets {
+			// Set flag if there are not enough tickets to create a match
 			if len(tickets) < ticketsPerPoolPerMatch {
-				// This pool is completely drained out. Stop creating matches.
 				insufficientTickets = true
 				break
 			}
+			// Sort the tickets based on skill
+			sort.Slice(tickets, func(i, j int) bool {
+				return tickets[i].SearchFields.DoubleArgs["mmr"] < tickets[j].SearchFields.DoubleArgs["mmr"]
+			})
 
 			// Remove the Tickets from this pool and add to the match proposal.
 			matchTickets = append(matchTickets, tickets[0:ticketsPerPoolPerMatch]...)
@@ -86,18 +93,19 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 		if insufficientTickets {
 			break
 		}
-
-		matchScore := scoreCalculator(matchTickets)
+		// Compute the match quality/score
+		matchQuality := computeQuality(matchTickets)
 		evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
-			Score: matchScore,
+			Score: matchQuality,
 		})
 
 		if err != nil {
 			log.Printf("Failed to marshal DefaultEvaluationCriteria, got %s.", err.Error())
 			return nil, fmt.Errorf("Failed to marshal DefaultEvaluationCriteria, got %w", err)
 		}
-
-		log.Printf("Score for the generated match is %v", matchScore)
+		// Output the match quality for our sanity
+		log.Printf("Quality for the generated match is %v", matchQuality)
+		// Create a match proposal
 		matches = append(matches, &pb.Match{
 			MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), count),
 			MatchProfile:  p.GetName(),
@@ -114,22 +122,20 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 	return matches, nil
 }
 
+// Compute the quality as a difference in the highest and lowest player skill levels. This can be used to determine if the match is outside a given skill differential
 func computeQuality(tickets []*pb.Ticket) float64 {
 	quality := 0.0
 	high := 0.0
-	// Low is set to first tickets skill level. If a lower skill is encountered, it will be updated
 	low := tickets[0].SearchFields.DoubleArgs["mmr"]
 	for _, ticket := range tickets {
 		if high < ticket.SearchFields.DoubleArgs["mmr"] {
 			high = ticket.SearchFields.DoubleArgs["mmr"]
 		}
-		// TO DO: Compute accurate low
 		if low > ticket.SearchFields.DoubleArgs["mmr"] {
 			low = ticket.SearchFields.DoubleArgs["mmr"]
 		}
 	}
-	// default evaluator looks for match scores with highest value first. The higher the difference the worst the match is. Negating will cause higher differences to be worst value. Concrete fix or custom evaluation coming
-	quality = (high - low) * -1
+	quality = high - low
 
 	return quality
 }
