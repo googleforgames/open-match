@@ -31,7 +31,10 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-const allTickets = "allTickets"
+const (
+	allTickets        = "allTickets"
+	proposedTicketIDs = "proposed_ticket_ids"
+)
 
 var (
 	redisLogger = logrus.WithFields(logrus.Fields{
@@ -255,7 +258,7 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 	if err != nil {
 		// Return NotFound if redigo did not find the ticket in storage.
 		if err == redis.ErrNil {
-			msg := fmt.Sprintf("Ticket id:%s not found", id)
+			msg := fmt.Sprintf("Ticket id: %s not found", id)
 			return nil, status.Error(codes.NotFound, msg)
 		}
 
@@ -264,7 +267,7 @@ func (rb *redisBackend) GetTicket(ctx context.Context, id string) (*pb.Ticket, e
 	}
 
 	if value == nil {
-		msg := fmt.Sprintf("Ticket id:%s not found", id)
+		msg := fmt.Sprintf("Ticket id: %s not found", id)
 		return nil, status.Error(codes.NotFound, msg)
 	}
 
@@ -343,7 +346,7 @@ func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{
 	startTimeInt := curTime.Add(-ttl).UnixNano()
 
 	// Filter out tickets that are fetched but not assigned within ttl time (ms).
-	idsInPendingReleases, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "proposed_ticket_ids", startTimeInt, endTimeInt))
+	idsInPendingReleases, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", proposedTicketIDs, startTimeInt, endTimeInt))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "error getting pending release %v", err)
 	}
@@ -413,6 +416,12 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 		return resp, []*pb.Ticket{}, nil
 	}
 
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return nil, nil, status.Errorf(codes.Unavailable, "UpdateAssignments, failed to connect to redis: %v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+
 	idToA := make(map[string]*pb.Assignment)
 	ids := make([]string, 0)
 	idsI := make([]interface{}, 0)
@@ -423,7 +432,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 
 		for _, id := range a.TicketIds {
 			if _, ok := idToA[id]; ok {
-				return nil, nil, status.Errorf(codes.InvalidArgument, "Ticket id %s is assigned multiple times in one assign tickets call.", id)
+				return nil, nil, status.Errorf(codes.InvalidArgument, "Ticket id %s is assigned multiple times in one assign tickets call", id)
 			}
 
 			idToA[id] = a.Assignment
@@ -431,12 +440,6 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 			idsI = append(idsI, id)
 		}
 	}
-
-	redisConn, err := rb.redisPool.GetContext(ctx)
-	if err != nil {
-		return nil, nil, status.Errorf(codes.Unavailable, "UpdateAssignments, failed to connect to redis: %v", err)
-	}
-	defer handleConnectionClose(&redisConn)
 
 	ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", idsI...))
 	if err != nil {
@@ -557,7 +560,7 @@ func (rb *redisBackend) AddTicketsToPendingRelease(ctx context.Context, ids []st
 
 	currentTime := time.Now().UnixNano()
 	cmds := make([]interface{}, 0, 2*len(ids)+1)
-	cmds = append(cmds, "proposed_ticket_ids")
+	cmds = append(cmds, proposedTicketIDs)
 	for _, id := range ids {
 		cmds = append(cmds, currentTime, id)
 	}
@@ -584,7 +587,7 @@ func (rb *redisBackend) DeleteTicketsFromPendingRelease(ctx context.Context, ids
 	defer handleConnectionClose(&redisConn)
 
 	cmds := make([]interface{}, 0, len(ids)+1)
-	cmds = append(cmds, "proposed_ticket_ids")
+	cmds = append(cmds, proposedTicketIDs)
 	for _, id := range ids {
 		cmds = append(cmds, id)
 	}
@@ -605,7 +608,7 @@ func (rb *redisBackend) ReleaseAllTickets(ctx context.Context) error {
 	}
 	defer handleConnectionClose(&redisConn)
 
-	_, err = redisConn.Do("DEL", "proposed_ticket_ids")
+	_, err = redisConn.Do("DEL", proposedTicketIDs)
 	return err
 }
 
