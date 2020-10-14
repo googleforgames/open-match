@@ -64,8 +64,8 @@ func makeMatches(poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
 	for _, ticket := range tickets {
 		thisMatch = append(thisMatch, ticket)
 
-		// Uncomment if match function relies on evaluator to score matches quality based on latency.
 		if len(thisMatch) >= 2 {
+			// Uncomment if match function relies on evaluator to score matches quality based on latency.
 			// 	// Compute the match quality/score
 			// 	matchQuality := computeQuality(thisMatch)
 			// 	evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
