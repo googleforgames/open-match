@@ -65,17 +65,17 @@ func makeMatches(poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
 		thisMatch = append(thisMatch, ticket)
 
 		// Uncomment if match function relies on evaluator to score matches quality based on latency.
-		if len(thisMatch) >= 2 {
-			// Compute the match quality/score
-			matchQuality := computeQuality(thisMatch)
-			evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
-				Score: matchQuality,
-			})
+		// if len(thisMatch) >= 2 {
+		// 	// Compute the match quality/score
+		// 	matchQuality := computeQuality(thisMatch)
+		// 	evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
+		// 		Score: matchQuality,
+		// 	})
 
-			if err != nil {
-				log.Printf("Failed to marshal DefaultEvaluationCriteria, got %s.", err.Error())
-				return nil, fmt.Errorf("Failed to marshal DefaultEvaluationCriteria, got %w", err)
-			}
+		// 	if err != nil {
+		// 		log.Printf("Failed to marshal DefaultEvaluationCriteria, got %s.", err.Error())
+		// 		return nil, fmt.Errorf("Failed to marshal DefaultEvaluationCriteria, got %w", err)
+		// 	}
 
 			matches = append(matches, &pb.Match{
 				MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", matchName, t, matchNum),
