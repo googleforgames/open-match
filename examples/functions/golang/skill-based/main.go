@@ -20,7 +20,7 @@
 package main
 
 import (
-	"open-match.dev/open-match/tutorials/matchmaker101/matchfunction/mmf"
+	"open-match.dev/open-match/examples/functions/golang/skill-based/mmf"
 )
 
 // This tutorial implenents a basic Match Function that is hosted in the below
