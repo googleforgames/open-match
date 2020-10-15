@@ -172,6 +172,16 @@
       ],
       "default": "UNKNOWN"
     },
+    "DoubleRangeFilterExclude": {
+      "type": "string",
+      "enum": [
+        "NONE",
+        "MIN",
+        "MAX",
+        "BOTH"
+      ],
+      "default": "NONE"
+    },
     "openmatchAssignTicketsRequest": {
       "type": "object",
       "properties": {
@@ -258,6 +268,10 @@
           "type": "number",
           "format": "double",
           "description": "Minimum value."
+        },
+        "exclude": {
+          "$ref": "#/definitions/DoubleRangeFilterExclude",
+          "description": "Which bounds would be excluded when comparing with a ticket's search_fields.double_args value.\n\nBETA FEATURE WARNING: This field and the associated values are\nfinalized and still subject to possible change or removal."
         }
       },
       "title": "Filters numerical values to only those within a range.\n  double_arg: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {}"

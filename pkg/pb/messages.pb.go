@@ -274,7 +274,11 @@ type DoubleRangeFilter struct {
 	// Maximum value.
 	Max float64 `protobuf:"fixed64,2,opt,name=max,proto3" json:"max,omitempty"`
 	// Minimum value.
-	Min                  float64                   `protobuf:"fixed64,3,opt,name=min,proto3" json:"min,omitempty"`
+	Min float64 `protobuf:"fixed64,3,opt,name=min,proto3" json:"min,omitempty"`
+	// Which bounds would be excluded when comparing with a ticket's search_fields.double_args value.
+	//
+	// BETA FEATURE WARNING: This field and the associated values are
+	// finalized and still subject to possible change or removal.
 	Exclude              DoubleRangeFilter_Exclude `protobuf:"varint,4,opt,name=exclude,proto3,enum=openmatch.DoubleRangeFilter_Exclude" json:"exclude,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
 	XXX_unrecognized     []byte                    `json:"-"`
