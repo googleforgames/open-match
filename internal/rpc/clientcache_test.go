@@ -17,13 +17,17 @@ package rpc
 import (
 	"testing"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	fakeHTTPAddress = "http://om-test:54321"
-	fakeGRPCAddress = "om-test:54321"
+	fakeHTTPAddress            = "http://om-test:54321"
+	fakeGRPCAddress            = "om-test:54321"
+	unavailableFakeGRPCAddress = "om-test-1:54321"
 )
 
 func TestGetGRPC(t *testing.T) {
@@ -38,6 +42,17 @@ func TestGetGRPC(t *testing.T) {
 
 	// Test caching by comparing pointer value
 	require.EqualValues(client, cachedClient)
+}
+
+func TestGetGRPC_WithUnavailableAddress(t *testing.T) {
+	require := require.New(t)
+
+	cc := NewClientCache(viper.New())
+	_, err := cc.GetGRPC(unavailableFakeGRPCAddress)
+	require.Error(err)
+
+	code := status.Code(err)
+	require.Equal(codes.Unavailable, code)
 }
 
 func TestGetHTTP(t *testing.T) {

@@ -15,8 +15,14 @@
 package rpc
 
 import (
+	"context"
 	"net/http"
 	"sync"
+	"time"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/status"
 
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
@@ -52,7 +58,33 @@ func (cc *ClientCache) GetGRPC(address string) (*grpc.ClientConn, error) {
 		cc.cache.Store(address, c)
 	}
 
+	timeoutDuration := functionConnectionTimeout(cc.cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
+	defer cancel()
+	for {
+		s := c.client.GetState()
+		if s == connectivity.Ready {
+			break
+		}
+		if !c.client.WaitForStateChange(ctx, s) {
+			return nil, status.Errorf(codes.Unavailable, "timeout waiting for connection ready after %s, stuck in state %s", timeoutDuration, s)
+		}
+	}
+
 	return c.client, nil
+}
+
+func functionConnectionTimeout(cfg config.View) time.Duration {
+	const (
+		name            = "functionConnectionTimeout"
+		defaultInterval = 300 * time.Millisecond
+	)
+
+	if !cfg.IsSet(name) {
+		return defaultInterval
+	}
+
+	return cfg.GetDuration(name)
 }
 
 // GetHTTP gets a HTTP client with the address.
