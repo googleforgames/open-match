@@ -87,6 +87,11 @@ type ServerParams struct {
 
 // NewServerParamsFromConfig returns server Params initialized from the configuration file.
 func NewServerParamsFromConfig(cfg config.View, prefix string, listen func(network, address string) (net.Listener, error)) (*ServerParams, error) {
+	serverLogger = logrus.WithFields(logrus.Fields{
+		"app":       "openmatch",
+		"component": prefix,
+	})
+
 	grpcL, err := listen("tcp", fmt.Sprintf(":%d", cfg.GetInt(prefix+".grpcport")))
 	if err != nil {
 		return nil, errors.Wrap(err, "can't start listener for grpc")
@@ -283,7 +288,7 @@ func newGRPCServerOptions(params *ServerParams) []grpc.ServerOption {
 		}
 	}
 
-	// TODO: add unary interceptor once all redundant logs are removed
+	ui = append(ui, serverUnaryInterceptor)
 	si = append(si, serverStreamInterceptor)
 
 	if params.enableMetrics {
@@ -310,4 +315,15 @@ func serverStreamInterceptor(srv interface{},
 		serverLogger.Error(err)
 	}
 	return err
+}
+
+func serverUnaryInterceptor(ctx context.Context,
+	req interface{},
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler) (interface{}, error) {
+	h, err := handler(ctx, req)
+	if err != nil {
+		serverLogger.Error(err)
+	}
+	return h, err
 }

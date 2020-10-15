@@ -103,7 +103,7 @@ func TestAssignTicketsInvalidArgument(t *testing.T) {
 					},
 				},
 			},
-			"Ticket id " + ctResp.Id + " is assigned multiple times in one assign tickets call.",
+			"Ticket id " + ctResp.Id + " is assigned multiple times in one assign tickets call",
 		},
 		{
 			"ticket used twice two groups",
@@ -119,13 +119,13 @@ func TestAssignTicketsInvalidArgument(t *testing.T) {
 					},
 				},
 			},
-			"Ticket id " + ctResp.Id + " is assigned multiple times in one assign tickets call.",
+			"Ticket id " + ctResp.Id + " is assigned multiple times in one assign tickets call",
 		},
 	} {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := om.Backend().AssignTickets(ctx, tt.req)
-			require.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
+			require.Equal(t, codes.InvalidArgument.String(), status.Convert(err).Code().String())
 			require.Equal(t, tt.msg, status.Convert(err).Message())
 		})
 	}
@@ -183,7 +183,7 @@ func TestTicketDelete(t *testing.T) {
 
 	resp, err := om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: t1.Id})
 	require.Nil(t, resp)
-	require.Equal(t, "Ticket id:"+t1.Id+" not found", status.Convert(err).Message())
+	require.Equal(t, "Ticket id: "+t1.Id+" not found", status.Convert(err).Message())
 	require.Equal(t, codes.NotFound, status.Convert(err).Code())
 }
 
@@ -524,7 +524,7 @@ func TestCreateTicketErrors(t *testing.T) {
 			resp, err := om.Frontend().CreateTicket(ctx, tt.req)
 			require.Nil(t, resp)
 			s := status.Convert(err)
-			require.Equal(t, codes.InvalidArgument, s.Code())
+			require.Equal(t, codes.InvalidArgument.String(), s.Code().String())
 			require.Equal(t, s.Message(), tt.msg)
 		})
 	}
