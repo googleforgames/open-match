@@ -278,7 +278,7 @@ type DoubleRangeFilter struct {
 	// Which bounds would be excluded when comparing with a ticket's search_fields.double_args value.
 	//
 	// BETA FEATURE WARNING: This field and the associated values are
-	// finalized and still subject to possible change or removal.
+	// not finalized and still subject to possible change or removal.
 	Exclude              DoubleRangeFilter_Exclude `protobuf:"varint,4,opt,name=exclude,proto3,enum=openmatch.DoubleRangeFilter_Exclude" json:"exclude,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
 	XXX_unrecognized     []byte                    `json:"-"`
