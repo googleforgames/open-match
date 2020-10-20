@@ -43,10 +43,17 @@ func IncludedTestCases() []TestCase {
 			&pb.Pool{},
 		},
 
-		simpleDoubleRange("simpleInRange", 5, 0, 10),
-		simpleDoubleRange("exactMatch", 5, 5, 5),
-		simpleDoubleRange("infinityMax", math.Inf(1), 0, math.Inf(1)),
-		simpleDoubleRange("infinityMin", math.Inf(-1), math.Inf(-1), 0),
+		simpleDoubleRange("simpleInRange", 5, 0, 10, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("exactMatch", 5, 5, 5, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("infinityMax", math.Inf(1), 0, math.Inf(1), pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("infinityMin", math.Inf(-1), math.Inf(-1), 0, pb.DoubleRangeFilter_NONE),
+
+		simpleDoubleRange("inclusive both bounds lower", 0, 0, 1, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("inclusive both bounds upper", 1, 0, 1, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("exclusive min bounds upper", 1, 0, 1, pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("exclusive max bounds lower", 0, 0, 1, pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("exclusive both bounds upper", 2, 0, 3, pb.DoubleRangeFilter_BOTH),
+		simpleDoubleRange("exclusive both bounds lower", 1, 0, 3, pb.DoubleRangeFilter_BOTH),
 
 		{
 			"String equals simple positive",
@@ -138,46 +145,6 @@ func IncludedTestCases() []TestCase {
 			&pb.Ticket{},
 			&pb.Pool{},
 		},
-		{
-			"double range inclusive BOTH bounds: lower",
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					DoubleArgs: map[string]float64{
-						"field": 0,
-					},
-				},
-			},
-			&pb.Pool{
-				DoubleRangeFilters: []*pb.DoubleRangeFilter{
-					{
-						DoubleArg: "field",
-						Min:       0,
-						Max:       1,
-						Exclude:   pb.DoubleRangeFilter_NONE,
-					},
-				},
-			},
-		},
-		{
-			"double range inclusive BOTH bounds: upper",
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					DoubleArgs: map[string]float64{
-						"field": 1,
-					},
-				},
-			},
-			&pb.Pool{
-				DoubleRangeFilters: []*pb.DoubleRangeFilter{
-					{
-						DoubleArg: "field",
-						Min:       0,
-						Max:       1,
-						Exclude:   pb.DoubleRangeFilter_NONE,
-					},
-				},
-			},
-		},
 	}
 }
 
@@ -241,14 +208,19 @@ func ExcludedTestCases() []TestCase {
 				},
 			},
 		},
-		simpleDoubleRange("valueTooLow", -1, 0, 10),
-		simpleDoubleRange("valueTooHigh", 11, 0, 10),
-		simpleDoubleRange("minIsNan", 5, math.NaN(), 10),
-		simpleDoubleRange("maxIsNan", 5, 0, math.NaN()),
-		simpleDoubleRange("minMaxAreNan", 5, math.NaN(), math.NaN()),
-		simpleDoubleRange("valueIsNan", math.NaN(), 0, 10),
-		simpleDoubleRange("valueIsNanInfRange", math.NaN(), math.Inf(-1), math.Inf(1)),
-		simpleDoubleRange("allAreNan", math.NaN(), math.NaN(), math.NaN()),
+		simpleDoubleRange("valueTooLow", -1, 0, 10, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("valueTooHigh", 11, 0, 10, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("minIsNan", 5, math.NaN(), 10, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("maxIsNan", 5, 0, math.NaN(), pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("minMaxAreNan", 5, math.NaN(), math.NaN(), pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("valueIsNan", math.NaN(), 0, 10, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("valueIsNanInfRange", math.NaN(), math.Inf(-1), math.Inf(1), pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("allAreNan", math.NaN(), math.NaN(), math.NaN(), pb.DoubleRangeFilter_NONE),
+
+		simpleDoubleRange("exclusive upper bound", 1, 0, 1, pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("exclusive lower bound", 0, 0, 1, pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("exclusive both bounds lower", 0, 0, 1, pb.DoubleRangeFilter_BOTH),
+		simpleDoubleRange("exclusive both bounds upper", 1, 0, 1, pb.DoubleRangeFilter_BOTH),
 
 		{
 			"String equals simple negative", // and case sensitivity
@@ -364,91 +336,10 @@ func ExcludedTestCases() []TestCase {
 		multipleFilters(false, true, true),
 		multipleFilters(true, false, true),
 		multipleFilters(true, true, false),
-
-		{
-			"double range exclusive upper bound",
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					DoubleArgs: map[string]float64{
-						"field": 1,
-					},
-				},
-			},
-			&pb.Pool{
-				DoubleRangeFilters: []*pb.DoubleRangeFilter{
-					{
-						DoubleArg: "field",
-						Min:       0,
-						Max:       1,
-						Exclude:   pb.DoubleRangeFilter_MAX,
-					},
-				},
-			},
-		},
-		{
-			"double range exclusive lower bound",
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					DoubleArgs: map[string]float64{
-						"field": 0,
-					},
-				},
-			},
-			&pb.Pool{
-				DoubleRangeFilters: []*pb.DoubleRangeFilter{
-					{
-						DoubleArg: "field",
-						Min:       0,
-						Max:       1,
-						Exclude:   pb.DoubleRangeFilter_MIN,
-					},
-				},
-			},
-		},
-		{
-			"double range exclusive BOTH bounds: lower",
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					DoubleArgs: map[string]float64{
-						"field": 0,
-					},
-				},
-			},
-			&pb.Pool{
-				DoubleRangeFilters: []*pb.DoubleRangeFilter{
-					{
-						DoubleArg: "field",
-						Min:       0,
-						Max:       1,
-						Exclude:   pb.DoubleRangeFilter_BOTH,
-					},
-				},
-			},
-		},
-		{
-			"double range exclusive BOTH bounds: upper",
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					DoubleArgs: map[string]float64{
-						"field": 1,
-					},
-				},
-			},
-			&pb.Pool{
-				DoubleRangeFilters: []*pb.DoubleRangeFilter{
-					{
-						DoubleArg: "field",
-						Min:       0,
-						Max:       1,
-						Exclude:   pb.DoubleRangeFilter_BOTH,
-					},
-				},
-			},
-		},
 	}
 }
 
-func simpleDoubleRange(name string, value, min, max float64) TestCase {
+func simpleDoubleRange(name string, value, min, max float64, exclude pb.DoubleRangeFilter_Exclude) TestCase {
 	return TestCase{
 		"double range " + name,
 		&pb.Ticket{
@@ -464,6 +355,7 @@ func simpleDoubleRange(name string, value, min, max float64) TestCase {
 					DoubleArg: "field",
 					Min:       min,
 					Max:       max,
+					Exclude:   exclude,
 				},
 			},
 		},
