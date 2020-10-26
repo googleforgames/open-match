@@ -171,8 +171,8 @@ open-match-core:
   pendingReleaseTimeout: 1m
   # Time after a ticket has been assigned before it is automatically delted.
   assignedDeleteTimeout: 10m
-  # Time before a function is considered unavailable after trying to connect to it.
-  functionConnectionTimeout: 300ms
+  # Time before an RPC connection is considered unavailable after trying to connect to it.
+  rpcConnectionTimeout: 300ms
   # Maximum number of tickets to return on a single QueryTicketsResponse.
   queryPageSize: 10000
 

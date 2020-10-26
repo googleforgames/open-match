@@ -38,8 +38,8 @@ data:
     pendingReleaseTimeout: {{ index .Values "open-match-core" "pendingReleaseTimeout" }}
     # Time after a ticket has been assigned before it is automatically delted.
     assignedDeleteTimeout: {{ index .Values "open-match-core" "assignedDeleteTimeout" }}
-    # Time before a function is considered unavailable after trying to connect to it.
-    functionConnectionTimeout:  {{ index .Values "open-match-core" "functionConnectionTimeout" }}
+    # Time before an RPC connection is considered unavailable after trying to connect to it.
+    rpcConnectionTimeout:  {{ index .Values "open-match-core" "rpcConnectionTimeout" }}
     # Maximum number of tickets to return on a single QueryTicketsResponse.
     queryPageSize: {{ index .Values "open-match-core" "queryPageSize" }}
     api:

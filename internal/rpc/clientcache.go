@@ -58,7 +58,7 @@ func (cc *ClientCache) GetGRPC(address string) (*grpc.ClientConn, error) {
 		cc.cache.Store(address, c)
 	}
 
-	timeoutDuration := functionConnectionTimeout(cc.cfg)
+	timeoutDuration := rpcConnectionTimeout(cc.cfg)
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
 	defer cancel()
 	for {
@@ -74,9 +74,9 @@ func (cc *ClientCache) GetGRPC(address string) (*grpc.ClientConn, error) {
 	return c.client, nil
 }
 
-func functionConnectionTimeout(cfg config.View) time.Duration {
+func rpcConnectionTimeout(cfg config.View) time.Duration {
 	const (
-		name            = "functionConnectionTimeout"
+		name            = "rpcConnectionTimeout"
 		defaultInterval = 300 * time.Millisecond
 	)
 
