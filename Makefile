@@ -15,37 +15,38 @@
 ## Open Match Make Help
 ## ====================
 ##
-## Create a GKE Cluster (requires gcloud installed and initialized, https://cloud.google.com/sdk/docs/quickstarts)
+## # Create a GKE Cluster (requires gcloud installed and initialized, https://cloud.google.com/sdk/docs/quickstarts)
 ## make activate-gcp-apis
 ## make create-gke-cluster push-helm
 ##
-## Create a Minikube Cluster (requires VirtualBox)
+## # Create a Minikube Cluster (requires VirtualBox)
 ## make create-mini-cluster push-helm
 ##
-## Create a KinD Cluster (Follow instructions to run command before pushing helm.)
+## # Create a KinD Cluster (Follow instructions to run command before pushing helm.)
 ## make create-kind-cluster get-kind-kubeconfig
-## Finish KinD setup by installing helm:
+##
+## # Finish KinD setup by installing helm:
 ## make push-helm
 ##
-## Deploy Open Match
+## # Deploy Open Match
 ## make push-images -j$(nproc)
 ## make install-chart
 ##
-## Build and Test
+## # Build and Test
 ## make all -j$(nproc)
 ## make test
 ##
-## Access telemetry
+## # Access telemetry
 ## make proxy-prometheus
 ## make proxy-grafana
 ## make proxy-ui
 ##
-## Teardown
+## # Teardown
 ## make delete-mini-cluster
 ## make delete-gke-cluster
 ## make delete-kind-cluster && export KUBECONFIG=""
 ##
-## Prepare a Pull Request
+## # Prepare a Pull Request
 ## make presubmit
 ##
 
@@ -209,17 +210,18 @@ local-cloud-build: gcloud
 ################################################################################
 ## #############################################################################
 ## Image commands:
-## These commands are auto-generated based on a complete list of images.  All
-## folders in cmd/ are turned into an image using Dockerfile.cmd.  Additional
-## images are specified by the IMAGES variable.  Image commands ommit the
-## "openmatch-" prefix on the image name and tags.
+## These commands are auto-generated based on a complete list of images.
+## All folders in cmd/ are turned into an image using Dockerfile.cmd.
+## Additional images are specified by the IMAGES variable.
+## Image commands ommit the "openmatch-" prefix on the image name and tags.
 ##
 
 list-images:
 	@echo $(IMAGES)
 
 #######################################
-## build-images / build-<image name>-image: builds images locally
+## # Builds images locally
+## build-images / build-<image name>-image
 ##
 build-images: $(foreach IMAGE,$(IMAGES),build-$(IMAGE)-image)
 
@@ -241,8 +243,8 @@ build-mmf-go-soloduel-image: docker build-base-build-image
 	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
 
 #######################################
-## push-images / push-<image name>-image: builds and pushes images to your
-## container registry.
+## # Builds and pushes images to your container registry.
+## push-images / push-<image name>-image
 ##
 push-images: $(foreach IMAGE,$(IMAGES),push-$(IMAGE)-image)
 
@@ -261,8 +263,9 @@ endif
 endif
 
 #######################################
-## retag-images / retag-<image name>-image: publishes images on the public
-## container registry.  Used for publishing releases.
+## # Publishes images on the public container registry.
+## # Used for publishing releases.
+## retag-images / retag-<image name>-image
 ##
 retag-images: $(foreach IMAGE,$(IMAGES),retag-$(IMAGE)-image)
 
@@ -275,7 +278,8 @@ $(foreach IMAGE,$(IMAGES),retag-$(IMAGE)-image): retag-%-image: docker
 	docker push $(TARGET_REGISTRY)/openmatch-$*:$(TAG)
 
 #######################################
-## clean-images / clean-<image name>-image: removes images from local docker
+## # Removes images from local docker
+## clean-images / clean-<image name>-image
 ##
 clean-images: docker $(foreach IMAGE,$(IMAGES),clean-$(IMAGE)-image)
 	-docker rmi -f open-match-base-build
@@ -468,10 +472,28 @@ set-redis-password:
 		stty echo; \
 		printf "\n"; \
 		$(KUBECTL) create secret generic open-match-redis -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) --from-literal=redis-password=$$REDIS_PASSWORD --dry-run -o yaml | $(KUBECTL) replace -f - --force
+## ####################################
+## # Tool installation helpers
+##
 
+## # Install toolchain. Short for installing K8s, protoc and OpenMatch tools.
+## make install-toolchain
+##
 install-toolchain: install-kubernetes-tools install-protoc-tools install-openmatch-tools
+
+## # Install Kubernetes tools
+## make install-kubernetes-tools
+##
 install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/minikube$(EXE_EXTENSION) build/toolchain/bin/terraform$(EXE_EXTENSION)
+
+## # Install protoc tools
+## make install-protoc-tools
+##
 install-protoc-tools: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
+
+## # Install OpenMatch tools
+## make install-openmatch-tools
+##
 install-openmatch-tools: build/toolchain/bin/certgen$(EXE_EXTENSION) build/toolchain/bin/reaper$(EXE_EXTENSION)
 
 build/toolchain/bin/helm$(EXE_EXTENSION):
@@ -632,12 +654,18 @@ delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 gcp-apply-binauthz-policy: build/policies/binauthz.yaml
 	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
 
+## ##############################
+## # Protobuf
+##
+
+## # Build all protobuf definitions.
+## make all-protos
 all-protos: $(ALL_PROTOS)
 
 # The proto generator really wants to be run from the $GOPATH root, and doesn't
 # support methods for directing it to the correct location that's not the proto
-# file's location.  So instead put it in a tempororary directory, then move it
-# out.
+# file's location. 
+# So, instead, put it in a tempororary directory, then move it out.
 pkg/pb/%.pb.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION)
 	mkdir -p $(REPOSITORY_ROOT)/build/prototmp $(REPOSITORY_ROOT)/pkg/pb
 	$(PROTOC) $< \
