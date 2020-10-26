@@ -24,15 +24,13 @@ import (
 	"sync"
 	"time"
 
-	"go.opencensus.io/stats"
-
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/stats"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/appmain/contextcause"
@@ -70,14 +68,14 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	}
 
 	// Error group for handling the synchronizer calls only.
-	eg, ctx := errgroup.WithContext(stream.Context())
+	errGroup, ctx := errgroup.WithContext(stream.Context())
 	syncStream, err := s.synchronizer.synchronize(ctx)
 	if err != nil {
 		return err
 	}
 
 	// The mmf must be canceled if the synchronizer call fails (which will
-	// cancel the context from the error group).  However the synchronizer call
+	// cancel the context from the error group). However the synchronizer call
 	// is NOT dependant on the mmf call.
 	mmfCtx, cancelMmfs := contextcause.WithCancelCause(ctx)
 	// Closed when mmfs should start.
@@ -85,10 +83,10 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	proposals := make(chan *pb.Match)
 	m := &sync.Map{}
 
-	eg.Go(func() error {
+	errGroup.Go(func() error {
 		return synchronizeSend(ctx, syncStream, m, proposals)
 	})
-	eg.Go(func() error {
+	errGroup.Go(func() error {
 		return synchronizeRecv(ctx, syncStream, m, stream, startMmfs, cancelMmfs)
 	})
 
@@ -97,10 +95,11 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	case <-mmfCtx.Done():
 		mmfErr = fmt.Errorf("mmf was never started")
 	case <-startMmfs:
+		// calls configured MatchMakingFunction
 		mmfErr = callMmf(mmfCtx, s.cc, req, proposals)
 	}
 
-	syncErr := eg.Wait()
+	syncErr := errGroup.Wait()
 
 	// TODO: Send mmf error in FetchSummary instead of erroring call.
 	if syncErr != nil || mmfErr != nil {
