@@ -81,6 +81,30 @@ message WatchAssignmentsResponse {
   Assignment assignment = 1;
 }
 
+message AcknowledgeBackfillRequest {
+  string backfill_id = 1;
+  Assignment assignment = 2;
+}
+
+message CreateBackfillRequest {
+  Backfill backfill = 1;
+}
+
+message DeleteBackfillRequest {
+  string backfill_id = 1;
+}
+
+message GetBackfillRequest {
+  string backfill_id = 1;
+}
+
+// UpdateBackfillRequest - update searchFields, extensions and set assignment
+message UpdateBackfillRequest {
+  // A Backfill object with SearchFields defined.
+  Backfill backfill_ticket = 1;
+}
+
+
 // The FrontendService implements APIs to manage and query status of a Tickets.
 service FrontendService {
   // CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.
@@ -115,6 +139,45 @@ service FrontendService {
       returns (stream WatchAssignmentsResponse) {
     option (google.api.http) = {
       get: "/v1/frontendservice/tickets/{ticket_id}/assignments"
+    };
+  }
+
+  rpc AcknowledgeBackfill(AcknowledgeBackfillRequest) returns (Backfill) {
+    option (google.api.http) = {
+      // TODO: review endpoint
+      post: "/v1/frontendservice/backfills"
+      body: "*"
+    };
+  }
+
+  // If SearchFields exist in a Ticket, CreateBackfillRequest will also index these fields such that one can query the ticket with query.QueryBakfillTickets function.
+  rpc CreateBackfill(CreateBackfillRequest) returns (Backfill) {
+    option (google.api.http) = {
+      post: "/v1/frontendservice/backfills"
+      body: "*"
+    };
+  }
+
+  // Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
+  // TODO: delete or replace this comment.
+  rpc DeleteBackfill(DeleteBackfillRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/frontendservice/backfills/{backfill_id}"
+    };
+  }
+
+  rpc GetBackfill(GetBackfillRequest) returns (Backfill) {
+    option (google.api.http) = {
+      get: "/v1/frontendservice/backfills/{backfill_id}"
+    };
+  }
+
+  // Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
+  // TODO: delete or replace this comment.
+  rpc UpdateBackfill(UpdateBackfillRequest) returns (Backfill) {
+    option (google.api.http) = {
+      patch: "/v1/frontendservice/backfills"
+      body: "*"
     };
   }
 }

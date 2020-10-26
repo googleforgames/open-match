@@ -75,6 +75,16 @@ message QueryTicketIdsResponse {
   repeated string ids = 1;
 }
 
+message QueryBackfillsRequest {
+  // The Pool representing the set of Filters to be queried.
+  Pool pool = 1;
+}
+
+message QueryBackfillsResponse {
+  // Backfills that meet all the filtering criteria requested by the pool.
+  repeated Backfill backfills = 1;
+}
+
 // The QueryService service implements helper APIs for Match Function to query Tickets from state storage.
 service QueryService {
   // QueryTickets gets a list of Tickets that match all Filters of the input Pool.
@@ -95,6 +105,13 @@ service QueryService {
   rpc QueryTicketIds(QueryTicketIdsRequest) returns (stream QueryTicketIdsResponse) {
     option (google.api.http) = {
       post: "/v1/queryservice/ticketids:query"
+      body: "*"
+    };
+  }
+
+  rpc QueryBackfills(QueryBackfillsRequest) returns (stream QueryBackfillsResponse) {
+    option (google.api.http) = {
+      post: "/v1/queryservice/backfills:query"
       body: "*"
     };
   }
