@@ -26,14 +26,12 @@ import (
 	"strings"
 	"time"
 
-	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
-	"go.opencensus.io/plugin/ocgrpc"
-
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	grpc_tracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
-
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/plugin/ochttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
