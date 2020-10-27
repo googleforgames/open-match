@@ -43,8 +43,10 @@ type cachedHTTPClient struct {
 	baseURL string
 }
 
+type grpcGetOptions func(config.View, *cachedGRPCClient) error
+
 // GetGRPC gets a GRPC client with the address.
-func (cc *ClientCache) GetGRPC(address string) (*grpc.ClientConn, error) {
+func (cc *ClientCache) GetGRPC(address string, opts ...grpcGetOptions) (*grpc.ClientConn, error) {
 	val, exists := cc.cache.Load(address)
 	c, ok := val.(cachedGRPCClient)
 	if !ok || !exists {
@@ -59,15 +61,17 @@ func (cc *ClientCache) GetGRPC(address string) (*grpc.ClientConn, error) {
 	}
 
 	timeoutDuration := rpcConnectionTimeout(cc.cfg)
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
-	defer cancel()
-	for {
-		s := c.client.GetState()
-		if s == connectivity.Ready {
-			break
-		}
-		if !c.client.WaitForStateChange(ctx, s) {
-			return nil, status.Errorf(codes.Unavailable, "timeout waiting for connection ready after %s, stuck in state %s", timeoutDuration, s)
+	if timeoutDuration.Milliseconds() > 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
+		defer cancel()
+		for {
+			s := c.client.GetState()
+			if s == connectivity.Ready {
+				break
+			}
+			if !c.client.WaitForStateChange(ctx, s) {
+				return nil, status.Errorf(codes.Unavailable, "timeout waiting for connection ready after %s, stuck in state %s", timeoutDuration, s)
+			}
 		}
 	}
 

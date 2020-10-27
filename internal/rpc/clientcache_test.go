@@ -33,7 +33,10 @@ const (
 func TestGetGRPC(t *testing.T) {
 	require := require.New(t)
 
-	cc := NewClientCache(viper.New())
+	// Skipping the connection timeout check
+	cfg := viper.New()
+	cfg.Set("rpcConnectionTimeout", "0")
+	cc := NewClientCache(cfg)
 	client, err := cc.GetGRPC(fakeGRPCAddress)
 	require.Nil(err)
 
@@ -44,7 +47,7 @@ func TestGetGRPC(t *testing.T) {
 	require.EqualValues(client, cachedClient)
 }
 
-func TestGetGRPC_WithUnavailableAddress(t *testing.T) {
+func TestGetGRPC_UnavailableAddress(t *testing.T) {
 	require := require.New(t)
 
 	cc := NewClientCache(viper.New())
