@@ -123,7 +123,6 @@ sendProposals:
 			if !ok {
 				break sendProposals
 			}
-			setAllocatableGameServer(p)
 			_, loaded := m.LoadOrStore(p.GetMatchId(), p)
 			if loaded {
 				return fmt.Errorf("MatchMakingFunction returned same match_id twice: \"%s\"", p.GetMatchId())
@@ -169,8 +168,6 @@ func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync
 			if !ok {
 				return fmt.Errorf("error casting sync map value into *pb.Match: %w", err)
 			}
-			// TODO: review if goes here or on line 127
-			setAllocatableGameServer(match)
 			stats.Record(ctx, totalBytesPerMatch.M(int64(proto.Size(match))))
 			stats.Record(ctx, ticketsPerMatch.M(int64(len(match.GetTickets()))))
 			err := stream.Send(&pb.FetchMatchesResponse{Match: match})
@@ -382,13 +379,4 @@ func recordTimeToAssignment(ctx context.Context, ticket *pb.Ticket) error {
 	stats.Record(ctx, ticketsTimeToAssignment.M(now.Sub(created).Milliseconds()))
 
 	return nil
-}
-
-func setAllocatableGameServer(match *pb.Match) {
-	bfTicket := match.GetBackfill()
-	if bfTicket != nil && bfTicket.GetId() == "" {
-		match.AllocateGameserver = true
-	} else {
-		match.AllocateGameserver = false
-	}
 }
