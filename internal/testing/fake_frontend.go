@@ -54,3 +54,22 @@ func (s *FakeFrontend) GetTicket(ctx context.Context, req *pb.GetTicketRequest) 
 func (s *FakeFrontend) WatchAssignments(req *pb.WatchAssignmentsRequest, stream pb.FrontendService_WatchAssignmentsServer) error {
 	return status.Error(codes.Unimplemented, "not implemented")
 }
+
+func (s *FakeFrontend) AcknowledgeBackfill(ctx context.Context, req *pb.AcknowledgeBackfillRequest) (*pb.Backfill, error) {
+	return nil, nil
+}
+
+func (s *FakeFrontend) CreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest) (*pb.Backfill, error) {
+	return nil, nil
+}
+
+func (s *FakeFrontend) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*empty.Empty, error) {
+	return nil, nil
+}
+func (s *FakeFrontend) GetBackfill(ctx context.Context, req *pb.GetBackfillRequest) (*pb.Backfill, error) {
+	return nil, nil
+}
+
+func (s *FakeFrontend) UpdateBackfill(ctx context.Context, req *pb.UpdateBackfillRequest) (*pb.Backfill, error) {
+	return nil, nil
+}

@@ -180,3 +180,22 @@ func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignme
 
 	return store.GetAssignments(ctx, id, callback)
 }
+
+func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.AcknowledgeBackfillRequest) (*pb.Backfill, error) {
+	return nil, nil
+}
+
+func (s *frontendService) CreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest) (*pb.Backfill, error) {
+	return nil, nil
+}
+
+func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*empty.Empty, error) {
+	return nil, nil
+}
+func (s *frontendService) GetBackfill(ctx context.Context, req *pb.GetBackfillRequest) (*pb.Backfill, error) {
+	return nil, nil
+}
+
+func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBackfillRequest) (*pb.Backfill, error) {
+	return nil, nil
+}
