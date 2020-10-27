@@ -660,6 +660,7 @@ gcp-apply-binauthz-policy: build/policies/binauthz.yaml
 
 ## # Build all protobuf definitions.
 ## make all-protos
+##
 all-protos: $(ALL_PROTOS)
 
 # The proto generator really wants to be run from the $GOPATH root, and doesn't
@@ -736,9 +737,15 @@ define fast_test_folder
 	$(foreach dir, $(wildcard $(1)/*/.), $(call fast_test_folder, $(dir)))
 endef
 
+## # Run go tests
+## make test
+##
 test: $(ALL_PROTOS) tls-certs third_party/
 	$(call test_folder,.)
 
+## # Run fast go tests
+## make fasttest
+##
 fasttest: $(ALL_PROTOS) tls-certs third_party/
 	$(call fast_test_folder,.)
 
@@ -755,6 +762,9 @@ vet:
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
 	GO111MODULE=on $(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
 
+## # Run linter on Go code, charts and terraform
+## make lint
+##
 lint: fmt vet golangci lint-chart terraform-lint
 
 assets: $(ALL_PROTOS) tls-certs third_party/ build/chart/
