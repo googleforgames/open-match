@@ -17,6 +17,7 @@ package e2e
 import (
 	"context"
 	"io"
+	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -840,4 +841,28 @@ func TestHTTPMMF(t *testing.T) {
 	resp, err = stream.Recv()
 	require.Equal(t, err, io.EOF)
 	require.Nil(t, resp)
+}
+
+// TestUnavailableMMF does a simple test of a profile targeting a gRPC
+// function that's not available.
+func TestUnavailableMMF(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config: &pb.FunctionConfig{
+			Host: "unavailable",
+			Port: rand.Int31(),
+			Type: pb.FunctionConfig_GRPC,
+		},
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		return nil
+	})
+
+	_, err = stream.Recv()
+	require.Error(t, err)
 }

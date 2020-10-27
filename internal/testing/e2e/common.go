@@ -164,6 +164,7 @@ const registrationInterval = time.Millisecond * 200
 const proposalCollectionInterval = time.Millisecond * 200
 const pendingReleaseTimeout = time.Millisecond * 200
 const assignedDeleteTimeout = time.Millisecond * 200
+const rpcConnectionTimeout = time.Millisecond * 300
 
 // configFile is the "cononical" test config.  It exactly matches the configmap
 // which is used in the real cluster tests.
@@ -172,6 +173,7 @@ registrationInterval: 200ms
 proposalCollectionInterval: 200ms
 pendingReleaseTimeout: 200ms
 assignedDeleteTimeout: 200ms
+rpcConnectionTimeout: 300ms
 queryPageSize: 10
 
 logging:
