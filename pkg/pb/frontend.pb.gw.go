@@ -220,6 +220,24 @@ func request_FrontendService_AcknowledgeBackfill_0(ctx context.Context, marshale
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["backfill_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "backfill_id")
+	}
+
+	protoReq.BackfillId, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "backfill_id", err)
+	}
+
 	msg, err := client.AcknowledgeBackfill(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
@@ -235,6 +253,24 @@ func local_request_FrontendService_AcknowledgeBackfill_0(ctx context.Context, ma
 	}
 	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["backfill_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "backfill_id")
+	}
+
+	protoReq.BackfillId, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "backfill_id", err)
 	}
 
 	msg, err := server.AcknowledgeBackfill(ctx, &protoReq)
@@ -823,7 +859,7 @@ var (
 
 	pattern_FrontendService_WatchAssignments_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "frontendservice", "tickets", "ticket_id", "assignments"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_FrontendService_AcknowledgeBackfill_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "frontendservice", "backfills"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_FrontendService_AcknowledgeBackfill_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "frontendservice", "backfills", "backfill_id", "acknowledge"}, "", runtime.AssumeColonVerbOpt(true)))
 
 	pattern_FrontendService_CreateBackfill_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "frontendservice", "backfills"}, "", runtime.AssumeColonVerbOpt(true)))
 
