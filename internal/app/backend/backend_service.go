@@ -170,7 +170,7 @@ func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync
 			}
 			stats.Record(ctx, totalBytesPerMatch.M(int64(proto.Size(match))))
 			stats.Record(ctx, ticketsPerMatch.M(int64(len(match.GetTickets()))))
-			err := stream.Send(&pb.FetchMatchesResponse{Match: match})
+			err = stream.Send(&pb.FetchMatchesResponse{Match: match})
 			if err != nil {
 				return fmt.Errorf("error sending match to caller of backend: %w", err)
 			}
