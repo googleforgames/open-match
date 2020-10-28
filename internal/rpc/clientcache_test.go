@@ -17,19 +17,26 @@ package rpc
 import (
 	"testing"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	fakeHTTPAddress = "http://om-test:54321"
-	fakeGRPCAddress = "om-test:54321"
+	fakeHTTPAddress            = "http://om-test:54321"
+	fakeGRPCAddress            = "om-test:54321"
+	unavailableFakeGRPCAddress = "om-test-1:54321"
 )
 
 func TestGetGRPC(t *testing.T) {
 	require := require.New(t)
 
-	cc := NewClientCache(viper.New())
+	// Skipping the connection timeout check
+	cfg := viper.New()
+	cfg.Set("rpcConnectionTimeout", "0")
+	cc := NewClientCache(cfg)
 	client, err := cc.GetGRPC(fakeGRPCAddress)
 	require.Nil(err)
 
@@ -38,6 +45,17 @@ func TestGetGRPC(t *testing.T) {
 
 	// Test caching by comparing pointer value
 	require.EqualValues(client, cachedClient)
+}
+
+func TestGetGRPC_UnavailableAddress(t *testing.T) {
+	require := require.New(t)
+
+	cc := NewClientCache(viper.New())
+	_, err := cc.GetGRPC(unavailableFakeGRPCAddress)
+	require.Error(err)
+
+	code := status.Code(err)
+	require.Equal(codes.Unavailable, code)
 }
 
 func TestGetHTTP(t *testing.T) {

@@ -196,7 +196,10 @@ func callMmf(ctx context.Context, cc *rpc.ClientCache, req *pb.FetchMatchesReque
 func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProfile, address string, proposals chan<- *pb.Match) error {
 	conn, err := cc.GetGRPC(address)
 	if err != nil {
-		return status.Error(codes.InvalidArgument, "failed to establish grpc client connection to match function")
+		if code := status.Code(err); code != codes.Unknown {
+			return err
+		}
+		return status.Errorf(codes.InvalidArgument, "failed to establish grpc client connection to match function: %s", err.Error())
 	}
 
 	client := pb.NewMatchFunctionClient(conn)
