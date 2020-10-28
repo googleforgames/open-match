@@ -849,6 +849,7 @@ func TestUnavailableMMF(t *testing.T) {
 	ctx := context.Background()
 	om := newOM(t)
 
+	startTime := time.Now()
 	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
 		Config: &pb.FunctionConfig{
 			Host: "unavailable",
@@ -864,5 +865,12 @@ func TestUnavailableMMF(t *testing.T) {
 	})
 
 	_, err = stream.Recv()
+	duration := time.Since(startTime)
 	require.Error(t, err)
+
+	code := status.Code(err)
+	require.Equal(t, codes.Unavailable, code)
+
+	require.True(t, duration > rpcConnectionTimeout, "%s", duration)
+	require.True(t, duration < registrationInterval+proposalCollectionInterval, "%s", duration)
 }
