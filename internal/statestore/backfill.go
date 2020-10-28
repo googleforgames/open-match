@@ -89,15 +89,15 @@ func (rb *redisBackend) DeleteBackfill(ctx context.Context, id string) error {
 
 // UpdateBackfill updates an exising Backfill with new data.
 func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfill, updateFunc func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)) (*pb.Backfill, error) {
+	if updateFunc == nil {
+		return nil, status.Errorf(codes.Internal, "nil updateFunc provided")
+	}
+
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Unavailable, "UpdateBackfill, id: %s, failed to connect to redis: %v", backfill.GetId(), err)
 	}
 	defer handleConnectionClose(&redisConn)
-
-	if updateFunc == nil {
-		return nil, status.Errorf(codes.Internal, "nil updateFunc provided")
-	}
 
 	// get current backfill
 	value, err := redis.Bytes(redisConn.Do("GET", backfill.GetId()))
