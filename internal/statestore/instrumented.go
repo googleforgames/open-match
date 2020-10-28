@@ -128,7 +128,7 @@ func (is *instrumentedService) DeleteBackfill(ctx context.Context, id string) er
 	return is.s.DeleteBackfill(ctx, id)
 }
 
-// UpdateBackfill updates an exising Backfill with new data.
+// UpdateBackfill updates an existing Backfill with new data.
 func (is *instrumentedService) UpdateBackfill(ctx context.Context, backfill *pb.Backfill, updateFunc func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)) (*pb.Backfill, error) {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.UpdateBackfill")
 	defer span.End()

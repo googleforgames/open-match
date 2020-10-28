@@ -79,7 +79,7 @@ type Service interface {
 	// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
 	DeleteBackfill(ctx context.Context, id string) error
 
-	// UpdateBackfill updates an exising Backfill with new data.
+	// UpdateBackfill updates an existing Backfill with new data.
 	UpdateBackfill(ctx context.Context, backfill *pb.Backfill, updateFunc func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)) (*pb.Backfill, error)
 }
 
