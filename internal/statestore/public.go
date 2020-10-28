@@ -27,6 +27,11 @@ type Service interface {
 	// HealthCheck indicates if the database is reachable.
 	HealthCheck(ctx context.Context) error
 
+	// Closes the connection to the underlying storage.
+	Close() error
+
+	// Ticket
+
 	// CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
 	CreateTicket(ctx context.Context, ticket *pb.Ticket) error
 
@@ -63,8 +68,19 @@ type Service interface {
 	// ReleaseAllTickets releases all pending tickets back to active
 	ReleaseAllTickets(ctx context.Context) error
 
-	// Closes the connection to the underlying storage.
-	Close() error
+	// Backfill
+
+	// CreateBackfill creates a new Backfill in the state storage. If the id already exists, it will be overwritten.
+	CreateBackfill(ctx context.Context, backfill *pb.Backfill) error
+
+	// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist.
+	GetBackfill(ctx context.Context, id string) (*pb.Backfill, error)
+
+	// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
+	DeleteBackfill(ctx context.Context, id string) error
+
+	// UpdateBackfill updates an exising Backfill with new data.
+	UpdateBackfill(ctx context.Context, backfill *pb.Backfill, updateFunc func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)) (*pb.Backfill, error)
 }
 
 // New creates a Service based on the configuration.

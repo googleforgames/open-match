@@ -828,11 +828,9 @@ type Backfill struct {
 
 	// Id represents an auto-generated Id issued by Open Match.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Search fields are the fields which Open Match is aware of, and can be used
-	// when specifying filters.
+	// Search fields are the fields which Open Match is aware of, and can be used when specifying filters.
 	SearchFields *SearchFields `protobuf:"bytes,2,opt,name=search_fields,json=searchFields,proto3" json:"search_fields,omitempty"`
-	// Customized information not inspected by Open Match, to be used by the match
-	// making function, evaluator, and components making calls to Open Match.
+	// Customized information not inspected by Open Match, to be used by the match making function, evaluator, and components making calls to Open Match.
 	// Optional, depending on the requirements of the connected systems.
 	Extensions map[string]*any.Any `protobuf:"bytes,3,rep,name=extensions,proto3" json:"extensions,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Create time is the time the Ticket was created. It is populated by Open

@@ -106,3 +106,31 @@ func (is *instrumentedService) ReleaseAllTickets(ctx context.Context) error {
 	defer span.End()
 	return is.s.ReleaseAllTickets(ctx)
 }
+
+// CreateBackfill creates a new Backfill in the state storage. If the id already exists, it will be overwritten.
+func (is *instrumentedService) CreateBackfill(ctx context.Context, backfill *pb.Backfill) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.CreateBackfill")
+	defer span.End()
+	return is.s.CreateBackfill(ctx, backfill)
+}
+
+// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist.
+func (is *instrumentedService) GetBackfill(ctx context.Context, id string) (*pb.Backfill, error) {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetBackfill")
+	defer span.End()
+	return is.s.GetBackfill(ctx, id)
+}
+
+// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
+func (is *instrumentedService) DeleteBackfill(ctx context.Context, id string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeleteBackfill")
+	defer span.End()
+	return is.s.DeleteBackfill(ctx, id)
+}
+
+// UpdateBackfill updates an exising Backfill with new data.
+func (is *instrumentedService) UpdateBackfill(ctx context.Context, backfill *pb.Backfill, updateFunc func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)) (*pb.Backfill, error) {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.UpdateBackfill")
+	defer span.End()
+	return is.s.UpdateBackfill(ctx, backfill, updateFunc)
+}
