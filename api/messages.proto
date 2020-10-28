@@ -105,11 +105,19 @@ message DoubleRangeFilter {
   double min = 3;
 
   enum Exclude {
+    // No bounds should be excluded when evaluating the filter, i.e.: MIN >= x <= MAX
     NONE = 0;
+
+    // Only the minimum bound should be excluded when evaluating the filter, i.e.: MIN > x <= MAX
     MIN = 1;
+
+    // Only the maximum bound should be excluded when evaluating the filter, i.e.: MIN >= x < MAX
     MAX = 2;
+
+    // Both bounds should be excluded when evaluating the filter, i.e.: MIN > x < MAX
     BOTH = 3;
   }
+
   // Which bounds would be excluded when comparing with a ticket's search_fields.double_args value.
   //
   // BETA FEATURE WARNING: This field and the associated values are
