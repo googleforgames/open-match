@@ -109,6 +109,7 @@ service QueryService {
     };
   }
 
+  // QueryBackfills gets a list of Backfill.
   rpc QueryBackfills(QueryBackfillsRequest) returns (stream QueryBackfillsResponse) {
     option (google.api.http) = {
       post: "/v1/queryservice/backfills:query"
