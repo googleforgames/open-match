@@ -103,7 +103,7 @@
         "BOTH"
       ],
       "default": "NONE",
-      "title": "- NONE: No bounds should be excluded when evaluating the filter, i.e.: MIN \u003e= x \u003c= MAX\n - MIN: Only the minimum bound should be excluded when evaluating the filter, i.e.: MIN \u003e x \u003c= MAX\n - MAX: Only the maximum bound should be excluded when evaluating the filter, i.e.: MIN \u003e= x \u003c MAX\n - BOTH: Both bounds should be excluded when evaluating the filter, i.e.: MIN \u003e x \u003c MAX"
+      "title": "- NONE: No bounds should be excluded when evaluating the filter, i.e.: MIN \u003c= x \u003c= MAX\n - MIN: Only the minimum bound should be excluded when evaluating the filter, i.e.: MIN \u003c x \u003c= MAX\n - MAX: Only the maximum bound should be excluded when evaluating the filter, i.e.: MIN \u003c= x \u003c MAX\n - BOTH: Both bounds should be excluded when evaluating the filter, i.e.: MIN \u003c x \u003c MAX"
     },
     "openmatchAssignment": {
       "type": "object",

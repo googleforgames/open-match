@@ -26,13 +26,13 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 type DoubleRangeFilter_Exclude int32
 
 const (
-	// No bounds should be excluded when evaluating the filter, i.e.: MIN >= x <= MAX
+	// No bounds should be excluded when evaluating the filter, i.e.: MIN <= x <= MAX
 	DoubleRangeFilter_NONE DoubleRangeFilter_Exclude = 0
-	// Only the minimum bound should be excluded when evaluating the filter, i.e.: MIN > x <= MAX
+	// Only the minimum bound should be excluded when evaluating the filter, i.e.: MIN < x <= MAX
 	DoubleRangeFilter_MIN DoubleRangeFilter_Exclude = 1
-	// Only the maximum bound should be excluded when evaluating the filter, i.e.: MIN >= x < MAX
+	// Only the maximum bound should be excluded when evaluating the filter, i.e.: MIN <= x < MAX
 	DoubleRangeFilter_MAX DoubleRangeFilter_Exclude = 2
-	// Both bounds should be excluded when evaluating the filter, i.e.: MIN > x < MAX
+	// Both bounds should be excluded when evaluating the filter, i.e.: MIN < x < MAX
 	DoubleRangeFilter_BOTH DoubleRangeFilter_Exclude = 3
 )
 
