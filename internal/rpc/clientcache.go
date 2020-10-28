@@ -43,10 +43,8 @@ type cachedHTTPClient struct {
 	baseURL string
 }
 
-type grpcGetOptions func(config.View, *cachedGRPCClient) error
-
 // GetGRPC gets a GRPC client with the address.
-func (cc *ClientCache) GetGRPC(address string, opts ...grpcGetOptions) (*grpc.ClientConn, error) {
+func (cc *ClientCache) GetGRPC(address string) (*grpc.ClientConn, error) {
 	val, exists := cc.cache.Load(address)
 	c, ok := val.(cachedGRPCClient)
 	if !ok || !exists {

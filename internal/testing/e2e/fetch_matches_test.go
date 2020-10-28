@@ -16,6 +16,7 @@ package e2e
 
 import (
 	"context"
+	"errors"
 	"io"
 	"math/rand"
 	"sync"
@@ -23,7 +24,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -866,11 +866,9 @@ func TestUnavailableMMF(t *testing.T) {
 
 	_, err = stream.Recv()
 	duration := time.Since(startTime)
+
+	// Cannot assert error type since it's wrapped.
 	require.Error(t, err)
-
-	code := status.Code(err)
-	require.Equal(t, codes.Unavailable, code)
-
 	require.True(t, duration > rpcConnectionTimeout, "%s", duration)
 	require.True(t, duration < registrationInterval+proposalCollectionInterval, "%s", duration)
 }
