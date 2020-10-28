@@ -52,7 +52,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   }
   // TODO Add annotations for security_defintiions.
   // See
-  // https://github.com/grpc-ecosystem/grpc-gateway/blob/master/examples/proto/examplepb/a_bit_of_everything.proto
+  // https://github.com/grpc-ecosystem/grpc-gateway/blob/master/examples/internal/proto/examplepb/a_bit_of_everything.proto
 };
 
 message QueryTicketsRequest {
