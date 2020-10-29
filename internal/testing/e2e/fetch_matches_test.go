@@ -16,14 +16,13 @@ package e2e
 
 import (
 	"context"
-	"errors"
 	"io"
-	"math/rand"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -841,34 +840,4 @@ func TestHTTPMMF(t *testing.T) {
 	resp, err = stream.Recv()
 	require.Equal(t, err, io.EOF)
 	require.Nil(t, resp)
-}
-
-// TestUnavailableMMF does a simple test of a profile targeting a gRPC
-// function that's not available.
-func TestUnavailableMMF(t *testing.T) {
-	ctx := context.Background()
-	om := newOM(t)
-
-	startTime := time.Now()
-	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
-		Config: &pb.FunctionConfig{
-			Host: "unavailable",
-			Port: rand.Int31(),
-			Type: pb.FunctionConfig_GRPC,
-		},
-		Profile: &pb.MatchProfile{},
-	})
-	require.Nil(t, err)
-
-	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
-		return nil
-	})
-
-	_, err = stream.Recv()
-	duration := time.Since(startTime)
-
-	// Cannot assert error type since it's wrapped.
-	require.Error(t, err)
-	require.True(t, duration > rpcConnectionTimeout, "%s", duration)
-	require.True(t, duration < registrationInterval+proposalCollectionInterval, "%s", duration)
 }
