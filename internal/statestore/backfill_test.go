@@ -273,7 +273,7 @@ func TestUpdateBackfill(t *testing.T) {
 				CreateTime: &timestamp.Timestamp{Seconds: 155},
 			},
 			updateFunc:      updateFunc,
-			expectedCode:    codes.Internal,
+			expectedCode:    codes.InvalidArgument,
 			expectedMessage: "can not update backfill with a different generation",
 		},
 		{
