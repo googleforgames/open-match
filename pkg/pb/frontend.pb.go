@@ -227,6 +227,8 @@ func (m *WatchAssignmentsResponse) GetAssignment() *Assignment {
 	return nil
 }
 
+// BETA FEATURE WARNING: This Request message is not finalized and still subject
+// to possible change or removal.
 type AcknowledgeBackfillRequest struct {
 	BackfillId           string      `protobuf:"bytes,1,opt,name=backfill_id,json=backfillId,proto3" json:"backfill_id,omitempty"`
 	Assignment           *Assignment `protobuf:"bytes,2,opt,name=assignment,proto3" json:"assignment,omitempty"`
@@ -274,6 +276,8 @@ func (m *AcknowledgeBackfillRequest) GetAssignment() *Assignment {
 	return nil
 }
 
+// BETA FEATURE WARNING: This Request message is not finalized and still subject
+// to possible change or removal.
 type CreateBackfillRequest struct {
 	Backfill             *Backfill `protobuf:"bytes,1,opt,name=backfill,proto3" json:"backfill,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
@@ -313,6 +317,8 @@ func (m *CreateBackfillRequest) GetBackfill() *Backfill {
 	return nil
 }
 
+// BETA FEATURE WARNING: This Request message is not finalized and still subject
+// to possible change or removal.
 type DeleteBackfillRequest struct {
 	BackfillId           string   `protobuf:"bytes,1,opt,name=backfill_id,json=backfillId,proto3" json:"backfill_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -352,6 +358,8 @@ func (m *DeleteBackfillRequest) GetBackfillId() string {
 	return ""
 }
 
+// BETA FEATURE WARNING: This Request message is not finalized and still subject
+// to possible change or removal.
 type GetBackfillRequest struct {
 	BackfillId           string   `protobuf:"bytes,1,opt,name=backfill_id,json=backfillId,proto3" json:"backfill_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -391,7 +399,10 @@ func (m *GetBackfillRequest) GetBackfillId() string {
 	return ""
 }
 
-// UpdateBackfillRequest - update searchFields, extensions and set assignment
+// UpdateBackfillRequest - update searchFields, extensions and set assignment.
+//
+// BETA FEATURE WARNING: This Request message is not finalized and still subject
+// to possible change or removal.
 type UpdateBackfillRequest struct {
 	// A Backfill object with SearchFields defined.
 	BackfillTicket       *Backfill `protobuf:"bytes,1,opt,name=backfill_ticket,json=backfillTicket,proto3" json:"backfill_ticket,omitempty"`
@@ -532,15 +543,26 @@ type FrontendServiceClient interface {
 	WatchAssignments(ctx context.Context, in *WatchAssignmentsRequest, opts ...grpc.CallOption) (FrontendService_WatchAssignmentsClient, error)
 	// AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info
 	// This triggers an assignment process.
+	//
+	// BETA FEATURE WARNING: This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
 	AcknowledgeBackfill(ctx context.Context, in *AcknowledgeBackfillRequest, opts ...grpc.CallOption) (*Backfill, error)
 	// If SearchFields exist in a Ticket, CreateBackfillRequest will also index these fields such that one can query the ticket with query.QueryBakfillTickets function.
+	//
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
 	CreateBackfill(ctx context.Context, in *CreateBackfillRequest, opts ...grpc.CallOption) (*Backfill, error)
 	// Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
-	// TODO: delete or replace this comment.
+	//
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
 	DeleteBackfill(ctx context.Context, in *DeleteBackfillRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
 	GetBackfill(ctx context.Context, in *GetBackfillRequest, opts ...grpc.CallOption) (*Backfill, error)
 	// Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
-	// TODO: delete or replace this comment.
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
 	UpdateBackfill(ctx context.Context, in *UpdateBackfillRequest, opts ...grpc.CallOption) (*Backfill, error)
 }
 
@@ -673,15 +695,26 @@ type FrontendServiceServer interface {
 	WatchAssignments(*WatchAssignmentsRequest, FrontendService_WatchAssignmentsServer) error
 	// AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info
 	// This triggers an assignment process.
+	//
+	// BETA FEATURE WARNING: This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
 	AcknowledgeBackfill(context.Context, *AcknowledgeBackfillRequest) (*Backfill, error)
 	// If SearchFields exist in a Ticket, CreateBackfillRequest will also index these fields such that one can query the ticket with query.QueryBakfillTickets function.
+	//
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
 	CreateBackfill(context.Context, *CreateBackfillRequest) (*Backfill, error)
 	// Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
-	// TODO: delete or replace this comment.
+	//
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
 	DeleteBackfill(context.Context, *DeleteBackfillRequest) (*empty.Empty, error)
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
 	GetBackfill(context.Context, *GetBackfillRequest) (*Backfill, error)
 	// Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
-	// TODO: delete or replace this comment.
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
 	UpdateBackfill(context.Context, *UpdateBackfillRequest) (*Backfill, error)
 }
 

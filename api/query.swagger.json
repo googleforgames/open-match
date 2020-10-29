@@ -26,7 +26,7 @@
   "paths": {
     "/v1/queryservice/backfills:query": {
       "post": {
-        "summary": "QueryBackfills gets a list of Backfill.",
+        "summary": "QueryBackfills gets a list of Backfills.",
         "operationId": "QueryBackfills",
         "responses": {
           "200": {

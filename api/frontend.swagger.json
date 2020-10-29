@@ -27,6 +27,7 @@
     "/v1/frontendservice/backfills": {
       "post": {
         "summary": "If SearchFields exist in a Ticket, CreateBackfillRequest will also index these fields such that one can query the ticket with query.QueryBakfillTickets function.",
+        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "CreateBackfill",
         "responses": {
           "200": {
@@ -58,7 +59,7 @@
         ]
       },
       "patch": {
-        "summary": "Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.\nTODO: delete or replace this comment.",
+        "summary": "Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.\nBETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "UpdateBackfill",
         "responses": {
           "200": {
@@ -92,6 +93,7 @@
     },
     "/v1/frontendservice/backfills/{backfill_id}": {
       "get": {
+        "summary": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "GetBackfill",
         "responses": {
           "200": {
@@ -121,7 +123,8 @@
         ]
       },
       "delete": {
-        "summary": "Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.\nTODO: delete or replace this comment.",
+        "summary": "Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.",
+        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "DeleteBackfill",
         "responses": {
           "200": {
@@ -154,6 +157,7 @@
     "/v1/frontendservice/backfills/{backfill_id}/acknowledge": {
       "post": {
         "summary": "AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info\nThis triggers an assignment process.",
+        "description": "BETA FEATURE WARNING: This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "AcknowledgeBackfill",
         "responses": {
           "200": {
@@ -333,7 +337,8 @@
         "assignment": {
           "$ref": "#/definitions/openmatchAssignment"
         }
-      }
+      },
+      "description": "BETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
     },
     "openmatchAssignment": {
       "type": "object",
@@ -388,7 +393,8 @@
         "backfill": {
           "$ref": "#/definitions/openmatchBackfill"
         }
-      }
+      },
+      "description": "BETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
     },
     "openmatchCreateTicketRequest": {
       "type": "object",
@@ -465,7 +471,7 @@
           "description": "A Backfill object with SearchFields defined."
         }
       },
-      "title": "UpdateBackfillRequest - update searchFields, extensions and set assignment"
+      "description": "UpdateBackfillRequest - update searchFields, extensions and set assignment.\n\nBETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
     },
     "openmatchWatchAssignmentsResponse": {
       "type": "object",
