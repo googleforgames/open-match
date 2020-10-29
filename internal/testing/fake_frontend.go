@@ -58,25 +58,25 @@ func (s *FakeFrontend) WatchAssignments(req *pb.WatchAssignmentsRequest, stream 
 // AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info.
 // This triggers an assignment process.
 func (s *FakeFrontend) AcknowledgeBackfill(ctx context.Context, req *pb.AcknowledgeBackfillRequest) (*pb.Backfill, error) {
-	return nil, nil
+	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
 // CreateBackfill creates a new Backfill object.
 func (s *FakeFrontend) CreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest) (*pb.Backfill, error) {
-	return nil, nil
+	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
 // DeleteBackfill deletes a Backfill by its ID.
 func (s *FakeFrontend) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*empty.Empty, error) {
-	return nil, nil
+	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
 // GetBackfill fetches a Backfill object by its ID.
 func (s *FakeFrontend) GetBackfill(ctx context.Context, req *pb.GetBackfillRequest) (*pb.Backfill, error) {
-	return nil, nil
+	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
 // UpdateBackfill updates a Backfill object, if present.
 func (s *FakeFrontend) UpdateBackfill(ctx context.Context, req *pb.UpdateBackfillRequest) (*pb.Backfill, error) {
-	return nil, nil
+	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
