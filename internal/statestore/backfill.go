@@ -85,11 +85,6 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 			return nil, err
 		}
 
-		err = redisConn.Send("MULTI")
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to MULTI, id: %s", backfill.GetId())
-		}
-
 		// update current backfill by invoking an updateFunc which is implemented on the caller side
 		backfillToSet, err := updateFunc(currentBackfill, backfill)
 		if err != nil {
@@ -100,6 +95,11 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 		if err != nil {
 			err = errors.Wrapf(err, "failed to marshal the backfill proto, id: %s", backfillToSet.GetId())
 			return nil, status.Errorf(codes.Internal, "%v", err)
+		}
+
+		err = redisConn.Send("MULTI")
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to MULTI, id: %s", backfill.GetId())
 		}
 
 		err = redisConn.Send("SET", backfill.GetId(), value)
