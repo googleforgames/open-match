@@ -653,6 +653,9 @@ func (m *Match) GetAllocateGameserver() bool {
 	return false
 }
 
+// BETA FEATURE WARNING:  This call and the associated Request and Response
+// messages are not finalized and still subject to possible change or removal.
+// Represents a backfill entity which is used to fill partially full matches.
 type Backfill struct {
 	// Id represents an auto-generated Id issued by Open Match.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
