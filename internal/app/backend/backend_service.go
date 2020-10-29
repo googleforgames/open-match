@@ -68,7 +68,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	}
 
 	// Error group for handling the synchronizer calls only.
-	errGroup, ctx := errgroup.WithContext(stream.Context())
+	eg, ctx := errgroup.WithContext(stream.Context())
 	syncStream, err := s.synchronizer.synchronize(ctx)
 	if err != nil {
 		return err
@@ -83,10 +83,10 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 	proposals := make(chan *pb.Match)
 	m := &sync.Map{}
 
-	errGroup.Go(func() error {
+	eg.Go(func() error {
 		return synchronizeSend(ctx, syncStream, m, proposals)
 	})
-	errGroup.Go(func() error {
+	eg.Go(func() error {
 		return synchronizeRecv(ctx, syncStream, m, stream, startMmfs, cancelMmfs)
 	})
 
@@ -99,7 +99,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		mmfErr = callMmf(mmfCtx, s.cc, req, proposals)
 	}
 
-	syncErr := errGroup.Wait()
+	syncErr := eg.Wait()
 
 	// TODO: Send mmf error in FetchSummary instead of erroring call.
 	if syncErr != nil || mmfErr != nil {
