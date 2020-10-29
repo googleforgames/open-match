@@ -75,11 +75,15 @@ message QueryTicketIdsResponse {
   repeated string ids = 1;
 }
 
+// BETA FEATURE WARNING:  This Request messages are not finalized and 
+// still subject to possible change or removal.
 message QueryBackfillsRequest {
   // The Pool representing the set of Filters to be queried.
   Pool pool = 1;
 }
 
+// BETA FEATURE WARNING:  This Request messages are not finalized and 
+// still subject to possible change or removal.
 message QueryBackfillsResponse {
   // Backfills that meet all the filtering criteria requested by the pool.
   repeated Backfill backfills = 1;

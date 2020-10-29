@@ -186,6 +186,8 @@ func (m *QueryTicketIdsResponse) GetIds() []string {
 	return nil
 }
 
+// BETA FEATURE WARNING:  This Request messages are not finalized and
+// still subject to possible change or removal.
 type QueryBackfillsRequest struct {
 	// The Pool representing the set of Filters to be queried.
 	Pool                 *Pool    `protobuf:"bytes,1,opt,name=pool,proto3" json:"pool,omitempty"`
@@ -226,6 +228,8 @@ func (m *QueryBackfillsRequest) GetPool() *Pool {
 	return nil
 }
 
+// BETA FEATURE WARNING:  This Request messages are not finalized and
+// still subject to possible change or removal.
 type QueryBackfillsResponse struct {
 	// Backfills that meet all the filtering criteria requested by the pool.
 	Backfills            []*Backfill `protobuf:"bytes,1,rep,name=backfills,proto3" json:"backfills,omitempty"`

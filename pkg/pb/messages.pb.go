@@ -569,10 +569,16 @@ type Match struct {
 	// Optional, depending on the requirements of the connected systems.
 	Extensions map[string]*any.Any `protobuf:"bytes,7,rep,name=extensions,proto3" json:"extensions,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Backfill request which contains additional information to the match
-	// and contains an association to a GameServer
+	// and contains an association to a GameServer.
+	//
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
 	Backfill *Backfill `protobuf:"bytes,8,opt,name=backfill,proto3" json:"backfill,omitempty"`
 	// AllocateGameServer signalise Director that Backfill is new and it should
 	// allocate a GameServer, this Backfill would be assigned.
+	//
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
 	AllocateGameserver   bool     `protobuf:"varint,9,opt,name=allocate_gameserver,json=allocateGameserver,proto3" json:"allocate_gameserver,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`

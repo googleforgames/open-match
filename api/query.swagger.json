@@ -243,7 +243,8 @@
           "$ref": "#/definitions/openmatchPool",
           "description": "The Pool representing the set of Filters to be queried."
         }
-      }
+      },
+      "description": "BETA FEATURE WARNING:  This Request messages are not finalized and \nstill subject to possible change or removal."
     },
     "openmatchQueryBackfillsResponse": {
       "type": "object",
@@ -255,7 +256,8 @@
           },
           "description": "Backfills that meet all the filtering criteria requested by the pool."
         }
-      }
+      },
+      "description": "BETA FEATURE WARNING:  This Request messages are not finalized and \nstill subject to possible change or removal."
     },
     "openmatchQueryTicketIdsRequest": {
       "type": "object",

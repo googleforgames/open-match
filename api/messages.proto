@@ -202,11 +202,17 @@ message Match {
   map<string, google.protobuf.Any> extensions = 7;
 
   // Backfill request which contains additional information to the match
-  // and contains an association to a GameServer
+  // and contains an association to a GameServer.
+  // 
+  // BETA FEATURE WARNING: This field is not finalized and still subject
+  // to possible change or removal.
   Backfill backfill = 8;
 
   // AllocateGameServer signalise Director that Backfill is new and it should 
   // allocate a GameServer, this Backfill would be assigned.
+  // 
+  // BETA FEATURE WARNING: This field is not finalized and still subject
+  // to possible change or removal.
   bool allocate_gameserver = 9;
 
   // Deprecated fields.
