@@ -64,7 +64,7 @@ func (cc *ClientCache) GetGRPC(address string) (*grpc.ClientConn, error) {
 		defer cancel()
 		for {
 			s := c.client.GetState()
-			if s == connectivity.Ready {
+			if s == connectivity.Ready || s == connectivity.Idle {
 				break
 			}
 			if !c.client.WaitForStateChange(ctx, s) {
