@@ -134,6 +134,10 @@ func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseSer
 	return nil
 }
 
+func (s *queryService) QueryBackfills(req *pb.QueryBackfillsRequest, responseServer pb.QueryService_QueryBackfillsServer) error {
+	return status.Error(codes.Unimplemented, "not implemented")
+}
+
 func getPageSize(cfg config.View) int {
 	const (
 		name = "queryPageSize"

@@ -52,7 +52,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   }
   // TODO Add annotations for security_defintiions.
   // See
-  // https://github.com/grpc-ecosystem/grpc-gateway/blob/master/examples/proto/examplepb/a_bit_of_everything.proto
+  // https://github.com/grpc-ecosystem/grpc-gateway/blob/master/examples/internal/proto/examplepb/a_bit_of_everything.proto
 };
 
 message QueryTicketsRequest {
@@ -75,6 +75,20 @@ message QueryTicketIdsResponse {
   repeated string ids = 1;
 }
 
+// BETA FEATURE WARNING:  This Request messages are not finalized and 
+// still subject to possible change or removal.
+message QueryBackfillsRequest {
+  // The Pool representing the set of Filters to be queried.
+  Pool pool = 1;
+}
+
+// BETA FEATURE WARNING:  This Request messages are not finalized and 
+// still subject to possible change or removal.
+message QueryBackfillsResponse {
+  // Backfills that meet all the filtering criteria requested by the pool.
+  repeated Backfill backfills = 1;
+}
+
 // The QueryService service implements helper APIs for Match Function to query Tickets from state storage.
 service QueryService {
   // QueryTickets gets a list of Tickets that match all Filters of the input Pool.
@@ -95,6 +109,17 @@ service QueryService {
   rpc QueryTicketIds(QueryTicketIdsRequest) returns (stream QueryTicketIdsResponse) {
     option (google.api.http) = {
       post: "/v1/queryservice/ticketids:query"
+      body: "*"
+    };
+  }
+
+  // QueryBackfills gets a list of Backfills.
+  // 
+  // BETA FEATURE WARNING:  This call and the associated Request and Response
+  // messages are not finalized and still subject to possible change or removal.
+  rpc QueryBackfills(QueryBackfillsRequest) returns (stream QueryBackfillsResponse) {
+    option (google.api.http) = {
+      post: "/v1/queryservice/backfills:query"
       body: "*"
     };
   }

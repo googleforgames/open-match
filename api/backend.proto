@@ -93,7 +93,7 @@ message ReleaseAllTicketsRequest{}
 message ReleaseAllTicketsResponse {}
 
 // AssignmentGroup contains an Assignment and the Tickets to which it should be applied. 
-message AssignmentGroup{
+message AssignmentGroup {
   // TicketIds is a list of strings representing Open Match generated Ids which apply to an Assignment.
   repeated string ticket_ids = 1;
 

@@ -227,59 +227,293 @@ func (m *WatchAssignmentsResponse) GetAssignment() *Assignment {
 	return nil
 }
 
+// BETA FEATURE WARNING: This Request message is not finalized and still subject
+// to possible change or removal.
+type AcknowledgeBackfillRequest struct {
+	BackfillId           string      `protobuf:"bytes,1,opt,name=backfill_id,json=backfillId,proto3" json:"backfill_id,omitempty"`
+	Assignment           *Assignment `protobuf:"bytes,2,opt,name=assignment,proto3" json:"assignment,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
+}
+
+func (m *AcknowledgeBackfillRequest) Reset()         { *m = AcknowledgeBackfillRequest{} }
+func (m *AcknowledgeBackfillRequest) String() string { return proto.CompactTextString(m) }
+func (*AcknowledgeBackfillRequest) ProtoMessage()    {}
+func (*AcknowledgeBackfillRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_06c902cf58d2ae57, []int{5}
+}
+
+func (m *AcknowledgeBackfillRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AcknowledgeBackfillRequest.Unmarshal(m, b)
+}
+func (m *AcknowledgeBackfillRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AcknowledgeBackfillRequest.Marshal(b, m, deterministic)
+}
+func (m *AcknowledgeBackfillRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AcknowledgeBackfillRequest.Merge(m, src)
+}
+func (m *AcknowledgeBackfillRequest) XXX_Size() int {
+	return xxx_messageInfo_AcknowledgeBackfillRequest.Size(m)
+}
+func (m *AcknowledgeBackfillRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_AcknowledgeBackfillRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AcknowledgeBackfillRequest proto.InternalMessageInfo
+
+func (m *AcknowledgeBackfillRequest) GetBackfillId() string {
+	if m != nil {
+		return m.BackfillId
+	}
+	return ""
+}
+
+func (m *AcknowledgeBackfillRequest) GetAssignment() *Assignment {
+	if m != nil {
+		return m.Assignment
+	}
+	return nil
+}
+
+// BETA FEATURE WARNING: This Request message is not finalized and still subject
+// to possible change or removal.
+type CreateBackfillRequest struct {
+	Backfill             *Backfill `protobuf:"bytes,1,opt,name=backfill,proto3" json:"backfill,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
+	XXX_unrecognized     []byte    `json:"-"`
+	XXX_sizecache        int32     `json:"-"`
+}
+
+func (m *CreateBackfillRequest) Reset()         { *m = CreateBackfillRequest{} }
+func (m *CreateBackfillRequest) String() string { return proto.CompactTextString(m) }
+func (*CreateBackfillRequest) ProtoMessage()    {}
+func (*CreateBackfillRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_06c902cf58d2ae57, []int{6}
+}
+
+func (m *CreateBackfillRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateBackfillRequest.Unmarshal(m, b)
+}
+func (m *CreateBackfillRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateBackfillRequest.Marshal(b, m, deterministic)
+}
+func (m *CreateBackfillRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateBackfillRequest.Merge(m, src)
+}
+func (m *CreateBackfillRequest) XXX_Size() int {
+	return xxx_messageInfo_CreateBackfillRequest.Size(m)
+}
+func (m *CreateBackfillRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateBackfillRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateBackfillRequest proto.InternalMessageInfo
+
+func (m *CreateBackfillRequest) GetBackfill() *Backfill {
+	if m != nil {
+		return m.Backfill
+	}
+	return nil
+}
+
+// BETA FEATURE WARNING: This Request message is not finalized and still subject
+// to possible change or removal.
+type DeleteBackfillRequest struct {
+	BackfillId           string   `protobuf:"bytes,1,opt,name=backfill_id,json=backfillId,proto3" json:"backfill_id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DeleteBackfillRequest) Reset()         { *m = DeleteBackfillRequest{} }
+func (m *DeleteBackfillRequest) String() string { return proto.CompactTextString(m) }
+func (*DeleteBackfillRequest) ProtoMessage()    {}
+func (*DeleteBackfillRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_06c902cf58d2ae57, []int{7}
+}
+
+func (m *DeleteBackfillRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteBackfillRequest.Unmarshal(m, b)
+}
+func (m *DeleteBackfillRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteBackfillRequest.Marshal(b, m, deterministic)
+}
+func (m *DeleteBackfillRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteBackfillRequest.Merge(m, src)
+}
+func (m *DeleteBackfillRequest) XXX_Size() int {
+	return xxx_messageInfo_DeleteBackfillRequest.Size(m)
+}
+func (m *DeleteBackfillRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteBackfillRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteBackfillRequest proto.InternalMessageInfo
+
+func (m *DeleteBackfillRequest) GetBackfillId() string {
+	if m != nil {
+		return m.BackfillId
+	}
+	return ""
+}
+
+// BETA FEATURE WARNING: This Request message is not finalized and still subject
+// to possible change or removal.
+type GetBackfillRequest struct {
+	BackfillId           string   `protobuf:"bytes,1,opt,name=backfill_id,json=backfillId,proto3" json:"backfill_id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetBackfillRequest) Reset()         { *m = GetBackfillRequest{} }
+func (m *GetBackfillRequest) String() string { return proto.CompactTextString(m) }
+func (*GetBackfillRequest) ProtoMessage()    {}
+func (*GetBackfillRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_06c902cf58d2ae57, []int{8}
+}
+
+func (m *GetBackfillRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetBackfillRequest.Unmarshal(m, b)
+}
+func (m *GetBackfillRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetBackfillRequest.Marshal(b, m, deterministic)
+}
+func (m *GetBackfillRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetBackfillRequest.Merge(m, src)
+}
+func (m *GetBackfillRequest) XXX_Size() int {
+	return xxx_messageInfo_GetBackfillRequest.Size(m)
+}
+func (m *GetBackfillRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetBackfillRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetBackfillRequest proto.InternalMessageInfo
+
+func (m *GetBackfillRequest) GetBackfillId() string {
+	if m != nil {
+		return m.BackfillId
+	}
+	return ""
+}
+
+// UpdateBackfillRequest - update searchFields, extensions and set assignment.
+//
+// BETA FEATURE WARNING: This Request message is not finalized and still subject
+// to possible change or removal.
+type UpdateBackfillRequest struct {
+	// A Backfill object with SearchFields defined.
+	BackfillTicket       *Backfill `protobuf:"bytes,1,opt,name=backfill_ticket,json=backfillTicket,proto3" json:"backfill_ticket,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
+	XXX_unrecognized     []byte    `json:"-"`
+	XXX_sizecache        int32     `json:"-"`
+}
+
+func (m *UpdateBackfillRequest) Reset()         { *m = UpdateBackfillRequest{} }
+func (m *UpdateBackfillRequest) String() string { return proto.CompactTextString(m) }
+func (*UpdateBackfillRequest) ProtoMessage()    {}
+func (*UpdateBackfillRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_06c902cf58d2ae57, []int{9}
+}
+
+func (m *UpdateBackfillRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_UpdateBackfillRequest.Unmarshal(m, b)
+}
+func (m *UpdateBackfillRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_UpdateBackfillRequest.Marshal(b, m, deterministic)
+}
+func (m *UpdateBackfillRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpdateBackfillRequest.Merge(m, src)
+}
+func (m *UpdateBackfillRequest) XXX_Size() int {
+	return xxx_messageInfo_UpdateBackfillRequest.Size(m)
+}
+func (m *UpdateBackfillRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_UpdateBackfillRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UpdateBackfillRequest proto.InternalMessageInfo
+
+func (m *UpdateBackfillRequest) GetBackfillTicket() *Backfill {
+	if m != nil {
+		return m.BackfillTicket
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*CreateTicketRequest)(nil), "openmatch.CreateTicketRequest")
 	proto.RegisterType((*DeleteTicketRequest)(nil), "openmatch.DeleteTicketRequest")
 	proto.RegisterType((*GetTicketRequest)(nil), "openmatch.GetTicketRequest")
 	proto.RegisterType((*WatchAssignmentsRequest)(nil), "openmatch.WatchAssignmentsRequest")
 	proto.RegisterType((*WatchAssignmentsResponse)(nil), "openmatch.WatchAssignmentsResponse")
+	proto.RegisterType((*AcknowledgeBackfillRequest)(nil), "openmatch.AcknowledgeBackfillRequest")
+	proto.RegisterType((*CreateBackfillRequest)(nil), "openmatch.CreateBackfillRequest")
+	proto.RegisterType((*DeleteBackfillRequest)(nil), "openmatch.DeleteBackfillRequest")
+	proto.RegisterType((*GetBackfillRequest)(nil), "openmatch.GetBackfillRequest")
+	proto.RegisterType((*UpdateBackfillRequest)(nil), "openmatch.UpdateBackfillRequest")
 }
 
 func init() { proto.RegisterFile("api/frontend.proto", fileDescriptor_06c902cf58d2ae57) }
 
 var fileDescriptor_06c902cf58d2ae57 = []byte{
-	// 643 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x5f, 0x4f, 0x13, 0x4f,
-	0x14, 0xcd, 0x16, 0xc2, 0x8f, 0xce, 0x8f, 0x44, 0x1c, 0x22, 0x92, 0xd6, 0x98, 0x71, 0x49, 0x54,
-	0x1a, 0xbb, 0x53, 0x0a, 0xf8, 0x00, 0x31, 0x01, 0x01, 0x0d, 0x09, 0x6a, 0x2c, 0x46, 0x13, 0x5f,
-	0xcc, 0x76, 0xf7, 0xb2, 0x1d, 0xe9, 0xce, 0x8c, 0x7b, 0x67, 0x41, 0x63, 0x4c, 0x8c, 0xaf, 0xbe,
-	0xe9, 0x1b, 0x1f, 0xc1, 0x47, 0xbf, 0x8a, 0x4f, 0xbe, 0xfb, 0x41, 0xcc, 0xce, 0xf6, 0xcf, 0x5a,
-	0x2a, 0xc1, 0xa7, 0x66, 0xe7, 0x9e, 0x7b, 0xce, 0xbd, 0xe7, 0xdc, 0x94, 0x50, 0x5f, 0x0b, 0x7e,
-	0x98, 0x28, 0x69, 0x40, 0x86, 0x9e, 0x4e, 0x94, 0x51, 0xb4, 0xac, 0x34, 0xc8, 0xd8, 0x37, 0x41,
-	0xa7, 0x62, 0xcb, 0x31, 0x20, 0xfa, 0x11, 0x60, 0x5e, 0xae, 0x5c, 0x8b, 0x94, 0x8a, 0xba, 0xc0,
-	0xb3, 0x92, 0x2f, 0xa5, 0x32, 0xbe, 0x11, 0x4a, 0xf6, 0xab, 0x77, 0xec, 0x4f, 0x50, 0x8f, 0x40,
-	0xd6, 0xf1, 0xc4, 0x8f, 0x22, 0x48, 0xb8, 0xd2, 0x16, 0x31, 0x06, 0x5d, 0xed, 0x71, 0xd9, 0xaf,
-	0x76, 0x7a, 0xc8, 0x21, 0xd6, 0xe6, 0x5d, 0x5e, 0x74, 0x37, 0xc9, 0xdc, 0x76, 0x02, 0xbe, 0x81,
-	0x67, 0x22, 0x38, 0x02, 0xd3, 0x82, 0x37, 0x29, 0xa0, 0xa1, 0x4b, 0x64, 0xca, 0xd8, 0x87, 0x05,
-	0x87, 0x39, 0xb7, 0xff, 0x6f, 0x5e, 0xf6, 0x06, 0xf3, 0x7a, 0x3d, 0x64, 0x0f, 0xe0, 0x36, 0xc9,
-	0xdc, 0x0e, 0x74, 0x61, 0x94, 0xa1, 0x4a, 0xca, 0x39, 0xe0, 0x95, 0x08, 0x2d, 0x49, 0xb9, 0x35,
-	0x9d, 0x3f, 0xec, 0x85, 0x2e, 0x27, 0xb3, 0x0f, 0xc1, 0xfc, 0x43, 0xc3, 0x5d, 0x72, 0xf5, 0x45,
-	0x26, 0xbe, 0x85, 0x28, 0x22, 0x19, 0x83, 0x34, 0x78, 0xa1, 0xbe, 0xa7, 0x64, 0xe1, 0x6c, 0x1f,
-	0x6a, 0x25, 0x11, 0xe8, 0x1a, 0x21, 0xfe, 0xe0, 0xb9, 0xb7, 0xe7, 0x95, 0xc2, 0x9e, 0xc3, 0x9e,
-	0x56, 0x01, 0xd8, 0xfc, 0x38, 0x49, 0x2e, 0x3d, 0xe8, 0x85, 0x79, 0x00, 0xc9, 0xb1, 0x08, 0x80,
-	0x0a, 0x32, 0x53, 0x74, 0x91, 0x5e, 0x2f, 0xd0, 0x8c, 0xb1, 0xb7, 0x72, 0xd6, 0x4e, 0xf7, 0xe6,
-	0xa7, 0x1f, 0xbf, 0xbe, 0x96, 0x98, 0x5b, 0xe5, 0xc7, 0xcb, 0x83, 0x63, 0xc1, 0x9c, 0x9f, 0xe7,
-	0xfb, 0xe0, 0xba, 0x53, 0xa3, 0x27, 0x64, 0xa6, 0x68, 0xf7, 0x1f, 0x52, 0x63, 0x72, 0xa8, 0xcc,
-	0x7b, 0x79, 0xfc, 0x5e, 0x3f, 0x7e, 0x6f, 0x37, 0x8b, 0xdf, 0xe5, 0x56, 0x6f, 0xa9, 0x76, 0xeb,
-	0x1c, 0x3d, 0xfe, 0x7e, 0xe0, 0xec, 0x07, 0xda, 0x25, 0xe5, 0x41, 0x66, 0xb4, 0x5a, 0x50, 0x1d,
-	0x4d, 0x72, 0xdc, 0x76, 0x3d, 0x35, 0x7a, 0x61, 0xb5, 0x53, 0x87, 0xcc, 0x8e, 0x26, 0x47, 0xdd,
-	0x02, 0xf1, 0x5f, 0xce, 0xa1, 0xb2, 0x78, 0x2e, 0x26, 0x8f, 0xde, 0xdd, 0xb0, 0xe3, 0xac, 0xd1,
-	0x95, 0x0b, 0x8e, 0xc3, 0x87, 0xf9, 0x63, 0xc3, 0xb9, 0xff, 0x79, 0xe2, 0xcb, 0xd6, 0xcf, 0x12,
-	0xfd, 0xee, 0x90, 0xe9, 0xfe, 0x25, 0xb8, 0x7b, 0x84, 0x3c, 0xd1, 0x20, 0xd9, 0xa3, 0x4c, 0x93,
-	0xce, 0x77, 0x8c, 0xd1, 0xb8, 0xce, 0x79, 0x36, 0x4c, 0x3d, 0x9f, 0x26, 0x84, 0xe3, 0xca, 0xe2,
-	0xf0, 0xbb, 0x1e, 0x0a, 0x0c, 0x52, 0xc4, 0xcd, 0x3c, 0x9f, 0x28, 0x51, 0xa9, 0x46, 0x2f, 0x50,
-	0x71, 0xed, 0x39, 0xa1, 0x5b, 0xda, 0x0f, 0x3a, 0xc0, 0x9a, 0x5e, 0x83, 0xed, 0x8b, 0x00, 0xb2,
-	0x73, 0xdd, 0xec, 0x53, 0x46, 0xc2, 0x74, 0xd2, 0x76, 0x86, 0xe4, 0x79, 0xeb, 0xa1, 0x4a, 0x22,
-	0x3f, 0x06, 0x2c, 0x88, 0xf1, 0x76, 0x57, 0xb5, 0x79, 0xec, 0xa3, 0x81, 0x84, 0xef, 0xef, 0x6d,
-	0xef, 0x3e, 0x3e, 0xd8, 0x6d, 0x4e, 0x2c, 0x7b, 0x8d, 0x5a, 0xc9, 0x29, 0x35, 0x67, 0x7d, 0xad,
-	0xbb, 0x22, 0xb0, 0xff, 0x12, 0xfc, 0x35, 0x2a, 0xb9, 0x7e, 0xe6, 0xa5, 0xb5, 0x41, 0x26, 0x56,
-	0x1b, 0xab, 0x74, 0x95, 0xd4, 0x5a, 0x60, 0xd2, 0x44, 0x42, 0xc8, 0x4e, 0x3a, 0x20, 0x99, 0xe9,
-	0x00, 0x4b, 0x00, 0x55, 0x9a, 0x04, 0xc0, 0x42, 0x05, 0xc8, 0xa4, 0x32, 0x0c, 0xde, 0x0a, 0x34,
-	0x1e, 0x9d, 0x22, 0x93, 0xa7, 0x25, 0xe7, 0xbf, 0xe4, 0x1e, 0x59, 0x18, 0x9a, 0xc1, 0x76, 0x54,
-	0x90, 0x66, 0xd6, 0x59, 0x76, 0x7a, 0x63, 0xbc, 0x35, 0x1c, 0x85, 0x01, 0x1e, 0xaa, 0x00, 0xf9,
-	0x4b, 0x36, 0x52, 0x2a, 0xec, 0xa5, 0x8f, 0x22, 0xae, 0xdb, 0xdf, 0x4a, 0xe5, 0x8c, 0xdf, 0xd2,
-	0xb7, 0xa7, 0xec, 0x65, 0xaf, 0xfc, 0x0e, 0x00, 0x00, 0xff, 0xff, 0x05, 0x01, 0x35, 0x43, 0x67,
-	0x05, 0x00, 0x00,
+	// 864 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x56, 0xcf, 0x6f, 0x1b, 0x45,
+	0x14, 0xd6, 0x3a, 0x28, 0xc4, 0x2f, 0x55, 0x1a, 0x26, 0x4a, 0x89, 0x36, 0x14, 0x96, 0xa9, 0x80,
+	0xd6, 0xe0, 0x9d, 0xd4, 0x49, 0x00, 0xa5, 0x45, 0x4a, 0xd2, 0x86, 0x12, 0xa9, 0x80, 0x70, 0x29,
+	0x48, 0x5c, 0xd0, 0x7a, 0xf7, 0x65, 0xbd, 0x78, 0x3d, 0xb3, 0xd9, 0x99, 0xb5, 0x41, 0x55, 0x85,
+	0xc4, 0x95, 0x1b, 0x88, 0x4b, 0xff, 0x04, 0x8e, 0xfc, 0x2b, 0x9c, 0xb8, 0xf3, 0x3f, 0x70, 0x45,
+	0xfb, 0xd3, 0xbb, 0xf6, 0xc6, 0xb5, 0x4f, 0xd1, 0xce, 0xbc, 0xf7, 0x7d, 0xdf, 0x9b, 0xf9, 0xbe,
+	0x89, 0x81, 0x58, 0x81, 0xc7, 0x2e, 0x42, 0xc1, 0x15, 0x72, 0xc7, 0x0c, 0x42, 0xa1, 0x04, 0x69,
+	0x8a, 0x00, 0xf9, 0xd0, 0x52, 0x76, 0x5f, 0x4f, 0xb6, 0x87, 0x28, 0xa5, 0xe5, 0xa2, 0x4c, 0xb7,
+	0xf5, 0x37, 0x5c, 0x21, 0x5c, 0x1f, 0x59, 0xbc, 0x65, 0x71, 0x2e, 0x94, 0xa5, 0x3c, 0xc1, 0xf3,
+	0xdd, 0x0f, 0x92, 0x3f, 0x76, 0xdb, 0x45, 0xde, 0x96, 0x63, 0xcb, 0x75, 0x31, 0x64, 0x22, 0x48,
+	0x2a, 0x6a, 0xaa, 0x77, 0x33, 0xac, 0xe4, 0xab, 0x17, 0x5d, 0x30, 0x1c, 0x06, 0xea, 0xa7, 0x74,
+	0x93, 0x1e, 0xc3, 0xd6, 0x83, 0x10, 0x2d, 0x85, 0x5f, 0x7b, 0xf6, 0x00, 0x55, 0x17, 0x2f, 0x23,
+	0x94, 0x8a, 0xdc, 0x81, 0x55, 0x95, 0x2c, 0xec, 0x68, 0x86, 0x76, 0x7b, 0xbd, 0xf3, 0x9a, 0x59,
+	0xe8, 0x35, 0xb3, 0xca, 0xac, 0x80, 0x76, 0x60, 0xeb, 0x21, 0xfa, 0x38, 0x8d, 0xb0, 0x0b, 0xcd,
+	0xb4, 0xe0, 0x7b, 0xcf, 0x49, 0x40, 0x9a, 0xdd, 0xb5, 0x74, 0xe1, 0xdc, 0xa1, 0x0c, 0x36, 0x1f,
+	0xa1, 0x5a, 0xa2, 0xe1, 0x43, 0x78, 0xfd, 0xdb, 0x98, 0xfc, 0x44, 0x4a, 0xcf, 0xe5, 0x43, 0xe4,
+	0x4a, 0x2e, 0xd4, 0xf7, 0x15, 0xec, 0xcc, 0xf6, 0xc9, 0x40, 0x70, 0x89, 0xe4, 0x10, 0xc0, 0x2a,
+	0x96, 0xb3, 0x39, 0xb7, 0x4b, 0x73, 0x4e, 0x7a, 0xba, 0xa5, 0x42, 0xaa, 0x40, 0x3f, 0xb1, 0x07,
+	0x5c, 0x8c, 0x7d, 0x74, 0x5c, 0x3c, 0xb5, 0xec, 0xc1, 0x85, 0xe7, 0xfb, 0xb9, 0x9a, 0xb7, 0x60,
+	0xbd, 0x97, 0x2d, 0x4d, 0xf4, 0x40, 0xbe, 0x74, 0xee, 0x4c, 0xb1, 0x36, 0x16, 0x65, 0xfd, 0x0c,
+	0xb6, 0xd3, 0x7b, 0x9a, 0x26, 0x64, 0xb0, 0x96, 0xa3, 0x67, 0x33, 0x6c, 0x95, 0xd0, 0x8a, 0xea,
+	0xa2, 0x88, 0x7e, 0x0c, 0xdb, 0xe9, 0x7d, 0x2d, 0x2b, 0x9d, 0x1e, 0x02, 0x79, 0x84, 0x6a, 0xe9,
+	0xb6, 0xa7, 0xb0, 0xfd, 0x34, 0x70, 0x6a, 0xa4, 0xdf, 0x87, 0xeb, 0x45, 0x67, 0xc5, 0x6d, 0xb5,
+	0x13, 0x6c, 0xe4, 0xb5, 0xa9, 0x6d, 0x3a, 0xff, 0xad, 0xc1, 0xf5, 0x4f, 0xb3, 0x50, 0x3d, 0xc1,
+	0x70, 0xe4, 0xd9, 0x48, 0x3c, 0xb8, 0x56, 0x76, 0x33, 0x79, 0xb3, 0x04, 0x54, 0x63, 0x73, 0x7d,
+	0xd6, 0xd6, 0xf4, 0xdd, 0x5f, 0xfe, 0xfe, 0xf7, 0xf7, 0x86, 0x41, 0x77, 0xd9, 0xe8, 0x6e, 0x11,
+	0x5a, 0x99, 0xe2, 0xb3, 0x54, 0xa5, 0x3c, 0xd2, 0x5a, 0x64, 0x0c, 0xd7, 0xca, 0xb6, 0xaf, 0x50,
+	0xd5, 0xe4, 0x41, 0xbf, 0x61, 0xa6, 0x31, 0x34, 0xf3, 0x18, 0x9a, 0x67, 0x71, 0x0c, 0x29, 0x4b,
+	0xf8, 0xee, 0xb4, 0xde, 0x9b, 0xc3, 0xc7, 0x9e, 0x15, 0x0e, 0x7f, 0x4e, 0x7c, 0x68, 0x16, 0xd9,
+	0x21, 0xbb, 0x25, 0xd6, 0xe9, 0x44, 0xd5, 0x4d, 0x97, 0xb1, 0x91, 0x85, 0xd9, 0x5e, 0x68, 0xb0,
+	0x39, 0x9d, 0x20, 0x42, 0x4b, 0xc0, 0x57, 0xc4, 0x52, 0xbf, 0x35, 0xb7, 0x26, 0x8d, 0x20, 0xbd,
+	0x97, 0xc8, 0x39, 0x24, 0xfb, 0x0b, 0xca, 0x61, 0x93, 0x44, 0xc8, 0x3d, 0x8d, 0xfc, 0xa1, 0xc1,
+	0x56, 0x4d, 0x16, 0xc9, 0x3b, 0xe5, 0x3c, 0x5d, 0x99, 0x55, 0xbd, 0xce, 0x66, 0xf4, 0x34, 0x91,
+	0x74, 0x9f, 0x7e, 0x54, 0x27, 0x29, 0xb7, 0xa0, 0x64, 0xcf, 0x4a, 0x9e, 0x7f, 0xce, 0xac, 0x09,
+	0x49, 0xec, 0x8d, 0x4b, 0xd8, 0xa8, 0x86, 0x95, 0x18, 0x33, 0x46, 0x5c, 0x48, 0xcc, 0xed, 0x44,
+	0x0c, 0xa5, 0x37, 0xe7, 0x8a, 0x89, 0x29, 0x7f, 0x86, 0x8d, 0x6a, 0xaa, 0x2b, 0x94, 0xb5, 0x81,
+	0xbf, 0xd2, 0x92, 0xfb, 0x09, 0x6b, 0xbb, 0xf5, 0xfe, 0x12, 0x47, 0x40, 0x46, 0xb0, 0x5e, 0x7a,
+	0x1c, 0xc8, 0xcd, 0xaa, 0x31, 0x17, 0x9a, 0x36, 0xe3, 0x25, 0x4b, 0xf1, 0x5e, 0xc2, 0x46, 0xf5,
+	0x75, 0xa9, 0x0c, 0x5e, 0xfb, 0xf0, 0xcc, 0x3d, 0xeb, 0xce, 0x4b, 0xcf, 0xfa, 0xf4, 0xd7, 0x95,
+	0xdf, 0x4e, 0xfe, 0x69, 0x90, 0xbf, 0x34, 0x58, 0xcb, 0x1f, 0x20, 0x7a, 0x0e, 0xf0, 0x65, 0x80,
+	0xdc, 0xf8, 0x3c, 0x06, 0x25, 0x37, 0xfa, 0x4a, 0x05, 0xf2, 0x88, 0xb1, 0x98, 0xa7, 0x9d, 0x12,
+	0x39, 0x38, 0xd2, 0x6f, 0x4d, 0xbe, 0xdb, 0x8e, 0x27, 0xed, 0x48, 0xca, 0xe3, 0xf4, 0x0e, 0xdc,
+	0x50, 0x44, 0x81, 0x34, 0x6d, 0x31, 0x6c, 0x7d, 0x03, 0xe4, 0x24, 0xb0, 0xec, 0x3e, 0x1a, 0x1d,
+	0x73, 0xcf, 0x78, 0xec, 0xd9, 0x18, 0xff, 0xb7, 0x3a, 0xce, 0x21, 0x5d, 0x4f, 0xf5, 0xa3, 0x5e,
+	0x5c, 0xc9, 0xd2, 0xd6, 0x0b, 0x11, 0xba, 0xd6, 0x10, 0x65, 0x89, 0x8c, 0xf5, 0x7c, 0xd1, 0x63,
+	0x43, 0x4b, 0x2a, 0x0c, 0xd9, 0xe3, 0xf3, 0x07, 0x67, 0x5f, 0x3c, 0x39, 0xeb, 0xac, 0xdc, 0x35,
+	0xf7, 0x5a, 0x0d, 0xad, 0xd1, 0xd9, 0xb4, 0x82, 0xc0, 0xf7, 0xec, 0xe4, 0x47, 0x02, 0xfb, 0x41,
+	0x0a, 0x7e, 0x34, 0xb3, 0xd2, 0xbd, 0x07, 0x2b, 0x07, 0x7b, 0x07, 0xe4, 0x00, 0x5a, 0x5d, 0x54,
+	0x51, 0xc8, 0xd1, 0x31, 0xc6, 0x7d, 0xe4, 0x86, 0xea, 0xa3, 0x11, 0xa2, 0x14, 0x51, 0x68, 0xa3,
+	0xe1, 0x08, 0x94, 0x06, 0x17, 0xca, 0xc0, 0x1f, 0x3d, 0xa9, 0x4c, 0xb2, 0x0a, 0xaf, 0xbc, 0x68,
+	0x68, 0xaf, 0x86, 0x9f, 0xc0, 0xce, 0xe4, 0x30, 0x8c, 0x87, 0xc2, 0x8e, 0xe2, 0xc4, 0x26, 0xe8,
+	0xe4, 0xed, 0xfa, 0xa3, 0x61, 0xd2, 0x53, 0xc8, 0x1c, 0x61, 0x4b, 0xf6, 0x9d, 0x31, 0xb5, 0x55,
+	0x9a, 0x2b, 0x18, 0xb8, 0x2c, 0xe8, 0xfd, 0xd9, 0x68, 0xc6, 0xf8, 0x09, 0x7c, 0x6f, 0x35, 0x71,
+	0xef, 0xfe, 0xff, 0x01, 0x00, 0x00, 0xff, 0xff, 0xcb, 0x11, 0xee, 0xfd, 0x66, 0x09, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -307,6 +541,29 @@ type FrontendServiceClient interface {
 	// WatchAssignments stream back Assignment of the specified TicketId if it is updated.
 	//   - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.
 	WatchAssignments(ctx context.Context, in *WatchAssignmentsRequest, opts ...grpc.CallOption) (FrontendService_WatchAssignmentsClient, error)
+	// AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info
+	// This triggers an assignment process.
+	//
+	// BETA FEATURE WARNING: This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
+	AcknowledgeBackfill(ctx context.Context, in *AcknowledgeBackfillRequest, opts ...grpc.CallOption) (*Backfill, error)
+	// If SearchFields exist in a Ticket, CreateBackfillRequest will also index these fields such that one can query the ticket with query.QueryBakfillTickets function.
+	//
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
+	CreateBackfill(ctx context.Context, in *CreateBackfillRequest, opts ...grpc.CallOption) (*Backfill, error)
+	// Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
+	//
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
+	DeleteBackfill(ctx context.Context, in *DeleteBackfillRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
+	GetBackfill(ctx context.Context, in *GetBackfillRequest, opts ...grpc.CallOption) (*Backfill, error)
+	// Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
+	UpdateBackfill(ctx context.Context, in *UpdateBackfillRequest, opts ...grpc.CallOption) (*Backfill, error)
 }
 
 type frontendServiceClient struct {
@@ -376,6 +633,51 @@ func (x *frontendServiceWatchAssignmentsClient) Recv() (*WatchAssignmentsRespons
 	return m, nil
 }
 
+func (c *frontendServiceClient) AcknowledgeBackfill(ctx context.Context, in *AcknowledgeBackfillRequest, opts ...grpc.CallOption) (*Backfill, error) {
+	out := new(Backfill)
+	err := c.cc.Invoke(ctx, "/openmatch.FrontendService/AcknowledgeBackfill", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *frontendServiceClient) CreateBackfill(ctx context.Context, in *CreateBackfillRequest, opts ...grpc.CallOption) (*Backfill, error) {
+	out := new(Backfill)
+	err := c.cc.Invoke(ctx, "/openmatch.FrontendService/CreateBackfill", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *frontendServiceClient) DeleteBackfill(ctx context.Context, in *DeleteBackfillRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/openmatch.FrontendService/DeleteBackfill", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *frontendServiceClient) GetBackfill(ctx context.Context, in *GetBackfillRequest, opts ...grpc.CallOption) (*Backfill, error) {
+	out := new(Backfill)
+	err := c.cc.Invoke(ctx, "/openmatch.FrontendService/GetBackfill", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *frontendServiceClient) UpdateBackfill(ctx context.Context, in *UpdateBackfillRequest, opts ...grpc.CallOption) (*Backfill, error) {
+	out := new(Backfill)
+	err := c.cc.Invoke(ctx, "/openmatch.FrontendService/UpdateBackfill", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FrontendServiceServer is the server API for FrontendService service.
 type FrontendServiceServer interface {
 	// CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.
@@ -391,6 +693,29 @@ type FrontendServiceServer interface {
 	// WatchAssignments stream back Assignment of the specified TicketId if it is updated.
 	//   - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.
 	WatchAssignments(*WatchAssignmentsRequest, FrontendService_WatchAssignmentsServer) error
+	// AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info
+	// This triggers an assignment process.
+	//
+	// BETA FEATURE WARNING: This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
+	AcknowledgeBackfill(context.Context, *AcknowledgeBackfillRequest) (*Backfill, error)
+	// If SearchFields exist in a Ticket, CreateBackfillRequest will also index these fields such that one can query the ticket with query.QueryBakfillTickets function.
+	//
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
+	CreateBackfill(context.Context, *CreateBackfillRequest) (*Backfill, error)
+	// Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
+	//
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
+	DeleteBackfill(context.Context, *DeleteBackfillRequest) (*empty.Empty, error)
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
+	GetBackfill(context.Context, *GetBackfillRequest) (*Backfill, error)
+	// Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
+	// BETA FEATURE WARNING:  This call and the associated Request and Response
+	// messages are not finalized and still subject to possible change or removal.
+	UpdateBackfill(context.Context, *UpdateBackfillRequest) (*Backfill, error)
 }
 
 // UnimplementedFrontendServiceServer can be embedded to have forward compatible implementations.
@@ -408,6 +733,21 @@ func (*UnimplementedFrontendServiceServer) GetTicket(ctx context.Context, req *G
 }
 func (*UnimplementedFrontendServiceServer) WatchAssignments(req *WatchAssignmentsRequest, srv FrontendService_WatchAssignmentsServer) error {
 	return status.Errorf(codes.Unimplemented, "method WatchAssignments not implemented")
+}
+func (*UnimplementedFrontendServiceServer) AcknowledgeBackfill(ctx context.Context, req *AcknowledgeBackfillRequest) (*Backfill, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AcknowledgeBackfill not implemented")
+}
+func (*UnimplementedFrontendServiceServer) CreateBackfill(ctx context.Context, req *CreateBackfillRequest) (*Backfill, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateBackfill not implemented")
+}
+func (*UnimplementedFrontendServiceServer) DeleteBackfill(ctx context.Context, req *DeleteBackfillRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteBackfill not implemented")
+}
+func (*UnimplementedFrontendServiceServer) GetBackfill(ctx context.Context, req *GetBackfillRequest) (*Backfill, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBackfill not implemented")
+}
+func (*UnimplementedFrontendServiceServer) UpdateBackfill(ctx context.Context, req *UpdateBackfillRequest) (*Backfill, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateBackfill not implemented")
 }
 
 func RegisterFrontendServiceServer(s *grpc.Server, srv FrontendServiceServer) {
@@ -489,6 +829,96 @@ func (x *frontendServiceWatchAssignmentsServer) Send(m *WatchAssignmentsResponse
 	return x.ServerStream.SendMsg(m)
 }
 
+func _FrontendService_AcknowledgeBackfill_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcknowledgeBackfillRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FrontendServiceServer).AcknowledgeBackfill(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/openmatch.FrontendService/AcknowledgeBackfill",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FrontendServiceServer).AcknowledgeBackfill(ctx, req.(*AcknowledgeBackfillRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FrontendService_CreateBackfill_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateBackfillRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FrontendServiceServer).CreateBackfill(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/openmatch.FrontendService/CreateBackfill",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FrontendServiceServer).CreateBackfill(ctx, req.(*CreateBackfillRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FrontendService_DeleteBackfill_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteBackfillRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FrontendServiceServer).DeleteBackfill(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/openmatch.FrontendService/DeleteBackfill",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FrontendServiceServer).DeleteBackfill(ctx, req.(*DeleteBackfillRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FrontendService_GetBackfill_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBackfillRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FrontendServiceServer).GetBackfill(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/openmatch.FrontendService/GetBackfill",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FrontendServiceServer).GetBackfill(ctx, req.(*GetBackfillRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FrontendService_UpdateBackfill_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateBackfillRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FrontendServiceServer).UpdateBackfill(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/openmatch.FrontendService/UpdateBackfill",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FrontendServiceServer).UpdateBackfill(ctx, req.(*UpdateBackfillRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _FrontendService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "openmatch.FrontendService",
 	HandlerType: (*FrontendServiceServer)(nil),
@@ -504,6 +934,26 @@ var _FrontendService_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTicket",
 			Handler:    _FrontendService_GetTicket_Handler,
+		},
+		{
+			MethodName: "AcknowledgeBackfill",
+			Handler:    _FrontendService_AcknowledgeBackfill_Handler,
+		},
+		{
+			MethodName: "CreateBackfill",
+			Handler:    _FrontendService_CreateBackfill_Handler,
+		},
+		{
+			MethodName: "DeleteBackfill",
+			Handler:    _FrontendService_DeleteBackfill_Handler,
+		},
+		{
+			MethodName: "GetBackfill",
+			Handler:    _FrontendService_GetBackfill_Handler,
+		},
+		{
+			MethodName: "UpdateBackfill",
+			Handler:    _FrontendService_UpdateBackfill_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
