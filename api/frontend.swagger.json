@@ -24,6 +24,177 @@
     "application/json"
   ],
   "paths": {
+    "/v1/frontendservice/backfills": {
+      "post": {
+        "summary": "If SearchFields exist in a Ticket, CreateBackfillRequest will also index these fields such that one can query the ticket with query.QueryBakfillTickets function.",
+        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "CreateBackfill",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/openmatchBackfill"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openmatchCreateBackfillRequest"
+            }
+          }
+        ],
+        "tags": [
+          "FrontendService"
+        ]
+      },
+      "patch": {
+        "summary": "Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.\nBETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "UpdateBackfill",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/openmatchBackfill"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openmatchUpdateBackfillRequest"
+            }
+          }
+        ],
+        "tags": [
+          "FrontendService"
+        ]
+      }
+    },
+    "/v1/frontendservice/backfills/{backfill_id}": {
+      "get": {
+        "summary": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "GetBackfill",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/openmatchBackfill"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "backfill_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "FrontendService"
+        ]
+      },
+      "delete": {
+        "summary": "Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.",
+        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "DeleteBackfill",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "backfill_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "FrontendService"
+        ]
+      }
+    },
+    "/v1/frontendservice/backfills/{backfill_id}/acknowledge": {
+      "post": {
+        "summary": "AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info\nThis triggers an assignment process.",
+        "description": "BETA FEATURE WARNING: This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "AcknowledgeBackfill",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/openmatchBackfill"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "backfill_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openmatchAcknowledgeBackfillRequest"
+            }
+          }
+        ],
+        "tags": [
+          "FrontendService"
+        ]
+      }
+    },
     "/v1/frontendservice/tickets": {
       "post": {
         "summary": "CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.\nA ticket is considered as ready for matchmaking once it is created.\n  - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.\n  - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with query.QueryTickets function.",
@@ -157,6 +328,18 @@
     }
   },
   "definitions": {
+    "openmatchAcknowledgeBackfillRequest": {
+      "type": "object",
+      "properties": {
+        "backfill_id": {
+          "type": "string"
+        },
+        "assignment": {
+          "$ref": "#/definitions/openmatchAssignment"
+        }
+      },
+      "description": "BETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
+    },
     "openmatchAssignment": {
       "type": "object",
       "properties": {
@@ -173,6 +356,45 @@
         }
       },
       "description": "An Assignment represents a game server assignment associated with a Ticket.\nOpen Match does not require or inspect any fields on assignment."
+    },
+    "openmatchBackfill": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Id represents an auto-generated Id issued by Open Match."
+        },
+        "search_fields": {
+          "$ref": "#/definitions/openmatchSearchFields",
+          "description": "Search fields are the fields which Open Match is aware of, and can be used\nwhen specifying filters."
+        },
+        "extensions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/protobufAny"
+          },
+          "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
+        },
+        "create_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Create time is the time the Ticket was created. It is populated by Open\nMatch at the time of Ticket creation."
+        },
+        "generation": {
+          "type": "string",
+          "format": "int64",
+          "description": "Generation gets incremented on GameServers update operations.\nPrevents the MMF from overriding a newer version from the game server.\nIt is not to be updated by the MMF."
+        }
+      }
+    },
+    "openmatchCreateBackfillRequest": {
+      "type": "object",
+      "properties": {
+        "backfill": {
+          "$ref": "#/definitions/openmatchBackfill"
+        }
+      },
+      "description": "BETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
     },
     "openmatchCreateTicketRequest": {
       "type": "object",
@@ -240,6 +462,16 @@
         }
       },
       "description": "A Ticket is a basic matchmaking entity in Open Match. A Ticket may represent\nan individual 'Player', a 'Group' of players, or any other concepts unique to\nyour use case. Open Match will not interpret what the Ticket represents but\njust treat it as a matchmaking unit with a set of SearchFields. Open Match\nstores the Ticket in state storage and enables an Assignment to be set on the\nTicket."
+    },
+    "openmatchUpdateBackfillRequest": {
+      "type": "object",
+      "properties": {
+        "backfill_ticket": {
+          "$ref": "#/definitions/openmatchBackfill",
+          "description": "A Backfill object with SearchFields defined."
+        }
+      },
+      "description": "UpdateBackfillRequest - update searchFields, extensions and set assignment.\n\nBETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
     },
     "openmatchWatchAssignmentsResponse": {
       "type": "object",
