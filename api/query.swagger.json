@@ -24,6 +24,41 @@
     "application/json"
   ],
   "paths": {
+    "/v1/queryservice/backfills:query": {
+      "post": {
+        "summary": "QueryBackfills gets a list of Backfills.",
+        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "QueryBackfills",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "$ref": "#/x-stream-definitions/openmatchQueryBackfillsResponse"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openmatchQueryBackfillsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "QueryService"
+        ]
+      }
+    },
     "/v1/queryservice/ticketids:query": {
       "post": {
         "summary": "QueryTicketIds gets the list of TicketIDs that meet all the filtering criteria requested by the pool.\n  - If the Pool contains no Filters, QueryTicketIds will return all TicketIDs in the state storage.\nQueryTicketIds pages the TicketIDs by `queryPageSize` and stream back responses.\n  - queryPageSize is default to 1000 if not set, and has a minimum of 10 and maximum of 10000.",
@@ -122,6 +157,37 @@
       },
       "description": "An Assignment represents a game server assignment associated with a Ticket.\nOpen Match does not require or inspect any fields on assignment."
     },
+    "openmatchBackfill": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Id represents an auto-generated Id issued by Open Match."
+        },
+        "search_fields": {
+          "$ref": "#/definitions/openmatchSearchFields",
+          "description": "Search fields are the fields which Open Match is aware of, and can be used\nwhen specifying filters."
+        },
+        "extensions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/protobufAny"
+          },
+          "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
+        },
+        "create_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Create time is the time the Ticket was created. It is populated by Open\nMatch at the time of Ticket creation."
+        },
+        "generation": {
+          "type": "string",
+          "format": "int64",
+          "description": "Generation gets incremented on GameServers update operations.\nPrevents the MMF from overriding a newer version from the game server.\nIt is not to be updated by the MMF."
+        }
+      },
+      "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.\nRepresents a backfill entity which is used to fill partially full matches."
+    },
     "openmatchDoubleRangeFilter": {
       "type": "object",
       "properties": {
@@ -184,6 +250,29 @@
         }
       },
       "description": "Pool specfies a set of criteria that are used to select a subset of Tickets\nthat meet all the criteria."
+    },
+    "openmatchQueryBackfillsRequest": {
+      "type": "object",
+      "properties": {
+        "pool": {
+          "$ref": "#/definitions/openmatchPool",
+          "description": "The Pool representing the set of Filters to be queried."
+        }
+      },
+      "description": "BETA FEATURE WARNING:  This Request messages are not finalized and \nstill subject to possible change or removal."
+    },
+    "openmatchQueryBackfillsResponse": {
+      "type": "object",
+      "properties": {
+        "backfills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/openmatchBackfill"
+          },
+          "description": "Backfills that meet all the filtering criteria requested by the pool."
+        }
+      },
+      "description": "BETA FEATURE WARNING:  This Request messages are not finalized and \nstill subject to possible change or removal."
     },
     "openmatchQueryTicketIdsRequest": {
       "type": "object",
@@ -349,6 +438,18 @@
     }
   },
   "x-stream-definitions": {
+    "openmatchQueryBackfillsResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/openmatchQueryBackfillsResponse"
+        },
+        "error": {
+          "$ref": "#/definitions/runtimeStreamError"
+        }
+      },
+      "title": "Stream result of openmatchQueryBackfillsResponse"
+    },
     "openmatchQueryTicketIdsResponse": {
       "type": "object",
       "properties": {
