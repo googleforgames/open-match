@@ -76,19 +76,31 @@ func (rb *redisBackend) DeleteBackfill(ctx context.Context, id string) error {
 	return nil
 }
 
-// UpdateBackfill updates an existing Backfill with new data.
-func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfill, updateFunc func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)) (*pb.Backfill, error) {
-	if updateFunc == nil {
-		return nil, status.Errorf(codes.Internal, "nil updateFunc provided")
-	}
-
+// UpdateBackfill updates an existing Backfill with a new data. Caller has to provide a custom updateFunc if this function is called not for the game server.
+func (rb *redisBackend) UpdateBackfill(ctx context.Context, isGS bool, backfill *pb.Backfill, updateFunc func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)) (*pb.Backfill, error) {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Unavailable, "UpdateBackfill, id: %s, failed to connect to redis: %v", backfill.GetId(), err)
 	}
 	defer handleConnectionClose(&redisConn)
 
-	for i := 0; i < 3; i++ {
+	if isGS {
+		value, err := proto.Marshal(backfill)
+		if err != nil {
+			err = errors.Wrapf(err, "failed to marshal the backfill proto, id: %s", backfill.GetId())
+			return nil, status.Errorf(codes.Internal, "%v", err)
+		}
+
+		err = redisConn.Send("SET", backfill.GetId(), value)
+		if err != nil {
+			err = errors.Wrapf(err, "failed to set the value for backfill, id: %s", backfill.GetId())
+			return nil, status.Errorf(codes.Internal, "%v", err)
+		}
+	} else {
+		if updateFunc == nil {
+			return nil, status.Errorf(codes.Internal, "nil updateFunc provided")
+		}
+
 		_, err = redisConn.Do("WATCH", backfill.GetId())
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to WATCH, id: %s", backfill.GetId())
@@ -126,7 +138,7 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 		if err != nil {
 			if err == redis.ErrNil {
 				redisLogger.WithField("backfillID", backfillToSet.GetId()).Debug("Backfill was modified, transaction aborted. Will try again...")
-				continue
+				return nil, err
 			}
 
 			err = errors.Wrapf(err, "failed to set the value for backfill, id: %s", backfillToSet.GetId())
@@ -136,7 +148,7 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 		return backfillToSet, nil
 	}
 
-	return nil, status.Errorf(codes.Internal, "failed to update backfill, id: %s", backfill.GetId())
+	return backfill, nil
 }
 
 func getBackfill(redisConn redis.Conn, id string) (*pb.Backfill, error) {

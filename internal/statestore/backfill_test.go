@@ -248,6 +248,7 @@ func TestUpdateBackfill(t *testing.T) {
 
 	var testCases = []struct {
 		description      string
+		isGS             bool
 		incomingBackfill *pb.Backfill
 		updateFunc       func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)
 		resultBackfill   *pb.Backfill
@@ -255,7 +256,19 @@ func TestUpdateBackfill(t *testing.T) {
 		expectedMessage  string
 	}{
 		{
-			description: "ok update",
+			description: "ok update, not a GS",
+			incomingBackfill: &pb.Backfill{
+				Id:         "mockBackfillID",
+				Generation: 1,
+				CreateTime: &timestamp.Timestamp{Seconds: 155},
+			},
+			updateFunc:      updateFunc,
+			expectedCode:    codes.OK,
+			expectedMessage: "",
+		},
+		{
+			description: "ok update, is GS",
+			isGS:        true,
 			incomingBackfill: &pb.Backfill{
 				Id:         "mockBackfillID",
 				Generation: 1,
@@ -316,7 +329,7 @@ func TestUpdateBackfill(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
-			res, errActual := service.UpdateBackfill(ctx, tc.incomingBackfill, tc.updateFunc)
+			res, errActual := service.UpdateBackfill(ctx, tc.isGS, tc.incomingBackfill, tc.updateFunc)
 			if tc.expectedCode == codes.OK {
 				require.NoError(t, errActual)
 				require.NotNil(t, res)
@@ -336,7 +349,7 @@ func TestUpdateBackfill(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	service = New(cfg)
-	res, err := service.UpdateBackfill(ctx, existingBackfill, updateFunc)
+	res, err := service.UpdateBackfill(ctx, false, existingBackfill, updateFunc)
 	require.Error(t, err)
 	require.Nil(t, res)
 	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())

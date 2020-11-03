@@ -128,9 +128,9 @@ func (is *instrumentedService) DeleteBackfill(ctx context.Context, id string) er
 	return is.s.DeleteBackfill(ctx, id)
 }
 
-// UpdateBackfill updates an existing Backfill with new data.
-func (is *instrumentedService) UpdateBackfill(ctx context.Context, backfill *pb.Backfill, updateFunc func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)) (*pb.Backfill, error) {
+// UpdateBackfill updates an existing Backfill with a new data. Caller has to provide a custom updateFunc if this function is called not for the game server.
+func (is *instrumentedService) UpdateBackfill(ctx context.Context, isGS bool, backfill *pb.Backfill, updateFunc func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)) (*pb.Backfill, error) {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.UpdateBackfill")
 	defer span.End()
-	return is.s.UpdateBackfill(ctx, backfill, updateFunc)
+	return is.s.UpdateBackfill(ctx, isGS, backfill, updateFunc)
 }

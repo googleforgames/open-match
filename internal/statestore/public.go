@@ -79,8 +79,8 @@ type Service interface {
 	// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
 	DeleteBackfill(ctx context.Context, id string) error
 
-	// UpdateBackfill updates an existing Backfill with new data.
-	UpdateBackfill(ctx context.Context, backfill *pb.Backfill, updateFunc func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)) (*pb.Backfill, error)
+	// UpdateBackfill updates an existing Backfill with a new data. Caller has to provide a custom updateFunc if this function is called not for the game server.
+	UpdateBackfill(ctx context.Context, isGS bool, backfill *pb.Backfill, updateFunc func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)) (*pb.Backfill, error)
 }
 
 // New creates a Service based on the configuration.
