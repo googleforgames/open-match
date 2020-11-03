@@ -153,7 +153,11 @@ func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
 	om := newOM(t)
 
 	{
-		resp, err := om.Frontend().CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})
+		ticket := pb.Ticket{
+			SearchFields: tc.SearchFields,
+		}
+		resp, err := om.Frontend().CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: &ticket})
+
 		require.NotNil(t, resp)
 		require.Nil(t, err)
 	}
@@ -183,7 +187,11 @@ func returnedByQueryID(t *testing.T, tc testcases.TestCase) (found bool) {
 	om := newOM(t)
 
 	{
-		resp, err := om.Frontend().CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: tc.Ticket})
+		ticket := pb.Ticket{
+			SearchFields: tc.SearchFields,
+		}
+		resp, err := om.Frontend().CreateTicket(context.Background(), &pb.CreateTicketRequest{Ticket: &ticket})
+
 		require.NotNil(t, resp)
 		require.Nil(t, err)
 	}

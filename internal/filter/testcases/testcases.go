@@ -27,9 +27,9 @@ import (
 
 // TestCase defines a single filtering test case to run.
 type TestCase struct {
-	Name   string
-	Ticket *pb.Ticket
-	Pool   *pb.Pool
+	Name         string
+	SearchFields *pb.SearchFields
+	Pool         *pb.Pool
 }
 
 // IncludedTestCases returns a list of test cases where using the given filter,
@@ -39,7 +39,7 @@ func IncludedTestCases() []TestCase {
 	return []TestCase{
 		{
 			"no filters or fields",
-			&pb.Ticket{},
+			nil,
 			&pb.Pool{},
 		},
 
@@ -68,11 +68,9 @@ func IncludedTestCases() []TestCase {
 
 		{
 			"String equals simple positive",
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					StringArgs: map[string]string{
-						"field": "value",
-					},
+			&pb.SearchFields{
+				StringArgs: map[string]string{
+					"field": "value",
 				},
 			},
 			&pb.Pool{
@@ -87,11 +85,9 @@ func IncludedTestCases() []TestCase {
 
 		{
 			"TagPresent simple positive",
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					Tags: []string{
-						"mytag",
-					},
+			&pb.SearchFields{
+				Tags: []string{
+					"mytag",
 				},
 			},
 			&pb.Pool{
@@ -105,11 +101,9 @@ func IncludedTestCases() []TestCase {
 
 		{
 			"TagPresent multiple all present",
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					Tags: []string{
-						"A", "B", "C",
-					},
+			&pb.SearchFields{
+				Tags: []string{
+					"A", "B", "C",
 				},
 			},
 			&pb.Pool{
@@ -131,21 +125,21 @@ func IncludedTestCases() []TestCase {
 
 		{
 			"CreatedBefore simple positive",
-			&pb.Ticket{},
+			nil,
 			&pb.Pool{
 				CreatedBefore: timestamp(now.Add(time.Hour * 1)),
 			},
 		},
 		{
 			"CreatedAfter simple positive",
-			&pb.Ticket{},
+			nil,
 			&pb.Pool{
 				CreatedAfter: timestamp(now.Add(time.Hour * -1)),
 			},
 		},
 		{
 			"Between CreatedBefore and CreatedAfter positive",
-			&pb.Ticket{},
+			nil,
 			&pb.Pool{
 				CreatedBefore: timestamp(now.Add(time.Hour * 1)),
 				CreatedAfter:  timestamp(now.Add(time.Hour * -1)),
@@ -153,7 +147,7 @@ func IncludedTestCases() []TestCase {
 		},
 		{
 			"No time search criteria positive",
-			&pb.Ticket{},
+			nil,
 			&pb.Pool{},
 		},
 	}
@@ -166,7 +160,7 @@ func ExcludedTestCases() []TestCase {
 	return []TestCase{
 		{
 			"DoubleRange no SearchFields",
-			&pb.Ticket{},
+			nil,
 			&pb.Pool{
 				DoubleRangeFilters: []*pb.DoubleRangeFilter{
 					{
@@ -179,7 +173,7 @@ func ExcludedTestCases() []TestCase {
 		},
 		{
 			"StringEquals no SearchFields",
-			&pb.Ticket{},
+			nil,
 			&pb.Pool{
 				StringEqualsFilters: []*pb.StringEqualsFilter{
 					{
@@ -191,7 +185,7 @@ func ExcludedTestCases() []TestCase {
 		},
 		{
 			"TagPresent no SearchFields",
-			&pb.Ticket{},
+			nil,
 			&pb.Pool{
 				TagPresentFilters: []*pb.TagPresentFilter{
 					{
@@ -202,11 +196,9 @@ func ExcludedTestCases() []TestCase {
 		},
 		{
 			"double range missing field",
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					DoubleArgs: map[string]float64{
-						"otherfield": 0,
-					},
+			&pb.SearchFields{
+				DoubleArgs: map[string]float64{
+					"otherfield": 0,
 				},
 			},
 			&pb.Pool{
@@ -277,11 +269,9 @@ func ExcludedTestCases() []TestCase {
 
 		{
 			"String equals simple negative", // and case sensitivity
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					StringArgs: map[string]string{
-						"field": "value",
-					},
+			&pb.SearchFields{
+				StringArgs: map[string]string{
+					"field": "value",
 				},
 			},
 			&pb.Pool{
@@ -296,11 +286,9 @@ func ExcludedTestCases() []TestCase {
 
 		{
 			"String equals missing field",
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					StringArgs: map[string]string{
-						"otherfield": "othervalue",
-					},
+			&pb.SearchFields{
+				StringArgs: map[string]string{
+					"otherfield": "othervalue",
 				},
 			},
 			&pb.Pool{
@@ -315,11 +303,9 @@ func ExcludedTestCases() []TestCase {
 
 		{
 			"TagPresent simple negative", // and case sensitivity
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					Tags: []string{
-						"MYTAG",
-					},
+			&pb.SearchFields{
+				Tags: []string{
+					"MYTAG",
 				},
 			},
 			&pb.Pool{
@@ -333,11 +319,9 @@ func ExcludedTestCases() []TestCase {
 
 		{
 			"TagPresent multiple with one missing",
-			&pb.Ticket{
-				SearchFields: &pb.SearchFields{
-					Tags: []string{
-						"A", "B", "C",
-					},
+			&pb.SearchFields{
+				Tags: []string{
+					"A", "B", "C",
 				},
 			},
 			&pb.Pool{
@@ -357,21 +341,21 @@ func ExcludedTestCases() []TestCase {
 
 		{
 			"CreatedBefore simple negative",
-			&pb.Ticket{},
+			nil,
 			&pb.Pool{
 				CreatedBefore: timestamp(now.Add(time.Hour * -1)),
 			},
 		},
 		{
 			"CreatedAfter simple negative",
-			&pb.Ticket{},
+			nil,
 			&pb.Pool{
 				CreatedAfter: timestamp(now.Add(time.Hour * 1)),
 			},
 		},
 		{
 			"Created before time range negative",
-			&pb.Ticket{},
+			nil,
 			&pb.Pool{
 				CreatedBefore: timestamp(now.Add(time.Hour * 2)),
 				CreatedAfter:  timestamp(now.Add(time.Hour * 1)),
@@ -379,7 +363,7 @@ func ExcludedTestCases() []TestCase {
 		},
 		{
 			"Created after time range negative",
-			&pb.Ticket{},
+			nil,
 			&pb.Pool{
 				CreatedBefore: timestamp(now.Add(time.Hour * -1)),
 				CreatedAfter:  timestamp(now.Add(time.Hour * -2)),
@@ -395,11 +379,9 @@ func ExcludedTestCases() []TestCase {
 func simpleDoubleRange(name string, value, min, max float64, exclude pb.DoubleRangeFilter_Exclude) TestCase {
 	return TestCase{
 		"double range " + name,
-		&pb.Ticket{
-			SearchFields: &pb.SearchFields{
-				DoubleArgs: map[string]float64{
-					"field": value,
-				},
+		&pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"field": value,
 			},
 		},
 		&pb.Pool{
@@ -433,16 +415,14 @@ func multipleFilters(doubleRange, stringEquals, tagPresent bool) TestCase {
 
 	return TestCase{
 		fmt.Sprintf("multiplefilters: %v, %v, %v", doubleRange, stringEquals, tagPresent),
-		&pb.Ticket{
-			SearchFields: &pb.SearchFields{
-				DoubleArgs: map[string]float64{
-					"a": a,
-				},
-				StringArgs: map[string]string{
-					"b": b,
-				},
-				Tags: []string{c},
+		&pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"a": a,
 			},
+			StringArgs: map[string]string{
+				"b": b,
+			},
+			Tags: []string{c},
 		},
 		&pb.Pool{
 			DoubleRangeFilters: []*pb.DoubleRangeFilter{

@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -72,16 +73,23 @@ func NewPoolFilter(pool *pb.Pool) (*PoolFilter, error) {
 	}, nil
 }
 
+type filteredEntity interface {
+	GetId() string
+	GetSearchFields() *pb.SearchFields
+	GetCreateTime() *timestamp.Timestamp
+}
+
 // In returns true if the Ticket meets all the criteria for this PoolFilter.
-func (pf *PoolFilter) In(ticket *pb.Ticket) bool {
-	s := ticket.GetSearchFields()
+func (pf *PoolFilter) In(entity filteredEntity) bool {
+	s := entity.GetSearchFields()
+
 	if s == nil {
 		s = emptySearchFields
 	}
 
 	if !pf.CreatedAfter.IsZero() || !pf.CreatedBefore.IsZero() {
 		// CreateTime is only populated by Open Match and hence expected to be valid.
-		if ct, err := ptypes.Timestamp(ticket.CreateTime); err == nil {
+		if ct, err := ptypes.Timestamp(entity.GetCreateTime()); err == nil {
 			if !pf.CreatedAfter.IsZero() {
 				if !ct.After(pf.CreatedAfter) {
 					return false
@@ -96,7 +104,7 @@ func (pf *PoolFilter) In(ticket *pb.Ticket) bool {
 		} else {
 			logger.WithFields(logrus.Fields{
 				"error": err.Error(),
-				"id":    ticket.GetId(),
+				"id":    entity.GetId(),
 			}).Error("failed to get time from Timestamp proto")
 		}
 	}

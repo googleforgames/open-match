@@ -27,33 +27,53 @@ import (
 )
 
 func TestMeetsCriteria(t *testing.T) {
+	testInclusion := func(t *testing.T, pool *pb.Pool, entity filteredEntity) {
+		pf, err := NewPoolFilter(pool)
+
+		require.NoError(t, err)
+		require.NotNil(t, pf)
+
+		if !pf.In(entity) {
+			t.Error("entity should be included in the pool")
+		}
+	}
+
 	for _, tc := range testcases.IncludedTestCases() {
 		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
-			pf, err := NewPoolFilter(tc.Pool)
-
-			require.NoError(t, err)
-			require.NotNil(t, pf)
-
-			tc.Ticket.CreateTime = ptypes.TimestampNow()
-			if !pf.In(tc.Ticket) {
-				t.Error("ticket should be included in the pool")
-			}
+			testInclusion(t, tc.Pool, &pb.Ticket{
+				SearchFields: tc.SearchFields,
+				CreateTime:   ptypes.TimestampNow(),
+			})
+			testInclusion(t, tc.Pool, &pb.Backfill{
+				SearchFields: tc.SearchFields,
+				CreateTime:   ptypes.TimestampNow(),
+			})
 		})
+	}
+
+	testExclusion := func(t *testing.T, pool *pb.Pool, entity filteredEntity) {
+		pf, err := NewPoolFilter(pool)
+
+		require.NoError(t, err)
+		require.NotNil(t, pf)
+
+		if pf.In(entity) {
+			t.Error("ticket should be excluded from the pool")
+		}
 	}
 
 	for _, tc := range testcases.ExcludedTestCases() {
 		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
-			pf, err := NewPoolFilter(tc.Pool)
-
-			require.NoError(t, err)
-			require.NotNil(t, pf)
-
-			tc.Ticket.CreateTime = ptypes.TimestampNow()
-			if pf.In(tc.Ticket) {
-				t.Error("ticket should be excluded from the pool")
-			}
+			testExclusion(t, tc.Pool, &pb.Ticket{
+				SearchFields: tc.SearchFields,
+				CreateTime:   ptypes.TimestampNow(),
+			})
+			testExclusion(t, tc.Pool, &pb.Backfill{
+				SearchFields: tc.SearchFields,
+				CreateTime:   ptypes.TimestampNow(),
+			})
 		})
 	}
 }
