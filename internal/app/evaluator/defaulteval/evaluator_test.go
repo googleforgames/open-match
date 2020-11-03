@@ -37,6 +37,9 @@ func TestEvaluate(t *testing.T) {
 	ticket1 := &pb.Ticket{Id: "1"}
 	ticket2 := &pb.Ticket{Id: "2"}
 	ticket3 := &pb.Ticket{Id: "3"}
+	backfill0 := &pb.Backfill{}
+	backfill1 := &pb.Backfill{Id: "1"}
+	backfill2 := &pb.Backfill{Id: "2"}
 
 	ticket12Score1 := &pb.Match{
 		MatchId: "ticket12Score1",
@@ -78,6 +81,61 @@ func TestEvaluate(t *testing.T) {
 		},
 	}
 
+	ticket1Backfill0Score1 := &pb.Match{
+		MatchId:  "ticket1Backfill0Score1",
+		Tickets:  []*pb.Ticket{ticket1},
+		Backfill: backfill0,
+		Extensions: map[string]*any.Any{
+			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+				Score: 1,
+			}),
+		},
+	}
+
+	ticket2Backfill0Score1 := &pb.Match{
+		MatchId:  "ticket2Backfill0Score1",
+		Tickets:  []*pb.Ticket{ticket2},
+		Backfill: backfill0,
+		Extensions: map[string]*any.Any{
+			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+				Score: 1,
+			}),
+		},
+	}
+
+	ticket12Backfill1Score1 := &pb.Match{
+		MatchId:  "ticket12Bacfill1Score1",
+		Tickets:  []*pb.Ticket{ticket1, ticket2},
+		Backfill: backfill1,
+		Extensions: map[string]*any.Any{
+			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+				Score: 1,
+			}),
+		},
+	}
+
+	ticket12Backfill1Score10 := &pb.Match{
+		MatchId:  "ticket12Bacfill1Score1",
+		Tickets:  []*pb.Ticket{ticket1, ticket2},
+		Backfill: backfill1,
+		Extensions: map[string]*any.Any{
+			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+				Score: 10,
+			}),
+		},
+	}
+
+	ticket12Backfill2Score5 := &pb.Match{
+		MatchId:  "ticket12Backfill2Score5",
+		Tickets:  []*pb.Ticket{ticket1, ticket2},
+		Backfill: backfill2,
+		Extensions: map[string]*any.Any{
+			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+				Score: 5,
+			}),
+		},
+	}
+
 	tests := []struct {
 		description  string
 		testMatches  []*pb.Match
@@ -107,6 +165,16 @@ func TestEvaluate(t *testing.T) {
 			description:  "test evaluator returns two matches with the highest score",
 			testMatches:  []*pb.Match{ticket12Score1, ticket12Score10, ticket123Score5, ticket3Score50},
 			wantMatchIDs: []string{ticket12Score10.GetMatchId(), ticket3Score50.GetMatchId()},
+		},
+		{
+			description:  "test evaluator ignores backfills with empty id",
+			testMatches:  []*pb.Match{ticket1Backfill0Score1, ticket2Backfill0Score1},
+			wantMatchIDs: []string{ticket1Backfill0Score1.GetMatchId(), ticket2Backfill0Score1.GetMatchId()},
+		},
+		{
+			description:  "test deduplicates matches by backfill and tickets and returns match with higher score",
+			testMatches:  []*pb.Match{ticket12Backfill1Score1, ticket12Backfill1Score10, ticket12Backfill2Score5},
+			wantMatchIDs: []string{ticket12Backfill1Score10.GetMatchId()},
 		},
 	}
 

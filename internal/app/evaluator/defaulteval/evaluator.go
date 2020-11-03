@@ -63,7 +63,7 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 // then returns matches which don't collide with previously returned matches.
 func evaluate(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
 	matches := make([]*matchInp, 0)
-	nilEvlautionInputs := 0
+	nilEvaluationInputs := 0
 
 	for m := range in {
 		// Evaluation criteria is optional, but sort it lower than any matches which
@@ -82,7 +82,7 @@ func evaluate(ctx context.Context, in <-chan *pb.Match, out chan<- string) error
 				continue
 			}
 		} else {
-			nilEvlautionInputs++
+			nilEvaluationInputs++
 		}
 		matches = append(matches, &matchInp{
 			match: m,
@@ -90,16 +90,17 @@ func evaluate(ctx context.Context, in <-chan *pb.Match, out chan<- string) error
 		})
 	}
 
-	if nilEvlautionInputs > 0 {
+	if nilEvaluationInputs > 0 {
 		logger.WithFields(logrus.Fields{
-			"count": nilEvlautionInputs,
+			"count": nilEvaluationInputs,
 		}).Info("Some matches don't have the optional field evaluation_input set.")
 	}
 
 	sort.Sort(byScore(matches))
 
 	d := decollider{
-		ticketsUsed: make(map[string]*collidingMatch),
+		ticketsUsed:   make(map[string]*collidingMatch),
+		backfillsUsed: make(map[string]*collidingMatch),
 	}
 
 	for _, m := range matches {
@@ -121,11 +122,25 @@ type collidingMatch struct {
 }
 
 type decollider struct {
-	resultIDs   []string
-	ticketsUsed map[string]*collidingMatch
+	resultIDs     []string
+	ticketsUsed   map[string]*collidingMatch
+	backfillsUsed map[string]*collidingMatch
 }
 
 func (d *decollider) maybeAdd(m *matchInp) {
+	if m.match.Backfill != nil && m.match.Backfill.Id != "" {
+		if cm, ok := d.backfillsUsed[m.match.Backfill.Id]; ok {
+			logger.WithFields(logrus.Fields{
+				"match_id":              m.match.GetMatchId(),
+				"backfill_id":           m.match.Backfill.Id,
+				"match_score":           m.inp.GetScore(),
+				"colliding_match_id":    cm.id,
+				"colliding_match_score": cm.score,
+			}).Info("Higher quality match with colliding backfill found. Rejecting match.")
+			return
+		}
+	}
+
 	for _, t := range m.match.GetTickets() {
 		if cm, ok := d.ticketsUsed[t.Id]; ok {
 			logger.WithFields(logrus.Fields{
@@ -136,6 +151,13 @@ func (d *decollider) maybeAdd(m *matchInp) {
 				"colliding_match_score": cm.score,
 			}).Info("Higher quality match with colliding ticket found. Rejecting match.")
 			return
+		}
+	}
+
+	if m.match.Backfill != nil && m.match.Backfill.Id != "" {
+		d.backfillsUsed[m.match.Backfill.Id] = &collidingMatch{
+			id:    m.match.GetMatchId(),
+			score: m.inp.GetScore(),
 		}
 	}
 

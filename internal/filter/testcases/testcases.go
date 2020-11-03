@@ -43,10 +43,28 @@ func IncludedTestCases() []TestCase {
 			&pb.Pool{},
 		},
 
-		simpleDoubleRange("simpleInRange", 5, 0, 10),
-		simpleDoubleRange("exactMatch", 5, 5, 5),
-		simpleDoubleRange("infinityMax", math.Inf(1), 0, math.Inf(1)),
-		simpleDoubleRange("infinityMin", math.Inf(-1), math.Inf(-1), 0),
+		simpleDoubleRange("simpleInRange", 5, 0, 10, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("simpleInRange", 5, 0, 10, pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("simpleInRange", 5, 0, 10, pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("simpleInRange", 5, 0, 10, pb.DoubleRangeFilter_BOTH),
+
+		simpleDoubleRange("exactMatch", 5, 5, 5, pb.DoubleRangeFilter_NONE),
+
+		simpleDoubleRange("infinityMax", math.Inf(1), 0, math.Inf(1), pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("infinityMax", math.Inf(1), 0, math.Inf(1), pb.DoubleRangeFilter_MIN),
+
+		simpleDoubleRange("infinityMin", math.Inf(-1), math.Inf(-1), 0, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("infinityMin", math.Inf(-1), math.Inf(-1), 0, pb.DoubleRangeFilter_MAX),
+
+		simpleDoubleRange("excludeNone", 0, 0, 1, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("excludeNone", 1, 0, 1, pb.DoubleRangeFilter_NONE),
+
+		simpleDoubleRange("excludeMin", 1, 0, 1, pb.DoubleRangeFilter_MIN),
+
+		simpleDoubleRange("excludeMax", 0, 0, 1, pb.DoubleRangeFilter_MAX),
+
+		simpleDoubleRange("excludeBoth", 2, 0, 3, pb.DoubleRangeFilter_BOTH),
+		simpleDoubleRange("excludeBoth", 1, 0, 3, pb.DoubleRangeFilter_BOTH),
 
 		{
 			"String equals simple positive",
@@ -182,7 +200,6 @@ func ExcludedTestCases() []TestCase {
 				},
 			},
 		},
-
 		{
 			"double range missing field",
 			&pb.Ticket{
@@ -203,14 +220,60 @@ func ExcludedTestCases() []TestCase {
 			},
 		},
 
-		simpleDoubleRange("valueTooLow", -1, 0, 10),
-		simpleDoubleRange("valueTooHigh", 11, 0, 10),
-		simpleDoubleRange("minIsNan", 5, math.NaN(), 10),
-		simpleDoubleRange("maxIsNan", 5, 0, math.NaN()),
-		simpleDoubleRange("minMaxAreNan", 5, math.NaN(), math.NaN()),
-		simpleDoubleRange("valueIsNan", math.NaN(), 0, 10),
-		simpleDoubleRange("valueIsNanInfRange", math.NaN(), math.Inf(-1), math.Inf(1)),
-		simpleDoubleRange("allAreNan", math.NaN(), math.NaN(), math.NaN()),
+		simpleDoubleRange("exactMatch", 5, 5, 5, pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("exactMatch", 5, 5, 5, pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("exactMatch", 5, 5, 5, pb.DoubleRangeFilter_BOTH),
+
+		simpleDoubleRange("valueTooLow", -1, 0, 10, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("valueTooLow", -1, 0, 10, pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("valueTooLow", -1, 0, 10, pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("valueTooLow", -1, 0, 10, pb.DoubleRangeFilter_BOTH),
+
+		simpleDoubleRange("valueTooHigh", 11, 0, 10, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("valueTooHigh", 11, 0, 10, pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("valueTooHigh", 11, 0, 10, pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("valueTooHigh", 11, 0, 10, pb.DoubleRangeFilter_BOTH),
+
+		simpleDoubleRange("minIsNan", 5, math.NaN(), 10, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("minIsNan", 5, math.NaN(), 10, pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("minIsNan", 5, math.NaN(), 10, pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("minIsNan", 5, math.NaN(), 10, pb.DoubleRangeFilter_BOTH),
+
+		simpleDoubleRange("maxIsNan", 5, 0, math.NaN(), pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("maxIsNan", 5, 0, math.NaN(), pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("maxIsNan", 5, 0, math.NaN(), pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("maxIsNan", 5, 0, math.NaN(), pb.DoubleRangeFilter_BOTH),
+
+		simpleDoubleRange("minMaxAreNan", 5, math.NaN(), math.NaN(), pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("minMaxAreNan", 5, math.NaN(), math.NaN(), pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("minMaxAreNan", 5, math.NaN(), math.NaN(), pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("minMaxAreNan", 5, math.NaN(), math.NaN(), pb.DoubleRangeFilter_BOTH),
+
+		simpleDoubleRange("valueIsNan", math.NaN(), 0, 10, pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("valueIsNan", math.NaN(), 0, 10, pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("valueIsNan", math.NaN(), 0, 10, pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("valueIsNan", math.NaN(), 0, 10, pb.DoubleRangeFilter_BOTH),
+
+		simpleDoubleRange("valueIsNanInfRange", math.NaN(), math.Inf(-1), math.Inf(1), pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("valueIsNanInfRange", math.NaN(), math.Inf(-1), math.Inf(1), pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("valueIsNanInfRange", math.NaN(), math.Inf(-1), math.Inf(1), pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("valueIsNanInfRange", math.NaN(), math.Inf(-1), math.Inf(1), pb.DoubleRangeFilter_BOTH),
+
+		simpleDoubleRange("infinityMax", math.Inf(1), 0, math.Inf(1), pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("infinityMax", math.Inf(1), 0, math.Inf(1), pb.DoubleRangeFilter_BOTH),
+
+		simpleDoubleRange("infinityMin", math.Inf(-1), math.Inf(-1), 0, pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("infinityMin", math.Inf(-1), math.Inf(-1), 0, pb.DoubleRangeFilter_BOTH),
+
+		simpleDoubleRange("allAreNan", math.NaN(), math.NaN(), math.NaN(), pb.DoubleRangeFilter_NONE),
+		simpleDoubleRange("allAreNan", math.NaN(), math.NaN(), math.NaN(), pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("allAreNan", math.NaN(), math.NaN(), math.NaN(), pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("allAreNan", math.NaN(), math.NaN(), math.NaN(), pb.DoubleRangeFilter_BOTH),
+
+		simpleDoubleRange("valueIsMax", 1, 0, 1, pb.DoubleRangeFilter_MAX),
+		simpleDoubleRange("valueIsMin", 0, 0, 1, pb.DoubleRangeFilter_MIN),
+		simpleDoubleRange("excludeBoth", 0, 0, 1, pb.DoubleRangeFilter_BOTH),
+		simpleDoubleRange("excludeBoth", 1, 0, 1, pb.DoubleRangeFilter_BOTH),
 
 		{
 			"String equals simple negative", // and case sensitivity
@@ -329,7 +392,7 @@ func ExcludedTestCases() []TestCase {
 	}
 }
 
-func simpleDoubleRange(name string, value, min, max float64) TestCase {
+func simpleDoubleRange(name string, value, min, max float64, exclude pb.DoubleRangeFilter_Exclude) TestCase {
 	return TestCase{
 		"double range " + name,
 		&pb.Ticket{
@@ -345,6 +408,7 @@ func simpleDoubleRange(name string, value, min, max float64) TestCase {
 					DoubleArg: "field",
 					Min:       min,
 					Max:       max,
+					Exclude:   exclude,
 				},
 			},
 		},
