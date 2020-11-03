@@ -743,7 +743,7 @@ endef
 test: $(ALL_PROTOS) tls-certs third_party/
 	$(call test_folder,.)
 
-## # Run fast go tests
+## # Run go tests more quickly, but with worse flake and race detection
 ## make fasttest
 ##
 fasttest: $(ALL_PROTOS) tls-certs third_party/
