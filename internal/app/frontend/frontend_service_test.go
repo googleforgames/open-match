@@ -88,6 +88,62 @@ func TestDoCreateTickets(t *testing.T) {
 	}
 }
 
+func TestDoCreateBackfill(t *testing.T) {
+	cfg := viper.New()
+
+	tests := []struct {
+		description string
+		preAction   func(cancel context.CancelFunc)
+		backfill    *pb.Backfill
+		wantCode    codes.Code
+	}{
+		{
+			description: "expect error with canceled context",
+			preAction:   func(cancel context.CancelFunc) { cancel() },
+			backfill: &pb.Backfill{
+				SearchFields: &pb.SearchFields{
+					DoubleArgs: map[string]float64{
+						"test-arg": 1,
+					},
+				},
+			},
+			wantCode: codes.Unavailable,
+		},
+		{
+			description: "expect normal return with default context",
+			preAction:   func(_ context.CancelFunc) {},
+			backfill: &pb.Backfill{
+				SearchFields: &pb.SearchFields{
+					DoubleArgs: map[string]float64{
+						"test-arg": 1,
+					},
+				},
+			},
+			wantCode: codes.OK,
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.description, func(t *testing.T) {
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+			defer closer()
+
+			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
+			test.preAction(cancel)
+
+			res, err := doCreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: test.backfill}, store)
+			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
+			if err == nil {
+				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetId())
+				require.True(t, matched)
+				require.Nil(t, err)
+				require.Equal(t, test.backfill.SearchFields.DoubleArgs["test-arg"], res.SearchFields.DoubleArgs["test-arg"])
+			}
+		})
+	}
+}
+
 func TestDoWatchAssignments(t *testing.T) {
 	testTicket := &pb.Ticket{
 		Id: "test-id",
