@@ -130,10 +130,18 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 	stats.Record(ctx, searchFieldsPerBackfill.M(int64(sfCount)))
 	stats.Record(ctx, totalBytesPerBackfill.M(int64(proto.Size(backfill))))
 
-	err := store.CreateBackfill(ctx, backfill, []string{})
+	err := store.CreateBackfill(ctx, backfill)
 	if err != nil {
 		return nil, err
 	}
+	// TODO: add IndexBackfill functionality
+	/*
+		err = store.IndexBackfill(ctx, ticket)
+		if err != nil {
+			return nil, err
+		}
+	*/
+
 	return backfill, nil
 }
 
