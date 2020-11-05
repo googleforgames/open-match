@@ -246,14 +246,15 @@ func TestUpdateBackfill(t *testing.T) {
 		return nil, status.Error(codes.Internal, "can not update backfill with a different generation")
 	}
 
+	//nolint
 	var testCases = []struct {
 		description      string
-		isGS             bool
 		incomingBackfill *pb.Backfill
 		updateFunc       func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)
 		resultBackfill   *pb.Backfill
 		expectedCode     codes.Code
 		expectedMessage  string
+		isGS             bool
 	}{
 		{
 			description: "ok update, not a GS",
