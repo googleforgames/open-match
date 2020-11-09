@@ -120,6 +120,7 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 	backfill.Id = xid.New().String()
 	backfill.CreateTime = ptypes.TimestampNow()
 
+
 	sfCount := 0
 	sfCount += len(backfill.GetSearchFields().GetDoubleArgs())
 	sfCount += len(backfill.GetSearchFields().GetStringArgs())
@@ -127,17 +128,9 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 	stats.Record(ctx, searchFieldsPerBackfill.M(int64(sfCount)))
 	stats.Record(ctx, totalBytesPerBackfill.M(int64(proto.Size(backfill))))
 
-	err := store.CreateBackfill(ctx, backfill)
+	err := store.CreateBackfill(ctx, backfill, []string{})
 	if err != nil {
 		return nil, err
-	}
-	// TODO: add IndexBackfill functionality
-	/*
-		err = store.IndexBackfill(ctx, ticket)
-		if err != nil {
-			return nil, err
-		}
-	*/
 
 	return backfill, nil
 }
