@@ -146,18 +146,25 @@ func (s *queryService) QueryBackfills(req *pb.QueryBackfillsRequest, responseSer
 		return err
 	}
 
-	var results []*pb.Backfill
-	err = s.bc.request(ctx, func(backfills map[string]*pb.Backfill) {
-		for _, backfill := range backfills {
-			if pf.In(backfill) {
-				results = append(results, backfill)
-			}
-		}
-	})
+	indexedBackfills, err := s.bc.store.GetIndexedBackfills(ctx)
 	if err != nil {
-		err = errors.Wrap(err, "QueryBackfills: failed to run request")
 		return err
 	}
+
+	var results []*pb.Backfill
+	for bf := range indexedBackfills {
+		storedBackfill, _, err := s.bc.store.GetBackfill(ctx, bf)
+		if err != nil {
+			// TODO: improve this
+			log.Println(err)
+			continue
+			}
+
+		if pf.In(storedBackfill) {
+			results = append(results, storedBackfill)
+		}
+	}
+
 	stats.Record(ctx, backfillsPerQuery.M(int64(len(results))))
 
 	pSize := getPageSize(s.cfg)
