@@ -19,10 +19,9 @@ import (
 	"sync"
 	"time"
 
-	"go.opencensus.io/stats"
-
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"go.opencensus.io/stats"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/appmain"
@@ -44,6 +43,7 @@ var (
 type queryService struct {
 	cfg config.View
 	tc  *ticketCache
+	bc  *backfillCache
 }
 
 func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.QueryService_QueryTicketsServer) error {
@@ -135,7 +135,47 @@ func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseSer
 }
 
 func (s *queryService) QueryBackfills(req *pb.QueryBackfillsRequest, responseServer pb.QueryService_QueryBackfillsServer) error {
-	return status.Error(codes.Unimplemented, "not implemented")
+	ctx := responseServer.Context()
+	pool := req.GetPool()
+	if pool == nil {
+		return status.Error(codes.InvalidArgument, ".pool is required")
+}
+
+	pf, err := filter.NewPoolFilter(pool)
+	if err != nil {
+		return err
+	}
+
+	var results []*pb.Backfill
+	err = s.bc.request(ctx, func(backfills map[string]*pb.Backfill) {
+		for _, backfill := range backfills {
+			if pf.In(backfill) {
+				results = append(results, backfill)
+			}
+		}
+	})
+	if err != nil {
+		err = errors.Wrap(err, "QueryBackfills: failed to run request")
+		return err
+	}
+	stats.Record(ctx, backfillsPerQuery.M(int64(len(results))))
+
+	pSize := getPageSize(s.cfg)
+	for start := 0; start < len(results); start += pSize {
+		end := start + pSize
+		if end > len(results) {
+			end = len(results)
+		}
+
+		err := responseServer.Send(&pb.QueryBackfillsResponse{
+			Backfills: results[start:end],
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func getPageSize(cfg config.View) int {
