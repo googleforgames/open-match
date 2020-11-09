@@ -25,6 +25,7 @@ import (
 
 var (
 	ticketsPerQuery     = stats.Int64("open-match.dev/query/tickets_per_query", "Number of tickets per query", stats.UnitDimensionless)
+	backfillsPerQuery   = stats.Int64("open-match.dev/query/backfills_per_query", "Number of backfills per query", stats.UnitDimensionless)
 	cacheTotalItems     = stats.Int64("open-match.dev/query/total_cache_items", "Total number of tickets query service cached", stats.UnitDimensionless)
 	cacheFetchedItems   = stats.Int64("open-match.dev/query/fetched_items", "Number of fetched items in total", stats.UnitDimensionless)
 	cacheWaitingQueries = stats.Int64("open-match.dev/query/waiting_queries", "Number of waiting queries in the last update", stats.UnitDimensionless)
@@ -33,6 +34,12 @@ var (
 	ticketsPerQueryView = &view.View{
 		Measure:     ticketsPerQuery,
 		Name:        "open-match.dev/query/tickets_per_query",
+		Description: "Tickets per query",
+		Aggregation: telemetry.DefaultCountDistribution,
+	}
+	backfillsPerQueryView = &view.View{
+		Measure:     ticketsPerQuery,
+		Name:        "open-match.dev/query/backfills_per_query",
 		Description: "Tickets per query",
 		Aggregation: telemetry.DefaultCountDistribution,
 	}
@@ -80,6 +87,7 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	}, pb.RegisterQueryServiceHandlerFromEndpoint)
 	b.RegisterViews(
 		ticketsPerQueryView,
+		backfillsPerQueryView,
 		cacheTotalItemsView,
 		cacheUpdateView,
 		cacheFetchedItemsView,
