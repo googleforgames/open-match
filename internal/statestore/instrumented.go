@@ -107,15 +107,15 @@ func (is *instrumentedService) ReleaseAllTickets(ctx context.Context) error {
 	return is.s.ReleaseAllTickets(ctx)
 }
 
-// CreateBackfill creates a new Backfill in the state storage. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
-func (is *instrumentedService) CreateBackfill(ctx context.Context, backfill *pb.Backfill) error {
+// CreateBackfill creates a new Backfill in the state storage if one doesn't exist. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
+func (is *instrumentedService) CreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.CreateBackfill")
 	defer span.End()
-	return is.s.CreateBackfill(ctx, backfill)
+	return is.s.CreateBackfill(ctx, backfill, ticketIDs)
 }
 
-// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist.
-func (is *instrumentedService) GetBackfill(ctx context.Context, id string) (*pb.Backfill, error) {
+// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and asossiated ticketIDs if they exist.
+func (is *instrumentedService) GetBackfill(ctx context.Context, id string) (*pb.Backfill, []string, error) {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetBackfill")
 	defer span.End()
 	return is.s.GetBackfill(ctx, id)
@@ -128,9 +128,23 @@ func (is *instrumentedService) DeleteBackfill(ctx context.Context, id string) er
 	return is.s.DeleteBackfill(ctx, id)
 }
 
-// UpdateBackfill updates an existing Backfill with a new data. Caller has to provide a custom updateFunc if this function is called not for the game server.
-func (is *instrumentedService) UpdateBackfill(ctx context.Context, isGS bool, backfill *pb.Backfill, updateFunc func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)) (*pb.Backfill, error) {
+// UpdateBackfill updates an existing Backfill with a new data. ticketIDs can be nil.
+func (is *instrumentedService) UpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.UpdateBackfill")
 	defer span.End()
-	return is.s.UpdateBackfill(ctx, isGS, backfill, updateFunc)
+	return is.s.UpdateBackfill(ctx, backfill, ticketIDs)
+}
+
+// Lock aquires a lock on redis instances
+func (is *instrumentedService) Lock(ctx context.Context, mutexKey string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.Lock")
+	defer span.End()
+	return is.s.Lock(ctx, mutexKey)
+}
+
+// Unlock removes lock from redis instances
+func (is *instrumentedService) Unlock(ctx context.Context, mutexKey string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.Unlock")
+	defer span.End()
+	return is.s.Lock(ctx, mutexKey)
 }

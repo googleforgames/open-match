@@ -1,0 +1,29 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package openmatch.internal;
+option go_package = "open-match.dev/open-match/internal/ipb";
+
+import "api/messages.proto";
+
+// BETA FEATURE WARNING:  This call and the associated Request and Response
+// messages are not finalized and still subject to possible change or removal.
+// Represents an internal structure to save backfill along with asossiated tickets 
+message BackfillInternal {
+  // Represents a backfill entity which is used to fill partially full matches
+  openmatch.Backfill backfill = 1;
+  // List of ticket IDs asossiated with a current backfill
+  repeated string ticket_ids = 2;
+}

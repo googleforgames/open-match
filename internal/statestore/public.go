@@ -70,17 +70,23 @@ type Service interface {
 
 	// Backfill
 
-	// CreateBackfill creates a new Backfill in the state storage. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
-	CreateBackfill(ctx context.Context, backfill *pb.Backfill) error
+	// CreateBackfill creates a new Backfill in the state storage if one doesn't exist. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
+	CreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error
 
-	// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist.
-	GetBackfill(ctx context.Context, id string) (*pb.Backfill, error)
+	// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and asossiated ticketIDs if they exist.
+	GetBackfill(ctx context.Context, id string) (*pb.Backfill, []string, error)
 
 	// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
 	DeleteBackfill(ctx context.Context, id string) error
 
-	// UpdateBackfill updates an existing Backfill with a new data. Caller has to provide a custom updateFunc if this function is called not for the game server.
-	UpdateBackfill(ctx context.Context, isGS bool, backfill *pb.Backfill, updateFunc func(current *pb.Backfill, new *pb.Backfill) (*pb.Backfill, error)) (*pb.Backfill, error)
+	// UpdateBackfill updates an existing Backfill with a new data. ticketIDs can be nil.
+	UpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error
+
+	// Lock aquires a lock on redis instanceы
+	Lock(ctx context.Context, mutexKey string) error
+
+	// Unlock removes lock from redis instance
+	Unlock(ctx context.Context, mutexKey string) error
 }
 
 // New creates a Service based on the configuration.

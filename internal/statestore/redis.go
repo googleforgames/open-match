@@ -40,6 +40,16 @@ type redisBackend struct {
 	cfg             config.View
 }
 
+// Lock aquires a lock on redis instanceы
+func (rb *redisBackend) Lock(ctx context.Context, mutexKey string) error {
+	return nil
+}
+
+// Unlock removes lock from redis instance
+func (rb *redisBackend) Unlock(ctx context.Context, mutexKey string) error {
+	return nil
+}
+
 // Close the connection to the database.
 func (rb *redisBackend) Close() error {
 	return rb.redisPool.Close()
