@@ -213,3 +213,12 @@ func redisURLFromAddr(addr string, cfg config.View, usePassword bool) string {
 
 	return redisURL + addr
 }
+
+func handleConnectionClose(conn *redis.Conn) {
+	err := (*conn).Close()
+	if err != nil {
+		redisLogger.WithFields(logrus.Fields{
+			"error": err,
+		}).Debug("failed to close redis client connection.")
+	}
+}

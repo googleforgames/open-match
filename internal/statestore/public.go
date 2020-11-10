@@ -70,7 +70,7 @@ type Service interface {
 
 	// Backfill
 
-	// CreateBackfill creates a new Backfill in the state storage. If the id already exists, it will be overwritten.
+	// CreateBackfill creates a new Backfill in the state storage. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
 	CreateBackfill(ctx context.Context, backfill *pb.Backfill) error
 
 	// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist.

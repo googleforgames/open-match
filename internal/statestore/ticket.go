@@ -23,7 +23,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/pkg/pb"
@@ -421,15 +420,6 @@ func (rb *redisBackend) ReleaseAllTickets(ctx context.Context) error {
 
 	_, err = redisConn.Do("DEL", proposedTicketIDs)
 	return err
-}
-
-func handleConnectionClose(conn *redis.Conn) {
-	err := (*conn).Close()
-	if err != nil {
-		redisLogger.WithFields(logrus.Fields{
-			"error": err,
-		}).Debug("failed to close redis client connection.")
-	}
 }
 
 func (rb *redisBackend) newConstantBackoffStrategy() backoff.BackOff {

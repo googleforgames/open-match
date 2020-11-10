@@ -828,7 +828,8 @@ type Backfill struct {
 
 	// Id represents an auto-generated Id issued by Open Match.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Search fields are the fields which Open Match is aware of, and can be used when specifying filters.
+	// Search fields are the fields which Open Match is aware of, and can be used
+	// when specifying filters.
 	SearchFields *SearchFields `protobuf:"bytes,2,opt,name=search_fields,json=searchFields,proto3" json:"search_fields,omitempty"`
 	// Customized information not inspected by Open Match, to be used by the match
 	// making function, evaluator, and components making calls to Open Match.
@@ -839,7 +840,7 @@ type Backfill struct {
 	CreateTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Generation gets incremented on GameServers update operations.
 	// Prevents the MMF from overriding a newer version from the game server.
-	// It is not to be updated by the MMF.
+	// Do not read or write to this field, it is for internal tracking and changing the value will cause bugs.
 	Generation int64 `protobuf:"varint,5,opt,name=generation,proto3" json:"generation,omitempty"`
 }
 

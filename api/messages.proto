@@ -261,6 +261,6 @@ message Backfill {
 
   // Generation gets incremented on GameServers update operations.
   // Prevents the MMF from overriding a newer version from the game server.
-  // It is not supposed to be updated by the MMF.
+  // Do not read or write to this field, it is for internal tracking and changing the value will cause bugs.
   int64 generation = 5;
 }

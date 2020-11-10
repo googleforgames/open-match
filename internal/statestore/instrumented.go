@@ -107,7 +107,7 @@ func (is *instrumentedService) ReleaseAllTickets(ctx context.Context) error {
 	return is.s.ReleaseAllTickets(ctx)
 }
 
-// CreateBackfill creates a new Backfill in the state storage. If the id already exists, it will be overwritten.
+// CreateBackfill creates a new Backfill in the state storage. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
 func (is *instrumentedService) CreateBackfill(ctx context.Context, backfill *pb.Backfill) error {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.CreateBackfill")
 	defer span.End()
