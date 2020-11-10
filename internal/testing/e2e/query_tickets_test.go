@@ -149,6 +149,19 @@ func TestTicketNotFound(t *testing.T) {
 	}
 }
 
+func TestBackfillFound(t *testing.T) {
+	tc := testcases.TestCase{
+		Name:         "OwnTest",
+		Pool:         &pb.Pool{},
+		SearchFields: nil,
+	}
+	t.Run("QueryBackfill", func(t *testing.T) {
+		if !returnedBackfillByQuery(t, tc) {
+			require.Fail(t, "expected not to fail but failed.")
+		}
+	})
+}
+
 func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
 	om := newOM(t)
 
@@ -215,4 +228,37 @@ func returnedByQueryID(t *testing.T, tc testcases.TestCase) (found bool) {
 	}
 
 	return len(ids) == 1
+}
+
+func returnedBackfillByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
+	om := newOM(t)
+
+	{
+		backfill := pb.Backfill{
+			SearchFields: tc.SearchFields,
+		}
+		resp, err := om.Frontend().CreateBackfill(context.Background(), &pb.CreateBackfillRequest{Backfill: &backfill})
+		require.NotNil(t, resp)
+		require.Nil(t, err)
+	}
+
+	stream, err := om.Query().QueryBackfills(context.Background(), &pb.QueryBackfillsRequest{Pool: tc.Pool})
+	require.Nil(t, err)
+
+	backfills := []*pb.Backfill{}
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		require.Nil(t, err)
+
+		backfills = append(backfills, resp.Backfills...)
+	}
+
+	if len(backfills) > 1 {
+		require.Fail(t, "More than one backfill found")
+	}
+
+	return len(backfills) == 1
 }
