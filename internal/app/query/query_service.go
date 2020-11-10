@@ -156,7 +156,7 @@ func (s *queryService) QueryBackfills(req *pb.QueryBackfillsRequest, responseSer
 		storedBackfill, _, err := s.bc.store.GetBackfill(ctx, bf)
 		if err != nil {
 			// TODO: improve this
-			log.Println(err)
+			logger.Errorln(err)
 			continue
 			}
 
@@ -317,11 +317,10 @@ collectAllWaiting:
 	// Send WaitGroup to query calls, letting them run their query on the ticket
 	// cache.
 	for _, req := range reqs {
-		tc.wg.Add(1)
 		select {
 		case req.runNow <- struct{}{}:
+			tc.wg.Add(1)
 		case <-req.ctx.Done():
-			tc.wg.Done()
 		}
 	}
 
