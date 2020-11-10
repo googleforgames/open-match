@@ -367,7 +367,7 @@ func TestDoGetTicket(t *testing.T) {
 	}
 }
 
-func TestGetBackfill(t *testing.T) {
+func TestDoGetBackfill(t *testing.T) {
 	fakeBackfill := &pb.Backfill{
 		Id: "1",
 		SearchFields: &pb.SearchFields{

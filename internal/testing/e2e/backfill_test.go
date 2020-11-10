@@ -65,4 +65,5 @@ func TestCreateGetBackfill(t *testing.T) {
 	require.NotNil(t, err)
 	require.Equal(t, codes.NotFound.String(), status.Convert(err).Code().String())
 	require.Nil(t, actual)
+	require.Equal(t, b1, actual)
 }
