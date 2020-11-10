@@ -120,7 +120,6 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 	backfill.Id = xid.New().String()
 	backfill.CreateTime = ptypes.TimestampNow()
 
-
 	sfCount := 0
 	sfCount += len(backfill.GetSearchFields().GetDoubleArgs())
 	sfCount += len(backfill.GetSearchFields().GetStringArgs())
@@ -131,7 +130,7 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 	err := store.CreateBackfill(ctx, backfill, []string{})
 	if err != nil {
 		return nil, err
-
+	}
 	return backfill, nil
 }
 
@@ -235,7 +234,8 @@ func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBack
 
 // GetBackfill fetches a Backfill object by its ID.
 func (s *frontendService) GetBackfill(ctx context.Context, req *pb.GetBackfillRequest) (*pb.Backfill, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	bf, _, err := s.store.GetBackfill(ctx, req.GetBackfillId())
+	return bf, err
 }
 
 // UpdateBackfill updates a Backfill object, if present.

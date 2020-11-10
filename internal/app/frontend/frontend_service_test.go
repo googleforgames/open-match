@@ -330,3 +330,62 @@ func TestDoGetTicket(t *testing.T) {
 		})
 	}
 }
+
+func TestDoGetBackfill(t *testing.T) {
+	fakeBackfill := &pb.Backfill{
+		Id: "1",
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"test-arg": 1,
+			},
+		},
+	}
+
+	tests := []struct {
+		description string
+		preAction   func(context.Context, context.CancelFunc, statestore.Service)
+		wantTicket  *pb.Backfill
+		wantCode    codes.Code
+	}{
+		{
+			description: "expect unavailable code since context is canceled before being called",
+			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
+				cancel()
+			},
+			wantCode: codes.Unavailable,
+		},
+		{
+			description: "expect not found code since ticket does not exist",
+			preAction:   func(_ context.Context, _ context.CancelFunc, _ statestore.Service) {},
+			wantCode:    codes.NotFound,
+		},
+		{
+			description: "expect ok code with output ticket equivalent to fakeBackfill",
+			preAction: func(ctx context.Context, _ context.CancelFunc, store statestore.Service) {
+				store.CreateBackfill(ctx, fakeBackfill, []string{})
+			},
+			wantCode:   codes.OK,
+			wantTicket: fakeBackfill,
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.description, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+			defer closer()
+
+			test.preAction(ctx, cancel, store)
+
+			backfill, l, err := store.GetBackfill(ctx, fakeBackfill.GetId())
+			require.Empty(t, l)
+			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
+
+			if err == nil {
+				require.Equal(t, test.wantTicket.GetId(), backfill.GetId())
+				require.Equal(t, test.wantTicket.SearchFields.DoubleArgs, backfill.SearchFields.DoubleArgs)
+			}
+		})
+	}
+}
