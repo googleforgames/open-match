@@ -65,6 +65,29 @@ type Service interface {
 
 	// Closes the connection to the underlying storage.
 	Close() error
+
+	// Beta Backfill
+
+	// CreateBackfill creates a new Backfill in the state storage. If the id already exists, it will be overwritten.
+	CreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIds []string) error
+
+	// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist.
+	GetBackfill(ctx context.Context, id string) (backfill *pb.Backfill, ticketIds []string, err error)
+
+	// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
+	DeleteBackfill(ctx context.Context, id string) error
+
+	// UpdateBackfill updates an existing Backfill with a new data. Caller has to provide a custom updateFunc if this function is called not for the game server.
+	UpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIds []string) error
+
+	// IndexBackfill adds the backfill to the index.
+	IndexBackfill(ctx context.Context, backfill *pb.Backfill) error
+
+	// DeindexBackfill removes specified Backfill from the index. The Backfill continues to exist.
+	DeindexBackfill(ctx context.Context, id string) error
+
+	// GetIndexedIDSet returns the ids of all tickets currently indexed.
+	GetIndexedBackfills(ctx context.Context) (map[string]struct{}, error)
 }
 
 // New creates a Service based on the configuration.

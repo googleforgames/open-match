@@ -106,3 +106,41 @@ func (is *instrumentedService) ReleaseAllTickets(ctx context.Context) error {
 	defer span.End()
 	return is.s.ReleaseAllTickets(ctx)
 }
+
+// CreateBackfill creates a new Backfill in the state storage. If the id already exists, it will be overwritten.
+func (is *instrumentedService) CreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIds []string) error {
+	// TODO: improve this
+	return is.s.CreateBackfill(ctx, backfill, ticketIds)
+}
+
+// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist.
+func (is *instrumentedService) GetBackfill(ctx context.Context, id string) (backfill *pb.Backfill, ticketIds []string, err error) {
+	// TODO: improve this
+	return is.s.GetBackfill(ctx, id)
+}
+
+// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
+func (is *instrumentedService) DeleteBackfill(ctx context.Context, id string) error {
+	return nil
+}
+
+// UpdateBackfill updates an existing Backfill with a new data. Caller has to provide a custom updateFunc if this function is called not for the game server.
+func (is *instrumentedService) UpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIds []string) error {
+	return nil
+}
+
+// IndexBackfill adds the backfill to the index.
+func (is *instrumentedService) IndexBackfill(ctx context.Context, backfill *pb.Backfill) error {
+	// TODO: improve this
+	return is.s.IndexBackfill(ctx, backfill)
+}
+
+// DeindexBackfill removes specified Backfill from the index. The Backfill continues to exist.
+func (is *instrumentedService) DeindexBackfill(ctx context.Context, id string) error {
+	return nil
+}
+
+func (is *instrumentedService) GetIndexedBackfills(ctx context.Context) (map[string]struct{}, error) {
+	// TODO: improve this
+	return is.s.GetIndexedBackfills(ctx)
+}

@@ -34,6 +34,8 @@ import (
 const (
 	allTickets        = "allTickets"
 	proposedTicketIDs = "proposed_ticket_ids"
+
+	allBackfills = "allBackfills"
 )
 
 var (
@@ -636,4 +638,84 @@ func (rb *redisBackend) newExponentialBackoffStrategy() backoff.BackOff {
 	backoffStrat.MaxInterval = rb.cfg.GetDuration("backoff.maxInterval")
 	backoffStrat.MaxElapsedTime = rb.cfg.GetDuration("backoff.maxElapsedTime")
 	return backoff.BackOff(backoffStrat)
+}
+
+// CreateBackfill creates a new Backfill in the state storage. If the id already exists, it will be overwritten.
+func (rb *redisBackend) CreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIds []string) error {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "CreateBackfill, id: %s, failed to connect to redis: %v", backfill.GetId(), err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	value, err := proto.Marshal(backfill)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to marshal the backfill proto, id: %s", backfill.GetId())
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	_, err = redisConn.Do("SET", backfill.GetId(), value)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to set the value for backfill, id: %s", backfill.GetId())
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	return nil
+}
+
+// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist.
+func (rb *redisBackend) GetBackfill(ctx context.Context, id string) (backfill *pb.Backfill, ticketIds []string, err error) {
+	return nil, nil, nil
+}
+
+// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
+func (rb *redisBackend) DeleteBackfill(ctx context.Context, id string) error {
+	return nil
+}
+
+// UpdateBackfill updates an existing Backfill with a new data. Caller has to provide a custom updateFunc if this function is called not for the game server.
+func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIds []string) error {
+	return nil
+}
+
+// IndexBackfill adds the backfill to the index.
+func (rb *redisBackend) IndexBackfill(ctx context.Context, backfill *pb.Backfill) error {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "IndexBackfill, id: %s, failed to connect to redis: %v", backfill.GetId(), err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	err = redisConn.Send("SADD", allBackfills, backfill.Id)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to add backfill to all backfills set, id: %s", backfill.Id)
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	return nil
+}
+
+// DeindexBackfill removes specified Backfill from the index. The Backfill continues to exist.
+func (rb *redisBackend) DeindexBackfill(ctx context.Context, id string) error {
+	return nil
+}
+
+func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]struct{}, error) {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unavailable, "GetIndexedBackfills, failed to connect to redis: %v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	idsIndexed, err := redis.Strings(redisConn.Do("SMEMBERS", allBackfills))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error getting all indexed backfill ids %v", err)
+	}
+
+	r := make(map[string]struct{}, len(idsIndexed))
+	for _, id := range idsIndexed {
+		r[id] = struct{}{}
+	}
+
+	return r, nil
 }
