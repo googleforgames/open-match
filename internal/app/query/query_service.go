@@ -139,7 +139,7 @@ func (s *queryService) QueryBackfills(req *pb.QueryBackfillsRequest, responseSer
 	pool := req.GetPool()
 	if pool == nil {
 		return status.Error(codes.InvalidArgument, ".pool is required")
-}
+	}
 
 	pf, err := filter.NewPoolFilter(pool)
 	if err != nil {
@@ -158,7 +158,7 @@ func (s *queryService) QueryBackfills(req *pb.QueryBackfillsRequest, responseSer
 			// TODO: improve this
 			logger.Errorln(err)
 			continue
-			}
+		}
 
 		if pf.In(storedBackfill) {
 			results = append(results, storedBackfill)
@@ -370,4 +370,21 @@ func (tc *ticketCache) update() {
 
 	logger.Debugf("Ticket Cache update: Previous %d, Deleted %d, Fetched %d, Current %d", previousCount, deletedCount, len(toFetch), len(tc.tickets))
 	tc.err = nil
+}
+
+type backfillCache struct {
+	store statestore.Service
+
+	backfills map[string]*pb.Backfill
+}
+
+func newBackfillCache(b *appmain.Bindings, cfg config.View) *backfillCache {
+	bc := &backfillCache{
+		store:     statestore.New(cfg),
+		backfills: make(map[string]*pb.Backfill),
+	}
+
+	b.AddHealthCheckFunc(bc.store.HealthCheck)
+
+	return bc
 }
