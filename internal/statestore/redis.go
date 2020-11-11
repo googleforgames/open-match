@@ -665,7 +665,36 @@ func (rb *redisBackend) CreateBackfill(ctx context.Context, backfill *pb.Backfil
 
 // GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist.
 func (rb *redisBackend) GetBackfill(ctx context.Context, id string) (backfill *pb.Backfill, ticketIds []string, err error) {
-	return nil, nil, nil
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return nil, nil, status.Errorf(codes.Unavailable, "GetBackfill, id: %s, failed to connect to redis: %v", id, err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	value, err := redis.Bytes(redisConn.Do("GET", id))
+	if err != nil {
+		// Return NotFound if redigo did not find the ticket in storage.
+		if err == redis.ErrNil {
+			msg := fmt.Sprintf("Ticket id: %s not found", id)
+			return nil, nil, status.Error(codes.NotFound, msg)
+		}
+
+		err = errors.Wrapf(err, "failed to get the ticket from state storage, id: %s", id)
+		return nil, nil, status.Errorf(codes.Internal, "%v", err)
+	}
+
+	if value == nil {
+		msg := fmt.Sprintf("Ticket id: %s not found", id)
+		return nil, nil, status.Error(codes.NotFound, msg)
+	}
+
+	backfill = &pb.Backfill{}
+	if err = proto.Unmarshal(value, backfill); err != nil {
+		err = errors.Wrapf(err, "failed to unmarshal the backfill proto, id: %s", id)
+		return nil, nil, status.Errorf(codes.Internal, "%v", err)
+	}
+
+	return backfill, nil, nil
 }
 
 // DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
