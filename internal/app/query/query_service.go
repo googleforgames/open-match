@@ -375,16 +375,147 @@ func (tc *ticketCache) update() {
 type backfillCache struct {
 	store statestore.Service
 
+	wg sync.WaitGroup
+
+	// backfill cache
 	backfills map[string]*pb.Backfill
+
+	// startRunRequest acts as a semaphore indicator for defining
+	// when the backfillCache is being used (queried) or is it in an idle state.
+	startRunRequest chan struct{}
+
+	// requests is the channel to handle all incoming query requests and
+	// make only one request to the storage service.
+	requests chan *cacheRequest
+
+	// This error is used for the return value when a request fails to reach
+	// the storage. In case of multiple requests are being handled, this error
+	// is returned to every single request.
+	err error
 }
 
 func newBackfillCache(b *appmain.Bindings, cfg config.View) *backfillCache {
 	bc := &backfillCache{
-		store:     statestore.New(cfg),
-		backfills: make(map[string]*pb.Backfill),
+		store:           statestore.New(cfg),
+		startRunRequest: make(chan struct{}, 1),
+		requests:        make(chan *cacheRequest),
+		backfills:       make(map[string]*pb.Backfill),
 	}
 
+	bc.startRunRequest <- struct{}{}
 	b.AddHealthCheckFunc(bc.store.HealthCheck)
 
 	return bc
+}
+
+func (bc *backfillCache) request(ctx context.Context, f func(map[string]*pb.Backfill)) error {
+	cr := &cacheRequest{
+		ctx:    ctx,
+		runNow: make(chan struct{}),
+	}
+
+sendRequest:
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.Wrap(ctx.Err(), "backfill cache request canceled before request sent.")
+		case <-bc.startRunRequest:
+			go bc.runRequest()
+		case bc.requests <- cr:
+			break sendRequest
+		}
+	}
+
+	select {
+	case <-ctx.Done():
+		return errors.Wrap(ctx.Err(), "backfill cache request canceled waiting for access.")
+	case <-cr.runNow:
+		defer bc.wg.Done()
+	}
+
+	if bc.err != nil {
+		return bc.err
+	}
+
+	f(bc.backfills)
+	return nil
+}
+
+func (bc *backfillCache) runRequest() {
+	defer func() {
+		bc.startRunRequest <- struct{}{}
+	}()
+
+	// Wait for first query request.
+	reqs := []*cacheRequest{<-bc.requests}
+
+	// Collect all waiting queries.
+collectAllWaiting:
+	for {
+		select {
+		case req := <-bc.requests:
+			reqs = append(reqs, req)
+		default:
+			break collectAllWaiting
+		}
+	}
+
+	bc.update()
+	stats.Record(context.Background(), cacheWaitingQueries.M(int64(len(reqs))))
+
+	// Send WaitGroup to query calls, letting them run their query on the ticket
+	// cache.
+	for _, req := range reqs {
+		select {
+		case req.runNow <- struct{}{}:
+			bc.wg.Add(1)
+		case <-req.ctx.Done():
+		}
+	}
+
+	// wait for requests to finish using ticket cache.
+	bc.wg.Wait()
+}
+
+func (bc *backfillCache) update() {
+	// st := time.Now()
+	previousCount := len(bc.backfills)
+
+	currentAll, err := bc.store.GetIndexedBackfills(context.Background())
+	if err != nil {
+		bc.err = err
+		return
+	}
+
+	deletedCount := 0
+	for id := range bc.backfills {
+		if _, ok := currentAll[id]; !ok {
+			delete(bc.backfills, id)
+			deletedCount++
+		}
+	}
+
+	toFetch := []string{}
+	for id := range currentAll {
+		if _, ok := bc.backfills[id]; !ok {
+			toFetch = append(toFetch, id)
+		}
+	}
+
+	for _, backfillToFetch := range toFetch {
+		bf, _, err := bc.store.GetBackfill(context.Background(), backfillToFetch)
+		if err != nil {
+			bc.err = err
+			return
+		}
+
+		bc.backfills[bf.Id] = bf
+	}
+
+	// stats.Record(context.Background(), cacheTotalItems.M(int64(previousCount)))
+	// stats.Record(context.Background(), cacheFetchedItems.M(int64(len(toFetch))))
+	// stats.Record(context.Background(), cacheUpdateLatency.M(float64(time.Since(st))/float64(time.Millisecond)))
+
+	logger.Debugf("Backfill Cache update: Previous %d, Deleted %d, Fetched %d, Current %d", previousCount, deletedCount, len(toFetch), len(bc.backfills))
+	bc.err = nil
 }
