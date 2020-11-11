@@ -80,6 +80,7 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	service := &queryService{
 		cfg: p.Config(),
 		tc:  newTicketCache(b, p.Config()),
+		bc:  newBackfillCache(b, p.Config()),
 	}
 
 	b.AddHandleFunc(func(s *grpc.Server) {
