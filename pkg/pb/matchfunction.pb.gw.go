@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -30,6 +31,7 @@ var _ status.Status
 var _ = runtime.String
 var _ = utilities.NewDoubleArray
 var _ = descriptor.ForMessage
+var _ = metadata.Join
 
 func request_MatchFunction_Run_0(ctx context.Context, marshaler runtime.Marshaler, client MatchFunctionClient, req *http.Request, pathParams map[string]string) (MatchFunction_RunClient, runtime.ServerMetadata, error) {
 	var protoReq RunRequest
@@ -59,6 +61,7 @@ func request_MatchFunction_Run_0(ctx context.Context, marshaler runtime.Marshale
 // RegisterMatchFunctionHandlerServer registers the http handlers for service MatchFunction to "mux".
 // UnaryRPC     :call MatchFunctionServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
+// Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterMatchFunctionHandlerFromEndpoint instead.
 func RegisterMatchFunctionHandlerServer(ctx context.Context, mux *runtime.ServeMux, server MatchFunctionServer) error {
 
 	mux.Handle("POST", pattern_MatchFunction_Run_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
