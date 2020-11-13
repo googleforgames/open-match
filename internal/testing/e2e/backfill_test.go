@@ -37,14 +37,16 @@ func TestCreateGetBackfill(t *testing.T) {
 	require.Nil(t, err)
 
 	b2, err := om.Frontend().CreateBackfill(ctx, bf)
+	require.Nil(t, err)
 
 	// Different Ids should be generated
 	assert.NotEqual(t, b1.Id, b2.Id)
 	b1.Id = b2.Id
 	b1.CreateTime = b2.CreateTime
-	// Other than that they should be equal
+	// Other than CreateTune abd Id fields, they should be equal
 	assert.Equal(t, b1, b2)
 	require.Nil(t, err)
 	get, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
+	require.Nil(t, err)
 	require.Equal(t, b1, get)
 }
