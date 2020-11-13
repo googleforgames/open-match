@@ -482,7 +482,7 @@ func TestGetTicket(t *testing.T) {
 			description:     "item of a wrong type is requested, err expected",
 			ticketID:        "wrong-type-key",
 			expectedCode:    codes.Internal,
-			expectedMessage: "failed to unmarshal the ticket proto, id: wrong-type-key: proto: cannot parse reserved wire type",
+			expectedMessage: "failed to unmarshal the ticket proto, id: wrong-type-key: proto:",
 		},
 	}
 

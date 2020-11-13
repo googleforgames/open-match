@@ -82,11 +82,8 @@ type Service interface {
 	// UpdateBackfill updates an existing Backfill with a new data. ticketIDs can be nil.
 	UpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error
 
-	// Lock aquires a lock on redis instanceы
-	Lock(ctx context.Context, mutexKey string) error
-
-	// Unlock removes lock from redis instance
-	Unlock(ctx context.Context, mutexKey string) error
+	// NewMutex returns a new distributed mutex with given name
+	NewMutex(key string) *redisLocker
 }
 
 // New creates a Service based on the configuration.

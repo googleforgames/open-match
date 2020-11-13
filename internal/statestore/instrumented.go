@@ -135,16 +135,9 @@ func (is *instrumentedService) UpdateBackfill(ctx context.Context, backfill *pb.
 	return is.s.UpdateBackfill(ctx, backfill, ticketIDs)
 }
 
-// Lock aquires a lock on redis instances
-func (is *instrumentedService) Lock(ctx context.Context, mutexKey string) error {
-	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.Lock")
+// NewMutex returns a new distributed mutex with given name
+func (is *instrumentedService) NewMutex(key string) *redisLocker {
+	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.NewMutex")
 	defer span.End()
-	return is.s.Lock(ctx, mutexKey)
-}
-
-// Unlock removes lock from redis instances
-func (is *instrumentedService) Unlock(ctx context.Context, mutexKey string) error {
-	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.Unlock")
-	defer span.End()
-	return is.s.Lock(ctx, mutexKey)
+	return is.s.NewMutex(key)
 }

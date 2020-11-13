@@ -20,11 +20,14 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
+
+	rs "github.com/go-redsync/redsync/v4"
+	rsredigo "github.com/go-redsync/redsync/v4/redis/redigo"
+	"github.com/gomodule/redigo/redis"
 )
 
 var (
@@ -32,22 +35,37 @@ var (
 		"app":       "openmatch",
 		"component": "statestore.redis",
 	})
+
+	// this field is used to create new mutexes
+	redsync *rs.Redsync
 )
+
+// redisLocker is a wrapper over redsync mutex in order to let callers use it but not to expose redsync package outside
+type redisLocker struct {
+	mutex *rs.Mutex
+}
+
+// NewMutex returns a new distributed mutex with given name
+func (rb *redisBackend) NewMutex(key string) *redisLocker {
+	//TODO: make expiry duration configurable
+	m := redsync.NewMutex(key, rs.WithExpiry(5*time.Minute))
+	return &redisLocker{mutex: m}
+}
+
+// Lock locks r. In case it returns an error on failure, you may retry to acquire the lock by calling this method again.
+func (r redisLocker) Lock() error {
+	return r.mutex.Lock()
+}
+
+// Unlock unlocks r and returns the status of unlock.
+func (r redisLocker) Unlock() (bool, error) {
+	return r.mutex.Unlock()
+}
 
 type redisBackend struct {
 	healthCheckPool *redis.Pool
 	redisPool       *redis.Pool
 	cfg             config.View
-}
-
-// Lock aquires a lock on redis instanceы
-func (rb *redisBackend) Lock(ctx context.Context, mutexKey string) error {
-	return nil
-}
-
-// Unlock removes lock from redis instance
-func (rb *redisBackend) Unlock(ctx context.Context, mutexKey string) error {
-	return nil
 }
 
 // Close the connection to the database.
@@ -57,9 +75,11 @@ func (rb *redisBackend) Close() error {
 
 // newRedis creates a statestore.Service backed by Redis database.
 func newRedis(cfg config.View) Service {
+	pool := GetRedisPool(cfg)
+	redsync = rs.New(rsredigo.NewPool(pool))
 	return &redisBackend{
 		healthCheckPool: getHealthCheckPool(cfg),
-		redisPool:       GetRedisPool(cfg),
+		redisPool:       pool,
 		cfg:             cfg,
 	}
 }
