@@ -22,6 +22,9 @@ import (
 	"os"
 	"testing"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -36,25 +39,34 @@ import (
 func TestSecureGRPCFromConfig(t *testing.T) {
 	require := require.New(t)
 
-	cfg, rpcParams, closer := configureConfigAndKeysForTesting(t, require, true)
+	cfg, rpcParams, closer := configureConfigAndKeysForTesting(t, require, true, "localhost")
 	defer closer()
 
-	runGrpcClientTests(t, require, cfg, rpcParams)
+	runSuccessGrpcClientTests(t, require, cfg, rpcParams)
 }
 
 func TestInsecureGRPCFromConfig(t *testing.T) {
 	require := require.New(t)
 
-	cfg, rpcParams, closer := configureConfigAndKeysForTesting(t, require, false)
+	cfg, rpcParams, closer := configureConfigAndKeysForTesting(t, require, false, "localhost")
 	defer closer()
 
-	runGrpcClientTests(t, require, cfg, rpcParams)
+	runSuccessGrpcClientTests(t, require, cfg, rpcParams)
+}
+
+func TestUnavailableGRPCFromConfig(t *testing.T) {
+	require := require.New(t)
+
+	cfg, rpcParams, closer := configureConfigAndKeysForTesting(t, require, false, "badhost")
+	defer closer()
+
+	runFailureGrpcClientTests(t, require, cfg, rpcParams, codes.Unavailable)
 }
 
 func TestHTTPSFromConfig(t *testing.T) {
 	require := require.New(t)
 
-	cfg, rpcParams, closer := configureConfigAndKeysForTesting(t, require, true)
+	cfg, rpcParams, closer := configureConfigAndKeysForTesting(t, require, true, "localhost")
 	defer closer()
 
 	runHTTPClientTests(require, cfg, rpcParams)
@@ -63,7 +75,7 @@ func TestHTTPSFromConfig(t *testing.T) {
 func TestInsecureHTTPFromConfig(t *testing.T) {
 	require := require.New(t)
 
-	cfg, rpcParams, closer := configureConfigAndKeysForTesting(t, require, false)
+	cfg, rpcParams, closer := configureConfigAndKeysForTesting(t, require, false, "localhost")
 	defer closer()
 
 	runHTTPClientTests(require, cfg, rpcParams)
@@ -96,7 +108,7 @@ func TestSanitizeHTTPAddress(t *testing.T) {
 	}
 }
 
-func runGrpcClientTests(t *testing.T, require *require.Assertions, cfg config.View, rpcParams *ServerParams) {
+func setupClientConnection(t *testing.T, require *require.Assertions, cfg config.View, rpcParams *ServerParams) *grpc.ClientConn {
 	// Serve a fake frontend server and wait for its full start up
 	ff := &shellTesting.FakeFrontend{}
 	rpcParams.AddHandleFunc(func(s *grpc.Server) {
@@ -104,7 +116,9 @@ func runGrpcClientTests(t *testing.T, require *require.Assertions, cfg config.Vi
 	}, pb.RegisterFrontendServiceHandlerFromEndpoint)
 
 	s := &Server{}
-	defer s.Stop()
+	t.Cleanup(func() {
+		defer s.Stop()
+	})
 	err := s.Start(rpcParams)
 	require.Nil(err)
 
@@ -112,6 +126,11 @@ func runGrpcClientTests(t *testing.T, require *require.Assertions, cfg config.Vi
 	grpcConn, err := GRPCClientFromConfig(cfg, "test")
 	require.Nil(err)
 	require.NotNil(grpcConn)
+	return grpcConn
+}
+
+func runSuccessGrpcClientTests(t *testing.T, require *require.Assertions, cfg config.View, rpcParams *ServerParams) {
+	grpcConn := setupClientConnection(t, require, cfg, rpcParams)
 
 	// Confirm the client works as expected
 	ctx := utilTesting.NewContext(t)
@@ -119,6 +138,20 @@ func runGrpcClientTests(t *testing.T, require *require.Assertions, cfg config.Vi
 	grpcResp, err := feClient.CreateTicket(ctx, &pb.CreateTicketRequest{})
 	require.Nil(err)
 	require.NotNil(grpcResp)
+}
+
+func runFailureGrpcClientTests(t *testing.T, require *require.Assertions, cfg config.View, rpcParams *ServerParams, expectedCode codes.Code) {
+	grpcConn := setupClientConnection(t, require, cfg, rpcParams)
+
+	// Confirm the client works as expected
+	ctx := utilTesting.NewContext(t)
+	feClient := pb.NewFrontendServiceClient(grpcConn)
+	grpcResp, err := feClient.CreateTicket(ctx, &pb.CreateTicketRequest{})
+	require.Error(err)
+	require.Nil(grpcResp)
+
+	code := status.Code(err)
+	require.Equal(expectedCode, code)
 }
 
 func runHTTPClientTests(require *require.Assertions, cfg config.View, rpcParams *ServerParams) {
@@ -157,7 +190,7 @@ func runHTTPClientTests(require *require.Assertions, cfg config.View, rpcParams 
 }
 
 // Generate a config view and optional TLS key manifests (optional) for testing
-func configureConfigAndKeysForTesting(t *testing.T, require *require.Assertions, tlsEnabled bool) (config.View, *ServerParams, func()) {
+func configureConfigAndKeysForTesting(t *testing.T, require *require.Assertions, tlsEnabled bool, host string) (config.View, *ServerParams, func()) {
 	// Create netlisteners on random ports used for rpc serving
 	grpcL := MustListen()
 	httpL := MustListen()
@@ -165,7 +198,7 @@ func configureConfigAndKeysForTesting(t *testing.T, require *require.Assertions,
 
 	// Generate a config view with paths to the manifests
 	cfg := viper.New()
-	cfg.Set("test.hostname", "localhost")
+	cfg.Set("test.hostname", host)
 	cfg.Set("test.grpcport", MustGetPortNumber(grpcL))
 	cfg.Set("test.httpport", MustGetPortNumber(httpL))
 

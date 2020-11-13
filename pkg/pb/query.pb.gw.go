@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -30,6 +31,7 @@ var _ status.Status
 var _ = runtime.String
 var _ = utilities.NewDoubleArray
 var _ = descriptor.ForMessage
+var _ = metadata.Join
 
 func request_QueryService_QueryTickets_0(ctx context.Context, marshaler runtime.Marshaler, client QueryServiceClient, req *http.Request, pathParams map[string]string) (QueryService_QueryTicketsClient, runtime.ServerMetadata, error) {
 	var protoReq QueryTicketsRequest
@@ -109,6 +111,7 @@ func request_QueryService_QueryBackfills_0(ctx context.Context, marshaler runtim
 // RegisterQueryServiceHandlerServer registers the http handlers for service QueryService to "mux".
 // UnaryRPC     :call QueryServiceServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
+// Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterQueryServiceHandlerFromEndpoint instead.
 func RegisterQueryServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux, server QueryServiceServer) error {
 
 	mux.Handle("POST", pattern_QueryService_QueryTickets_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {

@@ -16,9 +16,12 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"testing"
 	"time"
+
+	"google.golang.org/protobuf/proto"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/stretchr/testify/require"
@@ -55,7 +58,8 @@ func TestAssignTickets(t *testing.T) {
 
 	resp, err := om.Backend().AssignTickets(ctx, req)
 	require.Nil(t, err)
-	require.Equal(t, &pb.AssignTicketsResponse{}, resp)
+	expected := &pb.AssignTicketsResponse{}
+	require.True(t, proto.Equal(expected, resp), fmt.Sprintf("Protobuf messages are not equal\nexpected: %v\nactual: %v", expected, resp))
 
 	get, err := om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: t1.Id})
 	require.Nil(t, err)
@@ -161,14 +165,15 @@ func TestAssignTicketsMissingTicket(t *testing.T) {
 
 	resp, err := om.Backend().AssignTickets(ctx, req)
 	require.Nil(t, err)
-	require.Equal(t, &pb.AssignTicketsResponse{
+	expected := &pb.AssignTicketsResponse{
 		Failures: []*pb.AssignmentFailure{
 			{
 				TicketId: t2.Id,
 				Cause:    pb.AssignmentFailure_TICKET_NOT_FOUND,
 			},
 		},
-	}, resp)
+	}
+	require.True(t, proto.Equal(expected, resp), fmt.Sprintf("Protobuf messages are not equal\nexpected: %v\nactual: %v", expected, resp))
 }
 
 func TestTicketDelete(t *testing.T) {
@@ -198,7 +203,8 @@ func TestEmptyReleaseTicketsRequest(t *testing.T) {
 	})
 
 	require.Nil(t, err)
-	require.Equal(t, &pb.ReleaseTicketsResponse{}, resp)
+	expected := &pb.ReleaseTicketsResponse{}
+	require.True(t, proto.Equal(expected, resp), fmt.Sprintf("Protobuf messages are not equal\nexpected: %v\nactual: %v", expected, resp))
 }
 
 // TestReleaseTickets covers that tickets returned from matches are no longer
@@ -285,7 +291,8 @@ func TestReleaseTickets(t *testing.T) {
 		})
 
 		require.Nil(t, err)
-		require.Equal(t, &pb.ReleaseTicketsResponse{}, resp)
+		expected := &pb.ReleaseTicketsResponse{}
+		require.True(t, proto.Equal(expected, resp), fmt.Sprintf("Protobuf messages are not equal\nexpected: %v\nactual: %v", expected, resp))
 	}
 
 	{ // Ticket present in query
@@ -367,7 +374,8 @@ func TestReleaseAllTickets(t *testing.T) {
 		resp, err := om.Backend().ReleaseAllTickets(ctx, &pb.ReleaseAllTicketsRequest{})
 
 		require.Nil(t, err)
-		require.Equal(t, &pb.ReleaseAllTicketsResponse{}, resp)
+		expected := &pb.ReleaseAllTicketsResponse{}
+		require.True(t, proto.Equal(expected, resp), fmt.Sprintf("Protobuf messages are not equal\nexpected: %v\nactual: %v", expected, resp))
 	}
 
 	{ // Ticket present in query
@@ -560,7 +568,8 @@ func TestAssignedTicketsNotReturnedByQuery(t *testing.T) {
 
 	resp, err := om.Backend().AssignTickets(ctx, req)
 	require.Nil(t, err)
-	require.Equal(t, &pb.AssignTicketsResponse{}, resp)
+	expected := &pb.AssignTicketsResponse{}
+	require.True(t, proto.Equal(expected, resp), fmt.Sprintf("Protobuf messages are not equal\nexpected: %v\nactual: %v", expected, resp))
 
 	require.False(t, returned())
 }
@@ -585,7 +594,8 @@ func TestAssignedTicketDeleteTimeout(t *testing.T) {
 
 	resp, err := om.Backend().AssignTickets(ctx, req)
 	require.Nil(t, err)
-	require.Equal(t, &pb.AssignTicketsResponse{}, resp)
+	expected := &pb.AssignTicketsResponse{}
+	require.True(t, proto.Equal(expected, resp), fmt.Sprintf("Protobuf messages are not equal\nexpected: %v\nactual: %v", expected, resp))
 
 	get, err := om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: t1.Id})
 	require.Nil(t, err)
