@@ -135,7 +135,10 @@ func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseSer
 }
 
 func (s *queryService) QueryBackfills(req *pb.QueryBackfillsRequest, responseServer pb.QueryService_QueryBackfillsServer) error {
-	ctx := responseServer.Context()
+	if req == nil {
+		return status.Error(codes.InvalidArgument, "request entry cannot be nil")
+	}
+
 	pool := req.GetPool()
 	if pool == nil {
 		return status.Error(codes.InvalidArgument, ".pool is required")
@@ -146,6 +149,7 @@ func (s *queryService) QueryBackfills(req *pb.QueryBackfillsRequest, responseSer
 		return err
 	}
 
+	ctx := responseServer.Context()
 	var results []*pb.Backfill
 	err = s.bc.request(ctx, func(backfills map[string]*pb.Backfill) {
 		for _, backfill := range backfills {
@@ -159,13 +163,14 @@ func (s *queryService) QueryBackfills(req *pb.QueryBackfillsRequest, responseSer
 		return err
 	}
 
-	stats.Record(ctx, backfillsPerQuery.M(int64(len(results))))
+	resultsCount := len(results)
+	stats.Record(ctx, backfillsPerQuery.M(int64(resultsCount)))
 
 	pSize := getPageSize(s.cfg)
-	for start := 0; start < len(results); start += pSize {
+	for start := 0; start < resultsCount; start += pSize {
 		end := start + pSize
-		if end > len(results) {
-			end = len(results)
+		if end > resultsCount {
+			end = resultsCount
 		}
 
 		err := responseServer.Send(&pb.QueryBackfillsResponse{
