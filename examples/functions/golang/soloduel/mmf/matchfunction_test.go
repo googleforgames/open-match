@@ -19,11 +19,11 @@ import (
 
 	"open-match.dev/open-match/pkg/pb"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMakeMatchesDeduplicate(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	poolNameToTickets := map[string][]*pb.Ticket{
 		"pool1": {{Id: "1"}},
@@ -31,12 +31,12 @@ func TestMakeMatchesDeduplicate(t *testing.T) {
 	}
 
 	matches, err := makeMatches(poolNameToTickets)
-	assert.Nil(err)
-	assert.Equal(len(matches), 0)
+	require.Nil(err)
+	require.Equal(len(matches), 0)
 }
 
 func TestMakeMatches(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	poolNameToTickets := map[string][]*pb.Ticket{
 		"pool1": {{Id: "1"}, {Id: "2"}, {Id: "3"}},
@@ -45,11 +45,11 @@ func TestMakeMatches(t *testing.T) {
 	}
 
 	matches, err := makeMatches(poolNameToTickets)
-	assert.Nil(err)
-	assert.Equal(len(matches), 3)
+	require.Nil(err)
+	require.Equal(len(matches), 3)
 
 	for _, match := range matches {
-		assert.Equal(2, len(match.Tickets))
-		assert.Equal(matchName, match.MatchFunction)
+		require.Equal(2, len(match.Tickets))
+		require.Equal(matchName, match.MatchFunction)
 	}
 }

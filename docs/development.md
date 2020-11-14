@@ -111,8 +111,8 @@ While iterating on the project, you may need to:
 ## Accessing logs
 To look at Open Match core services' logs, run:
 ```bash
-# Replace om-frontend with the service name that you would like to access
-kubectl logs -n open-match svc/om-frontend
+# Replace open-match-frontend with the service name that you would like to access
+kubectl logs -n open-match svc/open-match-frontend
 ```
 
 ## API References

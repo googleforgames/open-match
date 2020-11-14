@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -27,31 +27,31 @@ const (
 )
 
 func TestGetGRPC(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	cc := NewClientCache(viper.New())
 	client, err := cc.GetGRPC(fakeGRPCAddress)
-	assert.Nil(err)
+	require.Nil(err)
 
 	cachedClient, err := cc.GetGRPC(fakeGRPCAddress)
-	assert.Nil(err)
+	require.Nil(err)
 
 	// Test caching by comparing pointer value
-	assert.EqualValues(client, cachedClient)
+	require.EqualValues(client, cachedClient)
 }
 
 func TestGetHTTP(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	cc := NewClientCache(viper.New())
 	client, address, err := cc.GetHTTP(fakeHTTPAddress)
-	assert.Nil(err)
-	assert.Equal(fakeHTTPAddress, address)
+	require.Nil(err)
+	require.Equal(fakeHTTPAddress, address)
 
 	cachedClient, address, err := cc.GetHTTP(fakeHTTPAddress)
-	assert.Nil(err)
-	assert.Equal(fakeHTTPAddress, address)
+	require.Nil(err)
+	require.Equal(fakeHTTPAddress, address)
 
 	// Test caching by comparing pointer value
-	assert.EqualValues(client, cachedClient)
+	require.EqualValues(client, cachedClient)
 }

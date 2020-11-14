@@ -14,11 +14,10 @@
 
 {{- if .Values.ci }}
 
-# This applies om-test-role to the open-match-test-service account under the release namespace. 
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: om-test-role-binding
+  name: {{ include "openmatch.fullname" . }}-test-role-binding
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:
@@ -26,11 +25,11 @@ metadata:
     release: {{ .Release.Name }}
 subjects:
 - kind: ServiceAccount
-  name: open-match-test-service
+  name: {{ include "openmatch.fullname" . }}-test-service
   namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role
-  name: om-test-role
+  name: {{ include "openmatch.fullname" . }}-test-role
   apiGroup: rbac.authorization.k8s.io
 
 {{- end }}

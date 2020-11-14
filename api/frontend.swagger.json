@@ -24,10 +24,211 @@
     "application/json"
   ],
   "paths": {
+    "/v1/frontendservice/backfills": {
+      "post": {
+        "summary": "If SearchFields exist in a Ticket, CreateBackfillRequest will also index these fields such that one can query the ticket with query.QueryBakfillTickets function.",
+        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "FrontendService_CreateBackfill",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/openmatchBackfill"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openmatchCreateBackfillRequest"
+            }
+          }
+        ],
+        "tags": [
+          "FrontendService"
+        ]
+      },
+      "patch": {
+        "summary": "Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.\nBETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "FrontendService_UpdateBackfill",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/openmatchBackfill"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openmatchUpdateBackfillRequest"
+            }
+          }
+        ],
+        "tags": [
+          "FrontendService"
+        ]
+      }
+    },
+    "/v1/frontendservice/backfills/{backfill_id}": {
+      "get": {
+        "summary": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "FrontendService_GetBackfill",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/openmatchBackfill"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "backfill_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "FrontendService"
+        ]
+      },
+      "delete": {
+        "summary": "Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.",
+        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "FrontendService_DeleteBackfill",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "backfill_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "FrontendService"
+        ]
+      }
+    },
+    "/v1/frontendservice/backfills/{backfill_id}/acknowledge": {
+      "post": {
+        "summary": "AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info\nThis triggers an assignment process.",
+        "description": "BETA FEATURE WARNING: This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "FrontendService_AcknowledgeBackfill",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/openmatchBackfill"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "backfill_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openmatchAcknowledgeBackfillRequest"
+            }
+          }
+        ],
+        "tags": [
+          "FrontendService"
+        ]
+      }
+    },
     "/v1/frontendservice/tickets": {
       "post": {
         "summary": "CreateTicket assigns an unique TicketId to the input Ticket and record it in state storage.\nA ticket is considered as ready for matchmaking once it is created.\n  - If a TicketId exists in a Ticket request, an auto-generated TicketId will override this field.\n  - If SearchFields exist in a Ticket, CreateTicket will also index these fields such that one can query the ticket with query.QueryTickets function.",
-        "operationId": "CreateTicket",
+        "operationId": "FrontendService_CreateTicket",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -40,6 +241,12 @@
             "schema": {
               "type": "string",
               "format": "string"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -61,7 +268,7 @@
     "/v1/frontendservice/tickets/{ticket_id}": {
       "get": {
         "summary": "GetTicket get the Ticket associated with the specified TicketId.",
-        "operationId": "GetTicket",
+        "operationId": "FrontendService_GetTicket",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -74,6 +281,12 @@
             "schema": {
               "type": "string",
               "format": "string"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -91,8 +304,8 @@
         ]
       },
       "delete": {
-        "summary": "DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.\nThe client must delete the Ticket when finished matchmaking with it. \n  - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.\nUsers may still be able to assign/get a ticket after calling DeleteTicket on it.",
-        "operationId": "DeleteTicket",
+        "summary": "DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.\nThe client should delete the Ticket when finished matchmaking with it.",
+        "operationId": "FrontendService_DeleteTicket",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -105,6 +318,12 @@
             "schema": {
               "type": "string",
               "format": "string"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -125,12 +344,21 @@
     "/v1/frontendservice/tickets/{ticket_id}/assignments": {
       "get": {
         "summary": "WatchAssignments stream back Assignment of the specified TicketId if it is updated.\n  - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.",
-        "operationId": "WatchAssignments",
+        "operationId": "FrontendService_WatchAssignments",
         "responses": {
           "200": {
             "description": "A successful response.(streaming responses)",
             "schema": {
-              "$ref": "#/x-stream-definitions/openmatchWatchAssignmentsResponse"
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/openmatchWatchAssignmentsResponse"
+                },
+                "error": {
+                  "$ref": "#/definitions/runtimeStreamError"
+                }
+              },
+              "title": "Stream result of openmatchWatchAssignmentsResponse"
             }
           },
           "404": {
@@ -138,6 +366,12 @@
             "schema": {
               "type": "string",
               "format": "string"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -157,6 +391,18 @@
     }
   },
   "definitions": {
+    "openmatchAcknowledgeBackfillRequest": {
+      "type": "object",
+      "properties": {
+        "backfill_id": {
+          "type": "string"
+        },
+        "assignment": {
+          "$ref": "#/definitions/openmatchAssignment"
+        }
+      },
+      "description": "BETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
+    },
     "openmatchAssignment": {
       "type": "object",
       "properties": {
@@ -172,7 +418,47 @@
           "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
         }
       },
-      "description": "An Assignment represents a game server assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
+      "description": "An Assignment represents a game server assignment associated with a Ticket.\nOpen Match does not require or inspect any fields on assignment."
+    },
+    "openmatchBackfill": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Id represents an auto-generated Id issued by Open Match."
+        },
+        "search_fields": {
+          "$ref": "#/definitions/openmatchSearchFields",
+          "description": "Search fields are the fields which Open Match is aware of, and can be used\nwhen specifying filters."
+        },
+        "extensions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/protobufAny"
+          },
+          "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
+        },
+        "create_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Create time is the time the Ticket was created. It is populated by Open\nMatch at the time of Ticket creation."
+        },
+        "generation": {
+          "type": "string",
+          "format": "int64",
+          "description": "Generation gets incremented on GameServers update operations.\nPrevents the MMF from overriding a newer version from the game server.\nIt is not to be updated by the MMF."
+        }
+      },
+      "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.\nRepresents a backfill entity which is used to fill partially full matches."
+    },
+    "openmatchCreateBackfillRequest": {
+      "type": "object",
+      "properties": {
+        "backfill": {
+          "$ref": "#/definitions/openmatchBackfill"
+        }
+      },
+      "description": "BETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
     },
     "openmatchCreateTicketRequest": {
       "type": "object",
@@ -220,7 +506,7 @@
         },
         "assignment": {
           "$ref": "#/definitions/openmatchAssignment",
-          "description": "An Assignment represents a game server assignment associated with a Ticket.\nOpen Match does not require or inspect any fields on Assignment."
+          "description": "An Assignment represents a game server assignment associated with a Ticket,\nor whatever finalized matched state means for your use case.\nOpen Match does not require or inspect any fields on Assignment."
         },
         "search_fields": {
           "$ref": "#/definitions/openmatchSearchFields",
@@ -236,10 +522,20 @@
         "create_time": {
           "type": "string",
           "format": "date-time",
-          "description": "Create time represents the time at which this Ticket was created. It is\npopulated by Open Match at the time of Ticket creation."
+          "description": "Create time is the time the Ticket was created. It is populated by Open\nMatch at the time of Ticket creation."
         }
       },
-      "description": "A Ticket is a basic matchmaking entity in Open Match. A Ticket represents either an\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\nof SearchFields. Open Match stores the Ticket in state storage and enables an\nAssignment to be associated with this Ticket."
+      "description": "A Ticket is a basic matchmaking entity in Open Match. A Ticket may represent\nan individual 'Player', a 'Group' of players, or any other concepts unique to\nyour use case. Open Match will not interpret what the Ticket represents but\njust treat it as a matchmaking unit with a set of SearchFields. Open Match\nstores the Ticket in state storage and enables an Assignment to be set on the\nTicket."
+    },
+    "openmatchUpdateBackfillRequest": {
+      "type": "object",
+      "properties": {
+        "backfill_ticket": {
+          "$ref": "#/definitions/openmatchBackfill",
+          "description": "A Backfill object with SearchFields defined."
+        }
+      },
+      "description": "UpdateBackfillRequest - update searchFields, extensions and set assignment.\n\nBETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
     },
     "openmatchWatchAssignmentsResponse": {
       "type": "object",
@@ -265,6 +561,27 @@
       },
       "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(\u0026foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := \u0026pb.Foo{...}\n     any, err := ptypes.MarshalAny(foo)\n     ...\n     foo := \u0026pb.Foo{}\n     if err := ptypes.UnmarshalAny(any, foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": \u003cstring\u003e,\n      \"lastName\": \u003cstring\u003e\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
     },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
     "runtimeStreamError": {
       "type": "object",
       "properties": {
@@ -289,20 +606,6 @@
           }
         }
       }
-    }
-  },
-  "x-stream-definitions": {
-    "openmatchWatchAssignmentsResponse": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "$ref": "#/definitions/openmatchWatchAssignmentsResponse"
-        },
-        "error": {
-          "$ref": "#/definitions/runtimeStreamError"
-        }
-      },
-      "title": "Stream result of openmatchWatchAssignmentsResponse"
     }
   },
   "externalDocs": {

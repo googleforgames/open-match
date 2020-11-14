@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/require"
 	"open-match.dev/open-match/internal/config"
 )
 
@@ -61,9 +62,7 @@ func TestGetPageSize(t *testing.T) {
 			cfg := viper.New()
 			tt.configure(cfg)
 			actual := getPageSize(cfg)
-			if actual != tt.expected {
-				t.Errorf("got %d, want %d", actual, tt.expected)
-			}
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }

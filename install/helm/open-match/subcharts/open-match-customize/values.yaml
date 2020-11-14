@@ -35,11 +35,13 @@ evaluatorConfigs:
   default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
-    configName: om-configmap-default
+    # This will be parsed through the `tpl` function.
+    configName: '{{ include "openmatch.configmap.default" . }}'
   customize:
     volumeName: om-config-volume-override
     mountPath: /app/config/override
-    configName: om-configmap-override
+    # This will be parsed through the `tpl` function.
+    configName: '{{ include "openmatch.configmap.override" . }}'
 
 mmfConfigs:
   # We use harness to implement the MMFs. MMF itself only requires one configmap but harness expects two,
@@ -48,8 +50,10 @@ mmfConfigs:
   default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
-    configName: om-configmap-default
+    # This will be parsed through the `tpl` function.
+    configName: '{{ include "openmatch.configmap.default" . }}'
   customize:
     volumeName: om-config-volume-override
     mountPath: /app/config/override
-    configName: om-configmap-override
+    # This will be parsed through the `tpl` function.
+    configName: '{{ include "openmatch.configmap.override" . }}'

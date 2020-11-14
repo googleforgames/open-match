@@ -20,11 +20,11 @@ import (
 	"testing"
 
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConfigz(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 	cfg := viper.New()
 	cfg.Set("char-val", "b")
 	cfg.Set("int-val", 1)
@@ -33,8 +33,8 @@ func TestConfigz(t *testing.T) {
 	czFunc := func(w http.ResponseWriter, r *http.Request) {
 		cz.ServeHTTP(w, r)
 	}
-	assert.HTTPSuccess(czFunc, http.MethodGet, "/", url.Values{}, "")
-	assert.HTTPBodyContains(czFunc, http.MethodGet, "/", url.Values{}, `<!DOCTYPE html>
+	require.HTTPSuccess(czFunc, http.MethodGet, "/", url.Values{}, "")
+	require.HTTPBodyContains(czFunc, http.MethodGet, "/", url.Values{}, `<!DOCTYPE html>
 <head>
 	<title>Open Match Configuration</title>
 </head>

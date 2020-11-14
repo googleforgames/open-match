@@ -22,11 +22,13 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"go.opencensus.io/stats"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -102,13 +104,8 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 
 	// TODO: Send mmf error in FetchSummary instead of erroring call.
 	if syncErr != nil || mmfErr != nil {
-		logger.WithFields(logrus.Fields{
-			"syncErr": syncErr,
-			"mmfErr":  mmfErr,
-		}).Error("error(s) in FetchMatches call.")
-
 		return fmt.Errorf(
-			"error(s) in FetchMatches call. syncErr=[%s], mmfErr=[%s]",
+			"error(s) in FetchMatches call. syncErr=[%v], mmfErr=[%v]",
 			syncErr,
 			mmfErr,
 		)
@@ -201,17 +198,13 @@ func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 	var conn *grpc.ClientConn
 	conn, err := cc.GetGRPC(address)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error":    err.Error(),
-			"function": address,
-		}).Error("failed to establish grpc client connection to match function")
-		return status.Error(codes.InvalidArgument, "failed to connect to match function")
+		return status.Error(codes.InvalidArgument, "failed to establish grpc client connection to match function")
 	}
 	client := pb.NewMatchFunctionClient(conn)
 
 	stream, err := client.Run(ctx, &pb.RunRequest{Profile: profile})
 	if err != nil {
-		logger.WithError(err).Error("failed to run match function for profile")
+		err = errors.Wrap(err, "failed to run match function for profile")
 		if ctx.Err() != nil {
 			// gRPC likes to suppress the context's error, so stop that.
 			return ctx.Err()
@@ -225,7 +218,7 @@ func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 			break
 		}
 		if err != nil {
-			logger.Errorf("%v.Run() error, %v\n", client, err)
+			err = errors.Wrapf(err, "%v.Run() error, %v", client, err)
 			if ctx.Err() != nil {
 				// gRPC likes to suppress the context's error, so stop that.
 				return ctx.Err()
@@ -245,11 +238,8 @@ func callGrpcMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 func callHTTPMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProfile, address string, proposals chan<- *pb.Match) error {
 	client, baseURL, err := cc.GetHTTP(address)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error":    err.Error(),
-			"function": address,
-		}).Error("failed to establish rest client connection to match function")
-		return status.Error(codes.InvalidArgument, "failed to connect to match function")
+		err = errors.Wrapf(err, "failed to establish rest client connection to match function: %s", address)
+		return status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var m jsonpb.Marshaler
@@ -265,7 +255,7 @@ func callHTTPMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 
 	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
-		return status.Errorf(codes.Internal, "failed to get response from mmf run for proile %s: %s", profile.Name, err.Error())
+		return status.Errorf(codes.Internal, "failed to get response from mmf run for profile %s: %s", profile.Name, err.Error())
 	}
 	defer func() {
 		err = resp.Body.Close()
@@ -306,9 +296,9 @@ func callHTTPMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 }
 
 func (s *backendService) ReleaseTickets(ctx context.Context, req *pb.ReleaseTicketsRequest) (*pb.ReleaseTicketsResponse, error) {
-	err := doReleasetickets(ctx, req, s.store)
+	err := s.store.DeleteTicketsFromPendingRelease(ctx, req.GetTicketIds())
 	if err != nil {
-		logger.WithError(err).Error("failed to remove the awaiting tickets from the ignore list for requested tickets")
+		err = errors.Wrap(err, "failed to remove the awaiting tickets from the pending release for requested tickets")
 		return nil, err
 	}
 
@@ -328,7 +318,6 @@ func (s *backendService) ReleaseAllTickets(ctx context.Context, req *pb.ReleaseA
 func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
 	resp, err := doAssignTickets(ctx, req, s.store)
 	if err != nil {
-		logger.WithError(err).Error("failed to update assignments for requested tickets")
 		return nil, err
 	}
 
@@ -342,10 +331,16 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 }
 
 func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) (*pb.AssignTicketsResponse, error) {
-	resp, err := store.UpdateAssignments(ctx, req)
+	resp, tickets, err := store.UpdateAssignments(ctx, req)
 	if err != nil {
-		logger.WithError(err).Error("failed to update assignments")
 		return nil, err
+	}
+
+	for _, ticket := range tickets {
+		err = recordTimeToAssignment(ctx, ticket)
+		if err != nil {
+			logger.WithError(err).Errorf("failed to record time to assignment for ticket %s", ticket.Id)
+		}
 	}
 
 	ids := []string{}
@@ -363,7 +358,7 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 		}
 	}
 
-	if err = store.DeleteTicketsFromIgnoreList(ctx, ids); err != nil {
+	if err = store.DeleteTicketsFromPendingRelease(ctx, ids); err != nil {
 		logger.WithFields(logrus.Fields{
 			"ticket_ids": ids,
 		}).Error(err)
@@ -372,14 +367,18 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 	return resp, nil
 }
 
-func doReleasetickets(ctx context.Context, req *pb.ReleaseTicketsRequest, store statestore.Service) error {
-	err := store.DeleteTicketsFromIgnoreList(ctx, req.GetTicketIds())
+func recordTimeToAssignment(ctx context.Context, ticket *pb.Ticket) error {
+	if ticket.Assignment == nil {
+		return fmt.Errorf("assignment for ticket %s is nil", ticket.Id)
+	}
+
+	now := time.Now()
+	created, err := ptypes.Timestamp(ticket.CreateTime)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"ticket_ids": req.GetTicketIds(),
-		}).WithError(err).Error("failed to delete the tickets from the ignore list")
 		return err
 	}
+
+	stats.Record(ctx, ticketsTimeToAssignment.M(now.Sub(created).Milliseconds()))
 
 	return nil
 }

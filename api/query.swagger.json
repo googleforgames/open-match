@@ -24,15 +24,25 @@
     "application/json"
   ],
   "paths": {
-    "/v1/queryservice/ticketids:query": {
+    "/v1/queryservice/backfills:query": {
       "post": {
-        "summary": "QueryTicketIds gets the list of TicketIDs that meet all the filtering criteria requested by the pool.\n  - If the Pool contains no Filters, QueryTicketIds will return all TicketIDs in the state storage.\nQueryTicketIds pages the TicketIDs by `storage.pool.size` and stream back responses.\n  - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000.",
-        "operationId": "QueryTicketIds",
+        "summary": "QueryBackfills gets a list of Backfills.",
+        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "operationId": "QueryService_QueryBackfills",
         "responses": {
           "200": {
             "description": "A successful response.(streaming responses)",
             "schema": {
-              "$ref": "#/x-stream-definitions/openmatchQueryTicketIdsResponse"
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/openmatchQueryBackfillsResponse"
+                },
+                "error": {
+                  "$ref": "#/definitions/runtimeStreamError"
+                }
+              },
+              "title": "Stream result of openmatchQueryBackfillsResponse"
             }
           },
           "404": {
@@ -40,6 +50,61 @@
             "schema": {
               "type": "string",
               "format": "string"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openmatchQueryBackfillsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "QueryService"
+        ]
+      }
+    },
+    "/v1/queryservice/ticketids:query": {
+      "post": {
+        "summary": "QueryTicketIds gets the list of TicketIDs that meet all the filtering criteria requested by the pool.\n  - If the Pool contains no Filters, QueryTicketIds will return all TicketIDs in the state storage.\nQueryTicketIds pages the TicketIDs by `queryPageSize` and stream back responses.\n  - queryPageSize is default to 1000 if not set, and has a minimum of 10 and maximum of 10000.",
+        "operationId": "QueryService_QueryTicketIds",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/openmatchQueryTicketIdsResponse"
+                },
+                "error": {
+                  "$ref": "#/definitions/runtimeStreamError"
+                }
+              },
+              "title": "Stream result of openmatchQueryTicketIdsResponse"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -60,13 +125,22 @@
     },
     "/v1/queryservice/tickets:query": {
       "post": {
-        "summary": "QueryTickets gets a list of Tickets that match all Filters of the input Pool.\n  - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.\nQueryTickets pages the Tickets by `storage.pool.size` and stream back responses.\n  - storage.pool.size is default to 1000 if not set, and has a mininum of 10 and maximum of 10000.",
-        "operationId": "QueryTickets",
+        "summary": "QueryTickets gets a list of Tickets that match all Filters of the input Pool.\n  - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.\nQueryTickets pages the Tickets by `queryPageSize` and stream back responses.\n  - queryPageSize is default to 1000 if not set, and has a minimum of 10 and maximum of 10000.",
+        "operationId": "QueryService_QueryTickets",
         "responses": {
           "200": {
             "description": "A successful response.(streaming responses)",
             "schema": {
-              "$ref": "#/x-stream-definitions/openmatchQueryTicketsResponse"
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/openmatchQueryTicketsResponse"
+                },
+                "error": {
+                  "$ref": "#/definitions/runtimeStreamError"
+                }
+              },
+              "title": "Stream result of openmatchQueryTicketsResponse"
             }
           },
           "404": {
@@ -74,6 +148,12 @@
             "schema": {
               "type": "string",
               "format": "string"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -94,6 +174,17 @@
     }
   },
   "definitions": {
+    "DoubleRangeFilterExclude": {
+      "type": "string",
+      "enum": [
+        "NONE",
+        "MIN",
+        "MAX",
+        "BOTH"
+      ],
+      "default": "NONE",
+      "title": "- NONE: No bounds should be excluded when evaluating the filter, i.e.: MIN \u003c= x \u003c= MAX\n - MIN: Only the minimum bound should be excluded when evaluating the filter, i.e.: MIN \u003c x \u003c= MAX\n - MAX: Only the maximum bound should be excluded when evaluating the filter, i.e.: MIN \u003c= x \u003c MAX\n - BOTH: Both bounds should be excluded when evaluating the filter, i.e.: MIN \u003c x \u003c MAX"
+    },
     "openmatchAssignment": {
       "type": "object",
       "properties": {
@@ -109,7 +200,38 @@
           "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
         }
       },
-      "description": "An Assignment represents a game server assignment associated with a Ticket. Open\nmatch does not require or inspect any fields on assignment."
+      "description": "An Assignment represents a game server assignment associated with a Ticket.\nOpen Match does not require or inspect any fields on assignment."
+    },
+    "openmatchBackfill": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Id represents an auto-generated Id issued by Open Match."
+        },
+        "search_fields": {
+          "$ref": "#/definitions/openmatchSearchFields",
+          "description": "Search fields are the fields which Open Match is aware of, and can be used\nwhen specifying filters."
+        },
+        "extensions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/protobufAny"
+          },
+          "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
+        },
+        "create_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Create time is the time the Ticket was created. It is populated by Open\nMatch at the time of Ticket creation."
+        },
+        "generation": {
+          "type": "string",
+          "format": "int64",
+          "description": "Generation gets incremented on GameServers update operations.\nPrevents the MMF from overriding a newer version from the game server.\nIt is not to be updated by the MMF."
+        }
+      },
+      "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.\nRepresents a backfill entity which is used to fill partially full matches."
     },
     "openmatchDoubleRangeFilter": {
       "type": "object",
@@ -127,6 +249,10 @@
           "type": "number",
           "format": "double",
           "description": "Minimum value."
+        },
+        "exclude": {
+          "$ref": "#/definitions/DoubleRangeFilterExclude",
+          "description": "Which bounds would be excluded when comparing with a ticket's search_fields.double_args value.\n\nBETA FEATURE WARNING: This field and the associated values are\nnot finalized and still subject to possible change or removal."
         }
       },
       "title": "Filters numerical values to only those within a range.\n  double_arg: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {}"
@@ -169,6 +295,29 @@
         }
       },
       "description": "Pool specfies a set of criteria that are used to select a subset of Tickets\nthat meet all the criteria."
+    },
+    "openmatchQueryBackfillsRequest": {
+      "type": "object",
+      "properties": {
+        "pool": {
+          "$ref": "#/definitions/openmatchPool",
+          "description": "The Pool representing the set of Filters to be queried."
+        }
+      },
+      "description": "BETA FEATURE WARNING:  This Request messages are not finalized and \nstill subject to possible change or removal."
+    },
+    "openmatchQueryBackfillsResponse": {
+      "type": "object",
+      "properties": {
+        "backfills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/openmatchBackfill"
+          },
+          "description": "Backfills that meet all the filtering criteria requested by the pool."
+        }
+      },
+      "description": "BETA FEATURE WARNING:  This Request messages are not finalized and \nstill subject to possible change or removal."
     },
     "openmatchQueryTicketIdsRequest": {
       "type": "object",
@@ -271,7 +420,7 @@
         },
         "assignment": {
           "$ref": "#/definitions/openmatchAssignment",
-          "description": "An Assignment represents a game server assignment associated with a Ticket.\nOpen Match does not require or inspect any fields on Assignment."
+          "description": "An Assignment represents a game server assignment associated with a Ticket,\nor whatever finalized matched state means for your use case.\nOpen Match does not require or inspect any fields on Assignment."
         },
         "search_fields": {
           "$ref": "#/definitions/openmatchSearchFields",
@@ -287,10 +436,10 @@
         "create_time": {
           "type": "string",
           "format": "date-time",
-          "description": "Create time represents the time at which this Ticket was created. It is\npopulated by Open Match at the time of Ticket creation."
+          "description": "Create time is the time the Ticket was created. It is populated by Open\nMatch at the time of Ticket creation."
         }
       },
-      "description": "A Ticket is a basic matchmaking entity in Open Match. A Ticket represents either an\nindividual 'Player' or a 'Group' of players. Open Match will not interpret\nwhat the Ticket represents but just treat it as a matchmaking unit with a set\nof SearchFields. Open Match stores the Ticket in state storage and enables an\nAssignment to be associated with this Ticket."
+      "description": "A Ticket is a basic matchmaking entity in Open Match. A Ticket may represent\nan individual 'Player', a 'Group' of players, or any other concepts unique to\nyour use case. Open Match will not interpret what the Ticket represents but\njust treat it as a matchmaking unit with a set of SearchFields. Open Match\nstores the Ticket in state storage and enables an Assignment to be set on the\nTicket."
     },
     "protobufAny": {
       "type": "object",
@@ -306,6 +455,27 @@
         }
       },
       "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(\u0026foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := \u0026pb.Foo{...}\n     any, err := ptypes.MarshalAny(foo)\n     ...\n     foo := \u0026pb.Foo{}\n     if err := ptypes.UnmarshalAny(any, foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": \u003cstring\u003e,\n      \"lastName\": \u003cstring\u003e\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
+    },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
     },
     "runtimeStreamError": {
       "type": "object",
@@ -331,32 +501,6 @@
           }
         }
       }
-    }
-  },
-  "x-stream-definitions": {
-    "openmatchQueryTicketIdsResponse": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "$ref": "#/definitions/openmatchQueryTicketIdsResponse"
-        },
-        "error": {
-          "$ref": "#/definitions/runtimeStreamError"
-        }
-      },
-      "title": "Stream result of openmatchQueryTicketIdsResponse"
-    },
-    "openmatchQueryTicketsResponse": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "$ref": "#/definitions/openmatchQueryTicketsResponse"
-        },
-        "error": {
-          "$ref": "#/definitions/runtimeStreamError"
-        }
-      },
-      "title": "Stream result of openmatchQueryTicketsResponse"
     }
   },
   "externalDocs": {

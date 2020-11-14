@@ -69,7 +69,7 @@ message RunResponse {
 // The MatchFunction service implements APIs to run user-defined matchmaking logics.
 service MatchFunction {
   // DO NOT CALL THIS FUNCTION MANUALLY. USE backend.FetchMatches INSTEAD.
-  // Run pulls Tickets that satisify Profile constraints from QueryService, runs matchmaking logics against them, then
+  // Run pulls Tickets that satisfy Profile constraints from QueryService, runs matchmaking logics against them, then
   // constructs and streams back match candidates to the Backend service.
   rpc Run(RunRequest) returns (stream RunResponse) {
     option (google.api.http) = {

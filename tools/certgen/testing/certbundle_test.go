@@ -17,7 +17,7 @@ package testing
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	certgenInternal "open-match.dev/open-match/tools/certgen/internal"
 )
 
@@ -26,44 +26,44 @@ const (
 )
 
 func TestCreateCertificateAndPrivateKeyForTestingAreValid(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	pubData, privData, err := CreateCertificateAndPrivateKeyForTesting([]string{fakeAddress})
-	assert.Nil(err)
+	require.Nil(err)
 
 	// Verify that we can load the public/private key pair.
 	pub, pk, err := certgenInternal.ReadKeyPair(pubData, privData)
-	assert.Nil(err)
-	assert.NotNil(pub)
-	assert.NotNil(pk)
+	require.Nil(err)
+	require.NotNil(pub)
+	require.NotNil(pk)
 }
 
 func TestCreateRootedCertificateAndPrivateKeyForTestingAreValid(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	rootPubData, rootPrivData, err := CreateRootCertificateAndPrivateKeyForTesting([]string{fakeAddress})
-	assert.Nil(err)
+	require.Nil(err)
 	pubData, privData, err := CreateDerivedCertificateAndPrivateKeyForTesting(rootPubData, rootPrivData, []string{fakeAddress})
-	assert.Nil(err)
+	require.Nil(err)
 
 	rootPub, rootPk, err := certgenInternal.ReadKeyPair(rootPubData, rootPrivData)
-	assert.Nil(err)
-	assert.NotNil(rootPk)
+	require.Nil(err)
+	require.NotNil(rootPk)
 	pub, pk, err := certgenInternal.ReadKeyPair(pubData, privData)
-	assert.Nil(err)
-	assert.NotNil(pk)
+	require.Nil(err)
+	require.NotNil(pk)
 
-	assert.Nil(pub.CheckSignatureFrom(rootPub))
+	require.Nil(pub.CheckSignatureFrom(rootPub))
 }
 
 func TestCreateCertificateAndPrivateKeyForTestingAreDifferent(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	pubData1, privData1, err := CreateCertificateAndPrivateKeyForTesting([]string{fakeAddress})
-	assert.Nil(err)
+	require.Nil(err)
 	pubData2, privData2, err := CreateCertificateAndPrivateKeyForTesting([]string{fakeAddress})
-	assert.Nil(err)
+	require.Nil(err)
 
-	assert.NotEqual(string(pubData1), string(pubData2))
-	assert.NotEqual(string(privData1), string(privData2))
+	require.NotEqual(string(pubData1), string(pubData2))
+	require.NotEqual(string(privData1), string(privData2))
 }

@@ -21,7 +21,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -37,6 +37,9 @@ func TestEvaluate(t *testing.T) {
 	ticket1 := &pb.Ticket{Id: "1"}
 	ticket2 := &pb.Ticket{Id: "2"}
 	ticket3 := &pb.Ticket{Id: "3"}
+	backfill0 := &pb.Backfill{}
+	backfill1 := &pb.Backfill{Id: "1"}
+	backfill2 := &pb.Backfill{Id: "2"}
 
 	ticket12Score1 := &pb.Match{
 		MatchId: "ticket12Score1",
@@ -78,6 +81,61 @@ func TestEvaluate(t *testing.T) {
 		},
 	}
 
+	ticket1Backfill0Score1 := &pb.Match{
+		MatchId:  "ticket1Backfill0Score1",
+		Tickets:  []*pb.Ticket{ticket1},
+		Backfill: backfill0,
+		Extensions: map[string]*any.Any{
+			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+				Score: 1,
+			}),
+		},
+	}
+
+	ticket2Backfill0Score1 := &pb.Match{
+		MatchId:  "ticket2Backfill0Score1",
+		Tickets:  []*pb.Ticket{ticket2},
+		Backfill: backfill0,
+		Extensions: map[string]*any.Any{
+			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+				Score: 1,
+			}),
+		},
+	}
+
+	ticket12Backfill1Score1 := &pb.Match{
+		MatchId:  "ticket12Bacfill1Score1",
+		Tickets:  []*pb.Ticket{ticket1, ticket2},
+		Backfill: backfill1,
+		Extensions: map[string]*any.Any{
+			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+				Score: 1,
+			}),
+		},
+	}
+
+	ticket12Backfill1Score10 := &pb.Match{
+		MatchId:  "ticket12Bacfill1Score1",
+		Tickets:  []*pb.Ticket{ticket1, ticket2},
+		Backfill: backfill1,
+		Extensions: map[string]*any.Any{
+			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+				Score: 10,
+			}),
+		},
+	}
+
+	ticket12Backfill2Score5 := &pb.Match{
+		MatchId:  "ticket12Backfill2Score5",
+		Tickets:  []*pb.Ticket{ticket1, ticket2},
+		Backfill: backfill2,
+		Extensions: map[string]*any.Any{
+			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+				Score: 5,
+			}),
+		},
+	}
+
 	tests := []struct {
 		description  string
 		testMatches  []*pb.Match
@@ -108,6 +166,16 @@ func TestEvaluate(t *testing.T) {
 			testMatches:  []*pb.Match{ticket12Score1, ticket12Score10, ticket123Score5, ticket3Score50},
 			wantMatchIDs: []string{ticket12Score10.GetMatchId(), ticket3Score50.GetMatchId()},
 		},
+		{
+			description:  "test evaluator ignores backfills with empty id",
+			testMatches:  []*pb.Match{ticket1Backfill0Score1, ticket2Backfill0Score1},
+			wantMatchIDs: []string{ticket1Backfill0Score1.GetMatchId(), ticket2Backfill0Score1.GetMatchId()},
+		},
+		{
+			description:  "test deduplicates matches by backfill and tickets and returns match with higher score",
+			testMatches:  []*pb.Match{ticket12Backfill1Score1, ticket12Backfill1Score10, ticket12Backfill2Score5},
+			wantMatchIDs: []string{ticket12Backfill1Score10.GetMatchId()},
+		},
 	}
 
 	for _, test := range tests {
@@ -122,17 +190,17 @@ func TestEvaluate(t *testing.T) {
 			close(in)
 
 			err := evaluate(context.Background(), in, out)
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			gotMatchIDs := []string{}
 			close(out)
 			for id := range out {
 				gotMatchIDs = append(gotMatchIDs, id)
 			}
-			assert.Equal(t, len(test.wantMatchIDs), len(gotMatchIDs))
+			require.Equal(t, len(test.wantMatchIDs), len(gotMatchIDs))
 
 			for _, mID := range gotMatchIDs {
-				assert.Contains(t, test.wantMatchIDs, mID)
+				require.Contains(t, test.wantMatchIDs, mID)
 			}
 		})
 	}

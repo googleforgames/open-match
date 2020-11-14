@@ -77,7 +77,7 @@ func (is *instrumentedService) GetIndexedIDSet(ctx context.Context) (map[string]
 	return is.s.GetIndexedIDSet(ctx)
 }
 
-func (is *instrumentedService) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, error) {
+func (is *instrumentedService) UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, []*pb.Ticket, error) {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.UpdateAssignments")
 	defer span.End()
 	return is.s.UpdateAssignments(ctx, req)
@@ -89,16 +89,16 @@ func (is *instrumentedService) GetAssignments(ctx context.Context, id string, ca
 	return is.s.GetAssignments(ctx, id, callback)
 }
 
-func (is *instrumentedService) AddTicketsToIgnoreList(ctx context.Context, ids []string) error {
-	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.AddTicketsToIgnoreList")
+func (is *instrumentedService) AddTicketsToPendingRelease(ctx context.Context, ids []string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.AddTicketsToPendingRelease")
 	defer span.End()
-	return is.s.AddTicketsToIgnoreList(ctx, ids)
+	return is.s.AddTicketsToPendingRelease(ctx, ids)
 }
 
-func (is *instrumentedService) DeleteTicketsFromIgnoreList(ctx context.Context, ids []string) error {
-	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeleteTicketsFromIgnoreList")
+func (is *instrumentedService) DeleteTicketsFromPendingRelease(ctx context.Context, ids []string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeleteTicketsFromPendingRelease")
 	defer span.End()
-	return is.s.DeleteTicketsFromIgnoreList(ctx, ids)
+	return is.s.DeleteTicketsFromPendingRelease(ctx, ids)
 }
 
 func (is *instrumentedService) ReleaseAllTickets(ctx context.Context) error {

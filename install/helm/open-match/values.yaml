@@ -23,7 +23,7 @@
 # Begins the configuration section for `query` component in Open Match.
 # query:
 #
-#   # Specifies om-query as the in-cluster domain name for the `query` service.
+#   # Override the default in-cluster domain name for the `query` service to om-query.
 #   hostName: om-query
 #
 #   # Specifies the port for receiving RESTful HTTP requests in the `query` service.
@@ -44,46 +44,46 @@
 #   # Specifies the image name to be used in a Kubernetes pod for `query` compoenent.
 #   image: openmatch-query
 swaggerui: &swaggerui
-  hostName: om-swaggerui
+  hostName:
   httpPort: 51500
   portType: ClusterIP
   replicas: 1
   image: openmatch-swaggerui
 query: &query
-  hostName: om-query
+  hostName:
   grpcPort: 50503
   httpPort: 51503
   portType: ClusterIP
   replicas: 3
   image: openmatch-query
 frontend: &frontend
-  hostName: om-frontend
+  hostName:
   grpcPort: 50504
   httpPort: 51504
   portType: ClusterIP
   replicas: 3
   image: openmatch-frontend
 backend: &backend
-  hostName: om-backend
+  hostName:
   grpcPort: 50505
   httpPort: 51505
   portType: ClusterIP
   replicas: 3
   image: openmatch-backend
 synchronizer: &synchronizer
-  hostName: om-synchronizer
+  hostName:
   grpcPort: 50506
   httpPort: 51506
   portType: ClusterIP
   replicas: 1
   image: openmatch-synchronizer
 evaluator: &evaluator
-  hostName: om-evaluator
+  hostName:
   grpcPort: 50508
   httpPort: 51508
   replicas: 3
 function: &function
-  hostName: om-function
+  hostName:
   grpcPort: 50502
   httpPort: 51502
   replicas: 3
@@ -94,17 +94,18 @@ configs:
   default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
-    configName: om-configmap-default
+    # This will be parsed through the `tpl` function.
+    configName: '{{ include "openmatch.configmap.default" . }}'
   override:
     volumeName: om-config-volume-override
     mountPath: /app/config/override
-    configName: om-configmap-override
+    # This will be parsed through the `tpl` function.
+    configName: '{{ include "openmatch.configmap.override" . }}'
 
 # Override Redis settings
 # https://hub.helm.sh/charts/stable/redis
 # https://github.com/helm/charts/tree/master/stable/redis
 redis:
-  fullnameOverride: om-redis
   redisPort: 6379
   usePassword: false
   usePasswordFile: false
@@ -128,7 +129,6 @@ redis:
     slaveCount: 2
   serviceAccount:
     create: true
-    name: open-match-redis-service
   sysctlImage:
     # Enable this setting in production if you are running Open Match under Linux environment
     enabled: false
@@ -159,7 +159,7 @@ open-match-core:
   enabled: true
 
   # Length of time between first fetch matches call, and when no further fetch
-  # matches calls will join the current evaluation/synchronization cycle, 
+  # matches calls will join the current evaluation/synchronization cycle,
   # instead waiting for the next cycle.
   registrationInterval: 250ms
   # Length of time after match function as started before it will be canceled,
@@ -180,7 +180,7 @@ open-match-core:
     # Otherwise the default is set to the om-redis instance.
     hostname: # Your redis server address
     port: 6379
-    user: 
+    user:
     pool:
       maxIdle: 200
       maxActive: 0
@@ -193,8 +193,6 @@ open-match-core:
 open-match-scale:
   # Switch the value between true/false to turn on/off this subchart
   enabled: false
-  frontend: *frontend
-  backend: *backend
 
 # Controls if users need to install the monitoring tools in Open Match.
 open-match-telemetry:
@@ -207,7 +205,6 @@ open-match-customize:
   enabled: false
   evaluator: *evaluator
   function: *function
-  query: *query
   # You can override the evaluator/mmf image
   # evaluator:
   #   image: [YOUR_EVALUATOR_IMAGE]
@@ -234,8 +231,8 @@ global:
       limits:
         memory: 100Mi
         cpu: 100m
-    # Defines a service account which provides an identity for processes that run in a Pod in Open Match.
-    serviceAccount: open-match-unprivileged-service
+    # Overrides the name of the service account which provides an identity for processes that run in a Pod in Open Match.
+    serviceAccount:
     # Use this field if you need to override the port type for all services defined in this chart
     service:
       portType:
@@ -260,7 +257,6 @@ global:
     tag: 0.0.0-dev
     pullPolicy: Always
 
-
   # Expose the telemetry configurations to all subcharts because prometheus, for example,
   # requires pod-level annotation to customize its scrape path.
   # See definitions in templates/_helpers.tpl - "prometheus.annotations" section for details
@@ -271,8 +267,8 @@ global:
       enabled: true
     jaeger:
       enabled: false
-      agentEndpoint: "open-match-jaeger-agent:6831"
-      collectorEndpoint: "http://open-match-jaeger-collector:14268/api/traces"
+      agentEndpoint: '{{ include "openmatch.jaeger.agent" . }}'
+      collectorEndpoint: '{{ include "openmatch.jaeger.collector" . }}'
     prometheus:
       enabled: false
       endpoint: "/metrics"
@@ -282,3 +278,5 @@ global:
       prefix: "open_match"
     grafana:
       enabled: false
+      # This will be called with `tpl` in the open-match-telemetry subchart namespace.
+      prometheusServer: 'http://{{ include "call-nested" (list . "prometheus" "prometheus.server.fullname") }}.{{ .Release.Namespace }}.svc.cluster.local:80/'

@@ -14,11 +14,11 @@
 
 {{- if index .Values "open-match-core" "enabled" }}
 {{- if empty .Values.ci }}
-# om-redis-podsecuritypolicy is the least restricted PSP used to create privileged pods to disable THP in host kernel.
+# This is the least restricted PSP used to create privileged pods to disable THP in host kernel.
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: om-redis-podsecuritypolicy
+  name: {{ include "openmatch.fullname" . }}-redis-podsecuritypolicy
   namespace: {{ .Release.Namespace }}
   annotations:
     {{- include "openmatch.chartmeta" . | nindent 4 }}
@@ -51,11 +51,11 @@ spec:
   fsGroup:
     rule: 'RunAsAny'
 ---
-# om-core-podsecuritypolicy does not allow creating privileged pods and restrict binded pods to use the specified port ranges.
+# This does not allow creating privileged pods and restrict binded pods to use the specified port ranges.
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: om-core-podsecuritypolicy
+  name: {{ include "openmatch.fullname" . }}-core-podsecuritypolicy
   namespace: {{ .Release.Namespace }}
   annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
   labels:

@@ -19,17 +19,10 @@ import (
 	"context"
 	"io"
 
-	"github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
 	"go.opencensus.io/stats"
 	"golang.org/x/sync/errgroup"
 	"open-match.dev/open-match/pkg/pb"
-)
-
-var (
-	logger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "evaluator.harness.golang",
-	})
 )
 
 // Evaluator is the function signature for the Evaluator to be implemented by
@@ -95,8 +88,5 @@ func (s *evaluatorService) Evaluate(stream pb.Evaluator_EvaluateServer) error {
 	})
 
 	err := g.Wait()
-	if err != nil {
-		logger.WithError(err).Error("Error in evaluator.Evaluate")
-	}
-	return err
+	return errors.Wrap(err, "Error in evaluator.Evaluate")
 }
