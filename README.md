@@ -37,7 +37,3 @@ Participation in this project comes under the [Contributor Covenant Code of Cond
 ## License
 
 Apache 2.0
-
-## Cool Dude
-
-Scott
