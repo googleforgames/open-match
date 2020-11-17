@@ -111,8 +111,7 @@ message GetBackfillRequest {
 // BETA FEATURE WARNING: This Request message is not finalized and still subject
 // to possible change or removal.
 message UpdateBackfillRequest {
-  // A Backfill object with SearchFields defined.
-  Backfill backfill_ticket = 1;
+  Backfill backfill = 1;
 }
 
 
