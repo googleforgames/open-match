@@ -164,7 +164,7 @@ service FrontendService {
     };
   }
 
-  // If SearchFields exist in a Ticket, CreateBackfillRequest will also index these fields such that one can query the ticket with query.QueryBakfillTickets function.
+  // CreateBackfill creates a new Backfill object.
   // 
   // BETA FEATURE WARNING:  This call and the associated Request and Response
   // messages are not finalized and still subject to possible change or removal.
@@ -175,7 +175,8 @@ service FrontendService {
     };
   }
 
-  // Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
+  // DeleteBackfill receives a backfill ID and deletes its resource.
+  // Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
   // 
   // BETA FEATURE WARNING:  This call and the associated Request and Response
   // messages are not finalized and still subject to possible change or removal.
@@ -185,6 +186,8 @@ service FrontendService {
     };
   }
 
+  // GetBackfill returns a backfill object by its ID.
+  //
   // BETA FEATURE WARNING:  This call and the associated Request and Response
   // messages are not finalized and still subject to possible change or removal.
   rpc GetBackfill(GetBackfillRequest) returns (Backfill) {
@@ -192,8 +195,10 @@ service FrontendService {
       get: "/v1/frontendservice/backfills/{backfill_id}"
     };
   }
-
-  // Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
+  
+  // UpdateBackfill updates a Backfill object with an ID set and SearchFields defined.
+  // Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
+  //
   // BETA FEATURE WARNING:  This call and the associated Request and Response
   // messages are not finalized and still subject to possible change or removal.
   rpc UpdateBackfill(UpdateBackfillRequest) returns (Backfill) {
