@@ -150,16 +150,14 @@ func TestTicketNotFound(t *testing.T) {
 }
 
 func TestBackfillFound(t *testing.T) {
-	tc := testcases.TestCase{
-		Name:         "OwnTest",
-		Pool:         &pb.Pool{},
-		SearchFields: nil,
+	for _, tc := range testcases.IncludedTestCases() {
+		tc := tc
+		t.Run("QueryBackfill/"+tc.Name, func(t *testing.T) {
+			if !returnedBackfillByQuery(t, tc) {
+				require.Fail(t, "Expected to find backfill in pool but didn't.")
+			}
+		})
 	}
-	t.Run("QueryBackfill", func(t *testing.T) {
-		if !returnedBackfillByQuery(t, tc) {
-			require.Fail(t, "expected not to fail but failed.")
-		}
-	})
 }
 
 func returnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
