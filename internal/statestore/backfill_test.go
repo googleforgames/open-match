@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/stretchr/testify/require"
@@ -300,4 +301,48 @@ func TestDeleteBackfill(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), "DeleteBackfill, id: 12345, failed to connect to redis:")
+}
+
+func TestAcknowledgeBackfill(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	bf1 := "mockBackfillID"
+	bf2 := "mockBackfillID2"
+	err := service.CreateBackfill(ctx, &pb.Backfill{
+		Id:         bf1,
+		Generation: 1,
+	}, nil)
+	require.NoError(t, err)
+
+	err = service.CreateBackfill(ctx, &pb.Backfill{
+		Id:         bf2,
+		Generation: 1,
+	}, nil)
+	require.NoError(t, err)
+
+	tIDs, err := service.GetExpiredBackfills(ctx)
+	require.Len(t, tIDs, 0)
+	require.NoError(t, err)
+	err = service.AcknowledgeBackfill(ctx, bf1)
+	require.NoError(t, err)
+	err = service.AcknowledgeBackfill(ctx, bf2)
+	require.NoError(t, err)
+	// Sleep until the pending release expired and verify we still have all the tickets
+	time.Sleep(cfg.GetDuration("pendingReleaseTimeout"))
+
+	tIDs, err = service.GetExpiredBackfills(ctx)
+	require.Len(t, tIDs, 2)
+	require.NoError(t, err)
+	err = service.AcknowledgeBackfill(ctx, bf2)
+	require.NoError(t, err)
+	tIDs, err = service.GetExpiredBackfills(ctx)
+	require.Len(t, tIDs, 1)
+	require.NoError(t, err)
+	require.Equal(t, bf1, tIDs[0])
 }
