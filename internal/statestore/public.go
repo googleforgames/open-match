@@ -82,8 +82,8 @@ type Service interface {
 	// UpdateBackfill updates an existing Backfill with a new data. ticketIDs can be nil.
 	UpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error
 
-	// NewMutex returns a new distributed mutex with given name
-	NewMutex(key string) *redisLocker
+	// NewMutex returns an interface of a new distributed mutex with given name
+	NewMutex(key string) RedisLocker
 }
 
 // New creates a Service based on the configuration.
@@ -95,4 +95,10 @@ func New(cfg config.View) Service {
 		}
 	}
 	return s
+}
+
+// RedisLocker provides methods to use distributed locks against redis
+type RedisLocker interface {
+	Lock(ctx context.Context) error
+	Unlock(ctx context.Context) (bool, error)
 }

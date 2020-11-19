@@ -136,7 +136,7 @@ func (is *instrumentedService) UpdateBackfill(ctx context.Context, backfill *pb.
 }
 
 // NewMutex returns a new distributed mutex with given name
-func (is *instrumentedService) NewMutex(key string) *redisLocker {
+func (is *instrumentedService) NewMutex(key string) RedisLocker {
 	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.NewMutex")
 	defer span.End()
 	return is.s.NewMutex(key)

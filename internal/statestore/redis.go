@@ -40,32 +40,28 @@ var (
 	redsync *rs.Redsync
 )
 
-// redisLocker is a wrapper over redsync mutex in order to let callers use it but not to expose redsync package outside
-type redisLocker struct {
-	mutex *rs.Mutex
-}
-
 // NewMutex returns a new distributed mutex with given name
-func (rb *redisBackend) NewMutex(key string) *redisLocker {
+func (rb *redisBackend) NewMutex(key string) RedisLocker {
 	//TODO: make expiry duration configurable
-	m := redsync.NewMutex(key, rs.WithExpiry(5*time.Minute))
-	return &redisLocker{mutex: m}
+	m := redsync.NewMutex(fmt.Sprintf("lock/%s", key), rs.WithExpiry(5*time.Minute))
+	return redisBackend{mutex: m}
 }
 
-// Lock locks r. In case it returns an error on failure, you may retry to acquire the lock by calling this method again.
-func (r redisLocker) Lock(ctx context.Context) error {
-	return r.mutex.LockContext(ctx)
+//Lock locks r. In case it returns an error on failure, you may retry to acquire the lock by calling this method again.
+func (rb redisBackend) Lock(ctx context.Context) error {
+	return rb.mutex.LockContext(ctx)
 }
 
 // Unlock unlocks r and returns the status of unlock.
-func (r redisLocker) Unlock(ctx context.Context) (bool, error) {
-	return r.mutex.UnlockContext(ctx)
+func (rb redisBackend) Unlock(ctx context.Context) (bool, error) {
+	return rb.mutex.UnlockContext(ctx)
 }
 
 type redisBackend struct {
 	healthCheckPool *redis.Pool
 	redisPool       *redis.Pool
 	cfg             config.View
+	mutex           *rs.Mutex
 }
 
 // Close the connection to the database.
