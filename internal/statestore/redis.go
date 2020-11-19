@@ -53,13 +53,13 @@ func (rb *redisBackend) NewMutex(key string) *redisLocker {
 }
 
 // Lock locks r. In case it returns an error on failure, you may retry to acquire the lock by calling this method again.
-func (r redisLocker) Lock() error {
-	return r.mutex.Lock()
+func (r redisLocker) Lock(ctx context.Context) error {
+	return r.mutex.LockContext(ctx)
 }
 
 // Unlock unlocks r and returns the status of unlock.
-func (r redisLocker) Unlock() (bool, error) {
-	return r.mutex.Unlock()
+func (r redisLocker) Unlock(ctx context.Context) (bool, error) {
+	return r.mutex.UnlockContext(ctx)
 }
 
 type redisBackend struct {
@@ -105,7 +105,7 @@ func getHealthCheckPool(cfg config.View) *redis.Pool {
 		Wait:         true,
 		TestOnBorrow: testOnBorrow,
 		DialContext: func(ctx context.Context) (redis.Conn, error) {
-			if ctx.Err() != nil {
+			if ctx != nil && ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
 			return redis.DialURL(healthCheckURL, redis.DialConnectTimeout(healthCheckTimeout), redis.DialReadTimeout(healthCheckTimeout))
@@ -123,7 +123,7 @@ func GetRedisPool(cfg config.View) *redis.Pool {
 	if cfg.IsSet("redis.sentinelHostname") {
 		sentinelPool := getSentinelPool(cfg)
 		dialFunc = func(ctx context.Context) (redis.Conn, error) {
-			if ctx.Err() != nil {
+			if ctx != nil && ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
 
@@ -150,7 +150,7 @@ func GetRedisPool(cfg config.View) *redis.Pool {
 		masterAddr := getMasterAddr(cfg)
 		masterURL := redisURLFromAddr(masterAddr, cfg, cfg.GetBool("redis.usePassword"))
 		dialFunc = func(ctx context.Context) (redis.Conn, error) {
-			if ctx.Err() != nil {
+			if ctx != nil && ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
 			return redis.DialURL(masterURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
@@ -181,7 +181,7 @@ func getSentinelPool(cfg config.View) *redis.Pool {
 		Wait:         true,
 		TestOnBorrow: testOnBorrow,
 		DialContext: func(ctx context.Context) (redis.Conn, error) {
-			if ctx.Err() != nil {
+			if ctx != nil && ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
 			redisLogger.WithField("sentinelAddr", sentinelAddr).Debug("Attempting to connect to Redis Sentinel")
