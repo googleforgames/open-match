@@ -840,7 +840,7 @@ type Backfill struct {
 	CreateTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Generation gets incremented on GameServers update operations.
 	// Prevents the MMF from overriding a newer version from the game server.
-	// It is not to be updated by the MMF.
+	// Do not read or write to this field, it is for internal tracking and changing the value will cause bugs.
 	Generation int64 `protobuf:"varint,5,opt,name=generation,proto3" json:"generation,omitempty"`
 }
 
