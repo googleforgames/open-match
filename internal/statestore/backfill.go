@@ -16,6 +16,7 @@ package statestore
 
 import (
 	"context"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -24,6 +25,10 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/pkg/pb"
+)
+
+const (
+	backfillLastAckTime = "backfill_last_ack_time"
 )
 
 // CreateBackfill creates a new Backfill in the state storage if one doesn't exist. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
@@ -133,4 +138,49 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	}
 
 	return nil
+}
+
+// AcknowledgeBackfill - store Backfill's last accessed time
+func (rb *redisBackend) AcknowledgeBackfill(ctx context.Context, id string) error {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "AcknowledgeBackfill, id: %s, failed to connect to redis: %v", id, err)
+	}
+	defer handleConnectionClose(&redisConn)
+	defer handleConnectionClose(&redisConn)
+
+	currentTime := time.Now().UnixNano()
+	cmds := make([]interface{}, 0)
+	cmds = append(cmds, backfillLastAckTime, currentTime, id)
+
+	_, err = redisConn.Do("ZADD", cmds...)
+	if err != nil {
+		err = errors.Wrap(err, "failed to store backfills last acknowledgment time")
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	return nil
+
+}
+
+// GetExpiredBackfills - get all backfills which are expired
+func (rb *redisBackend) GetExpiredBackfills(ctx context.Context) ([]string, error) {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unavailable, "GetExpiredBackfills, failed to connect to redis: %v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	ttl := rb.cfg.GetDuration("pendingReleaseTimeout")
+	curTime := time.Now()
+	endTimeInt := curTime.Add(-ttl).UnixNano()
+	startTimeInt := 0
+
+	// Filter out tickets that are fetched but not assigned within ttl time (ms).
+	expiredBackfillIds, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", backfillLastAckTime, startTimeInt, endTimeInt))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error getting expired backfills %v", err)
+	}
+
+	return expiredBackfillIds, nil
 }
