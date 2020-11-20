@@ -697,16 +697,11 @@ api/api.md: third_party/ build/toolchain/bin/protoc-gen-doc$(EXE_EXTENSION)
 	$(PROTOC) api/*.proto \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
   		--doc_out=. \
-  		--doc_opt=markdown,api.md
+  		--doc_opt=markdown,api_temp.md
 # Crazy hack that insert hugo link reference to this API doc -)
-	$(SED_REPLACE) '1 i\---\
-title: "Open Match API References" \
-linkTitle: "Open Match API References" \
-weight: 2 \
-description: \
-  This document provides API references for Open Match services. \
---- \
-' ./api.md && mv ./api.md $(REPOSITORY_ROOT)/../open-match-docs/site/content/en/docs/Reference/
+	cat ./docs/hugo_apiheader.txt ./api_temp.md >> api.md
+	mv ./api.md $(REPOSITORY_ROOT)/../open-match-docs/site/content/en/docs/Reference/
+	rm ./api_temp.md
 
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
 pkg/pb/backend.pb.go: pkg/pb/messages.pb.go
