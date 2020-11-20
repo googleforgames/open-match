@@ -27,6 +27,11 @@ type Service interface {
 	// HealthCheck indicates if the database is reachable.
 	HealthCheck(ctx context.Context) error
 
+	// Closes the connection to the underlying storage.
+	Close() error
+
+	// Ticket
+
 	// CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
 	CreateTicket(ctx context.Context, ticket *pb.Ticket) error
 
@@ -63,8 +68,22 @@ type Service interface {
 	// ReleaseAllTickets releases all pending tickets back to active
 	ReleaseAllTickets(ctx context.Context) error
 
-	// Closes the connection to the underlying storage.
-	Close() error
+	// Backfill
+
+	// CreateBackfill creates a new Backfill in the state storage if one doesn't exist. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
+	CreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error
+
+	// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and asossiated ticketIDs if they exist.
+	GetBackfill(ctx context.Context, id string) (*pb.Backfill, []string, error)
+
+	// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
+	DeleteBackfill(ctx context.Context, id string) error
+
+	// UpdateBackfill updates an existing Backfill with a new data. ticketIDs can be nil.
+	UpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error
+
+	// NewMutex returns an interface of a new distributed mutex with given name
+	NewMutex(key string) RedisLocker
 }
 
 // New creates a Service based on the configuration.
@@ -76,4 +95,10 @@ func New(cfg config.View) Service {
 		}
 	}
 	return s
+}
+
+// RedisLocker provides methods to use distributed locks against redis
+type RedisLocker interface {
+	Lock(ctx context.Context) error
+	Unlock(ctx context.Context) (bool, error)
 }
