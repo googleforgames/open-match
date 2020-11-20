@@ -95,6 +95,12 @@ type Service interface {
 
 	// IndexBackfill adds the backfill to the index.
 	IndexBackfill(ctx context.Context, backfill *pb.Backfill) error
+
+	// DeindexBackfill removes specified Backfill ID from the index. The Backfill continues to exist.
+	DeindexBackfill(ctx context.Context, id string) error
+
+	// GetIndexedBackfills returns the ids of all backfills currently indexed.
+	GetIndexedBackfills(ctx context.Context) (map[string]struct{}, error)
 }
 
 // New creates a Service based on the configuration.
