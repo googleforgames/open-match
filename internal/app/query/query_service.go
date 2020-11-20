@@ -41,9 +41,9 @@ var (
 // queryService API provides utility functions for common MMF functionality such
 // as retreiving Tickets from state storage.
 type queryService struct {
-	cfg config.View
-	tc  *ticketCache
-	bc  *backfillCache
+	cfg     config.View
+	tc      *ticketCache
+	bfCache *backfillCache
 }
 
 func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.QueryService_QueryTicketsServer) error {
@@ -151,7 +151,7 @@ func (s *queryService) QueryBackfills(req *pb.QueryBackfillsRequest, responseSer
 
 	ctx := responseServer.Context()
 	var results []*pb.Backfill
-	err = s.bc.request(ctx, func(backfills map[string]*pb.Backfill) {
+	err = s.bfCache.requestBackfills(ctx, func(backfills map[string]*pb.Backfill) {
 		for _, backfill := range backfills {
 			if pf.In(backfill) {
 				results = append(results, backfill)
@@ -407,7 +407,7 @@ func newBackfillCache(b *appmain.Bindings, cfg config.View) *backfillCache {
 	return bc
 }
 
-func (bc *backfillCache) request(ctx context.Context, f func(map[string]*pb.Backfill)) error {
+func (bc *backfillCache) requestBackfills(ctx context.Context, f func(map[string]*pb.Backfill)) error {
 	cr := &cacheRequest{
 		ctx:    ctx,
 		runNow: make(chan struct{}),
@@ -462,8 +462,7 @@ collectAllWaiting:
 	bc.update()
 	stats.Record(context.Background(), cacheWaitingQueries.M(int64(len(reqs))))
 
-	// Send WaitGroup to query calls, letting them run their query on the ticket
-	// cache.
+	// Send WaitGroup to query calls, letting them run their query on the backfill cache.
 	for _, req := range reqs {
 		select {
 		case req.runNow <- struct{}{}:
@@ -472,7 +471,7 @@ collectAllWaiting:
 		}
 	}
 
-	// wait for requests to finish using ticket cache.
+	// wait for requests to finish using backfill cache.
 	bc.wg.Wait()
 }
 
