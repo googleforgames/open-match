@@ -62,6 +62,7 @@ type Service interface {
 	// GetAssignments returns the assignment associated with the input ticket id.
 	GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error
 
+	// AddTicketsToPendingRelease appends new proposed tickets to the proposed sorted set with current timestamp.
 	AddTicketsToPendingRelease(ctx context.Context, ids []string) error
 
 	// DeleteTicketsFromPendingRelease deletes tickets from the proposed sorted set.
