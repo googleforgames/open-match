@@ -91,6 +91,9 @@ type Service interface {
 
 	// NewMutex returns an interface of a new distributed mutex with given name
 	NewMutex(key string) RedisLocker
+
+	// IndexBackfill adds the backfill to the index.
+	IndexBackfill(ctx context.Context, backfill *pb.Backfill) error
 }
 
 // New creates a Service based on the configuration.

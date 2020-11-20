@@ -26,6 +26,10 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+const (
+	allBackfills = "allBackfills"
+)
+
 // CreateBackfill creates a new Backfill in the state storage if one doesn't exist. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
 func (rb *redisBackend) CreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error {
 	redisConn, err := rb.redisPool.GetContext(ctx)
@@ -129,6 +133,23 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	_, err = redisConn.Do("SET", backfill.GetId(), value)
 	if err != nil {
 		err = errors.Wrapf(err, "failed to set the value for backfill, id: %s", backfill.GetId())
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	return nil
+}
+
+// IndexBackfill adds the backfill to the index.
+func (rb *redisBackend) IndexBackfill(ctx context.Context, backfill *pb.Backfill) error {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "IndexBackfill, id: %s, failed to connect to redis: %v", backfill.GetId(), err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	err = redisConn.Send("SADD", allBackfills, backfill.Id)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to add backfill to all backfills, id: %s", backfill.Id)
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 

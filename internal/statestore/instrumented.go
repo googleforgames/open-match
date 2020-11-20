@@ -141,3 +141,10 @@ func (is *instrumentedService) NewMutex(key string) RedisLocker {
 	defer span.End()
 	return is.s.NewMutex(key)
 }
+
+// IndexBackfill adds the backfill to the index.
+func (is *instrumentedService) IndexBackfill(ctx context.Context, backfill *pb.Backfill) error {
+	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.IndexBackfill")
+	defer span.End()
+	return is.s.IndexBackfill(ctx, backfill)
+}
