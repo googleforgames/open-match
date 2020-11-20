@@ -59,7 +59,7 @@
         ]
       },
       "patch": {
-        "summary": "UpdateBackfill updates a Backfill object with an ID set and SearchFields defined.\nAny tickets waiting for this backfill will be returned to the active pool, no longer pending.",
+        "summary": "UpdateBackfill updates search_fields and extensions for the backfill with the provided id.\nAny tickets waiting for this backfill will be returned to the active pool, no longer pending.",
         "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "UpdateBackfill",
         "responses": {

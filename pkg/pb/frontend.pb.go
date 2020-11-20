@@ -562,7 +562,7 @@ type FrontendServiceClient interface {
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	GetBackfill(ctx context.Context, in *GetBackfillRequest, opts ...grpc.CallOption) (*Backfill, error)
-	// UpdateBackfill updates a Backfill object with an ID set and SearchFields defined.
+	// UpdateBackfill updates search_fields and extensions for the backfill with the provided id.
 	// Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
 	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
@@ -719,7 +719,7 @@ type FrontendServiceServer interface {
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	GetBackfill(context.Context, *GetBackfillRequest) (*Backfill, error)
-	// UpdateBackfill updates a Backfill object with an ID set and SearchFields defined.
+	// UpdateBackfill updates search_fields and extensions for the backfill with the provided id.
 	// Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
 	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
