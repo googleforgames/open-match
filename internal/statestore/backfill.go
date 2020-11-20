@@ -30,7 +30,9 @@ const (
 	allBackfills = "allBackfills"
 )
 
-// CreateBackfill creates a new Backfill in the state storage if one doesn't exist. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
+// CreateBackfill creates a new Backfill in the state storage if one doesn't exist.
+// The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization.
+// Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
 func (rb *redisBackend) CreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
@@ -61,7 +63,9 @@ func (rb *redisBackend) CreateBackfill(ctx context.Context, backfill *pb.Backfil
 	return nil
 }
 
-// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and asossiated ticketIDs if they exist.
+// GetBackfill gets the Backfill with the specified id from state storage.
+// This method fails if the Backfill does not exist.
+// Returns the Backfill and asossiated ticketIDs if they exist.
 func (rb *redisBackend) GetBackfill(ctx context.Context, id string) (*pb.Backfill, []string, error) {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
@@ -94,7 +98,8 @@ func (rb *redisBackend) GetBackfill(ctx context.Context, id string) (*pb.Backfil
 	return bi.Backfill, bi.TicketIds, nil
 }
 
-// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
+// DeleteBackfill removes the Backfill with the specified id from state storage.
+// This method succeeds if the Backfill does not exist.
 func (rb *redisBackend) DeleteBackfill(ctx context.Context, id string) error {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
