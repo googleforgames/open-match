@@ -93,7 +93,6 @@ func TestPaging(t *testing.T) {
 	require.Nil(t, err)
 
 	foundIds := map[string]struct{}{}
-
 	for i := 0; i < 5; i++ {
 		var resp *pb.QueryTicketsResponse
 		resp, err = stream.Recv()
@@ -155,6 +154,17 @@ func TestBackfillFound(t *testing.T) {
 		t.Run("QueryBackfill/"+tc.Name, func(t *testing.T) {
 			if !returnedBackfillByQuery(t, tc) {
 				require.Fail(t, "Expected to find backfill in pool but didn't.")
+			}
+		})
+	}
+}
+
+func TestBackfillNotFound(t *testing.T) {
+	for _, tc := range testcases.ExcludedTestCases() {
+		tc := tc
+		t.Run("QueryBackfill/"+tc.Name, func(t *testing.T) {
+			if returnedBackfillByQuery(t, tc) {
+				require.Fail(t, "Expected to not find backfill in pool but did.")
 			}
 		})
 	}
