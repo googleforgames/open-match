@@ -155,3 +155,41 @@ func (rb *redisBackend) IndexBackfill(ctx context.Context, backfill *pb.Backfill
 
 	return nil
 }
+
+// DeindexBackfill removes specified Backfill ID from the index. The Backfill continues to exist.
+func (rb *redisBackend) DeindexBackfill(ctx context.Context, id string) error {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "DeindexBackfill, id: %s, failed to connect to redis: %v", id, err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	err = redisConn.Send("SREM", allBackfills, id)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to remove ID from backfill index, id: %s", id)
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	return nil
+}
+
+// GetIndexedBackfills returns the ids of all backfills currently indexed.
+func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]struct{}, error) {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unavailable, "GetIndexedBackfills, failed to connect to redis: %v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	idsIndexed, err := redis.Strings(redisConn.Do("SMEMBERS", allBackfills))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error getting all indexed backfill ids %v", err)
+	}
+
+	r := make(map[string]struct{}, len(idsIndexed))
+	for _, id := range idsIndexed {
+		r[id] = struct{}{}
+	}
+
+	return r, nil
+}
