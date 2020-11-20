@@ -301,3 +301,39 @@ func TestDeleteBackfill(t *testing.T) {
 	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), "DeleteBackfill, id: 12345, failed to connect to redis:")
 }
+
+func TestIndexBackfill(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+
+	ctx := utilTesting.NewContext(t)
+
+	generateBackfills(ctx, t, service, 2)
+
+	c, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
+	require.NoError(t, err)
+	idsIndexed, err := redis.Strings(c.Do("SMEMBERS", allBackfills))
+	require.NoError(t, err)
+	require.Len(t, idsIndexed, 2)
+	require.Equal(t, "mockBackfillID-0", idsIndexed[0])
+	require.Equal(t, "mockBackfillID-1", idsIndexed[1])
+}
+
+func generateBackfills(ctx context.Context, t *testing.T, service Service, amount int) []*pb.Backfill {
+	backfills := make([]*pb.Backfill, 0, amount)
+
+	for i := 0; i < amount; i++ {
+		tmp := &pb.Backfill{
+			Id:         fmt.Sprintf("mockBackfillID-%d", i),
+			Generation: 1,
+		}
+		require.NoError(t, service.CreateBackfill(ctx, tmp, []string{}))
+		require.NoError(t, service.IndexBackfill(ctx, tmp))
+		backfills = append(backfills, tmp)
+	}
+
+	return backfills
+}
