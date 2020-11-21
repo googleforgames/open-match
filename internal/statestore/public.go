@@ -99,8 +99,11 @@ type Service interface {
 	// DeindexBackfill removes specified Backfill ID from the index. The Backfill continues to exist.
 	DeindexBackfill(ctx context.Context, id string) error
 
-	// GetIndexedBackfills returns the ids of all backfills currently indexed.
-	GetIndexedBackfills(ctx context.Context) (map[string]struct{}, error)
+	// GetIndexedBackfills returns a map containing the IDs and
+	// the Generation number of the backfills currently indexed.
+	//
+	// TODO: review here if Version is used or stick with Generation.
+	GetIndexedBackfills(ctx context.Context) (map[string]int, error)
 }
 
 // New creates a Service based on the configuration.

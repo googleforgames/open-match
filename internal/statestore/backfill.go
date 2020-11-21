@@ -16,6 +16,7 @@ package statestore
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -152,6 +153,7 @@ func (rb *redisBackend) IndexBackfill(ctx context.Context, backfill *pb.Backfill
 	}
 	defer handleConnectionClose(&redisConn)
 
+	// TODO: review usage of version or stick with Generation
 	err = redisConn.Send("HSET", allBackfills, backfill.Id, backfill.Generation)
 	if err != nil {
 		err = errors.Wrapf(err, "failed to add backfill to all backfills, id: %s", backfill.Id)
@@ -179,21 +181,26 @@ func (rb *redisBackend) DeindexBackfill(ctx context.Context, id string) error {
 }
 
 // GetIndexedBackfills returns the ids of all backfills currently indexed.
-func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]struct{}, error) {
+func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]int, error) {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Unavailable, "GetIndexedBackfills, failed to connect to redis: %v", err)
 	}
 	defer handleConnectionClose(&redisConn)
 
-	idsIndexed, err := redis.Strings(redisConn.Do("SMEMBERS", allBackfills))
+	bfIndex, err := redis.StringMap(redisConn.Do("HGETALL", allBackfills))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "error getting all indexed backfill ids %v", err)
 	}
 
-	r := make(map[string]struct{}, len(idsIndexed))
-	for _, id := range idsIndexed {
-		r[id] = struct{}{}
+	r := make(map[string]int)
+	for bfID, bfGeneration := range bfIndex {
+		gen, err := strconv.Atoi(bfGeneration)
+		if err != nil {
+			// TODO: handle err when generation cannot be parsed
+			continue
+		}
+		r[bfID] = gen
 	}
 
 	return r, nil

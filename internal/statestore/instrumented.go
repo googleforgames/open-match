@@ -157,7 +157,7 @@ func (is *instrumentedService) DeindexBackfill(ctx context.Context, id string) e
 }
 
 // GetIndexedBackfills returns the ids of all backfills currently indexed.
-func (is *instrumentedService) GetIndexedBackfills(ctx context.Context) (map[string]struct{}, error) {
+func (is *instrumentedService) GetIndexedBackfills(ctx context.Context) (map[string]int, error) {
 	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.GetIndexedBackfills")
 	defer span.End()
 	return is.s.GetIndexedBackfills(ctx)
