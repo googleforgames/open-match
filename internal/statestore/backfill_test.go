@@ -314,7 +314,7 @@ func TestIndexBackfill(t *testing.T) {
 		generateBackfills(ctx, t, service, 2)
 		c, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
 		require.NoError(t, err)
-		idsIndexed, err := redis.Strings(c.Do("SMEMBERS", allBackfills))
+		idsIndexed, err := redis.Strings(c.Do("HKEYS", allBackfills))
 		require.NoError(t, err)
 		require.Len(t, idsIndexed, 2)
 		require.Equal(t, "mockBackfillID-0", idsIndexed[0])
@@ -348,7 +348,7 @@ func TestDeindexBackfill(t *testing.T) {
 
 	c, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
 	require.NoError(t, err)
-	idsIndexed, err := redis.Strings(c.Do("SMEMBERS", allBackfills))
+	idsIndexed, err := redis.Strings(c.Do("HKEYS", allBackfills))
 	require.NoError(t, err)
 	require.Len(t, idsIndexed, 2)
 	require.Equal(t, "mockBackfillID-0", idsIndexed[0])
@@ -357,7 +357,7 @@ func TestDeindexBackfill(t *testing.T) {
 	// deindex and check that there is only 1 backfill in the returned slice
 	err = service.DeindexBackfill(ctx, "mockBackfillID-1")
 	require.NoError(t, err)
-	idsIndexed, err = redis.Strings(c.Do("SMEMBERS", allBackfills))
+	idsIndexed, err = redis.Strings(c.Do("HKEYS", allBackfills))
 	require.NoError(t, err)
 	require.Len(t, idsIndexed, 1)
 	require.Equal(t, "mockBackfillID-0", idsIndexed[0])

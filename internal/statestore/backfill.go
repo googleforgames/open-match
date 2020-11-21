@@ -152,7 +152,7 @@ func (rb *redisBackend) IndexBackfill(ctx context.Context, backfill *pb.Backfill
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("SADD", allBackfills, backfill.Id)
+	err = redisConn.Send("HSET", allBackfills, backfill.Id, backfill.Generation)
 	if err != nil {
 		err = errors.Wrapf(err, "failed to add backfill to all backfills, id: %s", backfill.Id)
 		return status.Errorf(codes.Internal, "%v", err)
@@ -169,7 +169,7 @@ func (rb *redisBackend) DeindexBackfill(ctx context.Context, id string) error {
 	}
 	defer handleConnectionClose(&redisConn)
 
-	err = redisConn.Send("SREM", allBackfills, id)
+	err = redisConn.Send("HDEL", allBackfills, id)
 	if err != nil {
 		err = errors.Wrapf(err, "failed to remove ID from backfill index, id: %s", id)
 		return status.Errorf(codes.Internal, "%v", err)
