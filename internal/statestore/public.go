@@ -73,7 +73,7 @@ type Service interface {
 	// CreateBackfill creates a new Backfill in the state storage if one doesn't exist. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
 	CreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error
 
-	// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and asossiated ticketIDs if they exist.
+	// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and associated ticketIDs if they exist.
 	GetBackfill(ctx context.Context, id string) (*pb.Backfill, []string, error)
 
 	// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
