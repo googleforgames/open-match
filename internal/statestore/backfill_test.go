@@ -381,7 +381,6 @@ func TestGetIndexedBackfills(t *testing.T) {
 
 	ctx := utilTesting.NewContext(t)
 
-	backfills := generateBackfills(ctx, t, service, 2)
 	verifyBackfills := func(service Service, backfills []*pb.Backfill) {
 		ids, err := service.GetIndexedBackfills(ctx)
 		require.Nil(t, err)
@@ -393,7 +392,14 @@ func TestGetIndexedBackfills(t *testing.T) {
 		}
 	}
 
+	// no indexed backfills exists
+	verifyBackfills(service, []*pb.Backfill{})
+
+	// two indexed backfills exists
+	backfills := generateBackfills(ctx, t, service, 2)
 	verifyBackfills(service, backfills)
+
+	// deindex one backfill, one backfill exist
 	err := service.DeindexBackfill(ctx, backfills[0].Id)
 	require.Nil(t, err)
 	verifyBackfills(service, backfills[1:2])
