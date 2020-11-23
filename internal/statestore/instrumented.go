@@ -149,9 +149,16 @@ func (is *instrumentedService) AcknowledgeBackfill(ctx context.Context, id strin
 	return is.s.AcknowledgeBackfill(ctx, id)
 }
 
-// GetExpiredBackfills - get all backfills which are expired
-func (is *instrumentedService) GetExpiredBackfills(ctx context.Context) ([]string, error) {
-	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetExpiredBackfills")
+// GetExpiredBackfillIDs - get all backfills which are expired
+func (is *instrumentedService) GetExpiredBackfillIDs(ctx context.Context) ([]string, error) {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetExpiredBackfillIDs")
 	defer span.End()
-	return is.s.GetExpiredBackfills(ctx)
+	return is.s.GetExpiredBackfillIDs(ctx)
+}
+
+// DeleteExpiredBackfillIDs - delete expired BackfillIDs from a sorted set
+func (is *instrumentedService) DeleteExpiredBackfillIDs(ctx context.Context, backfillIDs []string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeleteExpiredBackfillIDs")
+	defer span.End()
+	return is.s.DeleteExpiredBackfillIDs(ctx, backfillIDs)
 }

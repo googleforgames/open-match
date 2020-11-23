@@ -326,8 +326,8 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	}, nil)
 	require.NoError(t, err)
 
-	tIDs, err := service.GetExpiredBackfills(ctx)
-	require.Len(t, tIDs, 0)
+	bfIDs, err := service.GetExpiredBackfillIDs(ctx)
+	require.Len(t, bfIDs, 0)
 	require.NoError(t, err)
 	err = service.AcknowledgeBackfill(ctx, bf1)
 	require.NoError(t, err)
@@ -336,13 +336,20 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	// Sleep until the pending release expired and verify we still have all the tickets
 	time.Sleep(cfg.GetDuration("pendingReleaseTimeout"))
 
-	tIDs, err = service.GetExpiredBackfills(ctx)
-	require.Len(t, tIDs, 2)
+	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
+	require.Len(t, bfIDs, 2)
 	require.NoError(t, err)
 	err = service.AcknowledgeBackfill(ctx, bf2)
 	require.NoError(t, err)
-	tIDs, err = service.GetExpiredBackfills(ctx)
-	require.Len(t, tIDs, 1)
+	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
+	require.Len(t, bfIDs, 1)
 	require.NoError(t, err)
-	require.Equal(t, bf1, tIDs[0])
+	require.Equal(t, bf1, bfIDs[0])
+
+	err = service.DeleteExpiredBackfillIDs(ctx, bfIDs)
+	require.NoError(t, err)
+
+	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
+	require.Len(t, bfIDs, 0)
+	require.NoError(t, err)
 }

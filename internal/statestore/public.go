@@ -88,8 +88,11 @@ type Service interface {
 	// AcknowledgeBackfill - store Backfill's last accessed time
 	AcknowledgeBackfill(ctx context.Context, id string) error
 
-	// GetExpiredBackfills - get all backfills which are expired
-	GetExpiredBackfills(ctx context.Context) ([]string, error)
+	// GetExpiredBackfillIDs - get all backfill IDs which are expired
+	GetExpiredBackfillIDs(ctx context.Context) ([]string, error)
+
+	// DeleteExpiredBackfillIDs - delete expired BackfillIDs from a sorted set
+	DeleteExpiredBackfillIDs(ctx context.Context, backfillIDs []string) error
 }
 
 // New creates a Service based on the configuration.
