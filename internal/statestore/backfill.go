@@ -193,7 +193,7 @@ func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]int
 		return nil, status.Errorf(codes.Internal, "error getting all indexed backfill ids %v", err)
 	}
 
-	r := make(map[string]int)
+	r := make(map[string]int, len(bfIndex))
 	for bfID, bfGeneration := range bfIndex {
 		gen, err := strconv.Atoi(bfGeneration)
 		if err != nil {
