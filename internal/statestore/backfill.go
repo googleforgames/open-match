@@ -197,8 +197,7 @@ func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]int
 	for bfID, bfGeneration := range bfIndex {
 		gen, err := strconv.Atoi(bfGeneration)
 		if err != nil {
-			// TODO: handle err when generation cannot be parsed
-			continue
+			return nil, status.Errorf(codes.Internal, "error while parsing generation into number: %v", err)
 		}
 		r[bfID] = gen
 	}
