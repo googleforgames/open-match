@@ -114,7 +114,7 @@ func (is *instrumentedService) CreateBackfill(ctx context.Context, backfill *pb.
 	return is.s.CreateBackfill(ctx, backfill, ticketIDs)
 }
 
-// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and asossiated ticketIDs if they exist.
+// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and associated ticketIDs if they exist.
 func (is *instrumentedService) GetBackfill(ctx context.Context, id string) (*pb.Backfill, []string, error) {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetBackfill")
 	defer span.End()

@@ -47,7 +47,7 @@ type BackfillInternal struct {
 
 	// Represents a backfill entity which is used to fill partially full matches
 	Backfill *pb.Backfill `protobuf:"bytes,1,opt,name=backfill,proto3" json:"backfill,omitempty"`
-	// List of ticket IDs asossiated with a current backfill
+	// List of ticket IDs associated with a current backfill
 	TicketIds []string `protobuf:"bytes,2,rep,name=ticket_ids,json=ticketIds,proto3" json:"ticket_ids,omitempty"`
 }
 
