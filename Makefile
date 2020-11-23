@@ -188,7 +188,7 @@ else
 	endif
 endif
 
-GOLANG_PROTOS = pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/query.pb.go pkg/pb/messages.pb.go pkg/pb/extensions.pb.go pkg/pb/evaluator.pb.go internal/ipb/synchronizer.pb.go pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/query.pb.gw.go pkg/pb/evaluator.pb.gw.go
+GOLANG_PROTOS = pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/query.pb.go pkg/pb/messages.pb.go pkg/pb/extensions.pb.go pkg/pb/evaluator.pb.go internal/ipb/synchronizer.pb.go internal/ipb/messages.pb.go pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/query.pb.gw.go pkg/pb/evaluator.pb.gw.go
 
 SWAGGER_JSON_DOCS = api/frontend.swagger.json api/backend.swagger.json api/query.swagger.json api/matchfunction.swagger.json api/evaluator.swagger.json
 
@@ -630,7 +630,7 @@ delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bi
 create-cluster-role-binding:
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
-create-gke-cluster: GKE_VERSION = 1.14.10-gke.45 # gcloud beta container get-server-config --zone us-west1-a
+create-gke-cluster: GKE_VERSION = 1.15.12-gke.20 # gcloud beta container get-server-config --zone us-west1-a
 create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
@@ -697,16 +697,11 @@ api/api.md: third_party/ build/toolchain/bin/protoc-gen-doc$(EXE_EXTENSION)
 	$(PROTOC) api/*.proto \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
   		--doc_out=. \
-  		--doc_opt=markdown,api.md
+  		--doc_opt=markdown,api_temp.md
 # Crazy hack that insert hugo link reference to this API doc -)
-	$(SED_REPLACE) '1 i\---\
-title: "Open Match API References" \
-linkTitle: "Open Match API References" \
-weight: 2 \
-description: \
-  This document provides API references for Open Match services. \
---- \
-' ./api.md && mv ./api.md $(REPOSITORY_ROOT)/../open-match-docs/site/content/en/docs/Reference/
+	cat ./docs/hugo_apiheader.txt ./api_temp.md >> api.md
+	mv ./api.md $(REPOSITORY_ROOT)/../open-match-docs/site/content/en/docs/Reference/
+	rm ./api_temp.md
 
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
 pkg/pb/backend.pb.go: pkg/pb/messages.pb.go
@@ -715,6 +710,7 @@ pkg/pb/matchfunction.pb.go: pkg/pb/messages.pb.go
 pkg/pb/query.pb.go: pkg/pb/messages.pb.go
 pkg/pb/evaluator.pb.go: pkg/pb/messages.pb.go
 internal/ipb/synchronizer.pb.go: pkg/pb/messages.pb.go
+internal/ipb/messages.pb.go: pkg/pb/messages.pb.go
 
 build: assets
 	$(GO) build ./...
