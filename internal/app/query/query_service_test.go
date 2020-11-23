@@ -15,11 +15,15 @@
 package query
 
 import (
+	"context"
 	"testing"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"open-match.dev/open-match/internal/config"
+	"open-match.dev/open-match/internal/statestore"
+	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
+	"open-match.dev/open-match/pkg/pb"
 )
 
 func TestGetPageSize(t *testing.T) {
@@ -64,5 +68,36 @@ func TestGetPageSize(t *testing.T) {
 			actual := getPageSize(cfg)
 			require.Equal(t, tt.expected, actual)
 		})
+	}
+}
+
+func TestBackfillCache(t *testing.T) {
+	cfg := viper.New()
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+	defer closer()
+	bfCache := &backfillCache{
+		store:     store,
+		backfills: make(map[string]*pb.Backfill),
+	}
+	t.Run("IndexedButNotInCache", func(t *testing.T) {
+		bf1 := &pb.Backfill{
+			Id:         "backfill-01",
+			Generation: 1,
+		}
+		bf2 := &pb.Backfill{
+			Id:         "backfill-02",
+			Generation: 1,
+		}
+		storeAndIndex(context.Background(), store, bf1, bf2)
+		bfCache.update()
+		require.Equal(t, 2, len(bfCache.backfills))
+	})
+	t.Run("NewVersionOfBackfillInCache", nil)
+}
+
+func storeAndIndex(ctx context.Context, service statestore.Service, backfills ...*pb.Backfill) {
+	for _, bf := range backfills {
+		service.CreateBackfill(ctx, bf, []string{})
+		// service.IndexBackfill(ctx, bf)
 	}
 }
