@@ -106,3 +106,38 @@ func (is *instrumentedService) ReleaseAllTickets(ctx context.Context) error {
 	defer span.End()
 	return is.s.ReleaseAllTickets(ctx)
 }
+
+// CreateBackfill creates a new Backfill in the state storage if one doesn't exist. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
+func (is *instrumentedService) CreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.CreateBackfill")
+	defer span.End()
+	return is.s.CreateBackfill(ctx, backfill, ticketIDs)
+}
+
+// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and asossiated ticketIDs if they exist.
+func (is *instrumentedService) GetBackfill(ctx context.Context, id string) (*pb.Backfill, []string, error) {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetBackfill")
+	defer span.End()
+	return is.s.GetBackfill(ctx, id)
+}
+
+// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
+func (is *instrumentedService) DeleteBackfill(ctx context.Context, id string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeleteBackfill")
+	defer span.End()
+	return is.s.DeleteBackfill(ctx, id)
+}
+
+// UpdateBackfill updates an existing Backfill with a new data. ticketIDs can be nil.
+func (is *instrumentedService) UpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.UpdateBackfill")
+	defer span.End()
+	return is.s.UpdateBackfill(ctx, backfill, ticketIDs)
+}
+
+// NewMutex returns a new distributed mutex with given name
+func (is *instrumentedService) NewMutex(key string) RedisLocker {
+	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.NewMutex")
+	defer span.End()
+	return is.s.NewMutex(key)
+}
