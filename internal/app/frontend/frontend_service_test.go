@@ -90,12 +90,56 @@ func TestDoCreateTickets(t *testing.T) {
 }
 
 func TestCreateBackfill(t *testing.T) {
+<<<<<<< HEAD
+=======
+	cfg := viper.New()
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+	defer closer()
+	ctx, _ := context.WithCancel(utilTesting.NewContext(t))
+	fs := frontendService{cfg, store}
+
+	// Nil request check
+	res, err := fs.CreateBackfill(ctx, nil)
+	require.Nil(t, res)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), "request is nil")
+
+	// Nil backfill - error is returned
+	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: nil})
+	require.Nil(t, res)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), ".backfill is required")
+
+	// CreateTime should not exist in input
+	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{CreateTime: ptypes.TimestampNow()}})
+	require.Nil(t, res)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), "backfills cannot be created with create time set")
+
+	// Empty Backfill, no errors
+	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{}})
+	require.NotNil(t, res)
+	require.Nil(t, err)
+
+	// Backfill with SearchFields, no errors
+	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{
+		Backfill: &pb.Backfill{
+			SearchFields: &pb.SearchFields{
+				StringArgs: map[string]string{
+					"search": "me",
+				}}}})
+	require.NotNil(t, res)
+	require.Nil(t, err)
+}
+func TestDoCreateBackfill(t *testing.T) {
+>>>>>>> 901d0b5b... Applying comments
 	cfg := viper.New()
 	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()
 	ctx := utilTesting.NewContext(t)
 	fs := frontendService{cfg, store}
 
+<<<<<<< HEAD
 	var testCases = []struct {
 		description     string
 		request         *pb.CreateBackfillRequest
@@ -158,6 +202,38 @@ func TestCreateBackfill(t *testing.T) {
 				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String())
 				require.Contains(t, status.Convert(err).Message(), tc.expectedMessage)
 			}
+=======
+	tests := []struct {
+		description string
+		backfill    *pb.Backfill
+		wantCode    codes.Code
+	}{
+		{
+			description: "expect error with canceled context",
+			backfill: &pb.Backfill{
+				SearchFields: &pb.SearchFields{
+					DoubleArgs: map[string]float64{
+						"test-arg": 1,
+					},
+				},
+			},
+			wantCode: codes.Unavailable,
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.description, func(t *testing.T) {
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+			defer closer()
+
+			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
+			cancel()
+
+			res, err := doCreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: test.backfill}, store)
+			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
+			require.Nil(t, res)
+>>>>>>> 901d0b5b... Applying comments
 		})
 	}
 
