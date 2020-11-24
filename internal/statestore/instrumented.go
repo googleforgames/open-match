@@ -144,21 +144,21 @@ func (is *instrumentedService) NewMutex(key string) RedisLocker {
 
 // IndexBackfill adds the backfill to the index.
 func (is *instrumentedService) IndexBackfill(ctx context.Context, backfill *pb.Backfill) error {
-	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.IndexBackfill")
+	_, span := trace.StartSpan(ctx, "statestore/instrumented.IndexBackfill")
 	defer span.End()
 	return is.s.IndexBackfill(ctx, backfill)
 }
 
 // DeindexBackfill removes specified Backfill ID from the index. The Backfill continues to exist.
 func (is *instrumentedService) DeindexBackfill(ctx context.Context, id string) error {
-	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.DeindexBackfill")
+	_, span := trace.StartSpan(ctx, "statestore/instrumented.DeindexBackfill")
 	defer span.End()
 	return is.s.DeindexBackfill(ctx, id)
 }
 
 // GetIndexedBackfills returns the ids of all backfills currently indexed.
 func (is *instrumentedService) GetIndexedBackfills(ctx context.Context) (map[string]int, error) {
-	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.GetIndexedBackfills")
+	_, span := trace.StartSpan(ctx, "statestore/instrumented.GetIndexedBackfills")
 	defer span.End()
 	return is.s.GetIndexedBackfills(ctx)
 }
