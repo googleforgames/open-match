@@ -90,8 +90,6 @@ func TestDoCreateTickets(t *testing.T) {
 }
 
 func TestCreateBackfill(t *testing.T) {
-<<<<<<< HEAD
-=======
 	cfg := viper.New()
 	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()
@@ -132,14 +130,11 @@ func TestCreateBackfill(t *testing.T) {
 	require.Nil(t, err)
 }
 func TestDoCreateBackfill(t *testing.T) {
->>>>>>> 901d0b5b... Applying comments
 	cfg := viper.New()
 	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()
 	ctx := utilTesting.NewContext(t)
 	fs := frontendService{cfg, store}
-
-<<<<<<< HEAD
 	var testCases = []struct {
 		description     string
 		request         *pb.CreateBackfillRequest
