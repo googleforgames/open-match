@@ -100,6 +100,9 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 //   - If SearchFields exist in a Backfill, CreateBackfill will also index these fields such that one can query the ticket with query.QueryBackfills function.
 func (s *frontendService) CreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest) (*pb.Backfill, error) {
 	// Perform input validation.
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "request is nil")
+	}
 	if req.Backfill == nil {
 		return nil, status.Errorf(codes.InvalidArgument, ".backfill is required")
 	}

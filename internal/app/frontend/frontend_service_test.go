@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -88,18 +89,56 @@ func TestDoCreateTickets(t *testing.T) {
 	}
 }
 
+func TestCreateBackfill(t *testing.T) {
+	cfg := viper.New()
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+	defer closer()
+	ctx, _ := context.WithCancel(utilTesting.NewContext(t))
+	fs := frontendService{cfg, store}
+
+	// Nil request check
+	res, err := fs.CreateBackfill(ctx, nil)
+	require.Nil(t, res)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), "request is nil")
+
+	// Nil backfill - error is returned
+	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: nil})
+	require.Nil(t, res)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), ".backfill is required")
+
+	// CreateTime should not exist in input
+	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{CreateTime: ptypes.TimestampNow()}})
+	require.Nil(t, res)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), "backfills cannot be created with create time set")
+
+	// Empty Backfill, no errors
+	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{}})
+	require.NotNil(t, res)
+	require.Nil(t, err)
+
+	// Backfill with SearchFields, no errors
+	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{
+		Backfill: &pb.Backfill{
+			SearchFields: &pb.SearchFields{
+				StringArgs: map[string]string{
+					"search": "me",
+				}}}})
+	require.NotNil(t, res)
+	require.Nil(t, err)
+}
 func TestDoCreateBackfill(t *testing.T) {
 	cfg := viper.New()
 
 	tests := []struct {
 		description string
-		preAction   func(cancel context.CancelFunc)
 		backfill    *pb.Backfill
 		wantCode    codes.Code
 	}{
 		{
 			description: "expect error with canceled context",
-			preAction:   func(cancel context.CancelFunc) { cancel() },
 			backfill: &pb.Backfill{
 				SearchFields: &pb.SearchFields{
 					DoubleArgs: map[string]float64{
@@ -108,18 +147,6 @@ func TestDoCreateBackfill(t *testing.T) {
 				},
 			},
 			wantCode: codes.Unavailable,
-		},
-		{
-			description: "expect normal return with default context",
-			preAction:   func(_ context.CancelFunc) {},
-			backfill: &pb.Backfill{
-				SearchFields: &pb.SearchFields{
-					DoubleArgs: map[string]float64{
-						"test-arg": 1,
-					},
-				},
-			},
-			wantCode: codes.OK,
 		},
 	}
 
@@ -130,16 +157,11 @@ func TestDoCreateBackfill(t *testing.T) {
 			defer closer()
 
 			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
-			test.preAction(cancel)
+			cancel()
 
 			res, err := doCreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: test.backfill}, store)
 			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
-			if err == nil {
-				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetId())
-				require.True(t, matched)
-				require.Nil(t, err)
-				require.Equal(t, test.backfill.SearchFields.DoubleArgs["test-arg"], res.SearchFields.DoubleArgs["test-arg"])
-			}
+			require.Nil(t, res)
 		})
 	}
 }

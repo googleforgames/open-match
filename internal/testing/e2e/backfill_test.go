@@ -16,10 +16,12 @@ package e2e
 
 import (
 	"context"
+	"regexp"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -35,18 +37,32 @@ func TestCreateGetBackfill(t *testing.T) {
 	}}}
 	b1, err := om.Frontend().CreateBackfill(ctx, bf)
 	require.Nil(t, err)
+	require.NotNil(t, b1)
 
 	b2, err := om.Frontend().CreateBackfill(ctx, bf)
 	require.Nil(t, err)
+	require.NotNil(t, b2)
 
-	// Different Ids should be generated
-	assert.NotEqual(t, b1.Id, b2.Id)
+	// Different IDs should be generated
+	require.NotEqual(t, b1.Id, b2.Id)
+	matched, err := regexp.MatchString(`[0-9a-v]{20}`, b1.GetId())
+	require.True(t, matched)
+	require.Nil(t, err)
+	require.Equal(t, bf.Backfill.SearchFields.DoubleArgs["test-arg"], b1.SearchFields.DoubleArgs["test-arg"])
 	b1.Id = b2.Id
 	b1.CreateTime = b2.CreateTime
-	// Other than CreateTune abd Id fields, they should be equal
-	assert.Equal(t, b1, b2)
+
+	// All fields other than CreateTime and Id fields should be equal
+	require.Equal(t, b1, b2)
 	require.Nil(t, err)
-	get, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
+	actual, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
 	require.Nil(t, err)
-	require.Equal(t, b1, get)
+	require.NotNil(t, actual)
+	require.Equal(t, b1, actual)
+
+	// Get Backfill which is not present - NotFound
+	actual, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id + "new"})
+	require.NotNil(t, err)
+	require.Equal(t, codes.NotFound.String(), status.Convert(err).Code().String())
+	require.Nil(t, actual)
 }
