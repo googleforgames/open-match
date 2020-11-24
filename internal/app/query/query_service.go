@@ -476,43 +476,39 @@ collectAllWaiting:
 }
 
 func (bc *backfillCache) update() {
-	// st := time.Now()
 	previousCount := len(bc.backfills)
 
-	currentAll, err := bc.store.GetIndexedBackfills(context.Background())
+	indexedBackfills, err := bc.store.GetIndexedBackfills(context.Background())
 	if err != nil {
 		bc.err = err
 		return
 	}
 
 	deletedCount := 0
-	for id := range bc.backfills {
-		if _, ok := currentAll[id]; !ok {
+	for id, cachedBackfill := range bc.backfills {
+		indexedBackfillGeneration, ok := indexedBackfills[id]
+		if !ok || cachedBackfill.Generation < int64(indexedBackfillGeneration) {
 			delete(bc.backfills, id)
 			deletedCount++
 		}
 	}
 
 	toFetch := []string{}
-	for id := range currentAll {
+	for id := range indexedBackfills {
 		if _, ok := bc.backfills[id]; !ok {
 			toFetch = append(toFetch, id)
 		}
 	}
 
 	for _, backfillToFetch := range toFetch {
-		bf, _, err := bc.store.GetBackfill(context.Background(), backfillToFetch)
+		storedBackfill, _, err := bc.store.GetBackfill(context.Background(), backfillToFetch)
 		if err != nil {
 			bc.err = err
 			return
 		}
 
-		bc.backfills[bf.Id] = bf
+		bc.backfills[storedBackfill.Id] = storedBackfill
 	}
-
-	// stats.Record(context.Background(), cacheTotalItems.M(int64(previousCount)))
-	// stats.Record(context.Background(), cacheFetchedItems.M(int64(len(toFetch))))
-	// stats.Record(context.Background(), cacheUpdateLatency.M(float64(time.Since(st))/float64(time.Millisecond)))
 
 	logger.Debugf("Backfill Cache update: Previous %d, Deleted %d, Fetched %d, Current %d", previousCount, deletedCount, len(toFetch), len(bc.backfills))
 	bc.err = nil

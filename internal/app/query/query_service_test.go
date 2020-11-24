@@ -94,14 +94,34 @@ func TestBackfillCache(t *testing.T) {
 		require.Equal(t, 2, len(bfCache.backfills))
 	})
 
-	t.Run("NewVersionOfBackfillInCache", func(t *testing.T) {
-		t.Skip("TODO implement this scenario")
+	t.Run("NewVersionOfBackfillIndexedButNotInCache", func(t *testing.T) {
+		bf1 := &pb.Backfill{
+			Id:         "backfill-01",
+			Generation: 1,
+		}
+		bf2 := &pb.Backfill{
+			Id:         "backfill-02",
+			Generation: 1,
+		}
+		ctx := context.Background()
+		storeAndIndex(ctx, store, bf1, bf2)
+		bfCache.update()
+
+		bf2v2 := &pb.Backfill{
+			Id:         "backfill-02",
+			Generation: 2,
+		}
+		store.UpdateBackfill(ctx, bf2v2, []string{})
+		store.IndexBackfill(ctx, bf2v2)
+		bfCache.update()
+		require.Equal(t, 2, len(bfCache.backfills))
+		require.Equal(t, bf2v2.Generation, bfCache.backfills[bf2v2.Id].Generation)
 	})
 }
 
 func storeAndIndex(ctx context.Context, service statestore.Service, backfills ...*pb.Backfill) {
 	for _, bf := range backfills {
 		service.CreateBackfill(ctx, bf, []string{})
-		// service.IndexBackfill(ctx, bf)
+		service.IndexBackfill(ctx, bf)
 	}
 }
