@@ -96,74 +96,85 @@ func TestCreateBackfill(t *testing.T) {
 	ctx, _ := context.WithCancel(utilTesting.NewContext(t))
 	fs := frontendService{cfg, store}
 
-	// Nil request check
-	res, err := fs.CreateBackfill(ctx, nil)
-	require.Nil(t, res)
-	require.NotNil(t, err)
-	require.Contains(t, err.Error(), "request is nil")
-
-	// Nil backfill - error is returned
-	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: nil})
-	require.Nil(t, res)
-	require.NotNil(t, err)
-	require.Contains(t, err.Error(), ".backfill is required")
-
-	// CreateTime should not exist in input
-	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{CreateTime: ptypes.TimestampNow()}})
-	require.Nil(t, res)
-	require.NotNil(t, err)
-	require.Contains(t, err.Error(), "backfills cannot be created with create time set")
-
-	// Empty Backfill, no errors
-	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{}})
-	require.NotNil(t, res)
-	require.Nil(t, err)
-
-	// Backfill with SearchFields, no errors
-	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{
-		Backfill: &pb.Backfill{
-			SearchFields: &pb.SearchFields{
-				StringArgs: map[string]string{
-					"search": "me",
-				}}}})
-	require.NotNil(t, res)
-	require.Nil(t, err)
-}
-func TestDoCreateBackfill(t *testing.T) {
-	cfg := viper.New()
-
-	tests := []struct {
-		description string
-		backfill    *pb.Backfill
-		wantCode    codes.Code
+	var testCases = []struct {
+		description     string
+		request         *pb.CreateBackfillRequest
+		result          *pb.Backfill
+		expectedCode    codes.Code
+		expectedMessage string
 	}{
 		{
-			description: "expect error with canceled context",
-			backfill: &pb.Backfill{
-				SearchFields: &pb.SearchFields{
-					DoubleArgs: map[string]float64{
-						"test-arg": 1,
-					},
-				},
-			},
-			wantCode: codes.Unavailable,
+			description:     "nil request check",
+			request:         nil,
+			expectedCode:    codes.InvalidArgument,
+			expectedMessage: "request is nil",
+		},
+		{
+			description:     "nil backfill - error is returned",
+			request:         &pb.CreateBackfillRequest{Backfill: nil},
+			expectedCode:    codes.InvalidArgument,
+			expectedMessage: ".backfill is required",
+		},
+		{
+			description:     "createTime should not exist in input",
+			request:         &pb.CreateBackfillRequest{Backfill: nil},
+			expectedCode:    codes.InvalidArgument,
+			expectedMessage: ".backfill is required",
+		},
+		{
+			description:     "createTime should not exist in input",
+			request:         &pb.CreateBackfillRequest{Backfill: &pb.Backfill{CreateTime: ptypes.TimestampNow()}},
+			expectedCode:    codes.InvalidArgument,
+			expectedMessage: "backfills cannot be created with create time set",
+		},
+		{
+			description:     "empty Backfill, no errors",
+			request:         &pb.CreateBackfillRequest{Backfill: &pb.Backfill{}},
+			expectedCode:    codes.OK,
+			expectedMessage: "",
+		},
+		{
+			description: "normal backfill",
+			request: &pb.CreateBackfillRequest{
+				Backfill: &pb.Backfill{
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							"search": "me",
+						}}}},
+			expectedCode:    codes.OK,
+			expectedMessage: "",
 		},
 	}
 
-	for _, test := range tests {
-		test := test
-		t.Run(test.description, func(t *testing.T) {
-			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
-			defer closer()
-
-			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
-			cancel()
-
-			res, err := doCreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: test.backfill}, store)
-			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
-			require.Nil(t, res)
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.description, func(t *testing.T) {
+			res, err := fs.CreateBackfill(ctx, tc.request)
+			if tc.expectedCode == codes.OK {
+				require.NoError(t, err)
+				require.NotNil(t, res)
+			} else {
+				require.Error(t, err)
+				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String())
+				require.Contains(t, status.Convert(err).Message(), tc.expectedMessage)
+			}
 		})
 	}
+
+	//expect error with canceled context
+
+	ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
+	cancel()
+
+	res, err := doCreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"test-arg": 1,
+			},
+		},
+	}}, store)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Nil(t, res)
 }
 
 func TestDoWatchAssignments(t *testing.T) {
