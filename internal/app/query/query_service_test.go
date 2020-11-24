@@ -79,6 +79,7 @@ func TestBackfillCache(t *testing.T) {
 		store:     store,
 		backfills: make(map[string]*pb.Backfill),
 	}
+
 	t.Run("IndexedButNotInCache", func(t *testing.T) {
 		bf1 := &pb.Backfill{
 			Id:         "backfill-01",
@@ -92,7 +93,10 @@ func TestBackfillCache(t *testing.T) {
 		bfCache.update()
 		require.Equal(t, 2, len(bfCache.backfills))
 	})
-	t.Run("NewVersionOfBackfillInCache", nil)
+
+	t.Run("NewVersionOfBackfillInCache", func(t *testing.T) {
+		t.Skip("TODO implement this scenario")
+	})
 }
 
 func storeAndIndex(ctx context.Context, service statestore.Service, backfills ...*pb.Backfill) {
