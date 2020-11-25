@@ -67,3 +67,35 @@ func TestCreateGetBackfill(t *testing.T) {
 	require.Nil(t, actual)
 	require.Equal(t, b1, actual)
 }
+
+// TestBackfillFrontendLifecycle Update Backfill test
+func TestBackfillFrontendLifecycle(t *testing.T) {
+	om := newOM(t)
+	ctx := context.Background()
+
+	bf := &pb.Backfill{SearchFields: &pb.SearchFields{
+		StringArgs: map[string]string{
+			"search": "me",
+		},
+	},
+	}
+	createdBf, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: bf})
+	require.Nil(t, err)
+
+	createdBf.SearchFields.StringArgs["key"] = "val"
+	updatedBf, err := om.Frontend().UpdateBackfill(ctx, &pb.UpdateBackfillRequest{Backfill: createdBf})
+	require.Nil(t, err)
+
+	// No changes to CreateTime
+	require.Equal(t, createdBf.CreateTime.GetNanos(), updatedBf.CreateTime.GetNanos())
+
+	get, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: createdBf.Id})
+	require.Nil(t, err)
+	require.Equal(t, createdBf.SearchFields.StringArgs, get.SearchFields.StringArgs)
+	_, err = om.Frontend().DeleteBackfill(ctx, &pb.DeleteBackfillRequest{BackfillId: createdBf.Id})
+	require.Nil(t, err)
+
+	get, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: createdBf.Id})
+	require.Error(t, err, "Backfill id: bup6oduvvhfj2n8o86b0 not foun4d")
+	require.Nil(t, get)
+}

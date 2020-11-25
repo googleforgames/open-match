@@ -137,6 +137,106 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 	return backfill, nil
 }
 
+// UpdateBackfill updates a Backfill object, if present.
+func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBackfillRequest) (*pb.Backfill, error) {
+	if req.Backfill == nil {
+		return nil, status.Errorf(codes.InvalidArgument, ".BackfillTicket is required")
+	}
+
+	backfill, ok := proto.Clone(req.Backfill).(*pb.Backfill)
+	if !ok {
+		return nil, status.Error(codes.Internal, "failed to clone input backfill proto")
+	}
+
+	bfID := backfill.Id
+	if bfID == "" {
+		return nil, status.Error(codes.Internal, "failed to clone input backfill proto")
+	}
+	m := s.store.NewMutex(bfID)
+
+	err := m.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if _, err = m.Unlock(ctx); err != nil {
+
+			logger.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("error on mutex unlock")
+		}
+	}()
+	bfStored, associatedTickets, err := s.store.GetBackfill(ctx, bfID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.store.DeleteTicketsFromPendingRelease(ctx, associatedTickets)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update generation here, because Frontend is used by GameServer only
+	backfill.Generation = bfStored.Generation + 1
+	err = s.store.UpdateBackfill(ctx, backfill, []string{})
+	if err != nil {
+		return nil, err
+	}
+
+	return backfill, nil
+}
+
+// DeleteBackfill deletes a Backfill by its ID.
+func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*empty.Empty, error) {
+	bfID := req.GetBackfillId()
+	if bfID == "" {
+		return nil, status.Errorf(codes.InvalidArgument, ".BackfillId is required")
+	}
+	err := doDeleteBackfill(ctx, bfID, s.store)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
+func doDeleteBackfill(ctx context.Context, id string, store statestore.Service) error {
+	m := store.NewMutex(id)
+	err := m.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if _, errUnlock := m.Unlock(ctx); errUnlock != nil {
+			logger.WithFields(logrus.Fields{
+				"error": errUnlock.Error(),
+			}).Error("error on mutex unlock")
+		}
+	}()
+
+	_, associatedTickets, err := store.GetBackfill(ctx, id)
+	// Skip NotFound errors if we can not retrieve the Backfill
+	if err != nil {
+		if status.Convert(err).Code() == codes.NotFound {
+			return nil
+		}
+		return err
+	}
+
+	err = store.DeleteTicketsFromPendingRelease(ctx, associatedTickets)
+	if err != nil {
+		return err
+	}
+	err = store.DeleteBackfill(ctx, id)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+			"id":    id,
+		}).Error("failed to delete the backfill")
+	}
+	// Deleting of Backfill is inevitable when it is expired, so we don't worry about error here
+	return nil
+}
+
 // DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
 // The client must delete the Ticket when finished matchmaking with it.
 //   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
@@ -230,18 +330,8 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
-// DeleteBackfill deletes a Backfill by its ID.
-func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*empty.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
-}
-
 // GetBackfill fetches a Backfill object by its ID.
 func (s *frontendService) GetBackfill(ctx context.Context, req *pb.GetBackfillRequest) (*pb.Backfill, error) {
 	bf, _, err := s.store.GetBackfill(ctx, req.GetBackfillId())
 	return bf, err
-}
-
-// UpdateBackfill updates a Backfill object, if present.
-func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBackfillRequest) (*pb.Backfill, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
