@@ -93,7 +93,7 @@ func TestCreateBackfill(t *testing.T) {
 	cfg := viper.New()
 	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()
-	ctx := context.Background()
+	ctx := utilTesting.NewContext(t)
 	fs := frontendService{cfg, store}
 
 	// Nil request check
@@ -406,7 +406,7 @@ func TestDoGetTicket(t *testing.T) {
 	}
 }
 
-func TestDoGetBackfill(t *testing.T) {
+func TestGetBackfill(t *testing.T) {
 	fakeBackfill := &pb.Backfill{
 		Id: "1",
 		SearchFields: &pb.SearchFields{
