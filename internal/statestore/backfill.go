@@ -194,8 +194,7 @@ func (rb *redisBackend) deleteExpiredBackfillID(ctx context.Context, backfillID 
 	defer handleConnectionClose(&redisConn)
 
 	cmds := make([]interface{}, 0, 2)
-	cmds = append(cmds, backfillLastAckTime)
-	cmds = append(cmds, backfillID)
+	cmds = append(cmds, backfillLastAckTime, backfillID)
 
 	_, err = redisConn.Do("ZREM", cmds...)
 	if err != nil {
