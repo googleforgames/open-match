@@ -387,7 +387,7 @@ func TestGetIndexedBackfills(t *testing.T) {
 		require.Equal(t, len(backfills), len(ids))
 
 		for _, bf := range backfills {
-			_, ok := ids[tt.GetId()]
+			_, ok := ids[bf.GetId()]
 			require.True(t, ok)
 		}
 	}
