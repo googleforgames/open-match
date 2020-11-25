@@ -303,7 +303,9 @@ func TestDeleteBackfill(t *testing.T) {
 	require.Contains(t, status.Convert(err).Message(), "DeleteBackfill, id: 12345, failed to connect to redis:")
 }
 
-func TestAcknowledgeBackfill(t *testing.T) {
+// TestAcknowledgeBackfillLifecycle test statestore functions - AcknowledgeBackfill, GetExpiredBackfillIDs
+// and deleteExpiredBackfillID
+func TestAcknowledgeBackfillLifecycle(t *testing.T) {
 	cfg, closer := createRedis(t, false, "")
 	defer closer()
 
@@ -346,7 +348,7 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, bf1, bfIDs[0])
 
-	err = service.DeleteExpiredBackfillIDs(ctx, bfIDs)
+	err = service.DeleteBackfill(ctx, bfIDs[0])
 	require.NoError(t, err)
 
 	bfIDs, err = service.GetExpiredBackfillIDs(ctx)

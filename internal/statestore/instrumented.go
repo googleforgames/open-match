@@ -155,10 +155,3 @@ func (is *instrumentedService) GetExpiredBackfillIDs(ctx context.Context) ([]str
 	defer span.End()
 	return is.s.GetExpiredBackfillIDs(ctx)
 }
-
-// DeleteExpiredBackfillIDs - delete expired BackfillIDs from a sorted set
-func (is *instrumentedService) DeleteExpiredBackfillIDs(ctx context.Context, backfillIDs []string) error {
-	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeleteExpiredBackfillIDs")
-	defer span.End()
-	return is.s.DeleteExpiredBackfillIDs(ctx, backfillIDs)
-}
