@@ -93,7 +93,7 @@ func TestCreateBackfill(t *testing.T) {
 	cfg := viper.New()
 	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()
-	ctx, _ := context.WithCancel(utilTesting.NewContext(t))
+	ctx := context.Background()
 	fs := frontendService{cfg, store}
 
 	// Nil request check
@@ -197,38 +197,6 @@ func TestDoCreateBackfill(t *testing.T) {
 				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String())
 				require.Contains(t, status.Convert(err).Message(), tc.expectedMessage)
 			}
-=======
-	tests := []struct {
-		description string
-		backfill    *pb.Backfill
-		wantCode    codes.Code
-	}{
-		{
-			description: "expect error with canceled context",
-			backfill: &pb.Backfill{
-				SearchFields: &pb.SearchFields{
-					DoubleArgs: map[string]float64{
-						"test-arg": 1,
-					},
-				},
-			},
-			wantCode: codes.Unavailable,
-		},
-	}
-
-	for _, test := range tests {
-		test := test
-		t.Run(test.description, func(t *testing.T) {
-			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
-			defer closer()
-
-			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
-			cancel()
-
-			res, err := doCreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: test.backfill}, store)
-			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
-			require.Nil(t, res)
->>>>>>> 901d0b5b... Applying comments
 		})
 	}
 
