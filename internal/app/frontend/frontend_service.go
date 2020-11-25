@@ -181,15 +181,60 @@ func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignme
 	return store.GetAssignments(ctx, id, callback)
 }
 
+// CreateBackfill creates a new Backfill object.
+// it assigns an unique Id to the input Backfill and record it in state storage.
+// A Backfill is considered as ready for matchmaking once it is created.
+//   - If SearchFields exist in a Backfill, CreateBackfill will also index these fields such that one can query the ticket with query.QueryBackfills function.
+func (s *frontendService) CreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest) (*pb.Backfill, error) {
+	// Perform input validation.
+	if req.Backfill == nil {
+		return nil, status.Errorf(codes.InvalidArgument, ".backfill is required")
+	}
+	if req.Backfill.CreateTime != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "backfills cannot be created with create time set")
+	}
+
+	return doCreateBackfill(ctx, req, s.store)
+}
+
+func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store statestore.Service) (*pb.Backfill, error) {
+	// Generate an id and create a Backfill in state storage
+	backfill, ok := proto.Clone(req.Backfill).(*pb.Backfill)
+	if !ok {
+		return nil, status.Error(codes.Internal, "failed to clone input backfill proto")
+	}
+
+	backfill.Id = xid.New().String()
+	backfill.CreateTime = ptypes.TimestampNow()
+
+	err := store.CreateBackfill(ctx, backfill, []string{})
+	if err != nil {
+		return nil, err
+	}
+	return backfill, nil
+}
+
 // AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info.
 // This triggers an assignment process.
 func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.AcknowledgeBackfillRequest) (*pb.Backfill, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
-}
+	if req.GetBackfillId() == "" {
+		return nil, status.Errorf(codes.InvalidArgument, ".BackfillId is required")
+	}
+	if req.GetAssignment().Connection == "" {
+		return nil, status.Errorf(codes.InvalidArgument, ".Assignment.Connection should be set")
+	}
 
-// CreateBackfill creates a new Backfill object.
-func (s *frontendService) CreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest) (*pb.Backfill, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	bf, associatedTickets, err := s.store.GetBackfill(ctx, req.GetBackfillId())
+	if err != nil {
+		return nil, err
+	}
+	ag := pb.AssignmentGroup{TicketIds: associatedTickets, Assignment: req.GetAssignment()}
+	if len(associatedTickets) != 0 {
+		_, _, err = s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
+			Assignments: []*pb.AssignmentGroup{&ag},
+		})
+	}
+	return bf, err
 }
 
 // DeleteBackfill deletes a Backfill by its ID.
