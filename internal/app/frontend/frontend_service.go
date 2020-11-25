@@ -139,8 +139,11 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 
 // UpdateBackfill updates a Backfill object, if present.
 func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBackfillRequest) (*pb.Backfill, error) {
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "request is nil")
+	}
 	if req.Backfill == nil {
-		return nil, status.Errorf(codes.InvalidArgument, ".BackfillTicket is required")
+		return nil, status.Errorf(codes.InvalidArgument, ".backfill is required")
 	}
 
 	backfill, ok := proto.Clone(req.Backfill).(*pb.Backfill)
@@ -150,7 +153,7 @@ func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBack
 
 	bfID := backfill.Id
 	if bfID == "" {
-		return nil, status.Error(codes.Internal, "failed to clone input backfill proto")
+		return nil, status.Error(codes.InvalidArgument, "backfill ID should exist")
 	}
 	m := s.store.NewMutex(bfID)
 
@@ -160,10 +163,7 @@ func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBack
 	}
 	defer func() {
 		if _, err = m.Unlock(ctx); err != nil {
-
-			logger.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("error on mutex unlock")
+			logger.WithError(err).Error("error on mutex unlock")
 		}
 	}()
 	bfStored, associatedTickets, err := s.store.GetBackfill(ctx, bfID)
