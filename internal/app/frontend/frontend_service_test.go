@@ -93,7 +93,7 @@ func TestCreateBackfill(t *testing.T) {
 	cfg := viper.New()
 	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()
-	ctx := context.Background()
+	ctx := utilTesting.NewContext(t)
 	fs := frontendService{cfg, store}
 
 	var testCases = []struct {
@@ -160,6 +160,24 @@ func TestCreateBackfill(t *testing.T) {
 			}
 		})
 	}
+
+	// expect error with canceled context
+	store, closer = statestoreTesting.NewStoreServiceForTesting(t, cfg)
+	fs = frontendService{cfg, store}
+	defer closer()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	res, err := fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"test-arg": 1,
+			},
+		},
+	}})
+	require.NotNil(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Nil(t, res)
 }
 
 func TestDoWatchAssignments(t *testing.T) {
@@ -349,7 +367,7 @@ func TestDoGetTicket(t *testing.T) {
 	}
 }
 
-func TestDoGetBackfill(t *testing.T) {
+func TestGetBackfill(t *testing.T) {
 	fakeBackfill := &pb.Backfill{
 		Id: "1",
 		SearchFields: &pb.SearchFields{
@@ -358,6 +376,8 @@ func TestDoGetBackfill(t *testing.T) {
 			},
 		},
 	}
+
+	cfg := viper.New()
 
 	tests := []struct {
 		description string
@@ -393,11 +413,11 @@ func TestDoGetBackfill(t *testing.T) {
 			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
 			defer closer()
+			fs := frontendService{cfg, store}
 
 			test.preAction(ctx, cancel, store)
 
-			backfill, l, err := store.GetBackfill(ctx, fakeBackfill.GetId())
-			require.Empty(t, l)
+			backfill, err := fs.GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: fakeBackfill.GetId()})
 			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
 
 			if err == nil {
