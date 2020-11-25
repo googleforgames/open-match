@@ -93,7 +93,7 @@ func TestCreateBackfill(t *testing.T) {
 	cfg := viper.New()
 	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()
-	ctx, _ := context.WithCancel(utilTesting.NewContext(t))
+	ctx := context.Background()
 	fs := frontendService{cfg, store}
 
 	var testCases = []struct {
@@ -160,21 +160,6 @@ func TestCreateBackfill(t *testing.T) {
 			}
 		})
 	}
-
-	//expect error with canceled context
-
-	ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
-	cancel()
-
-	res, err := doCreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
-		SearchFields: &pb.SearchFields{
-			DoubleArgs: map[string]float64{
-				"test-arg": 1,
-			},
-		},
-	}}, store)
-	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
-	require.Nil(t, res)
 }
 
 func TestDoWatchAssignments(t *testing.T) {
