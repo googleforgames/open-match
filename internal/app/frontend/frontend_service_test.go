@@ -95,46 +95,6 @@ func TestCreateBackfill(t *testing.T) {
 	defer closer()
 	ctx := utilTesting.NewContext(t)
 	fs := frontendService{cfg, store}
-
-	// Nil request check
-	res, err := fs.CreateBackfill(ctx, nil)
-	require.Nil(t, res)
-	require.NotNil(t, err)
-	require.Contains(t, err.Error(), "request is nil")
-
-	// Nil backfill - error is returned
-	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: nil})
-	require.Nil(t, res)
-	require.NotNil(t, err)
-	require.Contains(t, err.Error(), ".backfill is required")
-
-	// CreateTime should not exist in input
-	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{CreateTime: ptypes.TimestampNow()}})
-	require.Nil(t, res)
-	require.NotNil(t, err)
-	require.Contains(t, err.Error(), "backfills cannot be created with create time set")
-
-	// Empty Backfill, no errors
-	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{}})
-	require.NotNil(t, res)
-	require.Nil(t, err)
-
-	// Backfill with SearchFields, no errors
-	res, err = fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{
-		Backfill: &pb.Backfill{
-			SearchFields: &pb.SearchFields{
-				StringArgs: map[string]string{
-					"search": "me",
-				}}}})
-	require.NotNil(t, res)
-	require.Nil(t, err)
-}
-func TestDoCreateBackfill(t *testing.T) {
-	cfg := viper.New()
-	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
-	defer closer()
-	ctx := utilTesting.NewContext(t)
-	fs := frontendService{cfg, store}
 	var testCases = []struct {
 		description     string
 		request         *pb.CreateBackfillRequest
