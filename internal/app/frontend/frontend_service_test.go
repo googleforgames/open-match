@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -86,6 +87,97 @@ func TestDoCreateTickets(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCreateBackfill(t *testing.T) {
+	cfg := viper.New()
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+	defer closer()
+	ctx := utilTesting.NewContext(t)
+	fs := frontendService{cfg, store}
+
+	var testCases = []struct {
+		description     string
+		request         *pb.CreateBackfillRequest
+		result          *pb.Backfill
+		expectedCode    codes.Code
+		expectedMessage string
+	}{
+		{
+			description:     "nil request check",
+			request:         nil,
+			expectedCode:    codes.InvalidArgument,
+			expectedMessage: "request is nil",
+		},
+		{
+			description:     "nil backfill - error is returned",
+			request:         &pb.CreateBackfillRequest{Backfill: nil},
+			expectedCode:    codes.InvalidArgument,
+			expectedMessage: ".backfill is required",
+		},
+		{
+			description:     "createTime should not exist in input",
+			request:         &pb.CreateBackfillRequest{Backfill: nil},
+			expectedCode:    codes.InvalidArgument,
+			expectedMessage: ".backfill is required",
+		},
+		{
+			description:     "createTime should not exist in input",
+			request:         &pb.CreateBackfillRequest{Backfill: &pb.Backfill{CreateTime: ptypes.TimestampNow()}},
+			expectedCode:    codes.InvalidArgument,
+			expectedMessage: "backfills cannot be created with create time set",
+		},
+		{
+			description:     "empty Backfill, no errors",
+			request:         &pb.CreateBackfillRequest{Backfill: &pb.Backfill{}},
+			expectedCode:    codes.OK,
+			expectedMessage: "",
+		},
+		{
+			description: "normal backfill",
+			request: &pb.CreateBackfillRequest{
+				Backfill: &pb.Backfill{
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							"search": "me",
+						}}}},
+			expectedCode:    codes.OK,
+			expectedMessage: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.description, func(t *testing.T) {
+			res, err := fs.CreateBackfill(ctx, tc.request)
+			if tc.expectedCode == codes.OK {
+				require.NoError(t, err)
+				require.NotNil(t, res)
+			} else {
+				require.Error(t, err)
+				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String())
+				require.Contains(t, status.Convert(err).Message(), tc.expectedMessage)
+			}
+		})
+	}
+
+	// expect error with canceled context
+	store, closer = statestoreTesting.NewStoreServiceForTesting(t, cfg)
+	fs = frontendService{cfg, store}
+	defer closer()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	res, err := fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"test-arg": 1,
+			},
+		},
+	}})
+	require.NotNil(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Nil(t, res)
 }
 
 func TestDoWatchAssignments(t *testing.T) {
@@ -270,6 +362,67 @@ func TestDoGetTicket(t *testing.T) {
 			if err == nil {
 				require.Equal(t, test.wantTicket.GetId(), ticket.GetId())
 				require.Equal(t, test.wantTicket.SearchFields.DoubleArgs, ticket.SearchFields.DoubleArgs)
+			}
+		})
+	}
+}
+
+func TestGetBackfill(t *testing.T) {
+	fakeBackfill := &pb.Backfill{
+		Id: "1",
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"test-arg": 1,
+			},
+		},
+	}
+
+	cfg := viper.New()
+
+	tests := []struct {
+		description string
+		preAction   func(context.Context, context.CancelFunc, statestore.Service)
+		wantTicket  *pb.Backfill
+		wantCode    codes.Code
+	}{
+		{
+			description: "expect unavailable code since context is canceled before being called",
+			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
+				cancel()
+			},
+			wantCode: codes.Unavailable,
+		},
+		{
+			description: "expect not found code since ticket does not exist",
+			preAction:   func(_ context.Context, _ context.CancelFunc, _ statestore.Service) {},
+			wantCode:    codes.NotFound,
+		},
+		{
+			description: "expect ok code with output ticket equivalent to fakeBackfill",
+			preAction: func(ctx context.Context, _ context.CancelFunc, store statestore.Service) {
+				store.CreateBackfill(ctx, fakeBackfill, []string{})
+			},
+			wantCode:   codes.OK,
+			wantTicket: fakeBackfill,
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.description, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+			defer closer()
+			fs := frontendService{cfg, store}
+
+			test.preAction(ctx, cancel, store)
+
+			backfill, err := fs.GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: fakeBackfill.GetId()})
+			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
+
+			if err == nil {
+				require.Equal(t, test.wantTicket.GetId(), backfill.GetId())
+				require.Equal(t, test.wantTicket.SearchFields.DoubleArgs, backfill.SearchFields.DoubleArgs)
 			}
 		})
 	}
