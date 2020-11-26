@@ -148,7 +148,6 @@ func (rb *redisBackend) IndexBackfill(ctx context.Context, backfill *pb.Backfill
 	}
 	defer handleConnectionClose(&redisConn)
 
-	// TODO: review usage of version or stick with Generation
 	err = redisConn.Send("HSET", allBackfills, backfill.Id, backfill.Generation)
 	if err != nil {
 		err = errors.Wrapf(err, "failed to add backfill to all backfills, id: %s", backfill.Id)

@@ -101,8 +101,6 @@ type Service interface {
 
 	// GetIndexedBackfills returns a map containing the IDs and
 	// the Generation number of the backfills currently indexed.
-	//
-	// TODO: review here if Version is used or stick with Generation.
 	GetIndexedBackfills(ctx context.Context) (map[string]int, error)
 }
 
