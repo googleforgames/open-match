@@ -21,6 +21,6 @@ import "api/messages.proto";
 message BackfillInternal {
   // Represents a backfill entity which is used to fill partially full matches
   openmatch.Backfill backfill = 1;
-  // List of ticket IDs asossiated with a current backfill
+  // List of ticket IDs associated with a current backfill
   repeated string ticket_ids = 2;
 }
