@@ -25,8 +25,10 @@ import (
 )
 
 var (
-	totalBytesPerTicket   = stats.Int64("open-match.dev/frontend/total_bytes_per_ticket", "Total bytes per ticket", stats.UnitBytes)
-	searchFieldsPerTicket = stats.Int64("open-match.dev/frontend/searchfields_per_ticket", "Searchfields per ticket", stats.UnitDimensionless)
+	totalBytesPerTicket     = stats.Int64("open-match.dev/frontend/total_bytes_per_ticket", "Total bytes per ticket", stats.UnitBytes)
+	searchFieldsPerTicket   = stats.Int64("open-match.dev/frontend/searchfields_per_ticket", "Searchfields per ticket", stats.UnitDimensionless)
+	totalBytesPerBackfill   = stats.Int64("open-match.dev/frontend/total_bytes_per_backfill", "Total bytes per backfill", stats.UnitBytes)
+	searchFieldsPerBackfill = stats.Int64("open-match.dev/frontend/searchfields_per_backfill", "Searchfields per backfill", stats.UnitDimensionless)
 
 	totalBytesPerTicketView = &view.View{
 		Measure:     totalBytesPerTicket,
@@ -38,6 +40,18 @@ var (
 		Measure:     searchFieldsPerTicket,
 		Name:        "open-match.dev/frontend/searchfields_per_ticket",
 		Description: "SearchFields per ticket",
+		Aggregation: telemetry.DefaultCountDistribution,
+	}
+	totalBytesPerBackfillView = &view.View{
+		Measure:     totalBytesPerBackfill,
+		Name:        "open-match.dev/frontend/total_bytes_per_backfill",
+		Description: "Total bytes per backfill",
+		Aggregation: telemetry.DefaultBytesDistribution,
+	}
+	searchFieldsPerBackfillView = &view.View{
+		Measure:     searchFieldsPerBackfill,
+		Name:        "open-match.dev/frontend/searchfields_per_backfill",
+		Description: "SearchFields per backfill",
 		Aggregation: telemetry.DefaultCountDistribution,
 	}
 )
@@ -56,6 +70,8 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	b.RegisterViews(
 		totalBytesPerTicketView,
 		searchFieldsPerTicketView,
+		totalBytesPerBackfillView,
+		searchFieldsPerBackfillView,
 	)
 	return nil
 }
