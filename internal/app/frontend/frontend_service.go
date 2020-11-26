@@ -94,6 +94,49 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 	return ticket, nil
 }
 
+// CreateBackfill creates a new Backfill object.
+// it assigns an unique Id to the input Backfill and record it in state storage.
+// A Backfill is considered as ready for matchmaking once it is created.
+//   - If SearchFields exist in a Backfill, CreateBackfill will also index these fields such that one can query the ticket with query.QueryBackfills function.
+func (s *frontendService) CreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest) (*pb.Backfill, error) {
+	// Perform input validation.
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "request is nil")
+	}
+	if req.Backfill == nil {
+		return nil, status.Errorf(codes.InvalidArgument, ".backfill is required")
+	}
+	if req.Backfill.CreateTime != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "backfills cannot be created with create time set")
+	}
+
+	return doCreateBackfill(ctx, req, s.store)
+}
+
+func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store statestore.Service) (*pb.Backfill, error) {
+	// Generate an id and create a Backfill in state storage
+	backfill, ok := proto.Clone(req.Backfill).(*pb.Backfill)
+	if !ok {
+		return nil, status.Error(codes.Internal, "failed to clone input ticket proto")
+	}
+
+	backfill.Id = xid.New().String()
+	backfill.CreateTime = ptypes.TimestampNow()
+
+	sfCount := 0
+	sfCount += len(backfill.GetSearchFields().GetDoubleArgs())
+	sfCount += len(backfill.GetSearchFields().GetStringArgs())
+	sfCount += len(backfill.GetSearchFields().GetTags())
+	stats.Record(ctx, searchFieldsPerBackfill.M(int64(sfCount)))
+	stats.Record(ctx, totalBytesPerBackfill.M(int64(proto.Size(backfill))))
+
+	err := store.CreateBackfill(ctx, backfill, []string{})
+	if err != nil {
+		return nil, err
+	}
+	return backfill, nil
+}
+
 // DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
 // The client must delete the Ticket when finished matchmaking with it.
 //   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
@@ -187,41 +230,6 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
-// CreateBackfill creates a new Backfill object.
-func (s *frontendService) CreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest) (*pb.Backfill, error) {
-	// Perform input validation.
-	if req.Backfill == nil {
-		return nil, status.Errorf(codes.InvalidArgument, ".backfill is required")
-	}
-	if req.Backfill.CreateTime != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "backfills cannot be created with create time set")
-	}
-
-	return doCreateBackfill(ctx, req, s.store)
-}
-
-func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store statestore.Service) (*pb.Backfill, error) {
-	// Generate an id and create a Backfill in state storage
-	backfill, ok := proto.Clone(req.Backfill).(*pb.Backfill)
-	if !ok {
-		return nil, status.Error(codes.Internal, "failed to clone input ticket proto")
-	}
-
-	backfill.Id = xid.New().String()
-	backfill.CreateTime = ptypes.TimestampNow()
-
-	err := store.CreateBackfill(ctx, backfill, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := store.IndexBackfill(ctx, backfill); err != nil {
-		return nil, err
-	}
-
-	return backfill, nil
-}
-
 // DeleteBackfill deletes a Backfill by its ID.
 func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*empty.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
@@ -229,7 +237,8 @@ func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBack
 
 // GetBackfill fetches a Backfill object by its ID.
 func (s *frontendService) GetBackfill(ctx context.Context, req *pb.GetBackfillRequest) (*pb.Backfill, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	bf, _, err := s.store.GetBackfill(ctx, req.GetBackfillId())
+	return bf, err
 }
 
 // UpdateBackfill updates a Backfill object, if present.
