@@ -256,6 +256,8 @@ func TestDeleteBackfill(t *testing.T) {
 	}, nil)
 	require.NoError(t, err)
 
+	// Update Last Acknowledge timestamp
+	// Which is also performed on Frontend CreateBackfill
 	pool := GetRedisPool(cfg)
 	conn := pool.Get()
 	_, err = conn.Do("ZADD", backfillLastAckTime, time.Now().UnixNano(), bfID)
@@ -263,19 +265,19 @@ func TestDeleteBackfill(t *testing.T) {
 
 	var testCases = []struct {
 		description     string
-		ticketID        string
+		backfillID      string
 		expectedCode    codes.Code
 		expectedMessage string
 	}{
 		{
 			description:     "backfill is found and deleted",
-			ticketID:        bfID,
+			backfillID:      bfID,
 			expectedCode:    codes.OK,
 			expectedMessage: "",
 		},
 		{
 			description:     "empty id passed, no err expected",
-			ticketID:        "",
+			backfillID:      "",
 			expectedCode:    codes.OK,
 			expectedMessage: "",
 		},
@@ -284,20 +286,18 @@ func TestDeleteBackfill(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
-			errActual := service.DeleteBackfill(ctx, tc.ticketID)
-			if tc.expectedCode == codes.OK {
-				require.NoError(t, errActual)
+			errActual := service.DeleteBackfill(ctx, tc.backfillID)
+			require.NoError(t, errActual)
 
-				if tc.ticketID != "" {
-					_, errGetTicket := service.GetTicket(ctx, tc.ticketID)
-					require.Error(t, errGetTicket)
-					require.Equal(t, codes.NotFound.String(), status.Convert(errGetTicket).Code().String())
-				}
-			} else {
-				require.Error(t, errActual)
-				require.Equal(t, tc.expectedCode.String(), status.Convert(errActual).Code().String())
-				require.Contains(t, status.Convert(errActual).Message(), tc.expectedMessage)
+			if tc.backfillID != "" {
+				_, errGetTicket := service.GetTicket(ctx, tc.backfillID)
+				require.Error(t, errGetTicket)
+				require.Equal(t, codes.NotFound.String(), status.Convert(errGetTicket).Code().String())
 			}
+
+			// test that Backfill also deleted from last acknowledged sorted set
+			_, err = redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, tc.backfillID))
+			require.Error(t, err)
 		})
 	}
 
@@ -310,9 +310,6 @@ func TestDeleteBackfill(t *testing.T) {
 	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), "DeleteBackfill, id: 12345, failed to connect to redis:")
 
-	// test that Backfill also deleted from last acknowledged sorted set
-	_, err = redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, bfID))
-	require.Error(t, err)
 }
 
 // TestAcknowledgeBackfillLifecycle test statestore functions - AcknowledgeBackfill, GetExpiredBackfillIDs
@@ -375,7 +372,7 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	cfg, closer := createRedis(t, false, "")
 	defer closer()
 
-	curTime := time.Now()
+	startTime := time.Now()
 	service := New(cfg)
 	require.NotNil(t, service)
 	defer service.Close()
@@ -394,8 +391,26 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	conn := pool.Get()
 	res, err := redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, bf1))
 	require.NoError(t, err)
-	require.True(t, (time.Unix(res/1e9, res%1e9).Sub(curTime)) < time.Second)
+	// Create a time.Time from Unix nanoseconds and make sure, that time difference
+	// is less than one second
+	timeDiff := time.Unix(res/1e9, res%1e9).Sub(startTime)
+	require.True(t, timeDiff < time.Second)
+	require.True(t, timeDiff > 0)
+}
 
+func TestAcknowledgeBackfillConnectionError(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	bf1 := "mockBackfill"
+	ctx := utilTesting.NewContext(t)
+	err := service.CreateBackfill(ctx, &pb.Backfill{
+		Id:         bf1,
+		Generation: 1,
+	}, nil)
+	require.NoError(t, err)
 	cfg = createInvalidRedisConfig()
 	service = New(cfg)
 	require.NotNil(t, service)
