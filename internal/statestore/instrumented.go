@@ -142,7 +142,7 @@ func (is *instrumentedService) NewMutex(key string) RedisLocker {
 	return is.s.NewMutex(key)
 }
 
-// AcknowledgeBackfill - store Backfill's last accessed time
+// AcknowledgeBackfill stores Backfill's last acknowledged time
 func (is *instrumentedService) AcknowledgeBackfill(ctx context.Context, id string) error {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.AcknowledgeBackfill")
 	defer span.End()
