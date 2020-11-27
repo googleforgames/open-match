@@ -140,7 +140,8 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	return nil
 }
 
-// AcknowledgeBackfill - stores Backfill's last acknowledgement time
+// AcknowledgeBackfill - stores Backfill's last acknowledgement time.
+// Check on Backfill existence should be performed on Frontend side
 func (rb *redisBackend) AcknowledgeBackfill(ctx context.Context, id string) error {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
@@ -154,8 +155,8 @@ func (rb *redisBackend) AcknowledgeBackfill(ctx context.Context, id string) erro
 
 	_, err = redisConn.Do("ZADD", cmds...)
 	if err != nil {
-		err = errors.Wrap(err, "failed to store backfill's last acknowledgement time")
-		return status.Error(codes.Internal, err.Error())
+		return status.Errorf(codes.Internal, "%v",
+			errors.Wrap(err, "failed to store backfill's last acknowledgement time"))
 	}
 
 	return nil

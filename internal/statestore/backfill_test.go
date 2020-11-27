@@ -21,9 +21,11 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/config"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -247,10 +249,16 @@ func TestDeleteBackfill(t *testing.T) {
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
+	bfID := "mockBackfillID"
 	err := service.CreateBackfill(ctx, &pb.Backfill{
-		Id:         "mockBackfillID",
+		Id:         bfID,
 		Generation: 1,
 	}, nil)
+	require.NoError(t, err)
+
+	pool := GetRedisPool(cfg)
+	conn := pool.Get()
+	_, err = conn.Do("ZADD", backfillLastAckTime, time.Now().UnixNano(), bfID)
 	require.NoError(t, err)
 
 	var testCases = []struct {
@@ -261,7 +269,7 @@ func TestDeleteBackfill(t *testing.T) {
 	}{
 		{
 			description:     "backfill is found and deleted",
-			ticketID:        "mockBackfillID",
+			ticketID:        bfID,
 			expectedCode:    codes.OK,
 			expectedMessage: "",
 		},
@@ -301,6 +309,10 @@ func TestDeleteBackfill(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), "DeleteBackfill, id: 12345, failed to connect to redis:")
+
+	// test that Backfill also deleted from last acknowledged sorted set
+	_, err = redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, bfID))
+	require.Error(t, err)
 }
 
 // TestAcknowledgeBackfillLifecycle test statestore functions - AcknowledgeBackfill, GetExpiredBackfillIDs
@@ -341,6 +353,8 @@ func TestAcknowledgeBackfillLifecycle(t *testing.T) {
 	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
 	require.Len(t, bfIDs, 2)
 	require.NoError(t, err)
+
+	// Acknowledge one Backfill it should be removed from GetExpired output
 	err = service.AcknowledgeBackfill(ctx, bf2)
 	require.NoError(t, err)
 	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
@@ -354,4 +368,71 @@ func TestAcknowledgeBackfillLifecycle(t *testing.T) {
 	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
 	require.Len(t, bfIDs, 0)
 	require.NoError(t, err)
+}
+
+// TestAcknowledgeBackfill test statestore function AcknowledgeBackfill
+func TestAcknowledgeBackfill(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+
+	curTime := time.Now()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+	bf1 := "mockBackfillID"
+	err := service.CreateBackfill(ctx, &pb.Backfill{
+		Id:         bf1,
+		Generation: 1,
+	}, nil)
+	require.NoError(t, err)
+	err = service.AcknowledgeBackfill(ctx, bf1)
+	require.NoError(t, err)
+
+	// Check that Acknowledge timestamp stored valid in Redis
+	pool := GetRedisPool(cfg)
+	conn := pool.Get()
+	res, err := redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, bf1))
+	require.NoError(t, err)
+	require.True(t, (time.Unix(res/1e9, res%1e9).Sub(curTime)) < time.Second)
+
+	cfg = createInvalidRedisConfig()
+	service = New(cfg)
+	require.NotNil(t, service)
+	err = service.AcknowledgeBackfill(ctx, bf1)
+	require.Error(t, err, "failed to connect to redis:")
+}
+
+func createInvalidRedisConfig() config.View {
+	cfg := viper.New()
+
+	cfg.Set("redis.hostname", "localhost")
+	cfg.Set("redis.port", 222)
+	return cfg
+}
+
+// TestGetExpiredBackfillIDs test statestore function GetExpiredBackfillIDs
+func TestGetExpiredBackfillIDs(t *testing.T) {
+	// Prepare expired and normal BackfillIds in a Redis Sorted Set
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+
+	expID := "expired"
+	goodID := "fresh"
+	pool := GetRedisPool(cfg)
+	conn := pool.Get()
+	_, err := conn.Do("ZADD", backfillLastAckTime, 123, expID)
+	require.NoError(t, err)
+	_, err = conn.Do("ZADD", backfillLastAckTime, time.Now().UnixNano(), goodID)
+	require.NoError(t, err)
+
+	// GetExpiredBackfillIDs should return only expired BF
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+	bfIDs, err := service.GetExpiredBackfillIDs(ctx)
+	require.NoError(t, err)
+	require.Len(t, bfIDs, 1)
+	require.Equal(t, expID, bfIDs[0])
 }
