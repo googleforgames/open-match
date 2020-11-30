@@ -96,7 +96,7 @@ type Service interface {
 	// AcknowledgeBackfill stores Backfill's last acknowledged time
 	AcknowledgeBackfill(ctx context.Context, id string) error
 
-	// GetExpiredBackfillIDs - get all backfill IDs which are expired
+	// GetExpiredBackfillIDs gets all backfill IDs which are expired
 	GetExpiredBackfillIDs(ctx context.Context) ([]string, error)
 
 	// IndexBackfill adds the backfill to the index.

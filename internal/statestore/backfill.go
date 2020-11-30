@@ -142,7 +142,7 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	return nil
 }
 
-// AcknowledgeBackfill - stores Backfill's last acknowledgement time.
+// AcknowledgeBackfill stores Backfill's last acknowledgement time.
 // Check on Backfill existence should be performed on Frontend side
 func (rb *redisBackend) AcknowledgeBackfill(ctx context.Context, id string) error {
 	redisConn, err := rb.redisPool.GetContext(ctx)
@@ -165,7 +165,7 @@ func (rb *redisBackend) AcknowledgeBackfill(ctx context.Context, id string) erro
 
 }
 
-// GetExpiredBackfillIDs - get all backfill IDs which are expired
+// GetExpiredBackfillIDs gets all backfill IDs which are expired
 func (rb *redisBackend) GetExpiredBackfillIDs(ctx context.Context) ([]string, error) {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
@@ -188,7 +188,7 @@ func (rb *redisBackend) GetExpiredBackfillIDs(ctx context.Context) ([]string, er
 	return expiredBackfillIds, nil
 }
 
-// deleteExpiredBackfillID - delete expired BackfillID from a sorted set
+// deleteExpiredBackfillID deletes expired BackfillID from a sorted set
 func (rb *redisBackend) deleteExpiredBackfillID(conn redis.Conn, backfillID string) error {
 	cmds := make([]interface{}, 0, 2)
 	cmds = append(cmds, backfillLastAckTime, backfillID)

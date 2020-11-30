@@ -286,6 +286,12 @@ func TestDeleteBackfill(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
+			if tc.backfillID != "" {
+				// test that Backfill last acknowledged is in a sorted set
+				ts, err := redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, tc.backfillID))
+				require.NoError(t, err)
+				require.True(t, ts > 0, "timestamp is valid")
+			}
 			errActual := service.DeleteBackfill(ctx, tc.backfillID)
 			require.NoError(t, errActual)
 
@@ -293,11 +299,11 @@ func TestDeleteBackfill(t *testing.T) {
 				_, errGetTicket := service.GetTicket(ctx, tc.backfillID)
 				require.Error(t, errGetTicket)
 				require.Equal(t, codes.NotFound.String(), status.Convert(errGetTicket).Code().String())
+				// test that Backfill also deleted from last acknowledged sorted set
+				_, err := redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, tc.backfillID))
+				require.Error(t, err)
+				require.Equal(t, err.Error(), "redigo: nil returned")
 			}
-
-			// test that Backfill also deleted from last acknowledged sorted set
-			_, err = redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, tc.backfillID))
-			require.Error(t, err)
 		})
 	}
 
