@@ -28,11 +28,6 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-const (
-	allTickets        = "allTickets"
-	proposedTicketIDs = "proposed_ticket_ids"
-)
-
 // CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
 func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
 	redisConn, err := rb.redisPool.GetContext(ctx)
@@ -420,21 +415,4 @@ func (rb *redisBackend) ReleaseAllTickets(ctx context.Context) error {
 
 	_, err = redisConn.Do("DEL", proposedTicketIDs)
 	return err
-}
-
-func (rb *redisBackend) newConstantBackoffStrategy() backoff.BackOff {
-	backoffStrat := backoff.NewConstantBackOff(rb.cfg.GetDuration("backoff.initialInterval"))
-	return backoff.BackOff(backoffStrat)
-}
-
-// TODO: add cache the backoff object
-// nolint: unused
-func (rb *redisBackend) newExponentialBackoffStrategy() backoff.BackOff {
-	backoffStrat := backoff.NewExponentialBackOff()
-	backoffStrat.InitialInterval = rb.cfg.GetDuration("backoff.initialInterval")
-	backoffStrat.RandomizationFactor = rb.cfg.GetFloat64("backoff.randFactor")
-	backoffStrat.Multiplier = rb.cfg.GetFloat64("backoff.multiplier")
-	backoffStrat.MaxInterval = rb.cfg.GetDuration("backoff.maxInterval")
-	backoffStrat.MaxElapsedTime = rb.cfg.GetDuration("backoff.maxElapsedTime")
-	return backoff.BackOff(backoffStrat)
 }

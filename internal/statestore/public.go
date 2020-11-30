@@ -85,6 +85,8 @@ type Service interface {
 	// UpdateBackfill updates an existing Backfill with a new data. Caller has to provide a custom updateFunc if this function is called not for the game server.
 	UpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIds []string) error
 
+	NewMutex(key string) RedisLocker
+
 	// IndexBackfill adds the backfill to the index.
 	IndexBackfill(ctx context.Context, backfill *pb.Backfill) error
 
@@ -92,7 +94,7 @@ type Service interface {
 	DeindexBackfill(ctx context.Context, id string) error
 
 	// GetIndexedIDSet returns the ids of all tickets currently indexed.
-	GetIndexedBackfills(ctx context.Context) (map[string]struct{}, error)
+	GetIndexedBackfills(ctx context.Context) (map[string]int, error)
 }
 
 // New creates a Service based on the configuration.

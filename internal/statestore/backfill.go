@@ -27,10 +27,6 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-const (
-	allBackfills = "allBackfills"
-)
-
 // CreateBackfill creates a new Backfill in the state storage if one doesn't exist. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
 func (rb *redisBackend) CreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error {
 	redisConn, err := rb.redisPool.GetContext(ctx)

@@ -230,41 +230,6 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
-// CreateBackfill creates a new Backfill object.
-func (s *frontendService) CreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest) (*pb.Backfill, error) {
-	// Perform input validation.
-	if req.Backfill == nil {
-		return nil, status.Errorf(codes.InvalidArgument, ".backfill is required")
-	}
-	if req.Backfill.CreateTime != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "backfills cannot be created with create time set")
-	}
-
-	return doCreateBackfill(ctx, req, s.store)
-}
-
-func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store statestore.Service) (*pb.Backfill, error) {
-	// Generate an id and create a Backfill in state storage
-	backfill, ok := proto.Clone(req.Backfill).(*pb.Backfill)
-	if !ok {
-		return nil, status.Error(codes.Internal, "failed to clone input ticket proto")
-	}
-
-	backfill.Id = xid.New().String()
-	backfill.CreateTime = ptypes.TimestampNow()
-
-	err := store.CreateBackfill(ctx, backfill, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := store.IndexBackfill(ctx, backfill); err != nil {
-		return nil, err
-	}
-
-	return backfill, nil
-}
-
 // DeleteBackfill deletes a Backfill by its ID.
 func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*empty.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
