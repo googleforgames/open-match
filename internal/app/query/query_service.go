@@ -316,10 +316,11 @@ collectAllWaiting:
 	// Send WaitGroup to query calls, letting them run their query on the ticket
 	// cache.
 	for _, req := range reqs {
+		tc.wg.Add(1)
 		select {
 		case req.runNow <- struct{}{}:
-			tc.wg.Add(1)
 		case <-req.ctx.Done():
+			tc.wg.Done()
 		}
 	}
 
