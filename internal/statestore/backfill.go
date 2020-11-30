@@ -22,10 +22,18 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/pkg/pb"
+)
+
+var (
+	logger = logrus.WithFields(logrus.Fields{
+		"app":       "openmatch",
+		"component": "statestore",
+	})
 )
 
 const (
@@ -158,21 +166,30 @@ func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
 	for _, id := range expiredBfIDs {
 		_, tickets, err := rb.GetBackfill(ctx, id)
 		if err != nil {
-			return nil
+			logger.WithFields(logrus.Fields{
+				"error":       err.Error(),
+				"backfill id": id,
+			}).Error("cleanup failed to get the backfill")
+			continue
 		}
 
 		err = rb.DeleteBackfill(ctx, id)
 		if err != nil {
-			return nil
+			logger.WithFields(logrus.Fields{
+				"error":       err.Error(),
+				"backfill id": id,
+			}).Error("cleanup failed to delete the backfill")
 		}
 
 		err = rb.DeleteTicketsFromPendingRelease(ctx, tickets)
 		if err != nil {
-			return nil
+			logger.WithFields(logrus.Fields{
+				"error":       err.Error(),
+				"backfill id": id,
+			}).Error("cleanup failed to delete tickets from pending release")
 		}
 	}
-
-	return rb.DeleteExpiredBackfillIDs(ctx, expiredBfIDs)
+	return nil
 }
 
 // AcknowledgeBackfill stores Backfill's last acknowledgement time.
