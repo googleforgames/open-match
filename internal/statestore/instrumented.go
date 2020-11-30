@@ -141,3 +141,10 @@ func (is *instrumentedService) NewMutex(key string) RedisLocker {
 	defer span.End()
 	return is.s.NewMutex(key)
 }
+
+// CleanupBackfills removes expired backfills
+func (is *instrumentedService) CleanupBackfills(ctx context.Context) error {
+	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.CleanupBackfills")
+	defer span.End()
+	return is.s.CleanupBackfills(ctx)
+}

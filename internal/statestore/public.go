@@ -84,6 +84,9 @@ type Service interface {
 
 	// NewMutex returns an interface of a new distributed mutex with given name
 	NewMutex(key string) RedisLocker
+
+	// CleanupBackfills removes expired backfills
+	CleanupBackfills(ctx context.Context) error
 }
 
 // New creates a Service based on the configuration.

@@ -16,6 +16,7 @@ package statestore
 
 import (
 	"context"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -130,6 +131,108 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	if err != nil {
 		err = errors.Wrapf(err, "failed to set the value for backfill, id: %s", backfill.GetId())
 		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	return nil
+}
+
+// CleanupBackfills removes expired backfills
+func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "CleanupBackfills, failed to connect to redis: %v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	expiredBfIDs, err := rb.GetExpiredBackfillIDs(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, id := range expiredBfIDs {
+		_, tickets, err := rb.GetBackfill(ctx, id)
+		if err != nil {
+			return nil
+		}
+
+		err = rb.DeleteBackfill(ctx, id)
+		if err != nil {
+			return nil
+		}
+
+		err = rb.DeleteTicketsFromPendingRelease(ctx, tickets)
+		if err != nil {
+			return nil
+		}
+	}
+
+	return rb.DeleteExpiredBackfillIDs(ctx, expiredBfIDs)
+}
+
+//TODO: REMOVE!!!
+
+const (
+	backfillLastAckTime = "backfill_last_ack_time"
+)
+
+func (rb *redisBackend) GetExpiredBackfillIDs(ctx context.Context) ([]string, error) {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unavailable, "GetExpiredBackfillIDs, failed to connect to redis: %v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	// the same TTL is used for both Backfills and pendingRelease Tickets
+	ttl := rb.cfg.GetDuration("pendingReleaseTimeout")
+	curTime := time.Now()
+	endTimeInt := curTime.Add(-ttl).UnixNano()
+	startTimeInt := 0
+
+	// Filter out tickets that are fetched but not assigned within TTL time (ms).
+	expiredBackfillIds, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", backfillLastAckTime, startTimeInt, endTimeInt))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error getting expired backfills %v", err)
+	}
+
+	return expiredBackfillIds, nil
+}
+
+func (rb *redisBackend) DeleteExpiredBackfillIDs(ctx context.Context, backfillIDs []string) error {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "DeleteExpiredBackfillIDs, failed to connect to redis: %v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	cmds := make([]interface{}, 0, len(backfillIDs)+1)
+	cmds = append(cmds, backfillLastAckTime)
+	for _, id := range backfillIDs {
+		cmds = append(cmds, id)
+	}
+
+	_, err = redisConn.Do("ZREM", cmds...)
+	if err != nil {
+		err = errors.Wrap(err, "failed to delete proposed tickets from pending release")
+		return status.Error(codes.Internal, err.Error())
+	}
+	return nil
+}
+
+func (rb *redisBackend) AcknowledgeBackfill(ctx context.Context, id string) error {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "AcknowledgeBackfill, id: %s, failed to connect to redis: %v", id, err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	currentTime := time.Now().UnixNano()
+	cmds := make([]interface{}, 0)
+	cmds = append(cmds, backfillLastAckTime, currentTime, id)
+
+	_, err = redisConn.Do("ZADD", cmds...)
+	if err != nil {
+		err = errors.Wrap(err, "failed to store backfill's last acknowledgement time")
+		return status.Error(codes.Internal, err.Error())
 	}
 
 	return nil

@@ -117,7 +117,7 @@ func TestUpdateBackfill(t *testing.T) {
 			expectedMessage: "",
 		},
 		{
-			description:     "create existing backfill, no err expected",
+			description:     "create existing backfill, no err expecteds",
 			backfill:        &bf,
 			ticketIDs:       nil,
 			expectedCode:    codes.OK,
@@ -133,7 +133,7 @@ func TestUpdateBackfill(t *testing.T) {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String())
+				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String(), "QQQ")
 				require.Contains(t, status.Convert(err).Message(), tc.expectedMessage)
 			}
 		})
@@ -300,4 +300,34 @@ func TestDeleteBackfill(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), "DeleteBackfill, id: 12345, failed to connect to redis:")
+}
+
+func TestCleanupBackfills(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	rc, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
+	require.NoError(t, err)
+
+	bfID := "mockBackfill-1"
+	ticket1ID := "t1"
+	ticket2ID := "t2"
+	ticketIDs := []string{ticket1ID, ticket2ID}
+
+	err = service.CreateBackfill(ctx, &pb.Backfill{
+		Id:         bfID,
+		Generation: 1,
+	}, ticketIDs)
+	require.NoError(t, err)
+
+	// add expired but acknowledged backfill
+	_, err = rc.Do("ZADD", "backfill_last_ack_time", 123, bfID)
+	require.NoError(t, err)
+
+	err = service.AddTicketsToPendingRelease(ctx, ticketIDs)
+	require.NoError(t, err)
 }
