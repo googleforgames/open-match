@@ -195,8 +195,8 @@ func (rb *redisBackend) deleteExpiredBackfillID(conn redis.Conn, backfillID stri
 
 	_, err := conn.Do("ZREM", cmds...)
 	if err != nil {
-		return status.Errorf(codes.Internal, "failed to delete expired backfill ID %v",
-			errors.Wrap(err, "failed to delete expired backfill ID from Sorted Set"))
+		return status.Errorf(codes.Internal, "failed to delete expired backfill ID %s from Sorted Set %s",
+			backfillID, err.Error())
 	}
 	return nil
 }
