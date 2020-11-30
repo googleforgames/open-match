@@ -35,10 +35,12 @@ type Service interface {
 	// CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
 	CreateTicket(ctx context.Context, ticket *pb.Ticket) error
 
-	// GetTicket gets the Ticket with the specified id from state storage. This method fails if the Ticket does not exist.
+	// GetTicket gets the Ticket with the specified id from state storage.
+	// This method fails if the Ticket does not exist.
 	GetTicket(ctx context.Context, id string) (*pb.Ticket, error)
 
-	// DeleteTicket removes the Ticket with the specified id from state storage. This method succeeds if the Ticket does not exist.
+	// DeleteTicket removes the Ticket with the specified id from state storage.
+	// This method succeeds if the Ticket does not exist.
 	DeleteTicket(ctx context.Context, id string) error
 
 	// IndexTicket adds the ticket to the index.
@@ -50,33 +52,39 @@ type Service interface {
 	// GetIndexedIDSet returns the ids of all tickets currently indexed.
 	GetIndexedIDSet(ctx context.Context) (map[string]struct{}, error)
 
-	// GetTickets returns multiple tickets from storage.  Missing tickets are
-	// silently ignored.
+	// GetTickets returns multiple tickets from storage.
+	// Missing tickets are silently ignored.
 	GetTickets(ctx context.Context, ids []string) ([]*pb.Ticket, error)
 
 	// UpdateAssignments update using the request's specified tickets with assignments.
 	UpdateAssignments(ctx context.Context, req *pb.AssignTicketsRequest) (*pb.AssignTicketsResponse, []*pb.Ticket, error)
 
-	// GetAssignments returns the assignment associated with the input ticket id
+	// GetAssignments returns the assignment associated with the input ticket id.
 	GetAssignments(ctx context.Context, id string, callback func(*pb.Assignment) error) error
 
+	// AddTicketsToPendingRelease appends new proposed tickets to the proposed sorted set with current timestamp.
 	AddTicketsToPendingRelease(ctx context.Context, ids []string) error
 
-	// DeleteTicketsFromPendingRelease deletes tickets from the proposed sorted set
+	// DeleteTicketsFromPendingRelease deletes tickets from the proposed sorted set.
 	DeleteTicketsFromPendingRelease(ctx context.Context, ids []string) error
 
-	// ReleaseAllTickets releases all pending tickets back to active
+	// ReleaseAllTickets releases all pending tickets back to active.
 	ReleaseAllTickets(ctx context.Context) error
 
 	// Backfill
 
-	// CreateBackfill creates a new Backfill in the state storage if one doesn't exist. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
+	// CreateBackfill creates a new Backfill in the state storage if one doesn't exist.
+	// The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization.
+	// Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
 	CreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error
 
-	// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and associated ticketIDs if they exist.
+	// GetBackfill gets the Backfill with the specified id from state storage.
+	// This method fails if the Backfill does not exist.
+	// Returns the Backfill and asossiated ticketIDs if they exist.
 	GetBackfill(ctx context.Context, id string) (*pb.Backfill, []string, error)
 
-	// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
+	// DeleteBackfill removes the Backfill with the specified id from state storage.
+	// This method succeeds if the Backfill does not exist.
 	DeleteBackfill(ctx context.Context, id string) error
 
 	// UpdateBackfill updates an existing Backfill with a new data. ticketIDs can be nil.
@@ -90,6 +98,16 @@ type Service interface {
 
 	// GetExpiredBackfillIDs - get all backfill IDs which are expired
 	GetExpiredBackfillIDs(ctx context.Context) ([]string, error)
+
+	// IndexBackfill adds the backfill to the index.
+	IndexBackfill(ctx context.Context, backfill *pb.Backfill) error
+
+	// DeindexBackfill removes specified Backfill ID from the index. The Backfill continues to exist.
+	DeindexBackfill(ctx context.Context, id string) error
+
+	// GetIndexedBackfills returns a map containing the IDs and
+	// the Generation number of the backfills currently indexed.
+	GetIndexedBackfills(ctx context.Context) (map[string]int, error)
 }
 
 // New creates a Service based on the configuration.

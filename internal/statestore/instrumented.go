@@ -155,3 +155,24 @@ func (is *instrumentedService) GetExpiredBackfillIDs(ctx context.Context) ([]str
 	defer span.End()
 	return is.s.GetExpiredBackfillIDs(ctx)
 }
+
+// IndexBackfill adds the backfill to the index.
+func (is *instrumentedService) IndexBackfill(ctx context.Context, backfill *pb.Backfill) error {
+	_, span := trace.StartSpan(ctx, "statestore/instrumented.IndexBackfill")
+	defer span.End()
+	return is.s.IndexBackfill(ctx, backfill)
+}
+
+// DeindexBackfill removes specified Backfill ID from the index. The Backfill continues to exist.
+func (is *instrumentedService) DeindexBackfill(ctx context.Context, id string) error {
+	_, span := trace.StartSpan(ctx, "statestore/instrumented.DeindexBackfill")
+	defer span.End()
+	return is.s.DeindexBackfill(ctx, id)
+}
+
+// GetIndexedBackfills returns the ids of all backfills currently indexed.
+func (is *instrumentedService) GetIndexedBackfills(ctx context.Context) (map[string]int, error) {
+	_, span := trace.StartSpan(ctx, "statestore/instrumented.GetIndexedBackfills")
+	defer span.End()
+	return is.s.GetIndexedBackfills(ctx)
+}

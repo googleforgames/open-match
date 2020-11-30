@@ -590,7 +590,7 @@ func TestIndexTicket(t *testing.T) {
 
 	c, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
 	require.NoError(t, err)
-	idsIndexed, err := redis.Strings(c.Do("SMEMBERS", "allTickets"))
+	idsIndexed, err := redis.Strings(c.Do("SMEMBERS", allTickets))
 	require.NoError(t, err)
 	require.Len(t, idsIndexed, 2)
 	require.Equal(t, "mockTicketID-0", idsIndexed[0])
