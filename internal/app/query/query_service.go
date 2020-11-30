@@ -41,9 +41,9 @@ var (
 // queryService API provides utility functions for common MMF functionality such
 // as retreiving Tickets from state storage.
 type queryService struct {
-	cfg     config.View
-	tc      *ticketCache
-	bfCache *backfillCache
+	cfg config.View
+	tc  *ticketCache
+	bfc *backfillCache
 }
 
 func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.QueryService_QueryTicketsServer) error {
@@ -151,7 +151,7 @@ func (s *queryService) QueryBackfills(req *pb.QueryBackfillsRequest, responseSer
 
 	ctx := responseServer.Context()
 	var results []*pb.Backfill
-	err = s.bfCache.requestBackfills(ctx, func(backfills map[string]*pb.Backfill) {
+	err = s.bfc.requestBackfills(ctx, func(backfills map[string]*pb.Backfill) {
 		for _, backfill := range backfills {
 			if pf.In(backfill) {
 				results = append(results, backfill)
