@@ -20,6 +20,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
@@ -124,4 +125,29 @@ func storeAndIndex(ctx context.Context, service statestore.Service, backfills ..
 		service.CreateBackfill(ctx, bf, []string{})
 		service.IndexBackfill(ctx, bf)
 	}
+}
+
+type mockQueryService struct {
+	grpc.ServerStream
+	Results []*pb.QueryBackfillsResponse
+}
+
+func (mqs *mockQueryService) Send(m *pb.QueryBackfillsResponse) error {
+	mqs.Results = append(mqs.Results, m)
+	return nil
+}
+
+func TestQueryBackfills(t *testing.T) {
+
+	cfg := viper.New()
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+	defer closer()
+	bfCache := &backfillCache{
+		store:     store,
+		backfills: make(map[string]*pb.Backfill),
+	}
+
+	qs := queryService{bfCache: bfCache}
+	mock := mockQueryService{}
+	qs.QueryBackfills(&pb.QueryBackfillsRequest{}, &mock)
 }
