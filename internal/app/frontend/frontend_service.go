@@ -134,6 +134,12 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 	if err != nil {
 		return nil, err
 	}
+
+	err = store.IndexBackfill(ctx, backfill)
+	if err != nil {
+		return nil, err
+	}
+
 	return backfill, nil
 }
 
@@ -232,6 +238,10 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 
 // DeleteBackfill deletes a Backfill by its ID.
 func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*empty.Empty, error) {
+	err := s.store.DeindexBackfill(ctx, req.BackfillId)
+	if err != nil {
+		return nil, err
+	}
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
