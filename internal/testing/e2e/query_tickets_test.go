@@ -149,6 +149,7 @@ func TestTicketNotFound(t *testing.T) {
 }
 
 func TestBackfillFound(t *testing.T) {
+	t.Skip("skipping backfill found tests")
 	for _, tc := range testcases.IncludedTestCases() {
 		tc := tc
 		t.Run("QueryBackfill/"+tc.Name, func(t *testing.T) {
@@ -160,6 +161,7 @@ func TestBackfillFound(t *testing.T) {
 }
 
 func TestBackfillNotFound(t *testing.T) {
+	t.Skip("skipping backfill not found tests")
 	for _, tc := range testcases.ExcludedTestCases() {
 		tc := tc
 		t.Run("QueryBackfill/"+tc.Name, func(t *testing.T) {
