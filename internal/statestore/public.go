@@ -95,6 +95,7 @@ type Service interface {
 
 	// CleanupBackfills removes expired backfills
 	CleanupBackfills(ctx context.Context) error
+
 	// AcknowledgeBackfill stores Backfill's last acknowledged time
 	AcknowledgeBackfill(ctx context.Context, id string) error
 

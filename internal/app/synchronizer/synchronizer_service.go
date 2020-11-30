@@ -271,6 +271,13 @@ Registration:
 	/////////////////////////////////////// Wait for cycle completion.
 
 	go func() {
+		err := s.store.CleanupBackfills(ctx)
+		if err != nil {
+			logger.Error("Failed to clean up backfills")
+		}
+	}()
+
+	go func() {
 		for _, ctx := range callingCtx {
 			<-ctx.Done()
 		}
