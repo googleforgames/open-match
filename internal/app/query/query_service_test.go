@@ -106,6 +106,7 @@ func TestBackfillCache(t *testing.T) {
 		ctx := context.Background()
 		storeAndIndex(ctx, store, bf1, bf2)
 		bfCache.update()
+		require.Equal(t, 2, len(bfCache.backfills))
 
 		bf2v2 := &pb.Backfill{
 			Id:         "backfill-02",
