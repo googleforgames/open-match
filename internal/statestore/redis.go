@@ -20,14 +20,13 @@ import (
 	"io/ioutil"
 	"time"
 
+	rs "github.com/go-redsync/redsync/v4"
+	rsredigo "github.com/go-redsync/redsync/v4/redis/redigo"
+	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
-
-	rs "github.com/go-redsync/redsync/v4"
-	rsredigo "github.com/go-redsync/redsync/v4/redis/redigo"
-	"github.com/gomodule/redigo/redis"
 )
 
 var (
