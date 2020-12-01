@@ -30,6 +30,28 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+func TestCreateBackfillLastAckTime(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	bfID := "1234"
+	ctx := utilTesting.NewContext(t)
+	err := service.CreateBackfill(ctx, &pb.Backfill{
+		Id: bfID,
+	}, nil)
+	require.NoError(t, err)
+
+	pool := GetRedisPool(cfg)
+	conn := pool.Get()
+
+	// test that Backfill last acknowledged is in a sorted set
+	ts, redisErr := redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, bfID))
+	require.NoError(t, redisErr)
+	require.True(t, ts > 0, "timestamp is not valid")
+}
+
 func TestCreateBackfill(t *testing.T) {
 	cfg, closer := createRedis(t, false, "")
 	defer closer()
@@ -249,6 +271,7 @@ func TestDeleteBackfill(t *testing.T) {
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
+	//Last Acknowledge timestamp is updated on Frontend CreateBackfill
 	bfID := "mockBackfillID"
 	err := service.CreateBackfill(ctx, &pb.Backfill{
 		Id:         bfID,
@@ -256,12 +279,8 @@ func TestDeleteBackfill(t *testing.T) {
 	}, nil)
 	require.NoError(t, err)
 
-	// Update Last Acknowledge timestamp
-	// Which is also performed on Frontend CreateBackfill
 	pool := GetRedisPool(cfg)
 	conn := pool.Get()
-	_, err = conn.Do("ZADD", backfillLastAckTime, time.Now().UnixNano(), bfID)
-	require.NoError(t, err)
 
 	var testCases = []struct {
 		description     string
@@ -348,7 +367,7 @@ func TestAcknowledgeBackfillLifecycle(t *testing.T) {
 	require.Len(t, bfIDs, 0)
 	pendingReleaseTimeout := cfg.GetDuration("pendingReleaseTimeout")
 
-	// Sleep till Backfills
+	// Sleep till all Backfills expire
 	time.Sleep(pendingReleaseTimeout)
 
 	// This call also sets initial LastAcknowledge time
@@ -407,8 +426,6 @@ func TestAcknowledgeBackfill(t *testing.T) {
 		Generation: 1,
 	}, nil)
 	require.NoError(t, err)
-	err = service.AcknowledgeBackfill(ctx, bf1)
-	require.NoError(t, err)
 
 	// Check that Acknowledge timestamp stored valid in Redis
 	pool := GetRedisPool(cfg)
@@ -417,9 +434,19 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	require.NoError(t, err)
 	// Create a time.Time from Unix nanoseconds and make sure, that time difference
 	// is less than one second
-	timeDiff := time.Unix(res/1e9, res%1e9).Sub(startTime)
+	t1 := time.Unix(res/1e9, res%1e9)
+	timeDiff := t1.Sub(startTime)
 	require.True(t, timeDiff < time.Second)
 	require.True(t, timeDiff > 0)
+
+	err = service.AcknowledgeBackfill(ctx, bf1)
+	require.NoError(t, err)
+
+	//Check that time was updated after the call to AcknowledgeBackfill
+	res, err = redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, bf1))
+	require.NoError(t, err)
+	t2 := time.Unix(res/1e9, res%1e9)
+	require.True(t, t2.After(t1), "AcknowledgeBackfill should update time to a more recent one")
 }
 
 func TestAcknowledgeBackfillConnectionError(t *testing.T) {
