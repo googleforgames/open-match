@@ -16,6 +16,7 @@ package statestore
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -24,6 +25,10 @@ import (
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/pkg/pb"
+)
+
+const (
+	allBackfills = "allBackfills"
 )
 
 // CreateBackfill creates a new Backfill in the state storage if one doesn't exist. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
@@ -133,4 +138,63 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	}
 
 	return nil
+}
+
+// IndexBackfill adds the backfill to the index.
+func (rb *redisBackend) IndexBackfill(ctx context.Context, backfill *pb.Backfill) error {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "IndexBackfill, id: %s, failed to connect to redis: %v", backfill.GetId(), err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	err = redisConn.Send("HSET", allBackfills, backfill.Id, backfill.Generation)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to add backfill to all backfills, id: %s", backfill.Id)
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	return nil
+}
+
+// DeindexBackfill removes specified Backfill ID from the index. The Backfill continues to exist.
+func (rb *redisBackend) DeindexBackfill(ctx context.Context, id string) error {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "DeindexBackfill, id: %s, failed to connect to redis: %v", id, err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	err = redisConn.Send("HDEL", allBackfills, id)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to remove ID from backfill index, id: %s", id)
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	return nil
+}
+
+// GetIndexedBackfills returns the ids of all backfills currently indexed.
+func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]int, error) {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unavailable, "GetIndexedBackfills, failed to connect to redis: %v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	bfIndex, err := redis.StringMap(redisConn.Do("HGETALL", allBackfills))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error getting all indexed backfill ids %v", err)
+	}
+
+	r := make(map[string]int, len(bfIndex))
+	for bfID, bfGeneration := range bfIndex {
+		gen, err := strconv.Atoi(bfGeneration)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "error while parsing generation into number: %v", err)
+		}
+		r[bfID] = gen
+	}
+
+	return r, nil
 }
