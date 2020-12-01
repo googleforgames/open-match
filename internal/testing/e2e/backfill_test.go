@@ -16,12 +16,16 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"testing"
 
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/anypb"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -68,7 +72,7 @@ func TestCreateGetBackfill(t *testing.T) {
 	require.Equal(t, b1, actual)
 }
 
-// TestBackfillFrontendLifecycle Update Backfill test
+// TestBackfillFrontendLifecycle Create, Get and Update Backfill test
 func TestBackfillFrontendLifecycle(t *testing.T) {
 	om := newOM(t)
 	ctx := context.Background()
@@ -80,22 +84,49 @@ func TestBackfillFrontendLifecycle(t *testing.T) {
 	},
 	}
 	createdBf, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: bf})
-	require.Nil(t, err)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), createdBf.Generation)
 
 	createdBf.SearchFields.StringArgs["key"] = "val"
-	updatedBf, err := om.Frontend().UpdateBackfill(ctx, &pb.UpdateBackfillRequest{Backfill: createdBf})
-	require.Nil(t, err)
+
+	orig := &anypb.Any{Value: []byte("test")}
+	val, err := ptypes.MarshalAny(orig)
+	require.NoError(t, err)
+
+	// Create a different Backfill, but with the same ID
+	// Pass different time
+	bf2 := &pb.Backfill{
+		CreateTime: ptypes.TimestampNow(),
+		Id:         createdBf.Id,
+		SearchFields: &pb.SearchFields{
+			StringArgs: map[string]string{
+				"key":    "val",
+				"search": "me",
+			},
+		},
+		Generation: 42,
+		Extensions: map[string]*any.Any{"key": val},
+	}
+	updatedBf, err := om.Frontend().UpdateBackfill(ctx, &pb.UpdateBackfillRequest{Backfill: bf2})
+	require.NoError(t, err)
+	require.Equal(t, int64(2), updatedBf.Generation)
 
 	// No changes to CreateTime
 	require.Equal(t, createdBf.CreateTime.GetNanos(), updatedBf.CreateTime.GetNanos())
 
 	get, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: createdBf.Id})
-	require.Nil(t, err)
-	require.Equal(t, createdBf.SearchFields.StringArgs, get.SearchFields.StringArgs)
+	require.NoError(t, err)
+	require.Equal(t, bf2.SearchFields.StringArgs, get.SearchFields.StringArgs)
+
+	unpacked := &anypb.Any{}
+	err = ptypes.UnmarshalAny(get.Extensions["key"], unpacked)
+	require.NoError(t, err)
+
+	require.Equal(t, unpacked.Value, orig.Value)
 	_, err = om.Frontend().DeleteBackfill(ctx, &pb.DeleteBackfillRequest{BackfillId: createdBf.Id})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	get, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: createdBf.Id})
-	require.Error(t, err, "Backfill id: bup6oduvvhfj2n8o86b0 not foun4d")
+	require.Error(t, err, fmt.Sprintf("Backfill id: %s not found", bf.Id))
 	require.Nil(t, get)
 }

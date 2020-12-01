@@ -122,6 +122,8 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 
 	backfill.Id = xid.New().String()
 	backfill.CreateTime = ptypes.TimestampNow()
+	// Set Generation to 1
+	backfill.Generation = 1
 
 	sfCount := 0
 	sfCount += len(backfill.GetSearchFields().GetDoubleArgs())
@@ -134,10 +136,17 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 	if err != nil {
 		return nil, err
 	}
+	err = store.IndexBackfill(ctx, backfill)
+	if err != nil {
+		return nil, err
+	}
 	return backfill, nil
 }
 
 // UpdateBackfill updates a Backfill object, if present.
+// Update would increment generation in Redis.
+// Only Extensions and SearchFields would be updated.
+// CreateTime is not changed on Update
 func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBackfillRequest) (*pb.Backfill, error) {
 	if req == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "request is nil")
@@ -171,19 +180,29 @@ func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBack
 		return nil, err
 	}
 
+	// Update generation here, because Frontend is used by GameServer only
+	bfStored.Generation++
+	bfStored.SearchFields = backfill.SearchFields
+	bfStored.Extensions = backfill.Extensions
+	err = s.store.UpdateBackfill(ctx, bfStored, []string{})
+	if err != nil {
+		return nil, err
+	}
+
 	err = s.store.DeleteTicketsFromPendingRelease(ctx, associatedTickets)
 	if err != nil {
 		return nil, err
 	}
 
-	// Update generation here, because Frontend is used by GameServer only
-	backfill.Generation = bfStored.Generation + 1
-	err = s.store.UpdateBackfill(ctx, backfill, []string{})
+	err = s.store.IndexBackfill(ctx, bfStored)
 	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+			"id":    bfStored.Id,
+		}).Error("failed to index the backfill")
 		return nil, err
 	}
-
-	return backfill, nil
+	return bfStored, nil
 }
 
 // DeleteBackfill deletes a Backfill by its ID.
@@ -233,6 +252,14 @@ func doDeleteBackfill(ctx context.Context, id string, store statestore.Service) 
 			"id":    id,
 		}).Error("failed to delete the backfill")
 	}
+	err = store.DeindexBackfill(ctx, id)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+			"id":    id,
+		}).Error("failed to deindex the backfill")
+	}
+
 	// Deleting of Backfill is inevitable when it is expired, so we don't worry about error here
 	return nil
 }
