@@ -346,6 +346,17 @@ func TestAcknowledgeBackfillLifecycle(t *testing.T) {
 	bfIDs, err := service.GetExpiredBackfillIDs(ctx)
 	require.NoError(t, err)
 	require.Len(t, bfIDs, 0)
+	pendingReleaseTimeout := cfg.GetDuration("pendingReleaseTimeout")
+
+	// Sleep till Backfills
+	time.Sleep(pendingReleaseTimeout)
+
+	// This call also sets initial LastAcknowledge time
+	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
+	require.NoError(t, err)
+	require.Len(t, bfIDs, 2)
+	require.Contains(t, bfIDs, bf1)
+	require.Contains(t, bfIDs, bf2)
 
 	err = service.AcknowledgeBackfill(ctx, bf1)
 	require.NoError(t, err)
@@ -357,7 +368,7 @@ func TestAcknowledgeBackfillLifecycle(t *testing.T) {
 	require.Len(t, bfIDs, 0)
 
 	// Sleep until the pending release expired and verify we have all the backfills
-	time.Sleep(cfg.GetDuration("pendingReleaseTimeout"))
+	time.Sleep(pendingReleaseTimeout)
 
 	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
 	require.NoError(t, err)

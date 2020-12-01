@@ -135,10 +135,6 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 	if err != nil {
 		return nil, err
 	}
-	err = store.AcknowledgeBackfill(ctx, backfill.Id)
-	if err != nil {
-		return nil, err
-	}
 	return backfill, nil
 }
 

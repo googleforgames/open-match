@@ -61,6 +61,8 @@ func (rb *redisBackend) CreateBackfill(ctx context.Context, backfill *pb.Backfil
 	if res.(int64) == 0 {
 		return status.Errorf(codes.AlreadyExists, "backfill already exists, id: %s", backfill.GetId())
 	}
+
+	acknowledgeBackfill(redisConn, backfill.GetId())
 	return nil
 }
 
@@ -150,10 +152,13 @@ func (rb *redisBackend) AcknowledgeBackfill(ctx context.Context, id string) erro
 		return status.Errorf(codes.Unavailable, "AcknowledgeBackfill, id: %s, failed to connect to redis: %v", id, err)
 	}
 	defer handleConnectionClose(&redisConn)
+	return acknowledgeBackfill(redisConn, id)
+}
 
+func acknowledgeBackfill(conn redis.Conn, backfillID string) error {
 	currentTime := time.Now().UnixNano()
 
-	_, err = redisConn.Do("ZADD", backfillLastAckTime, currentTime, id)
+	_, err := conn.Do("ZADD", backfillLastAckTime, currentTime, backfillID)
 	if err != nil {
 		return status.Errorf(codes.Internal, "%v",
 			errors.Wrap(err, "failed to store backfill's last acknowledgement time"))
