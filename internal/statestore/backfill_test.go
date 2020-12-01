@@ -444,15 +444,10 @@ func TestAcknowledgeBackfillConnectionError(t *testing.T) {
 	defer service.Close()
 	bf1 := "mockBackfill"
 	ctx := utilTesting.NewContext(t)
-	err := service.CreateBackfill(ctx, &pb.Backfill{
-		Id:         bf1,
-		Generation: 1,
-	}, nil)
-	require.NoError(t, err)
 	cfg = createInvalidRedisConfig()
 	service = New(cfg)
 	require.NotNil(t, service)
-	err = service.AcknowledgeBackfill(ctx, bf1)
+	err := service.AcknowledgeBackfill(ctx, bf1)
 	require.Error(t, err, "failed to connect to redis:")
 }
 
