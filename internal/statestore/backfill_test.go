@@ -344,18 +344,26 @@ func TestAcknowledgeBackfillLifecycle(t *testing.T) {
 	require.NoError(t, err)
 
 	bfIDs, err := service.GetExpiredBackfillIDs(ctx)
-	require.Len(t, bfIDs, 0)
 	require.NoError(t, err)
+	require.Len(t, bfIDs, 0)
+
 	err = service.AcknowledgeBackfill(ctx, bf1)
 	require.NoError(t, err)
 	err = service.AcknowledgeBackfill(ctx, bf2)
 	require.NoError(t, err)
-	// Sleep until the pending release expired and verify we still have all the tickets
+
+	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
+	require.NoError(t, err)
+	require.Len(t, bfIDs, 0)
+
+	// Sleep until the pending release expired and verify we have all the backfills
 	time.Sleep(cfg.GetDuration("pendingReleaseTimeout"))
 
 	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
-	require.Len(t, bfIDs, 2)
 	require.NoError(t, err)
+	require.Len(t, bfIDs, 2)
+	require.Contains(t, bfIDs, bf1)
+	require.Contains(t, bfIDs, bf2)
 
 	// Acknowledge one Backfill it should be removed from GetExpired output
 	err = service.AcknowledgeBackfill(ctx, bf2)
@@ -373,7 +381,6 @@ func TestAcknowledgeBackfillLifecycle(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestAcknowledgeBackfill test statestore function AcknowledgeBackfill
 func TestAcknowledgeBackfill(t *testing.T) {
 	cfg, closer := createRedis(t, false, "")
 	defer closer()

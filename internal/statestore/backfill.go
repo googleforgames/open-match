@@ -152,10 +152,8 @@ func (rb *redisBackend) AcknowledgeBackfill(ctx context.Context, id string) erro
 	defer handleConnectionClose(&redisConn)
 
 	currentTime := time.Now().UnixNano()
-	cmds := make([]interface{}, 0)
-	cmds = append(cmds, backfillLastAckTime, currentTime, id)
 
-	_, err = redisConn.Do("ZADD", cmds...)
+	_, err = redisConn.Do("ZADD", backfillLastAckTime, currentTime, id)
 	if err != nil {
 		return status.Errorf(codes.Internal, "%v",
 			errors.Wrap(err, "failed to store backfill's last acknowledgement time"))
@@ -190,10 +188,8 @@ func (rb *redisBackend) GetExpiredBackfillIDs(ctx context.Context) ([]string, er
 
 // deleteExpiredBackfillID deletes expired BackfillID from a sorted set
 func (rb *redisBackend) deleteExpiredBackfillID(conn redis.Conn, backfillID string) error {
-	cmds := make([]interface{}, 0, 2)
-	cmds = append(cmds, backfillLastAckTime, backfillID)
 
-	_, err := conn.Do("ZREM", cmds...)
+	_, err := conn.Do("ZREM", backfillLastAckTime, backfillID)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to delete expired backfill ID %s from Sorted Set %s",
 			backfillID, err.Error())
