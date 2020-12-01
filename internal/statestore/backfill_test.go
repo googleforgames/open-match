@@ -421,10 +421,8 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 	bf1 := "mockBackfillID"
-	err := service.CreateBackfill(ctx, &pb.Backfill{
-		Id:         bf1,
-		Generation: 1,
-	}, nil)
+
+	err := service.AcknowledgeBackfill(ctx, bf1)
 	require.NoError(t, err)
 
 	// Check that Acknowledge timestamp stored valid in Redis
@@ -434,19 +432,8 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	require.NoError(t, err)
 	// Create a time.Time from Unix nanoseconds and make sure, that time difference
 	// is less than one second
-	t1 := time.Unix(res/1e9, res%1e9)
-	timeDiff := t1.Sub(startTime)
-	require.True(t, timeDiff < time.Second)
-	require.True(t, timeDiff > 0)
-
-	err = service.AcknowledgeBackfill(ctx, bf1)
-	require.NoError(t, err)
-
-	//Check that time was updated after the call to AcknowledgeBackfill
-	res, err = redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, bf1))
-	require.NoError(t, err)
 	t2 := time.Unix(res/1e9, res%1e9)
-	require.True(t, t2.After(t1), "AcknowledgeBackfill should update time to a more recent one")
+	require.True(t, t2.After(startTime), "AcknowledgeBackfill should update time to a more recent one")
 }
 
 func TestAcknowledgeBackfillConnectionError(t *testing.T) {
