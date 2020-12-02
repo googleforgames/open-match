@@ -122,7 +122,6 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 
 	backfill.Id = xid.New().String()
 	backfill.CreateTime = ptypes.TimestampNow()
-	// Set Generation to 1
 	backfill.Generation = 1
 
 	sfCount := 0
