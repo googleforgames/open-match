@@ -96,6 +96,7 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 
 // CreateBackfill creates a new Backfill object.
 // it assigns an unique Id to the input Backfill and record it in state storage.
+// Set initial LastAcknowledge time for this Backfill.
 // A Backfill is considered as ready for matchmaking once it is created.
 //   - If SearchFields exist in a Backfill, CreateBackfill will also index these fields such that one can query the ticket with query.QueryBackfills function.
 func (s *frontendService) CreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest) (*pb.Backfill, error) {
