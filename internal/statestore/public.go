@@ -93,6 +93,12 @@ type Service interface {
 	// NewMutex returns an interface of a new distributed mutex with given name
 	NewMutex(key string) RedisLocker
 
+	// AcknowledgeBackfill stores Backfill's last acknowledged time
+	AcknowledgeBackfill(ctx context.Context, id string) error
+
+	// GetExpiredBackfillIDs gets all backfill IDs which are expired
+	GetExpiredBackfillIDs(ctx context.Context) ([]string, error)
+
 	// IndexBackfill adds the backfill to the index.
 	IndexBackfill(ctx context.Context, backfill *pb.Backfill) error
 
