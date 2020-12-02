@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -115,17 +117,23 @@ func TestProposedBackfillCreate(t *testing.T) {
 		Profile: &pb.MatchProfile{},
 	})
 	require.Nil(t, err)
+
 	resp, err := stream.Recv()
 	require.Nil(t, err)
+	bfID := resp.Match.Backfill.Id
 
-	actual, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: resp.Match.Backfill.Id})
+	resp, err = stream.Recv()
+	require.Nil(t, resp)
+	require.Equal(t, io.EOF, err)
+
+	actual, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: bfID})
 	require.Nil(t, err)
 	require.NotNil(t, actual)
 
 	b.Id = actual.Id
 	b.CreateTime = actual.CreateTime
 	require.True(t, proto.Equal(b, actual))
-	
+
 	client, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
 		StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
 	}})
@@ -158,6 +166,17 @@ func TestProposedBackfillUpdate(t *testing.T) {
 	}})
 	require.Nil(t, err)
 
+	b.SearchFields = &pb.SearchFields{
+		StringArgs: map[string]string{
+			"field1": "value1",
+		},
+	}
+	//using DefaultEvaluationCriteria just for testing purposes only
+	b.Extensions = map[string]*any.Any{
+		"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+			Score: 10,
+		}),
+	}
 	m := &pb.Match{
 		MatchId:  "1",
 		Tickets:  []*pb.Ticket{t1},
@@ -182,9 +201,14 @@ func TestProposedBackfillUpdate(t *testing.T) {
 		Profile: &pb.MatchProfile{},
 	})
 	require.Nil(t, err)
+
 	resp, err := stream.Recv()
 	require.Nil(t, err)
 	require.True(t, proto.Equal(m, resp.Match))
+
+	resp, err = stream.Recv()
+	require.Nil(t, resp)
+	require.Equal(t, io.EOF, err)
 
 	actual, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b.Id})
 	require.Nil(t, err)
@@ -198,4 +222,52 @@ func TestProposedBackfillUpdate(t *testing.T) {
 	require.Nil(t, err)
 	_, err = client.Recv()
 	require.Equal(t, io.EOF, err)
+}
+
+func TestBackfillGenerationMismatch(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+
+	b, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{Generation: 1}})
+	require.Nil(t, err)
+
+	b.Generation = 0
+	m := &pb.Match{
+		MatchId:  "1",
+		Tickets:  []*pb.Ticket{t1},
+		Backfill: b,
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- m
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		p, ok := <-in
+		require.True(t, ok)
+
+		out <- p.MatchId
+		return nil
+	})
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	resp, err := stream.Recv()
+	require.Nil(t, resp)
+	require.Equal(t, io.EOF, err)
+}
+
+func mustAny(m proto.Message) *any.Any {
+	result, err := ptypes.MarshalAny(m)
+	if err != nil {
+		panic(err)
+	}
+	return result
 }

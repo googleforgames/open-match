@@ -56,6 +56,7 @@ var (
 		"app":       "openmatch",
 		"component": "app.backend",
 	})
+	errBackfillGenerationMismatch = errors.New("backfill generation mismatch")
 )
 
 // FetchMatches triggers a MatchFunction with the specified MatchProfiles, while each MatchProfile
@@ -167,15 +168,16 @@ func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync
 
 		if v, ok := m.Load(resp.GetMatchId()); ok {
 			match, ok := v.(*pb.Match)
-
 			if !ok {
 				return fmt.Errorf("error casting sync map value into *pb.Match: %w", err)
 			}
 
-			err = handleMatch(ctx, match, store)
-
+			err = createOrUpdateBackfill(ctx, match, store)
 			if err != nil {
-				return errors.Wrapf(err, "failed to handle match: %s", match.MatchId)
+				if err == errBackfillGenerationMismatch {
+					continue
+				}
+				return errors.Wrapf(err, "failed to handle match backfill: %s", match.MatchId)
 			}
 
 			stats.Record(ctx, totalBytesPerMatch.M(int64(proto.Size(match))))
@@ -339,56 +341,47 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 	return resp, nil
 }
 
-func handleMatch(ctx context.Context, match *pb.Match, store statestore.Service) error {
+func createOrUpdateBackfill(ctx context.Context, match *pb.Match, store statestore.Service) error {
 	backfill := match.GetBackfill()
-
 	if backfill == nil {
 		return nil
 	}
 
-	ticketdIds := make([]string, len(match.Tickets))
+	ticketIds := make([]string, len(match.Tickets))
 
 	for _, t := range match.Tickets {
-		ticketdIds = append(ticketdIds, t.Id)
+		ticketIds = append(ticketIds, t.Id)
 	}
 
-	if backfill.Id != "" {
-		return doUpdateBackfill(ctx, backfill, ticketdIds, store)
+	if backfill.Id == "" {
+		backfill.Id = xid.New().String()
+		backfill.CreateTime = ptypes.TimestampNow()
+		return store.CreateBackfill(ctx, backfill, ticketIds)
 	}
 
-	return doCreateBackfill(ctx, backfill, ticketdIds, store)
-}
-
-func doCreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIds []string, store statestore.Service) error {
-	backfill.Id = xid.New().String()
-	backfill.CreateTime = ptypes.TimestampNow()
-	return store.CreateBackfill(ctx, backfill, ticketIds)
-}
-
-func doUpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIds []string, store statestore.Service) error {
 	m := store.NewMutex(backfill.Id)
 	err := m.Lock(ctx)
-
 	if err != nil {
 		return err
 	}
 
 	defer func() {
 		_, unlockErr := m.Unlock(ctx)
-
 		if unlockErr != nil {
 			logger.WithFields(logrus.Fields{"backfill_id": backfill.Id}).WithError(unlockErr).Error("failed to make unlock")
 		}
 	}()
 
 	bf, ids, err := store.GetBackfill(ctx, backfill.Id)
-
 	if err != nil {
 		return err
 	}
 
 	if bf.Generation != backfill.Generation {
-		return fmt.Errorf("backfill generation mismatch - expecting: %d, actual: %d", bf.Generation, backfill.Generation)
+		logger.WithFields(logrus.Fields{"backfill_id": backfill.Id}).
+			WithError(errBackfillGenerationMismatch).
+			Errorf("failed to update backfill, expecting: %d generation but got: %d", bf.Generation, backfill.Generation)
+		return errBackfillGenerationMismatch
 	}
 
 	bf.SearchFields = backfill.SearchFields
