@@ -69,7 +69,8 @@ func (rb *redisBackend) CreateBackfill(ctx context.Context, backfill *pb.Backfil
 	if res.(int64) == 0 {
 		return status.Errorf(codes.AlreadyExists, "backfill already exists, id: %s", backfill.GetId())
 	}
-	return nil
+
+	return acknowledgeBackfill(redisConn, backfill.GetId())
 }
 
 // GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and associated ticketIDs if they exist.
@@ -200,12 +201,13 @@ func (rb *redisBackend) AcknowledgeBackfill(ctx context.Context, id string) erro
 		return status.Errorf(codes.Unavailable, "AcknowledgeBackfill, id: %s, failed to connect to redis: %v", id, err)
 	}
 	defer handleConnectionClose(&redisConn)
+	return acknowledgeBackfill(redisConn, id)
+}
 
+func acknowledgeBackfill(conn redis.Conn, backfillID string) error {
 	currentTime := time.Now().UnixNano()
-	cmds := make([]interface{}, 0)
-	cmds = append(cmds, backfillLastAckTime, currentTime, id)
 
-	_, err = redisConn.Do("ZADD", cmds...)
+	_, err := conn.Do("ZADD", backfillLastAckTime, currentTime, backfillID)
 	if err != nil {
 		return status.Errorf(codes.Internal, "%v",
 			errors.Wrap(err, "failed to store backfill's last acknowledgement time"))
@@ -240,10 +242,8 @@ func (rb *redisBackend) GetExpiredBackfillIDs(ctx context.Context) ([]string, er
 
 // deleteExpiredBackfillID deletes expired BackfillID from a sorted set
 func (rb *redisBackend) deleteExpiredBackfillID(conn redis.Conn, backfillID string) error {
-	cmds := make([]interface{}, 0, 2)
-	cmds = append(cmds, backfillLastAckTime, backfillID)
 
-	_, err := conn.Do("ZREM", cmds...)
+	_, err := conn.Do("ZREM", backfillLastAckTime, backfillID)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to delete expired backfill ID %s from Sorted Set %s",
 			backfillID, err.Error())
