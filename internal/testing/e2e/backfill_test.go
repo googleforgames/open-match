@@ -43,27 +43,27 @@ func TestCreateGetBackfill(t *testing.T) {
 		},
 	}}}
 	b1, err := om.Frontend().CreateBackfill(ctx, bf)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, b1)
 
 	b2, err := om.Frontend().CreateBackfill(ctx, bf)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, b2)
 
 	// Different IDs should be generated
 	require.NotEqual(t, b1.Id, b2.Id)
 	matched, err := regexp.MatchString(`[0-9a-v]{20}`, b1.GetId())
 	require.True(t, matched)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, bf.Backfill.SearchFields.DoubleArgs["test-arg"], b1.SearchFields.DoubleArgs["test-arg"])
 	b1.Id = b2.Id
 	b1.CreateTime = b2.CreateTime
 
 	// All fields other than CreateTime and Id fields should be equal
 	require.Equal(t, b1, b2)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	actual, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, actual)
 	require.Equal(t, b1, actual)
 
@@ -146,7 +146,7 @@ func TestProposedBackfillCreate(t *testing.T) {
 			},
 		},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	b := &pb.Backfill{
 		SearchFields: &pb.SearchFields{
@@ -178,10 +178,10 @@ func TestProposedBackfillCreate(t *testing.T) {
 		Config:  om.MMFConfigGRPC(),
 		Profile: &pb.MatchProfile{},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	resp, err := stream.Recv()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	bfID := resp.Match.Backfill.Id
 
 	resp, err = stream.Recv()
@@ -189,7 +189,7 @@ func TestProposedBackfillCreate(t *testing.T) {
 	require.Equal(t, io.EOF, err)
 
 	actual, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: bfID})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, actual)
 
 	b.Id = actual.Id
@@ -200,7 +200,7 @@ func TestProposedBackfillCreate(t *testing.T) {
 		StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
 	}})
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	_, err = client.Recv()
 	require.Equal(t, io.EOF, err)
 }
@@ -217,7 +217,7 @@ func TestProposedBackfillUpdate(t *testing.T) {
 			},
 		},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	b, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
 		SearchFields: &pb.SearchFields{
@@ -226,7 +226,7 @@ func TestProposedBackfillUpdate(t *testing.T) {
 			},
 		},
 	}})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	b.SearchFields = &pb.SearchFields{
 		StringArgs: map[string]string{
@@ -262,10 +262,10 @@ func TestProposedBackfillUpdate(t *testing.T) {
 		Config:  om.MMFConfigGRPC(),
 		Profile: &pb.MatchProfile{},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	resp, err := stream.Recv()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.True(t, proto.Equal(m, resp.Match))
 
 	resp, err = stream.Recv()
@@ -273,14 +273,14 @@ func TestProposedBackfillUpdate(t *testing.T) {
 	require.Equal(t, io.EOF, err)
 
 	actual, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b.Id})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, actual)
 	require.True(t, proto.Equal(b, actual))
 
 	client, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
 		StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
 	}})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	_, err = client.Recv()
 	require.Equal(t, io.EOF, err)
 }
@@ -289,10 +289,10 @@ func TestBackfillGenerationMismatch(t *testing.T) {
 	ctx := context.Background()
 	om := newOM(t)
 	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	b, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{Generation: 1}})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	b.Generation = 0
 	m := &pb.Match{
@@ -318,7 +318,7 @@ func TestBackfillGenerationMismatch(t *testing.T) {
 		Config:  om.MMFConfigGRPC(),
 		Profile: &pb.MatchProfile{},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	resp, err := stream.Recv()
 	require.Nil(t, resp)
@@ -331,7 +331,7 @@ func TestCleanUpBackfills(t *testing.T) {
 	om := newOM(t)
 
 	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, t1)
 
 	b1, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
@@ -340,7 +340,7 @@ func TestCleanUpBackfills(t *testing.T) {
 				"search": "me",
 			},
 		}}})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, b1)
 	fmt.Println(b1.Id)
 
@@ -374,7 +374,7 @@ func TestCleanUpBackfills(t *testing.T) {
 		Config:  om.MMFConfigGRPC(),
 		Profile: &pb.MatchProfile{},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	_, err = stream.Recv()
 	require.Error(t, err)
