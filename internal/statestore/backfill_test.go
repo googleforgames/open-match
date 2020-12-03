@@ -158,7 +158,7 @@ func TestUpdateBackfill(t *testing.T) {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String(), "QQQ")
+				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String())
 				require.Contains(t, status.Convert(err).Message(), tc.expectedMessage)
 			}
 		})
