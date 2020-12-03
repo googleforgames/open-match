@@ -95,7 +95,6 @@ func TestCreateBackfill(t *testing.T) {
 	defer closer()
 	ctx := utilTesting.NewContext(t)
 	fs := frontendService{cfg, store}
-
 	var testCases = []struct {
 		description     string
 		request         *pb.CreateBackfillRequest
@@ -111,12 +110,6 @@ func TestCreateBackfill(t *testing.T) {
 		},
 		{
 			description:     "nil backfill - error is returned",
-			request:         &pb.CreateBackfillRequest{Backfill: nil},
-			expectedCode:    codes.InvalidArgument,
-			expectedMessage: ".backfill is required",
-		},
-		{
-			description:     "createTime should not exist in input",
 			request:         &pb.CreateBackfillRequest{Backfill: nil},
 			expectedCode:    codes.InvalidArgument,
 			expectedMessage: ".backfill is required",
@@ -177,6 +170,96 @@ func TestCreateBackfill(t *testing.T) {
 	}})
 	require.NotNil(t, err)
 	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Nil(t, res)
+}
+
+func TestUpdateBackfill(t *testing.T) {
+	cfg := viper.New()
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+	defer closer()
+	ctx := utilTesting.NewContext(t)
+	fs := frontendService{cfg, store}
+	res, err := fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{
+		Backfill: &pb.Backfill{
+			SearchFields: &pb.SearchFields{
+				StringArgs: map[string]string{
+					"search": "me",
+				}}}})
+	require.NoError(t, err)
+	require.NotNil(t, res)
+
+	var testCases = []struct {
+		description     string
+		request         *pb.UpdateBackfillRequest
+		result          *pb.Backfill
+		expectedCode    codes.Code
+		expectedMessage string
+	}{
+		{
+			description:     "nil request check",
+			request:         nil,
+			expectedCode:    codes.InvalidArgument,
+			expectedMessage: "request is nil",
+		},
+		{
+			description:     "nil backfill - error is returned",
+			request:         &pb.UpdateBackfillRequest{Backfill: nil},
+			expectedCode:    codes.InvalidArgument,
+			expectedMessage: ".backfill is required",
+		},
+		{
+			description:     "empty Backfill, error with no backfill ID",
+			request:         &pb.UpdateBackfillRequest{Backfill: &pb.Backfill{}},
+			expectedCode:    codes.InvalidArgument,
+			expectedMessage: "backfill ID should exist",
+		},
+		{
+			description: "normal backfill",
+			request: &pb.UpdateBackfillRequest{
+				Backfill: &pb.Backfill{
+					Id: res.Id,
+					SearchFields: &pb.SearchFields{
+						StringArgs: map[string]string{
+							"search": "me",
+						}}}},
+			expectedCode:    codes.OK,
+			expectedMessage: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.description, func(t *testing.T) {
+			res, err = fs.UpdateBackfill(ctx, tc.request)
+			if tc.expectedCode == codes.OK {
+				require.NoError(t, err)
+				require.NotNil(t, res)
+				require.Equal(t, tc.request.Backfill.SearchFields.DoubleArgs, res.SearchFields.DoubleArgs)
+			} else {
+				require.Error(t, err)
+				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String())
+				require.Contains(t, status.Convert(err).Message(), tc.expectedMessage)
+			}
+		})
+	}
+
+	// expect error with canceled context
+	store, closer = statestoreTesting.NewStoreServiceForTesting(t, cfg)
+	fs = frontendService{cfg, store}
+	defer closer()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	res, err = fs.UpdateBackfill(ctx, &pb.UpdateBackfillRequest{Backfill: &pb.Backfill{
+		Id: res.Id,
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"test-arg": 1,
+			},
+		},
+	}})
+	require.NotNil(t, err)
+	require.Equal(t, codes.Unknown.String(), status.Convert(err).Code().String())
 	require.Nil(t, res)
 }
 
@@ -424,6 +507,56 @@ func TestGetBackfill(t *testing.T) {
 				require.Equal(t, test.wantTicket.GetId(), backfill.GetId())
 				require.Equal(t, test.wantTicket.SearchFields.DoubleArgs, backfill.SearchFields.DoubleArgs)
 			}
+		})
+	}
+}
+
+func TestDoDeleteBackfill(t *testing.T) {
+	fakeBackfill := &pb.Backfill{
+		Id: "1",
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"test-arg": 1,
+			},
+		},
+	}
+
+	tests := []struct {
+		description string
+		preAction   func(context.Context, context.CancelFunc, statestore.Service)
+		wantCode    codes.Code
+	}{
+		{
+			description: "expect unknown code since context is canceled before being called",
+			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
+				cancel()
+			},
+			wantCode: codes.Unknown,
+		},
+		{
+			description: "expect ok code since delete backfill does not care about if backfill exists or not",
+			preAction:   func(_ context.Context, _ context.CancelFunc, _ statestore.Service) {},
+			wantCode:    codes.OK,
+		},
+		{
+			description: "expect ok code",
+			preAction: func(ctx context.Context, _ context.CancelFunc, store statestore.Service) {
+				store.CreateBackfill(ctx, fakeBackfill, []string{})
+			},
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.description, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+			defer closer()
+
+			test.preAction(ctx, cancel, store)
+
+			err := doDeleteBackfill(ctx, fakeBackfill.GetId(), store)
+			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
 		})
 	}
 }

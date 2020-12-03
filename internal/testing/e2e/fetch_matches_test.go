@@ -415,7 +415,7 @@ func TestNoMatches(t *testing.T) {
 	require.Nil(t, resp)
 }
 
-// TestNoMatches covers missing the profile field on fetch matches.
+// TestNoProfile covers missing the profile field on fetch matches.
 func TestNoProfile(t *testing.T) {
 	ctx := context.Background()
 	om := newOM(t)
