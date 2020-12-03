@@ -142,6 +142,20 @@ func (is *instrumentedService) NewMutex(key string) RedisLocker {
 	return is.s.NewMutex(key)
 }
 
+// AcknowledgeBackfill stores Backfill's last acknowledged time
+func (is *instrumentedService) AcknowledgeBackfill(ctx context.Context, id string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.AcknowledgeBackfill")
+	defer span.End()
+	return is.s.AcknowledgeBackfill(ctx, id)
+}
+
+// GetExpiredBackfillIDs - get all backfills which are expired
+func (is *instrumentedService) GetExpiredBackfillIDs(ctx context.Context) ([]string, error) {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetExpiredBackfillIDs")
+	defer span.End()
+	return is.s.GetExpiredBackfillIDs(ctx)
+}
+
 // IndexBackfill adds the backfill to the index.
 func (is *instrumentedService) IndexBackfill(ctx context.Context, backfill *pb.Backfill) error {
 	_, span := trace.StartSpan(ctx, "statestore/instrumented.IndexBackfill")
