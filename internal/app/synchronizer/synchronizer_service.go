@@ -441,7 +441,7 @@ func getTicketIds(tickets []*pb.Ticket) []string {
 
 // Calls statestore to add all of the tickets returned by the evaluator to the
 // pendingRelease list.  If it partially fails for whatever reason (not all tickets will
-// nessisarily be in the same call), only the matches which can be safely
+// necessarily be in the same call), only the matches which can be safely
 // returned to the Synchronize calls are.
 func (s *synchronizerService) addMatchesToPendingRelease(ctx context.Context, m *sync.Map, cancel contextcause.CancelErrFunc, m5c <-chan []string, m6c chan<- string) {
 	totalMatches := 0
