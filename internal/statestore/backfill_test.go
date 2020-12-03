@@ -142,7 +142,7 @@ func TestUpdateBackfill(t *testing.T) {
 			expectedMessage: "",
 		},
 		{
-			description:     "create existing backfill, no err expecteds",
+			description:     "create existing backfill, no err expected",
 			backfill:        &bf,
 			ticketIDs:       nil,
 			expectedCode:    codes.OK,

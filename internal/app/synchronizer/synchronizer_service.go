@@ -271,13 +271,6 @@ Registration:
 	/////////////////////////////////////// Wait for cycle completion.
 
 	go func() {
-		err := s.store.CleanupBackfills(ctx)
-		if err != nil {
-			logger.Error("Failed to clean up backfills")
-		}
-	}()
-
-	go func() {
 		for _, ctx := range callingCtx {
 			<-ctx.Done()
 		}
@@ -298,6 +291,11 @@ Registration:
 	})
 	<-closedOnCycleEnd
 	stats.Record(ctx, iterationLatency.M(float64(time.Since(cst)/time.Millisecond)))
+
+	err := s.store.CleanupBackfills(ctx)
+	if err != nil {
+		logger.Errorf("Failed to clean up backfills, %s", err.Error())
+	}
 
 	// Clean up in case it was never needed.
 	cancelProposalCollection.Stop()

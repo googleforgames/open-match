@@ -16,9 +16,11 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -218,7 +220,6 @@ func TestProposedBackfillUpdate(t *testing.T) {
 	client, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
 		StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
 	}})
-
 	require.Nil(t, err)
 	_, err = client.Recv()
 	require.Equal(t, io.EOF, err)
@@ -262,6 +263,64 @@ func TestBackfillGenerationMismatch(t *testing.T) {
 	resp, err := stream.Recv()
 	require.Nil(t, resp)
 	require.Equal(t, io.EOF, err)
+}
+
+func TestCleanUpBackfills(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	om := newOM(t)
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.Nil(t, err)
+	require.NotNil(t, t1)
+
+	b1, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
+		SearchFields: &pb.SearchFields{
+			StringArgs: map[string]string{
+				"search": "me",
+			},
+		}}})
+	require.Nil(t, err)
+	require.NotNil(t, b1)
+	fmt.Println(b1.Id)
+
+	m := &pb.Match{
+		MatchId:  "1",
+		Tickets:  []*pb.Ticket{t1},
+		Backfill: b1,
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- m
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		p, ok := <-in
+		require.True(t, ok)
+		require.True(t, proto.Equal(p, m))
+		_, ok = <-in
+		require.False(t, ok)
+
+		out <- m.MatchId
+		return nil
+	})
+
+	// wait until backfill is expired, then try to get it
+	time.Sleep(3 * time.Second)
+
+	// statestore.CleanupBackfills is called at the end of each syncronizer cycle after fetch matches call, so expired backfill will be removed
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.Nil(t, err)
+
+	_, err = stream.Recv()
+	require.Error(t, err)
+	e, ok := status.FromError(err)
+	require.True(t, ok)
+	require.Contains(t, e.Message(), "error(s) in FetchMatches call. syncErr=[failed to handle match backfill: 1: rpc error: code = NotFound desc = Backfill id:")
 }
 
 func mustAny(m proto.Message) *any.Any {
