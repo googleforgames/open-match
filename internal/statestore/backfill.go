@@ -98,6 +98,46 @@ func (rb *redisBackend) GetBackfill(ctx context.Context, id string) (*pb.Backfil
 	return bi.Backfill, bi.TicketIds, nil
 }
 
+// GetBackfills returns multiple backfills from storage
+func (rb *redisBackend) GetBackfills(ctx context.Context, ids []string) ([]*pb.Backfill, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unavailable, "GetBackfills, failed to connect to redis: %v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	queryParams := make([]interface{}, len(ids))
+	for i, id := range ids {
+		queryParams[i] = id
+	}
+
+	slices, err := redis.ByteSlices(redisConn.Do("MGET", queryParams...))
+	if err != nil {
+		err = errors.Wrapf(err, "failed to lookup backfills %v", ids)
+		return nil, status.Errorf(codes.Internal, "%v", err)
+	}
+
+	list := make([]*pb.Backfill, 0, len(ids))
+	for i, s := range slices {
+		if s != nil {
+			b := &ipb.BackfillInternal{}
+			err = proto.Unmarshal(s, b)
+			if err != nil {
+				err = errors.Wrapf(err, "failed to unmarshal backfill from redis, key %s", ids[i])
+				return nil, status.Errorf(codes.Internal, "%v", err)
+			}
+
+			list = append(list, b.Backfill)
+		}
+	}
+
+	return list, nil
+}
+
 // DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
 func (rb *redisBackend) DeleteBackfill(ctx context.Context, id string) error {
 	redisConn, err := rb.redisPool.GetContext(ctx)
