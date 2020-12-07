@@ -61,7 +61,7 @@ func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer 
 			return
 		}
 
-		logger.Infof("number of tickets in cache: %v", len(tickets))
+		logger.Debug("number of tickets in cache: %v", len(tickets))
 
 		for _, ticket := range tickets {
 			if pf.In(ticket) {
