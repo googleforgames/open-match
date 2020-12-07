@@ -458,10 +458,10 @@ func (s *synchronizerService) addMatchesToPendingRelease(ctx context.Context, m 
 		totalMatches += len(mIDs)
 		if err == nil {
 			successfulMatches += len(mIDs)
-			fmt.Println("ticket successfully added to pending release")
+			logger.Info("ticket successfully added to pending release")
 		} else {
 			lastErr = err
-			fmt.Println("failed to add ticket to pending release")
+			logger.Info("failed to add ticket to pending release")
 		}
 
 		for _, mID := range mIDs {
