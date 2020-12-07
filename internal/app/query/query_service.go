@@ -15,6 +15,8 @@
 package query
 
 import (
+	"fmt"
+
 	"go.opencensus.io/stats"
 
 	"github.com/pkg/errors"
@@ -61,6 +63,7 @@ func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer 
 			return
 		}
 
+		fmt.Println("number of tickets in cache: ", len(tickets))
 		for _, ticket := range tickets {
 			if pf.In(ticket) {
 				results = append(results, ticket)

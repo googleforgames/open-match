@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/filter/testcases"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -82,28 +81,6 @@ func TestQueryBackfillsPaging(t *testing.T) {
 	resp, err = stream.Recv()
 	require.Equal(t, err, io.EOF)
 	require.Nil(t, resp)
-}
-
-func TestBackfillFound(t *testing.T) {
-	for _, tc := range testcases.IncludedTestCases() {
-		tc := tc
-		t.Run("QueryBackfills_"+tc.Name, func(t *testing.T) {
-			if !backfillReturnedByQuery(t, tc) {
-				require.Fail(t, "Expected to find backfill in pool but didn't.")
-			}
-		})
-	}
-}
-
-func TestBackfillNotFound(t *testing.T) {
-	for _, tc := range testcases.ExcludedTestCases() {
-		tc := tc
-		t.Run("QueryBackfills_"+tc.Name, func(t *testing.T) {
-			if backfillReturnedByQuery(t, tc) {
-				require.Fail(t, "Expected to not find backfill in pool but did.")
-			}
-		})
-	}
 }
 
 func TestBackfillQueryAfterMMFUpdate(t *testing.T) {
@@ -220,38 +197,4 @@ func TestBackfillQueryAfterGSUpdate(t *testing.T) {
 		require.Equal(t, io.EOF, err)
 		require.Nil(t, resp)
 	}
-}
-
-func backfillReturnedByQuery(t *testing.T, tc testcases.TestCase) (found bool) {
-	om := newOM(t)
-
-	{
-		backfill := pb.Backfill{
-			SearchFields: tc.SearchFields,
-		}
-		resp, err := om.Frontend().CreateBackfill(context.Background(), &pb.CreateBackfillRequest{Backfill: &backfill})
-
-		require.NotNil(t, resp)
-		require.NoError(t, err)
-	}
-
-	stream, err := om.Query().QueryBackfills(context.Background(), &pb.QueryBackfillsRequest{Pool: tc.Pool})
-	require.NoError(t, err)
-
-	backfills := []*pb.Backfill{}
-	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		require.NoError(t, err)
-
-		backfills = append(backfills, resp.Backfills...)
-	}
-
-	if len(backfills) > 1 {
-		require.Fail(t, "More than one backfill found")
-	}
-
-	return len(backfills) == 1
 }

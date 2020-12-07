@@ -257,6 +257,7 @@ func TestProposedBackfillUpdate(t *testing.T) {
 		return nil
 	})
 
+	fmt.Println("start fetching matches")
 	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
 		Config:  om.MMFConfigGRPC(),
 		Profile: &pb.MatchProfile{},
@@ -271,11 +272,13 @@ func TestProposedBackfillUpdate(t *testing.T) {
 	require.Nil(t, resp)
 	require.Equal(t, io.EOF, err)
 
+	fmt.Println("start querying backfill")
 	actual, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b.Id})
 	require.Nil(t, err)
 	require.NotNil(t, actual)
 	require.True(t, proto.Equal(b, actual))
 
+	fmt.Println("start querying ticket")
 	client, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
 		StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
 	}})
