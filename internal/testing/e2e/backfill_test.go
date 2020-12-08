@@ -18,17 +18,60 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"regexp"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// TestAcknowledgeBackfill Update Backfill test
+func TestCreateGetBackfill(t *testing.T) {
+	om := newOM(t)
+	ctx := context.Background()
+
+	bf := &pb.CreateBackfillRequest{Backfill: &pb.Backfill{SearchFields: &pb.SearchFields{
+		StringArgs: map[string]string{
+			"search": "me",
+		},
+	}}}
+	b1, err := om.Frontend().CreateBackfill(ctx, bf)
+	require.Nil(t, err)
+	require.NotNil(t, b1)
+
+	b2, err := om.Frontend().CreateBackfill(ctx, bf)
+	require.Nil(t, err)
+	require.NotNil(t, b2)
+
+	// Different IDs should be generated
+	require.NotEqual(t, b1.Id, b2.Id)
+	matched, err := regexp.MatchString(`[0-9a-v]{20}`, b1.GetId())
+	require.True(t, matched)
+	require.Nil(t, err)
+	require.Equal(t, bf.Backfill.SearchFields.DoubleArgs["test-arg"], b1.SearchFields.DoubleArgs["test-arg"])
+	b1.Id = b2.Id
+	b1.CreateTime = b2.CreateTime
+
+	// All fields other than CreateTime and Id fields should be equal
+	require.Equal(t, b1, b2)
+	require.Nil(t, err)
+	actual, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
+	require.Nil(t, err)
+	require.NotNil(t, actual)
+	require.Equal(t, b1, actual)
+
+	// Get Backfill which is not present - NotFound
+	actual, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id + "new"})
+	require.NotNil(t, err)
+	require.Equal(t, codes.NotFound.String(), status.Convert(err).Code().String())
+	require.Nil(t, actual)
+}
+
 func TestAcknowledgeBackfill(t *testing.T) {
 	om := newOM(t)
 	ctx := context.Background()

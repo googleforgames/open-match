@@ -365,13 +365,15 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 	if err != nil {
 		return nil, err
 	}
-	ag := pb.AssignmentGroup{TicketIds: associatedTickets, Assignment: req.GetAssignment()}
 	if len(associatedTickets) != 0 {
 		_, _, err = s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
-			Assignments: []*pb.AssignmentGroup{&ag},
+			Assignments: []*pb.AssignmentGroup{&pb.AssignmentGroup{TicketIds: associatedTickets, Assignment: req.GetAssignment()}},
 		})
+		if err != nil {
+			return nil, err
+		}
 	}
-	return bf, err
+	return bf, nil
 }
 
 // GetBackfill fetches a Backfill object by its ID.
