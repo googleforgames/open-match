@@ -195,14 +195,6 @@ func TestProposedBackfillCreate(t *testing.T) {
 	b.Id = actual.Id
 	b.CreateTime = actual.CreateTime
 	require.True(t, proto.Equal(b, actual))
-
-	client, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
-		StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
-	}})
-
-	require.NoError(t, err)
-	_, err = client.Recv()
-	require.Equal(t, io.EOF, err)
 }
 
 func TestProposedBackfillUpdate(t *testing.T) {
@@ -276,13 +268,6 @@ func TestProposedBackfillUpdate(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, actual)
 	require.True(t, proto.Equal(b, actual))
-
-	client, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
-		StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
-	}})
-	require.NoError(t, err)
-	_, err = client.Recv()
-	require.Equal(t, io.EOF, err)
 }
 
 func TestBackfillGenerationMismatch(t *testing.T) {
@@ -326,7 +311,6 @@ func TestBackfillGenerationMismatch(t *testing.T) {
 }
 
 func TestCleanUpBackfills(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	om := newOM(t)
 
@@ -367,7 +351,7 @@ func TestCleanUpBackfills(t *testing.T) {
 	})
 
 	// wait until backfill is expired, then try to get it
-	time.Sleep(3 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	// statestore.CleanupBackfills is called at the end of each syncronizer cycle after fetch matches call, so expired backfill will be removed
 	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{

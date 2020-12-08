@@ -170,7 +170,7 @@ const assignedDeleteTimeout = time.Millisecond * 200
 const configFile = `
 registrationInterval: 200ms
 proposalCollectionInterval: 200ms
-pendingReleaseTimeout: 800ms
+pendingReleaseTimeout: 200ms
 assignedDeleteTimeout: 200ms
 queryPageSize: 10
 

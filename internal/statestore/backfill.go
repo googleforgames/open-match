@@ -32,7 +32,7 @@ import (
 var (
 	logger = logrus.WithFields(logrus.Fields{
 		"app":       "openmatch",
-		"component": "statestore",
+		"component": "statestore.redis",
 	})
 )
 
@@ -169,7 +169,7 @@ func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error":       err.Error(),
-				"backfill id": id,
+				"backfill_id": id,
 			}).Error("cleanup failed to get the backfill")
 			continue
 		}
@@ -178,7 +178,7 @@ func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error":       err.Error(),
-				"backfill id": id,
+				"backfill_id": id,
 			}).Error("cleanup failed to delete the backfill")
 		}
 
@@ -186,7 +186,7 @@ func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error":       err.Error(),
-				"backfill id": id,
+				"backfill_id": id,
 			}).Error("cleanup failed to delete tickets from pending release")
 		}
 	}
