@@ -140,6 +140,7 @@ func TestBackfillQueryAfterMMFUpdate(t *testing.T) {
 		resp, err := stream.Recv()
 		require.NoError(t, err)
 		require.NotNil(t, resp)
+		require.Len(t, resp.Backfills, 1)
 		require.Equal(t, int64(firstBackfillGeneration), resp.Backfills[0].Generation)
 
 		resp, err = stream.Recv()
@@ -172,6 +173,7 @@ func TestBackfillQueryAfterGSUpdate(t *testing.T) {
 		resp, err := stream.Recv()
 		require.NoError(t, err)
 		require.NotNil(t, resp)
+		require.Len(t, resp.Backfills, 1)
 		require.Equal(t, int64(firstBackfillGeneration), resp.Backfills[0].Generation)
 		backfill = resp.Backfills[0]
 
@@ -191,6 +193,7 @@ func TestBackfillQueryAfterGSUpdate(t *testing.T) {
 		resp, err := stream.Recv()
 		require.NoError(t, err)
 		require.NotNil(t, resp)
+		require.Len(t, resp.Backfills, 1)
 		require.Equal(t, int64(firstBackfillGeneration+1), resp.Backfills[0].Generation)
 
 		resp, err = stream.Recv()

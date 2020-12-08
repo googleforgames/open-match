@@ -117,25 +117,41 @@ func (rb *redisBackend) GetBackfills(ctx context.Context, ids []string) ([]*pb.B
 
 	slices, err := redis.ByteSlices(redisConn.Do("MGET", queryParams...))
 	if err != nil {
-		err = errors.Wrapf(err, "failed to lookup backfills %v", ids)
+		err = errors.Wrapf(err, "failed to lookup backfills: %v", ids)
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
-	list := make([]*pb.Backfill, 0, len(ids))
+	m := make(map[string]*pb.Backfill, len(ids))
 	for i, s := range slices {
 		if s != nil {
 			b := &ipb.BackfillInternal{}
 			err = proto.Unmarshal(s, b)
 			if err != nil {
-				err = errors.Wrapf(err, "failed to unmarshal backfill from redis, key %s", ids[i])
+				err = errors.Wrapf(err, "failed to unmarshal backfill from redis, key: %s", ids[i])
 				return nil, status.Errorf(codes.Internal, "%v", err)
 			}
 
-			list = append(list, b.Backfill)
+			if b.Backfill != nil {
+				m[b.Backfill.Id] = b.Backfill
+			}
 		}
 	}
 
-	return list, nil
+	var notFound []string
+	result := make([]*pb.Backfill, 0, len(ids))
+	for _, id := range ids {
+		if b, ok := m[id]; ok {
+			result = append(result, b)
+		} else {
+			notFound = append(notFound, id)
+		}
+	}
+
+	if len(notFound) > 0 {
+		redisLogger.Warningf("failed to lookup backfills: %v", notFound)
+	}
+
+	return result, nil
 }
 
 // DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.

@@ -16,13 +16,14 @@ package query
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
 	"go.opencensus.io/stats"
 
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
@@ -38,7 +39,7 @@ type cache struct {
 	// running.
 	startRunRequest chan struct{}
 	wg              sync.WaitGroup
-	// Mutlithreaded unsafe fields, only to be written by update, and read when
+	// Multithreaded unsafe fields, only to be written by update, and read when
 	// request given the ok.
 	value  interface{}
 	update func(statestore.Service, interface{}) error
@@ -136,12 +137,12 @@ func newTicketCache(b *appmain.Bindings, store statestore.Service) *cache {
 
 func updateTicketCache(store statestore.Service, value interface{}) error {
 	if value == nil {
-		return fmt.Errorf("expecting not nil value")
+		return status.Error(codes.InvalidArgument, "value is required")
 	}
 
 	tickets, ok := value.(map[string]*pb.Ticket)
 	if !ok {
-		return fmt.Errorf("expecting value type map[string]*pb.Ticket, but got: %T", value)
+		return status.Errorf(codes.InvalidArgument, "expecting value type map[string]*pb.Ticket, but got: %T", value)
 	}
 
 	t := time.Now()
@@ -200,12 +201,12 @@ func newBackfillCache(b *appmain.Bindings, store statestore.Service) *cache {
 
 func updateBackfillCache(store statestore.Service, value interface{}) error {
 	if value == nil {
-		return fmt.Errorf("expecting not nil value")
+		return status.Error(codes.InvalidArgument, "value is required")
 	}
 
 	backfills, ok := value.(map[string]*pb.Backfill)
 	if !ok {
-		return fmt.Errorf("expecting value type map[string]*pb.Backfill, but got: %T", value)
+		return status.Errorf(codes.InvalidArgument, "expecting value type map[string]*pb.Backfill, but got: %T", value)
 	}
 
 	t := time.Now()
