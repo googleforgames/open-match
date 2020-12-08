@@ -30,6 +30,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
+	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -55,6 +56,7 @@ var (
 		"app":       "openmatch",
 		"component": "app.backend",
 	})
+	errBackfillGenerationMismatch = errors.New("backfill generation mismatch")
 )
 
 // FetchMatches triggers a MatchFunction with the specified MatchProfiles, while each MatchProfile
@@ -89,7 +91,7 @@ func (s *backendService) FetchMatches(req *pb.FetchMatchesRequest, stream pb.Bac
 		return synchronizeSend(ctx, syncStream, m, proposals)
 	})
 	eg.Go(func() error {
-		return synchronizeRecv(ctx, syncStream, m, stream, startMmfs, cancelMmfs)
+		return synchronizeRecv(ctx, syncStream, m, stream, startMmfs, cancelMmfs, s.store)
 	})
 
 	var mmfErr error
@@ -142,7 +144,7 @@ sendProposals:
 	return nil
 }
 
-func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync.Map, stream pb.BackendService_FetchMatchesServer, startMmfs chan<- struct{}, cancelMmfs contextcause.CancelErrFunc) error {
+func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync.Map, stream pb.BackendService_FetchMatchesServer, startMmfs chan<- struct{}, cancelMmfs contextcause.CancelErrFunc, store statestore.Service) error {
 	var startMmfsOnce sync.Once
 
 	for {
@@ -169,6 +171,15 @@ func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync
 			if !ok {
 				return fmt.Errorf("error casting sync map value into *pb.Match: %w", err)
 			}
+
+			err = createOrUpdateBackfill(ctx, match, store)
+			if err != nil {
+				if err == errBackfillGenerationMismatch {
+					continue
+				}
+				return errors.Wrapf(err, "failed to handle match backfill: %s", match.MatchId)
+			}
+
 			stats.Record(ctx, totalBytesPerMatch.M(int64(proto.Size(match))))
 			stats.Record(ctx, ticketsPerMatch.M(int64(len(match.GetTickets()))))
 			err = stream.Send(&pb.FetchMatchesResponse{Match: match})
@@ -328,6 +339,55 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 
 	stats.Record(ctx, ticketsAssigned.M(int64(numIds)))
 	return resp, nil
+}
+
+func createOrUpdateBackfill(ctx context.Context, match *pb.Match, store statestore.Service) error {
+	backfill := match.GetBackfill()
+	if backfill == nil {
+		return nil
+	}
+
+	ticketIds := make([]string, len(match.Tickets))
+
+	for _, t := range match.Tickets {
+		ticketIds = append(ticketIds, t.Id)
+	}
+
+	if backfill.Id == "" {
+		backfill.Id = xid.New().String()
+		backfill.CreateTime = ptypes.TimestampNow()
+		return store.CreateBackfill(ctx, backfill, ticketIds)
+	}
+
+	m := store.NewMutex(backfill.Id)
+	err := m.Lock(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		_, unlockErr := m.Unlock(ctx)
+		if unlockErr != nil {
+			logger.WithFields(logrus.Fields{"backfill_id": backfill.Id}).WithError(unlockErr).Error("failed to make unlock")
+		}
+	}()
+
+	bf, ids, err := store.GetBackfill(ctx, backfill.Id)
+	if err != nil {
+		return err
+	}
+
+	if bf.Generation != backfill.Generation {
+		logger.WithFields(logrus.Fields{"backfill_id": backfill.Id}).
+			WithError(errBackfillGenerationMismatch).
+			Errorf("failed to update backfill, expecting: %d generation but got: %d", bf.Generation, backfill.Generation)
+		return errBackfillGenerationMismatch
+	}
+
+	bf.SearchFields = backfill.SearchFields
+	bf.Extensions = backfill.Extensions
+
+	return store.UpdateBackfill(ctx, bf, append(ids, ticketIds...))
 }
 
 func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) (*pb.AssignTicketsResponse, error) {

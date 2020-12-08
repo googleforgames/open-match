@@ -16,6 +16,7 @@ package statestore
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -29,6 +30,7 @@ import (
 
 const (
 	backfillLastAckTime = "backfill_last_ack_time"
+	allBackfills        = "allBackfills"
 )
 
 // CreateBackfill creates a new Backfill in the state storage if one doesn't exist. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
@@ -59,10 +61,11 @@ func (rb *redisBackend) CreateBackfill(ctx context.Context, backfill *pb.Backfil
 	if res.(int64) == 0 {
 		return status.Errorf(codes.AlreadyExists, "backfill already exists, id: %s", backfill.GetId())
 	}
-	return nil
+
+	return acknowledgeBackfill(redisConn, backfill.GetId())
 }
 
-// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and asossiated ticketIDs if they exist.
+// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and associated ticketIDs if they exist.
 func (rb *redisBackend) GetBackfill(ctx context.Context, id string) (*pb.Backfill, []string, error) {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
@@ -109,7 +112,7 @@ func (rb *redisBackend) DeleteBackfill(ctx context.Context, id string) error {
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	return nil
+	return rb.deleteExpiredBackfillID(redisConn, id)
 }
 
 // UpdateBackfill updates an existing Backfill with a new data. ticketIDs can be nil.
@@ -140,29 +143,31 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	return nil
 }
 
-// AcknowledgeBackfill - store Backfill's last acknowledgement time
+// AcknowledgeBackfill stores Backfill's last acknowledgement time.
+// Check on Backfill existence should be performed on Frontend side
 func (rb *redisBackend) AcknowledgeBackfill(ctx context.Context, id string) error {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
 		return status.Errorf(codes.Unavailable, "AcknowledgeBackfill, id: %s, failed to connect to redis: %v", id, err)
 	}
 	defer handleConnectionClose(&redisConn)
+	return acknowledgeBackfill(redisConn, id)
+}
 
+func acknowledgeBackfill(conn redis.Conn, backfillID string) error {
 	currentTime := time.Now().UnixNano()
-	cmds := make([]interface{}, 0)
-	cmds = append(cmds, backfillLastAckTime, currentTime, id)
 
-	_, err = redisConn.Do("ZADD", cmds...)
+	_, err := conn.Do("ZADD", backfillLastAckTime, currentTime, backfillID)
 	if err != nil {
-		err = errors.Wrap(err, "failed to store backfill's last acknowledgement time")
-		return status.Error(codes.Internal, err.Error())
+		return status.Errorf(codes.Internal, "%v",
+			errors.Wrap(err, "failed to store backfill's last acknowledgement time"))
 	}
 
 	return nil
 
 }
 
-// GetExpiredBackfillIDs - get all backfill IDs which are expired
+// GetExpiredBackfillIDs gets all backfill IDs which are expired
 func (rb *redisBackend) GetExpiredBackfillIDs(ctx context.Context) ([]string, error) {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
@@ -170,13 +175,13 @@ func (rb *redisBackend) GetExpiredBackfillIDs(ctx context.Context) ([]string, er
 	}
 	defer handleConnectionClose(&redisConn)
 
-	// the same TTL is used for both Backfills and pendingRelease Tickets
-	ttl := rb.cfg.GetDuration("pendingReleaseTimeout")
+	// Use a fraction 80% of pendingRelease Tickets TTL
+	ttl := rb.cfg.GetDuration("pendingReleaseTimeout") / 5 * 4
 	curTime := time.Now()
 	endTimeInt := curTime.Add(-ttl).UnixNano()
 	startTimeInt := 0
 
-	// Filter out tickets that are fetched but not assigned within TTL time (ms).
+	// Filter out backfill IDs that are fetched but not assigned within TTL time (ms).
 	expiredBackfillIds, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", backfillLastAckTime, startTimeInt, endTimeInt))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "error getting expired backfills %v", err)
@@ -185,24 +190,72 @@ func (rb *redisBackend) GetExpiredBackfillIDs(ctx context.Context) ([]string, er
 	return expiredBackfillIds, nil
 }
 
-// DeleteExpiredBackfillIDs - delete expired BackfillIDs from a sorted set
-func (rb *redisBackend) DeleteExpiredBackfillIDs(ctx context.Context, backfillIDs []string) error {
+// deleteExpiredBackfillID deletes expired BackfillID from a sorted set
+func (rb *redisBackend) deleteExpiredBackfillID(conn redis.Conn, backfillID string) error {
+
+	_, err := conn.Do("ZREM", backfillLastAckTime, backfillID)
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to delete expired backfill ID %s from Sorted Set %s",
+			backfillID, err.Error())
+	}
+	return nil
+}
+
+// IndexBackfill adds the backfill to the index.
+func (rb *redisBackend) IndexBackfill(ctx context.Context, backfill *pb.Backfill) error {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
-		return status.Errorf(codes.Unavailable, "DeleteExpiredBackfillIDs, failed to connect to redis: %v", err)
+		return status.Errorf(codes.Unavailable, "IndexBackfill, id: %s, failed to connect to redis: %v", backfill.GetId(), err)
 	}
 	defer handleConnectionClose(&redisConn)
 
-	cmds := make([]interface{}, 0, len(backfillIDs)+1)
-	cmds = append(cmds, backfillLastAckTime)
-	for _, id := range backfillIDs {
-		cmds = append(cmds, id)
+	err = redisConn.Send("HSET", allBackfills, backfill.Id, backfill.Generation)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to add backfill to all backfills, id: %s", backfill.Id)
+		return status.Errorf(codes.Internal, "%v", err)
 	}
 
-	_, err = redisConn.Do("ZREM", cmds...)
-	if err != nil {
-		err = errors.Wrap(err, "failed to delete proposed tickets from pending release")
-		return status.Error(codes.Internal, err.Error())
-	}
 	return nil
+}
+
+// DeindexBackfill removes specified Backfill ID from the index. The Backfill continues to exist.
+func (rb *redisBackend) DeindexBackfill(ctx context.Context, id string) error {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "DeindexBackfill, id: %s, failed to connect to redis: %v", id, err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	err = redisConn.Send("HDEL", allBackfills, id)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to remove ID from backfill index, id: %s", id)
+		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	return nil
+}
+
+// GetIndexedBackfills returns the ids of all backfills currently indexed.
+func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]int, error) {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unavailable, "GetIndexedBackfills, failed to connect to redis: %v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	bfIndex, err := redis.StringMap(redisConn.Do("HGETALL", allBackfills))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error getting all indexed backfill ids %v", err)
+	}
+
+	r := make(map[string]int, len(bfIndex))
+	for bfID, bfGeneration := range bfIndex {
+		gen, err := strconv.Atoi(bfGeneration)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "error while parsing generation into number: %v", err)
+		}
+		r[bfID] = gen
+	}
+
+	return r, nil
 }

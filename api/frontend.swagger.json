@@ -26,7 +26,7 @@
   "paths": {
     "/v1/frontendservice/backfills": {
       "post": {
-        "summary": "If SearchFields exist in a Ticket, CreateBackfillRequest will also index these fields such that one can query the ticket with query.QueryBakfillTickets function.",
+        "summary": "CreateBackfill creates a new Backfill object.",
         "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "FrontendService_CreateBackfill",
         "responses": {
@@ -65,7 +65,8 @@
         ]
       },
       "patch": {
-        "summary": "Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.\nBETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "summary": "UpdateBackfill updates search_fields and extensions for the backfill with the provided id.\nAny tickets waiting for this backfill will be returned to the active pool, no longer pending.",
+        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "FrontendService_UpdateBackfill",
         "responses": {
           "200": {
@@ -105,7 +106,8 @@
     },
     "/v1/frontendservice/backfills/{backfill_id}": {
       "get": {
-        "summary": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "summary": "GetBackfill returns a backfill object by its ID.",
+        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "FrontendService_GetBackfill",
         "responses": {
           "200": {
@@ -141,7 +143,7 @@
         ]
       },
       "delete": {
-        "summary": "Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.",
+        "summary": "DeleteBackfill receives a backfill ID and deletes its resource.\nAny tickets waiting for this backfill will be returned to the active pool, no longer pending.",
         "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "FrontendService_DeleteBackfill",
         "responses": {
@@ -530,9 +532,8 @@
     "openmatchUpdateBackfillRequest": {
       "type": "object",
       "properties": {
-        "backfill_ticket": {
-          "$ref": "#/definitions/openmatchBackfill",
-          "description": "A Backfill object with SearchFields defined."
+        "backfill": {
+          "$ref": "#/definitions/openmatchBackfill"
         }
       },
       "description": "UpdateBackfillRequest - update searchFields, extensions and set assignment.\n\nBETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
