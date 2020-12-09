@@ -156,8 +156,8 @@ func TestCreateBackfill(t *testing.T) {
 
 	// expect error with canceled context
 	store, closer = statestoreTesting.NewStoreServiceForTesting(t, cfg)
-	fs = frontendService{cfg, store}
 	defer closer()
+	fs = frontendService{cfg, store}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -338,6 +338,88 @@ func TestDoWatchAssignments(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestAcknowledgeBackfill - test input validation
+func TestAcknowledgeBackfillValidation(t *testing.T) {
+	cfg := viper.New()
+	tests := []struct {
+		description string
+		request     *pb.AcknowledgeBackfillRequest
+	}{
+		{
+			description: "check backfillId exists",
+			request:     &pb.AcknowledgeBackfillRequest{BackfillId: "", Assignment: &pb.Assignment{Connection: "10.0.0.1"}},
+		},
+		{
+			description: "check Assignment exist",
+			request:     &pb.AcknowledgeBackfillRequest{BackfillId: "1234", Assignment: nil},
+		},
+		{
+			description: "check Assignment.connection",
+			request:     &pb.AcknowledgeBackfillRequest{BackfillId: "1234", Assignment: &pb.Assignment{Connection: ""}},
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.description, func(t *testing.T) {
+			ctx := context.Background()
+
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+			defer closer()
+			fs := frontendService{cfg, store}
+			bf, err := fs.AcknowledgeBackfill(ctx, test.request)
+			require.Equal(t, codes.InvalidArgument.String(), status.Convert(err).Code().String())
+			require.Nil(t, bf)
+		})
+	}
+}
+
+// TestAcknowledgeBackfill - CreateBackfill,
+func TestAcknowledgeBackfill(t *testing.T) {
+	cfg := viper.New()
+	ctx := context.Background()
+
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+	defer closer()
+
+	fakeBackfill := &pb.Backfill{
+		Id: "1",
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"test-arg": 1,
+			},
+		},
+	}
+	err := store.CreateBackfill(ctx, fakeBackfill, []string{})
+	require.NoError(t, err)
+	fs := frontendService{cfg, store}
+	ids, err := store.GetExpiredBackfillIDs(ctx)
+	require.NoError(t, err)
+	require.Len(t, ids, 0)
+
+	time.Sleep(cfg.GetDuration("pendingReleaseTimeout"))
+	ids, err = store.GetExpiredBackfillIDs(ctx)
+	require.NoError(t, err)
+	require.Len(t, ids, 1)
+
+	bf, err := fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	require.NoError(t, err)
+	require.NotNil(t, bf)
+
+	time.Sleep(cfg.GetDuration("pendingReleaseTimeout"))
+	ids, err = store.GetExpiredBackfillIDs(ctx)
+	require.NoError(t, err)
+	require.Len(t, ids, 1)
+
+	bf, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	require.NoError(t, err)
+	require.NotNil(t, bf)
+
+	ids, err = store.GetExpiredBackfillIDs(ctx)
+	require.NoError(t, err)
+	require.Len(t, ids, 0)
 }
 
 func TestDoDeleteTicket(t *testing.T) {

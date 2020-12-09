@@ -357,6 +357,9 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 	if req.GetBackfillId() == "" {
 		return nil, status.Errorf(codes.InvalidArgument, ".BackfillId is required")
 	}
+	if req.GetAssignment() == nil {
+		return nil, status.Errorf(codes.InvalidArgument, ".Assignment is required")
+	}
 	if req.GetAssignment().Connection == "" {
 		return nil, status.Errorf(codes.InvalidArgument, ".Assignment.Connection should be set")
 	}
