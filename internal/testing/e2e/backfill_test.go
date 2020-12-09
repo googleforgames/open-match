@@ -145,7 +145,7 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), createdBf.Generation)
 
-	ticketId := createMatchWithBackfill(om, createdBf, t, ctx)
+	ticketID := createMatchWithBackfill(ctx, om, createdBf, t)
 	conn := "127.0.0.1:4242"
 	getBF, err := om.Frontend().AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: createdBf.Id, Assignment: &pb.Assignment{Connection: conn, Extensions: map[string]*any.Any{
 		"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
@@ -153,8 +153,9 @@ func TestAcknowledgeBackfill(t *testing.T) {
 		}),
 	}}})
 	require.NotNil(t, getBF)
+	require.NoError(t, err)
 
-	ticket, err := om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: ticketId})
+	ticket, err := om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: ticketID})
 	require.NoError(t, err)
 	require.NotNil(t, ticket.Assignment)
 	require.Equal(t, conn, ticket.Assignment.Connection)
@@ -171,7 +172,7 @@ func TestProposedBackfillCreate(t *testing.T) {
 			},
 		},
 	}
-	createMatchWithBackfill(om, b, t, ctx)
+	createMatchWithBackfill(ctx, om, b, t)
 	client, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
 		StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
 	}})
@@ -205,8 +206,7 @@ func TestProposedBackfillUpdate(t *testing.T) {
 			Score: 10,
 		}),
 	}
-	createMatchWithBackfill(om, b, t, ctx)
-
+	createMatchWithBackfill(ctx, om, b, t)
 	client, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
 		StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
 	}})
@@ -264,7 +264,7 @@ func mustAny(m proto.Message) *any.Any {
 	return result
 }
 
-func createMatchWithBackfill(om *om, b *pb.Backfill, t *testing.T, ctx context.Context) string {
+func createMatchWithBackfill(ctx context.Context, om *om, b *pb.Backfill, t *testing.T) string {
 	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{
 		Ticket: &pb.Ticket{
 			SearchFields: &pb.SearchFields{
