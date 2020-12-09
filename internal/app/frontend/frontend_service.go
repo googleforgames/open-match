@@ -365,6 +365,12 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 	if err != nil {
 		return nil, err
 	}
+
+	err = s.store.AcknowledgeBackfill(ctx, req.GetBackfillId())
+	if err != nil {
+		return nil, err
+	}
+
 	if len(associatedTickets) != 0 {
 		_, _, err = s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
 			Assignments: []*pb.AssignmentGroup{&pb.AssignmentGroup{TicketIds: associatedTickets, Assignment: req.GetAssignment()}},
