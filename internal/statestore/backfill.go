@@ -70,7 +70,7 @@ func (rb *redisBackend) CreateBackfill(ctx context.Context, backfill *pb.Backfil
 		return status.Errorf(codes.AlreadyExists, "backfill already exists, id: %s", backfill.GetId())
 	}
 
-	return acknowledgeBackfill(redisConn, backfill.GetId())
+	return nil
 }
 
 // GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and associated ticketIDs if they exist.

@@ -354,7 +354,29 @@ func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignme
 // AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info.
 // This triggers an assignment process.
 func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.AcknowledgeBackfillRequest) (*pb.Backfill, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	// WARNING: THIS CODE WILL BE REPLCAES BY PR "Frontend acknowledge backfill #1293"
+	if req.GetBackfillId() == "" {
+		return nil, status.Errorf(codes.InvalidArgument, ".BackfillId is required")
+	}
+	if req.GetAssignment().Connection == "" {
+		return nil, status.Errorf(codes.InvalidArgument, ".Assignment.Connection should be set")
+	}
+
+	bf, associatedTickets, err := s.store.GetBackfill(ctx, req.GetBackfillId())
+	if err != nil {
+		return nil, err
+	}
+	if len(associatedTickets) != 0 {
+		_, _, err = s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
+			Assignments: []*pb.AssignmentGroup{&pb.AssignmentGroup{TicketIds: associatedTickets, Assignment: req.GetAssignment()}},
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = s.store.AcknowledgeBackfill(ctx, bf.Id)
+	return bf, err
 }
 
 // GetBackfill fetches a Backfill object by its ID.

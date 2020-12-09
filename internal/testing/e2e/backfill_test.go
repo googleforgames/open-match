@@ -326,7 +326,15 @@ func TestCleanUpBackfills(t *testing.T) {
 		}}})
 	require.NoError(t, err)
 	require.NotNil(t, b1)
-	fmt.Println(b1.Id)
+
+	_, err = om.Frontend().AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{
+		BackfillId: b1.Id,
+		Assignment: &pb.Assignment{Connection: "127.0.0.1:4242", Extensions: map[string]*any.Any{
+			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+				Score: 10,
+			}),
+		}}})
+	require.NoError(t, err)
 
 	m := &pb.Match{
 		MatchId:  "1",
