@@ -173,13 +173,6 @@ func TestProposedBackfillCreate(t *testing.T) {
 		},
 	}
 	createMatchWithBackfill(ctx, om, b, t)
-	client, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
-		StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
-	}})
-
-	require.NoError(t, err)
-	_, err = client.Recv()
-	require.Equal(t, io.EOF, err)
 }
 
 func TestProposedBackfillUpdate(t *testing.T) {
@@ -207,13 +200,6 @@ func TestProposedBackfillUpdate(t *testing.T) {
 		}),
 	}
 	createMatchWithBackfill(ctx, om, b, t)
-	client, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
-		StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
-	}})
-
-	require.NoError(t, err)
-	_, err = client.Recv()
-	require.Equal(t, io.EOF, err)
 }
 
 func TestBackfillGenerationMismatch(t *testing.T) {
