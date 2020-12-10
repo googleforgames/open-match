@@ -82,7 +82,7 @@ func TestDoCreateTickets(t *testing.T) {
 			if err == nil {
 				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetId())
 				require.True(t, matched)
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Equal(t, test.ticket.SearchFields.DoubleArgs["test-arg"], res.SearchFields.DoubleArgs["test-arg"])
 			}
 		})
@@ -306,7 +306,7 @@ func TestDoWatchAssignments(t *testing.T) {
 								},
 							},
 						})
-						require.Nil(t, err)
+						require.NoError(t, err)
 						wg.Done()
 					}
 				}(wg)
