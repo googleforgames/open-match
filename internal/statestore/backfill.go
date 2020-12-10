@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -231,8 +232,7 @@ func (rb *redisBackend) GetExpiredBackfillIDs(ctx context.Context) ([]string, er
 	}
 	defer handleConnectionClose(&redisConn)
 
-	// Use a fraction 80% of pendingRelease Tickets TTL
-	ttl := rb.cfg.GetDuration("pendingReleaseTimeout") / 5 * 4
+	ttl := getBackfillReleaseTimeout(rb.cfg)
 	curTime := time.Now()
 	endTimeInt := curTime.Add(-ttl).UnixNano()
 	startTimeInt := 0
@@ -299,19 +299,38 @@ func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]int
 	}
 	defer handleConnectionClose(&redisConn)
 
-	bfIndex, err := redis.StringMap(redisConn.Do("HGETALL", allBackfills))
+	ttl := getBackfillReleaseTimeout(rb.cfg)
+	curTime := time.Now()
+	endTimeInt := curTime.Add(time.Hour).UnixNano()
+	startTimeInt := curTime.Add(-ttl).UnixNano()
+
+	acknowledgedIds, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", backfillLastAckTime, startTimeInt, endTimeInt))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error getting acknowledged backfills %v", err)
+	}
+
+	index, err := redis.StringMap(redisConn.Do("HGETALL", allBackfills))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "error getting all indexed backfill ids %v", err)
 	}
 
-	r := make(map[string]int, len(bfIndex))
-	for bfID, bfGeneration := range bfIndex {
-		gen, err := strconv.Atoi(bfGeneration)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "error while parsing generation into number: %v", err)
+	r := make(map[string]int, len(acknowledgedIds))
+	for _, id := range acknowledgedIds {
+		if generation, ok := index[id]; ok {
+			gen, err := strconv.Atoi(generation)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "error while parsing generation into number: %v", err)
+			}
+			r[id] = gen
 		}
-		r[bfID] = gen
 	}
 
 	return r, nil
+
+}
+
+func getBackfillReleaseTimeout(cfg config.View) time.Duration {
+	// Use a fraction 80% of pendingRelease Tickets TTL
+	ttl := cfg.GetDuration("pendingReleaseTimeout") / 5 * 4
+	return ttl
 }

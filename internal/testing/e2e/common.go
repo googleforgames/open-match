@@ -162,7 +162,7 @@ func (om *om) MMFConfigHTTP() *pb.FunctionConfig {
 // that parsing bugs can't hide logic bugs.
 const registrationInterval = time.Millisecond * 200
 const proposalCollectionInterval = time.Millisecond * 200
-const pendingReleaseTimeout = time.Millisecond * 200
+const pendingReleaseTimeout = time.Millisecond * 500
 const assignedDeleteTimeout = time.Millisecond * 200
 
 // configFile is the "cononical" test config.  It exactly matches the configmap
@@ -170,7 +170,7 @@ const assignedDeleteTimeout = time.Millisecond * 200
 const configFile = `
 registrationInterval: 200ms
 proposalCollectionInterval: 200ms
-pendingReleaseTimeout: 200ms
+pendingReleaseTimeout: 500ms
 assignedDeleteTimeout: 200ms
 queryPageSize: 10
 
