@@ -340,24 +340,28 @@ func TestDoWatchAssignments(t *testing.T) {
 	}
 }
 
-// TestAcknowledgeBackfill - test input validation
+// TestAcknowledgeBackfill - test input validation only
 func TestAcknowledgeBackfillValidation(t *testing.T) {
 	cfg := viper.New()
 	tests := []struct {
-		description string
-		request     *pb.AcknowledgeBackfillRequest
+		description     string
+		request         *pb.AcknowledgeBackfillRequest
+		expectedMessage string
 	}{
 		{
-			description: "check backfillId exists",
-			request:     &pb.AcknowledgeBackfillRequest{BackfillId: "", Assignment: &pb.Assignment{Connection: "10.0.0.1"}},
+			description:     "no BackfillId, error is expected",
+			request:         &pb.AcknowledgeBackfillRequest{BackfillId: "", Assignment: &pb.Assignment{Connection: "10.0.0.1"}},
+			expectedMessage: ".BackfillId is required",
 		},
 		{
-			description: "check Assignment exist",
-			request:     &pb.AcknowledgeBackfillRequest{BackfillId: "1234", Assignment: nil},
+			description:     "no Assignment, error is expected",
+			request:         &pb.AcknowledgeBackfillRequest{BackfillId: "1234", Assignment: nil},
+			expectedMessage: ".Assignment is required",
 		},
 		{
-			description: "check Assignment.connection",
-			request:     &pb.AcknowledgeBackfillRequest{BackfillId: "1234", Assignment: &pb.Assignment{Connection: ""}},
+			description:     "no Assignment.Connection, error is expected Assignment",
+			request:         &pb.AcknowledgeBackfillRequest{BackfillId: "1234", Assignment: &pb.Assignment{Connection: ""}},
+			expectedMessage: ".Assignment.Connection should be set",
 		},
 	}
 
@@ -371,12 +375,16 @@ func TestAcknowledgeBackfillValidation(t *testing.T) {
 			fs := frontendService{cfg, store}
 			bf, err := fs.AcknowledgeBackfill(ctx, test.request)
 			require.Equal(t, codes.InvalidArgument.String(), status.Convert(err).Code().String())
+			require.Equal(t, test.expectedMessage, status.Convert(err).Message())
 			require.Nil(t, bf)
 		})
 	}
 }
 
-// TestAcknowledgeBackfill - CreateBackfill,
+// TestAcknowledgeBackfill verifies timestamp part of AcknowledgeBackfill call,
+// assignment part tested in a corresponding E2E test.
+// GetExpiredBackfills() after AcknowledgeBackfill() call should not return Backfill
+// which was just acknowledged
 func TestAcknowledgeBackfill(t *testing.T) {
 	cfg := viper.New()
 	ctx := context.Background()
@@ -395,24 +403,28 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	err := store.CreateBackfill(ctx, fakeBackfill, []string{})
 	require.NoError(t, err)
 	fs := frontendService{cfg, store}
-	ids, err := store.GetExpiredBackfillIDs(ctx)
-	require.NoError(t, err)
-	require.Len(t, ids, 0)
+
+	// Use wrong BackfillID, error is returned
+	bf, err := fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: "42", Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	require.Error(t, err)
+	require.Nil(t, bf)
+	require.Equal(t, "Backfill id: 42 not found", status.Convert(err).Message())
 
 	time.Sleep(cfg.GetDuration("pendingReleaseTimeout"))
-	ids, err = store.GetExpiredBackfillIDs(ctx)
+	ids, err := store.GetExpiredBackfillIDs(ctx)
 	require.NoError(t, err)
 	require.Len(t, ids, 1)
 
-	bf, err := fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	bf, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
 	require.NoError(t, err)
 	require.NotNil(t, bf)
 
-	time.Sleep(cfg.GetDuration("pendingReleaseTimeout"))
 	ids, err = store.GetExpiredBackfillIDs(ctx)
 	require.NoError(t, err)
-	require.Len(t, ids, 1)
+	require.Len(t, ids, 0)
 
+	// Test that we can run two consecutive AcknowledgeBackfill requests with no Error
+	// and with the same results
 	bf, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
 	require.NoError(t, err)
 	require.NotNil(t, bf)
