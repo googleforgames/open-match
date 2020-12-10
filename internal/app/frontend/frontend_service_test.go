@@ -359,7 +359,7 @@ func TestAcknowledgeBackfillValidation(t *testing.T) {
 			expectedMessage: ".Assignment is required",
 		},
 		{
-			description:     "no Assignment.Connection, error is expected Assignment",
+			description:     "no Assignment.Connection, error is expected",
 			request:         &pb.AcknowledgeBackfillRequest{BackfillId: "1234", Assignment: &pb.Assignment{Connection: ""}},
 			expectedMessage: ".Assignment.Connection should be set",
 		},
