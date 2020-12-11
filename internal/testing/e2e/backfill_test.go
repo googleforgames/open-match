@@ -299,6 +299,10 @@ func createMatchWithBackfill(ctx context.Context, om *om, b *pb.Backfill, t *tes
 	require.NoError(t, err)
 	require.NotNil(t, actual)
 
+	if b.Generation != 0 {
+		// Backfill Generation should be autoincremented
+		b.Generation++
+	}
 	b.Id = actual.Id
 	b.CreateTime = actual.CreateTime
 	require.True(t, proto.Equal(b, actual))
