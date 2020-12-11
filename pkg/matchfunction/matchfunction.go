@@ -24,6 +24,11 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+// QueryBackfills queries queryService and returns the backfills that belong to the specified pool.
+func QueryBackfills(ctx context.Context, queryClient pb.QueryServiceClient, pool *pb.Pool, opts ...grpc.CallOption) ([]*pb.Backfill, error) {
+	return nil, nil
+}
+
 // QueryPool queries queryService and returns the tickets that belong to the specified pool.
 func QueryPool(ctx context.Context, queryClient pb.QueryServiceClient, pool *pb.Pool, opts ...grpc.CallOption) ([]*pb.Ticket, error) {
 	query, err := queryClient.QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: pool}, opts...)
