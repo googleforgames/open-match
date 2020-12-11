@@ -131,6 +131,8 @@ func TestBackfillFrontendLifecycle(t *testing.T) {
 	require.Nil(t, get)
 }
 
+// TestAcknowledgeBackfill checks that tickets got assigned
+// to the same Connection as it is provided in AcknowledgeBackfill request
 func TestAcknowledgeBackfill(t *testing.T) {
 	om := newOM(t)
 	ctx := context.Background()
