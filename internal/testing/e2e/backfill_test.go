@@ -274,6 +274,9 @@ func TestProposedBackfillUpdate(t *testing.T) {
 	actual, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b.Id})
 	require.Nil(t, err)
 	require.NotNil(t, actual)
+
+	// Backfill Generation should be autoincremented
+	b.Generation++
 	require.True(t, proto.Equal(b, actual))
 
 	client, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{

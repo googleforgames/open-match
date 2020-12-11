@@ -116,12 +116,15 @@ func (rb *redisBackend) DeleteBackfill(ctx context.Context, id string) error {
 }
 
 // UpdateBackfill updates an existing Backfill with a new data. ticketIDs can be nil.
+// Autoincrement generation, input backfill generation validation is performed on Backend only after MMF round
 func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
 		return status.Errorf(codes.Unavailable, "UpdateBackfill, id: %s, failed to connect to redis: %v", backfill.GetId(), err)
 	}
 	defer handleConnectionClose(&redisConn)
+
+	backfill.Generation++
 
 	bf := ipb.BackfillInternal{
 		Backfill:  backfill,
