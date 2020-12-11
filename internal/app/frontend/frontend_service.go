@@ -381,7 +381,9 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 			return nil, err
 		}
 	}
-	return bf, nil
+
+	err = s.store.AcknowledgeBackfill(ctx, bf.Id)
+	return bf, err
 }
 
 // GetBackfill fetches a Backfill object by its ID.

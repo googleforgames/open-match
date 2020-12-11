@@ -176,3 +176,10 @@ func (is *instrumentedService) GetIndexedBackfills(ctx context.Context) (map[str
 	defer span.End()
 	return is.s.GetIndexedBackfills(ctx)
 }
+
+// CleanupBackfills removes expired backfills
+func (is *instrumentedService) CleanupBackfills(ctx context.Context) error {
+	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.CleanupBackfills")
+	defer span.End()
+	return is.s.CleanupBackfills(ctx)
+}

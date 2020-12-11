@@ -22,10 +22,18 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/pkg/pb"
+)
+
+var (
+	logger = logrus.WithFields(logrus.Fields{
+		"app":       "openmatch",
+		"component": "statestore.redis",
+	})
 )
 
 const (
@@ -62,7 +70,7 @@ func (rb *redisBackend) CreateBackfill(ctx context.Context, backfill *pb.Backfil
 		return status.Errorf(codes.AlreadyExists, "backfill already exists, id: %s", backfill.GetId())
 	}
 
-	return acknowledgeBackfill(redisConn, backfill.GetId())
+	return nil
 }
 
 // GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and associated ticketIDs if they exist.
@@ -143,6 +151,48 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
+	return nil
+}
+
+// CleanupBackfills removes expired backfills
+func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "CleanupBackfills, failed to connect to redis: %v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	expiredBfIDs, err := rb.GetExpiredBackfillIDs(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, id := range expiredBfIDs {
+		_, tickets, err := rb.GetBackfill(ctx, id)
+		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"error":       err.Error(),
+				"backfill_id": id,
+			}).Error("cleanup failed to get the backfill")
+			continue
+		}
+
+		err = rb.DeleteBackfill(ctx, id)
+		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"error":       err.Error(),
+				"backfill_id": id,
+			}).Error("cleanup failed to delete the backfill")
+		}
+
+		err = rb.DeleteTicketsFromPendingRelease(ctx, tickets)
+		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"error":       err.Error(),
+				"backfill_id": id,
+			}).Error("cleanup failed to delete tickets from pending release")
+		}
+	}
 	return nil
 }
 
