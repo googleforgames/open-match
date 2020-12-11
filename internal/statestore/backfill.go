@@ -304,6 +304,7 @@ func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]int
 	endTimeInt := curTime.Add(time.Hour).UnixNano()
 	startTimeInt := curTime.Add(-ttl).UnixNano()
 
+	// Exclude expired backfills
 	acknowledgedIds, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", backfillLastAckTime, startTimeInt, endTimeInt))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "error getting acknowledged backfills %v", err)
