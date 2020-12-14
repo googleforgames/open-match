@@ -132,11 +132,13 @@ func queryPoolsWrapper(mmf func(req *pb.MatchProfile, pools map[string][]*pb.Tic
 		})
 
 		poolTickets, err := matchfunction.QueryPools(stream.Context(), q, req.GetProfile().GetPools())
+		//poolTickets, err := matchfunction.QueryBackfills(stream.Context(), q, req.GetProfile().GetPools())
 		if err != nil {
 			return err
 		}
 
 		proposals, err := mmf(req.GetProfile(), poolTickets)
+		//proposals, err := mmf(req.GetProfile(), poolTickets, poolBackfills)
 		if err != nil {
 			return err
 		}

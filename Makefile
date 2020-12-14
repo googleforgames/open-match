@@ -62,7 +62,7 @@ YEAR_MONTH = $(shell date -u +'%Y%m')
 YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
 PROTOC_VERSION = 3.10.1
-HELM_VERSION = 3.0.0
+HELM_VERSION = 3.4.2
 KUBECTL_VERSION = 1.16.2
 MINIKUBE_VERSION = latest
 GOLANGCI_VERSION = 1.18.0
@@ -94,7 +94,7 @@ ALTERNATE_TAG = dev
 VERSIONED_CANARY_TAG = $(BASE_VERSION)-canary
 DATED_CANARY_TAG = $(YEAR_MONTH_DAY)-canary
 CANARY_TAG = canary
-GKE_CLUSTER_NAME = om-cluster
+GKE_CLUSTER_NAME = om-cluster2
 GCP_REGION = us-west1
 GCP_ZONE = us-west1-a
 GCP_LOCATION = $(GCP_ZONE)
@@ -335,11 +335,11 @@ install-demo: build/toolchain/bin/helm$(EXE_EXTENSION)
 # install-large-chart will install open-match-core, open-match-demo with the demo evaluator and mmf, and telemetry supports.
 install-large-chart: install-chart-prerequisite install-demo build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_HELM_NAME) $(HELM_UPGRADE_FLAGS) --atomic install/helm/open-match $(HELM_IMAGE_FLAGS) \
-		--set open-match-telemetry.enabled=true \
+		--set open-match-telemetry.enabled=false \
 		--set open-match-customize.enabled=true \
 		--set open-match-customize.evaluator.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
-		--set global.telemetry.jaeger.enabled=true \
+		--set global.telemetry.jaeger.enabled=false \
 		--set global.telemetry.prometheus.enabled=true
 
 # install-chart will install open-match-core, open-match-demo, with the demo evaluator and mmf.
@@ -350,7 +350,7 @@ install-chart: install-chart-prerequisite install-demo build/toolchain/bin/helm$
 
 # install-scale-chart will wait for installing open-match-core with telemetry supports then install open-match-scale chart.
 install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
-	$(HELM) upgrade $(OPEN_MATCH_HELM_NAME) $(HELM_UPGRADE_FLAGS) --atomic install/helm/open-match $(HELM_IMAGE_FLAGS) -f install/helm/open-match/values-production.yaml \
+	$(HELM) upgrade $(OPEN_MATCH_HELM_NAME) $(HELM_UPGRADE_FLAGS) --atomic install/helm/open-match $(HELM_IMAGE_FLAGS)  \
 		--set open-match-telemetry.enabled=true \
 		--set open-match-customize.enabled=true \
 		--set open-match-customize.function.enabled=true \
@@ -359,12 +359,20 @@ install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.jaeger.enabled=false \
 		--set global.telemetry.prometheus.enabled=true
-	$(HELM) template $(OPEN_MATCH_HELM_NAME)-scale  install/helm/open-match $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) -f install/helm/open-match/values-production.yaml \
+	$(HELM) template $(OPEN_MATCH_HELM_NAME)-scale  install/helm/open-match $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS)  \
 		--set open-match-core.enabled=false \
 		--set open-match-core.redis.enabled=false \
 		--set global.telemetry.prometheus.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set open-match-scale.enabled=true | $(KUBECTL) apply -f -
+
+scale:
+	$(HELM) template $(OPEN_MATCH_HELM_NAME)-scale  install/helm/open-match $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS)  \
+		--set open-match-core.enabled=false \
+		--set open-match-core.redis.enabled=false \
+		--set global.telemetry.prometheus.enabled=true \
+		--set global.telemetry.grafana.enabled=true \
+		--set open-match-scale.enabled=true
 
 # install-ci-chart will install open-match-core with pool based mmf for end-to-end in-cluster test.
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
@@ -634,11 +642,10 @@ create-cluster-role-binding:
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
 create-gke-cluster: GKE_VERSION = 1.15.12-gke.20 # gcloud beta container get-server-config --zone us-west1-a
-create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
+create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 2 --num-nodes 2 --max-nodes 2 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
 	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS) $(GKE_CLUSTER_FLAGS) \
-		--enable-pod-security-policy \
 		--cluster-version $(GKE_VERSION) \
 		--image-type cos_containerd \
 		--tags open-match
