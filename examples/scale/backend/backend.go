@@ -114,7 +114,7 @@ func runFetchMatches(be pb.BackendServiceClient, p *pb.MatchProfile, matchesForA
 
 	req := &pb.FetchMatchesRequest{
 		Config: &pb.FunctionConfig{
-			Host: "om-function",
+			Host: "open-match-function",
 			Port: 50502,
 			Type: pb.FunctionConfig_GRPC,
 		},
