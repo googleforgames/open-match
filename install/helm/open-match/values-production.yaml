@@ -44,63 +44,61 @@
 #   # Specifies the image name to be used in a Kubernetes pod for `query` compoenent.
 #   image: openmatch-query
 swaggerui: &swaggerui
-  hostName:
+  hostName: om-swaggerui
   httpPort: 51500
   portType: ClusterIP
   replicas: 1
   image: openmatch-swaggerui
 query: &query
-  hostName:
+  hostName: om-query
   grpcPort: 50503
   httpPort: 51503
   portType: ClusterIP
   replicas: 3
   image: openmatch-query
 frontend: &frontend
-  hostName:
+  hostName: om-frontend
   grpcPort: 50504
   httpPort: 51504
   portType: ClusterIP
   replicas: 3
   image: openmatch-frontend
 backend: &backend
-  hostName:
+  hostName: om-backend
   grpcPort: 50505
   httpPort: 51505
   portType: ClusterIP
   replicas: 3
   image: openmatch-backend
 synchronizer: &synchronizer
-  hostName:
+  hostName: om-synchronizer
   grpcPort: 50506
   httpPort: 51506
   portType: ClusterIP
   replicas: 1
   image: openmatch-synchronizer
 evaluator: &evaluator
-  hostName:
+  hostName: om-evaluator
   grpcPort: 50508
   httpPort: 51508
   replicas: 3
 function: &function
-  hostName:
+  hostName: om-function
   grpcPort: 50502
   httpPort: 51502
   replicas: 3
 
 # Specifies the location and name of the Open Match application-level config volumes.
-# Used in template: `openmatch.volumemounts.configs` and `openmatch.volumes.configs` under `templates/_helpers.tpl` file.
+  # Used in template: `openmatch.volumemounts.configs` and `openmatch.volumes.configs` under `templates/_helpers.tpl` file.
 configs:
   default:
     volumeName: om-config-volume-default
     mountPath: /app/config/default
-    # This will be parsed through the `tpl` function.
-    configName: '{{ include "openmatch.configmap.default" . }}'
+    configName: om-configmap-default
   override:
     volumeName: om-config-volume-override
     mountPath: /app/config/override
-    # This will be parsed through the `tpl` function.
-    configName: '{{ include "openmatch.configmap.override" . }}'
+    configName: om-configmap-override
 
 # Override Redis settings
 # https://hub.helm.sh/charts/stable/redis
@@ -119,13 +117,6 @@ redis:
     port: 26379
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
-    resources:
-      requests:
-        memory: 3Gi
-        cpu: 3
-      limits:
-        memory: 6Gi
-        cpu: 6
     persistence:
       enabled: false
   metrics:
@@ -137,13 +128,6 @@ redis:
   slave:
     persistence:
       enabled: false
-    resources:
-      requests:
-        memory: 1Gi
-        cpu: 1
-      limits:
-        memory: 2Gi
-        cpu: 2
   sysctlImage:
     # Enable this setting in production if you are running Open Match under Linux environment
     enabled: true
@@ -239,13 +223,6 @@ global:
       minReplicas: 3
       maxReplicas: 10
       targetCPUUtilizationPercentage: 60
-    resources:
-      requests:
-        memory: 1.5Gi
-        cpu: 1.5
-      limits:
-        memory: 3Gi
-        cpu: 2
     # Overrides the name of the service account which provides an identity for processes that run in a Pod in Open Match.
     serviceAccount:
     # Use this field if you need to override the port type for all services defined in this chart
