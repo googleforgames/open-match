@@ -107,6 +107,9 @@ func acknowledgeBackfillRunner(fe pb.FrontendServiceClient) {
 	g := stateGauge{}
 	defer g.stop()
 
+	QueryBackfills()
+	AcknowledgeBackfil()
+
 	g.start(mRunnersWaiting)
 	// A random sleep at the start of the worker evens calls out over the second
 	// period, and makes timing between ticket creation calls a more realistic

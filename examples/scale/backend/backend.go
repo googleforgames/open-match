@@ -84,7 +84,7 @@ func run(cfg config.View) {
 	backfillsForAcknowledgment := make(chan string, 30000)
 
 	for i := 0; i < 50; i++ {
-		go runAssignments(be, matchesForAssignment, ticketsForDeletion)
+		go runAssignments(be, matchesForAssignment, ticketsForDeletion, backfillsForAcknowledgment)
 		go runDeletions(fe, ticketsForDeletion)
 		go runAcknowledgeBackfill(fe, backfillsForAcknowledgment)
 	}
