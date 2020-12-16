@@ -78,6 +78,8 @@ func (b *BackfillScenario) Ticket() *pb.Ticket {
 	}
 }
 
+// MatchFunction produces half full matches first and adds a Backfill,
+// if backfill is found it would include rest of the tickets (second half) along with Backfill from Redis
 func (b *BackfillScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket, poolBackfills map[string][]*pb.Backfill) ([]*pb.Match, error) {
 	const playersInMatch = 100
 
@@ -85,13 +87,31 @@ func (b *BackfillScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[str
 	backfills := poolBackfills[poolName]
 	var matches []*pb.Match
 
-	for i := 0; i+playersInMatch <= len(tickets); i += playersInMatch {
-		matches = append(matches, &pb.Match{
-			MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
-			Tickets:       tickets[i : i+playersInMatch],
-			MatchProfile:  p.GetName(),
-			MatchFunction: "battleRoyal",
-		})
+	if len(backfills) == 0 && len(tickets) > 0 {
+		backfill := &pb.Backfill{
+			SearchFields: tickets[0].SearchFields,
+			Extensions:   tickets[0].Extensions,
+		}
+		for i := 0; i+playersInMatch/2 <= len(tickets)/2; i += playersInMatch / 2 {
+			matches = append(matches, &pb.Match{
+				MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
+				Tickets:       tickets[i : i+playersInMatch/2],
+				MatchProfile:  p.GetName(),
+				MatchFunction: "battleRoyal",
+				Backfill:      backfill,
+			})
+		}
+	} else {
+		for i, j := 0, 0; j < len(backfills) && i+playersInMatch/2 <= len(tickets); i += playersInMatch / 2 {
+			matches = append(matches, &pb.Match{
+				MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
+				Tickets:       tickets[i : i+playersInMatch/2],
+				MatchProfile:  p.GetName(),
+				MatchFunction: "battleRoyal",
+				Backfill:      backfills[j],
+			})
+		}
+
 	}
 
 	return matches, nil

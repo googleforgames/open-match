@@ -38,7 +38,7 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 			return err
 		}
 
-		backfills, err := matchfunction.QueryBackfills(stream.Context(), s.queryServiceClient, p)
+		backfills, err := matchfunction.QueryBackfillPool(stream.Context(), s.queryServiceClient, p)
 		if err != nil {
 			log.Printf("Failed to query backfills for the given pool, got %s", err.Error())
 			return err
