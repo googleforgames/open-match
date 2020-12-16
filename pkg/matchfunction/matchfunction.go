@@ -51,7 +51,7 @@ func QueryPool(ctx context.Context, queryClient pb.QueryServiceClient, pool *pb.
 	}
 }
 
-// QueryPools queries queryService and returns the a map of pool names to the tickets belonging to those pools.
+// QueryPools queries queryService and returns a map of pool names to the tickets belonging to those pools.
 func QueryPools(ctx context.Context, queryClient pb.QueryServiceClient, pools []*pb.Pool, opts ...grpc.CallOption) (map[string][]*pb.Ticket, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -86,6 +86,69 @@ func QueryPools(ctx context.Context, queryClient pb.QueryServiceClient, pools []
 			}
 
 			poolMap[r.name] = r.tickets
+		}
+	}
+
+	return poolMap, nil
+}
+
+// QueryBackfillPool queries queryService and returns the backfills that belong to the specified pool.
+func QueryBackfillPool(ctx context.Context, queryClient pb.QueryServiceClient, pool *pb.Pool, opts ...grpc.CallOption) ([]*pb.Backfill, error) {
+	query, err := queryClient.QueryBackfills(ctx, &pb.QueryBackfillsRequest{Pool: pool}, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("error calling queryService.QueryBackfills: %w", err)
+	}
+
+	var backfills []*pb.Backfill
+	for {
+		resp, err := query.Recv()
+		if err != nil {
+			if err == io.EOF {
+				return backfills, nil
+			}
+			return nil, fmt.Errorf("error receiving backfills from queryService.QueryBackfills: %w", err)
+		}
+
+		backfills = append(backfills, resp.Backfills...)
+	}
+}
+
+// QueryBackfillPools queries queryService and returns a map of pool names to the backfills belonging to those pools.
+func QueryBackfillPools(ctx context.Context, queryClient pb.QueryServiceClient, pools []*pb.Pool, opts ...grpc.CallOption) (map[string][]*pb.Backfill, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	type result struct {
+		err       error
+		backfills []*pb.Backfill
+		name      string
+	}
+
+	results := make(chan result)
+	for _, pool := range pools {
+		go func(pool *pb.Pool) {
+			r := result{
+				name: pool.Name,
+			}
+			r.backfills, r.err = QueryBackfillPool(ctx, queryClient, pool, opts...)
+
+			select {
+			case results <- r:
+			case <-ctx.Done():
+			}
+		}(pool)
+	}
+
+	poolMap := make(map[string][]*pb.Backfill)
+	for i := 0; i < len(pools); i++ {
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("context canceled while querying pools: %w", ctx.Err())
+		case r := <-results:
+			if r.err != nil {
+				return nil, r.err
+			}
+
+			poolMap[r.name] = r.backfills
 		}
 	}
 
