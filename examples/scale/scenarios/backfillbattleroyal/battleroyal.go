@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package battleroyal
+package backfillbattleroyal
 
 import (
 	"fmt"
@@ -102,6 +102,7 @@ func (b *BackfillScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[str
 			})
 		}
 	} else {
+		// Second round of MMF
 		for i, j := 0, 0; j < len(backfills) && i+playersInMatch/2 <= len(tickets); i += playersInMatch / 2 {
 			matches = append(matches, &pb.Match{
 				MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
@@ -110,8 +111,8 @@ func (b *BackfillScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[str
 				MatchFunction: "battleRoyal",
 				Backfill:      backfills[j],
 			})
+			j++
 		}
-
 	}
 
 	return matches, nil

@@ -22,6 +22,7 @@ import (
 	"open-match.dev/open-match/examples/scale/scenarios/battleroyal"
 	"open-match.dev/open-match/examples/scale/scenarios/firstmatch"
 	"open-match.dev/open-match/examples/scale/scenarios/teamshooter"
+	"open-match.dev/open-match/examples/scale/scenarios/backfillbattleroyal"
 	"open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
@@ -58,6 +59,7 @@ var ActiveScenario = func() *Scenario {
 	// so it's easier to run different scenarios without changing code.
 	gs = battleroyal.Scenario()
 	gs = teamshooter.Scenario()
+	gs = backfillbattleroyal.Scenario()
 
 	return &Scenario{
 		FrontendTotalTicketsToCreate: -1,

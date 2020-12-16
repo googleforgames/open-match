@@ -158,25 +158,39 @@ func runAssignments(be pb.BackendServiceClient, matchesForAssignment <-chan *pb.
 		for _, t := range m.Tickets {
 			ids = append(ids, t.GetId())
 		}
+		logger.WithFields(logrus.Fields{
+			"Backfill":      m.Backfill,
+			"TicketsNumber": len(m.Tickets),
+		}).Info("Received a match with Backfill")
 
+		if m.Backfill != nil {
+			logger.WithFields(logrus.Fields{
+				"BackfillID":    m.Backfill.Id,
+				"TicketsNumber": len(m.Tickets),
+			}).Info("Received a match with Backfill ID")
+		}
 		if activeScenario.BackendAssignsTickets {
-			_, err := be.AssignTickets(context.Background(), &pb.AssignTicketsRequest{
-				Assignments: []*pb.AssignmentGroup{
-					{
-						TicketIds: ids,
-						Assignment: &pb.Assignment{
-							Connection: fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),
+			if m.Backfill != nil {
+				_, err := be.AssignTickets(context.Background(), &pb.AssignTicketsRequest{
+					Assignments: []*pb.AssignmentGroup{
+						{
+							TicketIds: ids,
+							Assignment: &pb.Assignment{
+								Connection: fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),
+							},
 						},
 					},
-				},
-			})
-			if err != nil {
-				telemetry.RecordUnitMeasurement(ctx, mMatchAssignsFailed)
-				logger.WithError(err).Error("failed to assign tickets")
-				continue
-			}
+				})
+				if err != nil {
+					telemetry.RecordUnitMeasurement(ctx, mMatchAssignsFailed)
+					logger.WithError(err).Error("failed to assign tickets")
+					continue
+				}
 
-			telemetry.RecordUnitMeasurement(ctx, mMatchesAssigned)
+				telemetry.RecordUnitMeasurement(ctx, mMatchesAssigned)
+			} else {
+				//TODO: add AknowledgeBackfill here which would assign tickets
+			}
 		}
 
 		for _, id := range ids {
