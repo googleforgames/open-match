@@ -350,7 +350,7 @@ func TestCleanUpBackfills(t *testing.T) {
 	})
 
 	// wait until backfill is expired, then try to get it
-	time.Sleep(2 * time.Second)
+	time.Sleep(pendingReleaseTimeout * 3)
 
 	// statestore.CleanupBackfills is called at the end of each syncronizer cycle after fetch matches call, so expired backfill will be removed
 	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
