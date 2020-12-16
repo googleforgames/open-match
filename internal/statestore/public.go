@@ -83,6 +83,9 @@ type Service interface {
 	// Returns the Backfill and asossiated ticketIDs if they exist.
 	GetBackfill(ctx context.Context, id string) (*pb.Backfill, []string, error)
 
+	// GetBackfills returns multiple backfills from storage
+	GetBackfills(ctx context.Context, ids []string) ([]*pb.Backfill, error)
+
 	// DeleteBackfill removes the Backfill with the specified id from state storage.
 	// This method succeeds if the Backfill does not exist.
 	DeleteBackfill(ctx context.Context, id string) error
