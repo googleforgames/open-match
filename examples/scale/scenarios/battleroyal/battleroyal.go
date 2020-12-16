@@ -78,7 +78,7 @@ func (b *BattleRoyalScenario) Ticket() *pb.Ticket {
 	}
 }
 
-func (b *BattleRoyalScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
+func (b *BattleRoyalScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket, poolBackfills map[string][]*pb.Backfill) ([]*pb.Match, error) {
 	const playersInMatch = 100
 
 	tickets := poolTickets[poolName]

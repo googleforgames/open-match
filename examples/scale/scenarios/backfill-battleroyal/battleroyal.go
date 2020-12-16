@@ -12,63 +12,94 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package firstmatch
+package battleroyal
 
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"time"
 
 	"open-match.dev/open-match/pkg/pb"
 )
 
 const (
-	poolName = "all"
+	poolName  = "all"
+	regionArg = "region"
 )
 
-func Scenario() *FirstMatchScenario {
-	return &FirstMatchScenario{}
+func battleRoyalRegionName(i int) string {
+	return fmt.Sprintf("region_%d", i)
 }
 
-type FirstMatchScenario struct {
+func Scenario() *BackfillScenario {
+	return &BackfillScenario{
+		regions: 20,
+	}
 }
 
-func (_ *FirstMatchScenario) Profiles() []*pb.MatchProfile {
-	return []*pb.MatchProfile{
-		{
-			Name: "entirePool",
+type BackfillScenario struct {
+	regions int
+}
+
+func (b *BackfillScenario) Profiles() []*pb.MatchProfile {
+	p := []*pb.MatchProfile{}
+
+	for i := 0; i < b.regions; i++ {
+		p = append(p, &pb.MatchProfile{
+			Name: battleRoyalRegionName(i),
 			Pools: []*pb.Pool{
 				{
 					Name: poolName,
+					StringEqualsFilters: []*pb.StringEqualsFilter{
+						{
+							StringArg: regionArg,
+							Value:     battleRoyalRegionName(i),
+						},
+					},
 				},
+			},
+		})
+	}
+	return p
+}
+
+func (b *BackfillScenario) Ticket() *pb.Ticket {
+	// Simple way to give an uneven distribution of region population.
+	a := rand.Intn(b.regions) + 1
+	r := rand.Intn(a)
+
+	return &pb.Ticket{
+		SearchFields: &pb.SearchFields{
+			StringArgs: map[string]string{
+				regionArg: battleRoyalRegionName(r),
 			},
 		},
 	}
 }
 
-func (_ *FirstMatchScenario) Ticket() *pb.Ticket {
-	return &pb.Ticket{}
-}
+func (b *BackfillScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket, poolBackfills map[string][]*pb.Backfill) ([]*pb.Match, error) {
+	const playersInMatch = 100
 
-func (_ *FirstMatchScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket, poolBackfills map[string][]*pb.Backfill) ([]*pb.Match, error) {
 	tickets := poolTickets[poolName]
+	backfills := poolBackfills[poolName]
 	var matches []*pb.Match
 
-	for i := 0; i+1 < len(tickets); i += 2 {
+	for i := 0; i+playersInMatch <= len(tickets); i += playersInMatch {
 		matches = append(matches, &pb.Match{
 			MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
-			Tickets:       []*pb.Ticket{tickets[i], tickets[i+1]},
+			Tickets:       tickets[i : i+playersInMatch],
 			MatchProfile:  p.GetName(),
-			MatchFunction: "rangeExpandingMatchFunction",
+			MatchFunction: "battleRoyal",
 		})
 	}
 
 	return matches, nil
 }
 
-// fifoEvaluate accepts all matches which don't contain the same ticket as in a
+// Evaluate fifoEvaluate accepts all matches which don't contain the same ticket as in a
 // previously accepted match.  Essentially first to claim the ticket wins.
-func (_ *FirstMatchScenario) Evaluate(stream pb.Evaluator_EvaluateServer) error {
+func (b *BackfillScenario) Evaluate(stream pb.Evaluator_EvaluateServer) error {
 	used := map[string]struct{}{}
 
 	// TODO: once the evaluator client supports sending and recieving at the

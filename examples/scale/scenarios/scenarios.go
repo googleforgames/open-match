@@ -44,7 +44,7 @@ type GameScenario interface {
 	Profiles() []*pb.MatchProfile
 
 	// MatchFunction is the custom logic implementation of the match function.
-	MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error)
+	MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket, poolBackfills map[string][]*pb.Backfill) ([]*pb.Match, error)
 
 	// Evaluate is the custom logic implementation of the evaluator.
 	Evaluate(stream pb.Evaluator_EvaluateServer) error
@@ -122,7 +122,7 @@ func getQueryServiceGRPCClient() pb.QueryServiceClient {
 	return pb.NewQueryServiceClient(conn)
 }
 
-func queryPoolsWrapper(mmf func(req *pb.MatchProfile, pools map[string][]*pb.Ticket) ([]*pb.Match, error)) matchFunction {
+func queryPoolsWrapper(mmf func(req *pb.MatchProfile, pools map[string][]*pb.Ticket, poolBackfills map[string][]*pb.Backfill) ([]*pb.Match, error)) matchFunction {
 	var q pb.QueryServiceClient
 	var startQ sync.Once
 
@@ -132,13 +132,13 @@ func queryPoolsWrapper(mmf func(req *pb.MatchProfile, pools map[string][]*pb.Tic
 		})
 
 		poolTickets, err := matchfunction.QueryPools(stream.Context(), q, req.GetProfile().GetPools())
-		//poolTickets, err := matchfunction.QueryBackfills(stream.Context(), q, req.GetProfile().GetPools())
+		poolBackfills, err := matchfunction.QueryBackfillPools(stream.Context(), q, req.GetProfile().GetPools())
 		if err != nil {
 			return err
 		}
 
-		proposals, err := mmf(req.GetProfile(), poolTickets)
-		//proposals, err := mmf(req.GetProfile(), poolTickets, poolBackfills)
+		//proposals, err := mmf(req.GetProfile(), poolTickets)
+		proposals, err := mmf(req.GetProfile(), poolTickets, poolBackfills)
 		if err != nil {
 			return err
 		}
