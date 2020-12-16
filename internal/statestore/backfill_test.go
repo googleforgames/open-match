@@ -30,6 +30,28 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
+func TestCreateBackfillLastAckTime(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	bfID := "1234"
+	ctx := utilTesting.NewContext(t)
+	err := service.CreateBackfill(ctx, &pb.Backfill{
+		Id: bfID,
+	}, nil)
+	require.NoError(t, err)
+
+	pool := GetRedisPool(cfg)
+	conn := pool.Get()
+
+	// test that Backfill last acknowledged is in a sorted set
+	ts, redisErr := redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, bfID))
+	require.NoError(t, redisErr)
+	require.True(t, ts > 0, "timestamp is not valid")
+}
+
 func TestCreateBackfill(t *testing.T) {
 	cfg, closer := createRedis(t, false, "")
 	defer closer()
@@ -256,8 +278,6 @@ func TestDeleteBackfill(t *testing.T) {
 		Generation: 1,
 	}, nil)
 	require.NoError(t, err)
-	err = service.AcknowledgeBackfill(ctx, bfID)
-	require.NoError(t, err)
 
 	pool := GetRedisPool(cfg)
 	conn := pool.Get()
@@ -340,11 +360,6 @@ func TestAcknowledgeBackfillLifecycle(t *testing.T) {
 		Id:         bf2,
 		Generation: 1,
 	}, nil)
-	require.NoError(t, err)
-
-	err = service.AcknowledgeBackfill(ctx, bf1)
-	require.NoError(t, err)
-	err = service.AcknowledgeBackfill(ctx, bf2)
 	require.NoError(t, err)
 
 	bfIDs, err := service.GetExpiredBackfillIDs(ctx)
@@ -615,21 +630,12 @@ func TestCleanupBackfills(t *testing.T) {
 	}, ticketIDs)
 	require.NoError(t, err)
 
-	err = service.AcknowledgeBackfill(ctx, bfID)
-	require.NoError(t, err)
-
 	// add expired but acknowledged backfill
 	_, err = rc.Do("ZADD", bfLastAck, 123, bfID)
 	require.NoError(t, err)
 
 	err = service.AddTicketsToPendingRelease(ctx, ticketIDs)
 	require.NoError(t, err)
-
-	// check that backfill exists
-	bfRes, _, err := service.GetBackfill(ctx, bfID)
-	require.NoError(t, err)
-	require.NotNil(t, bfRes)
-	require.Equal(t, bfID, bfRes.Id)
 
 	// ACT
 	err = service.CleanupBackfills(ctx)
