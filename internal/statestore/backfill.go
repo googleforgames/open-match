@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -96,6 +97,62 @@ func (rb *redisBackend) GetBackfill(ctx context.Context, id string) (*pb.Backfil
 	}
 
 	return bi.Backfill, bi.TicketIds, nil
+}
+
+// GetBackfills returns multiple backfills from storage
+func (rb *redisBackend) GetBackfills(ctx context.Context, ids []string) ([]*pb.Backfill, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unavailable, "GetBackfills, failed to connect to redis: %v", err)
+	}
+	defer handleConnectionClose(&redisConn)
+
+	queryParams := make([]interface{}, len(ids))
+	for i, id := range ids {
+		queryParams[i] = id
+	}
+
+	slices, err := redis.ByteSlices(redisConn.Do("MGET", queryParams...))
+	if err != nil {
+		err = errors.Wrapf(err, "failed to lookup backfills: %v", ids)
+		return nil, status.Errorf(codes.Internal, "%v", err)
+	}
+
+	m := make(map[string]*pb.Backfill, len(ids))
+	for i, s := range slices {
+		if s != nil {
+			b := &ipb.BackfillInternal{}
+			err = proto.Unmarshal(s, b)
+			if err != nil {
+				err = errors.Wrapf(err, "failed to unmarshal backfill from redis, key: %s", ids[i])
+				return nil, status.Errorf(codes.Internal, "%v", err)
+			}
+
+			if b.Backfill != nil {
+				m[b.Backfill.Id] = b.Backfill
+			}
+		}
+	}
+
+	var notFound []string
+	result := make([]*pb.Backfill, 0, len(ids))
+	for _, id := range ids {
+		if b, ok := m[id]; ok {
+			result = append(result, b)
+		} else {
+			notFound = append(notFound, id)
+		}
+	}
+
+	if len(notFound) > 0 {
+		redisLogger.Warningf("failed to lookup backfills: %v", notFound)
+	}
+
+	return result, nil
 }
 
 // DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
@@ -175,8 +232,7 @@ func (rb *redisBackend) GetExpiredBackfillIDs(ctx context.Context) ([]string, er
 	}
 	defer handleConnectionClose(&redisConn)
 
-	// Use a fraction 80% of pendingRelease Tickets TTL
-	ttl := rb.cfg.GetDuration("pendingReleaseTimeout") / 5 * 4
+	ttl := getBackfillReleaseTimeout(rb.cfg)
 	curTime := time.Now()
 	endTimeInt := curTime.Add(-ttl).UnixNano()
 	startTimeInt := 0
@@ -243,19 +299,39 @@ func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]int
 	}
 	defer handleConnectionClose(&redisConn)
 
-	bfIndex, err := redis.StringMap(redisConn.Do("HGETALL", allBackfills))
+	ttl := getBackfillReleaseTimeout(rb.cfg)
+	curTime := time.Now()
+	endTimeInt := curTime.Add(time.Hour).UnixNano()
+	startTimeInt := curTime.Add(-ttl).UnixNano()
+
+	// Exclude expired backfills
+	acknowledgedIds, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", backfillLastAckTime, startTimeInt, endTimeInt))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error getting acknowledged backfills %v", err)
+	}
+
+	index, err := redis.StringMap(redisConn.Do("HGETALL", allBackfills))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "error getting all indexed backfill ids %v", err)
 	}
 
-	r := make(map[string]int, len(bfIndex))
-	for bfID, bfGeneration := range bfIndex {
-		gen, err := strconv.Atoi(bfGeneration)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "error while parsing generation into number: %v", err)
+	r := make(map[string]int, len(acknowledgedIds))
+	for _, id := range acknowledgedIds {
+		if generation, ok := index[id]; ok {
+			gen, err := strconv.Atoi(generation)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "error while parsing generation into number: %v", err)
+			}
+			r[id] = gen
 		}
-		r[bfID] = gen
 	}
 
 	return r, nil
+
+}
+
+func getBackfillReleaseTimeout(cfg config.View) time.Duration {
+	// Use a fraction 80% of pendingRelease Tickets TTL
+	ttl := cfg.GetDuration("pendingReleaseTimeout") / 5 * 4
+	return ttl
 }
