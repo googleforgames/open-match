@@ -20,6 +20,7 @@ import (
 	"io"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -261,6 +262,7 @@ func createMatchWithBackfill(ctx context.Context, om *om, b *pb.Backfill, t *tes
 		},
 	})
 	require.NoError(t, err)
+	require.NotNil(t, t1)
 
 	m := &pb.Match{
 		MatchId:  "1",
@@ -281,6 +283,10 @@ func createMatchWithBackfill(ctx context.Context, om *om, b *pb.Backfill, t *tes
 		return nil
 	})
 
+	// wait until backfill is expired, then try to get it
+	time.Sleep(pendingReleaseTimeout * 3)
+
+	// statestore.CleanupBackfills is called at the end of each syncronizer cycle after fetch matches call, so expired backfill will be removed
 	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
 		Config:  om.MMFConfigGRPC(),
 		Profile: &pb.MatchProfile{},
