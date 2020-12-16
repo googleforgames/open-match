@@ -19,13 +19,15 @@ import (
 	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/appmain"
+	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/internal/telemetry"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 var (
 	ticketsPerQuery     = stats.Int64("open-match.dev/query/tickets_per_query", "Number of tickets per query", stats.UnitDimensionless)
-	cacheTotalItems     = stats.Int64("open-match.dev/query/total_cache_items", "Total number of tickets query service cached", stats.UnitDimensionless)
+	backfillsPerQuery   = stats.Int64("open-match.dev/query/backfills_per_query", "Number of backfills per query", stats.UnitDimensionless)
+	cacheTotalItems     = stats.Int64("open-match.dev/query/total_cache_items", "Total number of items query service cached", stats.UnitDimensionless)
 	cacheFetchedItems   = stats.Int64("open-match.dev/query/fetched_items", "Number of fetched items in total", stats.UnitDimensionless)
 	cacheWaitingQueries = stats.Int64("open-match.dev/query/waiting_queries", "Number of waiting queries in the last update", stats.UnitDimensionless)
 	cacheUpdateLatency  = stats.Float64("open-match.dev/query/update_latency", "Time elapsed of each query cache update", stats.UnitMilliseconds)
@@ -36,10 +38,16 @@ var (
 		Description: "Tickets per query",
 		Aggregation: telemetry.DefaultCountDistribution,
 	}
+	backfillsPerQueryView = &view.View{
+		Measure:     ticketsPerQuery,
+		Name:        "open-match.dev/query/backfills_per_query",
+		Description: "Backfills per query",
+		Aggregation: telemetry.DefaultCountDistribution,
+	}
 	cacheTotalItemsView = &view.View{
 		Measure:     cacheTotalItems,
 		Name:        "open-match.dev/query/total_cached_items",
-		Description: "Total number of cached tickets",
+		Description: "Total number of cached items",
 		Aggregation: view.LastValue(),
 	}
 	cacheFetchedItemsView = &view.View{
@@ -70,9 +78,11 @@ var (
 
 // BindService creates the query service and binds it to the serving harness.
 func BindService(p *appmain.Params, b *appmain.Bindings) error {
+	store := statestore.New(p.Config())
 	service := &queryService{
 		cfg: p.Config(),
-		tc:  newTicketCache(b, p.Config()),
+		tc:  newTicketCache(b, store),
+		bc:  newBackfillCache(b, store),
 	}
 
 	b.AddHandleFunc(func(s *grpc.Server) {
@@ -80,6 +90,7 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	}, pb.RegisterQueryServiceHandlerFromEndpoint)
 	b.RegisterViews(
 		ticketsPerQueryView,
+		backfillsPerQueryView,
 		cacheTotalItemsView,
 		cacheUpdateView,
 		cacheFetchedItemsView,
