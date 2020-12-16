@@ -181,6 +181,7 @@ func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBack
 	}
 
 	// Update generation here, because Frontend is used by GameServer only
+	bfStored.Generation++
 	bfStored.SearchFields = backfill.SearchFields
 	bfStored.Extensions = backfill.Extensions
 	err = s.store.UpdateBackfill(ctx, bfStored, []string{})
@@ -359,9 +360,18 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 	if req.GetAssignment() == nil {
 		return nil, status.Errorf(codes.InvalidArgument, ".Assignment is required")
 	}
-	if req.GetAssignment().Connection == "" {
-		return nil, status.Errorf(codes.InvalidArgument, ".Assignment.Connection should be set")
+
+	m := s.store.NewMutex(req.GetBackfillId())
+
+	err := m.Lock(ctx)
+	if err != nil {
+		return nil, err
 	}
+	defer func() {
+		if _, err = m.Unlock(ctx); err != nil {
+			logger.WithError(err).Error("error on mutex unlock")
+		}
+	}()
 
 	bf, associatedTickets, err := s.store.GetBackfill(ctx, req.GetBackfillId())
 	if err != nil {
@@ -374,16 +384,32 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 	}
 
 	if len(associatedTickets) != 0 {
-		_, _, err = s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
+		_, tickets, err := s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
 			Assignments: []*pb.AssignmentGroup{&pb.AssignmentGroup{TicketIds: associatedTickets, Assignment: req.GetAssignment()}},
 		})
 		if err != nil {
 			return nil, err
 		}
+
+		// all assigned tickets should be removed from the associatedTickets
+		// associatedTickets - tickets
+		unassignedTickets := []string{}
+		assigned := make(map[string]struct{})
+		for _, t := range tickets {
+			assigned[t.Id] = struct{}{}
+		}
+		for _, t := range associatedTickets {
+			if _, ok := assigned[t]; !ok {
+				unassignedTickets = append(unassignedTickets, t)
+			}
+		}
+		err = s.store.UpdateBackfill(ctx, bf, unassignedTickets)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	err = s.store.AcknowledgeBackfill(ctx, bf.Id)
-	return bf, err
+	return bf, nil
 }
 
 // GetBackfill fetches a Backfill object by its ID.

@@ -72,6 +72,7 @@ func run(cfg config.View) {
 				go runner(fe)
 			}
 		}
+		//go acknowledgeBackfillRunner(fe)
 	}
 }
 
@@ -97,6 +98,31 @@ func runner(fe pb.FrontendServiceClient) {
 
 	_ = id
 }
+
+/*
+func acknowledgeBackfillRunner(fe pb.FrontendServiceClient) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	g := stateGauge{}
+	defer g.stop()
+
+	g.start(mRunnersWaiting)
+	// A random sleep at the start of the worker evens calls out over the second
+	// period, and makes timing between ticket creation calls a more realistic
+	// poisson distribution.
+	time.Sleep(time.Duration(rand.Int63n(int64(time.Second))))
+
+	g.start(mRunnersCreating)
+	id, err := createTicket(ctx, fe)
+	if err != nil {
+		logger.WithError(err).Error("failed to create a ticket")
+		return
+	}
+
+	_ = id
+}
+*/
 
 func createTicket(ctx context.Context, fe pb.FrontendServiceClient) (string, error) {
 	ctx, span := trace.StartSpan(ctx, "scale.frontend/CreateTicket")

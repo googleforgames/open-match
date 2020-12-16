@@ -81,10 +81,12 @@ func run(cfg config.View) {
 
 	matchesForAssignment := make(chan *pb.Match, 30000)
 	ticketsForDeletion := make(chan string, 30000)
+	backfillsForAcknowledgment := make(chan string, 30000)
 
 	for i := 0; i < 50; i++ {
 		go runAssignments(be, matchesForAssignment, ticketsForDeletion)
 		go runDeletions(fe, ticketsForDeletion)
+		go runAcknowledgeBackfill(fe, backfillsForAcknowledgment)
 	}
 
 	// Don't go faster than this, as it likely means that FetchMatches is throwing
@@ -150,7 +152,7 @@ func runFetchMatches(be pb.BackendServiceClient, p *pb.MatchProfile, matchesForA
 	}
 }
 
-func runAssignments(be pb.BackendServiceClient, matchesForAssignment <-chan *pb.Match, ticketsForDeletion chan<- string) {
+func runAssignments(be pb.BackendServiceClient, matchesForAssignment <-chan *pb.Match, ticketsForDeletion chan<- string, backfillsForAcknowledgment chan<- string) {
 	ctx := context.Background()
 
 	for m := range matchesForAssignment {
@@ -165,12 +167,13 @@ func runAssignments(be pb.BackendServiceClient, matchesForAssignment <-chan *pb.
 
 		if m.Backfill != nil {
 			logger.WithFields(logrus.Fields{
+				"matchID":       m.MatchId,
 				"BackfillID":    m.Backfill.Id,
 				"TicketsNumber": len(m.Tickets),
 			}).Info("Received a match with Backfill ID")
 		}
 		if activeScenario.BackendAssignsTickets {
-			if m.Backfill != nil {
+			if m.Backfill == nil {
 				_, err := be.AssignTickets(context.Background(), &pb.AssignTicketsRequest{
 					Assignments: []*pb.AssignmentGroup{
 						{
@@ -189,12 +192,33 @@ func runAssignments(be pb.BackendServiceClient, matchesForAssignment <-chan *pb.
 
 				telemetry.RecordUnitMeasurement(ctx, mMatchesAssigned)
 			} else {
-				//TODO: add AknowledgeBackfill here which would assign tickets
+				// AcknowledgeBackfill assigns tickets
+				backfillsForAcknowledgment <- m.Backfill.Id
 			}
 		}
 
 		for _, id := range ids {
 			ticketsForDeletion <- id
+		}
+	}
+}
+
+func runAcknowledgeBackfill(fe pb.FrontendServiceClient, backfillsForAcknowledgment <-chan string) {
+	ctx := context.Background()
+
+	for id := range backfillsForAcknowledgment {
+		req := &pb.AcknowledgeBackfillRequest{
+			BackfillId: id,
+			Assignment: &pb.Assignment{Connection: "gs.com:4242"},
+		}
+
+		_, err := fe.AcknowledgeBackfill(context.Background(), req)
+
+		if err == nil {
+			telemetry.RecordUnitMeasurement(ctx, mMatchesAssigned)
+		} else {
+			telemetry.RecordUnitMeasurement(ctx, mMatchAssignsFailed)
+			logger.WithError(err).Error("failed to acknowledge backfill")
 		}
 	}
 }

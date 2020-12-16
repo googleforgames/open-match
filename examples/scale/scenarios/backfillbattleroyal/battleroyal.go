@@ -94,22 +94,24 @@ func (b *BackfillScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[str
 		}
 		for i := 0; i+playersInMatch/2 <= len(tickets)/2; i += playersInMatch / 2 {
 			matches = append(matches, &pb.Match{
-				MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
-				Tickets:       tickets[i : i+playersInMatch/2],
-				MatchProfile:  p.GetName(),
-				MatchFunction: "battleRoyal",
-				Backfill:      backfill,
+				MatchId:            fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
+				Tickets:            tickets[i : i+playersInMatch/2],
+				MatchProfile:       p.GetName(),
+				MatchFunction:      "battleRoyal",
+				Backfill:           backfill,
+				AllocateGameserver: true,
 			})
 		}
 	} else {
-		// Second round of MMF
+		// Second round of MMF: collect all tickets which are left
 		for i, j := 0, 0; j < len(backfills) && i+playersInMatch/2 <= len(tickets); i += playersInMatch / 2 {
 			matches = append(matches, &pb.Match{
-				MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
-				Tickets:       tickets[i : i+playersInMatch/2],
-				MatchProfile:  p.GetName(),
-				MatchFunction: "battleRoyal",
-				Backfill:      backfills[j],
+				MatchId:            fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
+				Tickets:            tickets[i : i+playersInMatch/2],
+				MatchProfile:       p.GetName(),
+				MatchFunction:      "battleRoyal",
+				Backfill:           backfills[j],
+				AllocateGameserver: false,
 			})
 			j++
 		}
