@@ -209,7 +209,7 @@ func runAcknowledgeBackfill(fe pb.FrontendServiceClient, backfillsForAcknowledgm
 	for id := range backfillsForAcknowledgment {
 		req := &pb.AcknowledgeBackfillRequest{
 			BackfillId: id,
-			Assignment: &pb.Assignment{Connection: "gs.com:4242"},
+			Assignment: &pb.Assignment{Connection: fmt.Sprintf("%s.gs.com:4242", id)},
 		}
 
 		_, err := fe.AcknowledgeBackfill(context.Background(), req)

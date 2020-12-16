@@ -384,6 +384,13 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 	}
 
 	if len(associatedTickets) != 0 {
+
+		if req.GetAssignment() != nil {
+			logger.WithFields(logrus.Fields{
+				"tickets":    associatedTickets,
+				"connection": req.GetAssignment().GetConnection(),
+			}).Error("failed to index the backfill")
+		}
 		_, tickets, err := s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
 			Assignments: []*pb.AssignmentGroup{&pb.AssignmentGroup{TicketIds: associatedTickets, Assignment: req.GetAssignment()}},
 		})
