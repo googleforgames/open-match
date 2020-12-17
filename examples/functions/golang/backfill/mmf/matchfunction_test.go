@@ -17,6 +17,9 @@ package mmf
 import (
 	"testing"
 
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/stretchr/testify/require"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -34,13 +37,14 @@ func TestHandleBackfills(t *testing.T) {
 	}{
 		{name: "returns no matches when no backfills specified", expectedMatchLen: 0, expectedTicketLen: 0},
 		{name: "returns no matches when no tickets specified", expectedMatchLen: 0, expectedTicketLen: 0},
-		{name: "returns a match with open slots decreased", tickets: []*pb.Ticket{{Id: "1"}}, backfills: []*pb.Backfill{{}}, expectedMatchLen: 1, expectedTicketLen: 0, expectedOpenSlots: playersPerMatch - 1},
+		{name: "returns a match with open slots decreased", tickets: []*pb.Ticket{{Id: "1"}}, backfills: []*pb.Backfill{withOpenSlots(1)}, expectedMatchLen: 1, expectedTicketLen: 0, expectedOpenSlots: playersPerMatch - 2},
 	} {
 		testCase := tc
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			matches, tickets, err := handleBackfills(testCase.tickets, testCase.backfills, testCase.lastMatchId)
+			profile := pb.MatchProfile{Name: "matchProfile"}
+			matches, tickets, err := handleBackfills(&profile, testCase.tickets, testCase.backfills, testCase.lastMatchId)
 			require.Equal(t, testCase.expectedErr, err != nil)
 			require.Equal(t, testCase.expectedTicketLen, len(tickets))
 
@@ -77,7 +81,8 @@ func TestMakeMatchWithBackfill(t *testing.T) {
 			t.Parallel()
 
 			pool := pb.Pool{}
-			match, err := makeMatchWithBackfill(&pool, testCase.tickets, testCase.lastMatchId)
+			profile := pb.MatchProfile{Name: "matchProfile"}
+			match, err := makeMatchWithBackfill(&profile, &pool, testCase.tickets, testCase.lastMatchId)
 			require.Equal(t, testCase.expectedErr, err != nil)
 
 			if err == nil {
@@ -110,7 +115,8 @@ func TestMakeFullMatches(t *testing.T) {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			matches, tickets := makeFullMatches(testCase.tickets, testCase.lastMatchId)
+			profile := pb.MatchProfile{Name: "matchProfile"}
+			matches, tickets := makeFullMatches(&profile, testCase.tickets, testCase.lastMatchId)
 
 			require.Equal(t, testCase.expectedMatchLen, len(matches))
 			require.Equal(t, testCase.expectedTicketLen, len(tickets))
@@ -120,5 +126,18 @@ func TestMakeFullMatches(t *testing.T) {
 				require.Equal(t, playersPerMatch, len(m.Tickets))
 			}
 		})
+	}
+}
+
+func withOpenSlots(openSlots int) *pb.Backfill {
+	val, err := ptypes.MarshalAny(&wrappers.Int32Value{Value: int32(openSlots)})
+	if err != nil {
+		panic(err)
+	}
+
+	return &pb.Backfill{
+		Extensions: map[string]*any.Any{
+			openSlotsKey: val,
+		},
 	}
 }
