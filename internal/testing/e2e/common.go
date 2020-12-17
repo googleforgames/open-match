@@ -221,7 +221,7 @@ redis:
   sentinelPort: 26379
   sentinelMaster: om-redis-master
   sentinelHostname: open-match-redis
-  sentinelUsePassword: 
+  sentinelUsePassword: false
   usePassword: false
   passwordPath: /opt/bitnami/redis/secrets/redis-password
   pool:
