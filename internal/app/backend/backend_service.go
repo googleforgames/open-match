@@ -356,6 +356,7 @@ func createOrUpdateBackfill(ctx context.Context, match *pb.Match, store statesto
 	if backfill.Id == "" {
 		backfill.Id = xid.New().String()
 		backfill.CreateTime = ptypes.TimestampNow()
+		backfill.Generation = 1
 		return store.CreateBackfill(ctx, backfill, ticketIds)
 	}
 
@@ -386,6 +387,7 @@ func createOrUpdateBackfill(ctx context.Context, match *pb.Match, store statesto
 
 	bf.SearchFields = backfill.SearchFields
 	bf.Extensions = backfill.Extensions
+	bf.Generation++
 
 	return store.UpdateBackfill(ctx, bf, append(ids, ticketIds...))
 }
