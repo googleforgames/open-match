@@ -289,7 +289,7 @@ $(foreach IMAGE,$(IMAGES),clean-$(IMAGE)-image): clean-%-image:
 
 #####################################################################################################################
 update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://charts.helm.sh/incubator; $(HELM) dependency update)
+	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://charts.helm.sh/incubator; $(HELM) repo add bitnami https://charts.bitnami.com/bitnami;$(HELM) dependency update)
 
 lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/ct$(EXE_EXTENSION)
 	(cd $(REPOSITORY_ROOT)/install/helm; $(HELM) lint $(OPEN_MATCH_HELM_NAME))
@@ -302,8 +302,8 @@ build/chart/open-match-$(BASE_VERSION).tgz: build/toolchain/bin/helm$(EXE_EXTENS
 
 build/chart/index.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) gcloud build/chart/open-match-$(BASE_VERSION).tgz
 	mkdir -p $(BUILD_DIR)/chart-index/
-	-gsutil cp gs://open-match-chart/chart/index.yaml $(BUILD_DIR)/chart-index/
-	-gsutil -m cp gs://open-match-chart/chart/open-match-* $(BUILD_DIR)/chart-index/
+	-gsutil cp $(_CHARTS_BUCKET)/chart/index.yaml $(BUILD_DIR)/chart-index/
+	-gsutil -m cp $(_CHARTS_BUCKET)/chart/open-match-* $(BUILD_DIR)/chart-index/
 	$(HELM) repo index $(BUILD_DIR)/chart-index/
 	$(HELM) repo index --merge $(BUILD_DIR)/chart-index/index.yaml $(BUILD_DIR)/chart/
 
@@ -377,6 +377,7 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 		--set open-match-core.queryPageSize=10 \
 		--set global.gcpProjectId=intentionally-invalid-value \
 		--set redis.master.resources.requests.cpu=0.6,redis.master.resources.requests.memory=300Mi \
+		--set redis.usePasswordFile=true \
 		--set ci=true
 
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
@@ -831,13 +832,13 @@ md-test: docker
 
 ci-deploy-artifacts: install/yaml/ $(SWAGGER_JSON_DOCS) build/chart/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
-	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/v$(BASE_VERSION)/yaml/
-	gsutil cp -a public-read $(REPOSITORY_ROOT)/api/*.json gs://open-match-chart/api/v$(BASE_VERSION)/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* $(_CHARTS_BUCKET)/install/v$(BASE_VERSION)/yaml/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/api/*.json $(_CHARTS_BUCKET)/api/v$(BASE_VERSION)/
 	# Deploy Helm Chart
 	# Since each build will refresh just it's version we can allow this for every post submit.
 	# Copy the files into multiple locations to keep a backup.
-	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* gs://open-match-chart/chart/by-hash/$(VERSION)/
-	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* gs://open-match-chart/chart/
+	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* $(_CHARTS_BUCKET)/chart/by-hash/$(VERSION)/
+	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* $(_CHARTS_BUCKET)/chart/
 else
 	@echo "Not deploying build artifacts to open-match.dev because this is not a post commit change."
 endif
