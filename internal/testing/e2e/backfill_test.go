@@ -192,6 +192,7 @@ func TestProposedBackfillCreate(t *testing.T) {
 	require.NotNil(t, actual)
 
 	b.Id = actual.Id
+	b.Generation = 1
 	b.CreateTime = actual.CreateTime
 	require.True(t, proto.Equal(b, actual))
 
