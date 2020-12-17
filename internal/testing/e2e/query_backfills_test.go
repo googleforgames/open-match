@@ -141,7 +141,8 @@ func TestBackfillQueryAfterMMFUpdate(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Len(t, resp.Backfills, 1)
-		require.Equal(t, int64(firstBackfillGeneration), resp.Backfills[0].Generation)
+		// FetchMatches results in a one Backfill update, so Generation is autoincremented
+		require.Equal(t, int64(firstBackfillGeneration)+1, resp.Backfills[0].Generation)
 
 		resp, err = stream.Recv()
 		require.Equal(t, io.EOF, err)
