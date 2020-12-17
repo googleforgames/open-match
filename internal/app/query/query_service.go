@@ -15,20 +15,14 @@
 package query
 
 import (
-	"context"
-	"sync"
-	"time"
-
 	"go.opencensus.io/stats"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/filter"
-	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -43,7 +37,8 @@ var (
 // as retreiving Tickets from state storage.
 type queryService struct {
 	cfg config.View
-	tc  *ticketCache
+	tc  *cache
+	bc  *cache
 }
 
 func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer pb.QueryService_QueryTicketsServer) error {
@@ -59,7 +54,13 @@ func (s *queryService) QueryTickets(req *pb.QueryTicketsRequest, responseServer 
 	}
 
 	var results []*pb.Ticket
-	err = s.tc.request(ctx, func(tickets map[string]*pb.Ticket) {
+	err = s.tc.request(ctx, func(value interface{}) {
+		tickets, ok := value.(map[string]*pb.Ticket)
+		if !ok {
+			logger.Errorf("expecting value type map[string]*pb.Ticket, but got: %T", value)
+			return
+		}
+
 		for _, ticket := range tickets {
 			if pf.In(ticket) {
 				results = append(results, ticket)
@@ -103,7 +104,13 @@ func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseSer
 	}
 
 	var results []string
-	err = s.tc.request(ctx, func(tickets map[string]*pb.Ticket) {
+	err = s.tc.request(ctx, func(value interface{}) {
+		tickets, ok := value.(map[string]*pb.Ticket)
+		if !ok {
+			logger.Errorf("expecting value type map[string]*pb.Ticket, but got: %T", value)
+			return
+		}
+
 		for id, ticket := range tickets {
 			if pf.In(ticket) {
 				results = append(results, id)
@@ -135,7 +142,53 @@ func (s *queryService) QueryTicketIds(req *pb.QueryTicketIdsRequest, responseSer
 }
 
 func (s *queryService) QueryBackfills(req *pb.QueryBackfillsRequest, responseServer pb.QueryService_QueryBackfillsServer) error {
-	return status.Error(codes.Unimplemented, "not implemented")
+	ctx := responseServer.Context()
+	pool := req.GetPool()
+	if pool == nil {
+		return status.Error(codes.InvalidArgument, ".pool is required")
+	}
+
+	pf, err := filter.NewPoolFilter(pool)
+	if err != nil {
+		return err
+	}
+
+	var results []*pb.Backfill
+	err = s.bc.request(ctx, func(value interface{}) {
+		backfills, ok := value.(map[string]*pb.Backfill)
+		if !ok {
+			logger.Errorf("expecting value type map[string]*pb.Backfill, but got: %T", value)
+			return
+		}
+
+		for _, backfill := range backfills {
+			if pf.In(backfill) {
+				results = append(results, backfill)
+			}
+		}
+	})
+	if err != nil {
+		err = errors.Wrap(err, "QueryBackfills: failed to run request")
+		return err
+	}
+	stats.Record(ctx, backfillsPerQuery.M(int64(len(results))))
+
+	pSize := getPageSize(s.cfg)
+	for start := 0; start < len(results); start += pSize {
+		end := start + pSize
+		if end > len(results) {
+			end = len(results)
+		}
+
+		err := responseServer.Send(&pb.QueryBackfillsResponse{
+			Backfills: results[start:end],
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func getPageSize(cfg config.View) int {
@@ -168,160 +221,4 @@ func getPageSize(cfg config.View) int {
 	}
 
 	return pSize
-}
-
-/////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////
-
-// ticketCache unifies concurrent requests into a single cache update, and
-// gives a safe view into that map cache.
-type ticketCache struct {
-	store statestore.Service
-
-	requests chan *cacheRequest
-
-	// Single item buffered channel.  Holds a value when runQuery can be safely
-	// started.  Basically a channel/select friendly mutex around runQuery
-	// running.
-	startRunRequest chan struct{}
-
-	wg sync.WaitGroup
-
-	// Mutlithreaded unsafe fields, only to be written by update, and read when
-	// request given the ok.
-	tickets map[string]*pb.Ticket
-	err     error
-}
-
-func newTicketCache(b *appmain.Bindings, cfg config.View) *ticketCache {
-	tc := &ticketCache{
-		store:           statestore.New(cfg),
-		requests:        make(chan *cacheRequest),
-		startRunRequest: make(chan struct{}, 1),
-		tickets:         make(map[string]*pb.Ticket),
-	}
-
-	tc.startRunRequest <- struct{}{}
-	b.AddHealthCheckFunc(tc.store.HealthCheck)
-
-	return tc
-}
-
-type cacheRequest struct {
-	ctx    context.Context
-	runNow chan struct{}
-}
-
-func (tc *ticketCache) request(ctx context.Context, f func(map[string]*pb.Ticket)) error {
-	cr := &cacheRequest{
-		ctx:    ctx,
-		runNow: make(chan struct{}),
-	}
-
-sendRequest:
-	for {
-		select {
-		case <-ctx.Done():
-			return errors.Wrap(ctx.Err(), "ticket cache request canceled before reuest sent.")
-		case <-tc.startRunRequest:
-			go tc.runRequest()
-		case tc.requests <- cr:
-			break sendRequest
-		}
-	}
-
-	select {
-	case <-ctx.Done():
-		return errors.Wrap(ctx.Err(), "ticket cache request canceled waiting for access.")
-	case <-cr.runNow:
-		defer tc.wg.Done()
-	}
-
-	if tc.err != nil {
-		return tc.err
-	}
-
-	f(tc.tickets)
-	return nil
-}
-
-func (tc *ticketCache) runRequest() {
-	defer func() {
-		tc.startRunRequest <- struct{}{}
-	}()
-
-	// Wait for first query request.
-	reqs := []*cacheRequest{<-tc.requests}
-
-	// Collect all waiting queries.
-collectAllWaiting:
-	for {
-		select {
-		case req := <-tc.requests:
-			reqs = append(reqs, req)
-		default:
-			break collectAllWaiting
-		}
-	}
-
-	tc.update()
-	stats.Record(context.Background(), cacheWaitingQueries.M(int64(len(reqs))))
-
-	// Send WaitGroup to query calls, letting them run their query on the ticket
-	// cache.
-	for _, req := range reqs {
-		tc.wg.Add(1)
-		select {
-		case req.runNow <- struct{}{}:
-		case <-req.ctx.Done():
-			tc.wg.Done()
-		}
-	}
-
-	// wait for requests to finish using ticket cache.
-	tc.wg.Wait()
-}
-
-func (tc *ticketCache) update() {
-	st := time.Now()
-	previousCount := len(tc.tickets)
-
-	currentAll, err := tc.store.GetIndexedIDSet(context.Background())
-	if err != nil {
-		tc.err = err
-		return
-	}
-
-	deletedCount := 0
-	for id := range tc.tickets {
-		if _, ok := currentAll[id]; !ok {
-			delete(tc.tickets, id)
-			deletedCount++
-		}
-	}
-
-	toFetch := []string{}
-
-	for id := range currentAll {
-		if _, ok := tc.tickets[id]; !ok {
-			toFetch = append(toFetch, id)
-		}
-	}
-
-	newTickets, err := tc.store.GetTickets(context.Background(), toFetch)
-	if err != nil {
-		tc.err = err
-		return
-	}
-
-	for _, t := range newTickets {
-		tc.tickets[t.Id] = t
-	}
-
-	stats.Record(context.Background(), cacheTotalItems.M(int64(previousCount)))
-	stats.Record(context.Background(), cacheFetchedItems.M(int64(len(toFetch))))
-	stats.Record(context.Background(), cacheUpdateLatency.M(float64(time.Since(st))/float64(time.Millisecond)))
-
-	logger.Debugf("Ticket Cache update: Previous %d, Deleted %d, Fetched %d, Current %d", previousCount, deletedCount, len(toFetch), len(tc.tickets))
-	tc.err = nil
 }
