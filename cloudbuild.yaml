@@ -90,7 +90,7 @@ steps:
 
 - id: 'Build: Assets'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'assets', '-j12']
+  args: ['make', '_CHARTS_BUCKET=${_CHARTS_BUCKET}', 'assets', '-j12']
   volumes:
   - name: 'go-vol'
     path: '/go'
