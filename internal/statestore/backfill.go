@@ -189,8 +189,6 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	}
 	defer handleConnectionClose(&redisConn)
 
-	backfill.Generation++
-
 	bf := ipb.BackfillInternal{
 		Backfill:  backfill,
 		TicketIds: ticketIDs,
