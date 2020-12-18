@@ -54,21 +54,21 @@ query: &query
   grpcPort: 50503
   httpPort: 51503
   portType: ClusterIP
-  replicas: 3
+  replicas: 1
   image: openmatch-query
 frontend: &frontend
   hostName:
   grpcPort: 50504
   httpPort: 51504
   portType: ClusterIP
-  replicas: 3
+  replicas: 1
   image: openmatch-frontend
 backend: &backend
   hostName:
   grpcPort: 50505
   httpPort: 51505
   portType: ClusterIP
-  replicas: 3
+  replicas: 1
   image: openmatch-backend
 synchronizer: &synchronizer
   hostName:
@@ -81,12 +81,12 @@ evaluator: &evaluator
   hostName:
   grpcPort: 50508
   httpPort: 51508
-  replicas: 3
+  replicas: 1
 function: &function
   hostName:
   grpcPort: 50502
   httpPort: 51502
-  replicas: 3
+  replicas: 1
 
 # Specifies the location and name of the Open Match application-level config volumes.
   # Used in template: `openmatch.volumemounts.configs` and `openmatch.volumes.configs` under `templates/_helpers.tpl` file.
@@ -204,7 +204,10 @@ open-match-customize:
   # Switch the value between true/false to turn on/off this subchart
   enabled: false
   evaluator: *evaluator
-  function: *function
+  function:
+    image: openmatch-mmf-go-backfill
+    grpcPort: 50502
+    httpPort: 55555
   # You can override the evaluator/mmf image
   # evaluator:
   #   image: [YOUR_EVALUATOR_IMAGE]
@@ -280,3 +283,4 @@ global:
       enabled: false
       # This will be called with `tpl` in the open-match-telemetry subchart namespace.
       prometheusServer: 'http://{{ include "call-nested" (list . "prometheus" "prometheus.server.fullname") }}.{{ .Release.Namespace }}.svc.cluster.local:80/'
+
