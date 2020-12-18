@@ -1,3 +1,17 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package mmf
 
 import (
@@ -8,6 +22,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
@@ -15,7 +30,7 @@ import (
 
 const (
 	playersPerMatch = 2
-	extensionsKey   = "backfill-extensions"
+	openSlotsKey    = "open-slots"
 	matchName       = "backfill-matchfunction"
 )
 
@@ -29,7 +44,8 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 	log.Printf("Generating proposals for function %v", req.GetProfile().GetName())
 
 	var proposals []*pb.Match
-	pools := req.GetProfile().GetPools()
+	profile := req.GetProfile()
+	pools := profile.GetPools()
 
 	for _, p := range pools {
 		tickets, err := matchfunction.QueryPool(stream.Context(), s.queryServiceClient, p)
@@ -44,7 +60,7 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 			return err
 		}
 
-		matches, err := makeMatches(p, tickets, backfills)
+		matches, err := makeMatches(profile, p, tickets, backfills)
 		if err != nil {
 			log.Printf("Failed to generate matches, got %s", err.Error())
 			return err
@@ -65,19 +81,19 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 	return nil
 }
 
-func makeMatches(pool *pb.Pool, tickets []*pb.Ticket, backfills []*pb.Backfill) ([]*pb.Match, error) {
+func makeMatches(profile *pb.MatchProfile, pool *pb.Pool, tickets []*pb.Ticket, backfills []*pb.Backfill) ([]*pb.Match, error) {
 	var matches []*pb.Match
-	newMatches, remainingTickets, err := handleBackfills(tickets, backfills, len(matches))
+	newMatches, remainingTickets, err := handleBackfills(profile, tickets, backfills, len(matches))
 	if err != nil {
 		return nil, err
 	}
 
 	matches = append(matches, newMatches...)
-	newMatches, remainingTickets = makeFullMatches(remainingTickets, len(matches))
+	newMatches, remainingTickets = makeFullMatches(profile, remainingTickets, len(matches))
 	matches = append(matches, newMatches...)
 
 	if len(remainingTickets) > 0 {
-		match, err := makeMatchWithBackfill(pool, remainingTickets, len(matches))
+		match, err := makeMatchWithBackfill(profile, pool, remainingTickets, len(matches))
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +104,7 @@ func makeMatches(pool *pb.Pool, tickets []*pb.Ticket, backfills []*pb.Backfill) 
 	return matches, nil
 }
 
-func handleBackfills(tickets []*pb.Ticket, backfills []*pb.Backfill, lastMatchId int) ([]*pb.Match, []*pb.Ticket, error) {
+func handleBackfills(profile *pb.MatchProfile, tickets []*pb.Ticket, backfills []*pb.Backfill, lastMatchId int) ([]*pb.Match, []*pb.Ticket, error) {
 	matchId := lastMatchId
 	var matches []*pb.Match
 
@@ -112,7 +128,7 @@ func handleBackfills(tickets []*pb.Ticket, backfills []*pb.Backfill, lastMatchId
 			}
 
 			matchId++
-			match := newMatch(matchId, matchTickets, b)
+			match := newMatch(matchId, profile.Name, matchTickets, b)
 			matches = append(matches, &match)
 		}
 	}
@@ -120,7 +136,7 @@ func handleBackfills(tickets []*pb.Ticket, backfills []*pb.Backfill, lastMatchId
 	return matches, tickets, nil
 }
 
-func makeMatchWithBackfill(pool *pb.Pool, tickets []*pb.Ticket, lastMatchId int) (*pb.Match, error) {
+func makeMatchWithBackfill(profile *pb.MatchProfile, pool *pb.Pool, tickets []*pb.Ticket, lastMatchId int) (*pb.Match, error) {
 	if len(tickets) == 0 {
 		return nil, fmt.Errorf("tickets are required")
 	}
@@ -137,13 +153,13 @@ func makeMatchWithBackfill(pool *pb.Pool, tickets []*pb.Ticket, lastMatchId int)
 	}
 
 	matchId++
-	match := newMatch(matchId, tickets, backfill)
+	match := newMatch(matchId, profile.Name, tickets, backfill)
 	match.AllocateGameserver = true
 
 	return &match, nil
 }
 
-func makeFullMatches(tickets []*pb.Ticket, lastMatchId int) ([]*pb.Match, []*pb.Ticket) {
+func makeFullMatches(profile *pb.MatchProfile, tickets []*pb.Ticket, lastMatchId int) ([]*pb.Match, []*pb.Ticket) {
 	ticketNum := 0
 	matchId := lastMatchId
 	var matches []*pb.Match
@@ -154,7 +170,7 @@ func makeFullMatches(tickets []*pb.Ticket, lastMatchId int) ([]*pb.Match, []*pb.
 		if ticketNum == playersPerMatch {
 			matchId++
 
-			match := newMatch(matchId, tickets[:playersPerMatch], nil)
+			match := newMatch(matchId, profile.Name, tickets[:playersPerMatch], nil)
 			matches = append(matches, &match)
 
 			tickets = tickets[playersPerMatch:]
@@ -220,12 +236,12 @@ func newBackfill(searchFields *pb.SearchFields, openSlots int) (*pb.Backfill, er
 	return &b, err
 }
 
-func newMatch(num int, tickets []*pb.Ticket, b *pb.Backfill) pb.Match {
+func newMatch(num int, profile string, tickets []*pb.Ticket, b *pb.Backfill) pb.Match {
 	t := time.Now().Format("2006-01-02T15:04:05.00")
 
 	return pb.Match{
 		MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", matchName, t, num),
-		MatchProfile:  matchName,
+		MatchProfile:  profile,
 		MatchFunction: matchName,
 		Tickets:       tickets,
 		Backfill:      b,
@@ -237,14 +253,12 @@ func setOpenSlots(b *pb.Backfill, val int32) error {
 		b.Extensions = make(map[string]*any.Any)
 	}
 
-	any, err := ptypes.MarshalAny(&BackfillExtensions{
-		OpenSlots: val,
-	})
+	any, err := ptypes.MarshalAny(&wrappers.Int32Value{Value: val})
 	if err != nil {
 		return err
 	}
 
-	b.Extensions[extensionsKey] = any
+	b.Extensions[openSlotsKey] = any
 	return nil
 }
 
@@ -254,14 +268,14 @@ func getOpenSlots(b *pb.Backfill) (int32, error) {
 	}
 
 	if b.Extensions != nil {
-		if any, ok := b.Extensions[extensionsKey]; ok {
-			var ext BackfillExtensions
-			err := ptypes.UnmarshalAny(any, &ext)
+		if any, ok := b.Extensions[openSlotsKey]; ok {
+			var val wrappers.Int32Value
+			err := ptypes.UnmarshalAny(any, &val)
 			if err != nil {
 				return 0, err
 			}
 
-			return ext.OpenSlots, nil
+			return val.Value, nil
 		}
 	}
 
