@@ -94,7 +94,7 @@ ALTERNATE_TAG = dev
 VERSIONED_CANARY_TAG = $(BASE_VERSION)-canary
 DATED_CANARY_TAG = $(YEAR_MONTH_DAY)-canary
 CANARY_TAG = canary
-GKE_CLUSTER_NAME = om-cluster3
+GKE_CLUSTER_NAME = om-cluster-alex
 GCP_REGION = us-west1
 GCP_ZONE = us-west1-a
 GCP_LOCATION = $(GCP_ZONE)
@@ -343,7 +343,7 @@ install-large-chart: install-chart-prerequisite install-demo build/toolchain/bin
 		--set global.telemetry.prometheus.enabled=true
 
 # install-chart will install open-match-core, open-match-demo, with the demo evaluator and mmf.
-install-chart: install-chart-prerequisite install-demo build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
+install-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
 	$(HELM) upgrade $(OPEN_MATCH_HELM_NAME) $(HELM_UPGRADE_FLAGS) --atomic install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set open-match-telemetry.enabled=true \
 		--set open-match-core.pendingReleaseTimeout=30s \

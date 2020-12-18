@@ -340,7 +340,7 @@ func TestDoWatchAssignments(t *testing.T) {
 	}
 }
 
-// TestAcknowledgeBackfill - test input validation only
+// TestAcknowledgeBackfillValidation - test input validation only
 func TestAcknowledgeBackfillValidation(t *testing.T) {
 	cfg := viper.New()
 	tests := []struct {
@@ -357,11 +357,6 @@ func TestAcknowledgeBackfillValidation(t *testing.T) {
 			description:     "no Assignment, error is expected",
 			request:         &pb.AcknowledgeBackfillRequest{BackfillId: "1234", Assignment: nil},
 			expectedMessage: ".Assignment is required",
-		},
-		{
-			description:     "no Assignment.Connection, error is expected",
-			request:         &pb.AcknowledgeBackfillRequest{BackfillId: "1234", Assignment: &pb.Assignment{Connection: ""}},
-			expectedMessage: ".Assignment.Connection should be set",
 		},
 	}
 
@@ -386,6 +381,7 @@ func TestAcknowledgeBackfillValidation(t *testing.T) {
 // GetExpiredBackfills() after AcknowledgeBackfill() call should not return Backfill
 // which was just acknowledged
 func TestAcknowledgeBackfill(t *testing.T) {
+
 	cfg := viper.New()
 	ctx := context.Background()
 

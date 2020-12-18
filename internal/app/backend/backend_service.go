@@ -347,7 +347,7 @@ func createOrUpdateBackfill(ctx context.Context, match *pb.Match, store statesto
 		return nil
 	}
 
-	ticketIds := make([]string, len(match.Tickets))
+	ticketIds := make([]string, 0, len(match.Tickets))
 
 	for _, t := range match.Tickets {
 		ticketIds = append(ticketIds, t.Id)
@@ -357,7 +357,11 @@ func createOrUpdateBackfill(ctx context.Context, match *pb.Match, store statesto
 		backfill.Id = xid.New().String()
 		backfill.CreateTime = ptypes.TimestampNow()
 		backfill.Generation = 1
-		return store.CreateBackfill(ctx, backfill, ticketIds)
+		err := store.CreateBackfill(ctx, backfill, ticketIds)
+		if err != nil {
+			return err
+		}
+		return store.IndexBackfill(ctx, backfill)
 	}
 
 	m := store.NewMutex(backfill.Id)
@@ -387,8 +391,13 @@ func createOrUpdateBackfill(ctx context.Context, match *pb.Match, store statesto
 
 	bf.SearchFields = backfill.SearchFields
 	bf.Extensions = backfill.Extensions
+	bf.Generation++
 
-	return store.UpdateBackfill(ctx, bf, append(ids, ticketIds...))
+	err = store.UpdateBackfill(ctx, bf, append(ids, ticketIds...))
+	if err != nil {
+		return nil
+	}
+	return store.IndexBackfill(ctx, bf)
 }
 
 func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) (*pb.AssignTicketsResponse, error) {
