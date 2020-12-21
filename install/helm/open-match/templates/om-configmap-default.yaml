@@ -117,10 +117,12 @@ data:
       traceSamplingFraction: "{{ .Values.global.telemetry.traceSamplingFraction }}"
       zpages:
         enable: "{{ .Values.global.telemetry.zpages.enabled }}"
+{{- if .Values.global.telemetry.jaeger.enabled }}
       jaeger:
         enable: "{{ .Values.global.telemetry.jaeger.enabled }}"
         agentEndpoint: "{{ tpl .Values.global.telemetry.jaeger.agentEndpoint . }}"
         collectorEndpoint: "{{ tpl .Values.global.telemetry.jaeger.collectorEndpoint . }}"
+{{- end }}
       prometheus:
         enable: "{{ .Values.global.telemetry.prometheus.enabled }}"
         endpoint: "{{ .Values.global.telemetry.prometheus.endpoint }}"
