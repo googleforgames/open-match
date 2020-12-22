@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package mmf provides a sample match function that uses the GRPC harness to set up 1v1 matches.
+// This sample is a reference to demonstrate the usage of backfill and should only be used as
+// a starting point for your match function. You will need to modify the
+// matchmaking logic in this function based on your game's requirements.
 package mmf
 
 import (
@@ -34,6 +38,8 @@ const (
 	matchName       = "backfill-matchfunction"
 )
 
+// matchFunctionService implements pb.MatchFunctionServer, the server generated
+// by compiling the protobuf, by fulfilling the pb.MatchFunctionServer interface.
 type matchFunctionService struct {
 	grpc               *grpc.Server
 	queryServiceClient pb.QueryServiceClient
@@ -81,6 +87,8 @@ func (s *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_R
 	return nil
 }
 
+// makeMatches tries to handle backfills at first, then it makes full matches, at the end it makes a match with backfill
+// if tickets left
 func makeMatches(profile *pb.MatchProfile, pool *pb.Pool, tickets []*pb.Ticket, backfills []*pb.Backfill) ([]*pb.Match, error) {
 	var matches []*pb.Match
 	newMatches, remainingTickets, err := handleBackfills(profile, tickets, backfills, len(matches))
@@ -104,6 +112,8 @@ func makeMatches(profile *pb.MatchProfile, pool *pb.Pool, tickets []*pb.Ticket, 
 	return matches, nil
 }
 
+// handleBackfills looks at each backfill's openSlots which is a number of required tickets,
+// acquires that tickets, decreases openSlots in backfill and makes a match with updated backfill and associated tickets.
 func handleBackfills(profile *pb.MatchProfile, tickets []*pb.Ticket, backfills []*pb.Backfill, lastMatchId int) ([]*pb.Match, []*pb.Ticket, error) {
 	matchId := lastMatchId
 	var matches []*pb.Match
@@ -136,6 +146,7 @@ func handleBackfills(profile *pb.MatchProfile, tickets []*pb.Ticket, backfills [
 	return matches, tickets, nil
 }
 
+// makeMatchWithBackfill makes not full match, creates backfill for it with openSlots = playersPerMatch-len(tickets).
 func makeMatchWithBackfill(profile *pb.MatchProfile, pool *pb.Pool, tickets []*pb.Ticket, lastMatchId int) (*pb.Match, error) {
 	if len(tickets) == 0 {
 		return nil, fmt.Errorf("tickets are required")
@@ -154,11 +165,13 @@ func makeMatchWithBackfill(profile *pb.MatchProfile, pool *pb.Pool, tickets []*p
 
 	matchId++
 	match := newMatch(matchId, profile.Name, tickets, backfill)
+	// indicates that it is a new match and new game server should be allocated for it
 	match.AllocateGameserver = true
 
 	return &match, nil
 }
 
+// makeFullMatches makes matches without backfill
 func makeFullMatches(profile *pb.MatchProfile, tickets []*pb.Ticket, lastMatchId int) ([]*pb.Match, []*pb.Ticket) {
 	ticketNum := 0
 	matchId := lastMatchId
@@ -181,6 +194,7 @@ func makeFullMatches(profile *pb.MatchProfile, tickets []*pb.Ticket, lastMatchId
 	return matches, tickets
 }
 
+// newSearchFields creates search fields based on pool's search criteria. This is just example of how it can be done.
 func newSearchFields(pool *pb.Pool) *pb.SearchFields {
 	searchFields := pb.SearchFields{}
 	rangeFilters := pool.GetDoubleRangeFilters()
