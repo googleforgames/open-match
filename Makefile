@@ -362,9 +362,12 @@ install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 	$(HELM) template $(OPEN_MATCH_HELM_NAME)-scale  install/helm/open-match $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) -f install/helm/open-match/values-production.yaml \
 		--set open-match-core.enabled=false \
 		--set open-match-core.redis.enabled=false \
+		--set global.kubernetes.serviceAccount=$(OPEN_MATCH_HELM_NAME)-unprivileged-service \
 		--set global.telemetry.prometheus.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
-		--set open-match-scale.enabled=true | $(KUBECTL) apply -f -
+		--set open-match-scale.enabled=true \
+		--set open-match-scale.configs.default.configName="\{\{ printf \"$(OPEN_MATCH_HELM_NAME)-configmap-default\" \}\}" \
+		--set open-match-scale.configs.override.configName="\{\{ printf \"$(OPEN_MATCH_HELM_NAME)-configmap-override\" \}\}" | $(KUBECTL) apply -f -
 
 # install-ci-chart will install open-match-core with pool based mmf for end-to-end in-cluster test.
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
