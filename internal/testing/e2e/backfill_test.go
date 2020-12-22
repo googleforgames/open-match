@@ -195,6 +195,14 @@ func TestProposedBackfillCreate(t *testing.T) {
 	b.Id = actual.Id
 	b.CreateTime = actual.CreateTime
 	require.True(t, proto.Equal(b, actual))
+
+	client, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
+		StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
+	}})
+
+	require.Nil(t, err)
+	_, err = client.Recv()
+	require.Equal(t, io.EOF, err)
 }
 
 func TestProposedBackfillUpdate(t *testing.T) {
@@ -268,6 +276,14 @@ func TestProposedBackfillUpdate(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, actual)
 	require.True(t, proto.Equal(b, actual))
+
+	client, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
+		StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
+	}})
+
+	require.Nil(t, err)
+	_, err = client.Recv()
+	require.Equal(t, io.EOF, err)
 }
 
 func TestBackfillGenerationMismatch(t *testing.T) {
