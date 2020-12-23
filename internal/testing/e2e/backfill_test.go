@@ -163,95 +163,6 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	require.Equal(t, conn, ticket.Assignment.Connection)
 }
 
-func TestProposedBackfillCreate(t *testing.T) {
-	ctx := context.Background()
-	om := newOM(t)
-
-	b := &pb.Backfill{
-		SearchFields: &pb.SearchFields{
-			StringArgs: map[string]string{
-				"field": "value",
-			},
-		},
-	}
-	createMatchWithBackfill(ctx, om, b, t)
-}
-
-func TestProposedBackfillUpdate(t *testing.T) {
-	ctx := context.Background()
-	om := newOM(t)
-
-	b, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
-		SearchFields: &pb.SearchFields{
-			StringArgs: map[string]string{
-				"field": "value",
-			},
-		},
-	}})
-	require.NoError(t, err)
-
-	b.SearchFields = &pb.SearchFields{
-		StringArgs: map[string]string{
-			"field1": "value1",
-		},
-	}
-	//using DefaultEvaluationCriteria just for testing purposes only
-	b.Extensions = map[string]*any.Any{
-		"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
-			Score: 10,
-		}),
-	}
-	createMatchWithBackfill(ctx, om, b, t)
-}
-
-func TestBackfillGenerationMismatch(t *testing.T) {
-	ctx := context.Background()
-	om := newOM(t)
-	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	require.NoError(t, err)
-
-	b, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{Generation: 1}})
-	require.NoError(t, err)
-
-	b.Generation = 0
-	m := &pb.Match{
-		MatchId:  "1",
-		Tickets:  []*pb.Ticket{t1},
-		Backfill: b,
-	}
-
-	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
-		out <- m
-		return nil
-	})
-
-	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
-		p, ok := <-in
-		require.True(t, ok)
-
-		out <- p.MatchId
-		return nil
-	})
-
-	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
-		Config:  om.MMFConfigGRPC(),
-		Profile: &pb.MatchProfile{},
-	})
-	require.NoError(t, err)
-
-	resp, err := stream.Recv()
-	require.Nil(t, resp)
-	require.Equal(t, io.EOF, err)
-}
-
-func mustAny(m proto.Message) *any.Any {
-	result, err := ptypes.MarshalAny(m)
-	if err != nil {
-		panic(err)
-	}
-	return result
-}
-
 func createMatchWithBackfill(ctx context.Context, om *om, b *pb.Backfill, t *testing.T) string {
 	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{
 		Ticket: &pb.Ticket{
@@ -308,4 +219,251 @@ func createMatchWithBackfill(ctx context.Context, om *om, b *pb.Backfill, t *tes
 	b.CreateTime = actual.CreateTime
 	require.True(t, proto.Equal(b, actual))
 	return t1.Id
+}
+
+func TestProposedBackfillCreate(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{
+		Ticket: &pb.Ticket{
+			SearchFields: &pb.SearchFields{
+				StringArgs: map[string]string{
+					"field": "value",
+				},
+			},
+		},
+	})
+	require.Nil(t, err)
+
+	b := &pb.Backfill{
+		SearchFields: &pb.SearchFields{
+			StringArgs: map[string]string{
+				"field": "value",
+			},
+		},
+	}
+	m := &pb.Match{
+		MatchId:  "1",
+		Tickets:  []*pb.Ticket{t1},
+		Backfill: b,
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- m
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		p, ok := <-in
+		require.True(t, ok)
+
+		out <- p.MatchId
+		return nil
+	})
+
+	{
+		stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+			Config:  om.MMFConfigGRPC(),
+			Profile: &pb.MatchProfile{},
+		})
+		require.Nil(t, err)
+
+		resp, err := stream.Recv()
+		require.NotNil(t, resp)
+		require.NoError(t, err)
+
+		resp, err = stream.Recv()
+		require.Nil(t, resp)
+		require.Equal(t, io.EOF, err)
+	}
+	{
+		stream, err := om.query.QueryBackfills(ctx, &pb.QueryBackfillsRequest{
+			Pool: &pb.Pool{
+				StringEqualsFilters: []*pb.StringEqualsFilter{
+					{
+						StringArg: "field",
+						Value:     "value",
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		resp, err := stream.Recv()
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Len(t, resp.Backfills, 1)
+
+		b.Id = resp.Backfills[0].Id
+		b.Generation = 1
+		b.CreateTime = resp.Backfills[0].CreateTime
+		require.True(t, proto.Equal(b, resp.Backfills[0]))
+
+		resp, err = stream.Recv()
+		require.Nil(t, resp)
+		require.Equal(t, io.EOF, err)
+	}
+	{
+		stream, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
+			StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
+		}})
+		require.NoError(t, err)
+
+		_, err = stream.Recv()
+		require.Equal(t, io.EOF, err)
+	}
+}
+
+func TestProposedBackfillUpdate(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{
+		Ticket: &pb.Ticket{
+			SearchFields: &pb.SearchFields{
+				StringArgs: map[string]string{
+					"field": "value",
+				},
+			},
+		},
+	})
+	require.Nil(t, err)
+
+	b, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
+		SearchFields: &pb.SearchFields{
+			StringArgs: map[string]string{
+				"field": "value",
+			},
+		},
+	}})
+	require.Nil(t, err)
+
+	b.SearchFields = &pb.SearchFields{
+		StringArgs: map[string]string{
+			"field1": "value1",
+		},
+	}
+	//using DefaultEvaluationCriteria just for testing purposes only
+	b.Extensions = map[string]*any.Any{
+		"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+			Score: 10,
+		}),
+	}
+	m := &pb.Match{
+		MatchId:  "1",
+		Tickets:  []*pb.Ticket{t1},
+		Backfill: b,
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- m
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		p, ok := <-in
+		require.True(t, ok)
+
+		out <- p.MatchId
+		return nil
+	})
+
+	{
+		stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+			Config:  om.MMFConfigGRPC(),
+			Profile: &pb.MatchProfile{},
+		})
+		require.Nil(t, err)
+
+		resp, err := stream.Recv()
+		require.Nil(t, err)
+		require.True(t, proto.Equal(m, resp.Match))
+
+		resp, err = stream.Recv()
+		require.Nil(t, resp)
+		require.Equal(t, io.EOF, err)
+	}
+	{
+		stream, err := om.query.QueryBackfills(ctx, &pb.QueryBackfillsRequest{
+			Pool: &pb.Pool{
+				StringEqualsFilters: []*pb.StringEqualsFilter{
+					{
+						StringArg: "field1",
+						Value:     "value1",
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		resp, err := stream.Recv()
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Len(t, resp.Backfills, 1)
+
+		// Backfill Generation should be autoincremented
+		b.Generation++
+		require.True(t, proto.Equal(b, resp.Backfills[0]))
+
+		resp, err = stream.Recv()
+		require.Nil(t, resp)
+		require.Equal(t, io.EOF, err)
+	}
+	{
+		stream, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
+			StringEqualsFilters: []*pb.StringEqualsFilter{{StringArg: "field", Value: "value"}},
+		}})
+		require.NoError(t, err)
+
+		_, err = stream.Recv()
+		require.Equal(t, io.EOF, err)
+	}
+}
+
+func TestBackfillGenerationMismatch(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.NoError(t, err)
+
+	b, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{Generation: 1}})
+	require.NoError(t, err)
+
+	b.Generation = 0
+	m := &pb.Match{
+		MatchId:  "1",
+		Tickets:  []*pb.Ticket{t1},
+		Backfill: b,
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- m
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		p, ok := <-in
+		require.True(t, ok)
+
+		out <- p.MatchId
+		return nil
+	})
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.NoError(t, err)
+
+	resp, err := stream.Recv()
+	require.Nil(t, resp)
+	require.Equal(t, io.EOF, err)
+}
+
+func mustAny(m proto.Message) *any.Any {
+	result, err := ptypes.MarshalAny(m)
+	if err != nil {
+		panic(err)
+	}
+	return result
 }
