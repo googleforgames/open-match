@@ -172,12 +172,26 @@ func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync
 				return fmt.Errorf("error casting sync map value into *pb.Match: %w", err)
 			}
 
-			err = createOrUpdateBackfill(ctx, match, store)
-			if err != nil {
-				if err == errBackfillGenerationMismatch {
-					continue
+			backfill := match.GetBackfill()
+			if backfill != nil {
+				ticketIds := make([]string, 0, len(match.Tickets))
+
+				for _, t := range match.Tickets {
+					ticketIds = append(ticketIds, t.Id)
 				}
-				return errors.Wrapf(err, "failed to handle match backfill: %s", match.MatchId)
+
+				err = createOrUpdateBackfill(ctx, backfill, ticketIds, store)
+				if err != nil {
+					if err == errBackfillGenerationMismatch {
+						err = doReleaseTickets(ctx, ticketIds, store)
+						if err != nil {
+							logger.WithError(err).Errorf("failed to remove match tickets from pending release: %v", ticketIds)
+						}
+
+						continue
+					}
+					return errors.Wrapf(err, "failed to handle match backfill: %s", match.MatchId)
+				}
 			}
 
 			stats.Record(ctx, totalBytesPerMatch.M(int64(proto.Size(match))))
@@ -307,14 +321,23 @@ func callHTTPMmf(ctx context.Context, cc *rpc.ClientCache, profile *pb.MatchProf
 }
 
 func (s *backendService) ReleaseTickets(ctx context.Context, req *pb.ReleaseTicketsRequest) (*pb.ReleaseTicketsResponse, error) {
-	err := s.store.DeleteTicketsFromPendingRelease(ctx, req.GetTicketIds())
+	err := doReleaseTickets(ctx, req.GetTicketIds(), s.store)
 	if err != nil {
-		err = errors.Wrap(err, "failed to remove the awaiting tickets from the pending release for requested tickets")
 		return nil, err
 	}
 
-	stats.Record(ctx, ticketsReleased.M(int64(len(req.TicketIds))))
 	return &pb.ReleaseTicketsResponse{}, nil
+}
+
+func doReleaseTickets(ctx context.Context, ticketIds []string, store statestore.Service) error {
+	err := store.DeleteTicketsFromPendingRelease(ctx, ticketIds)
+	if err != nil {
+		err = errors.Wrap(err, "failed to remove the awaiting tickets from the pending release for requested tickets")
+		return err
+	}
+
+	stats.Record(ctx, ticketsReleased.M(int64(len(ticketIds))))
+	return nil
 }
 
 func (s *backendService) ReleaseAllTickets(ctx context.Context, req *pb.ReleaseAllTicketsRequest) (*pb.ReleaseAllTicketsResponse, error) {
@@ -341,23 +364,17 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 	return resp, nil
 }
 
-func createOrUpdateBackfill(ctx context.Context, match *pb.Match, store statestore.Service) error {
-	backfill := match.GetBackfill()
-	if backfill == nil {
-		return nil
-	}
-
-	ticketIds := make([]string, len(match.Tickets))
-
-	for _, t := range match.Tickets {
-		ticketIds = append(ticketIds, t.Id)
-	}
-
+func createOrUpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIds []string, store statestore.Service) error {
 	if backfill.Id == "" {
 		backfill.Id = xid.New().String()
 		backfill.CreateTime = ptypes.TimestampNow()
 		backfill.Generation = 1
-		return store.CreateBackfill(ctx, backfill, ticketIds)
+		err := store.CreateBackfill(ctx, backfill, ticketIds)
+		if err != nil {
+			return err
+		}
+
+		return store.IndexBackfill(ctx, backfill)
 	}
 
 	m := store.NewMutex(backfill.Id)
@@ -373,23 +390,28 @@ func createOrUpdateBackfill(ctx context.Context, match *pb.Match, store statesto
 		}
 	}()
 
-	bf, ids, err := store.GetBackfill(ctx, backfill.Id)
+	b, ids, err := store.GetBackfill(ctx, backfill.Id)
 	if err != nil {
 		return err
 	}
 
-	if bf.Generation != backfill.Generation {
+	if b.Generation != backfill.Generation {
 		logger.WithFields(logrus.Fields{"backfill_id": backfill.Id}).
 			WithError(errBackfillGenerationMismatch).
-			Errorf("failed to update backfill, expecting: %d generation but got: %d", bf.Generation, backfill.Generation)
+			Errorf("failed to update backfill, expecting: %d generation but got: %d", b.Generation, backfill.Generation)
 		return errBackfillGenerationMismatch
 	}
 
-	bf.SearchFields = backfill.SearchFields
-	bf.Extensions = backfill.Extensions
-	bf.Generation++
+	b.SearchFields = backfill.SearchFields
+	b.Extensions = backfill.Extensions
+	b.Generation++
 
-	return store.UpdateBackfill(ctx, bf, append(ids, ticketIds...))
+	err = store.UpdateBackfill(ctx, b, append(ids, ticketIds...))
+	if err != nil {
+		return err
+	}
+
+	return store.IndexBackfill(ctx, b)
 }
 
 func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store statestore.Service) (*pb.AssignTicketsResponse, error) {

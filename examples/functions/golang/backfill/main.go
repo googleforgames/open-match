@@ -17,7 +17,6 @@
 // to demonstrate the usage of the GRPC harness and should only be used as
 // a starting point for your match function. You will need to modify the
 // matchmaking logic in this function based on your game's requirements.
-
 package main
 
 import (
