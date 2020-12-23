@@ -283,6 +283,10 @@ func TestDeleteBackfill(t *testing.T) {
 	pool := GetRedisPool(cfg)
 	conn := pool.Get()
 
+	ts, err := redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, bfID))
+	require.NoError(t, err)
+	require.True(t, ts > 0, "timestamp is not valid")
+
 	var testCases = []struct {
 		description     string
 		backfillID      string
@@ -306,12 +310,6 @@ func TestDeleteBackfill(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
-			if tc.backfillID != "" {
-				// test that Backfill last acknowledged is in a sorted set
-				ts, redisErr := redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, tc.backfillID))
-				require.NoError(t, redisErr)
-				require.True(t, ts > 0, "timestamp is not valid")
-			}
 			errActual := service.DeleteBackfill(ctx, tc.backfillID)
 			require.NoError(t, errActual)
 

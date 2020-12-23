@@ -208,10 +208,16 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	return nil
 }
 
-// DeleteBackfillCompletely performs a set of operations to remove backfill and all related entities.
+// DeleteBackfillCompletely using goroutine performs a set of operations to remove backfill and all related entities.
 func (rb *redisBackend) DeleteBackfillCompletely(ctx context.Context, id string) error {
+	m := rb.NewMutex(id)
+	err := m.Lock(ctx)
+	if err != nil {
+		return err
+	}
+
 	// 1. deindex backfill
-	err := rb.DeindexBackfill(ctx, id)
+	err = rb.DeindexBackfill(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -244,6 +250,10 @@ func (rb *redisBackend) DeleteBackfillCompletely(ctx context.Context, id string)
 				"error":       err.Error(),
 				"backfill_id": id,
 			}).Error("DeleteBackfillCompletely - failed to DeleteBackfill")
+		}
+
+		if _, err = m.Unlock(ctx); err != nil {
+			logger.WithError(err).Error("error on mutex unlock")
 		}
 	}()
 

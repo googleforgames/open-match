@@ -191,9 +191,9 @@ func (is *instrumentedService) CleanupBackfills(ctx context.Context) error {
 	return is.s.CleanupBackfills(ctx)
 }
 
-// DeleteBackfillCompletely performs a set of operations to remove backfill and all related entities.
+// DeleteBackfillCompletely using goroutine performs a set of operations to remove backfill and all related entities.
 func (is *instrumentedService) DeleteBackfillCompletely(ctx context.Context, id string) error {
 	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.DeleteBackfillCompletely")
 	defer span.End()
-	return is.s.CleanupBackfills(ctx)
+	return is.s.DeleteBackfillCompletely(ctx, id)
 }
