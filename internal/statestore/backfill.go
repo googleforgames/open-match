@@ -208,43 +208,62 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	return nil
 }
 
+// DeleteBackfillCompletely performs a set of operations to remove backfill and all related entities.
+func (rb *redisBackend) DeleteBackfillCompletely(ctx context.Context, id string) error {
+	// 1. deindex backfill
+	err := rb.DeindexBackfill(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// just log errors and try to perform as mush actions as possible
+
+	go func() {
+		// 2. get associated with a current backfill tickets ids
+		_, associatedTickets, err := rb.GetBackfill(ctx, id)
+		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"error":       err.Error(),
+				"backfill_id": id,
+			}).Error("DeleteBackfillCompletely - failed to GetBackfill")
+		}
+
+		// 3. delete associated tickets from pending release state
+		err = rb.DeleteTicketsFromPendingRelease(ctx, associatedTickets)
+		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"error":       err.Error(),
+				"backfill_id": id,
+			}).Error("DeleteBackfillCompletely - failed to DeleteTicketsFromPendingRelease")
+		}
+
+		// 4. delete backfill
+		err = rb.DeleteBackfill(ctx, id)
+		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"error":       err.Error(),
+				"backfill_id": id,
+			}).Error("DeleteBackfillCompletely - failed to DeleteBackfill")
+		}
+	}()
+
+	return nil
+}
+
 // CleanupBackfills removes expired backfills
 func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
-	redisConn, err := rb.redisPool.GetContext(ctx)
-	if err != nil {
-		return status.Errorf(codes.Unavailable, "CleanupBackfills, failed to connect to redis: %v", err)
-	}
-	defer handleConnectionClose(&redisConn)
-
 	expiredBfIDs, err := rb.GetExpiredBackfillIDs(ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, id := range expiredBfIDs {
-		_, tickets, err := rb.GetBackfill(ctx, id)
+		err = rb.DeleteBackfillCompletely(ctx, id)
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error":       err.Error(),
 				"backfill_id": id,
-			}).Error("cleanup failed to get the backfill")
-			continue
-		}
-
-		err = rb.DeleteBackfill(ctx, id)
-		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"error":       err.Error(),
-				"backfill_id": id,
-			}).Error("cleanup failed to delete the backfill")
-		}
-
-		err = rb.DeleteTicketsFromPendingRelease(ctx, tickets)
-		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"error":       err.Error(),
-				"backfill_id": id,
-			}).Error("cleanup failed to delete tickets from pending release")
+			}).Error("CleanupBackfills")
 		}
 	}
 	return nil

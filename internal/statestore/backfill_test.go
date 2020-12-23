@@ -16,8 +16,8 @@ package statestore
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -621,12 +621,15 @@ func TestCleanupBackfills(t *testing.T) {
 	ticketIDs := []string{"t1", "t2"}
 	bfLastAck := "backfill_last_ack_time"
 	proposedTicketIDs := "proposed_ticket_ids"
+	allBackfills := "allBackfills"
+	generation := int64(55)
+	bf := &pb.Backfill{
+		Id:         bfID,
+		Generation: generation,
+	}
 
 	// ARRANGE
-	err = service.CreateBackfill(ctx, &pb.Backfill{
-		Id:         bfID,
-		Generation: 1,
-	}, ticketIDs)
+	err = service.CreateBackfill(ctx, bf, ticketIDs)
 	require.NoError(t, err)
 
 	// add expired but acknowledged backfill
@@ -636,16 +639,30 @@ func TestCleanupBackfills(t *testing.T) {
 	err = service.AddTicketsToPendingRelease(ctx, ticketIDs)
 	require.NoError(t, err)
 
+	err = service.IndexBackfill(ctx, bf)
+	require.NoError(t, err)
+
+	// backfill is properly indexed
+	index, err := redis.StringMap(rc.Do("HGETALL", allBackfills))
+	require.NoError(t, err)
+	require.Len(t, index, 1)
+	require.Equal(t, strconv.Itoa(int(generation)), index[bfID])
+
 	// ACT
 	err = service.CleanupBackfills(ctx)
 	require.NoError(t, err)
+	// wait until goroutine finishes cleanup
+	time.Sleep(1 * time.Second)
 
 	// ASSERT
+	// backfill must be deindexed
+	index, err = redis.StringMap(rc.Do("HGETALL", allBackfills))
+	require.NoError(t, err)
+	require.Len(t, index, 0)
 
 	// backfill doesn't exist anymore
 	_, _, err = service.GetBackfill(ctx, bfID)
-	err = errors.New("")
-	//require.Error(t, err)
+	require.Error(t, err)
 	require.Equal(t, "Backfill id: mockBackfill-1 not found", status.Convert(err).Message())
 
 	// no records in backfill sorted set left
