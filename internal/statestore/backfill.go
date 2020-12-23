@@ -224,38 +224,36 @@ func (rb *redisBackend) DeleteBackfillCompletely(ctx context.Context, id string)
 
 	// just log errors and try to perform as mush actions as possible
 
-	go func() {
-		// 2. get associated with a current backfill tickets ids
-		_, associatedTickets, err := rb.GetBackfill(ctx, id)
-		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"error":       err.Error(),
-				"backfill_id": id,
-			}).Error("DeleteBackfillCompletely - failed to GetBackfill")
-		}
+	// 2. get associated with a current backfill tickets ids
+	_, associatedTickets, err := rb.GetBackfill(ctx, id)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error":       err.Error(),
+			"backfill_id": id,
+		}).Error("DeleteBackfillCompletely - failed to GetBackfill")
+	}
 
-		// 3. delete associated tickets from pending release state
-		err = rb.DeleteTicketsFromPendingRelease(ctx, associatedTickets)
-		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"error":       err.Error(),
-				"backfill_id": id,
-			}).Error("DeleteBackfillCompletely - failed to DeleteTicketsFromPendingRelease")
-		}
+	// 3. delete associated tickets from pending release state
+	err = rb.DeleteTicketsFromPendingRelease(ctx, associatedTickets)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error":       err.Error(),
+			"backfill_id": id,
+		}).Error("DeleteBackfillCompletely - failed to DeleteTicketsFromPendingRelease")
+	}
 
-		// 4. delete backfill
-		err = rb.DeleteBackfill(ctx, id)
-		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"error":       err.Error(),
-				"backfill_id": id,
-			}).Error("DeleteBackfillCompletely - failed to DeleteBackfill")
-		}
+	// 4. delete backfill
+	err = rb.DeleteBackfill(ctx, id)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error":       err.Error(),
+			"backfill_id": id,
+		}).Error("DeleteBackfillCompletely - failed to DeleteBackfill")
+	}
 
-		if _, err = m.Unlock(ctx); err != nil {
-			logger.WithError(err).Error("error on mutex unlock")
-		}
-	}()
+	if _, err = m.Unlock(ctx); err != nil {
+		logger.WithError(err).Error("error on mutex unlock")
+	}
 
 	return nil
 }

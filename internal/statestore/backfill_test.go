@@ -649,8 +649,6 @@ func TestCleanupBackfills(t *testing.T) {
 	// ACT
 	err = service.CleanupBackfills(ctx)
 	require.NoError(t, err)
-	// wait until goroutine finishes cleanup
-	time.Sleep(1 * time.Second)
 
 	// ASSERT
 	// backfill must be deindexed

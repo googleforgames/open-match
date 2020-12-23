@@ -127,8 +127,6 @@ func TestBackfillFrontendLifecycle(t *testing.T) {
 	require.Equal(t, unpacked.Value, orig.Value)
 	_, err = om.Frontend().DeleteBackfill(ctx, &pb.DeleteBackfillRequest{BackfillId: createdBf.Id})
 	require.NoError(t, err)
-	// make sure everything is cleaned up
-	time.Sleep(1 * time.Second)
 
 	get, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: createdBf.Id})
 	require.Error(t, err, fmt.Sprintf("Backfill id: %s not found", bf.Id))
