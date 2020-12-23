@@ -121,6 +121,13 @@ func (is *instrumentedService) GetBackfill(ctx context.Context, id string) (*pb.
 	return is.s.GetBackfill(ctx, id)
 }
 
+// GetBackfills returns multiple backfills from storage.
+func (is *instrumentedService) GetBackfills(ctx context.Context, ids []string) ([]*pb.Backfill, error) {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetBackfills")
+	defer span.End()
+	return is.s.GetBackfills(ctx, ids)
+}
+
 // DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
 func (is *instrumentedService) DeleteBackfill(ctx context.Context, id string) error {
 	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeleteBackfill")

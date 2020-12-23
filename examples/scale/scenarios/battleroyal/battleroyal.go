@@ -101,7 +101,7 @@ func (b *BattleRoyalScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[
 func (b *BattleRoyalScenario) Evaluate(stream pb.Evaluator_EvaluateServer) error {
 	used := map[string]struct{}{}
 
-	// TODO: once the evaluator client supports sending and recieving at the
+	// TODO: once the evaluator client supports sending and receiving at the
 	// same time, don't buffer, just send results immediately.
 	matchIDs := []string{}
 

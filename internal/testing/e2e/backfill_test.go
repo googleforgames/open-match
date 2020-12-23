@@ -213,7 +213,7 @@ func TestBackfillGenerationMismatch(t *testing.T) {
 	b, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{Generation: 1}})
 	require.NoError(t, err)
 
-	b.Generation = 0
+	b.Generation = 1
 	m := &pb.Match{
 		MatchId:  "1",
 		Tickets:  []*pb.Ticket{t1},
@@ -302,6 +302,7 @@ func createMatchWithBackfill(ctx context.Context, om *om, b *pb.Backfill, t *tes
 	require.NotNil(t, actual)
 
 	b.Id = actual.Id
+	b.Generation = actual.Generation
 	b.CreateTime = actual.CreateTime
 	require.True(t, proto.Equal(b, actual))
 	return t1.Id
