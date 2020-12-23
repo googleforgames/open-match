@@ -378,14 +378,14 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 		return nil, err
 	}
 
-	err = s.store.AcknowledgeBackfill(ctx, req.GetBackfillId())
+	err = s.store.UpdateAcknowledgmentTimestamp(ctx, req.GetBackfillId())
 	if err != nil {
 		return nil, err
 	}
 
 	if len(associatedTickets) != 0 {
 		_, tickets, err := s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
-			Assignments: []*pb.AssignmentGroup{&pb.AssignmentGroup{TicketIds: associatedTickets, Assignment: req.GetAssignment()}},
+			Assignments: []*pb.AssignmentGroup{{TicketIds: associatedTickets, Assignment: req.GetAssignment()}},
 		})
 		if err != nil {
 			return nil, err
