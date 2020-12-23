@@ -63,7 +63,7 @@ func (rb *redisBackend) CreateBackfill(ctx context.Context, backfill *pb.Backfil
 		return status.Errorf(codes.AlreadyExists, "backfill already exists, id: %s", backfill.GetId())
 	}
 
-	return updateAcknowledgmentTimestamp(redisConn, backfill.GetId())
+	return doUpdateAcknowledgmentTimestamp(redisConn, backfill.GetId())
 }
 
 // GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and associated ticketIDs if they exist.
@@ -208,10 +208,10 @@ func (rb *redisBackend) UpdateAcknowledgmentTimestamp(ctx context.Context, id st
 		return status.Errorf(codes.Unavailable, "UpdateAcknowledgmentTimestamp, id: %s, failed to connect to redis: %v", id, err)
 	}
 	defer handleConnectionClose(&redisConn)
-	return updateAcknowledgmentTimestamp(redisConn, id)
+	return doUpdateAcknowledgmentTimestamp(redisConn, id)
 }
 
-func updateAcknowledgmentTimestamp(conn redis.Conn, backfillID string) error {
+func doUpdateAcknowledgmentTimestamp(conn redis.Conn, backfillID string) error {
 	currentTime := time.Now().UnixNano()
 
 	_, err := conn.Do("ZADD", backfillLastAckTime, currentTime, backfillID)

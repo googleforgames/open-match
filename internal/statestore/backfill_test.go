@@ -411,7 +411,7 @@ func TestUpdateAcknowledgmentTimestampLifecycle(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestUpdateAcknowledgmentTimestamptTimestamp(t *testing.T) {
+func TestUpdateAcknowledgmentTimestampt(t *testing.T) {
 	cfg, closer := createRedis(t, false, "")
 	defer closer()
 
