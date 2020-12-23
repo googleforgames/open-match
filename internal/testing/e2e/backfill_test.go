@@ -301,8 +301,10 @@ func createMatchWithBackfill(ctx context.Context, om *om, b *pb.Backfill, t *tes
 	require.NoError(t, err)
 	require.NotNil(t, actual)
 
+	// Backfill Generation should be autoincremented if updated after MMF run
+	// default Generation is 1 if not set (on Create)
+	b.Generation++
 	b.Id = actual.Id
-	b.Generation = actual.Generation
 	b.CreateTime = actual.CreateTime
 	require.True(t, proto.Equal(b, actual))
 	return t1.Id
