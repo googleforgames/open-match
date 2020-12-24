@@ -340,7 +340,7 @@ func TestDoWatchAssignments(t *testing.T) {
 	}
 }
 
-// TestAcknowledgeBackfill - test input validation only
+// TestAcknowledgeBackfillValidation - test input validation only
 func TestAcknowledgeBackfillValidation(t *testing.T) {
 	cfg := viper.New()
 	tests := []struct {

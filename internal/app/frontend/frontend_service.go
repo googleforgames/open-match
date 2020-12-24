@@ -386,26 +386,27 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 	}
 
 	if len(associatedTickets) != 0 {
-		_, tickets, err := s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
+		resp, _, err := s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
 			Assignments: []*pb.AssignmentGroup{{TicketIds: associatedTickets, Assignment: req.GetAssignment()}},
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		// all assigned tickets should be removed from the associatedTickets
-		// associatedTickets - tickets
-		unassignedTickets := []string{}
-		assigned := make(map[string]struct{})
-		for _, t := range tickets {
-			assigned[t.Id] = struct{}{}
+		// log errors returned from UpdateAssignments to track tickets with NotFound errors
+		for _, f := range resp.Failures {
+			logger.Errorf("failed to assign ticket %s, cause %d", f.TicketId, f.Cause)
 		}
-		for _, t := range associatedTickets {
-			if _, ok := assigned[t]; !ok {
-				unassignedTickets = append(unassignedTickets, t)
+		for _, id := range associatedTickets {
+			err = s.store.DeindexTicket(ctx, id)
+			// Try to deindex all input tickets. Log without returning an error if the deindexing operation failed.
+			if err != nil {
+				logger.WithError(err).Errorf("failed to deindex ticket %s after updating the assignments", id)
 			}
 		}
-		err = s.store.UpdateBackfill(ctx, bf, unassignedTickets)
+
+		// Remove all tickets associated with backfill, because unassigned tickets are not found only
+		err = s.store.UpdateBackfill(ctx, bf, []string{})
 		if err != nil {
 			return nil, err
 		}
