@@ -44,3 +44,7 @@ If release name contains chart name it will be used as a full name.
 {{- define "openmatchscale.scaleMmf.hostName" -}}
 {{- .Values.scaleMmf.hostName | default (printf "%s-mmf" (include "openmatchscale.fullname" . ) ) -}}
 {{- end -}}
+
+{{- define "openmatchscale.scaleEvaluator.hostName" -}}
+{{- .Values.scaleEvaluator.hostName | default (printf "%s-evaluator" (include "openmatchscale.fullname" . ) ) -}}
+{{- end -}}

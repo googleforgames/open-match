@@ -30,6 +30,12 @@ scaleMmf:
   replicas: 1
   image: openmatch-scale-mmf
 
+scaleEvaluator:
+  hostName:
+  httpPort: 51509
+  replicas: 1
+  image: openmatch-scale-evaluator
+
 configs:
   default:
     volumeName: om-config-volume-default
