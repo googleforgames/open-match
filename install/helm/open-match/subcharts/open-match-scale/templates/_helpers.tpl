@@ -40,3 +40,7 @@ If release name contains chart name it will be used as a full name.
 {{- define "openmatchscale.scaleFrontend.hostName" -}}
 {{- .Values.scaleFrontend.hostName | default (printf "%s-frontend" (include "openmatchscale.fullname" . ) ) -}}
 {{- end -}}
+
+{{- define "openmatchscale.scaleMmf.hostName" -}}
+{{- .Values.scaleMmf.hostName | default (printf "%s-mmf" (include "openmatchscale.fullname" . ) ) -}}
+{{- end -}}

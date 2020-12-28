@@ -24,6 +24,12 @@ scaleBackend:
   replicas: 1
   image: openmatch-scale-backend
 
+scaleMmf:
+  hostName:
+  httpPort: 51509
+  replicas: 1
+  image: openmatch-scale-mmf
+
 configs:
   default:
     volumeName: om-config-volume-default

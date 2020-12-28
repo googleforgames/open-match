@@ -1,0 +1,74 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ include "openmatchscale.scaleMmf.hostName" . }}
+  namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+  labels:
+    app: {{ template "openmatch.name" . }}
+    component: scaleMmf
+    release: {{ .Release.Name }}
+spec:
+  selector:
+    app: {{ template "openmatch.name" . }}
+    component: scaleMmf
+  ports:
+  - name: http
+    protocol: TCP
+    port: {{ .Values.scaleMmf.httpPort }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openmatchscale.scaleMmf.hostName" . }}
+  namespace: {{ .Release.Namespace }}
+  annotations: {{- include "openmatch.chartmeta" . | nindent 4 }}
+  labels:
+    app: {{ template "openmatch.name" . }}
+    component: scaleMmf
+    release: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.scaleMmf.replicas }}
+  selector:
+    matchLabels:
+      app: {{ template "openmatch.name" . }}
+      component: scaleMmf
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      annotations:
+        {{- include "openmatch.chartmeta" . | nindent 8 }}
+        {{- include "prometheus.annotations" (dict "port" .Values.scaleMmf.httpPort "prometheus" .Values.global.telemetry.prometheus) | nindent 8 }}
+      labels:
+        app: {{ template "openmatch.name" . }}
+        component: scaleMmf
+        release: {{ .Release.Name }}
+    spec:
+      volumes:
+        {{- include "openmatch.volumes.configs" (. | merge (dict "configs" .Values.configs)) | nindent 8}}
+        {{- include "openmatch.volumes.tls" . | nindent 8}}
+      serviceAccountName: {{ include "openmatch.serviceAccount.name" . }}
+      containers:
+      - name: {{ include "openmatchscale.scaleMmf.hostName" . }}
+        volumeMounts:
+          {{- include "openmatch.volumemounts.configs" (dict "configs" .Values.configs) | nindent 10 }}
+          {{- include "openmatch.volumemounts.tls" . | nindent 10 }}
+        image: "{{ .Values.global.image.registry }}/{{ .Values.scaleMmf.image}}:{{ .Values.global.image.tag }}"
+        ports:
+        - name: http
+          containerPort: {{ .Values.scaleMmf.httpPort }}
+        {{- include "openmatch.container.common" . | nindent 8 }}
