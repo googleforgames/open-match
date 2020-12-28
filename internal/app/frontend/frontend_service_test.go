@@ -82,7 +82,7 @@ func TestDoCreateTickets(t *testing.T) {
 			if err == nil {
 				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetId())
 				require.True(t, matched)
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Equal(t, test.ticket.SearchFields.DoubleArgs["test-arg"], res.SearchFields.DoubleArgs["test-arg"])
 			}
 		})
@@ -156,8 +156,8 @@ func TestCreateBackfill(t *testing.T) {
 
 	// expect error with canceled context
 	store, closer = statestoreTesting.NewStoreServiceForTesting(t, cfg)
-	fs = frontendService{cfg, store}
 	defer closer()
+	fs = frontendService{cfg, store}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -306,7 +306,7 @@ func TestDoWatchAssignments(t *testing.T) {
 								},
 							},
 						})
-						require.Nil(t, err)
+						require.NoError(t, err)
 						wg.Done()
 					}
 				}(wg)
@@ -338,6 +338,95 @@ func TestDoWatchAssignments(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestAcknowledgeBackfillValidation - test input validation only
+func TestAcknowledgeBackfillValidation(t *testing.T) {
+	cfg := viper.New()
+	tests := []struct {
+		description     string
+		request         *pb.AcknowledgeBackfillRequest
+		expectedMessage string
+	}{
+		{
+			description:     "no BackfillId, error is expected",
+			request:         &pb.AcknowledgeBackfillRequest{BackfillId: "", Assignment: &pb.Assignment{Connection: "10.0.0.1"}},
+			expectedMessage: ".BackfillId is required",
+		},
+		{
+			description:     "no Assignment, error is expected",
+			request:         &pb.AcknowledgeBackfillRequest{BackfillId: "1234", Assignment: nil},
+			expectedMessage: ".Assignment is required",
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.description, func(t *testing.T) {
+			ctx := context.Background()
+
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+			defer closer()
+			fs := frontendService{cfg, store}
+			bf, err := fs.AcknowledgeBackfill(ctx, test.request)
+			require.Equal(t, codes.InvalidArgument.String(), status.Convert(err).Code().String())
+			require.Equal(t, test.expectedMessage, status.Convert(err).Message())
+			require.Nil(t, bf)
+		})
+	}
+}
+
+// TestAcknowledgeBackfill verifies timestamp part of AcknowledgeBackfill call,
+// assignment part tested in a corresponding E2E test.
+// GetExpiredBackfills() after AcknowledgeBackfill() call should not return Backfill
+// which was just acknowledged
+func TestAcknowledgeBackfill(t *testing.T) {
+	cfg := viper.New()
+	ctx := context.Background()
+
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+	defer closer()
+
+	fakeBackfill := &pb.Backfill{
+		Id: "1",
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"test-arg": 1,
+			},
+		},
+	}
+	err := store.CreateBackfill(ctx, fakeBackfill, []string{})
+	require.NoError(t, err)
+	fs := frontendService{cfg, store}
+
+	// Use wrong BackfillID, error is returned
+	bf, err := fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: "42", Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	require.Error(t, err)
+	require.Nil(t, bf)
+	require.Equal(t, "Backfill id: 42 not found", status.Convert(err).Message())
+
+	time.Sleep(cfg.GetDuration("pendingReleaseTimeout"))
+	ids, err := store.GetExpiredBackfillIDs(ctx)
+	require.NoError(t, err)
+	require.Len(t, ids, 1)
+
+	bf, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	require.NoError(t, err)
+	require.NotNil(t, bf)
+
+	ids, err = store.GetExpiredBackfillIDs(ctx)
+	require.NoError(t, err)
+	require.Len(t, ids, 0)
+
+	// Test that we can run two consecutive AcknowledgeBackfill requests with no Error
+	// and with the same results
+	bf, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	require.NoError(t, err)
+	require.NotNil(t, bf)
+
+	ids, err = store.GetExpiredBackfillIDs(ctx)
+	require.NoError(t, err)
+	require.Len(t, ids, 0)
 }
 
 func TestDoDeleteTicket(t *testing.T) {

@@ -32,7 +32,6 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-// TestCreateGetBackfill Create and Get Backfill test
 func TestCreateGetBackfill(t *testing.T) {
 	om := newOM(t)
 	ctx := context.Background()
@@ -131,6 +130,145 @@ func TestBackfillFrontendLifecycle(t *testing.T) {
 	get, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: createdBf.Id})
 	require.Error(t, err, fmt.Sprintf("Backfill id: %s not found", bf.Id))
 	require.Nil(t, get)
+}
+
+// TestAcknowledgeBackfill checks that tickets got assigned
+// to the same Connection as it is provided in AcknowledgeBackfill request
+func TestAcknowledgeBackfill(t *testing.T) {
+	om := newOM(t)
+	ctx := context.Background()
+
+	bf := &pb.Backfill{SearchFields: &pb.SearchFields{
+		StringArgs: map[string]string{
+			"search": "me",
+		},
+	},
+	}
+	createdBf, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: bf})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), createdBf.Generation)
+
+	ticketIDs := createMatchWithBackfill(ctx, om, createdBf, t)
+
+	conn := "127.0.0.1:4242"
+	getBF, err := om.Frontend().AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: createdBf.Id, Assignment: &pb.Assignment{Connection: conn, Extensions: map[string]*any.Any{
+		"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+			Score: 10,
+		}),
+	}}})
+	require.NotNil(t, getBF)
+	require.NoError(t, err)
+
+	for _, v := range ticketIDs {
+		ticket, err := om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: v})
+		require.NoError(t, err)
+		require.NotNil(t, ticket.Assignment)
+		require.Equal(t, conn, ticket.Assignment.Connection)
+	}
+}
+
+// TestAcknowledgeBackfillDeletedTicket checks that ticket deletion
+// does not block other tickets in backfill from being assigned
+func TestAcknowledgeBackfillDeletedTicket(t *testing.T) {
+	om := newOM(t)
+	ctx := context.Background()
+
+	bf := &pb.Backfill{SearchFields: &pb.SearchFields{
+		StringArgs: map[string]string{
+			"search": "me",
+		},
+	},
+	}
+	createdBf, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: bf})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), createdBf.Generation)
+
+	ticketIDs := createMatchWithBackfill(ctx, om, createdBf, t)
+
+	// Delete 1st ticket
+	om.Frontend().DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: ticketIDs[0]})
+	conn := "127.0.0.1:4242"
+	getBF, err := om.Frontend().AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: createdBf.Id, Assignment: &pb.Assignment{Connection: conn, Extensions: map[string]*any.Any{
+		"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+			Score: 10,
+		}),
+	}}})
+	require.NotNil(t, getBF)
+	require.NoError(t, err)
+
+	// Check that an error on 1st ticket assignment does not change 2nd ticket assignment
+	ticket, err := om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: ticketIDs[1]})
+	require.NoError(t, err)
+	require.NotNil(t, ticket.Assignment)
+	require.Equal(t, conn, ticket.Assignment.Connection)
+}
+
+func createMatchWithBackfill(ctx context.Context, om *om, b *pb.Backfill, t *testing.T) []string {
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{
+		Ticket: &pb.Ticket{
+			SearchFields: &pb.SearchFields{
+				StringArgs: map[string]string{
+					"field": "value",
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+	t2, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{
+		Ticket: &pb.Ticket{
+			SearchFields: &pb.SearchFields{
+				StringArgs: map[string]string{
+					"field": "value",
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	m := &pb.Match{
+		MatchId:  "1",
+		Tickets:  []*pb.Ticket{t1, t2},
+		Backfill: b,
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- m
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		p, ok := <-in
+		require.True(t, ok)
+
+		out <- p.MatchId
+		return nil
+	})
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.NoError(t, err)
+
+	resp, err := stream.Recv()
+	require.NoError(t, err)
+	bfID := resp.Match.Backfill.Id
+
+	resp, err = stream.Recv()
+	require.Nil(t, resp)
+	require.Equal(t, io.EOF, err)
+
+	actual, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: bfID})
+	require.NoError(t, err)
+	require.NotNil(t, actual)
+
+	// Backfill Generation should be autoincremented if updated after MMF run
+	// default Generation is 1 if not set (on Create)
+	b.Generation++
+	b.Id = actual.Id
+	b.CreateTime = actual.CreateTime
+	require.True(t, proto.Equal(b, actual))
+	return []string{t1.Id, t2.Id}
 }
 
 func TestProposedBackfillCreate(t *testing.T) {
