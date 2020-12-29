@@ -292,7 +292,7 @@ Registration:
 	<-closedOnCycleEnd
 	stats.Record(ctx, iterationLatency.M(float64(time.Since(cst)/time.Millisecond)))
 
-	err := s.store.CleanupBackfills(ctx)
+	err := s.store.CleanupBackfills(context.Background())
 	if err != nil {
 		logger.Errorf("Failed to clean up backfills, %s", err.Error())
 	}
