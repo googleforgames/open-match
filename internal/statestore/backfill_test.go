@@ -337,9 +337,9 @@ func TestDeleteBackfill(t *testing.T) {
 
 }
 
-// TestAcknowledgeBackfillLifecycle test statestore functions - AcknowledgeBackfill, GetExpiredBackfillIDs
+// TestUpdateAcknowledgmentTimestampLifecycle test statestore functions - UpdateAcknowledgmentTimestamp, GetExpiredBackfillIDs
 // and deleteExpiredBackfillID
-func TestAcknowledgeBackfillLifecycle(t *testing.T) {
+func TestUpdateAcknowledgmentTimestampLifecycle(t *testing.T) {
 	cfg, closer := createRedis(t, false, "")
 	defer closer()
 
@@ -377,9 +377,9 @@ func TestAcknowledgeBackfillLifecycle(t *testing.T) {
 	require.Contains(t, bfIDs, bf1)
 	require.Contains(t, bfIDs, bf2)
 
-	err = service.AcknowledgeBackfill(ctx, bf1)
+	err = service.UpdateAcknowledgmentTimestamp(ctx, bf1)
 	require.NoError(t, err)
-	err = service.AcknowledgeBackfill(ctx, bf2)
+	err = service.UpdateAcknowledgmentTimestamp(ctx, bf2)
 	require.NoError(t, err)
 
 	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
@@ -396,7 +396,7 @@ func TestAcknowledgeBackfillLifecycle(t *testing.T) {
 	require.Contains(t, bfIDs, bf2)
 
 	// Acknowledge one Backfill it should be removed from GetExpired output
-	err = service.AcknowledgeBackfill(ctx, bf2)
+	err = service.UpdateAcknowledgmentTimestamp(ctx, bf2)
 	require.NoError(t, err)
 	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
 	require.Len(t, bfIDs, 1)
@@ -411,7 +411,7 @@ func TestAcknowledgeBackfillLifecycle(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestAcknowledgeBackfill(t *testing.T) {
+func TestUpdateAcknowledgmentTimestampt(t *testing.T) {
 	cfg, closer := createRedis(t, false, "")
 	defer closer()
 
@@ -422,7 +422,7 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	ctx := utilTesting.NewContext(t)
 	bf1 := "mockBackfillID"
 
-	err := service.AcknowledgeBackfill(ctx, bf1)
+	err := service.UpdateAcknowledgmentTimestamp(ctx, bf1)
 	require.NoError(t, err)
 
 	// Check that Acknowledge timestamp stored valid in Redis
@@ -433,10 +433,10 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	// Create a time.Time from Unix nanoseconds and make sure, that time difference
 	// is less than one second
 	t2 := time.Unix(res/1e9, res%1e9)
-	require.True(t, t2.After(startTime), "AcknowledgeBackfill should update time to a more recent one")
+	require.True(t, t2.After(startTime), "UpdateAcknowledgmentTimestamptTimestamp should update time to a more recent one")
 }
 
-func TestAcknowledgeBackfillConnectionError(t *testing.T) {
+func TestUpdateAcknowledgmentTimestampConnectionError(t *testing.T) {
 	cfg, closer := createRedis(t, false, "")
 	defer closer()
 	service := New(cfg)
@@ -447,7 +447,7 @@ func TestAcknowledgeBackfillConnectionError(t *testing.T) {
 	cfg = createInvalidRedisConfig()
 	service = New(cfg)
 	require.NotNil(t, service)
-	err := service.AcknowledgeBackfill(ctx, bf1)
+	err := service.UpdateAcknowledgmentTimestamp(ctx, bf1)
 	require.Error(t, err, "failed to connect to redis:")
 }
 

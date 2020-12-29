@@ -356,7 +356,63 @@ func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignme
 // AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info.
 // This triggers an assignment process.
 func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.AcknowledgeBackfillRequest) (*pb.Backfill, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	if req.GetBackfillId() == "" {
+		return nil, status.Errorf(codes.InvalidArgument, ".BackfillId is required")
+	}
+	if req.GetAssignment() == nil {
+		return nil, status.Errorf(codes.InvalidArgument, ".Assignment is required")
+	}
+
+	m := s.store.NewMutex(req.GetBackfillId())
+
+	err := m.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if _, err = m.Unlock(ctx); err != nil {
+			logger.WithError(err).Error("error on mutex unlock")
+		}
+	}()
+
+	bf, associatedTickets, err := s.store.GetBackfill(ctx, req.GetBackfillId())
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.store.UpdateAcknowledgmentTimestamp(ctx, req.GetBackfillId())
+	if err != nil {
+		return nil, err
+	}
+
+	if len(associatedTickets) != 0 {
+		resp, _, err := s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
+			Assignments: []*pb.AssignmentGroup{{TicketIds: associatedTickets, Assignment: req.GetAssignment()}},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// log errors returned from UpdateAssignments to track tickets with NotFound errors
+		for _, f := range resp.Failures {
+			logger.Errorf("failed to assign ticket %s, cause %d", f.TicketId, f.Cause)
+		}
+		for _, id := range associatedTickets {
+			err = s.store.DeindexTicket(ctx, id)
+			// Try to deindex all input tickets. Log without returning an error if the deindexing operation failed.
+			if err != nil {
+				logger.WithError(err).Errorf("failed to deindex ticket %s after updating the assignments", id)
+			}
+		}
+
+		// Remove all tickets associated with backfill, because unassigned tickets are not found only
+		err = s.store.UpdateBackfill(ctx, bf, []string{})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return bf, nil
 }
 
 // GetBackfill fetches a Backfill object by its ID.
