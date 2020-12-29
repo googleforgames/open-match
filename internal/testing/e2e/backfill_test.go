@@ -534,7 +534,7 @@ func TestBackfillGenerationMismatch(t *testing.T) {
 	}
 }
 
-func TestCleanUpBackfills(t *testing.T) {
+func TestCleanUpExpiredBackfills(t *testing.T) {
 	ctx := context.Background()
 	om := newOM(t)
 
@@ -583,11 +583,12 @@ func TestCleanUpBackfills(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = stream.Recv()
+	// trigger sync cycle
+	stream.Recv()
+
+	_, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
 	require.Error(t, err)
-	e, ok := status.FromError(err)
-	require.True(t, ok)
-	require.Contains(t, e.Message(), "error(s) in FetchMatches call. syncErr=[failed to handle match backfill: 1: rpc error: code = NotFound desc = Backfill id:")
+	require.Equal(t, fmt.Sprintf("rpc error: code = NotFound desc = Backfill id: %s not found", b1.Id), err.Error())
 }
 
 func mustAny(m proto.Message) *any.Any {
