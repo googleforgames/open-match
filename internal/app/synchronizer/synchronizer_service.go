@@ -289,13 +289,14 @@ Registration:
 			r.cancelMmfs <- struct{}{}
 		}
 	})
-	<-closedOnCycleEnd
-	stats.Record(ctx, iterationLatency.M(float64(time.Since(cst)/time.Millisecond)))
 
 	err := s.store.CleanupBackfills(context.Background())
 	if err != nil {
 		logger.Errorf("Failed to clean up backfills, %s", err.Error())
 	}
+
+	<-closedOnCycleEnd
+	stats.Record(ctx, iterationLatency.M(float64(time.Since(cst)/time.Millisecond)))
 
 	// Clean up in case it was never needed.
 	cancelProposalCollection.Stop()
