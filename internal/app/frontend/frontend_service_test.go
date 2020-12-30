@@ -184,7 +184,10 @@ func TestUpdateBackfill(t *testing.T) {
 			SearchFields: &pb.SearchFields{
 				StringArgs: map[string]string{
 					"search": "me",
-				}}}})
+				},
+			},
+		},
+	})
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
