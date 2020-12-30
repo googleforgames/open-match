@@ -25,6 +25,10 @@ metadata:
     release: {{ .Release.Name }}
 data:
   matchmaker_config_default.yaml: |-
+    redis:
+      # Duration for redis locks to expire.
+      mutexTimeout: 5m
+
     logging:
       level: debug
       {{- if .Values.global.telemetry.stackdriverMetrics.enabled }}
