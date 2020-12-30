@@ -90,7 +90,7 @@ type Service interface {
 	// This method succeeds if the Backfill does not exist.
 	DeleteBackfill(ctx context.Context, id string) error
 
-	// DeleteBackfillCompletely using goroutine performs a set of operations to remove backfill and all related entities.
+	// DeleteBackfillCompletely performs a set of operations to remove backfill and all related entities.
 	DeleteBackfillCompletely(ctx context.Context, id string) error
 
 	// UpdateBackfill updates an existing Backfill with a new data. ticketIDs can be nil.

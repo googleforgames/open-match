@@ -574,7 +574,7 @@ func TestCleanUpExpiredBackfills(t *testing.T) {
 	})
 
 	// wait until backfill is expired, then try to get it
-	time.Sleep(pendingReleaseTimeout * 3)
+	time.Sleep(pendingReleaseTimeout * 2)
 
 	// statestore.CleanupBackfills is called at the end of each syncronizer cycle after fetch matches call, so expired backfill will be removed
 	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
@@ -583,8 +583,10 @@ func TestCleanUpExpiredBackfills(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// trigger sync cycle
-	stream.Recv()
+	_, err = stream.Recv()
+	e, ok := status.FromError(err)
+	require.True(t, ok)
+	require.Contains(t, e.Message(), "error(s) in FetchMatches call. syncErr=[failed to handle match backfill: 1: rpc error: code = NotFound desc = Backfill id:")
 
 	_, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
 	require.Error(t, err)

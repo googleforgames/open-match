@@ -212,6 +212,11 @@ func (s *synchronizerService) runCycle() {
 	/////////////////////////////////////// Initialize cycle
 	ctx, cancel := contextcause.WithCancelCause(context.Background())
 
+	err := s.store.CleanupBackfills(ctx)
+	if err != nil {
+		logger.Errorf("Failed to clean up backfills, %s", err.Error())
+	}
+
 	m2c := make(chan mAndM6c)
 	m3c := make(chan *pb.Match)
 	m4c := make(chan *pb.Match)
@@ -289,11 +294,6 @@ Registration:
 			r.cancelMmfs <- struct{}{}
 		}
 	})
-
-	err := s.store.CleanupBackfills(context.Background())
-	if err != nil {
-		logger.Errorf("Failed to clean up backfills, %s", err.Error())
-	}
 
 	<-closedOnCycleEnd
 	stats.Record(ctx, iterationLatency.M(float64(time.Since(cst)/time.Millisecond)))
