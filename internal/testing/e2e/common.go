@@ -174,9 +174,6 @@ pendingReleaseTimeout: 1s
 assignedDeleteTimeout: 200ms
 queryPageSize: 10
 
-redis:
-  mutexTimeout: 5m
-
 logging:
   level: debug
   format: text
@@ -221,6 +218,7 @@ api:
     httpport: "51509"
 
 redis:
+  mutexTimeout: "5m"
   sentinelPort: 26379
   sentinelMaster: om-redis-master
   sentinelHostname: open-match-redis
