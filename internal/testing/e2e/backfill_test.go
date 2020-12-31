@@ -81,8 +81,8 @@ func TestBackfillFrontendLifecycle(t *testing.T) {
 		StringArgs: map[string]string{
 			"search": "me",
 		},
-	},
-	}
+	}}
+
 	createdBf, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: bf})
 	require.NoError(t, err)
 	require.Equal(t, int64(1), createdBf.Generation)
@@ -141,8 +141,7 @@ func TestAcknowledgeBackfill(t *testing.T) {
 		StringArgs: map[string]string{
 			"search": "me",
 		},
-	},
-	}
+	}}
 	createdBf, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: bf})
 	require.NoError(t, err)
 	require.Equal(t, int64(1), createdBf.Generation)

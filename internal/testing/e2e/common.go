@@ -174,6 +174,9 @@ pendingReleaseTimeout: 1s
 assignedDeleteTimeout: 200ms
 queryPageSize: 10
 
+redis:
+  mutexTimeout: 5m
+
 logging:
   level: debug
   format: text
