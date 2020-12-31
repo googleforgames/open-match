@@ -173,11 +173,10 @@ open-match-core:
   assignedDeleteTimeout: 10m
   # Maximum number of tickets to return on a single QueryTicketsResponse.
   queryPageSize: 10000
-  # Duration for redis locks to expire.
-  mutexTimeout: 5m
-
 
   redis:
+    # Duration for redis locks to expire.
+    mutexTimeout: 5m
     enabled: true
     # If open-match-core.redis.enabled is set to false, have Open Match components talk to this redis address instead.
     # Otherwise the default is set to the om-redis instance.
