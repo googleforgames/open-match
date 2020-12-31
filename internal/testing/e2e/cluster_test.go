@@ -20,9 +20,8 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"testing"
-
 	"strings"
+	"testing"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
