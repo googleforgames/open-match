@@ -173,6 +173,8 @@ open-match-core:
   assignedDeleteTimeout: 10m
   # Maximum number of tickets to return on a single QueryTicketsResponse.
   queryPageSize: 10000
+  # backfillTimeToLive should always be less than pendingReleaseTimeout.
+  backfillTimeToLive: 800ms
 
   redis:
     # Duration for redis locks to expire.
@@ -188,6 +190,7 @@ open-match-core:
       maxActive: 0
       idleTimeout: 0
       healthCheckTimeout: 300ms
+
   swaggerui:
     enabled: true
 
