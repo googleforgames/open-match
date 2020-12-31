@@ -331,7 +331,5 @@ func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]int
 }
 
 func getBackfillReleaseTimeout(cfg config.View) time.Duration {
-	// Use a fraction 80% of pendingRelease Tickets TTL
-	ttl := cfg.GetDuration("pendingReleaseTimeout") / 5 * 4
-	return ttl
+	return cfg.GetDuration("backfillTimeToLive")
 }
