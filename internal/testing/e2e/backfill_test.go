@@ -149,11 +149,17 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	ticketIDs := createMatchWithBackfill(ctx, om, createdBf, t)
 
 	conn := "127.0.0.1:4242"
-	getBF, err := om.Frontend().AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: createdBf.Id, Assignment: &pb.Assignment{Connection: conn, Extensions: map[string]*any.Any{
-		"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
-			Score: 10,
-		}),
-	}}})
+	getBF, err := om.Frontend().AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{
+		BackfillId: createdBf.Id,
+		Assignment: &pb.Assignment{
+			Connection: conn,
+			Extensions: map[string]*any.Any{
+				"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
+					Score: 10,
+				}),
+			},
+		},
+	})
 	require.NotNil(t, getBF)
 	require.NoError(t, err)
 
