@@ -173,6 +173,9 @@ open-match-core:
   assignedDeleteTimeout: 10m
   # Maximum number of tickets to return on a single QueryTicketsResponse.
   queryPageSize: 10000
+  # Duration for redis locks to expire.
+  mutexTimeout: 5m
+
 
   redis:
     enabled: true

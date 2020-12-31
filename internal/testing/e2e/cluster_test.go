@@ -22,6 +22,8 @@ import (
 	"os"
 	"testing"
 
+	"strings"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -33,7 +35,6 @@ import (
 	"open-match.dev/open-match/internal/config"
 	mmfService "open-match.dev/open-match/internal/testing/mmf"
 	"open-match.dev/open-match/pkg/pb"
-	"strings"
 )
 
 func TestServiceHealth(t *testing.T) {
