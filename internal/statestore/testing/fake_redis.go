@@ -47,6 +47,7 @@ func New(t *testing.T, cfg config.Mutable) func() {
 	cfg.Set("redis.pool.healthCheckTimeout", PoolHealthCheckTimeout)
 	cfg.Set("redis.mutexTimeout", "5m")
 	cfg.Set("pendingReleaseTimeout", pendingReleaseTimeout)
+	cfg.Set("backfillTimeToLive", backfillTimeToLive)
 	cfg.Set("assignedDeleteTimeout", assignedDeleteTimeout)
 	cfg.Set("backoff.initialInterval", InitialInterval)
 	cfg.Set("backoff.randFactor", RandFactor)

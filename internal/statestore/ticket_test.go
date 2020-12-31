@@ -903,6 +903,7 @@ func createRedis(t *testing.T, withSentinel bool, withPassword string) (config.V
 	cfg.Set("redis.pool.maxActive", 5)
 	cfg.Set("redis.mutexTimeout", "5m")
 	cfg.Set("pendingReleaseTimeout", "200ms")
+	cfg.Set("backfillTimeToLive", "800ms")
 	cfg.Set("backoff.initialInterval", 100*time.Millisecond)
 	cfg.Set("backoff.randFactor", 0.5)
 	cfg.Set("backoff.multiplier", 0.5)
