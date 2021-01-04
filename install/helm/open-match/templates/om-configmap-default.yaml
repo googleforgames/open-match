@@ -104,7 +104,6 @@ data:
       port: {{ index .Values "open-match-core" "redis" "port" }}
       user: {{ index .Values "open-match-core" "redis" "user" }}
 {{- end }}
-      mutexTimeout: {{ index .Values "open-match-core" "redis" "mutexTimeout" }}
       usePassword: {{ .Values.redis.usePassword }}
       passwordPath: {{ .Values.redis.secretMountPath }}/redis-password
       pool:

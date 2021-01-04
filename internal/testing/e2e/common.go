@@ -173,6 +173,7 @@ proposalCollectionInterval: 200ms
 pendingReleaseTimeout: 1s
 assignedDeleteTimeout: 200ms
 queryPageSize: 10
+backfillLockTimeout: 1m
 
 logging:
   level: debug
@@ -218,7 +219,6 @@ api:
     httpport: "51509"
 
 redis:
-  mutexTimeout: "1m"
   sentinelPort: 26379
   sentinelMaster: om-redis-master
   sentinelHostname: open-match-redis
