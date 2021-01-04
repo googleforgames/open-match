@@ -218,7 +218,7 @@ api:
     httpport: "51509"
 
 redis:
-  mutexTimeout: "5m"
+  mutexTimeout: "1m"
   sentinelPort: 26379
   sentinelMaster: om-redis-master
   sentinelHostname: open-match-redis
