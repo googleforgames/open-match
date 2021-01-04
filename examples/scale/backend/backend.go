@@ -24,6 +24,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
+	"open-match.dev/open-match/examples/scale/metrics"
 	"open-match.dev/open-match/examples/scale/scenarios"
 	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/config"
@@ -39,17 +40,6 @@ var (
 	})
 
 	activeScenario = scenarios.ActiveScenario
-
-	mIterations          = telemetry.Counter("scale_backend_iterations", "fetch match iterations")
-	mFetchMatchCalls     = telemetry.Counter("scale_backend_fetch_match_calls", "fetch match calls")
-	mFetchMatchSuccesses = telemetry.Counter("scale_backend_fetch_match_successes", "fetch match successes")
-	mFetchMatchErrors    = telemetry.Counter("scale_backend_fetch_match_errors", "fetch match errors")
-	mMatchesReturned     = telemetry.Counter("scale_backend_matches_returned", "matches returned")
-	mSumTicketsReturned  = telemetry.Counter("scale_backend_sum_tickets_returned", "tickets in matches returned")
-	mMatchesAssigned     = telemetry.Counter("scale_backend_matches_assigned", "matches assigned")
-	mMatchAssignsFailed  = telemetry.Counter("scale_backend_match_assigns_failed", "match assigns failed")
-	mTicketsDeleted      = telemetry.Counter("scale_backend_tickets_deleted", "tickets deleted")
-	mTicketDeletesFailed = telemetry.Counter("scale_backend_ticket_deletes_failed", "ticket deletes failed")
 )
 
 // Run triggers execution of functions that continuously fetch, assign and
@@ -62,7 +52,7 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 func run(cfg config.View) {
 	beConn, err := rpc.GRPCClientFromConfig(cfg, "api.backend")
 	if err != nil {
-		logger.Fatalf("failed to connect to Open Match Backend, got %v", err)
+		logger.WithError(err).Fatal("failed to connect to Open Match Backend")
 	}
 
 	defer beConn.Close()
@@ -70,12 +60,24 @@ func run(cfg config.View) {
 
 	feConn, err := rpc.GRPCClientFromConfig(cfg, "api.frontend")
 	if err != nil {
-		logger.Fatalf("failed to connect to Open Match Frontend, got %v", err)
+		logger.WithError(err).Fatal("failed to connect to Open Match Frontend")
 	}
 
 	defer feConn.Close()
-	fe := pb.NewFrontendServiceClient(feConn)
 
+	fe := pb.NewFrontendServiceClient(feConn)
+	backend := activeScenario.Backend()
+	if backend == nil {
+		backend = defaultBackend
+	}
+
+	err = backend(be, fe, logger)
+	if err != nil {
+		logger.WithError(err).Fatal("failed to run Open Match Backend")
+	}
+}
+
+func defaultBackend(be pb.BackendServiceClient, fe pb.FrontendServiceClient, logger *logrus.Entry) error {
 	w := logger.Writer()
 	defer w.Close()
 
@@ -104,8 +106,10 @@ func run(cfg config.View) {
 
 		// Wait for all profiles to complete before proceeding.
 		wg.Wait()
-		telemetry.RecordUnitMeasurement(context.Background(), mIterations)
+		telemetry.RecordUnitMeasurement(context.Background(), metrics.Iterations)
 	}
+
+	return nil
 }
 
 func runFetchMatches(be pb.BackendServiceClient, p *pb.MatchProfile, matchesForAssignment chan<- *pb.Match) {
@@ -114,17 +118,17 @@ func runFetchMatches(be pb.BackendServiceClient, p *pb.MatchProfile, matchesForA
 
 	req := &pb.FetchMatchesRequest{
 		Config: &pb.FunctionConfig{
-			Host: "om-function",
+			Host: "open-match-function",
 			Port: 50502,
 			Type: pb.FunctionConfig_GRPC,
 		},
 		Profile: p,
 	}
 
-	telemetry.RecordUnitMeasurement(ctx, mFetchMatchCalls)
+	telemetry.RecordUnitMeasurement(ctx, metrics.FetchMatchCalls)
 	stream, err := be.FetchMatches(ctx, req)
 	if err != nil {
-		telemetry.RecordUnitMeasurement(ctx, mFetchMatchErrors)
+		telemetry.RecordUnitMeasurement(ctx, metrics.FetchMatchErrors)
 		logger.WithError(err).Error("failed to get available stream client")
 		return
 	}
@@ -133,18 +137,18 @@ func runFetchMatches(be pb.BackendServiceClient, p *pb.MatchProfile, matchesForA
 		// Pull the Match
 		resp, err := stream.Recv()
 		if err == io.EOF {
-			telemetry.RecordUnitMeasurement(ctx, mFetchMatchSuccesses)
+			telemetry.RecordUnitMeasurement(ctx, metrics.FetchMatchSuccesses)
 			return
 		}
 
 		if err != nil {
-			telemetry.RecordUnitMeasurement(ctx, mFetchMatchErrors)
+			telemetry.RecordUnitMeasurement(ctx, metrics.FetchMatchErrors)
 			logger.WithError(err).Error("failed to get matches from stream client")
 			return
 		}
 
-		telemetry.RecordNUnitMeasurement(ctx, mSumTicketsReturned, int64(len(resp.GetMatch().Tickets)))
-		telemetry.RecordUnitMeasurement(ctx, mMatchesReturned)
+		telemetry.RecordNUnitMeasurement(ctx, metrics.SumTicketsReturned, int64(len(resp.GetMatch().Tickets)))
+		telemetry.RecordUnitMeasurement(ctx, metrics.MatchesReturned)
 
 		matchesForAssignment <- resp.GetMatch()
 	}
@@ -171,12 +175,12 @@ func runAssignments(be pb.BackendServiceClient, matchesForAssignment <-chan *pb.
 				},
 			})
 			if err != nil {
-				telemetry.RecordUnitMeasurement(ctx, mMatchAssignsFailed)
+				telemetry.RecordUnitMeasurement(ctx, metrics.MatchAssignsFailed)
 				logger.WithError(err).Error("failed to assign tickets")
 				continue
 			}
 
-			telemetry.RecordUnitMeasurement(ctx, mMatchesAssigned)
+			telemetry.RecordUnitMeasurement(ctx, metrics.MatchesAssigned)
 		}
 
 		for _, id := range ids {
@@ -197,9 +201,9 @@ func runDeletions(fe pb.FrontendServiceClient, ticketsForDeletion <-chan string)
 			_, err := fe.DeleteTicket(context.Background(), req)
 
 			if err == nil {
-				telemetry.RecordUnitMeasurement(ctx, mTicketsDeleted)
+				telemetry.RecordUnitMeasurement(ctx, metrics.TicketsDeleted)
 			} else {
-				telemetry.RecordUnitMeasurement(ctx, mTicketDeletesFailed)
+				telemetry.RecordUnitMeasurement(ctx, metrics.TicketDeletesFailed)
 				logger.WithError(err).Error("failed to delete tickets")
 			}
 		}

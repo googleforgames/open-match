@@ -35,6 +35,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -154,9 +155,13 @@ func (t *TeamShooterScenario) Ticket() *pb.Ticket {
 	}
 }
 
+func (t *TeamShooterScenario) Backfill() *pb.Backfill {
+	return nil
+}
+
 // MatchFunction puts tickets into matches based on their skill, finding the
 // required number of tickets for a game within the maximum skill difference.
-func (t *TeamShooterScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
+func (t *TeamShooterScenario) MatchFunction(p *pb.MatchProfile, poolBackfills map[string][]*pb.Backfill, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
 	skill := func(t *pb.Ticket) float64 {
 		return t.SearchFields.DoubleArgs[skillArg]
 	}
@@ -247,6 +252,14 @@ outer:
 		}
 	}
 
+	return nil
+}
+
+func (b *TeamShooterScenario) Backend() func(pb.BackendServiceClient, pb.FrontendServiceClient, *logrus.Entry) error {
+	return nil
+}
+
+func (b *TeamShooterScenario) Frontend() func(pb.FrontendServiceClient, *logrus.Entry) error {
 	return nil
 }
 

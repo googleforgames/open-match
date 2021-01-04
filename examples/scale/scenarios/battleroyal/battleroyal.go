@@ -20,6 +20,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -78,7 +79,11 @@ func (b *BattleRoyalScenario) Ticket() *pb.Ticket {
 	}
 }
 
-func (b *BattleRoyalScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
+func (b *BattleRoyalScenario) Backfill() *pb.Backfill {
+	return nil
+}
+
+func (b *BattleRoyalScenario) MatchFunction(p *pb.MatchProfile, poolBackfills map[string][]*pb.Backfill, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
 	const playersInMatch = 100
 
 	tickets := poolTickets[poolName]
@@ -137,5 +142,13 @@ outer:
 		}
 	}
 
+	return nil
+}
+
+func (b *BattleRoyalScenario) Backend() func(pb.BackendServiceClient, pb.FrontendServiceClient, *logrus.Entry) error {
+	return nil
+}
+
+func (b *BattleRoyalScenario) Frontend() func(pb.FrontendServiceClient, *logrus.Entry) error {
 	return nil
 }

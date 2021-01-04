@@ -17,12 +17,11 @@ package frontend
 import (
 	"context"
 	"math/rand"
-	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"go.opencensus.io/stats"
 	"go.opencensus.io/trace"
+	"open-match.dev/open-match/examples/scale/metrics"
 	"open-match.dev/open-match/examples/scale/scenarios"
 	"open-match.dev/open-match/internal/appmain"
 	"open-match.dev/open-match/internal/config"
@@ -37,11 +36,6 @@ var (
 		"component": "scale.frontend",
 	})
 	activeScenario = scenarios.ActiveScenario
-
-	mTicketsCreated        = telemetry.Counter("scale_frontend_tickets_created", "tickets created")
-	mTicketCreationsFailed = telemetry.Counter("scale_frontend_ticket_creations_failed", "tickets created")
-	mRunnersWaiting        = concurrentGauge(telemetry.Gauge("scale_frontend_runners_waiting", "runners waiting"))
-	mRunnersCreating       = concurrentGauge(telemetry.Gauge("scale_frontend_runners_creating", "runners creating"))
 )
 
 // Run triggers execution of the scale frontend component that creates
@@ -55,15 +49,24 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 func run(cfg config.View) {
 	conn, err := rpc.GRPCClientFromConfig(cfg, "api.frontend")
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Fatal("failed to get Frontend connection")
+		logger.WithError(err).Fatal("failed to get Open Match Frontend connection")
 	}
-	fe := pb.NewFrontendServiceClient(conn)
 
+	fe := pb.NewFrontendServiceClient(conn)
+	frontend := activeScenario.Frontend()
+	if frontend == nil {
+		frontend = defaultFrontend
+	}
+
+	err = frontend(fe, logger)
+	if err != nil {
+		logger.WithError(err).Fatal("failed to run Open Match frontend")
+	}
+}
+
+func defaultFrontend(fe pb.FrontendServiceClient, logger *logrus.Entry) error {
 	ticketQPS := int(activeScenario.FrontendTicketCreatedQPS)
 	ticketTotal := activeScenario.FrontendTotalTicketsToCreate
-
 	totalCreated := 0
 
 	for range time.Tick(time.Second) {
@@ -73,22 +76,24 @@ func run(cfg config.View) {
 			}
 		}
 	}
+
+	return nil
 }
 
 func runner(fe pb.FrontendServiceClient) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	g := stateGauge{}
-	defer g.stop()
+	g := metrics.StateGauge{}
+	defer g.Stop()
 
-	g.start(mRunnersWaiting)
+	g.Start(metrics.RunnersWaiting)
 	// A random sleep at the start of the worker evens calls out over the second
 	// period, and makes timing between ticket creation calls a more realistic
 	// poisson distribution.
 	time.Sleep(time.Duration(rand.Int63n(int64(time.Second))))
 
-	g.start(mRunnersCreating)
+	g.Start(metrics.RunnersCreating)
 	id, err := createTicket(ctx, fe)
 	if err != nil {
 		logger.WithError(err).Error("failed to create a ticket")
@@ -108,45 +113,10 @@ func createTicket(ctx context.Context, fe pb.FrontendServiceClient) (string, err
 
 	resp, err := fe.CreateTicket(ctx, req)
 	if err != nil {
-		telemetry.RecordUnitMeasurement(ctx, mTicketCreationsFailed)
+		telemetry.RecordUnitMeasurement(ctx, metrics.TicketCreationsFailed)
 		return "", err
 	}
 
-	telemetry.RecordUnitMeasurement(ctx, mTicketsCreated)
+	telemetry.RecordUnitMeasurement(ctx, metrics.TicketsCreated)
 	return resp.Id, nil
-}
-
-// Allows concurrent moficiation of a gauge value by modifying the concurrent
-// value with a delta.
-func concurrentGauge(s *stats.Int64Measure) func(delta int64) {
-	m := sync.Mutex{}
-	v := int64(0)
-	return func(delta int64) {
-		m.Lock()
-		defer m.Unlock()
-
-		v += delta
-		telemetry.SetGauge(context.Background(), s, v)
-	}
-}
-
-// stateGauge will have a single value be applied to one gauge at a time.
-type stateGauge struct {
-	f func(int64)
-}
-
-// start begins a stage measured in a gauge, stopping any previously started
-// stage.
-func (g *stateGauge) start(f func(int64)) {
-	g.stop()
-	g.f = f
-	f(1)
-}
-
-// stop finishes the current stage by decrementing the gauge.
-func (g *stateGauge) stop() {
-	if g.f != nil {
-		g.f(-1)
-		g.f = nil
-	}
 }

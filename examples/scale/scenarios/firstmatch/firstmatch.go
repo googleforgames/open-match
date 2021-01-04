@@ -19,6 +19,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -50,7 +51,11 @@ func (_ *FirstMatchScenario) Ticket() *pb.Ticket {
 	return &pb.Ticket{}
 }
 
-func (_ *FirstMatchScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
+func (_ *FirstMatchScenario) Backfill() *pb.Backfill {
+	return nil
+}
+
+func (_ *FirstMatchScenario) MatchFunction(p *pb.MatchProfile, poolBackfills map[string][]*pb.Backfill, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
 	tickets := poolTickets[poolName]
 	var matches []*pb.Match
 
@@ -107,5 +112,13 @@ outer:
 		}
 	}
 
+	return nil
+}
+
+func (b *FirstMatchScenario) Backend() func(pb.BackendServiceClient, pb.FrontendServiceClient, *logrus.Entry) error {
+	return nil
+}
+
+func (b *FirstMatchScenario) Frontend() func(pb.FrontendServiceClient, *logrus.Entry) error {
 	return nil
 }
