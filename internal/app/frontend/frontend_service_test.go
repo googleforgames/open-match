@@ -551,9 +551,7 @@ func TestGetBackfill(t *testing.T) {
 			},
 		},
 	}
-
 	cfg := viper.New()
-
 	tests := []struct {
 		description string
 		preAction   func(context.Context, context.CancelFunc, statestore.Service)
@@ -613,41 +611,38 @@ func TestDoDeleteBackfill(t *testing.T) {
 		},
 	}
 
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+	defer closer()
+	ctx := context.Background()
+
+	err := store.CreateBackfill(ctx, fakeBackfill, []string{})
+	require.NoError(t, err)
+
+	cfg := viper.New()
+	fs := frontendService{cfg, store}
+
 	tests := []struct {
 		description string
-		preAction   func(context.Context, context.CancelFunc, statestore.Service)
+		id          string
 		wantCode    codes.Code
 	}{
 		{
-			description: "expect unknown code since context is canceled before being called",
-			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
-				cancel()
-			},
-			wantCode: codes.Unknown,
-		},
-		{
 			description: "expect ok code since delete backfill does not care about if backfill exists or not",
-			preAction:   func(_ context.Context, _ context.CancelFunc, _ statestore.Service) {},
+			id:          "222",
 			wantCode:    codes.OK,
 		},
 		{
 			description: "expect ok code",
-			preAction: func(ctx context.Context, _ context.CancelFunc, store statestore.Service) {
-				store.CreateBackfill(ctx, fakeBackfill, []string{})
-			},
+			id:          "1",
+			wantCode:    codes.OK,
 		},
 	}
 
 	for _, test := range tests {
 		test := test
 		t.Run(test.description, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
-			defer closer()
-
-			test.preAction(ctx, cancel, store)
-
-			err := doDeleteBackfill(ctx, fakeBackfill.GetId(), store)
+			_, err := fs.DeleteBackfill(ctx, &pb.DeleteBackfillRequest{BackfillId: fakeBackfill.GetId()})
+			require.NoError(t, err)
 			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
 		})
 	}
