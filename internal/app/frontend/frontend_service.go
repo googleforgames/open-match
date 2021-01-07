@@ -213,57 +213,15 @@ func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBack
 	if bfID == "" {
 		return nil, status.Errorf(codes.InvalidArgument, ".BackfillId is required")
 	}
-	err := doDeleteBackfill(ctx, bfID, s.store)
+
+	err := s.store.DeleteBackfillCompletely(ctx, bfID)
+	// Deleting of Backfill is inevitable when it is expired, so we don't worry about error here
 	if err != nil {
-		return nil, err
+		logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("error on DeleteBackfill")
 	}
 	return &empty.Empty{}, nil
-}
-
-func doDeleteBackfill(ctx context.Context, id string, store statestore.Service) error {
-	m := store.NewMutex(id)
-	err := m.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if _, errUnlock := m.Unlock(ctx); errUnlock != nil {
-			logger.WithFields(logrus.Fields{
-				"error": errUnlock.Error(),
-			}).Error("error on mutex unlock")
-		}
-	}()
-
-	_, associatedTickets, err := store.GetBackfill(ctx, id)
-	// Skip NotFound errors if we can not retrieve the Backfill
-	if err != nil {
-		if status.Convert(err).Code() == codes.NotFound {
-			return nil
-		}
-		return err
-	}
-
-	err = store.DeleteTicketsFromPendingRelease(ctx, associatedTickets)
-	if err != nil {
-		return err
-	}
-	err = store.DeleteBackfill(ctx, id)
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-			"id":    id,
-		}).Error("failed to delete the backfill")
-	}
-	err = store.DeindexBackfill(ctx, id)
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-			"id":    id,
-		}).Error("failed to deindex the backfill")
-	}
-
-	// Deleting of Backfill is inevitable when it is expired, so we don't worry about error here
-	return nil
 }
 
 // DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
