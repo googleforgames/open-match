@@ -82,6 +82,7 @@ spec:
         component: evaluator
         release: {{ .Release.Name }}
     spec:
+      {{- include "openmatch.labels.nodegrouping" . | nindent 6 }}
       volumes:
         {{- include "openmatch.volumes.configs" (. | merge (dict "configs" .Values.evaluatorConfigs)) | nindent 8}}
         {{- include "openmatch.volumes.tls" . | nindent 8}}
