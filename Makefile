@@ -660,7 +660,7 @@ delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 gcp-apply-binauthz-policy: build/policies/binauthz.yaml
 	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
 
-## ##############################
+## ####################################
 ## # Protobuf
 ##
 
@@ -699,6 +699,13 @@ api/%.swagger.json: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXT
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
+## ####################################
+## # Utilities
+##
+
+## # Build API reference in markdown. Needs open-match-docs repo at the same level as this one.
+## make api/api.md
+##
 api/api.md: third_party/ build/toolchain/bin/protoc-gen-doc$(EXE_EXTENSION)
 	$(PROTOC) api/*.proto \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
@@ -738,6 +745,10 @@ define fast_test_folder
     )
 	$(foreach dir, $(wildcard $(1)/*/.), $(call fast_test_folder, $(dir)))
 endef
+
+## ####################################
+## # Go tasks
+##
 
 ## # Run go tests
 ## make test
