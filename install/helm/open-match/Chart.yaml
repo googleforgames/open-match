@@ -18,7 +18,7 @@ version: 0.0.0-dev
 name: open-match
 dependencies:
   - name: redis
-    version: 12.2.1
+    version: 12.3.3
     repository: https://charts.bitnami.com/bitnami
     condition: open-match-core.redis.enabled
   - name: open-match-telemetry
