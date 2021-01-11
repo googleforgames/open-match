@@ -84,7 +84,7 @@ message WatchAssignmentsResponse {
 // BETA FEATURE WARNING: This Request message is not finalized and still subject
 // to possible change or removal.
 message AcknowledgeBackfillRequest {
-  // A Backfill ID to acknoledge.
+  // An existing ID of Backfill to acknowledge.
   string backfill_id = 1;
 
   // An updated Assignment of the requested Backfill.
@@ -101,14 +101,14 @@ message CreateBackfillRequest {
 // BETA FEATURE WARNING: This Request message is not finalized and still subject
 // to possible change or removal.
 message DeleteBackfillRequest {
-  // An existing Backfill ID.
+  // An existing ID of Backfill to delete.
   string backfill_id = 1;
 }
 
 // BETA FEATURE WARNING: This Request message is not finalized and still subject
 // to possible change or removal.
 message GetBackfillRequest {
-  // An existing Backfill ID.
+  // An existing ID of Backfill to retrieve.
   string backfill_id = 1;
 }
 
