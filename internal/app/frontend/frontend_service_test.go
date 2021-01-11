@@ -82,7 +82,7 @@ func TestDoCreateTickets(t *testing.T) {
 			if err == nil {
 				matched, err := regexp.MatchString(`[0-9a-v]{20}`, res.GetId())
 				require.True(t, matched)
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Equal(t, test.ticket.SearchFields.DoubleArgs["test-arg"], res.SearchFields.DoubleArgs["test-arg"])
 			}
 		})
@@ -156,8 +156,8 @@ func TestCreateBackfill(t *testing.T) {
 
 	// expect error with canceled context
 	store, closer = statestoreTesting.NewStoreServiceForTesting(t, cfg)
-	fs = frontendService{cfg, store}
 	defer closer()
+	fs = frontendService{cfg, store}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -184,7 +184,10 @@ func TestUpdateBackfill(t *testing.T) {
 			SearchFields: &pb.SearchFields{
 				StringArgs: map[string]string{
 					"search": "me",
-				}}}})
+				},
+			},
+		},
+	})
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
@@ -306,7 +309,7 @@ func TestDoWatchAssignments(t *testing.T) {
 								},
 							},
 						})
-						require.Nil(t, err)
+						require.NoError(t, err)
 						wg.Done()
 					}
 				}(wg)
@@ -338,6 +341,95 @@ func TestDoWatchAssignments(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestAcknowledgeBackfillValidation - test input validation only
+func TestAcknowledgeBackfillValidation(t *testing.T) {
+	cfg := viper.New()
+	tests := []struct {
+		description     string
+		request         *pb.AcknowledgeBackfillRequest
+		expectedMessage string
+	}{
+		{
+			description:     "no BackfillId, error is expected",
+			request:         &pb.AcknowledgeBackfillRequest{BackfillId: "", Assignment: &pb.Assignment{Connection: "10.0.0.1"}},
+			expectedMessage: ".BackfillId is required",
+		},
+		{
+			description:     "no Assignment, error is expected",
+			request:         &pb.AcknowledgeBackfillRequest{BackfillId: "1234", Assignment: nil},
+			expectedMessage: ".Assignment is required",
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.description, func(t *testing.T) {
+			ctx := context.Background()
+
+			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+			defer closer()
+			fs := frontendService{cfg, store}
+			bf, err := fs.AcknowledgeBackfill(ctx, test.request)
+			require.Equal(t, codes.InvalidArgument.String(), status.Convert(err).Code().String())
+			require.Equal(t, test.expectedMessage, status.Convert(err).Message())
+			require.Nil(t, bf)
+		})
+	}
+}
+
+// TestAcknowledgeBackfill verifies timestamp part of AcknowledgeBackfill call,
+// assignment part tested in a corresponding E2E test.
+// GetExpiredBackfills() after AcknowledgeBackfill() call should not return Backfill
+// which was just acknowledged
+func TestAcknowledgeBackfill(t *testing.T) {
+	cfg := viper.New()
+	ctx := context.Background()
+
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
+	defer closer()
+
+	fakeBackfill := &pb.Backfill{
+		Id: "1",
+		SearchFields: &pb.SearchFields{
+			DoubleArgs: map[string]float64{
+				"test-arg": 1,
+			},
+		},
+	}
+	err := store.CreateBackfill(ctx, fakeBackfill, []string{})
+	require.NoError(t, err)
+	fs := frontendService{cfg, store}
+
+	// Use wrong BackfillID, error is returned
+	bf, err := fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: "42", Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	require.Error(t, err)
+	require.Nil(t, bf)
+	require.Equal(t, "Backfill id: 42 not found", status.Convert(err).Message())
+
+	time.Sleep(cfg.GetDuration("pendingReleaseTimeout"))
+	ids, err := store.GetExpiredBackfillIDs(ctx)
+	require.NoError(t, err)
+	require.Len(t, ids, 1)
+
+	bf, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	require.NoError(t, err)
+	require.NotNil(t, bf)
+
+	ids, err = store.GetExpiredBackfillIDs(ctx)
+	require.NoError(t, err)
+	require.Len(t, ids, 0)
+
+	// Test that we can run two consecutive AcknowledgeBackfill requests with no Error
+	// and with the same results
+	bf, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	require.NoError(t, err)
+	require.NotNil(t, bf)
+
+	ids, err = store.GetExpiredBackfillIDs(ctx)
+	require.NoError(t, err)
+	require.Len(t, ids, 0)
 }
 
 func TestDoDeleteTicket(t *testing.T) {
@@ -459,9 +551,7 @@ func TestGetBackfill(t *testing.T) {
 			},
 		},
 	}
-
 	cfg := viper.New()
-
 	tests := []struct {
 		description string
 		preAction   func(context.Context, context.CancelFunc, statestore.Service)
@@ -521,41 +611,38 @@ func TestDoDeleteBackfill(t *testing.T) {
 		},
 	}
 
+	store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
+	defer closer()
+	ctx := context.Background()
+
+	err := store.CreateBackfill(ctx, fakeBackfill, []string{})
+	require.NoError(t, err)
+
+	cfg := viper.New()
+	fs := frontendService{cfg, store}
+
 	tests := []struct {
 		description string
-		preAction   func(context.Context, context.CancelFunc, statestore.Service)
+		id          string
 		wantCode    codes.Code
 	}{
 		{
-			description: "expect unknown code since context is canceled before being called",
-			preAction: func(_ context.Context, cancel context.CancelFunc, _ statestore.Service) {
-				cancel()
-			},
-			wantCode: codes.Unknown,
-		},
-		{
 			description: "expect ok code since delete backfill does not care about if backfill exists or not",
-			preAction:   func(_ context.Context, _ context.CancelFunc, _ statestore.Service) {},
+			id:          "222",
 			wantCode:    codes.OK,
 		},
 		{
 			description: "expect ok code",
-			preAction: func(ctx context.Context, _ context.CancelFunc, store statestore.Service) {
-				store.CreateBackfill(ctx, fakeBackfill, []string{})
-			},
+			id:          "1",
+			wantCode:    codes.OK,
 		},
 	}
 
 	for _, test := range tests {
 		test := test
 		t.Run(test.description, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
-			defer closer()
-
-			test.preAction(ctx, cancel, store)
-
-			err := doDeleteBackfill(ctx, fakeBackfill.GetId(), store)
+			_, err := fs.DeleteBackfill(ctx, &pb.DeleteBackfillRequest{BackfillId: fakeBackfill.GetId()})
+			require.NoError(t, err)
 			require.Equal(t, test.wantCode.String(), status.Convert(err).Code().String())
 		})
 	}

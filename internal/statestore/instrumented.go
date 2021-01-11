@@ -149,11 +149,11 @@ func (is *instrumentedService) NewMutex(key string) RedisLocker {
 	return is.s.NewMutex(key)
 }
 
-// AcknowledgeBackfill stores Backfill's last acknowledged time
-func (is *instrumentedService) AcknowledgeBackfill(ctx context.Context, id string) error {
-	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.AcknowledgeBackfill")
+// UpdateAcknowledgmentTimestamp stores Backfill's last acknowledged time
+func (is *instrumentedService) UpdateAcknowledgmentTimestamp(ctx context.Context, id string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.UpdateAcknowledgmentTimestamp")
 	defer span.End()
-	return is.s.AcknowledgeBackfill(ctx, id)
+	return is.s.UpdateAcknowledgmentTimestamp(ctx, id)
 }
 
 // GetExpiredBackfillIDs - get all backfills which are expired
@@ -182,4 +182,18 @@ func (is *instrumentedService) GetIndexedBackfills(ctx context.Context) (map[str
 	_, span := trace.StartSpan(ctx, "statestore/instrumented.GetIndexedBackfills")
 	defer span.End()
 	return is.s.GetIndexedBackfills(ctx)
+}
+
+// CleanupBackfills removes expired backfills
+func (is *instrumentedService) CleanupBackfills(ctx context.Context) error {
+	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.CleanupBackfills")
+	defer span.End()
+	return is.s.CleanupBackfills(ctx)
+}
+
+// DeleteBackfillCompletely performs a set of operations to remove backfill and all related entities.
+func (is *instrumentedService) DeleteBackfillCompletely(ctx context.Context, id string) error {
+	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.DeleteBackfillCompletely")
+	defer span.End()
+	return is.s.DeleteBackfillCompletely(ctx, id)
 }

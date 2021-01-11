@@ -213,57 +213,15 @@ func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBack
 	if bfID == "" {
 		return nil, status.Errorf(codes.InvalidArgument, ".BackfillId is required")
 	}
-	err := doDeleteBackfill(ctx, bfID, s.store)
+
+	err := s.store.DeleteBackfillCompletely(ctx, bfID)
+	// Deleting of Backfill is inevitable when it is expired, so we don't worry about error here
 	if err != nil {
-		return nil, err
+		logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("error on DeleteBackfill")
 	}
 	return &empty.Empty{}, nil
-}
-
-func doDeleteBackfill(ctx context.Context, id string, store statestore.Service) error {
-	m := store.NewMutex(id)
-	err := m.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if _, errUnlock := m.Unlock(ctx); errUnlock != nil {
-			logger.WithFields(logrus.Fields{
-				"error": errUnlock.Error(),
-			}).Error("error on mutex unlock")
-		}
-	}()
-
-	_, associatedTickets, err := store.GetBackfill(ctx, id)
-	// Skip NotFound errors if we can not retrieve the Backfill
-	if err != nil {
-		if status.Convert(err).Code() == codes.NotFound {
-			return nil
-		}
-		return err
-	}
-
-	err = store.DeleteTicketsFromPendingRelease(ctx, associatedTickets)
-	if err != nil {
-		return err
-	}
-	err = store.DeleteBackfill(ctx, id)
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-			"id":    id,
-		}).Error("failed to delete the backfill")
-	}
-	err = store.DeindexBackfill(ctx, id)
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-			"id":    id,
-		}).Error("failed to deindex the backfill")
-	}
-
-	// Deleting of Backfill is inevitable when it is expired, so we don't worry about error here
-	return nil
 }
 
 // DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
@@ -356,7 +314,63 @@ func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignme
 // AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info.
 // This triggers an assignment process.
 func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.AcknowledgeBackfillRequest) (*pb.Backfill, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	if req.GetBackfillId() == "" {
+		return nil, status.Errorf(codes.InvalidArgument, ".BackfillId is required")
+	}
+	if req.GetAssignment() == nil {
+		return nil, status.Errorf(codes.InvalidArgument, ".Assignment is required")
+	}
+
+	m := s.store.NewMutex(req.GetBackfillId())
+
+	err := m.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if _, err = m.Unlock(ctx); err != nil {
+			logger.WithError(err).Error("error on mutex unlock")
+		}
+	}()
+
+	bf, associatedTickets, err := s.store.GetBackfill(ctx, req.GetBackfillId())
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.store.UpdateAcknowledgmentTimestamp(ctx, req.GetBackfillId())
+	if err != nil {
+		return nil, err
+	}
+
+	if len(associatedTickets) != 0 {
+		resp, _, err := s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
+			Assignments: []*pb.AssignmentGroup{{TicketIds: associatedTickets, Assignment: req.GetAssignment()}},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// log errors returned from UpdateAssignments to track tickets with NotFound errors
+		for _, f := range resp.Failures {
+			logger.Errorf("failed to assign ticket %s, cause %d", f.TicketId, f.Cause)
+		}
+		for _, id := range associatedTickets {
+			err = s.store.DeindexTicket(ctx, id)
+			// Try to deindex all input tickets. Log without returning an error if the deindexing operation failed.
+			if err != nil {
+				logger.WithError(err).Errorf("failed to deindex ticket %s after updating the assignments", id)
+			}
+		}
+
+		// Remove all tickets associated with backfill, because unassigned tickets are not found only
+		err = s.store.UpdateBackfill(ctx, bf, []string{})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return bf, nil
 }
 
 // GetBackfill fetches a Backfill object by its ID.

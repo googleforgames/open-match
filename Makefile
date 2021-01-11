@@ -198,7 +198,7 @@ ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS)
 CMDS = $(notdir $(wildcard cmd/*))
 
 # Names of the individual images, ommiting the openmatch prefix.
-IMAGES = $(CMDS) mmf-go-soloduel base-build
+IMAGES = $(CMDS) mmf-go-soloduel mmf-go-backfill base-build
 
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
@@ -241,6 +241,9 @@ $(foreach CMD,$(CMDS),build-$(CMD)-image): build-%-image: docker build-base-buil
 
 build-mmf-go-soloduel-image: docker build-base-build-image
 	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
+
+build-mmf-go-backfill-image: docker build-base-build-image
+	docker build -f examples/functions/golang/backfill/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-backfill:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-backfill:$(ALTERNATE_TAG) .
 
 #######################################
 ## # Builds and pushes images to your container registry.
@@ -361,7 +364,10 @@ install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 		--set open-match-core.redis.enabled=false \
 		--set global.telemetry.prometheus.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
-		--set open-match-scale.enabled=true | $(KUBECTL) apply -f -
+		--set global.kubernetes.serviceAccount=$(OPEN_MATCH_HELM_NAME)-unprivileged-service \
+		--set open-match-scale.enabled=true \
+ 		--set open-match-scale.configs.default.configName="\{\{ printf \"$(OPEN_MATCH_HELM_NAME)-configmap-default\" \}\}" \
+ 		--set open-match-scale.configs.override.configName="\{\{ printf \"$(OPEN_MATCH_HELM_NAME)-configmap-override\" \}\}" | $(KUBECTL) apply -f -
 
 # install-ci-chart will install open-match-core with pool based mmf for end-to-end in-cluster test.
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/

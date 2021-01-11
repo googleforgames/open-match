@@ -22,11 +22,19 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/pkg/pb"
+)
+
+var (
+	logger = logrus.WithFields(logrus.Fields{
+		"app":       "openmatch",
+		"component": "statestore.redis",
+	})
 )
 
 const (
@@ -63,7 +71,7 @@ func (rb *redisBackend) CreateBackfill(ctx context.Context, backfill *pb.Backfil
 		return status.Errorf(codes.AlreadyExists, "backfill already exists, id: %s", backfill.GetId())
 	}
 
-	return acknowledgeBackfill(redisConn, backfill.GetId())
+	return doUpdateAcknowledgmentTimestamp(redisConn, backfill.GetId())
 }
 
 // GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and associated ticketIDs if they exist.
@@ -200,18 +208,89 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	return nil
 }
 
-// AcknowledgeBackfill stores Backfill's last acknowledgement time.
-// Check on Backfill existence should be performed on Frontend side
-func (rb *redisBackend) AcknowledgeBackfill(ctx context.Context, id string) error {
-	redisConn, err := rb.redisPool.GetContext(ctx)
+// DeleteBackfillCompletely performs a set of operations to remove backfill and all related entities.
+func (rb *redisBackend) DeleteBackfillCompletely(ctx context.Context, id string) error {
+	m := rb.NewMutex(id)
+	err := m.Lock(ctx)
 	if err != nil {
-		return status.Errorf(codes.Unavailable, "AcknowledgeBackfill, id: %s, failed to connect to redis: %v", id, err)
+		return err
 	}
-	defer handleConnectionClose(&redisConn)
-	return acknowledgeBackfill(redisConn, id)
+
+	defer func() {
+		if _, err = m.Unlock(ctx); err != nil {
+			logger.WithError(err).Error("error on mutex unlock")
+		}
+	}()
+
+	// 1. deindex backfill
+	err = rb.DeindexBackfill(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// just log errors and try to perform as mush actions as possible
+
+	// 2. get associated with a current backfill tickets ids
+	_, associatedTickets, err := rb.GetBackfill(ctx, id)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error":       err.Error(),
+			"backfill_id": id,
+		}).Error("DeleteBackfillCompletely - failed to GetBackfill")
+	}
+
+	// 3. delete associated tickets from pending release state
+	err = rb.DeleteTicketsFromPendingRelease(ctx, associatedTickets)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error":       err.Error(),
+			"backfill_id": id,
+		}).Error("DeleteBackfillCompletely - failed to DeleteTicketsFromPendingRelease")
+	}
+
+	// 4. delete backfill
+	err = rb.DeleteBackfill(ctx, id)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error":       err.Error(),
+			"backfill_id": id,
+		}).Error("DeleteBackfillCompletely - failed to DeleteBackfill")
+	}
+
+	return nil
 }
 
-func acknowledgeBackfill(conn redis.Conn, backfillID string) error {
+// CleanupBackfills removes expired backfills
+func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
+	expiredBfIDs, err := rb.GetExpiredBackfillIDs(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, id := range expiredBfIDs {
+		err = rb.DeleteBackfillCompletely(ctx, id)
+		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"error":       err.Error(),
+				"backfill_id": id,
+			}).Error("CleanupBackfills")
+		}
+	}
+	return nil
+}
+
+// UpdateAcknowledgmentTimestamp stores Backfill's last acknowledgement time.
+// Check on Backfill existence should be performed on Frontend side
+func (rb *redisBackend) UpdateAcknowledgmentTimestamp(ctx context.Context, id string) error {
+	redisConn, err := rb.redisPool.GetContext(ctx)
+	if err != nil {
+		return status.Errorf(codes.Unavailable, "UpdateAcknowledgmentTimestamp, id: %s, failed to connect to redis: %v", id, err)
+	}
+	defer handleConnectionClose(&redisConn)
+	return doUpdateAcknowledgmentTimestamp(redisConn, id)
+}
+
+func doUpdateAcknowledgmentTimestamp(conn redis.Conn, backfillID string) error {
 	currentTime := time.Now().UnixNano()
 
 	_, err := conn.Do("ZADD", backfillLastAckTime, currentTime, backfillID)

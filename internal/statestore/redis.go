@@ -41,8 +41,7 @@ var (
 
 // NewMutex returns a new distributed mutex with given name
 func (rb *redisBackend) NewMutex(key string) RedisLocker {
-	//TODO: make expiry duration configurable
-	m := redsync.NewMutex(fmt.Sprintf("lock/%s", key), rs.WithExpiry(5*time.Minute))
+	m := redsync.NewMutex(fmt.Sprintf("lock/%s", key), rs.WithExpiry(rb.cfg.GetDuration("backfillLockTimeout")))
 	return redisBackend{mutex: m}
 }
 
