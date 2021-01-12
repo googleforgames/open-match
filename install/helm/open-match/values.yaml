@@ -177,8 +177,6 @@ open-match-core:
   backfillLockTimeout: 1m
 
   redis:
-    # Duration for redis locks to expire.
-    mutexTimeout: 5m
     enabled: true
     # If open-match-core.redis.enabled is set to false, have Open Match components talk to this redis address instead.
     # Otherwise the default is set to the om-redis instance.
