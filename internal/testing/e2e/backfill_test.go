@@ -20,6 +20,7 @@ import (
 	"io"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -288,7 +289,7 @@ func TestProposedBackfillCreate(t *testing.T) {
 			},
 		},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	b := &pb.Backfill{
 		SearchFields: &pb.SearchFields{
@@ -381,7 +382,7 @@ func TestProposedBackfillUpdate(t *testing.T) {
 			},
 		},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	b, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
 		SearchFields: &pb.SearchFields{
@@ -390,7 +391,7 @@ func TestProposedBackfillUpdate(t *testing.T) {
 			},
 		},
 	}})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	b.SearchFields = &pb.SearchFields{
 		StringArgs: map[string]string{
@@ -536,6 +537,65 @@ func TestBackfillGenerationMismatch(t *testing.T) {
 		require.Nil(t, resp)
 		require.Equal(t, io.EOF, err)
 	}
+}
+
+func TestCleanUpExpiredBackfills(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.NoError(t, err)
+	require.NotNil(t, t1)
+
+	b1, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
+		SearchFields: &pb.SearchFields{
+			StringArgs: map[string]string{
+				"search": "me",
+			},
+		}}})
+	require.NoError(t, err)
+	require.NotNil(t, b1)
+
+	m := &pb.Match{
+		MatchId:  "1",
+		Tickets:  []*pb.Ticket{t1},
+		Backfill: b1,
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- m
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		p, ok := <-in
+		require.True(t, ok)
+		require.True(t, proto.Equal(p, m))
+		_, ok = <-in
+		require.False(t, ok)
+
+		out <- m.MatchId
+		return nil
+	})
+
+	// wait until backfill is expired, then try to get it
+	time.Sleep(pendingReleaseTimeout * 2)
+
+	// statestore.CleanupBackfills is called at the beginning of each syncronizer cycle after fetch matches call, so expired backfill will be removed
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.NoError(t, err)
+
+	_, err = stream.Recv()
+	e, ok := status.FromError(err)
+	require.True(t, ok)
+	require.Contains(t, e.Message(), "error(s) in FetchMatches call. syncErr=[failed to handle match backfill: 1: rpc error: code = NotFound desc = Backfill id:")
+
+	_, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
+	require.Error(t, err)
+	require.Equal(t, fmt.Sprintf("rpc error: code = NotFound desc = Backfill id: %s not found", b1.Id), err.Error())
 }
 
 func mustAny(m proto.Message) *any.Any {

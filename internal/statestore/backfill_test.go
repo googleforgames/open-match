@@ -17,6 +17,7 @@ package statestore
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -282,6 +283,10 @@ func TestDeleteBackfill(t *testing.T) {
 	pool := GetRedisPool(cfg)
 	conn := pool.Get()
 
+	ts, err := redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, bfID))
+	require.NoError(t, err)
+	require.True(t, ts > 0, "timestamp is not valid")
+
 	var testCases = []struct {
 		description     string
 		backfillID      string
@@ -305,12 +310,6 @@ func TestDeleteBackfill(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
-			if tc.backfillID != "" {
-				// test that Backfill last acknowledged is in a sorted set
-				ts, redisErr := redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, tc.backfillID))
-				require.NoError(t, redisErr)
-				require.True(t, ts > 0, "timestamp is not valid")
-			}
 			errActual := service.DeleteBackfill(ctx, tc.backfillID)
 			require.NoError(t, errActual)
 
@@ -603,4 +602,72 @@ func generateBackfills(ctx context.Context, t *testing.T, service Service, amoun
 	}
 
 	return backfills
+}
+
+func TestCleanupBackfills(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	rc, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
+	require.NoError(t, err)
+
+	bfID := "mockBackfill-1"
+	ticketIDs := []string{"t1", "t2"}
+	bfLastAck := "backfill_last_ack_time"
+	proposedTicketIDs := "proposed_ticket_ids"
+	allBackfills := "allBackfills"
+	generation := int64(55)
+	bf := &pb.Backfill{
+		Id:         bfID,
+		Generation: generation,
+	}
+
+	// ARRANGE
+	err = service.CreateBackfill(ctx, bf, ticketIDs)
+	require.NoError(t, err)
+
+	// add expired but acknowledged backfill
+	_, err = rc.Do("ZADD", bfLastAck, 123, bfID)
+	require.NoError(t, err)
+
+	err = service.AddTicketsToPendingRelease(ctx, ticketIDs)
+	require.NoError(t, err)
+
+	err = service.IndexBackfill(ctx, bf)
+	require.NoError(t, err)
+
+	// backfill is properly indexed
+	index, err := redis.StringMap(rc.Do("HGETALL", allBackfills))
+	require.NoError(t, err)
+	require.Len(t, index, 1)
+	require.Equal(t, strconv.Itoa(int(generation)), index[bfID])
+
+	// ACT
+	err = service.CleanupBackfills(ctx)
+	require.NoError(t, err)
+
+	// ASSERT
+	// backfill must be deindexed
+	index, err = redis.StringMap(rc.Do("HGETALL", allBackfills))
+	require.NoError(t, err)
+	require.Len(t, index, 0)
+
+	// backfill doesn't exist anymore
+	_, _, err = service.GetBackfill(ctx, bfID)
+	require.Error(t, err)
+	require.Equal(t, "Backfill id: mockBackfill-1 not found", status.Convert(err).Message())
+
+	// no records in backfill sorted set left
+	expiredBackfillIds, err := redis.Strings(rc.Do("ZRANGEBYSCORE", bfLastAck, 0, 200))
+	require.NoError(t, err)
+	require.Empty(t, expiredBackfillIds)
+
+	// no records in tickets sorted set left
+	pendingTickets, err := redis.Strings(rc.Do("ZRANGEBYSCORE", proposedTicketIDs, 0, time.Now().UnixNano()))
+	require.NoError(t, err)
+	require.Empty(t, pendingTickets)
 }

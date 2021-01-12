@@ -173,7 +173,7 @@ proposalCollectionInterval: 200ms
 pendingReleaseTimeout: 1s
 assignedDeleteTimeout: 200ms
 queryPageSize: 10
-backfillTimeToLive: 800ms
+backfillLockTimeout: 1m
 
 logging:
   level: debug

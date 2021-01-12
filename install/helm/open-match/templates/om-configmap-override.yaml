@@ -41,7 +41,7 @@ data:
     # Maximum number of tickets to return on a single QueryTicketsResponse.
     queryPageSize: {{ index .Values "open-match-core" "queryPageSize" }}
     # Time a backfill exists.
-    backfillTimeToLive: {{ index .Values "open-match-core" "backfillTimeToLive" }}
+    backfillLockTimeout: {{ index .Values "open-match-core" "backfillLockTimeout" }}
     api:
       evaluator:
         hostname: "{{ include "openmatch.evaluator.hostName" . }}"
