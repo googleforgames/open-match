@@ -699,9 +699,6 @@ api/%.swagger.json: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXT
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
-## ####################################
-## # Utilities
-##
 
 ## # Build API reference in markdown. Needs open-match-docs repo at the same level as this one.
 ## make api/api.md
