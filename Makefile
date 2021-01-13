@@ -725,6 +725,13 @@ pkg/pb/evaluator.pb.go: pkg/pb/messages.pb.go
 internal/ipb/synchronizer.pb.go: pkg/pb/messages.pb.go
 internal/ipb/messages.pb.go: pkg/pb/messages.pb.go
 
+## ####################################
+## # Go tasks
+##
+
+## # Build assets and binaries
+## make build
+##
 build: assets
 	$(GO) build ./...
 	$(GO) build -tags e2ecluster ./...
@@ -745,10 +752,6 @@ define fast_test_folder
     )
 	$(foreach dir, $(wildcard $(1)/*/.), $(call fast_test_folder, $(dir)))
 endef
-
-## ####################################
-## # Go tasks
-##
 
 ## # Run go tests
 ## make test
