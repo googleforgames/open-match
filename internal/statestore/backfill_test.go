@@ -732,7 +732,6 @@ func BenchmarkCleanupBackfills(b *testing.B) {
 		err = service.CleanupBackfills(ctx)
 		require.NoError(t, err)
 	}
-
 }
 
 func TestCleanupBackfills(t *testing.T) {

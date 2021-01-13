@@ -17,6 +17,7 @@ package statestore
 import (
 	"context"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -280,14 +281,9 @@ func (rb *redisBackend) DeleteBackfillCompletely(ctx context.Context, id string)
 	return nil
 }
 
-// CleanupBackfills removes expired backfills
-func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
-	expiredBfIDs, err := rb.GetExpiredBackfillIDs(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, id := range expiredBfIDs {
+func (rb *redisBackend) cleanupWorker(ctx context.Context, backfillIDsCh <-chan string, wg *sync.WaitGroup) {
+	var err error
+	for id := range backfillIDsCh {
 		err = rb.DeleteBackfillCompletely(ctx, id)
 		if err != nil {
 			logger.WithFields(logrus.Fields{
@@ -295,7 +291,32 @@ func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
 				"backfill_id": id,
 			}).Error("CleanupBackfills")
 		}
+		wg.Done()
 	}
+}
+
+// CleanupBackfills removes expired backfills
+func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
+	expiredBfIDs, err := rb.GetExpiredBackfillIDs(ctx)
+	if err != nil {
+		return err
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(expiredBfIDs))
+	backfillIDsCh := make(chan string, len(expiredBfIDs))
+
+	// TODO: move workers amount to a config parameter
+	for w := 1; w <= 3; w++ {
+		go rb.cleanupWorker(ctx, backfillIDsCh, &wg)
+	}
+
+	for _, id := range expiredBfIDs {
+		backfillIDsCh <- id
+	}
+	close(backfillIDsCh)
+
+	wg.Wait()
 	return nil
 }
 
