@@ -90,7 +90,7 @@ steps:
 
 - id: 'Build: Assets'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'assets', '-j12']
+  args: ['make', '_CHARTS_BUCKET=${_CHARTS_BUCKET}', 'assets', '-j12']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -132,7 +132,7 @@ steps:
 
 - id: 'Deploy: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'ci-deploy-artifacts']
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', '_CHARTS_BUCKET=${_CHARTS_BUCKET}',  'ci-deploy-artifacts']
   waitFor: ['Lint: Format, Vet, Charts', 'Test: Deploy Open Match']
   volumes:
   - name: 'go-vol'
@@ -169,6 +169,7 @@ substitutions:
     _GCB_LATEST_VERSION: "undefined"
     _ARTIFACTS_BUCKET: "gs://open-match-build-artifacts/output/"
     _LOGS_BUCKET: "gs://open-match-build-logs/"
+    _CHARTS_BUCKET: "gs://open-match-chart"
 logsBucket: '${_LOGS_BUCKET}'
 options:
   sourceProvenanceHash: ['SHA256']
