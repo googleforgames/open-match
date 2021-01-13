@@ -686,7 +686,7 @@ func TestBackfillReleaseTimeout(t *testing.T) {
 				cfg.Set(pendingReleaseTimeout, "1s")
 				cfg.Set(backfillTimeToLive, "70")
 			},
-			time.Duration(700 * time.Millisecond),
+			700 * time.Millisecond,
 		},
 		{
 			"80PercentFrom1sExpected800ms",
@@ -694,7 +694,7 @@ func TestBackfillReleaseTimeout(t *testing.T) {
 				cfg.Set(pendingReleaseTimeout, "1s")
 				cfg.Set(backfillTimeToLive, "80")
 			},
-			time.Duration(800 * time.Millisecond),
+			800 * time.Millisecond,
 		},
 		{
 			"80PercentFrom1000msExpected800ms",
@@ -702,7 +702,7 @@ func TestBackfillReleaseTimeout(t *testing.T) {
 				cfg.Set(pendingReleaseTimeout, "1000ms")
 				cfg.Set(backfillTimeToLive, "80")
 			},
-			time.Duration(800 * time.Millisecond),
+			800 * time.Millisecond,
 		},
 		{
 			"90PercentFrom1sExpected800ms",
@@ -710,7 +710,7 @@ func TestBackfillReleaseTimeout(t *testing.T) {
 				cfg.Set(pendingReleaseTimeout, "1s")
 				cfg.Set(backfillTimeToLive, "90")
 			},
-			time.Duration(800 * time.Millisecond),
+			800 * time.Millisecond,
 		},
 	}
 	for _, testCase := range testCases {
