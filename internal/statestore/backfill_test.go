@@ -671,3 +671,55 @@ func TestCleanupBackfills(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, pendingTickets)
 }
+
+func TestBackfillReleaseTimeout(t *testing.T) {
+	pendingReleaseTimeout := "pendingReleaseTimeout"
+	backfillTimeToLive := "backfillTimeToLive"
+	testCases := []struct {
+		name      string
+		configure func(config.Mutable)
+		expected  time.Duration
+	}{
+		{
+			"70PercentFrom1sExpected700ms",
+			func(cfg config.Mutable) {
+				cfg.Set(pendingReleaseTimeout, "1s")
+				cfg.Set(backfillTimeToLive, "70")
+			},
+			time.Duration(700 * time.Millisecond),
+		},
+		{
+			"80PercentFrom1sExpected800ms",
+			func(cfg config.Mutable) {
+				cfg.Set(pendingReleaseTimeout, "1s")
+				cfg.Set(backfillTimeToLive, "80")
+			},
+			time.Duration(800 * time.Millisecond),
+		},
+		{
+			"80PercentFrom1000msExpected800ms",
+			func(cfg config.Mutable) {
+				cfg.Set(pendingReleaseTimeout, "1000ms")
+				cfg.Set(backfillTimeToLive, "80")
+			},
+			time.Duration(800 * time.Millisecond),
+		},
+		{
+			"90PercentFrom1sExpected800ms",
+			func(cfg config.Mutable) {
+				cfg.Set(pendingReleaseTimeout, "1s")
+				cfg.Set(backfillTimeToLive, "90")
+			},
+			time.Duration(800 * time.Millisecond),
+		},
+	}
+	for _, testCase := range testCases {
+		test := testCase
+		t.Run(test.name, func(t *testing.T) {
+			cfg := viper.New()
+			test.configure(cfg)
+			finalDuration := getBackfillReleaseTimeout(cfg)
+			require.Equal(t, test.expected, finalDuration)
+		})
+	}
+}

@@ -406,9 +406,19 @@ func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]int
 	}
 
 	return r, nil
-
 }
 
 func getBackfillReleaseTimeout(cfg config.View) time.Duration {
-	return cfg.GetDuration("backfillTimeToLive")
+	var finalValue int64
+	if backfillTimeToLive := cfg.GetInt64("backfillTimeToLive"); backfillTimeToLive > 80 {
+		// TODO log warning
+		finalValue = 80
+	} else {
+		finalValue = backfillTimeToLive
+	}
+
+	prtInMili := cfg.GetDuration("pendingReleaseTimeout").Milliseconds()
+	final := float64(prtInMili) * (float64(finalValue) / 100.0)
+
+	return time.Duration(final) * time.Millisecond
 }
