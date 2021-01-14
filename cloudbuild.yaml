@@ -164,7 +164,7 @@ artifacts:
             - install/yaml/06-open-match-override-configmap.yaml
             
 substitutions:
-    _OM_VERSION: "1.0.0"
+    _OM_VERSION: "1.0.1"
     _GCB_POST_SUBMIT: "0"
     _GCB_LATEST_VERSION: "undefined"
 logsBucket: 'gs://open-match-build-logs/'
