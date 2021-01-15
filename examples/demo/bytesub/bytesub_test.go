@@ -51,7 +51,7 @@ func TestFastAndSlow(t *testing.T) {
 	for count := 0; true; count++ {
 		if v := <-slow; v == "3" {
 			if count > 1 {
-				t.Error("Expected to recieve at most 1 other value on slow before recieving the latest value.")
+				t.Error("Expected to receive at most 1 other value on slow before receiving the latest value.")
 			}
 			break
 		}

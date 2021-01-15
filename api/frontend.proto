@@ -84,25 +84,31 @@ message WatchAssignmentsResponse {
 // BETA FEATURE WARNING: This Request message is not finalized and still subject
 // to possible change or removal.
 message AcknowledgeBackfillRequest {
+  // An existing ID of Backfill to acknowledge.
   string backfill_id = 1;
+
+  // An updated Assignment of the requested Backfill.
   Assignment assignment = 2;
 }
 
 // BETA FEATURE WARNING: This Request message is not finalized and still subject
 // to possible change or removal.
 message CreateBackfillRequest {
+  // An empty Backfill object.
   Backfill backfill = 1;
 }
 
 // BETA FEATURE WARNING: This Request message is not finalized and still subject
 // to possible change or removal.
 message DeleteBackfillRequest {
+  // An existing ID of Backfill to delete.
   string backfill_id = 1;
 }
 
 // BETA FEATURE WARNING: This Request message is not finalized and still subject
 // to possible change or removal.
 message GetBackfillRequest {
+  // An existing ID of Backfill to retrieve.
   string backfill_id = 1;
 }
 
@@ -111,8 +117,8 @@ message GetBackfillRequest {
 // BETA FEATURE WARNING: This Request message is not finalized and still subject
 // to possible change or removal.
 message UpdateBackfillRequest {
-  // A Backfill object with SearchFields defined.
-  Backfill backfill_ticket = 1;
+  // A Backfill object with ID set and fields to update.
+  Backfill backfill = 1;
 }
 
 
@@ -155,7 +161,6 @@ service FrontendService {
 
   // AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info
   // This triggers an assignment process.
-  //
   // BETA FEATURE WARNING: This call and the associated Request and Response
   // messages are not finalized and still subject to possible change or removal.
   rpc AcknowledgeBackfill(AcknowledgeBackfillRequest) returns (Backfill) {
@@ -165,8 +170,7 @@ service FrontendService {
     };
   }
 
-  // If SearchFields exist in a Ticket, CreateBackfillRequest will also index these fields such that one can query the ticket with query.QueryBakfillTickets function.
-  // 
+  // CreateBackfill creates a new Backfill object.
   // BETA FEATURE WARNING:  This call and the associated Request and Response
   // messages are not finalized and still subject to possible change or removal.
   rpc CreateBackfill(CreateBackfillRequest) returns (Backfill) {
@@ -176,8 +180,8 @@ service FrontendService {
     };
   }
 
-  // Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
-  // 
+  // DeleteBackfill receives a backfill ID and deletes its resource.
+  // Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
   // BETA FEATURE WARNING:  This call and the associated Request and Response
   // messages are not finalized and still subject to possible change or removal.
   rpc DeleteBackfill(DeleteBackfillRequest) returns (google.protobuf.Empty) {
@@ -186,6 +190,7 @@ service FrontendService {
     };
   }
 
+  // GetBackfill returns a backfill object by its ID.
   // BETA FEATURE WARNING:  This call and the associated Request and Response
   // messages are not finalized and still subject to possible change or removal.
   rpc GetBackfill(GetBackfillRequest) returns (Backfill) {
@@ -193,8 +198,9 @@ service FrontendService {
       get: "/v1/frontendservice/backfills/{backfill_id}"
     };
   }
-
-  // Side effects: Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
+  
+  // UpdateBackfill updates search_fields and extensions for the backfill with the provided id.
+  // Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
   // BETA FEATURE WARNING:  This call and the associated Request and Response
   // messages are not finalized and still subject to possible change or removal.
   rpc UpdateBackfill(UpdateBackfillRequest) returns (Backfill) {

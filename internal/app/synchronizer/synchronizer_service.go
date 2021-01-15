@@ -212,6 +212,11 @@ func (s *synchronizerService) runCycle() {
 	/////////////////////////////////////// Initialize cycle
 	ctx, cancel := contextcause.WithCancelCause(context.Background())
 
+	err := s.store.CleanupBackfills(ctx)
+	if err != nil {
+		logger.Errorf("Failed to clean up backfills, %s", err.Error())
+	}
+
 	m2c := make(chan mAndM6c)
 	m3c := make(chan *pb.Match)
 	m4c := make(chan *pb.Match)
@@ -289,6 +294,7 @@ Registration:
 			r.cancelMmfs <- struct{}{}
 		}
 	})
+
 	<-closedOnCycleEnd
 	stats.Record(ctx, iterationLatency.M(float64(time.Since(cst)/time.Millisecond)))
 
@@ -436,7 +442,7 @@ func getTicketIds(tickets []*pb.Ticket) []string {
 
 // Calls statestore to add all of the tickets returned by the evaluator to the
 // pendingRelease list.  If it partially fails for whatever reason (not all tickets will
-// nessisarily be in the same call), only the matches which can be safely
+// necessarily be in the same call), only the matches which can be safely
 // returned to the Synchronize calls are.
 func (s *synchronizerService) addMatchesToPendingRelease(ctx context.Context, m *sync.Map, cancel contextcause.CancelErrFunc, m5c <-chan []string, m6c chan<- string) {
 	totalMatches := 0

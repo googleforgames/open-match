@@ -188,7 +188,7 @@ else
 	endif
 endif
 
-GOLANG_PROTOS = pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/query.pb.go pkg/pb/messages.pb.go pkg/pb/extensions.pb.go pkg/pb/evaluator.pb.go internal/ipb/synchronizer.pb.go pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/query.pb.gw.go pkg/pb/evaluator.pb.gw.go
+GOLANG_PROTOS = pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/query.pb.go pkg/pb/messages.pb.go pkg/pb/extensions.pb.go pkg/pb/evaluator.pb.go internal/ipb/synchronizer.pb.go internal/ipb/messages.pb.go pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/query.pb.gw.go pkg/pb/evaluator.pb.gw.go
 
 SWAGGER_JSON_DOCS = api/frontend.swagger.json api/backend.swagger.json api/query.swagger.json api/matchfunction.swagger.json api/evaluator.swagger.json
 
@@ -198,7 +198,7 @@ ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS)
 CMDS = $(notdir $(wildcard cmd/*))
 
 # Names of the individual images, ommiting the openmatch prefix.
-IMAGES = $(CMDS) mmf-go-soloduel base-build
+IMAGES = $(CMDS) mmf-go-soloduel mmf-go-backfill base-build
 
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
@@ -241,6 +241,9 @@ $(foreach CMD,$(CMDS),build-$(CMD)-image): build-%-image: docker build-base-buil
 
 build-mmf-go-soloduel-image: docker build-base-build-image
 	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
+
+build-mmf-go-backfill-image: docker build-base-build-image
+	docker build -f examples/functions/golang/backfill/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-backfill:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-backfill:$(ALTERNATE_TAG) .
 
 #######################################
 ## # Builds and pushes images to your container registry.
@@ -289,7 +292,7 @@ $(foreach IMAGE,$(IMAGES),clean-$(IMAGE)-image): clean-%-image:
 
 #####################################################################################################################
 update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com; $(HELM) dependency update)
+	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://charts.helm.sh/incubator; $(HELM) repo add bitnami https://charts.bitnami.com/bitnami;$(HELM) dependency update)
 
 lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/ct$(EXE_EXTENSION)
 	(cd $(REPOSITORY_ROOT)/install/helm; $(HELM) lint $(OPEN_MATCH_HELM_NAME))
@@ -302,8 +305,8 @@ build/chart/open-match-$(BASE_VERSION).tgz: build/toolchain/bin/helm$(EXE_EXTENS
 
 build/chart/index.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) gcloud build/chart/open-match-$(BASE_VERSION).tgz
 	mkdir -p $(BUILD_DIR)/chart-index/
-	-gsutil cp gs://open-match-chart/chart/index.yaml $(BUILD_DIR)/chart-index/
-	-gsutil -m cp gs://open-match-chart/chart/open-match-* $(BUILD_DIR)/chart-index/
+	-gsutil cp $(_CHARTS_BUCKET)/chart/index.yaml $(BUILD_DIR)/chart-index/
+	-gsutil -m cp $(_CHARTS_BUCKET)/chart/open-match-* $(BUILD_DIR)/chart-index/
 	$(HELM) repo index $(BUILD_DIR)/chart-index/
 	$(HELM) repo index --merge $(BUILD_DIR)/chart-index/index.yaml $(BUILD_DIR)/chart/
 
@@ -317,7 +320,7 @@ install-chart-prerequisite: build/toolchain/bin/kubectl$(EXE_EXTENSION) update-c
 	$(KUBECTL) apply -f install/gke-metadata-server-workaround.yaml
 
 # Used for Open Match development. Install om-configmap-override.yaml by default.
-HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --no-hooks --debug --timeout=600s --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) --set global.gcpProjectId=$(GCP_PROJECT_ID) --set open-match-override.enabled=true --set redis.password=$(REDIS_DEV_PASSWORD)
+HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --no-hooks --debug --timeout=600s --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) --set global.gcpProjectId=$(GCP_PROJECT_ID) --set open-match-override.enabled=true --set redis.password=$(REDIS_DEV_PASSWORD) --set redis.usePassword=false --set redis.sentinel.usePassword=false
 # Used for generate static yamls. Install om-configmap-override.yaml as needed.
 HELM_TEMPLATE_FLAGS = --no-hooks --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --set usingHelmTemplate=true
 HELM_IMAGE_FLAGS = --set global.image.registry=$(REGISTRY) --set global.image.tag=$(TAG)
@@ -361,7 +364,10 @@ install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 		--set open-match-core.redis.enabled=false \
 		--set global.telemetry.prometheus.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
-		--set open-match-scale.enabled=true | $(KUBECTL) apply -f -
+		--set global.kubernetes.serviceAccount=$(OPEN_MATCH_HELM_NAME)-unprivileged-service \
+		--set open-match-scale.enabled=true \
+ 		--set open-match-scale.configs.default.configName="\{\{ printf \"$(OPEN_MATCH_HELM_NAME)-configmap-default\" \}\}" \
+ 		--set open-match-scale.configs.override.configName="\{\{ printf \"$(OPEN_MATCH_HELM_NAME)-configmap-override\" \}\}" | $(KUBECTL) apply -f -
 
 # install-ci-chart will install open-match-core with pool based mmf for end-to-end in-cluster test.
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
@@ -373,7 +379,7 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 		--set open-match-core.registrationInterval=200ms \
 		--set open-match-core.proposalCollectionInterval=200ms \
 		--set open-match-core.assignedDeleteTimeout=200ms \
-		--set open-match-core.pendingReleaseTimeout=200ms \
+		--set open-match-core.pendingReleaseTimeout=1s \
 		--set open-match-core.queryPageSize=10 \
 		--set global.gcpProjectId=intentionally-invalid-value \
 		--set redis.master.resources.requests.cpu=0.6,redis.master.resources.requests.memory=300Mi \
@@ -630,7 +636,7 @@ delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bi
 create-cluster-role-binding:
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
-create-gke-cluster: GKE_VERSION = 1.14.10-gke.45 # gcloud beta container get-server-config --zone us-west1-a
+create-gke-cluster: GKE_VERSION = 1.15.12-gke.20 # gcloud beta container get-server-config --zone us-west1-a
 create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
@@ -654,7 +660,7 @@ delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 gcp-apply-binauthz-policy: build/policies/binauthz.yaml
 	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
 
-## ##############################
+## ####################################
 ## # Protobuf
 ##
 
@@ -693,20 +699,19 @@ api/%.swagger.json: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXT
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
+
+## # Build API reference in markdown. Needs open-match-docs repo at the same level as this one.
+## make api/api.md
+##
 api/api.md: third_party/ build/toolchain/bin/protoc-gen-doc$(EXE_EXTENSION)
 	$(PROTOC) api/*.proto \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
   		--doc_out=. \
-  		--doc_opt=markdown,api.md
+  		--doc_opt=markdown,api_temp.md
 # Crazy hack that insert hugo link reference to this API doc -)
-	$(SED_REPLACE) '1 i\---\
-title: "Open Match API References" \
-linkTitle: "Open Match API References" \
-weight: 2 \
-description: \
-  This document provides API references for Open Match services. \
---- \
-' ./api.md && mv ./api.md $(REPOSITORY_ROOT)/../open-match-docs/site/content/en/docs/Reference/
+	cat ./docs/hugo_apiheader.txt ./api_temp.md >> api.md
+	mv ./api.md $(REPOSITORY_ROOT)/../open-match-docs/site/content/en/docs/Reference/
+	rm ./api_temp.md
 
 # Include structure of the protos needs to be called out do the dependency chain is run through properly.
 pkg/pb/backend.pb.go: pkg/pb/messages.pb.go
@@ -715,7 +720,15 @@ pkg/pb/matchfunction.pb.go: pkg/pb/messages.pb.go
 pkg/pb/query.pb.go: pkg/pb/messages.pb.go
 pkg/pb/evaluator.pb.go: pkg/pb/messages.pb.go
 internal/ipb/synchronizer.pb.go: pkg/pb/messages.pb.go
+internal/ipb/messages.pb.go: pkg/pb/messages.pb.go
 
+## ####################################
+## # Go tasks
+##
+
+## # Build assets and binaries
+## make build
+##
 build: assets
 	$(GO) build ./...
 	$(GO) build -tags e2ecluster ./...
@@ -835,13 +848,13 @@ md-test: docker
 
 ci-deploy-artifacts: install/yaml/ $(SWAGGER_JSON_DOCS) build/chart/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
-	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/v$(BASE_VERSION)/yaml/
-	gsutil cp -a public-read $(REPOSITORY_ROOT)/api/*.json gs://open-match-chart/api/v$(BASE_VERSION)/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* $(_CHARTS_BUCKET)/install/v$(BASE_VERSION)/yaml/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/api/*.json $(_CHARTS_BUCKET)/api/v$(BASE_VERSION)/
 	# Deploy Helm Chart
 	# Since each build will refresh just it's version we can allow this for every post submit.
 	# Copy the files into multiple locations to keep a backup.
-	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* gs://open-match-chart/chart/by-hash/$(VERSION)/
-	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* gs://open-match-chart/chart/
+	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* $(_CHARTS_BUCKET)/chart/by-hash/$(VERSION)/
+	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* $(_CHARTS_BUCKET)/chart/
 else
 	@echo "Not deploying build artifacts to open-match.dev because this is not a post commit change."
 endif

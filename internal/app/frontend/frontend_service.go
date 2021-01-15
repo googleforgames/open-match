@@ -94,6 +94,136 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 	return ticket, nil
 }
 
+// CreateBackfill creates a new Backfill object.
+// it assigns an unique Id to the input Backfill and record it in state storage.
+// Set initial LastAcknowledge time for this Backfill.
+// A Backfill is considered as ready for matchmaking once it is created.
+//   - If SearchFields exist in a Backfill, CreateBackfill will also index these fields such that one can query the ticket with query.QueryBackfills function.
+func (s *frontendService) CreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest) (*pb.Backfill, error) {
+	// Perform input validation.
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "request is nil")
+	}
+	if req.Backfill == nil {
+		return nil, status.Errorf(codes.InvalidArgument, ".backfill is required")
+	}
+	if req.Backfill.CreateTime != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "backfills cannot be created with create time set")
+	}
+
+	return doCreateBackfill(ctx, req, s.store)
+}
+
+func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store statestore.Service) (*pb.Backfill, error) {
+	// Generate an id and create a Backfill in state storage
+	backfill, ok := proto.Clone(req.Backfill).(*pb.Backfill)
+	if !ok {
+		return nil, status.Error(codes.Internal, "failed to clone input ticket proto")
+	}
+
+	backfill.Id = xid.New().String()
+	backfill.CreateTime = ptypes.TimestampNow()
+	backfill.Generation = 1
+
+	sfCount := 0
+	sfCount += len(backfill.GetSearchFields().GetDoubleArgs())
+	sfCount += len(backfill.GetSearchFields().GetStringArgs())
+	sfCount += len(backfill.GetSearchFields().GetTags())
+	stats.Record(ctx, searchFieldsPerBackfill.M(int64(sfCount)))
+	stats.Record(ctx, totalBytesPerBackfill.M(int64(proto.Size(backfill))))
+
+	err := store.CreateBackfill(ctx, backfill, []string{})
+	if err != nil {
+		return nil, err
+	}
+	err = store.IndexBackfill(ctx, backfill)
+	if err != nil {
+		return nil, err
+	}
+	return backfill, nil
+}
+
+// UpdateBackfill updates a Backfill object, if present.
+// Update would increment generation in Redis.
+// Only Extensions and SearchFields would be updated.
+// CreateTime is not changed on Update
+func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBackfillRequest) (*pb.Backfill, error) {
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "request is nil")
+	}
+	if req.Backfill == nil {
+		return nil, status.Errorf(codes.InvalidArgument, ".backfill is required")
+	}
+
+	backfill, ok := proto.Clone(req.Backfill).(*pb.Backfill)
+	if !ok {
+		return nil, status.Error(codes.Internal, "failed to clone input backfill proto")
+	}
+
+	bfID := backfill.Id
+	if bfID == "" {
+		return nil, status.Error(codes.InvalidArgument, "backfill ID should exist")
+	}
+	m := s.store.NewMutex(bfID)
+
+	err := m.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if _, err = m.Unlock(ctx); err != nil {
+			logger.WithError(err).Error("error on mutex unlock")
+		}
+	}()
+	bfStored, associatedTickets, err := s.store.GetBackfill(ctx, bfID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update generation here, because Frontend is used by GameServer only
+	bfStored.SearchFields = backfill.SearchFields
+	bfStored.Extensions = backfill.Extensions
+	// Autoincrement generation, input backfill generation validation is performed
+	// on Backend only (after MMF round)
+	bfStored.Generation++
+	err = s.store.UpdateBackfill(ctx, bfStored, []string{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.store.DeleteTicketsFromPendingRelease(ctx, associatedTickets)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.store.IndexBackfill(ctx, bfStored)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+			"id":    bfStored.Id,
+		}).Error("failed to index the backfill")
+		return nil, err
+	}
+	return bfStored, nil
+}
+
+// DeleteBackfill deletes a Backfill by its ID.
+func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*empty.Empty, error) {
+	bfID := req.GetBackfillId()
+	if bfID == "" {
+		return nil, status.Errorf(codes.InvalidArgument, ".BackfillId is required")
+	}
+
+	err := s.store.DeleteBackfillCompletely(ctx, bfID)
+	// Deleting of Backfill is inevitable when it is expired, so we don't worry about error here
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("error on DeleteBackfill")
+	}
+	return &empty.Empty{}, nil
+}
+
 // DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
 // The client must delete the Ticket when finished matchmaking with it.
 //   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
@@ -184,25 +314,67 @@ func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignme
 // AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info.
 // This triggers an assignment process.
 func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.AcknowledgeBackfillRequest) (*pb.Backfill, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
-}
+	if req.GetBackfillId() == "" {
+		return nil, status.Errorf(codes.InvalidArgument, ".BackfillId is required")
+	}
+	if req.GetAssignment() == nil {
+		return nil, status.Errorf(codes.InvalidArgument, ".Assignment is required")
+	}
 
-// CreateBackfill creates a new Backfill object.
-func (s *frontendService) CreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest) (*pb.Backfill, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
-}
+	m := s.store.NewMutex(req.GetBackfillId())
 
-// DeleteBackfill deletes a Backfill by its ID.
-func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*empty.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	err := m.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if _, err = m.Unlock(ctx); err != nil {
+			logger.WithError(err).Error("error on mutex unlock")
+		}
+	}()
+
+	bf, associatedTickets, err := s.store.GetBackfill(ctx, req.GetBackfillId())
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.store.UpdateAcknowledgmentTimestamp(ctx, req.GetBackfillId())
+	if err != nil {
+		return nil, err
+	}
+
+	if len(associatedTickets) != 0 {
+		resp, _, err := s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
+			Assignments: []*pb.AssignmentGroup{{TicketIds: associatedTickets, Assignment: req.GetAssignment()}},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// log errors returned from UpdateAssignments to track tickets with NotFound errors
+		for _, f := range resp.Failures {
+			logger.Errorf("failed to assign ticket %s, cause %d", f.TicketId, f.Cause)
+		}
+		for _, id := range associatedTickets {
+			err = s.store.DeindexTicket(ctx, id)
+			// Try to deindex all input tickets. Log without returning an error if the deindexing operation failed.
+			if err != nil {
+				logger.WithError(err).Errorf("failed to deindex ticket %s after updating the assignments", id)
+			}
+		}
+
+		// Remove all tickets associated with backfill, because unassigned tickets are not found only
+		err = s.store.UpdateBackfill(ctx, bf, []string{})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return bf, nil
 }
 
 // GetBackfill fetches a Backfill object by its ID.
 func (s *frontendService) GetBackfill(ctx context.Context, req *pb.GetBackfillRequest) (*pb.Backfill, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
-}
-
-// UpdateBackfill updates a Backfill object, if present.
-func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBackfillRequest) (*pb.Backfill, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	bf, _, err := s.store.GetBackfill(ctx, req.GetBackfillId())
+	return bf, err
 }

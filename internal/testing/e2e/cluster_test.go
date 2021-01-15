@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -33,7 +34,6 @@ import (
 	"open-match.dev/open-match/internal/config"
 	mmfService "open-match.dev/open-match/internal/testing/mmf"
 	"open-match.dev/open-match/pkg/pb"
-	"strings"
 )
 
 func TestServiceHealth(t *testing.T) {

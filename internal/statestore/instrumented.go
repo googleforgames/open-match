@@ -106,3 +106,94 @@ func (is *instrumentedService) ReleaseAllTickets(ctx context.Context) error {
 	defer span.End()
 	return is.s.ReleaseAllTickets(ctx)
 }
+
+// CreateBackfill creates a new Backfill in the state storage if one doesn't exist. The xids algorithm used to create the ids ensures that they are unique with no system wide synchronization. Calling clients are forbidden from choosing an id during create. So no conflicts will occur.
+func (is *instrumentedService) CreateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.CreateBackfill")
+	defer span.End()
+	return is.s.CreateBackfill(ctx, backfill, ticketIDs)
+}
+
+// GetBackfill gets the Backfill with the specified id from state storage. This method fails if the Backfill does not exist. Returns the Backfill and associated ticketIDs if they exist.
+func (is *instrumentedService) GetBackfill(ctx context.Context, id string) (*pb.Backfill, []string, error) {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetBackfill")
+	defer span.End()
+	return is.s.GetBackfill(ctx, id)
+}
+
+// GetBackfills returns multiple backfills from storage.
+func (is *instrumentedService) GetBackfills(ctx context.Context, ids []string) ([]*pb.Backfill, error) {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetBackfills")
+	defer span.End()
+	return is.s.GetBackfills(ctx, ids)
+}
+
+// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
+func (is *instrumentedService) DeleteBackfill(ctx context.Context, id string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.DeleteBackfill")
+	defer span.End()
+	return is.s.DeleteBackfill(ctx, id)
+}
+
+// UpdateBackfill updates an existing Backfill with a new data. ticketIDs can be nil.
+func (is *instrumentedService) UpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIDs []string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.UpdateBackfill")
+	defer span.End()
+	return is.s.UpdateBackfill(ctx, backfill, ticketIDs)
+}
+
+// NewMutex returns a new distributed mutex with given name
+func (is *instrumentedService) NewMutex(key string) RedisLocker {
+	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.NewMutex")
+	defer span.End()
+	return is.s.NewMutex(key)
+}
+
+// UpdateAcknowledgmentTimestamp stores Backfill's last acknowledged time
+func (is *instrumentedService) UpdateAcknowledgmentTimestamp(ctx context.Context, id string) error {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.UpdateAcknowledgmentTimestamp")
+	defer span.End()
+	return is.s.UpdateAcknowledgmentTimestamp(ctx, id)
+}
+
+// GetExpiredBackfillIDs - get all backfills which are expired
+func (is *instrumentedService) GetExpiredBackfillIDs(ctx context.Context) ([]string, error) {
+	ctx, span := trace.StartSpan(ctx, "statestore/instrumented.GetExpiredBackfillIDs")
+	defer span.End()
+	return is.s.GetExpiredBackfillIDs(ctx)
+}
+
+// IndexBackfill adds the backfill to the index.
+func (is *instrumentedService) IndexBackfill(ctx context.Context, backfill *pb.Backfill) error {
+	_, span := trace.StartSpan(ctx, "statestore/instrumented.IndexBackfill")
+	defer span.End()
+	return is.s.IndexBackfill(ctx, backfill)
+}
+
+// DeindexBackfill removes specified Backfill ID from the index. The Backfill continues to exist.
+func (is *instrumentedService) DeindexBackfill(ctx context.Context, id string) error {
+	_, span := trace.StartSpan(ctx, "statestore/instrumented.DeindexBackfill")
+	defer span.End()
+	return is.s.DeindexBackfill(ctx, id)
+}
+
+// GetIndexedBackfills returns the ids of all backfills currently indexed.
+func (is *instrumentedService) GetIndexedBackfills(ctx context.Context) (map[string]int, error) {
+	_, span := trace.StartSpan(ctx, "statestore/instrumented.GetIndexedBackfills")
+	defer span.End()
+	return is.s.GetIndexedBackfills(ctx)
+}
+
+// CleanupBackfills removes expired backfills
+func (is *instrumentedService) CleanupBackfills(ctx context.Context) error {
+	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.CleanupBackfills")
+	defer span.End()
+	return is.s.CleanupBackfills(ctx)
+}
+
+// DeleteBackfillCompletely performs a set of operations to remove backfill and all related entities.
+func (is *instrumentedService) DeleteBackfillCompletely(ctx context.Context, id string) error {
+	_, span := trace.StartSpan(context.Background(), "statestore/instrumented.DeleteBackfillCompletely")
+	defer span.End()
+	return is.s.DeleteBackfillCompletely(ctx, id)
+}
