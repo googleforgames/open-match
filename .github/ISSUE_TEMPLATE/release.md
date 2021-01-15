@@ -114,7 +114,6 @@ git push origin release-0.5
 - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
 - [ ] Run `make release`
 - [ ] Run `make api/api.md` in open-match repo to update the auto-generated API references in open-match-docs repo.
-- [ ] Use the files under the `build/release/` directory for the Open Match installation guide. Make sure the artifacts work as expected - these are the artifacts that will be published to the GCS bucket and used in our release assets.
 - [ ] Create a PR with the changes, include the release candidate name, and point it to the release branch.
 - [ ] Go to [open-match-build](https://pantheon.corp.google.com/cloud-build/triggers?project=open-match-build) and update all *post submit* triggers' `_GCB_LATEST_VERSION` value to the `X.Y` of the release. This value should only increase as it's used to determine the latest stable version.
 - [ ] Merge your changes once the PR is approved.
@@ -152,6 +151,7 @@ only required once.**
 - [ ] Go to the History section and find the "Post Submit" build of the merged commit that's running. Wait for it to go Green. If it's red, fix error repeat this section. Take note of the docker image version tag for next step. Example: 0.5.0-a4706cb.
 - [ ] Run `./docs/governance/templates/release.sh {source version tag} {version}` to copy the images to open-match-public-images.
 - [ ] If this is a new minor version in the newest major version then run `./docs/governance/templates/release.sh {source version tag} latest`.
+- [ ] Use the files under the `build/release/` directory for the Open Match installation guide. Make sure the artifacts work as expected - these are the artifacts that will be published to the GCS bucket and used in our release assets.
 - [ ] Copy the files from `build/release/` generated from `make release` to the release draft you created.  You can drag and drop the files using the Github UI.
 - [ ] Update [Slack invitation link](https://slack.com/help/articles/201330256-invite-new-members-to-your-workspace#share-an-invite-link) in [open-match.dev](https://open-match.dev/site/docs/contribute/#get-involved).
 - [ ] Test Open Match installation under GKE and Minikube enviroment using YAML files and Helm. Follow the [First Match](https://development.open-match.dev/site/docs/getting-started/first_match/) guide, run `make proxy-demo`, and open `localhost:51507` to make sure everything works.
@@ -165,6 +165,7 @@ only required once.**
 - [ ] Save the release as a draft.
 - [ ] Circulate the draft release to active contributors.  Where reasonable, get everyone's ok on the release notes before continuing.
 - [ ] Publish the [Release](om-release) in Github.  This will notify repository watchers.
+- [ ] Publish the [Release](om-release) on Open Match [Blog](https://open-match.dev/site/blog/).
 
 ## Announce
 
