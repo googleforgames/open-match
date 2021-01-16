@@ -292,7 +292,7 @@ $(foreach IMAGE,$(IMAGES),clean-$(IMAGE)-image): clean-%-image:
 
 #####################################################################################################################
 update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://charts.helm.sh/incubator; $(HELM) dependency update)
+	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://charts.helm.sh/incubator; $(HELM) repo add bitnami https://charts.bitnami.com/bitnami;$(HELM) dependency update)
 
 lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/ct$(EXE_EXTENSION)
 	(cd $(REPOSITORY_ROOT)/install/helm; $(HELM) lint $(OPEN_MATCH_HELM_NAME))
@@ -305,8 +305,8 @@ build/chart/open-match-$(BASE_VERSION).tgz: build/toolchain/bin/helm$(EXE_EXTENS
 
 build/chart/index.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) gcloud build/chart/open-match-$(BASE_VERSION).tgz
 	mkdir -p $(BUILD_DIR)/chart-index/
-	-gsutil cp gs://open-match-chart/chart/index.yaml $(BUILD_DIR)/chart-index/
-	-gsutil -m cp gs://open-match-chart/chart/open-match-* $(BUILD_DIR)/chart-index/
+	-gsutil cp $(_CHARTS_BUCKET)/chart/index.yaml $(BUILD_DIR)/chart-index/
+	-gsutil -m cp $(_CHARTS_BUCKET)/chart/open-match-* $(BUILD_DIR)/chart-index/
 	$(HELM) repo index $(BUILD_DIR)/chart-index/
 	$(HELM) repo index --merge $(BUILD_DIR)/chart-index/index.yaml $(BUILD_DIR)/chart/
 
@@ -320,7 +320,7 @@ install-chart-prerequisite: build/toolchain/bin/kubectl$(EXE_EXTENSION) update-c
 	$(KUBECTL) apply -f install/gke-metadata-server-workaround.yaml
 
 # Used for Open Match development. Install om-configmap-override.yaml by default.
-HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --no-hooks --debug --timeout=600s --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) --set global.gcpProjectId=$(GCP_PROJECT_ID) --set open-match-override.enabled=true --set redis.password=$(REDIS_DEV_PASSWORD)
+HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --no-hooks --debug --timeout=600s --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) --set global.gcpProjectId=$(GCP_PROJECT_ID) --set open-match-override.enabled=true --set redis.password=$(REDIS_DEV_PASSWORD) --set redis.usePassword=false --set redis.sentinel.usePassword=false
 # Used for generate static yamls. Install om-configmap-override.yaml as needed.
 HELM_TEMPLATE_FLAGS = --no-hooks --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --set usingHelmTemplate=true
 HELM_IMAGE_FLAGS = --set global.image.registry=$(REGISTRY) --set global.image.tag=$(TAG)
@@ -660,7 +660,7 @@ delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 gcp-apply-binauthz-policy: build/policies/binauthz.yaml
 	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container binauthz policy import build/policies/binauthz.yaml
 
-## ##############################
+## ####################################
 ## # Protobuf
 ##
 
@@ -699,6 +699,10 @@ api/%.swagger.json: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXT
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
 		--swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
+
+## # Build API reference in markdown. Needs open-match-docs repo at the same level as this one.
+## make api/api.md
+##
 api/api.md: third_party/ build/toolchain/bin/protoc-gen-doc$(EXE_EXTENSION)
 	$(PROTOC) api/*.proto \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
@@ -718,6 +722,13 @@ pkg/pb/evaluator.pb.go: pkg/pb/messages.pb.go
 internal/ipb/synchronizer.pb.go: pkg/pb/messages.pb.go
 internal/ipb/messages.pb.go: pkg/pb/messages.pb.go
 
+## ####################################
+## # Go tasks
+##
+
+## # Build assets and binaries
+## make build
+##
 build: assets
 	$(GO) build ./...
 	$(GO) build -tags e2ecluster ./...
@@ -837,13 +848,13 @@ md-test: docker
 
 ci-deploy-artifacts: install/yaml/ $(SWAGGER_JSON_DOCS) build/chart/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
-	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* gs://open-match-chart/install/v$(BASE_VERSION)/yaml/
-	gsutil cp -a public-read $(REPOSITORY_ROOT)/api/*.json gs://open-match-chart/api/v$(BASE_VERSION)/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* $(_CHARTS_BUCKET)/install/v$(BASE_VERSION)/yaml/
+	gsutil cp -a public-read $(REPOSITORY_ROOT)/api/*.json $(_CHARTS_BUCKET)/api/v$(BASE_VERSION)/
 	# Deploy Helm Chart
 	# Since each build will refresh just it's version we can allow this for every post submit.
 	# Copy the files into multiple locations to keep a backup.
-	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* gs://open-match-chart/chart/by-hash/$(VERSION)/
-	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* gs://open-match-chart/chart/
+	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* $(_CHARTS_BUCKET)/chart/by-hash/$(VERSION)/
+	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* $(_CHARTS_BUCKET)/chart/
 else
 	@echo "Not deploying build artifacts to open-match.dev because this is not a post commit change."
 endif
