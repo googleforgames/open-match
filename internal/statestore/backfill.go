@@ -218,14 +218,14 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 }
 
 func isBackfillExpired(conn redis.Conn, id string, ttl time.Duration) (bool, error) {
-	lastAckTime, err := redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, id))
+	lastAckTime, err := redis.Float64(conn.Do("ZSCORE", backfillLastAckTime, id))
 	if err != nil {
 		return false, status.Errorf(codes.Internal, "%v",
 			errors.Wrapf(err, "failed to get backfill's last acknowledgement time, id: %s", id))
 	}
 
 	endTime := time.Now().Add(-ttl).UnixNano()
-	return lastAckTime < endTime, nil
+	return int64(lastAckTime) < endTime, nil
 }
 
 // DeleteBackfillCompletely performs a set of operations to remove backfill and all related entities.
