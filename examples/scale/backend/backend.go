@@ -48,8 +48,6 @@ var (
 	mSumTicketsReturned  = telemetry.Counter("scale_backend_sum_tickets_returned", "tickets in matches returned")
 	mMatchesAssigned     = telemetry.Counter("scale_backend_matches_assigned", "matches assigned")
 	mMatchAssignsFailed  = telemetry.Counter("scale_backend_match_assigns_failed", "match assigns failed")
-	mTicketsDeleted      = telemetry.Counter("scale_backend_tickets_deleted", "tickets deleted")
-	mTicketDeletesFailed = telemetry.Counter("scale_backend_ticket_deletes_failed", "ticket deletes failed")
 )
 
 // Run triggers execution of functions that continuously fetch, assign and
@@ -79,12 +77,20 @@ func run(cfg config.View) {
 	w := logger.Writer()
 	defer w.Close()
 
-	matchesForAssignment := make(chan *pb.Match, 30000)
-	ticketsForDeletion := make(chan string, 30000)
+	matchesToAssign := make(chan *pb.Match, 30000)
 
-	for i := 0; i < 50; i++ {
-		go runAssignments(be, matchesForAssignment, ticketsForDeletion)
-		go runDeletions(fe, ticketsForDeletion)
+	if activeScenario.BackendAssignsTickets {
+		for i := 0; i < 100; i++ {
+			go runAssignments(be, matchesToAssign)
+		}
+	}
+
+	matchesToAcknowledge := make(chan *pb.Match, 30000)
+
+	if activeScenario.BackendAcknowledgesBackfills {
+		for i := 0; i < 100; i++ {
+			go runAcknowledgeBackfills(fe, matchesToAcknowledge)
+		}
 	}
 
 	// Don't go faster than this, as it likely means that FetchMatches is throwing
@@ -98,7 +104,7 @@ func run(cfg config.View) {
 			wg.Add(1)
 			go func(wg *sync.WaitGroup, p *pb.MatchProfile) {
 				defer wg.Done()
-				runFetchMatches(be, p, matchesForAssignment)
+				runFetchMatches(be, p, matchesToAssign, matchesToAcknowledge)
 			}(&wg, p)
 		}
 
@@ -108,13 +114,13 @@ func run(cfg config.View) {
 	}
 }
 
-func runFetchMatches(be pb.BackendServiceClient, p *pb.MatchProfile, matchesForAssignment chan<- *pb.Match) {
+func runFetchMatches(be pb.BackendServiceClient, p *pb.MatchProfile, matchesToAssign chan<- *pb.Match, matchesToAcknowledge chan<- *pb.Match) {
 	ctx, span := trace.StartSpan(context.Background(), "scale.backend/FetchMatches")
 	defer span.End()
 
 	req := &pb.FetchMatchesRequest{
 		Config: &pb.FunctionConfig{
-			Host: "om-function",
+			Host: "open-match-function",
 			Port: 50502,
 			Type: pb.FunctionConfig_GRPC,
 		},
@@ -146,62 +152,74 @@ func runFetchMatches(be pb.BackendServiceClient, p *pb.MatchProfile, matchesForA
 		telemetry.RecordNUnitMeasurement(ctx, mSumTicketsReturned, int64(len(resp.GetMatch().Tickets)))
 		telemetry.RecordUnitMeasurement(ctx, mMatchesReturned)
 
-		matchesForAssignment <- resp.GetMatch()
+		if activeScenario.BackendAssignsTickets {
+			matchesToAssign <- resp.GetMatch()
+		}
+
+		if activeScenario.BackendAcknowledgesBackfills {
+			matchesToAcknowledge <- resp.GetMatch()
+		}
 	}
 }
 
-func runAssignments(be pb.BackendServiceClient, matchesForAssignment <-chan *pb.Match, ticketsForDeletion chan<- string) {
-	ctx := context.Background()
-
-	for m := range matchesForAssignment {
+func runAcknowledgeBackfills(fe pb.FrontendServiceClient, matchesToAcknowledge <-chan *pb.Match) {
+	for m := range matchesToAcknowledge {
 		ids := []string{}
 		for _, t := range m.Tickets {
 			ids = append(ids, t.GetId())
 		}
 
-		if activeScenario.BackendAssignsTickets {
-			_, err := be.AssignTickets(context.Background(), &pb.AssignTicketsRequest{
-				Assignments: []*pb.AssignmentGroup{
-					{
-						TicketIds: ids,
-						Assignment: &pb.Assignment{
-							Connection: fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),
-						},
-					},
-				},
-			})
-			if err != nil {
-				telemetry.RecordUnitMeasurement(ctx, mMatchAssignsFailed)
-				logger.WithError(err).Error("failed to assign tickets")
-				continue
-			}
-
-			telemetry.RecordUnitMeasurement(ctx, mMatchesAssigned)
+		backfillId := m.Backfill.GetId()
+		if backfillId == "" {
+			continue
 		}
 
-		for _, id := range ids {
-			ticketsForDeletion <- id
+		err := acknowledgeBackfill(fe, backfillId)
+		if err != nil {
+			logger.WithError(err).Errorf("failed to acknowledge backfill: %s", backfillId)
+			continue
 		}
 	}
 }
 
-func runDeletions(fe pb.FrontendServiceClient, ticketsForDeletion <-chan string) {
+func acknowledgeBackfill(fe pb.FrontendServiceClient, backfillId string) error {
+	ctx, span := trace.StartSpan(context.Background(), "scale.frontend/AcknowledgeBackfill")
+	defer span.End()
+
+	_, err := fe.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{
+		BackfillId: backfillId,
+		Assignment: &pb.Assignment{
+			Connection: fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),
+		},
+	})
+	return err
+}
+
+func runAssignments(be pb.BackendServiceClient, matchesToAssign <-chan *pb.Match) {
 	ctx := context.Background()
 
-	for id := range ticketsForDeletion {
-		if activeScenario.BackendDeletesTickets {
-			req := &pb.DeleteTicketRequest{
-				TicketId: id,
-			}
-
-			_, err := fe.DeleteTicket(context.Background(), req)
-
-			if err == nil {
-				telemetry.RecordUnitMeasurement(ctx, mTicketsDeleted)
-			} else {
-				telemetry.RecordUnitMeasurement(ctx, mTicketDeletesFailed)
-				logger.WithError(err).Error("failed to delete tickets")
-			}
+	for m := range matchesToAssign {
+		ids := []string{}
+		for _, t := range m.Tickets {
+			ids = append(ids, t.GetId())
 		}
+
+		_, err := be.AssignTickets(context.Background(), &pb.AssignTicketsRequest{
+			Assignments: []*pb.AssignmentGroup{
+				{
+					TicketIds: ids,
+					Assignment: &pb.Assignment{
+						Connection: fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),
+					},
+				},
+			},
+		})
+		if err != nil {
+			telemetry.RecordUnitMeasurement(ctx, mMatchAssignsFailed)
+			logger.WithError(err).Error("failed to assign tickets")
+			continue
+		}
+
+		telemetry.RecordUnitMeasurement(ctx, mMatchesAssigned)
 	}
 }
