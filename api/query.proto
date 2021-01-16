@@ -114,7 +114,6 @@ service QueryService {
   }
 
   // QueryBackfills gets a list of Backfills.
-  // 
   // BETA FEATURE WARNING:  This call and the associated Request and Response
   // messages are not finalized and still subject to possible change or removal.
   rpc QueryBackfills(QueryBackfillsRequest) returns (stream QueryBackfillsResponse) {
