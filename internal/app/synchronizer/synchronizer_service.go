@@ -291,15 +291,16 @@ Registration:
 	})
 
 	<-closedOnCycleEnd
-	err := s.store.CleanupBackfills(ctx)
-	if err != nil {
-		logger.Errorf("Failed to clean up backfills, %s", err.Error())
-	}
 
 	stats.Record(ctx, iterationLatency.M(float64(time.Since(cst)/time.Millisecond)))
 
 	// Clean up in case it was never needed.
 	cancelProposalCollection.Stop()
+
+	err := s.store.CleanupBackfills(ctx)
+	if err != nil {
+		logger.Errorf("Failed to clean up backfills, %s", err.Error())
+	}
 }
 
 ///////////////////////////////////////
