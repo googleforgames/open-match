@@ -410,7 +410,7 @@ func TestUpdateAcknowledgmentTimestampLifecycle(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestUpdateAcknowledgmentTimestampt(t *testing.T) {
+func TestUpdateAcknowledgmentTimestamp(t *testing.T) {
 	cfg, closer := createRedis(t, false, "")
 	defer closer()
 
@@ -432,7 +432,7 @@ func TestUpdateAcknowledgmentTimestampt(t *testing.T) {
 	// Create a time.Time from Unix nanoseconds and make sure, that time difference
 	// is less than one second
 	t2 := time.Unix(res/1e9, res%1e9)
-	require.True(t, t2.After(startTime), "UpdateAcknowledgmentTimestamptTimestamp should update time to a more recent one")
+	require.True(t, t2.After(startTime), "UpdateAcknowledgmentTimestamp should update time to a more recent one")
 }
 
 func TestUpdateAcknowledgmentTimestampConnectionError(t *testing.T) {

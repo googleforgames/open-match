@@ -51,7 +51,7 @@ var (
 //   -> m2c ->
 // remember return channel m7c for match | fanInFanOut
 //   -> m3c ->
-// setmappings from matchIDs to ticketIDs| cacheMatchIDToTicketIDs
+// set mappings from matchIDs to ticketIDs| cacheMatchIDToTicketIDs
 //   -> m4c -> (buffered)
 // send to evaluator                     | wrapEvaluator
 //   -> m5c -> (buffered)
