@@ -306,7 +306,6 @@ func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
 	wg.Add(len(expiredBfIDs))
 	backfillIDsCh := make(chan string, len(expiredBfIDs))
 
-	// TODO: move workers amount to a config parameter
 	for w := 1; w <= 3; w++ {
 		go rb.cleanupWorker(ctx, backfillIDsCh, &wg)
 	}
