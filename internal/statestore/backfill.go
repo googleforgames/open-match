@@ -188,6 +188,15 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	}
 	defer handleConnectionClose(&redisConn)
 
+	expired, err := isBackfillExpired(redisConn, backfill.Id, getBackfillReleaseTimeout(rb.cfg))
+	if err != nil {
+		return err
+	}
+
+	if expired {
+		return status.Errorf(codes.Unavailable, "can not update an expired backfill, id: %s", backfill.Id)
+	}
+
 	bf := ipb.BackfillInternal{
 		Backfill:  backfill,
 		TicketIds: ticketIDs,
@@ -206,6 +215,17 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	}
 
 	return nil
+}
+
+func isBackfillExpired(conn redis.Conn, id string, ttl time.Duration) (bool, error) {
+	lastAckTime, err := redis.Float64(conn.Do("ZSCORE", backfillLastAckTime, id))
+	if err != nil {
+		return false, status.Errorf(codes.Internal, "%v",
+			errors.Wrapf(err, "failed to get backfill's last acknowledgement time, id: %s", id))
+	}
+
+	endTime := time.Now().Add(-ttl).UnixNano()
+	return int64(lastAckTime) < endTime, nil
 }
 
 // DeleteBackfillCompletely performs a set of operations to remove backfill and all related entities.
@@ -287,6 +307,16 @@ func (rb *redisBackend) UpdateAcknowledgmentTimestamp(ctx context.Context, id st
 		return status.Errorf(codes.Unavailable, "UpdateAcknowledgmentTimestamp, id: %s, failed to connect to redis: %v", id, err)
 	}
 	defer handleConnectionClose(&redisConn)
+
+	expired, err := isBackfillExpired(redisConn, id, getBackfillReleaseTimeout(rb.cfg))
+	if err != nil {
+		return err
+	}
+
+	if expired {
+		return status.Errorf(codes.Unavailable, "can not acknowledge an expired backfill, id: %s", id)
+	}
+
 	return doUpdateAcknowledgmentTimestamp(redisConn, id)
 }
 
@@ -300,7 +330,6 @@ func doUpdateAcknowledgmentTimestamp(conn redis.Conn, backfillID string) error {
 	}
 
 	return nil
-
 }
 
 // GetExpiredBackfillIDs gets all backfill IDs which are expired
