@@ -248,8 +248,8 @@ message Backfill {
   // when specifying filters.
   SearchFields search_fields = 2;
 
-  // Customized information not inspected by Open Match, to be used by the match
-  // making function, evaluator, and components making calls to Open Match.
+  // Customized information not inspected by Open Match, to be used by
+  // the MatchMaking Function, evaluator, and components making calls to Open Match.
   // Optional, depending on the requirements of the connected systems.
   map<string, google.protobuf.Any> extensions = 3;
 
@@ -259,6 +259,6 @@ message Backfill {
 
   // Generation gets incremented on GameServers update operations.
   // Prevents the MMF from overriding a newer version from the game server.
-  // Do not read or write to this field, it is for internal tracking and changing the value will cause bugs.
+  // Do NOT read or write to this field, it is for internal tracking, and changing the value will cause bugs.
   int64 generation = 5;
 }
