@@ -588,10 +588,10 @@ func TestCleanUpExpiredBackfills(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = stream.Recv()
-	e, ok := status.FromError(err)
-	require.True(t, ok)
-	require.Contains(t, e.Message(), "error(s) in FetchMatches call. syncErr=[failed to handle match backfill: 1: rpc error: code = NotFound desc = Backfill id:")
+	// No matches should be returned
+	resp, err := stream.Recv()
+	require.Nil(t, resp)
+	require.Equal(t, io.EOF, err)
 
 	_, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
 	require.Error(t, err)
