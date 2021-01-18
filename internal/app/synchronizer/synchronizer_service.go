@@ -113,7 +113,7 @@ func (s *synchronizerService) Synchronize(stream ipb.Synchronizer_SynchronizeSer
 				registration.allM1cSent.Done()
 				return
 			}
-			registration.m1c.send(mAndM6c{m: req.Proposal, m7c: registration.m7c})
+			registration.m1c.send(mAndM7c{m: req.Proposal, m7c: registration.m7c})
 		}
 	}()
 
@@ -212,7 +212,7 @@ func (s *synchronizerService) runCycle() {
 	/////////////////////////////////////// Initialize cycle
 	ctx, cancel := contextcause.WithCancelCause(context.Background())
 
-	m2c := make(chan mAndM6c)
+	m2c := make(chan mAndM7c)
 	m3c := make(chan *pb.Match)
 	m4c := make(chan *pb.Match)
 	m5c := make(chan string)
@@ -306,7 +306,7 @@ Registration:
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-type mAndM6c struct {
+type mAndM7c struct {
 	m   *pb.Match
 	m7c chan string
 }
@@ -316,10 +316,10 @@ type mAndM6c struct {
 // This channel is remembered in a map, and the match is passed to be evaluated.
 // When a match returns from evaluation, it's ID is looked up in the map and the
 // match is returned on that channel.
-func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m6c <-chan string) {
-	m6cMap := make(map[string]chan<- string)
+func fanInFanOut(m2c <-chan mAndM7c, m3c chan<- *pb.Match, m6c <-chan string) {
+	m7cMap := make(map[string]chan<- string)
 
-	defer func(m2c <-chan mAndM6c) {
+	defer func(m2c <-chan mAndM7c) {
 		for range m2c {
 		}
 	}(m2c)
@@ -328,7 +328,7 @@ func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m6c <-chan string) {
 		select {
 		case m2, ok := <-m2c:
 			if ok {
-				m6cMap[m2.m.GetMatchId()] = m2.m7c
+				m7cMap[m2.m.GetMatchId()] = m2.m7c
 				m3c <- m2.m
 			} else {
 				close(m3c)
@@ -341,7 +341,7 @@ func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m6c <-chan string) {
 				return
 			}
 
-			m7c, ok := m6cMap[m5]
+			m7c, ok := m7cMap[m5]
 			if ok {
 				m7c <- m5
 			} else {
@@ -357,8 +357,8 @@ func fanInFanOut(m2c <-chan mAndM6c, m3c chan<- *pb.Match, m6c <-chan string) {
 ///////////////////////////////////////
 
 type cutoffSender struct {
-	m1c       chan<- mAndM6c
-	m2c       chan<- mAndM6c
+	m1c       chan<- mAndM7c
+	m2c       chan<- mAndM7c
 	closed    chan struct{}
 	closeOnce sync.Once
 }
@@ -366,8 +366,8 @@ type cutoffSender struct {
 // cutoffSender allows values to be passed on the provided channel until cutoff
 // has been called.  This closed the provided channel.  Calls to send after
 // cutoff work, but values are ignored.
-func newCutoffSender(m2c chan<- mAndM6c) *cutoffSender {
-	m1c := make(chan mAndM6c)
+func newCutoffSender(m2c chan<- mAndM7c) *cutoffSender {
+	m1c := make(chan mAndM7c)
 	c := &cutoffSender{
 		m1c:    m1c,
 		m2c:    m2c,
@@ -390,7 +390,7 @@ func newCutoffSender(m2c chan<- mAndM6c) *cutoffSender {
 }
 
 // send passes the value on the channel if still open, otherwise does nothing.
-func (c *cutoffSender) send(match mAndM6c) {
+func (c *cutoffSender) send(match mAndM7c) {
 	select {
 	case <-c.closed:
 	case c.m1c <- match:
