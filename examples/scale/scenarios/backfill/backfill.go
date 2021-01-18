@@ -19,21 +19,33 @@ import (
 	"io"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 const (
-	poolName = "all"
+	poolName     = "all"
+	openSlotsKey = "open-slots"
 )
 
 func Scenario() *BackfillScenario {
+	ticketsPerMatch := 4
 	return &BackfillScenario{
-		TicketsPerMatch: 2,
+		TicketsPerMatch:           ticketsPerMatch,
+		MaxTicketsPerNotFullMatch: 3,
+		BackfillDeleteCond: func(b *pb.Backfill) bool {
+			openSlots := getOpenSlots(b, ticketsPerMatch)
+			return openSlots <= 0
+		},
 	}
 }
 
 type BackfillScenario struct {
-	TicketsPerMatch int
+	TicketsPerMatch           int
+	MaxTicketsPerNotFullMatch int
+	BackfillDeleteCond        func(*pb.Backfill) bool
 }
 
 func (s *BackfillScenario) Profiles() []*pb.MatchProfile {
@@ -58,6 +70,110 @@ func (s *BackfillScenario) Backfill() *pb.Backfill {
 }
 
 func (s *BackfillScenario) MatchFunction(p *pb.MatchProfile, poolBackfills map[string][]*pb.Backfill, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
+	return statefullMMF(p, poolBackfills, poolTickets, s.TicketsPerMatch, s.MaxTicketsPerNotFullMatch)
+}
+
+func statefullMMF(p *pb.MatchProfile, poolBackfills map[string][]*pb.Backfill, poolTickets map[string][]*pb.Ticket, ticketsPerMatch int, maxTicketsPerNotFullMatch int) ([]*pb.Match, error) {
+	var matches []*pb.Match
+
+	for pool, backfills := range poolBackfills {
+		tickets, ok := poolTickets[pool]
+
+		if !ok || len(tickets) == 0 {
+			// no tickets in pool
+			continue
+		}
+
+		// process backfills first
+		for _, b := range backfills {
+			l := len(tickets)
+			if l == 0 {
+				// no tickets left
+				break
+			}
+
+			openSlots := getOpenSlots(b, ticketsPerMatch)
+			if openSlots <= 0 {
+				// no free open slots
+				continue
+			}
+
+			if l > openSlots {
+				l = openSlots
+			}
+
+			setOpenSlots(b, openSlots-l)
+			matches = append(matches, &pb.Match{
+				MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
+				Tickets:       tickets[0:l],
+				MatchProfile:  p.GetName(),
+				MatchFunction: "backfill",
+				Backfill:      b,
+			})
+			tickets = tickets[l:]
+		}
+
+		// create not full matches with backfill
+		for {
+			l := len(tickets)
+			if l == 0 {
+				// no tickets left
+				break
+			}
+
+			if l > maxTicketsPerNotFullMatch {
+				l = maxTicketsPerNotFullMatch
+			}
+			b := pb.Backfill{}
+			setOpenSlots(&b, ticketsPerMatch-l)
+			matches = append(matches, &pb.Match{
+				MatchId:            fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), len(matches)),
+				Tickets:            tickets[0:l],
+				MatchProfile:       p.GetName(),
+				MatchFunction:      "backfill",
+				Backfill:           &b,
+				AllocateGameserver: true,
+			})
+			tickets = tickets[l:]
+		}
+	}
+
+	return matches, nil
+}
+
+func getOpenSlots(b *pb.Backfill, defaultVal int) int {
+	if b.Extensions == nil {
+		return defaultVal
+	}
+
+	any, ok := b.Extensions[openSlotsKey]
+	if !ok {
+		return defaultVal
+	}
+
+	var val wrappers.Int32Value
+	err := ptypes.UnmarshalAny(any, &val)
+	if err != nil {
+		panic(err)
+	}
+
+	return int(val.Value)
+}
+
+func setOpenSlots(b *pb.Backfill, val int) {
+	if b.Extensions == nil {
+		b.Extensions = make(map[string]*any.Any)
+	}
+
+	any, err := ptypes.MarshalAny(&wrappers.Int32Value{Value: int32(val)})
+	if err != nil {
+		panic(err)
+	}
+
+	b.Extensions[openSlotsKey] = any
+}
+
+func statelessMMF(p *pb.MatchProfile, poolBackfills map[string][]*pb.Backfill, poolTickets map[string][]*pb.Ticket, ticketsPerMatch int) ([]*pb.Match, error) {
 	var matches []*pb.Match
 
 	for pool, backfills := range poolBackfills {
@@ -70,14 +186,13 @@ func (s *BackfillScenario) MatchFunction(p *pb.MatchProfile, poolBackfills map[s
 
 		for _, b := range backfills {
 			l := len(tickets)
-
 			if l == 0 {
 				// no tickets left
 				break
 			}
 
-			if l > s.TicketsPerMatch && s.TicketsPerMatch > 0 {
-				l = s.TicketsPerMatch
+			if l > ticketsPerMatch && ticketsPerMatch > 0 {
+				l = ticketsPerMatch
 			}
 
 			matches = append(matches, &pb.Match{

@@ -40,14 +40,16 @@ var (
 
 	activeScenario = scenarios.ActiveScenario
 
-	mIterations          = telemetry.Counter("scale_backend_iterations", "fetch match iterations")
-	mFetchMatchCalls     = telemetry.Counter("scale_backend_fetch_match_calls", "fetch match calls")
-	mFetchMatchSuccesses = telemetry.Counter("scale_backend_fetch_match_successes", "fetch match successes")
-	mFetchMatchErrors    = telemetry.Counter("scale_backend_fetch_match_errors", "fetch match errors")
-	mMatchesReturned     = telemetry.Counter("scale_backend_matches_returned", "matches returned")
-	mSumTicketsReturned  = telemetry.Counter("scale_backend_sum_tickets_returned", "tickets in matches returned")
-	mMatchesAssigned     = telemetry.Counter("scale_backend_matches_assigned", "matches assigned")
-	mMatchAssignsFailed  = telemetry.Counter("scale_backend_match_assigns_failed", "match assigns failed")
+	mIterations            = telemetry.Counter("scale_backend_iterations", "fetch match iterations")
+	mFetchMatchCalls       = telemetry.Counter("scale_backend_fetch_match_calls", "fetch match calls")
+	mFetchMatchSuccesses   = telemetry.Counter("scale_backend_fetch_match_successes", "fetch match successes")
+	mFetchMatchErrors      = telemetry.Counter("scale_backend_fetch_match_errors", "fetch match errors")
+	mMatchesReturned       = telemetry.Counter("scale_backend_matches_returned", "matches returned")
+	mSumTicketsReturned    = telemetry.Counter("scale_backend_sum_tickets_returned", "tickets in matches returned")
+	mMatchesAssigned       = telemetry.Counter("scale_backend_matches_assigned", "matches assigned")
+	mMatchAssignsFailed    = telemetry.Counter("scale_backend_match_assigns_failed", "match assigns failed")
+	mBackfillsDeleted      = telemetry.Counter("scale_backend_backfills_deleted", "backfills deleted")
+	mBackfillDeletesFailed = telemetry.Counter("scale_backend_backfill_deletes_failed", "backfill deletes failed")
 )
 
 // Run triggers execution of functions that continuously fetch, assign and
@@ -85,11 +87,19 @@ func run(cfg config.View) {
 		}
 	}
 
+	backfillsToDelete := make(chan *pb.Backfill, 30000)
+
+	if activeScenario.BackendDeletesBackfills {
+		for i := 0; i < 100; i++ {
+			go runDeleteBackfills(fe, backfillsToDelete)
+		}
+	}
+
 	matchesToAcknowledge := make(chan *pb.Match, 30000)
 
 	if activeScenario.BackendAcknowledgesBackfills {
 		for i := 0; i < 100; i++ {
-			go runAcknowledgeBackfills(fe, matchesToAcknowledge)
+			go runAcknowledgeBackfills(fe, matchesToAcknowledge, backfillsToDelete)
 		}
 	}
 
@@ -162,13 +172,25 @@ func runFetchMatches(be pb.BackendServiceClient, p *pb.MatchProfile, matchesToAs
 	}
 }
 
-func runAcknowledgeBackfills(fe pb.FrontendServiceClient, matchesToAcknowledge <-chan *pb.Match) {
-	for m := range matchesToAcknowledge {
-		ids := []string{}
-		for _, t := range m.Tickets {
-			ids = append(ids, t.GetId())
+func runDeleteBackfills(fe pb.FrontendServiceClient, backfillsToDelete <-chan *pb.Backfill) {
+	for b := range backfillsToDelete {
+		if !activeScenario.BackfillDeleteCond(b) {
+			continue
 		}
 
+		ctx := context.Background()
+		_, err := fe.DeleteBackfill(ctx, &pb.DeleteBackfillRequest{BackfillId: b.Id})
+		if err != nil {
+			logger.WithError(err).Errorf("failed to delete backfill: %s", b.Id)
+			telemetry.RecordUnitMeasurement(ctx, mBackfillDeletesFailed)
+		} else {
+			telemetry.RecordUnitMeasurement(ctx, mBackfillsDeleted)
+		}
+	}
+}
+
+func runAcknowledgeBackfills(fe pb.FrontendServiceClient, matchesToAcknowledge <-chan *pb.Match, backfillsToDelete chan<- *pb.Backfill) {
+	for m := range matchesToAcknowledge {
 		backfillId := m.Backfill.GetId()
 		if backfillId == "" {
 			continue
@@ -178,6 +200,10 @@ func runAcknowledgeBackfills(fe pb.FrontendServiceClient, matchesToAcknowledge <
 		if err != nil {
 			logger.WithError(err).Errorf("failed to acknowledge backfill: %s", backfillId)
 			continue
+		}
+
+		if activeScenario.BackendDeletesBackfills {
+			backfillsToDelete <- m.Backfill
 		}
 	}
 }

@@ -60,7 +60,8 @@ var ActiveScenario = func() *Scenario {
 	// so it's easier to run different scenarios without changing code.
 	//gs = battleroyal.Scenario()
 	//gs = teamshooter.Scenario()
-	gs = backfill.Scenario()
+	s := backfill.Scenario()
+	gs = s
 
 	return &Scenario{
 		FrontendTotalTicketsToCreate:    -1,
@@ -71,10 +72,12 @@ var ActiveScenario = func() *Scenario {
 
 		BackendAssignsTickets:        false,
 		BackendAcknowledgesBackfills: true,
+		BackendDeletesBackfills:      true,
 
-		Ticket:   gs.Ticket,
-		Backfill: gs.Backfill,
-		Profiles: gs.Profiles,
+		Ticket:             gs.Ticket,
+		Backfill:           gs.Backfill,
+		BackfillDeleteCond: s.BackfillDeleteCond,
+		Profiles:           gs.Profiles,
 
 		MMF:       queryPoolsWrapper(gs.MatchFunction),
 		Evaluator: gs.Evaluate,
@@ -105,10 +108,12 @@ type Scenario struct {
 	// FilterNumber       int
 	BackendAssignsTickets        bool
 	BackendAcknowledgesBackfills bool
+	BackendDeletesBackfills      bool
 
-	Ticket   func() *pb.Ticket
-	Backfill func() *pb.Backfill
-	Profiles func() []*pb.MatchProfile
+	Ticket             func() *pb.Ticket
+	Backfill           func() *pb.Backfill
+	BackfillDeleteCond func(*pb.Backfill) bool
+	Profiles           func() []*pb.MatchProfile
 
 	MMF       matchFunction
 	Evaluator evaluatorFunction
