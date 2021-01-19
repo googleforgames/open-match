@@ -165,7 +165,7 @@ const proposalCollectionInterval = time.Millisecond * 200
 const pendingReleaseTimeout = time.Second * 1
 const assignedDeleteTimeout = time.Millisecond * 200
 
-// configFile is the "cononical" test config.  It exactly matches the configmap
+// configFile is the "canonical" test config.  It exactly matches the configmap
 // which is used in the real cluster tests.
 const configFile = `
 registrationInterval: 200ms

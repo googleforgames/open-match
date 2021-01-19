@@ -593,6 +593,60 @@ func TestCleanUpExpiredBackfills(t *testing.T) {
 	require.Equal(t, fmt.Sprintf("rpc error: code = NotFound desc = Backfill id: %s not found", b1.Id), err.Error())
 }
 
+func TestBackfillSkipNotfoundError(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.NoError(t, err)
+	require.NotNil(t, t1)
+
+	b1, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
+		SearchFields: &pb.SearchFields{
+			StringArgs: map[string]string{
+				"search": "me",
+			},
+		}}})
+	require.NoError(t, err)
+	require.NotNil(t, b1)
+
+	m := &pb.Match{
+		MatchId:  "1",
+		Tickets:  []*pb.Ticket{t1},
+		Backfill: b1,
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- m
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		p, ok := <-in
+		require.True(t, ok)
+
+		out <- p.MatchId
+		return nil
+	})
+
+	// Delete Backfill to cause NotFound error
+	_, err = om.Frontend().DeleteBackfill(ctx, &pb.DeleteBackfillRequest{BackfillId: b1.Id})
+	require.NoError(t, err)
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.NoError(t, err)
+	resp, err := stream.Recv()
+	require.Nil(t, resp)
+	require.Equal(t, io.EOF, err)
+
+	_, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
+	require.Error(t, err)
+	require.Equal(t, fmt.Sprintf("rpc error: code = NotFound desc = Backfill id: %s not found", b1.Id), err.Error())
+}
+
 func mustAny(m proto.Message) *any.Any {
 	result, err := ptypes.MarshalAny(m)
 	if err != nil {
