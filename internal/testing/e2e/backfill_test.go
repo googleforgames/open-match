@@ -556,40 +556,35 @@ func TestCleanUpExpiredBackfills(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, b1)
 
-	m := &pb.Match{
-		MatchId:  "1",
-		Tickets:  []*pb.Ticket{t1},
-		Backfill: b1,
-	}
-
 	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
-		out <- m
 		return nil
 	})
 
 	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
-		p, ok := <-in
-		require.True(t, ok)
-		require.True(t, proto.Equal(p, m))
-		_, ok = <-in
-		require.False(t, ok)
-
-		out <- m.MatchId
 		return nil
 	})
 
 	// wait until backfill is expired, then try to get it
 	time.Sleep(pendingReleaseTimeout * 2)
 
-	// statestore.CleanupBackfills is called at the beginning of each syncronizer cycle after fetch matches call, so expired backfill will be removed
+	// statestore.CleanupBackfills is called at the end of each synchronizer cycle after fetch matches call, so expired backfill will be removed
 	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
 		Config:  om.MMFConfigGRPC(),
 		Profile: &pb.MatchProfile{},
 	})
 	require.NoError(t, err)
-
-	// No matches should be returned
 	resp, err := stream.Recv()
+	require.Nil(t, resp)
+	require.Equal(t, io.EOF, err)
+
+	// call FetchMatches twice in order to give backfills time to be completely cleaned up
+	stream, err = om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.NoError(t, err)
+
+	resp, err = stream.Recv()
 	require.Nil(t, resp)
 	require.Equal(t, io.EOF, err)
 
