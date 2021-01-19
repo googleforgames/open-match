@@ -381,8 +381,7 @@ func TestAcknowledgeBackfillValidation(t *testing.T) {
 
 // TestAcknowledgeBackfill verifies timestamp part of AcknowledgeBackfill call,
 // assignment part tested in a corresponding E2E test.
-// GetExpiredBackfills() after AcknowledgeBackfill() call should not return Backfill
-// which was just acknowledged
+// Expired backfill can not be acknowledged
 func TestAcknowledgeBackfill(t *testing.T) {
 	cfg := viper.New()
 	ctx := context.Background()
@@ -402,8 +401,12 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	require.NoError(t, err)
 	fs := frontendService{cfg, store}
 
+	bf, err := fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	require.NoError(t, err)
+	require.NotNil(t, bf)
+
 	// Use wrong BackfillID, error is returned
-	bf, err := fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: "42", Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	bf, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: "42", Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
 	require.Error(t, err)
 	require.Nil(t, bf)
 	require.Equal(t, "Backfill id: 42 not found", status.Convert(err).Message())
@@ -414,22 +417,11 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	require.Len(t, ids, 1)
 
 	bf, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
-	require.NoError(t, err)
-	require.NotNil(t, bf)
+	require.Nil(t, bf)
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), "can not acknowledge an expired backfill, id: 1")
 
-	ids, err = store.GetExpiredBackfillIDs(ctx)
-	require.NoError(t, err)
-	require.Len(t, ids, 0)
-
-	// Test that we can run two consecutive AcknowledgeBackfill requests with no Error
-	// and with the same results
-	bf, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
-	require.NoError(t, err)
-	require.NotNil(t, bf)
-
-	ids, err = store.GetExpiredBackfillIDs(ctx)
-	require.NoError(t, err)
-	require.Len(t, ids, 0)
 }
 
 func TestDoDeleteTicket(t *testing.T) {

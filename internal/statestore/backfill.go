@@ -17,6 +17,7 @@ package statestore
 import (
 	"context"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -188,6 +189,15 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	}
 	defer handleConnectionClose(&redisConn)
 
+	expired, err := isBackfillExpired(redisConn, backfill.Id, getBackfillReleaseTimeout(rb.cfg))
+	if err != nil {
+		return err
+	}
+
+	if expired {
+		return status.Errorf(codes.Unavailable, "can not update an expired backfill, id: %s", backfill.Id)
+	}
+
 	bf := ipb.BackfillInternal{
 		Backfill:  backfill,
 		TicketIds: ticketIDs,
@@ -206,6 +216,17 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	}
 
 	return nil
+}
+
+func isBackfillExpired(conn redis.Conn, id string, ttl time.Duration) (bool, error) {
+	lastAckTime, err := redis.Float64(conn.Do("ZSCORE", backfillLastAckTime, id))
+	if err != nil {
+		return false, status.Errorf(codes.Internal, "%v",
+			errors.Wrapf(err, "failed to get backfill's last acknowledgement time, id: %s", id))
+	}
+
+	endTime := time.Now().Add(-ttl).UnixNano()
+	return int64(lastAckTime) < endTime, nil
 }
 
 // DeleteBackfillCompletely performs a set of operations to remove backfill and all related entities.
@@ -260,14 +281,9 @@ func (rb *redisBackend) DeleteBackfillCompletely(ctx context.Context, id string)
 	return nil
 }
 
-// CleanupBackfills removes expired backfills
-func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
-	expiredBfIDs, err := rb.GetExpiredBackfillIDs(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, id := range expiredBfIDs {
+func (rb *redisBackend) cleanupWorker(ctx context.Context, backfillIDsCh <-chan string, wg *sync.WaitGroup) {
+	var err error
+	for id := range backfillIDsCh {
 		err = rb.DeleteBackfillCompletely(ctx, id)
 		if err != nil {
 			logger.WithFields(logrus.Fields{
@@ -275,7 +291,31 @@ func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
 				"backfill_id": id,
 			}).Error("CleanupBackfills")
 		}
+		wg.Done()
 	}
+}
+
+// CleanupBackfills removes expired backfills
+func (rb *redisBackend) CleanupBackfills(ctx context.Context) error {
+	expiredBfIDs, err := rb.GetExpiredBackfillIDs(ctx)
+	if err != nil {
+		return err
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(expiredBfIDs))
+	backfillIDsCh := make(chan string, len(expiredBfIDs))
+
+	for w := 1; w <= 3; w++ {
+		go rb.cleanupWorker(ctx, backfillIDsCh, &wg)
+	}
+
+	for _, id := range expiredBfIDs {
+		backfillIDsCh <- id
+	}
+	close(backfillIDsCh)
+
+	wg.Wait()
 	return nil
 }
 
@@ -287,6 +327,16 @@ func (rb *redisBackend) UpdateAcknowledgmentTimestamp(ctx context.Context, id st
 		return status.Errorf(codes.Unavailable, "UpdateAcknowledgmentTimestamp, id: %s, failed to connect to redis: %v", id, err)
 	}
 	defer handleConnectionClose(&redisConn)
+
+	expired, err := isBackfillExpired(redisConn, id, getBackfillReleaseTimeout(rb.cfg))
+	if err != nil {
+		return err
+	}
+
+	if expired {
+		return status.Errorf(codes.Unavailable, "can not acknowledge an expired backfill, id: %s", id)
+	}
+
 	return doUpdateAcknowledgmentTimestamp(redisConn, id)
 }
 
@@ -300,7 +350,6 @@ func doUpdateAcknowledgmentTimestamp(conn redis.Conn, backfillID string) error {
 	}
 
 	return nil
-
 }
 
 // GetExpiredBackfillIDs gets all backfill IDs which are expired

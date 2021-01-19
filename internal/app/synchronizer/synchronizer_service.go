@@ -212,11 +212,6 @@ func (s *synchronizerService) runCycle() {
 	/////////////////////////////////////// Initialize cycle
 	ctx, cancel := contextcause.WithCancelCause(context.Background())
 
-	err := s.store.CleanupBackfills(ctx)
-	if err != nil {
-		logger.Errorf("Failed to clean up backfills, %s", err.Error())
-	}
-
 	m2c := make(chan mAndM6c)
 	m3c := make(chan *pb.Match)
 	m4c := make(chan *pb.Match)
@@ -296,10 +291,16 @@ Registration:
 	})
 
 	<-closedOnCycleEnd
+
 	stats.Record(ctx, iterationLatency.M(float64(time.Since(cst)/time.Millisecond)))
 
 	// Clean up in case it was never needed.
 	cancelProposalCollection.Stop()
+
+	err := s.store.CleanupBackfills(ctx)
+	if err != nil {
+		logger.Errorf("Failed to clean up backfills, %s", err.Error())
+	}
 }
 
 ///////////////////////////////////////
