@@ -695,6 +695,45 @@ func generateBackfills(ctx context.Context, t *testing.T, service Service, amoun
 	return backfills
 }
 
+func BenchmarkCleanupBackfills(b *testing.B) {
+	t := &testing.T{}
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	rc, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
+	require.NoError(t, err)
+
+	createStaleBF := func(bfID string, ticketIDs ...string) {
+		bf := &pb.Backfill{
+			Id:         bfID,
+			Generation: 1,
+		}
+		err = service.CreateBackfill(ctx, bf, ticketIDs)
+		require.NoError(t, err)
+
+		_, err = rc.Do("ZADD", "backfill_last_ack_time", 123, bfID)
+		require.NoError(t, err)
+
+		err = service.AddTicketsToPendingRelease(ctx, ticketIDs)
+		require.NoError(t, err)
+
+		err = service.IndexBackfill(ctx, bf)
+		require.NoError(t, err)
+	}
+
+	for n := 0; n < b.N; n++ {
+		for i := 0; i < 50; i++ {
+			createStaleBF(fmt.Sprintf("b-%d", i), fmt.Sprintf("t1-%d", i), fmt.Sprintf("t1-%d", i+1))
+		}
+		err = service.CleanupBackfills(ctx)
+		require.NoError(t, err)
+	}
+}
+
 func TestCleanupBackfills(t *testing.T) {
 	cfg, closer := createRedis(t, false, "")
 	defer closer()
