@@ -249,7 +249,7 @@ message Backfill {
   SearchFields search_fields = 2;
 
   // Customized information not inspected by Open Match, to be used by
-  // the MatchMakingFunction, evaluator, and components making calls to Open Match.
+  // the Match Making Function, evaluator, and components making calls to Open Match.
   // Optional, depending on the requirements of the connected systems.
   map<string, google.protobuf.Any> extensions = 3;
 
