@@ -21,6 +21,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/gomodule/redigo/redis"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
@@ -115,7 +118,7 @@ func TestCreateBackfill(t *testing.T) {
 	require.Contains(t, status.Convert(err).Message(), "CreateBackfill, id: 222, failed to connect to redis:")
 }
 
-func TestUpdateBackfill(t *testing.T) {
+func TestUpdateExistingBackfillNoError(t *testing.T) {
 	cfg, closer := createRedis(t, false, "")
 	defer closer()
 	service := New(cfg)
@@ -123,49 +126,123 @@ func TestUpdateBackfill(t *testing.T) {
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
-	bf := pb.Backfill{
-		Id:         "1",
+	// ARRANGE
+	v := &wrappers.DoubleValue{Value: 123}
+	a, err := ptypes.MarshalAny(v)
+	require.NoError(t, err)
+
+	existingBF := pb.Backfill{
+		Id:         "123",
 		Generation: 1,
-	}
-
-	var testCases = []struct {
-		description     string
-		backfill        *pb.Backfill
-		ticketIDs       []string
-		expectedCode    codes.Code
-		expectedMessage string
-	}{
-		{
-			description:     "ok, backfill is passed, ticketIDs is nil",
-			backfill:        &bf,
-			ticketIDs:       []string{"1", "2"},
-			expectedCode:    codes.OK,
-			expectedMessage: "",
+		SearchFields: &pb.SearchFields{
+			Tags: []string{"123"},
 		},
-		{
-			description:     "create existing backfill, no err expected",
-			backfill:        &bf,
-			ticketIDs:       nil,
-			expectedCode:    codes.OK,
-			expectedMessage: "",
+		Extensions: map[string]*any.Any{
+			"qwe": a,
 		},
 	}
+	ticketIDs := []string{"1"}
+	err = service.CreateBackfill(ctx, &existingBF, ticketIDs)
+	require.NoError(t, err)
 
-	for _, tc := range testCases {
-		tc := tc
-		t.Run(tc.description, func(t *testing.T) {
-			err := service.UpdateBackfill(ctx, tc.backfill, tc.ticketIDs)
-			if tc.expectedCode == codes.OK {
-				require.NoError(t, err)
-			} else {
-				require.Error(t, err)
-				require.Equal(t, tc.expectedCode.String(), status.Convert(err).Code().String())
-				require.Contains(t, status.Convert(err).Message(), tc.expectedMessage)
-			}
-		})
+	updateBF := pb.Backfill{
+		Id:         existingBF.Id,
+		Generation: 5,
+		SearchFields: &pb.SearchFields{
+			Tags: []string{"456"},
+		},
+		Extensions: map[string]*any.Any{
+			"xyz": a,
+		},
+	}
+	updateTicketIDs := []string{"1"}
+
+	// ACT
+	err = service.UpdateBackfill(ctx, &updateBF, updateTicketIDs)
+	require.NoError(t, err)
+
+	// ASSERT
+	backfillActual, tIDsActual, err := service.GetBackfill(ctx, updateBF.Id)
+	require.NoError(t, err)
+
+	require.Equal(t, updateTicketIDs, tIDsActual)
+	require.Equal(t, updateBF.Id, backfillActual.Id)
+	require.Equal(t, updateBF.Generation, backfillActual.Generation)
+
+	require.NotNil(t, backfillActual.SearchFields)
+	require.Equal(t, updateBF.SearchFields.Tags, backfillActual.SearchFields.Tags)
+
+	res := &wrappers.DoubleValue{}
+	err = ptypes.UnmarshalAny(backfillActual.Extensions["xyz"], res)
+	require.NoError(t, err)
+	require.Equal(t, v.Value, res.Value)
+}
+
+func TestUpdateBackfillDoNotExistCanNotUpdate(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	v := &wrappers.DoubleValue{Value: 123}
+	a, err := ptypes.MarshalAny(v)
+	require.NoError(t, err)
+
+	updateBF := pb.Backfill{
+		Id:         "123",
+		Generation: 5,
+		SearchFields: &pb.SearchFields{
+			Tags: []string{"456"},
+		},
+		Extensions: map[string]*any.Any{
+			"xyz": a,
+		},
+	}
+	updateTicketIDs := []string{"1"}
+
+	err = service.UpdateBackfill(ctx, &updateBF, updateTicketIDs)
+	require.Error(t, err)
+	require.Equal(t, codes.Internal.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), "failed to get backfill's last acknowledgement time, id: 123")
+}
+
+func TestUpdateBackfillExpiredBackfillErrExpected(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	rc, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
+	require.NoError(t, err)
+
+	bfID := "bf1"
+	bfLastAck := "backfill_last_ack_time"
+	bf := pb.Backfill{
+		Id:         bfID,
+		Generation: 5,
 	}
 
-	// pass an expired context, err expected
+	// add expired but acknowledged backfill
+	_, err = rc.Do("ZADD", bfLastAck, 123, bfID)
+	require.NoError(t, err)
+
+	err = service.UpdateBackfill(ctx, &bf, nil)
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), fmt.Sprintf("can not update an expired backfill, id: %s", bfID))
+}
+
+func TestUpdateBackfillExpiredContextErrExpected(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	service = New(cfg)
@@ -377,40 +454,24 @@ func TestUpdateAcknowledgmentTimestampLifecycle(t *testing.T) {
 	require.Contains(t, bfIDs, bf2)
 
 	err = service.UpdateAcknowledgmentTimestamp(ctx, bf1)
-	require.NoError(t, err)
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), fmt.Sprintf("can not acknowledge an expired backfill, id: %s", bf1))
+
 	err = service.UpdateAcknowledgmentTimestamp(ctx, bf2)
-	require.NoError(t, err)
-
-	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
-	require.NoError(t, err)
-	require.Len(t, bfIDs, 0)
-
-	// Sleep until the pending release expired and verify we have all the backfills
-	time.Sleep(pendingReleaseTimeout)
-
-	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
-	require.NoError(t, err)
-	require.Len(t, bfIDs, 2)
-	require.Contains(t, bfIDs, bf1)
-	require.Contains(t, bfIDs, bf2)
-
-	// Acknowledge one Backfill it should be removed from GetExpired output
-	err = service.UpdateAcknowledgmentTimestamp(ctx, bf2)
-	require.NoError(t, err)
-	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
-	require.Len(t, bfIDs, 1)
-	require.NoError(t, err)
-	require.Equal(t, bf1, bfIDs[0])
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), fmt.Sprintf("can not acknowledge an expired backfill, id: %s", bf2))
 
 	err = service.DeleteBackfill(ctx, bfIDs[0])
 	require.NoError(t, err)
 
 	bfIDs, err = service.GetExpiredBackfillIDs(ctx)
-	require.Len(t, bfIDs, 0)
+	require.Len(t, bfIDs, 1)
 	require.NoError(t, err)
 }
 
-func TestUpdateAcknowledgmentTimestampt(t *testing.T) {
+func TestUpdateAcknowledgmentTimestamp(t *testing.T) {
 	cfg, closer := createRedis(t, false, "")
 	defer closer()
 
@@ -421,7 +482,13 @@ func TestUpdateAcknowledgmentTimestampt(t *testing.T) {
 	ctx := utilTesting.NewContext(t)
 	bf1 := "mockBackfillID"
 
-	err := service.UpdateAcknowledgmentTimestamp(ctx, bf1)
+	err := service.CreateBackfill(ctx, &pb.Backfill{
+		Id:         bf1,
+		Generation: 1,
+	}, nil)
+	require.NoError(t, err)
+
+	err = service.UpdateAcknowledgmentTimestamp(ctx, bf1)
 	require.NoError(t, err)
 
 	// Check that Acknowledge timestamp stored valid in Redis
@@ -433,6 +500,30 @@ func TestUpdateAcknowledgmentTimestampt(t *testing.T) {
 	// is less than one second
 	t2 := time.Unix(res/1e9, res%1e9)
 	require.True(t, t2.After(startTime), "UpdateAcknowledgmentTimestamptTimestamp should update time to a more recent one")
+}
+
+func TestUpdateAcknowledgmentTimestamptExpiredBackfillErrExpected(t *testing.T) {
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	rc, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
+	require.NoError(t, err)
+
+	bfID := "bf1"
+	bfLastAck := "backfill_last_ack_time"
+
+	// add expired but acknowledged backfill
+	_, err = rc.Do("ZADD", bfLastAck, 123, bfID)
+	require.NoError(t, err)
+
+	err = service.UpdateAcknowledgmentTimestamp(ctx, bfID)
+	require.Error(t, err)
+	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Contains(t, status.Convert(err).Message(), fmt.Sprintf("can not acknowledge an expired backfill, id: %s", bfID))
 }
 
 func TestUpdateAcknowledgmentTimestampConnectionError(t *testing.T) {
@@ -602,6 +693,45 @@ func generateBackfills(ctx context.Context, t *testing.T, service Service, amoun
 	}
 
 	return backfills
+}
+
+func BenchmarkCleanupBackfills(b *testing.B) {
+	t := &testing.T{}
+	cfg, closer := createRedis(t, false, "")
+	defer closer()
+	service := New(cfg)
+	require.NotNil(t, service)
+	defer service.Close()
+	ctx := utilTesting.NewContext(t)
+
+	rc, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", cfg.GetString("redis.hostname"), cfg.GetString("redis.port")))
+	require.NoError(t, err)
+
+	createStaleBF := func(bfID string, ticketIDs ...string) {
+		bf := &pb.Backfill{
+			Id:         bfID,
+			Generation: 1,
+		}
+		err = service.CreateBackfill(ctx, bf, ticketIDs)
+		require.NoError(t, err)
+
+		_, err = rc.Do("ZADD", "backfill_last_ack_time", 123, bfID)
+		require.NoError(t, err)
+
+		err = service.AddTicketsToPendingRelease(ctx, ticketIDs)
+		require.NoError(t, err)
+
+		err = service.IndexBackfill(ctx, bf)
+		require.NoError(t, err)
+	}
+
+	for n := 0; n < b.N; n++ {
+		for i := 0; i < 50; i++ {
+			createStaleBF(fmt.Sprintf("b-%d", i), fmt.Sprintf("t1-%d", i), fmt.Sprintf("t1-%d", i+1))
+		}
+		err = service.CleanupBackfills(ctx)
+		require.NoError(t, err)
+	}
 }
 
 func TestCleanupBackfills(t *testing.T) {

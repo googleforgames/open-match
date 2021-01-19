@@ -116,7 +116,7 @@ func TestBackfillQueryAfterMMFUpdate(t *testing.T) {
 	}
 	{
 		resp, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: backfill})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, resp)
 		match.Backfill = resp
 	}
@@ -138,10 +138,10 @@ func TestBackfillQueryAfterMMFUpdate(t *testing.T) {
 			Config:  om.MMFConfigGRPC(),
 			Profile: &pb.MatchProfile{},
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		resp, err := stream.Recv()
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.True(t, proto.Equal(match, resp.Match))
 
 		resp, err = stream.Recv()
