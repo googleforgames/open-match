@@ -261,7 +261,8 @@ func createMatchWithBackfill(ctx context.Context, om *om, b *pb.Backfill, t *tes
 
 	resp, err = stream.Recv()
 	require.Nil(t, resp)
-	require.Equal(t, io.EOF, err)
+	require.Error(t, err)
+	require.Equal(t, io.EOF.Error(), err.Error())
 
 	actual, err := om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: bfID})
 	require.NoError(t, err)
@@ -330,7 +331,8 @@ func TestProposedBackfillCreate(t *testing.T) {
 
 		resp, err = stream.Recv()
 		require.Nil(t, resp)
-		require.Equal(t, io.EOF, err)
+		require.Error(t, err)
+		require.Equal(t, io.EOF.Error(), err.Error())
 	}
 	{
 		stream, err := om.query.QueryBackfills(ctx, &pb.QueryBackfillsRequest{
@@ -357,7 +359,8 @@ func TestProposedBackfillCreate(t *testing.T) {
 
 		resp, err = stream.Recv()
 		require.Nil(t, resp)
-		require.Equal(t, io.EOF, err)
+		require.Error(t, err)
+		require.Equal(t, io.EOF.Error(), err.Error())
 	}
 	{
 		stream, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
@@ -366,7 +369,8 @@ func TestProposedBackfillCreate(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = stream.Recv()
-		require.Equal(t, io.EOF, err)
+		require.Error(t, err)
+		require.Equal(t, io.EOF.Error(), err.Error())
 	}
 }
 
@@ -436,7 +440,8 @@ func TestProposedBackfillUpdate(t *testing.T) {
 
 		resp, err = stream.Recv()
 		require.Nil(t, resp)
-		require.Equal(t, io.EOF, err)
+		require.Error(t, err)
+		require.Equal(t, io.EOF.Error(), err.Error())
 	}
 	{
 		stream, err := om.query.QueryBackfills(ctx, &pb.QueryBackfillsRequest{
@@ -462,7 +467,8 @@ func TestProposedBackfillUpdate(t *testing.T) {
 
 		resp, err = stream.Recv()
 		require.Nil(t, resp)
-		require.Equal(t, io.EOF, err)
+		require.Error(t, err)
+		require.Equal(t, io.EOF.Error(), err.Error())
 	}
 	{
 		stream, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
@@ -471,7 +477,8 @@ func TestProposedBackfillUpdate(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = stream.Recv()
-		require.Equal(t, io.EOF, err)
+		require.Error(t, err)
+		require.Equal(t, io.EOF.Error(), err.Error())
 	}
 }
 
@@ -519,7 +526,8 @@ func TestBackfillGenerationMismatch(t *testing.T) {
 
 		resp, err := stream.Recv()
 		require.Nil(t, resp)
-		require.Equal(t, io.EOF, err)
+		require.Error(t, err)
+		require.Equal(t, io.EOF.Error(), err.Error())
 	}
 	{
 		stream, err := om.Query().QueryTickets(ctx, &pb.QueryTicketsRequest{Pool: &pb.Pool{
@@ -535,7 +543,8 @@ func TestBackfillGenerationMismatch(t *testing.T) {
 
 		resp, err = stream.Recv()
 		require.Nil(t, resp)
-		require.Equal(t, io.EOF, err)
+		require.Error(t, err)
+		require.Equal(t, io.EOF.Error(), err.Error())
 	}
 }
 
@@ -575,7 +584,8 @@ func TestCleanUpExpiredBackfills(t *testing.T) {
 	require.NoError(t, err)
 	resp, err := stream.Recv()
 	require.Nil(t, resp)
-	require.Equal(t, io.EOF, err)
+	require.Error(t, err)
+	require.Equal(t, io.EOF.Error(), err.Error())
 
 	// call FetchMatches twice in order to give backfills time to be completely cleaned up
 	stream, err = om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
@@ -586,7 +596,8 @@ func TestCleanUpExpiredBackfills(t *testing.T) {
 
 	resp, err = stream.Recv()
 	require.Nil(t, resp)
-	require.Equal(t, io.EOF, err)
+	require.Error(t, err)
+	require.Equal(t, io.EOF.Error(), err.Error())
 
 	_, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
 	require.Error(t, err)
@@ -640,7 +651,8 @@ func TestBackfillSkipNotfoundError(t *testing.T) {
 	require.NoError(t, err)
 	resp, err := stream.Recv()
 	require.Nil(t, resp)
-	require.Equal(t, io.EOF, err)
+	require.Error(t, err)
+	require.Equal(t, io.EOF.Error(), err.Error())
 
 	_, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
 	require.Error(t, err)
