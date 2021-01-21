@@ -16,6 +16,7 @@ package frontend
 
 import (
 	"context"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -71,7 +72,7 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 		return nil, status.Error(codes.Internal, "failed to clone input ticket proto")
 	}
 
-	ticket.Id = xid.New().String()
+	ticket.Id = xid.NewWithTime(time.Now()).String()
 	ticket.CreateTime = ptypes.TimestampNow()
 
 	sfCount := 0
@@ -121,7 +122,7 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 		return nil, status.Error(codes.Internal, "failed to clone input ticket proto")
 	}
 
-	backfill.Id = xid.New().String()
+	backfill.Id = xid.NewWithTime(time.Now()).String()
 	backfill.CreateTime = ptypes.TimestampNow()
 	backfill.Generation = 1
 

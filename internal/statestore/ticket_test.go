@@ -55,7 +55,7 @@ func TestTicketLifecycle(t *testing.T) {
 	ctx := utilTesting.NewContext(t)
 
 	// Initialize test data
-	id := xid.New().String()
+	id := xid.NewWithTime(time.Now()).String()
 	ticket := &pb.Ticket{
 		Id: id,
 		SearchFields: &pb.SearchFields{

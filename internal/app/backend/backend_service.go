@@ -368,7 +368,7 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 
 func createOrUpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIds []string, store statestore.Service) error {
 	if backfill.Id == "" {
-		backfill.Id = xid.New().String()
+		backfill.Id = xid.NewWithTime(time.Now()).String()
 		backfill.CreateTime = ptypes.TimestampNow()
 		backfill.Generation = 1
 		err := store.CreateBackfill(ctx, backfill, ticketIds)
