@@ -254,7 +254,7 @@ func newMatch(num int, profile string, tickets []*pb.Ticket, b *pb.Backfill) pb.
 	t := time.Now().Format("2006-01-02T15:04:05.00")
 
 	return pb.Match{
-		MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", matchName, t, num),
+		MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", profile, t, num),
 		MatchProfile:  profile,
 		MatchFunction: matchName,
 		Tickets:       tickets,

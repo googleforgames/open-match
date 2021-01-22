@@ -108,7 +108,7 @@ func TestMakeFullMatches(t *testing.T) {
 		expectedTicketLen int
 	}{
 		{name: "returns no matches when there are no tickets", tickets: []*pb.Ticket{}, expectedMatchLen: 0, expectedTicketLen: 0},
-		{name: "returns no matches when lenght of tickets is less then playersPerMatch", tickets: []*pb.Ticket{{Id: "1"}}, expectedMatchLen: 0, expectedTicketLen: 1},
+		{name: "returns no matches when length of tickets is less then playersPerMatch", tickets: []*pb.Ticket{{Id: "1"}}, expectedMatchLen: 0, expectedTicketLen: 1},
 		{name: "returns a match when length of tickets is greater then playersPerMatch", tickets: []*pb.Ticket{{Id: "1"}, {Id: "2"}}, expectedMatchLen: 1, expectedTicketLen: 0},
 	} {
 		testCase := testCase

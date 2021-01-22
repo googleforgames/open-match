@@ -37,7 +37,7 @@ type Updater struct {
 type SetFunc func(v interface{})
 
 // New creates an Updater.  Set is called when fields update, using the json
-// sererialized value of Updater's tree.  All updates after ctx is canceled are
+// serialized value of Updater's tree.  All updates after ctx is canceled are
 // ignored.
 func New(ctx context.Context, set func([]byte)) *Updater {
 	f := func(v interface{}) {

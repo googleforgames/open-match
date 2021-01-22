@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package matchfunction provides helper methods to simplify authoring a match fuction.
+// Package matchfunction provides helper methods to simplify authoring a match function.
 package matchfunction
 
 import (
