@@ -80,7 +80,7 @@ type Service interface {
 
 	// GetBackfill gets the Backfill with the specified id from state storage.
 	// This method fails if the Backfill does not exist.
-	// Returns the Backfill and asossiated ticketIDs if they exist.
+	// Returns the Backfill and associated ticketIDs if they exist.
 	GetBackfill(ctx context.Context, id string) (*pb.Backfill, []string, error)
 
 	// GetBackfills returns multiple backfills from storage
