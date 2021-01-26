@@ -499,7 +499,7 @@ func TestUpdateAcknowledgmentTimestamp(t *testing.T) {
 	// Create a time.Time from Unix nanoseconds and make sure, that time difference
 	// is less than one second
 	t2 := time.Unix(res/1e9, res%1e9)
-	require.True(t, t2.After(startTime), "UpdateAcknowledgmentTimestamptTimestamp should update time to a more recent one")
+	require.True(t, t2.After(startTime), "UpdateAcknowledgmentTimestamp should update time to a more recent one")
 }
 
 func TestUpdateAcknowledgmentTimestamptExpiredBackfillErrExpected(t *testing.T) {
