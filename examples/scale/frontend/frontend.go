@@ -78,22 +78,17 @@ func run(cfg config.View) {
 	ticketQPS := int(activeScenario.FrontendTicketCreatedQPS)
 	ticketTotal := activeScenario.FrontendTotalTicketsToCreate
 	totalCreated := 0
-	ticketsToDelete := make(chan string, 30000)
-
-	for i := 0; i < 100; i++ {
-		go runDeleteTickets(fe, ticketsToDelete)
-	}
 
 	for range time.Tick(time.Second) {
 		for i := 0; i < ticketQPS; i++ {
 			if ticketTotal == -1 || totalCreated < ticketTotal {
-				go runner(fe, ticketsToDelete)
+				go runner(fe)
 			}
 		}
 	}
 }
 
-func runner(fe pb.FrontendServiceClient, ticketsToDelete chan<- string) {
+func runner(fe pb.FrontendServiceClient) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -123,7 +118,10 @@ func runner(fe pb.FrontendServiceClient, ticketsToDelete chan<- string) {
 	}
 
 	if activeScenario.FrontendDeletesTickets {
-		ticketsToDelete <- id
+		err = deleteTicket(ctx, fe, id)
+		if err != nil {
+			logger.WithError(err).Errorf("failed to delete ticket: %s", id)
+		}
 	}
 }
 
@@ -146,6 +144,8 @@ func createTicket(ctx context.Context, fe pb.FrontendServiceClient) (string, err
 }
 
 func watchAssignments(ctx context.Context, fe pb.FrontendServiceClient, ticket ticketToWatch) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	stream, err := fe.WatchAssignments(ctx, &pb.WatchAssignmentsRequest{TicketId: ticket.id})
 	if err != nil {
 		return err
@@ -159,11 +159,6 @@ func watchAssignments(ctx context.Context, fe pb.FrontendServiceClient, ticket t
 		}
 
 		a = resp.Assignment
-	}
-
-	err = stream.CloseSend()
-	if err != nil {
-		logger.WithError(err).Error("failed to close WatchAssignments stream")
 	}
 
 	return nil
@@ -199,18 +194,15 @@ func createBackfill(fe pb.FrontendServiceClient) error {
 	return nil
 }
 
-func runDeleteTickets(fe pb.FrontendServiceClient, ticketsToDelete <-chan string) {
-	for id := range ticketsToDelete {
-		ctx := context.Background()
-		_, err := fe.DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: id})
-
-		if err != nil {
-			logger.WithError(err).Errorf("failed to delete ticket: %s", id)
-			telemetry.RecordUnitMeasurement(ctx, mTicketDeletesFailed)
-		} else {
-			telemetry.RecordUnitMeasurement(ctx, mTicketsDeleted)
-		}
+func deleteTicket(ctx context.Context, fe pb.FrontendServiceClient, ticketId string) error {
+	_, err := fe.DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: ticketId})
+	if err != nil {
+		telemetry.RecordUnitMeasurement(ctx, mTicketDeletesFailed)
+	} else {
+		telemetry.RecordUnitMeasurement(ctx, mTicketsDeleted)
 	}
+
+	return err
 }
 
 // Allows concurrent moficiation of a gauge value by modifying the concurrent

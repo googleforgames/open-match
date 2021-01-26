@@ -73,6 +73,17 @@ func (s *BackfillScenario) MatchFunction(p *pb.MatchProfile, poolBackfills map[s
 	return statefullMMF(p, poolBackfills, poolTickets, s.TicketsPerMatch, s.MaxTicketsPerNotFullMatch)
 }
 
+// statefullMMF is a MMF implementation which is used in scenario when we want MMF to create not full match and fill it later.
+// 1. The first FetchMatches is called
+// 2. MMF grabs maxTicketsPerNotFullMatch tickets and makes a match and new backfill for it
+// 3. MMF sets backfill's open slots to ticketsPerMatch - maxTicketsPerNotFullMatch
+// 4. MMF returns the match as a result
+// 5. The second FetchMatches is called
+// 6. MMF gets previously created backfill
+// 7. MMF gets backfill's open slots value
+// 8. MMF grabs openSlots tickets and makes a match with previously created backfill
+// 9. MMF sets backfill's open slots to 0
+// 10. MMF returns the match as a result
 func statefullMMF(p *pb.MatchProfile, poolBackfills map[string][]*pb.Backfill, poolTickets map[string][]*pb.Ticket, ticketsPerMatch int, maxTicketsPerNotFullMatch int) ([]*pb.Match, error) {
 	var matches []*pb.Match
 
@@ -173,6 +184,12 @@ func setOpenSlots(b *pb.Backfill, val int) {
 	b.Extensions[openSlotsKey] = any
 }
 
+// statelessMMF is a MMF implementation which is used in scenario when we want MMF to fill backfills created by a Gameserver. It doesn't create
+// or update any backfill.
+// 1. FetchMatches is called
+// 2. MMF gets a backfill
+// 3. MMF grabs ticketsPerMatch tickets and makes a match with the backfill
+// 4. MMF returns the match as a result
 func statelessMMF(p *pb.MatchProfile, poolBackfills map[string][]*pb.Backfill, poolTickets map[string][]*pb.Ticket, ticketsPerMatch int) ([]*pb.Match, error) {
 	var matches []*pb.Match
 
