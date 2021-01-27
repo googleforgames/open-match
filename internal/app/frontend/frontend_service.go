@@ -294,7 +294,7 @@ func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignme
 	var currAssignment *pb.Assignment
 	var ok bool
 	callback := func(assignment *pb.Assignment) error {
-		if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+		if ctx.Err() != nil {
 			return status.Errorf(codes.Aborted, ctx.Err().Error())
 		}
 
