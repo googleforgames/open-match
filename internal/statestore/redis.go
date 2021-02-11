@@ -138,7 +138,21 @@ func GetRedisPool(cfg config.View) *redis.Pool {
 			}
 
 			masterURL := redisURLFromAddr(fmt.Sprintf("%s:%s", masterInfo[0], masterInfo[1]), cfg, cfg.GetBool("redis.usePassword"))
-			return redis.DialURL(masterURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
+			conn, err := redis.DialURL(masterURL, redis.DialConnectTimeout(idleTimeout), redis.DialReadTimeout(idleTimeout))
+			if err != nil {
+				redisLogger.Warnf("resetting sentinel connection of a master connection")
+				sErr := sentinelPool.Close()
+				if sErr != nil {
+					redisLogger.WithFields(logrus.Fields{
+						"error": sErr.Error(),
+					}).Error("failed to close to redis sentinel connection")
+				}
+
+				sentinelPool = getSentinelPool(cfg)
+				return nil, err
+			}
+
+			return conn, nil
 		}
 	} else {
 		masterAddr := getMasterAddr(cfg)
@@ -171,7 +185,7 @@ func getSentinelPool(cfg config.View) *redis.Pool {
 	return &redis.Pool{
 		MaxIdle:      maxIdle,
 		MaxActive:    maxActive,
-		IdleTimeout:  idleTimeout,
+		IdleTimeout:  idleTimeout / 2,
 		Wait:         true,
 		TestOnBorrow: testOnBorrow,
 		DialContext: func(ctx context.Context) (redis.Conn, error) {
