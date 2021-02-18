@@ -377,10 +377,16 @@ func TestDeleteBackfill(t *testing.T) {
 			expectedMessage: "",
 		},
 		{
-			description:     "empty id passed, no err expected",
+			description:     "empty id passed, err expected",
 			backfillID:      "",
-			expectedCode:    codes.OK,
-			expectedMessage: "",
+			expectedCode:    codes.NotFound,
+			expectedMessage: "Backfill id:  not found",
+		},
+		{
+			description:     "wrong id passed, err expected",
+			backfillID:      "123456",
+			expectedCode:    codes.NotFound,
+			expectedMessage: "Backfill id: 123456 not found",
 		},
 	}
 
@@ -388,9 +394,9 @@ func TestDeleteBackfill(t *testing.T) {
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
 			errActual := service.DeleteBackfill(ctx, tc.backfillID)
-			require.NoError(t, errActual)
+			if tc.expectedCode == codes.OK {
+				require.NoError(t, errActual)
 
-			if tc.backfillID != "" {
 				_, errGetTicket := service.GetTicket(ctx, tc.backfillID)
 				require.Error(t, errGetTicket)
 				require.Equal(t, codes.NotFound.String(), status.Convert(errGetTicket).Code().String())
@@ -398,6 +404,10 @@ func TestDeleteBackfill(t *testing.T) {
 				_, err = redis.Int64(conn.Do("ZSCORE", backfillLastAckTime, tc.backfillID))
 				require.Error(t, err)
 				require.Equal(t, err.Error(), "redigo: nil returned")
+			} else {
+				require.Error(t, errActual)
+				require.Equal(t, tc.expectedCode.String(), status.Convert(errActual).Code().String())
+				require.Contains(t, status.Convert(errActual).Message(), tc.expectedMessage)
 			}
 		})
 	}
