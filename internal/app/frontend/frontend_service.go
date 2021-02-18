@@ -250,7 +250,7 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 	go func() {
 		ctx, span := trace.StartSpan(context.Background(), "open-match/frontend.DeleteTicketLazy")
 		defer span.End()
-		err = store.DeleteTicket(ctx, id)
+		err := store.DeleteTicket(ctx, id)
 		if err != nil {
 			logger.WithFields(logrus.Fields{
 				"error": err.Error(),
