@@ -447,9 +447,9 @@ func TestDoDeleteTicket(t *testing.T) {
 			wantCode: codes.Unavailable,
 		},
 		{
-			description: "expect ok code since delete ticket does not care about if ticket exists or not",
+			description: "expect not found since ticket does not exist",
 			preAction:   func(_ context.Context, _ context.CancelFunc, _ statestore.Service) {},
-			wantCode:    codes.OK,
+			wantCode:    codes.NotFound,
 		},
 		{
 			description: "expect ok code",
@@ -457,6 +457,7 @@ func TestDoDeleteTicket(t *testing.T) {
 				store.CreateTicket(ctx, fakeTicket)
 				store.IndexTicket(ctx, fakeTicket)
 			},
+			wantCode: codes.OK,
 		},
 	}
 

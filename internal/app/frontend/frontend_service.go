@@ -240,7 +240,9 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 	// Deindex this Ticket to remove it from matchmaking pool.
 	err := store.DeindexTicket(ctx, id)
 	if err != nil {
-		return err
+		if e, ok := status.FromError(err); ok && e.Code() != codes.NotFound {
+			return err
+		}
 	}
 
 	//'lazy' ticket delete that should be called after a ticket
@@ -265,6 +267,10 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 		// TODO: If other redis queues are implemented or we have custom index fields
 		// created by Open Match, those need to be cleaned up here.
 	}()
+
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
