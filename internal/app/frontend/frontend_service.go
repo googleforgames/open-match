@@ -220,6 +220,9 @@ func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBack
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Error("error on DeleteBackfill")
+		if status, ok := status.FromError(err); ok && status.Code() == codes.NotFound {
+			return nil, err
+		}
 	}
 	return &empty.Empty{}, nil
 }
