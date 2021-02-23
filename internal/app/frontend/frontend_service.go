@@ -246,18 +246,22 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 		return err
 	}
 
+	err = store.DeleteTicket(ctx, id)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+			"id":    id,
+		}).Error("failed to delete the ticket")
+		if status, ok := status.FromError(err); ok && status.Code() == codes.NotFound {
+			return err
+		}
+	}
+
 	//'lazy' ticket delete that should be called after a ticket
 	// has been deindexed.
 	go func() {
 		ctx, span := trace.StartSpan(context.Background(), "open-match/frontend.DeleteTicketLazy")
 		defer span.End()
-		err := store.DeleteTicket(ctx, id)
-		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"error": err.Error(),
-				"id":    id,
-			}).Error("failed to delete the ticket")
-		}
 		err = store.DeleteTicketsFromPendingRelease(ctx, []string{id})
 		if err != nil {
 			logger.WithFields(logrus.Fields{

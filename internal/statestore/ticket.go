@@ -137,14 +137,10 @@ func (rb *redisBackend) DeindexTicket(ctx context.Context, id string) error {
 	}
 	defer handleConnectionClose(&redisConn)
 
-	value, err := redis.Int(redisConn.Do("SREM", allTickets, id))
+	err = redisConn.Send("SREM", allTickets, id)
 	if err != nil {
 		err = errors.Wrapf(err, "failed to remove ticket from all tickets, id: %s", id)
 		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	if value == 0 {
-		return status.Errorf(codes.NotFound, "Ticket id: %s not found", id)
 	}
 
 	return nil

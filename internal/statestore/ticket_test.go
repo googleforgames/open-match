@@ -80,8 +80,7 @@ func TestTicketLifecycle(t *testing.T) {
 
 	// Validate nonexisting Ticket deindexing
 	err = service.DeindexTicket(ctx, id)
-	require.NotNil(t, err)
-	require.Equal(t, status.Code(err), codes.NotFound)
+	require.Nil(t, err)
 
 	// Validate Ticket creation
 	err = service.CreateTicket(ctx, ticket)
