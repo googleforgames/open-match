@@ -240,9 +240,7 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 	// Deindex this Ticket to remove it from matchmaking pool.
 	err := store.DeindexTicket(ctx, id)
 	if err != nil {
-		if status, ok := status.FromError(err); ok && status.Code() != codes.NotFound {
-			return err
-		}
+		return err
 	}
 
 	//'lazy' ticket delete that should be called after a ticket
@@ -250,17 +248,17 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 	go func() {
 		ctx, span := trace.StartSpan(context.Background(), "open-match/frontend.DeleteTicketLazy")
 		defer span.End()
-		e := store.DeleteTicket(ctx, id)
-		if e != nil {
+		err := store.DeleteTicket(ctx, id)
+		if err != nil {
 			logger.WithFields(logrus.Fields{
-				"error": e.Error(),
+				"error": err.Error(),
 				"id":    id,
 			}).Error("failed to delete the ticket")
 		}
-		e = store.DeleteTicketsFromPendingRelease(ctx, []string{id})
-		if e != nil {
+		err = store.DeleteTicketsFromPendingRelease(ctx, []string{id})
+		if err != nil {
 			logger.WithFields(logrus.Fields{
-				"error": e.Error(),
+				"error": err.Error(),
 				"id":    id,
 			}).Error("failed to delete the ticket from pendingRelease")
 		}
@@ -268,9 +266,6 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 		// created by Open Match, those need to be cleaned up here.
 	}()
 
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
