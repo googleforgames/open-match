@@ -265,7 +265,6 @@ func doDeleteTicket(ctx context.Context, id string, store statestore.Service) er
 		// TODO: If other redis queues are implemented or we have custom index fields
 		// created by Open Match, those need to be cleaned up here.
 	}()
-
 	return nil
 }
 
