@@ -113,7 +113,8 @@ func TestPaging(t *testing.T) {
 	require.Equal(t, expectedIds, foundIds)
 
 	resp, err = stream.Recv()
-	require.Equal(t, err, io.EOF)
+	require.Error(t, err)
+	require.Equal(t, err.Error(), io.EOF.Error())
 	require.Nil(t, resp)
 }
 
