@@ -592,7 +592,6 @@ type QueryServiceClient interface {
 	//   - queryPageSize is default to 1000 if not set, and has a minimum of 10 and maximum of 10000.
 	QueryTicketIds(ctx context.Context, in *QueryTicketIdsRequest, opts ...grpc.CallOption) (QueryService_QueryTicketIdsClient, error)
 	// QueryBackfills gets a list of Backfills.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	QueryBackfills(ctx context.Context, in *QueryBackfillsRequest, opts ...grpc.CallOption) (QueryService_QueryBackfillsClient, error)
@@ -715,7 +714,6 @@ type QueryServiceServer interface {
 	//   - queryPageSize is default to 1000 if not set, and has a minimum of 10 and maximum of 10000.
 	QueryTicketIds(*QueryTicketIdsRequest, QueryService_QueryTicketIdsServer) error
 	// QueryBackfills gets a list of Backfills.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	QueryBackfills(*QueryBackfillsRequest, QueryService_QueryBackfillsServer) error

@@ -293,7 +293,9 @@ type AcknowledgeBackfillRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	BackfillId string      `protobuf:"bytes,1,opt,name=backfill_id,json=backfillId,proto3" json:"backfill_id,omitempty"`
+	// An existing ID of Backfill to acknowledge.
+	BackfillId string `protobuf:"bytes,1,opt,name=backfill_id,json=backfillId,proto3" json:"backfill_id,omitempty"`
+	// An updated Assignment of the requested Backfill.
 	Assignment *Assignment `protobuf:"bytes,2,opt,name=assignment,proto3" json:"assignment,omitempty"`
 }
 
@@ -350,6 +352,7 @@ type CreateBackfillRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// An empty Backfill object.
 	Backfill *Backfill `protobuf:"bytes,1,opt,name=backfill,proto3" json:"backfill,omitempty"`
 }
 
@@ -399,6 +402,7 @@ type DeleteBackfillRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// An existing ID of Backfill to delete.
 	BackfillId string `protobuf:"bytes,1,opt,name=backfill_id,json=backfillId,proto3" json:"backfill_id,omitempty"`
 }
 
@@ -448,6 +452,7 @@ type GetBackfillRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// An existing ID of Backfill to retrieve.
 	BackfillId string `protobuf:"bytes,1,opt,name=backfill_id,json=backfillId,proto3" json:"backfill_id,omitempty"`
 }
 
@@ -499,6 +504,7 @@ type UpdateBackfillRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// A Backfill object with ID set and fields to update.
 	Backfill *Backfill `protobuf:"bytes,1,opt,name=backfill,proto3" json:"backfill,omitempty"`
 }
 
@@ -931,29 +937,24 @@ type FrontendServiceClient interface {
 	WatchAssignments(ctx context.Context, in *WatchAssignmentsRequest, opts ...grpc.CallOption) (FrontendService_WatchAssignmentsClient, error)
 	// AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info
 	// This triggers an assignment process.
-	//
 	// BETA FEATURE WARNING: This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	AcknowledgeBackfill(ctx context.Context, in *AcknowledgeBackfillRequest, opts ...grpc.CallOption) (*Backfill, error)
 	// CreateBackfill creates a new Backfill object.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	CreateBackfill(ctx context.Context, in *CreateBackfillRequest, opts ...grpc.CallOption) (*Backfill, error)
 	// DeleteBackfill receives a backfill ID and deletes its resource.
 	// Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	DeleteBackfill(ctx context.Context, in *DeleteBackfillRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	// GetBackfill returns a backfill object by its ID.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	GetBackfill(ctx context.Context, in *GetBackfillRequest, opts ...grpc.CallOption) (*Backfill, error)
 	// UpdateBackfill updates search_fields and extensions for the backfill with the provided id.
 	// Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	UpdateBackfill(ctx context.Context, in *UpdateBackfillRequest, opts ...grpc.CallOption) (*Backfill, error)
@@ -1088,29 +1089,24 @@ type FrontendServiceServer interface {
 	WatchAssignments(*WatchAssignmentsRequest, FrontendService_WatchAssignmentsServer) error
 	// AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info
 	// This triggers an assignment process.
-	//
 	// BETA FEATURE WARNING: This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	AcknowledgeBackfill(context.Context, *AcknowledgeBackfillRequest) (*Backfill, error)
 	// CreateBackfill creates a new Backfill object.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	CreateBackfill(context.Context, *CreateBackfillRequest) (*Backfill, error)
 	// DeleteBackfill receives a backfill ID and deletes its resource.
 	// Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	DeleteBackfill(context.Context, *DeleteBackfillRequest) (*empty.Empty, error)
 	// GetBackfill returns a backfill object by its ID.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	GetBackfill(context.Context, *GetBackfillRequest) (*Backfill, error)
 	// UpdateBackfill updates search_fields and extensions for the backfill with the provided id.
 	// Any tickets waiting for this backfill will be returned to the active pool, no longer pending.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	UpdateBackfill(context.Context, *UpdateBackfillRequest) (*Backfill, error)

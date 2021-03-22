@@ -347,8 +347,7 @@ type DoubleRangeFilter struct {
 	Max float64 `protobuf:"fixed64,2,opt,name=max,proto3" json:"max,omitempty"`
 	// Minimum value.
 	Min float64 `protobuf:"fixed64,3,opt,name=min,proto3" json:"min,omitempty"`
-	// Which bounds would be excluded when comparing with a ticket's search_fields.double_args value.
-	//
+	// Defines the bounds to apply when filtering tickets by their search_fields.double_args value.
 	// BETA FEATURE WARNING: This field and the associated values are
 	// not finalized and still subject to possible change or removal.
 	Exclude DoubleRangeFilter_Exclude `protobuf:"varint,4,opt,name=exclude,proto3,enum=openmatch.DoubleRangeFilter_Exclude" json:"exclude,omitempty"`
@@ -725,13 +724,11 @@ type Match struct {
 	Extensions map[string]*any.Any `protobuf:"bytes,7,rep,name=extensions,proto3" json:"extensions,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Backfill request which contains additional information to the match
 	// and contains an association to a GameServer.
-	//
 	// BETA FEATURE WARNING: This field is not finalized and still subject
 	// to possible change or removal.
 	Backfill *Backfill `protobuf:"bytes,8,opt,name=backfill,proto3" json:"backfill,omitempty"`
 	// AllocateGameServer signalise Director that Backfill is new and it should
 	// allocate a GameServer, this Backfill would be assigned.
-	//
 	// BETA FEATURE WARNING: This field is not finalized and still subject
 	// to possible change or removal.
 	AllocateGameserver bool `protobuf:"varint,9,opt,name=allocate_gameserver,json=allocateGameserver,proto3" json:"allocate_gameserver,omitempty"`
@@ -818,9 +815,10 @@ func (x *Match) GetAllocateGameserver() bool {
 	return false
 }
 
+// Represents a backfill entity which is used to fill partially full matches.
+//
 // BETA FEATURE WARNING:  This call and the associated Request and Response
 // messages are not finalized and still subject to possible change or removal.
-// Represents a backfill entity which is used to fill partially full matches.
 type Backfill struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -831,8 +829,8 @@ type Backfill struct {
 	// Search fields are the fields which Open Match is aware of, and can be used
 	// when specifying filters.
 	SearchFields *SearchFields `protobuf:"bytes,2,opt,name=search_fields,json=searchFields,proto3" json:"search_fields,omitempty"`
-	// Customized information not inspected by Open Match, to be used by the match
-	// making function, evaluator, and components making calls to Open Match.
+	// Customized information not inspected by Open Match, to be used by
+	// the Match Function, evaluator, and components making calls to Open Match.
 	// Optional, depending on the requirements of the connected systems.
 	Extensions map[string]*any.Any `protobuf:"bytes,3,rep,name=extensions,proto3" json:"extensions,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Create time is the time the Ticket was created. It is populated by Open
@@ -840,7 +838,7 @@ type Backfill struct {
 	CreateTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Generation gets incremented on GameServers update operations.
 	// Prevents the MMF from overriding a newer version from the game server.
-	// Do not read or write to this field, it is for internal tracking and changing the value will cause bugs.
+	// Do NOT read or write to this field, it is for internal tracking, and changing the value will cause bugs.
 	Generation int64 `protobuf:"varint,5,opt,name=generation,proto3" json:"generation,omitempty"`
 }
 

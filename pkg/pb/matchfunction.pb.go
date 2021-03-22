@@ -292,8 +292,9 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MatchFunctionClient interface {
 	// DO NOT CALL THIS FUNCTION MANUALLY. USE backend.FetchMatches INSTEAD.
-	// Run pulls Tickets that satisfy Profile constraints from QueryService, runs matchmaking logics against them, then
-	// constructs and streams back match candidates to the Backend service.
+	// Run pulls Tickets that satisfy Profile constraints from QueryService,
+	// runs matchmaking logic against them, then constructs and streams back
+	// match candidates to the Backend service.
 	Run(ctx context.Context, in *RunRequest, opts ...grpc.CallOption) (MatchFunction_RunClient, error)
 }
 
@@ -340,8 +341,9 @@ func (x *matchFunctionRunClient) Recv() (*RunResponse, error) {
 // MatchFunctionServer is the server API for MatchFunction service.
 type MatchFunctionServer interface {
 	// DO NOT CALL THIS FUNCTION MANUALLY. USE backend.FetchMatches INSTEAD.
-	// Run pulls Tickets that satisfy Profile constraints from QueryService, runs matchmaking logics against them, then
-	// constructs and streams back match candidates to the Backend service.
+	// Run pulls Tickets that satisfy Profile constraints from QueryService,
+	// runs matchmaking logic against them, then constructs and streams back
+	// match candidates to the Backend service.
 	Run(*RunRequest, MatchFunction_RunServer) error
 }
 

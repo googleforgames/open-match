@@ -1049,14 +1049,12 @@ type BackendServiceClient interface {
 	AssignTickets(ctx context.Context, in *AssignTicketsRequest, opts ...grpc.CallOption) (*AssignTicketsResponse, error)
 	// ReleaseTickets moves tickets from the pending state, to the active state.
 	// This enables them to be returned by query, and find different matches.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	ReleaseTickets(ctx context.Context, in *ReleaseTicketsRequest, opts ...grpc.CallOption) (*ReleaseTicketsResponse, error)
 	// ReleaseAllTickets moves all tickets from the pending state, to the active
 	// state. This enables them to be returned by query, and find different
 	// matches.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	ReleaseAllTickets(ctx context.Context, in *ReleaseAllTicketsRequest, opts ...grpc.CallOption) (*ReleaseAllTicketsResponse, error)
@@ -1141,14 +1139,12 @@ type BackendServiceServer interface {
 	AssignTickets(context.Context, *AssignTicketsRequest) (*AssignTicketsResponse, error)
 	// ReleaseTickets moves tickets from the pending state, to the active state.
 	// This enables them to be returned by query, and find different matches.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	ReleaseTickets(context.Context, *ReleaseTicketsRequest) (*ReleaseTicketsResponse, error)
 	// ReleaseAllTickets moves all tickets from the pending state, to the active
 	// state. This enables them to be returned by query, and find different
 	// matches.
-	//
 	// BETA FEATURE WARNING:  This call and the associated Request and Response
 	// messages are not finalized and still subject to possible change or removal.
 	ReleaseAllTickets(context.Context, *ReleaseAllTicketsRequest) (*ReleaseAllTicketsResponse, error)

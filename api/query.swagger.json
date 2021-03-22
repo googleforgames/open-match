@@ -26,8 +26,7 @@
   "paths": {
     "/v1/queryservice/backfills:query": {
       "post": {
-        "summary": "QueryBackfills gets a list of Backfills.",
-        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "summary": "QueryBackfills gets a list of Backfills.\nBETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "QueryService_QueryBackfills",
         "responses": {
           "200": {
@@ -218,7 +217,7 @@
           "additionalProperties": {
             "$ref": "#/definitions/protobufAny"
           },
-          "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
+          "description": "Customized information not inspected by Open Match, to be used by\nthe Match Function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
         },
         "create_time": {
           "type": "string",
@@ -228,10 +227,10 @@
         "generation": {
           "type": "string",
           "format": "int64",
-          "description": "Generation gets incremented on GameServers update operations.\nPrevents the MMF from overriding a newer version from the game server.\nDo not read or write to this field, it is for internal tracking and changing the value will cause bugs."
+          "description": "Generation gets incremented on GameServers update operations.\nPrevents the MMF from overriding a newer version from the game server.\nDo NOT read or write to this field, it is for internal tracking, and changing the value will cause bugs."
         }
       },
-      "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.\nRepresents a backfill entity which is used to fill partially full matches."
+      "description": "Represents a backfill entity which is used to fill partially full matches.\n\nBETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal."
     },
     "openmatchDoubleRangeFilter": {
       "type": "object",
@@ -252,7 +251,7 @@
         },
         "exclude": {
           "$ref": "#/definitions/DoubleRangeFilterExclude",
-          "description": "Which bounds would be excluded when comparing with a ticket's search_fields.double_args value.\n\nBETA FEATURE WARNING: This field and the associated values are\nnot finalized and still subject to possible change or removal."
+          "description": "Defines the bounds to apply when filtering tickets by their search_fields.double_args value.\nBETA FEATURE WARNING: This field and the associated values are\nnot finalized and still subject to possible change or removal."
         }
       },
       "title": "Filters numerical values to only those within a range.\n  double_arg: \"foo\"\n  max: 10\n  min: 5\nmatches:\n  {\"foo\": 5}\n  {\"foo\": 7.5}\n  {\"foo\": 10}\ndoes not match:\n  {\"foo\": 4}\n  {\"foo\": 10.01}\n  {\"foo\": \"7.5\"}\n  {}"

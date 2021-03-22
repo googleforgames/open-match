@@ -26,8 +26,7 @@
   "paths": {
     "/v1/frontendservice/backfills": {
       "post": {
-        "summary": "CreateBackfill creates a new Backfill object.",
-        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "summary": "CreateBackfill creates a new Backfill object.\nBETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "FrontendService_CreateBackfill",
         "responses": {
           "200": {
@@ -65,8 +64,7 @@
         ]
       },
       "patch": {
-        "summary": "UpdateBackfill updates search_fields and extensions for the backfill with the provided id.\nAny tickets waiting for this backfill will be returned to the active pool, no longer pending.",
-        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "summary": "UpdateBackfill updates search_fields and extensions for the backfill with the provided id.\nAny tickets waiting for this backfill will be returned to the active pool, no longer pending.\nBETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "FrontendService_UpdateBackfill",
         "responses": {
           "200": {
@@ -106,8 +104,7 @@
     },
     "/v1/frontendservice/backfills/{backfill_id}": {
       "get": {
-        "summary": "GetBackfill returns a backfill object by its ID.",
-        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "summary": "GetBackfill returns a backfill object by its ID.\nBETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "FrontendService_GetBackfill",
         "responses": {
           "200": {
@@ -133,6 +130,7 @@
         "parameters": [
           {
             "name": "backfill_id",
+            "description": "An existing ID of Backfill to retrieve.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -143,8 +141,7 @@
         ]
       },
       "delete": {
-        "summary": "DeleteBackfill receives a backfill ID and deletes its resource.\nAny tickets waiting for this backfill will be returned to the active pool, no longer pending.",
-        "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "summary": "DeleteBackfill receives a backfill ID and deletes its resource.\nAny tickets waiting for this backfill will be returned to the active pool, no longer pending.\nBETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "FrontendService_DeleteBackfill",
         "responses": {
           "200": {
@@ -170,6 +167,7 @@
         "parameters": [
           {
             "name": "backfill_id",
+            "description": "An existing ID of Backfill to delete.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -182,8 +180,7 @@
     },
     "/v1/frontendservice/backfills/{backfill_id}/acknowledge": {
       "post": {
-        "summary": "AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info\nThis triggers an assignment process.",
-        "description": "BETA FEATURE WARNING: This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
+        "summary": "AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info\nThis triggers an assignment process.\nBETA FEATURE WARNING: This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.",
         "operationId": "FrontendService_AcknowledgeBackfill",
         "responses": {
           "200": {
@@ -209,6 +206,7 @@
         "parameters": [
           {
             "name": "backfill_id",
+            "description": "An existing ID of Backfill to acknowledge.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -397,10 +395,12 @@
       "type": "object",
       "properties": {
         "backfill_id": {
-          "type": "string"
+          "type": "string",
+          "description": "An existing ID of Backfill to acknowledge."
         },
         "assignment": {
-          "$ref": "#/definitions/openmatchAssignment"
+          "$ref": "#/definitions/openmatchAssignment",
+          "description": "An updated Assignment of the requested Backfill."
         }
       },
       "description": "BETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
@@ -438,7 +438,7 @@
           "additionalProperties": {
             "$ref": "#/definitions/protobufAny"
           },
-          "description": "Customized information not inspected by Open Match, to be used by the match\nmaking function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
+          "description": "Customized information not inspected by Open Match, to be used by\nthe Match Function, evaluator, and components making calls to Open Match.\nOptional, depending on the requirements of the connected systems."
         },
         "create_time": {
           "type": "string",
@@ -448,16 +448,17 @@
         "generation": {
           "type": "string",
           "format": "int64",
-          "description": "Generation gets incremented on GameServers update operations.\nPrevents the MMF from overriding a newer version from the game server.\nDo not read or write to this field, it is for internal tracking and changing the value will cause bugs."
+          "description": "Generation gets incremented on GameServers update operations.\nPrevents the MMF from overriding a newer version from the game server.\nDo NOT read or write to this field, it is for internal tracking, and changing the value will cause bugs."
         }
       },
-      "description": "BETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal.\nRepresents a backfill entity which is used to fill partially full matches."
+      "description": "Represents a backfill entity which is used to fill partially full matches.\n\nBETA FEATURE WARNING:  This call and the associated Request and Response\nmessages are not finalized and still subject to possible change or removal."
     },
     "openmatchCreateBackfillRequest": {
       "type": "object",
       "properties": {
         "backfill": {
-          "$ref": "#/definitions/openmatchBackfill"
+          "$ref": "#/definitions/openmatchBackfill",
+          "description": "An empty Backfill object."
         }
       },
       "description": "BETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
@@ -533,7 +534,8 @@
       "type": "object",
       "properties": {
         "backfill": {
-          "$ref": "#/definitions/openmatchBackfill"
+          "$ref": "#/definitions/openmatchBackfill",
+          "description": "A Backfill object with ID set and fields to update."
         }
       },
       "description": "UpdateBackfillRequest - update searchFields, extensions and set assignment.\n\nBETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
