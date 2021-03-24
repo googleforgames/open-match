@@ -28,7 +28,7 @@ require (
 	github.com/aws/aws-sdk-go v1.35.26 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/fsnotify/fsnotify v1.4.9
-	github.com/go-redsync/redsync/v4 v4.0.3
+	github.com/go-redsync/redsync/v4 v4.1.0
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.4.3
 	github.com/gomodule/redigo v2.0.1-0.20191111085604-09d84710e01a+incompatible
@@ -40,6 +40,7 @@ require (
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.8.0
+	github.com/pseudomuto/protoc-gen-doc v1.4.1 // indirect
 	github.com/rs/xid v1.2.1
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/afero v1.4.1 // indirect
