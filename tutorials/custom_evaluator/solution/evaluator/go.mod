@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/sirupsen/logrus v1.7.0
-	google.golang.org/grpc v1.33.2
+	google.golang.org/grpc v1.36.0
 	open-match.dev/open-match v0.0.0-dev
 )
 

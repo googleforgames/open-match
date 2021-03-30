@@ -99,10 +99,14 @@ func (rb *redisBackend) DeleteTicket(ctx context.Context, id string) error {
 	}
 	defer handleConnectionClose(&redisConn)
 
-	_, err = redisConn.Do("DEL", id)
+	value, err := redis.Int(redisConn.Do("DEL", id))
 	if err != nil {
 		err = errors.Wrapf(err, "failed to delete the ticket from state storage, id: %s", id)
 		return status.Errorf(codes.Internal, "%v", err)
+	}
+
+	if value == 0 {
+		return status.Errorf(codes.NotFound, "Ticket id: %s not found", id)
 	}
 
 	return nil
