@@ -19,10 +19,9 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/encoding/protojson"
 	"open-match.dev/open-match/internal/telemetry"
 )
 
@@ -38,19 +37,7 @@ type insecureServer struct {
 
 func (s *insecureServer) start(params *ServerParams) error {
 	s.httpMux = params.ServeMux
-	s.proxyMux = runtime.NewServeMux(
-		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.HTTPBodyMarshaler{
-			Marshaler: &runtime.JSONPb{
-				MarshalOptions: protojson.MarshalOptions{
-					UseProtoNames:   true,
-					EmitUnpopulated: false,
-				},
-				UnmarshalOptions: protojson.UnmarshalOptions{
-					DiscardUnknown: true,
-				},
-			},
-		}),
-	)
+	s.proxyMux = runtime.NewServeMux()
 
 	// Configure the gRPC server.
 	s.grpcServer = grpc.NewServer(newGRPCServerOptions(params)...)

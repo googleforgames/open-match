@@ -164,7 +164,7 @@ func (rb *redisBackend) GetBackfills(ctx context.Context, ids []string) ([]*pb.B
 	return result, nil
 }
 
-// DeleteBackfill removes the Backfill with the specified id from state storage.
+// DeleteBackfill removes the Backfill with the specified id from state storage. This method succeeds if the Backfill does not exist.
 func (rb *redisBackend) DeleteBackfill(ctx context.Context, id string) error {
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
@@ -172,14 +172,10 @@ func (rb *redisBackend) DeleteBackfill(ctx context.Context, id string) error {
 	}
 	defer handleConnectionClose(&redisConn)
 
-	value, err := redis.Int(redisConn.Do("DEL", id))
+	_, err = redisConn.Do("DEL", id)
 	if err != nil {
 		err = errors.Wrapf(err, "failed to delete the backfill from state storage, id: %s", id)
 		return status.Errorf(codes.Internal, "%v", err)
-	}
-
-	if value == 0 {
-		return status.Errorf(codes.NotFound, "Backfill id: %s not found", id)
 	}
 
 	return rb.deleteExpiredBackfillID(redisConn, id)

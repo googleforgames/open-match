@@ -75,8 +75,7 @@ func TestTicketLifecycle(t *testing.T) {
 
 	// Validate nonexisting Ticket deletion
 	err = service.DeleteTicket(ctx, id)
-	require.NotNil(t, err)
-	require.Equal(t, status.Code(err), codes.NotFound)
+	require.Nil(t, err)
 
 	// Validate nonexisting Ticket deindexing
 	err = service.DeindexTicket(ctx, id)
@@ -541,16 +540,10 @@ func TestDeleteTicket(t *testing.T) {
 			expectedMessage: "",
 		},
 		{
-			description:     "empty id passed, err expected",
+			description:     "empty id passed, no err expected",
 			ticketID:        "",
-			expectedCode:    codes.NotFound,
-			expectedMessage: "Ticket id:  not found",
-		},
-		{
-			description:     "wrong id passed, err expected",
-			ticketID:        "123456",
-			expectedCode:    codes.NotFound,
-			expectedMessage: "Ticket id: 123456 not found",
+			expectedCode:    codes.OK,
+			expectedMessage: "",
 		},
 	}
 
@@ -561,9 +554,11 @@ func TestDeleteTicket(t *testing.T) {
 			if tc.expectedCode == codes.OK {
 				require.NoError(t, errActual)
 
-				_, errGetTicket := service.GetTicket(ctx, tc.ticketID)
-				require.Error(t, errGetTicket)
-				require.Equal(t, codes.NotFound.String(), status.Convert(errGetTicket).Code().String())
+				if tc.ticketID != "" {
+					_, errGetTicket := service.GetTicket(ctx, tc.ticketID)
+					require.Error(t, errGetTicket)
+					require.Equal(t, codes.NotFound.String(), status.Convert(errGetTicket).Code().String())
+				}
 			} else {
 				require.Error(t, errActual)
 				require.Equal(t, tc.expectedCode.String(), status.Convert(errActual).Code().String())
