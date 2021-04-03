@@ -294,10 +294,6 @@ func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignme
 	var currAssignment *pb.Assignment
 	var ok bool
 	callback := func(assignment *pb.Assignment) error {
-		if ctx.Err() != nil {
-			return status.Errorf(codes.Aborted, ctx.Err().Error())
-		}
-
 		if (currAssignment == nil && assignment != nil) || !proto.Equal(currAssignment, assignment) {
 			currAssignment, ok = proto.Clone(assignment).(*pb.Assignment)
 			if !ok {

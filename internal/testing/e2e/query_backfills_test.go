@@ -93,8 +93,7 @@ func TestQueryBackfillsPaging(t *testing.T) {
 	require.Equal(t, expectedIds, foundIds)
 
 	resp, err = stream.Recv()
-	require.Error(t, err)
-	require.Equal(t, err.Error(), io.EOF.Error())
+	require.Equal(t, err, io.EOF)
 	require.Nil(t, resp)
 }
 

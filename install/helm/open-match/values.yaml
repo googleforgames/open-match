@@ -256,7 +256,7 @@ global:
   # Use this field if you need to override the image registry and image tag for all services defined in this chart
   image:
     registry: gcr.io/open-match-public-images
-    tag: 1.2.0-rc.1
+    tag: 0.0.0-dev
     pullPolicy: Always
 
   # Expose the telemetry configurations to all subcharts because prometheus, for example,
