@@ -117,7 +117,6 @@ redis:
     enabled: true
     masterSet: om-redis-master
     port: 26379
-    usePassword: false
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
     resources:
