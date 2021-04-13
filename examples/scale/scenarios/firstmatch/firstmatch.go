@@ -33,7 +33,7 @@ func Scenario() *FirstMatchScenario {
 type FirstMatchScenario struct {
 }
 
-func (_ *FirstMatchScenario) Profiles() []*pb.MatchProfile {
+func (*FirstMatchScenario) Profiles() []*pb.MatchProfile {
 	return []*pb.MatchProfile{
 		{
 			Name: "entirePool",
@@ -46,11 +46,15 @@ func (_ *FirstMatchScenario) Profiles() []*pb.MatchProfile {
 	}
 }
 
-func (_ *FirstMatchScenario) Ticket() *pb.Ticket {
+func (*FirstMatchScenario) Ticket() *pb.Ticket {
 	return &pb.Ticket{}
 }
 
-func (_ *FirstMatchScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
+func (*FirstMatchScenario) Backfill() *pb.Backfill {
+	return nil
+}
+
+func (*FirstMatchScenario) MatchFunction(p *pb.MatchProfile, poolBackfills map[string][]*pb.Backfill, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
 	tickets := poolTickets[poolName]
 	var matches []*pb.Match
 
@@ -68,7 +72,7 @@ func (_ *FirstMatchScenario) MatchFunction(p *pb.MatchProfile, poolTickets map[s
 
 // fifoEvaluate accepts all matches which don't contain the same ticket as in a
 // previously accepted match.  Essentially first to claim the ticket wins.
-func (_ *FirstMatchScenario) Evaluate(stream pb.Evaluator_EvaluateServer) error {
+func (*FirstMatchScenario) Evaluate(stream pb.Evaluator_EvaluateServer) error {
 	used := map[string]struct{}{}
 
 	// TODO: once the evaluator client supports sending and receiving at the

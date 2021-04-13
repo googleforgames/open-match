@@ -19,9 +19,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"open-match.dev/open-match/examples/scale/scenarios/battleroyal"
+	"open-match.dev/open-match/examples/scale/scenarios/backfill"
 	"open-match.dev/open-match/examples/scale/scenarios/firstmatch"
-	"open-match.dev/open-match/examples/scale/scenarios/teamshooter"
 	"open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
@@ -40,11 +39,14 @@ type GameScenario interface {
 	// Ticket creates a new ticket, with randomized parameters.
 	Ticket() *pb.Ticket
 
+	// Backfill creates a new backfill, with randomized parameters.
+	Backfill() *pb.Backfill
+
 	// Profiles lists all of the profiles that should run.
 	Profiles() []*pb.MatchProfile
 
 	// MatchFunction is the custom logic implementation of the match function.
-	MatchFunction(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error)
+	MatchFunction(p *pb.MatchProfile, poolBackfills map[string][]*pb.Backfill, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error)
 
 	// Evaluate is the custom logic implementation of the evaluator.
 	Evaluate(stream pb.Evaluator_EvaluateServer) error
@@ -56,18 +58,26 @@ var ActiveScenario = func() *Scenario {
 
 	// TODO: Select which scenario to use based on some configuration or choice,
 	// so it's easier to run different scenarios without changing code.
-	gs = battleroyal.Scenario()
-	gs = teamshooter.Scenario()
+	//gs = battleroyal.Scenario()
+	//gs = teamshooter.Scenario()
+	s := backfill.Scenario()
+	gs = s
 
 	return &Scenario{
-		FrontendTotalTicketsToCreate: -1,
-		FrontendTicketCreatedQPS:     100,
+		FrontendTotalTicketsToCreate:    -1,
+		FrontendTicketCreatedQPS:        100,
+		FrontendCreatesBackfillsOnStart: true,
+		FrontendTotalBackfillsToCreate:  1000,
+		FrontendDeletesTickets:          true,
 
-		BackendAssignsTickets: true,
-		BackendDeletesTickets: true,
+		BackendAssignsTickets:        false,
+		BackendAcknowledgesBackfills: true,
+		BackendDeletesBackfills:      true,
 
-		Ticket:   gs.Ticket,
-		Profiles: gs.Profiles,
+		Ticket:             gs.Ticket,
+		Backfill:           gs.Backfill,
+		BackfillDeleteCond: s.BackfillDeleteCond,
+		Profiles:           gs.Profiles,
 
 		MMF:       queryPoolsWrapper(gs.MatchFunction),
 		Evaluator: gs.Evaluate,
@@ -87,17 +97,23 @@ type Scenario struct {
 	// TicketExtensionSize       int
 	// PendingTicketNumber       int
 	// MatchExtensionSize        int
-	FrontendTotalTicketsToCreate int // TotalTicketsToCreate = -1 let scale-frontend create tickets forever
-	FrontendTicketCreatedQPS     uint32
+	FrontendTicketCreatedQPS        uint32
+	FrontendTotalTicketsToCreate    int // TotalTicketsToCreate = -1 let scale-frontend create tickets forever
+	FrontendTotalBackfillsToCreate  int
+	FrontendCreatesBackfillsOnStart bool
+	FrontendDeletesTickets          bool
 
 	// GameBackend Configs
 	// ProfileNumber      int
 	// FilterNumber       int
-	BackendAssignsTickets bool
-	BackendDeletesTickets bool
+	BackendAssignsTickets        bool
+	BackendAcknowledgesBackfills bool
+	BackendDeletesBackfills      bool
 
-	Ticket   func() *pb.Ticket
-	Profiles func() []*pb.MatchProfile
+	Ticket             func() *pb.Ticket
+	Backfill           func() *pb.Backfill
+	BackfillDeleteCond func(*pb.Backfill) bool
+	Profiles           func() []*pb.MatchProfile
 
 	MMF       matchFunction
 	Evaluator evaluatorFunction
@@ -122,7 +138,7 @@ func getQueryServiceGRPCClient() pb.QueryServiceClient {
 	return pb.NewQueryServiceClient(conn)
 }
 
-func queryPoolsWrapper(mmf func(req *pb.MatchProfile, pools map[string][]*pb.Ticket) ([]*pb.Match, error)) matchFunction {
+func queryPoolsWrapper(mmf func(req *pb.MatchProfile, poolBackfills map[string][]*pb.Backfill, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error)) matchFunction {
 	var q pb.QueryServiceClient
 	var startQ sync.Once
 
@@ -136,7 +152,12 @@ func queryPoolsWrapper(mmf func(req *pb.MatchProfile, pools map[string][]*pb.Tic
 			return err
 		}
 
-		proposals, err := mmf(req.GetProfile(), poolTickets)
+		poolBackfills, err := matchfunction.QueryBackfillPools(stream.Context(), q, req.GetProfile().GetPools())
+		if err != nil {
+			return err
+		}
+
+		proposals, err := mmf(req.GetProfile(), poolBackfills, poolTickets)
 		if err != nil {
 			return err
 		}
