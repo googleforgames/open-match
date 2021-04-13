@@ -72,7 +72,8 @@ func TestHappyPath(t *testing.T) {
 	require.True(t, proto.Equal(m, resp.Match))
 
 	resp, err = stream.Recv()
-	require.Equal(t, err, io.EOF)
+	require.Error(t, err)
+	require.Equal(t, err.Error(), io.EOF.Error())
 	require.Nil(t, resp)
 }
 
@@ -158,7 +159,8 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 	require.True(t, time.Since(startTime) < registrationInterval, "%s", time.Since(startTime))
 
 	resp, err = sSuccess.Recv()
-	require.Equal(t, err, io.EOF)
+	require.Error(t, err)
+	require.Equal(t, err.Error(), io.EOF.Error())
 	require.Nil(t, resp)
 }
 
@@ -330,7 +332,8 @@ func TestMatchWithNoTickets(t *testing.T) {
 	require.True(t, proto.Equal(m, resp.Match))
 
 	resp, err = stream.Recv()
-	require.Equal(t, err, io.EOF)
+	require.Error(t, err)
+	require.Equal(t, err.Error(), io.EOF.Error())
 	require.Nil(t, resp)
 }
 
@@ -411,7 +414,8 @@ func TestNoMatches(t *testing.T) {
 	require.Nil(t, err)
 
 	resp, err := stream.Recv()
-	require.Equal(t, err, io.EOF)
+	require.Error(t, err)
+	require.Equal(t, err.Error(), io.EOF.Error())
 	require.Nil(t, resp)
 }
 
@@ -552,7 +556,8 @@ func TestStreaming(t *testing.T) {
 	require.True(t, proto.Equal(m2, resp.Match))
 
 	resp, err = stream.Recv()
-	require.Equal(t, err, io.EOF)
+	require.Error(t, err)
+	require.Equal(t, err.Error(), io.EOF.Error())
 	require.Nil(t, resp)
 }
 
@@ -584,7 +589,8 @@ func TestRegistrationWindow(t *testing.T) {
 	require.Nil(t, err)
 
 	resp, err := stream.Recv()
-	require.Equal(t, err, io.EOF)
+	require.Error(t, err)
+	require.Equal(t, err.Error(), io.EOF.Error())
 	require.Nil(t, resp)
 	require.True(t, time.Since(startTime) > registrationInterval, "%s", time.Since(startTime))
 }
@@ -691,7 +697,8 @@ func TestMultipleFetchCalls(t *testing.T) {
 	require.True(t, proto.Equal(m1, resp.Match))
 
 	resp, err = s1.Recv()
-	require.Equal(t, err, io.EOF)
+	require.Error(t, err)
+	require.Equal(t, err.Error(), io.EOF.Error())
 	require.Nil(t, resp)
 
 	resp, err = s2.Recv()
@@ -699,7 +706,8 @@ func TestMultipleFetchCalls(t *testing.T) {
 	require.True(t, proto.Equal(m2, resp.Match))
 
 	resp, err = s2.Recv()
-	require.Equal(t, err, io.EOF)
+	require.Error(t, err)
+	require.Equal(t, err.Error(), io.EOF.Error())
 	require.Nil(t, resp)
 }
 
@@ -784,7 +792,8 @@ func TestSlowBackendDoesntBlock(t *testing.T) {
 	require.True(t, proto.Equal(m2, resp.Match))
 
 	resp, err = s2.Recv()
-	require.Equal(t, err, io.EOF)
+	require.Error(t, err)
+	require.Equal(t, err.Error(), io.EOF.Error())
 	require.Nil(t, resp)
 
 	resp, err = s1.Recv()
@@ -792,7 +801,8 @@ func TestSlowBackendDoesntBlock(t *testing.T) {
 	require.True(t, proto.Equal(m1, resp.Match))
 
 	resp, err = s1.Recv()
-	require.Equal(t, err, io.EOF)
+	require.Error(t, err)
+	require.Equal(t, err.Error(), io.EOF.Error())
 	require.Nil(t, resp)
 }
 
@@ -838,6 +848,7 @@ func TestHTTPMMF(t *testing.T) {
 	require.True(t, proto.Equal(m, resp.Match))
 
 	resp, err = stream.Recv()
-	require.Equal(t, err, io.EOF)
+	require.Error(t, err)
+	require.Equal(t, err.Error(), io.EOF.Error())
 	require.Nil(t, resp)
 }
