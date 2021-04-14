@@ -53,7 +53,7 @@
 # If you want information on how to edit this file checkout,
 # http://makefiletutorial.com/
 
-BASE_VERSION = 0.0.0-dev
+BASE_VERSION = 1.2.0-rc.1
 SHORT_SHA = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(SHORT_SHA)
@@ -69,7 +69,7 @@ GOLANGCI_VERSION = 1.18.0
 KIND_VERSION = 0.5.1
 SWAGGERUI_VERSION = 3.24.2
 GOOGLE_APIS_VERSION = aba342359b6743353195ca53f944fe71e6fb6cd4
-GRPC_GATEWAY_VERSION = 1.14.3
+GRPC_GATEWAY_VERSION = 2.3.0
 TERRAFORM_VERSION = 0.12.13
 CHART_TESTING_VERSION = 2.4.0
 
@@ -495,7 +495,7 @@ install-kubernetes-tools: build/toolchain/bin/kubectl$(EXE_EXTENSION) build/tool
 ## # Install protoc tools
 ## make install-protoc-tools
 ##
-install-protoc-tools: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
+install-protoc-tools: build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-openapiv2$(EXE_EXTENSION)
 
 ## # Install OpenMatch tools
 ## make install-openmatch-tools
@@ -571,11 +571,11 @@ build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	cd $(TOOLCHAIN_BIN) && $(GO) build -i -pkgdir . github.com/golang/protobuf/protoc-gen-go
 
 build/toolchain/bin/protoc-gen-grpc-gateway$(EXE_EXTENSION):
-	cd $(TOOLCHAIN_BIN) && $(GO) build -i -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	cd $(TOOLCHAIN_BIN) && $(GO) build -i -pkgdir . github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
 
-build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION):
+build/toolchain/bin/protoc-gen-openapiv2$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
-	cd $(TOOLCHAIN_BIN) && $(GO) build -i -pkgdir . github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+	cd $(TOOLCHAIN_BIN) && $(GO) build -i -pkgdir . github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
 
 build/toolchain/bin/certgen$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -636,8 +636,8 @@ delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bi
 create-cluster-role-binding:
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
-create-gke-cluster: GKE_VERSION = 1.15.12-gke.20 # gcloud beta container get-server-config --zone us-west1-a
-create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-4 --enable-autoscaling --min-nodes 1 --num-nodes 2 --max-nodes 10 --disk-size 50
+create-gke-cluster: GKE_VERSION = 1.15.12-gke.6002 # gcloud beta container get-server-config --zone us-west1-a
+create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-8 --enable-autoscaling --min-nodes 1 --num-nodes 6 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
 	$(GCLOUD) beta $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS) $(GKE_CLUSTER_FLAGS) \
@@ -694,10 +694,10 @@ pkg/pb/%.pb.gw.go: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTE
    		--grpc-gateway_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)/build/prototmp
 	mv $(REPOSITORY_ROOT)/build/prototmp/open-match.dev/open-match/$@ $@
 
-api/%.swagger.json: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-swagger$(EXE_EXTENSION)
+api/%.swagger.json: api/%.proto third_party/ build/toolchain/bin/protoc$(EXE_EXTENSION) build/toolchain/bin/protoc-gen-openapiv2$(EXE_EXTENSION)
 	$(PROTOC) $< \
 		-I $(REPOSITORY_ROOT) -I $(PROTOC_INCLUDES) \
-		--swagger_out=logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
+		--openapiv2_out=json_names_for_fields=false,logtostderr=true,allow_delete_body=true:$(REPOSITORY_ROOT)
 
 
 ## # Build API reference in markdown. Needs open-match-docs repo at the same level as this one.
@@ -983,7 +983,7 @@ proxy:
 update-deps:
 	$(GO) mod tidy
 
-third_party/: third_party/google/api third_party/protoc-gen-swagger/options third_party/swaggerui/
+third_party/: third_party/google/api third_party/protoc-gen-openapiv2/options third_party/swaggerui/
 
 third_party/google/api:
 	mkdir -p $(TOOLCHAIN_DIR)/googleapis-temp/
@@ -995,12 +995,12 @@ third_party/google/api:
 	cp -f $(TOOLCHAIN_DIR)/googleapis-temp/googleapis-$(GOOGLE_APIS_VERSION)/google/rpc/*.proto $(REPOSITORY_ROOT)/third_party/google/rpc/
 	rm -rf $(TOOLCHAIN_DIR)/googleapis-temp
 
-third_party/protoc-gen-swagger/options:
+third_party/protoc-gen-openapiv2/options:
 	mkdir -p $(TOOLCHAIN_DIR)/grpc-gateway-temp/
-	mkdir -p $(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options
+	mkdir -p $(REPOSITORY_ROOT)/third_party/protoc-gen-openapiv2/options
 	curl -o $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway.zip -L https://github.com/grpc-ecosystem/grpc-gateway/archive/v$(GRPC_GATEWAY_VERSION).zip
 	(cd $(TOOLCHAIN_DIR)/grpc-gateway-temp/; unzip -q -o grpc-gateway.zip)
-	cp -f $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-$(GRPC_GATEWAY_VERSION)/protoc-gen-swagger/options/*.proto $(REPOSITORY_ROOT)/third_party/protoc-gen-swagger/options/
+	cp -f $(TOOLCHAIN_DIR)/grpc-gateway-temp/grpc-gateway-$(GRPC_GATEWAY_VERSION)/protoc-gen-openapiv2/options/*.proto $(REPOSITORY_ROOT)/third_party/protoc-gen-openapiv2/options/
 	rm -rf $(TOOLCHAIN_DIR)/grpc-gateway-temp
 
 third_party/swaggerui/:

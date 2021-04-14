@@ -608,3 +608,41 @@ func TestAssignedTicketDeleteTimeout(t *testing.T) {
 	require.Equal(t, codes.NotFound, status.Convert(err).Code())
 
 }
+
+func TestWatchAssignments(t *testing.T) {
+	om := newOM(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.NoError(t, err)
+
+	{
+		req := &pb.AssignTicketsRequest{
+			Assignments: []*pb.AssignmentGroup{
+				{
+					TicketIds:  []string{t1.Id},
+					Assignment: &pb.Assignment{Connection: "a"},
+				},
+			},
+		}
+		resp, err := om.Backend().AssignTickets(ctx, req)
+		require.NoError(t, err)
+		require.Len(t, resp.Failures, 0)
+	}
+
+	{
+		stream, err := om.Frontend().WatchAssignments(ctx, &pb.WatchAssignmentsRequest{TicketId: t1.Id})
+		require.NoError(t, err)
+
+		var a *pb.Assignment
+		for a.GetConnection() == "" {
+			resp, err := stream.Recv()
+			require.NoError(t, err)
+
+			a = resp.Assignment
+		}
+
+		require.Equal(t, "a", a.Connection)
+	}
+}

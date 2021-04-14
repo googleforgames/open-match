@@ -37,7 +37,7 @@ func New() *ByteSub {
 	}
 }
 
-// AnnounceLatest writes b to all of the subscribers, with caviets listed in Subscribe.
+// AnnounceLatest writes b to all of the subscribers, with caveats listed in Subscribe.
 func (s *ByteSub) AnnounceLatest(b []byte) {
 	s.r.Lock()
 	defer s.r.Unlock()
