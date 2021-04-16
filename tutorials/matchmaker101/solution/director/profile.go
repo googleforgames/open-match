@@ -24,7 +24,7 @@ func generateProfiles() []*pb.MatchProfile {
 	modes := []string{"mode.demo", "mode.ctf", "mode.battleroyale"}
 	for _, mode := range modes {
 		profiles = append(profiles, &pb.MatchProfile{
-			Name: "mode_based_profile",
+			Name: "mode_based_profile_" + mode,
 			Pools: []*pb.Pool{
 				{
 					Name: "pool_mode_" + mode,
