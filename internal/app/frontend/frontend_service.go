@@ -317,7 +317,7 @@ func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignme
 
 // AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info.
 // This triggers an assignment process.
-func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.AcknowledgeBackfillRequest) (*pb.Backfill, error) {
+func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.AcknowledgeBackfillRequest) (*pb.AcknowledgeBackfillResponse, error) {
 	if req.GetBackfillId() == "" {
 		return nil, status.Errorf(codes.InvalidArgument, ".BackfillId is required")
 	}
@@ -347,16 +347,23 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 		return nil, err
 	}
 
+	resp := &pb.AcknowledgeBackfillResponse{
+		Backfill: bf,
+		Tickets:  make([]*pb.Ticket, 0),
+	}
+
 	if len(associatedTickets) != 0 {
-		resp, _, err := s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
+		setResp, tickets, err := s.store.UpdateAssignments(ctx, &pb.AssignTicketsRequest{
 			Assignments: []*pb.AssignmentGroup{{TicketIds: associatedTickets, Assignment: req.GetAssignment()}},
 		})
 		if err != nil {
 			return nil, err
 		}
 
+		resp.Tickets = tickets
+
 		// log errors returned from UpdateAssignments to track tickets with NotFound errors
-		for _, f := range resp.Failures {
+		for _, f := range setResp.Failures {
 			logger.Errorf("failed to assign ticket %s, cause %d", f.TicketId, f.Cause)
 		}
 		for _, id := range associatedTickets {
@@ -374,7 +381,7 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 		}
 	}
 
-	return bf, nil
+	return resp, nil
 }
 
 // GetBackfill fetches a Backfill object by its ID.

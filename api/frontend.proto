@@ -93,6 +93,16 @@ message AcknowledgeBackfillRequest {
 
 // BETA FEATURE WARNING: This Request message is not finalized and still subject
 // to possible change or removal.
+message AcknowledgeBackfillResponse {
+  // The Backfill that was acknowledged.
+  Backfill backfill = 1;
+
+  // All of the Tickets that were successfully assigned
+  repeated Ticket tickets = 2;
+}
+
+// BETA FEATURE WARNING: This Request message is not finalized and still subject
+// to possible change or removal.
 message CreateBackfillRequest {
   // An empty Backfill object.
   Backfill backfill = 1;
@@ -163,7 +173,7 @@ service FrontendService {
   // This triggers an assignment process.
   // BETA FEATURE WARNING: This call and the associated Request and Response
   // messages are not finalized and still subject to possible change or removal.
-  rpc AcknowledgeBackfill(AcknowledgeBackfillRequest) returns (Backfill) {
+  rpc AcknowledgeBackfill(AcknowledgeBackfillRequest) returns (AcknowledgeBackfillResponse) {
     option (google.api.http) = {
       post: "/v1/frontendservice/backfills/{backfill_id}/acknowledge"
       body: "*"
