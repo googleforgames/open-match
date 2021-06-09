@@ -150,7 +150,7 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	ticketIDs := createMatchWithBackfill(ctx, om, createdBf, t)
 
 	conn := "127.0.0.1:4242"
-	getBF, err := om.Frontend().AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{
+	getResp, err := om.Frontend().AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{
 		BackfillId: createdBf.Id,
 		Assignment: &pb.Assignment{
 			Connection: conn,
@@ -161,12 +161,22 @@ func TestAcknowledgeBackfill(t *testing.T) {
 			},
 		},
 	})
-	require.NotNil(t, getBF)
+	require.NotNil(t, getResp)
+	require.NotNil(t, getResp.Backfill)
+	require.NotNil(t, getResp.Tickets)
+	require.Equal(t, len(ticketIDs), len(getResp.Tickets))
 	require.NoError(t, err)
+
+	respTicketIds := make([]string, len(getResp.Tickets))
+
+	for _, rt := range getResp.Tickets {
+		respTicketIds = append(respTicketIds, rt.Id)
+	}
 
 	for _, v := range ticketIDs {
 		ticket, err := om.Frontend().GetTicket(ctx, &pb.GetTicketRequest{TicketId: v})
 		require.NoError(t, err)
+		require.Contains(t, respTicketIds, ticket.Id)
 		require.NotNil(t, ticket.Assignment)
 		require.Equal(t, conn, ticket.Assignment.Connection)
 	}
@@ -193,12 +203,14 @@ func TestAcknowledgeBackfillDeletedTicket(t *testing.T) {
 	// Delete 1st ticket
 	om.Frontend().DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: ticketIDs[0]})
 	conn := "127.0.0.1:4242"
-	getBF, err := om.Frontend().AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: createdBf.Id, Assignment: &pb.Assignment{Connection: conn, Extensions: map[string]*any.Any{
+	getResp, err := om.Frontend().AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: createdBf.Id, Assignment: &pb.Assignment{Connection: conn, Extensions: map[string]*any.Any{
 		"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 			Score: 10,
 		}),
 	}}})
-	require.NotNil(t, getBF)
+	require.NotNil(t, getResp)
+	require.NotNil(t, getResp.Backfill)
+	require.NotNil(t, getResp.Tickets)
 	require.NoError(t, err)
 
 	// Check that an error on 1st ticket assignment does not change 2nd ticket assignment

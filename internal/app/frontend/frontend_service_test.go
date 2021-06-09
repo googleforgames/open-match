@@ -401,14 +401,16 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	require.NoError(t, err)
 	fs := frontendService{cfg, store}
 
-	bf, err := fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	resp, err := fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
 	require.NoError(t, err)
-	require.NotNil(t, bf)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.Backfill)
+	require.NotNil(t, resp.Tickets)
 
 	// Use wrong BackfillID, error is returned
-	bf, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: "42", Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	resp, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: "42", Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
 	require.Error(t, err)
-	require.Nil(t, bf)
+	require.Nil(t, resp)
 	require.Equal(t, "Backfill id: 42 not found", status.Convert(err).Message())
 
 	time.Sleep(cfg.GetDuration("pendingReleaseTimeout"))
@@ -416,8 +418,8 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, ids, 1)
 
-	bf, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
-	require.Nil(t, bf)
+	resp, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
+	require.Nil(t, resp)
 	require.Error(t, err)
 	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), "can not acknowledge an expired backfill, id: 1")

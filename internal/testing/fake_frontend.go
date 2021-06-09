@@ -57,7 +57,7 @@ func (s *FakeFrontend) WatchAssignments(req *pb.WatchAssignmentsRequest, stream 
 
 // AcknowledgeBackfill is used to notify OpenMatch about GameServer connection info.
 // This triggers an assignment process.
-func (s *FakeFrontend) AcknowledgeBackfill(ctx context.Context, req *pb.AcknowledgeBackfillRequest) (*pb.Backfill, error) {
+func (s *FakeFrontend) AcknowledgeBackfill(ctx context.Context, req *pb.AcknowledgeBackfillRequest) (*pb.AcknowledgeBackfillResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 

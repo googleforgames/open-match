@@ -191,7 +191,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/openmatchBackfill"
+              "$ref": "#/definitions/openmatchAcknowledgeBackfillResponse"
             }
           },
           "404": {
@@ -406,6 +406,23 @@
         "assignment": {
           "$ref": "#/definitions/openmatchAssignment",
           "description": "An updated Assignment of the requested Backfill."
+        }
+      },
+      "description": "BETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
+    },
+    "openmatchAcknowledgeBackfillResponse": {
+      "type": "object",
+      "properties": {
+        "backfill": {
+          "$ref": "#/definitions/openmatchBackfill",
+          "description": "The Backfill that was acknowledged."
+        },
+        "tickets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/openmatchTicket"
+          },
+          "title": "All of the Tickets that were successfully assigned"
         }
       },
       "description": "BETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
