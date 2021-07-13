@@ -29,10 +29,8 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-redsync/redsync/v4 v4.0.3
-	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.4.3
 	github.com/gomodule/redigo v2.0.1-0.20191111085604-09d84710e01a+incompatible
-	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.3.0
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -49,17 +47,15 @@ require (
 	go.opencensus.io v0.23.0
 	golang.org/x/net v0.0.0-20210224082022-3d97a244fca7
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
-	golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073 // indirect
 	google.golang.org/api v0.35.0 // indirect
 	google.golang.org/genproto v0.0.0-20210224155714-063164c882e6
 	google.golang.org/grpc v1.36.0
 	google.golang.org/protobuf v1.25.1-0.20201208041424-160c7477e0e8
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/api v0.0.0-20191004102349-159aefb8556b // kubernetes-1.14.10
-	k8s.io/apimachinery v0.0.0-20191004074956-c5d2f014d689 // kubernetes-1.14.10
-	k8s.io/client-go v11.0.1-0.20191029005444-8e4128053008+incompatible // kubernetes-1.14.10
+	k8s.io/api v0.21.2 // kubernetes-1.14.10
+	k8s.io/apimachinery v0.21.2 // kubernetes-1.14.10
+	k8s.io/client-go v0.21.2 // kubernetes-1.14.10
 	k8s.io/klog v1.0.0 // indirect
-	k8s.io/utils v0.0.0-20200729134348-d5654de09c73 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
