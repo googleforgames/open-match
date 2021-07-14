@@ -123,7 +123,7 @@ func ReapNamespaces(params *Params) error {
 	}
 
 	namespaceInterface := kubeClient.CoreV1().Namespaces()
-	namespaces, err := namespaceInterface.List(context.Background(), metav1.ListOptions{})
+	namespaces, err := namespaceInterface.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return errors.Wrap(err, "listing namespace from kubernetes cluster failed")
 	}
@@ -135,7 +135,7 @@ func ReapNamespaces(params *Params) error {
 			continue
 		}
 
-		err = namespaceInterface.Delete(context.Background(), namespace.ObjectMeta.Name, metav1.DeleteOptions{})
+		err = namespaceInterface.Delete(context.TODO(), namespace.ObjectMeta.Name, metav1.DeleteOptions{})
 		if err != nil {
 			log.Printf("error: %s", err.Error())
 			continue
