@@ -49,7 +49,7 @@ func TestServiceHealth(t *testing.T) {
 
 	namespace := os.Getenv("NAMESPACE")
 
-	podList, err := kubeClient.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+	podList, err := kubeClient.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
