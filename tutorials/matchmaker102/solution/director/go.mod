@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	google.golang.org/grpc v1.25.0
-	open-match v1.1.0
+	open-match.dev/open-match v1.1.0
 )
 
  
