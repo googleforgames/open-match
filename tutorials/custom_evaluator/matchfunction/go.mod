@@ -6,5 +6,3 @@ require (
 	google.golang.org/grpc v1.25.0
 	open-match v1.1.0
 )
-
-replace open-match v1.1.0 => ../../../
