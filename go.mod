@@ -28,7 +28,7 @@ require (
 	github.com/aws/aws-sdk-go v1.35.26 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/fsnotify/fsnotify v1.4.9
-	github.com/go-redsync/redsync/v4 v4.0.3
+	github.com/go-redsync/redsync/v4 v4.3.0
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.4.3
 	github.com/gomodule/redigo v2.0.1-0.20191111085604-09d84710e01a+incompatible
