@@ -644,7 +644,8 @@ create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
 		--enable-pod-security-policy \
 		--cluster-version $(GKE_VERSION) \
 		--image-type cos_containerd \
-		--tags open-match
+		--tags open-match \
+		--workload-pool $(PROJECT_ID).svc.id.goog
 	$(MAKE) create-cluster-role-binding
 	
 
