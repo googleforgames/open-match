@@ -111,6 +111,8 @@ git push origin release-0.5
 - [ ] Open the [`install/helm/open-match/Chart.yaml`](om-chart-yaml-version) and change the `appVersion` and `version` entries.
 - [ ] Open the [`install/helm/open-match/values.yaml`](om-values-yaml-version) and change the `tag` entries.
 - [ ] Open the [`cloudbuild.yaml`](cloudbuild-yaml) and change the `_OM_VERSION` entry.
+- [ ] Update the tutorial `go.mod` files by running the following command: (replace v{X.Y.Z} with the appropiate release version) 
+  - `LC_CTYPE=C LANG=C find tutorials/ -type f -exec sed -i '' 's|open-match.dev/open-match v0.0.0-dev|open-match.dev/open-match v{X.Y.Z}|g' {} \;`
 - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
 - [ ] Run `make release`
 - [ ] Run `make api/api.md` in open-match repo to update the auto-generated API references in open-match-docs repo.
