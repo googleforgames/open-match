@@ -110,7 +110,7 @@ git push origin release-0.5
 - [ ] Open the [`Makefile`](makefile-version) and change BASE_VERSION entry.
 - [ ] Open the [`install/helm/open-match/Chart.yaml`](om-chart-yaml-version) and change the `appVersion` and `version` entries.
 - [ ] Open the [`install/helm/open-match/values.yaml`](om-values-yaml-version) and change the `tag` entries.
-- [ ] Open the [`cloudbuild.yaml`] and change the `_OM_VERSION` entry.
+- [ ] Open the [`cloudbuild.yaml`](cloudbuild-yaml) and change the `_OM_VERSION` entry.
 - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
 - [ ] Run `make release`
 - [ ] Run `make api/api.md` in open-match repo to update the auto-generated API references in open-match-docs repo.
@@ -180,3 +180,5 @@ only required once.**
 [om-values-yaml-version]: https://github.com/googleforgames/open-match/blob/main/install/helm/open-match/values.yaml#L16
 [om-release]: https://github.com/googleforgames/open-match/releases/new
 [readme-deploy]: https://github.com/googleforgames/open-match/blob/main/README.md#deploy-to-kubernetes
+[cloudbuild-yaml]: https://github.com/googleforgames/open-match/blob/eca40e32981c325d983abc9f9db08f3a6d06efe5/cloudbuild.yaml#L167
+
