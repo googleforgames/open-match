@@ -46,7 +46,7 @@ make
 
 *Typically for contributing you'll want to
 [create a fork](https://help.github.com/en/articles/fork-a-repo) and use that
-but for purpose of this guide we'll be using the upstream/master.*
+but for purpose of this guide we'll be using the upstream/main.*
 
 ## Building code and images
 
