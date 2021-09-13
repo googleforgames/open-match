@@ -63,9 +63,12 @@ func main() {
 // once it has an assignment.
 func deleteOnAssign(fe pb.FrontendServiceClient, t *pb.Ticket) {
 	for {
+		time.Sleep(time.Second * 1)
+
 		got, err := fe.GetTicket(context.Background(), &pb.GetTicketRequest{TicketId: t.GetId()})
 		if err != nil {
-			log.Fatalf("Failed to Get Ticket %v, got %s", t.GetId(), err.Error())
+			log.Printf("Failed to Get Ticket %v, got %s", t.GetId(), err.Error())
+			continue
 		}
 
 		if got.GetAssignment() != nil {
@@ -73,7 +76,6 @@ func deleteOnAssign(fe pb.FrontendServiceClient, t *pb.Ticket) {
 			break
 		}
 
-		time.Sleep(time.Second * 1)
 	}
 
 	_, err := fe.DeleteTicket(context.Background(), &pb.DeleteTicketRequest{TicketId: t.GetId()})
