@@ -31,7 +31,7 @@ spec:
     protocol: TCP
     port: {{ .Values.scaleFrontend.httpPort }}
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "openmatchscale.scaleFrontend.hostName" . }}
