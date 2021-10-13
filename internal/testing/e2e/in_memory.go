@@ -1,3 +1,4 @@
+//go:build !e2ecluster
 // +build !e2ecluster
 
 // Copyright 2019 Google LLC
