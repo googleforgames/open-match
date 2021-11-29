@@ -118,16 +118,29 @@ redis:
     masterSet: om-redis-master
     port: 26379
     usePassword: false
+    resources:
+      requests:
+        memory: 300Mi
+        cpu: 0.5
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
     resources:
       requests:
         memory: 300Mi
         cpu: 0.5
+  slave:
+    resources:
+      requests:
+        memory: 300Mi
+        cpu: 0.5
   metrics:
     enabled: true
+    resources:
+      requests:
+        memory: 300Mi
+        cpu: 0.5
   cluster:
-    slaveCount: 2
+    slaveCount: 3
   serviceAccount:
     create: true
   sysctlImage:
