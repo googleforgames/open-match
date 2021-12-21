@@ -36,6 +36,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
 	"open-match.dev/open-match/internal/appmain/contextcause"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/rpc"
@@ -169,7 +170,7 @@ func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync
 		if v, ok := m.Load(resp.GetMatchId()); ok {
 			match, ok := v.(*pb.Match)
 			if !ok {
-				return fmt.Errorf("error casting sync map value into *pb.Match: %w", err)
+				return fmt.Errorf("error casting sync map value into *pb.Match: %+v", v)
 			}
 
 			backfill := match.GetBackfill()
