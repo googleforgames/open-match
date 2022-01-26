@@ -18,7 +18,9 @@ WORKDIR /go/src/open-match.dev/open-match
 
 ARG IMAGE_TITLE
 
-RUN make "build/cmd/${IMAGE_TITLE}"
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    make "build/cmd/${IMAGE_TITLE}"
 
 FROM gcr.io/distroless/static:nonroot
 ARG IMAGE_TITLE

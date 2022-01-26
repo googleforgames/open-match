@@ -228,10 +228,10 @@ build-images: $(foreach IMAGE,$(IMAGES),build-$(IMAGE)-image)
 # Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
 # This is important so that the repository does not have any mutations while building individual images.
 build-base-build-image: docker $(ALL_PROTOS)
-	docker build -f Dockerfile.base-build -t open-match-base-build -t $(REGISTRY)/openmatch-base-build:$(TAG) -t $(REGISTRY)/openmatch-base-build:$(ALTERNATE_TAG) .
+	DOCKER_BUILDKIT=1 docker build -f Dockerfile.base-build -t open-match-base-build -t $(REGISTRY)/openmatch-base-build:$(TAG) -t $(REGISTRY)/openmatch-base-build:$(ALTERNATE_TAG) .
 
 $(foreach CMD,$(CMDS),build-$(CMD)-image): build-%-image: docker build-base-build-image
-	docker build \
+	DOCKER_BUILDKIT=1 docker build \
 		-f Dockerfile.cmd \
 		$(IMAGE_BUILD_ARGS) \
 		--build-arg=IMAGE_TITLE=$* \
@@ -240,10 +240,10 @@ $(foreach CMD,$(CMDS),build-$(CMD)-image): build-%-image: docker build-base-buil
 		.
 
 build-mmf-go-soloduel-image: docker build-base-build-image
-	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
+	DOCKER_BUILDKIT=1 docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
 
 build-mmf-go-backfill-image: docker build-base-build-image
-	docker build -f examples/functions/golang/backfill/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-backfill:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-backfill:$(ALTERNATE_TAG) .
+	DOCKER_BUILDKIT=1 docker build -f examples/functions/golang/backfill/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-backfill:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-backfill:$(ALTERNATE_TAG) .
 
 #######################################
 ## # Builds and pushes images to your container registry.
@@ -793,7 +793,7 @@ $(foreach CMD,$(CMDS),build/cmd/$(CMD)): build/cmd/%: build/cmd/%/BUILD_PHONY bu
 
 build/cmd/%/BUILD_PHONY:
 	mkdir -p $(BUILD_DIR)/cmd/$*
-	CGO_ENABLED=0 $(GO) build -a -installsuffix cgo -o $(BUILD_DIR)/cmd/$*/run open-match.dev/open-match/cmd/$*
+	CGO_ENABLED=0 $(GO) build -v -installsuffix cgo -o $(BUILD_DIR)/cmd/$*/run open-match.dev/open-match/cmd/$*
 
 # Default is that nothing needs to be copied into the direcotry
 build/cmd/%/COPY_PHONY:
