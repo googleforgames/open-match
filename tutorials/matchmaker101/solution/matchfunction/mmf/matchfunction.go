@@ -17,7 +17,8 @@ package mmf
 import (
 	"fmt"
 	"log"
-	"github.com/google/uuid"
+
+	"github.com/rs/xid"
 
 	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
@@ -84,7 +85,7 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 		}
 
 		matches = append(matches, &pb.Match{
-			MatchId:       fmt.Sprintf("profile-%v-%s", p.GetName(), uuid.New().String()),
+			MatchId:       fmt.Sprintf("profile-%v-%s", p.GetName(), xid.New().String()),
 			MatchProfile:  p.GetName(),
 			MatchFunction: matchName,
 			Tickets:       matchTickets,
