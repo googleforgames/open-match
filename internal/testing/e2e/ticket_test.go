@@ -74,6 +74,27 @@ func TestAssignTickets(t *testing.T) {
 	require.Equal(t, "b", get.Assignment.Connection)
 }
 
+// TestAssignTicketsEmpty covers calls to assign when empty TicketIds
+func TestAssignTicketsEmpty(t *testing.T) {
+	om := newOM(t)
+	ctx := context.Background()
+
+	req := &pb.AssignTicketsRequest{
+		Assignments: []*pb.AssignmentGroup{
+			{
+				TicketIds:  []string{},
+				Assignment: &pb.Assignment{Connection: "a"},
+			},
+		},
+	}
+
+	resp, err := om.Backend().AssignTickets(ctx, req)
+	require.Nil(t, resp)
+	require.Equal(t, codes.InvalidArgument.String(), status.Convert(err).Code().String())
+	require.Equal(t, "AssignmentGroupTicketIds is empty", status.Convert(err).Message())
+
+}
+
 // TestAssignTicketsInvalidArgument covers various invalid calls to assign
 // tickets.
 func TestAssignTicketsInvalidArgument(t *testing.T) {

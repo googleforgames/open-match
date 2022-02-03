@@ -255,6 +255,10 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 		}
 	}
 
+	if len(idsI) == 0 {
+		return nil, nil, status.Error(codes.InvalidArgument, "AssignmentGroupTicketIds is empty")
+	}
+
 	ticketBytes, err := redis.ByteSlices(redisConn.Do("MGET", idsI...))
 	if err != nil {
 		return nil, nil, err
