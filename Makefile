@@ -62,7 +62,7 @@ YEAR_MONTH = $(shell date -u +'%Y%m')
 YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
 PROTOC_VERSION = 3.10.1
-HELM_VERSION = 3.0.0
+HELM_VERSION = 3.8.0
 KUBECTL_VERSION = 1.16.2
 MINIKUBE_VERSION = latest
 GOLANGCI_VERSION = 1.18.0
@@ -320,7 +320,7 @@ install-chart-prerequisite: build/toolchain/bin/kubectl$(EXE_EXTENSION) update-c
 	$(KUBECTL) apply -f install/gke-metadata-server-workaround.yaml
 
 # Used for Open Match development. Install om-configmap-override.yaml by default.
-HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --no-hooks --debug --timeout=600s --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) --set global.gcpProjectId=$(GCP_PROJECT_ID) --set open-match-override.enabled=true --set redis.password=$(REDIS_DEV_PASSWORD) --set redis.usePassword=false --set redis.sentinel.usePassword=false
+HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --no-hooks --debug --timeout=600s --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) --set global.gcpProjectId=$(GCP_PROJECT_ID) --set open-match-override.enabled=true --set redis.password=$(REDIS_DEV_PASSWORD) --set redis.auth.enabled=false --set redis.auth.sentinel=false
 # Used for generate static yamls. Install om-configmap-override.yaml as needed.
 HELM_TEMPLATE_FLAGS = --no-hooks --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --set usingHelmTemplate=true
 HELM_IMAGE_FLAGS = --set global.image.registry=$(REGISTRY) --set global.image.tag=$(TAG)
