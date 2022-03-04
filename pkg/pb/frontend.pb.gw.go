@@ -455,7 +455,7 @@ func RegisterFrontendServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/CreateTicket")
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/CreateTicket", runtime.WithHTTPPathPattern("/v1/frontendservice/tickets"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -478,7 +478,7 @@ func RegisterFrontendServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/DeleteTicket")
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/DeleteTicket", runtime.WithHTTPPathPattern("/v1/frontendservice/tickets/{ticket_id}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -501,7 +501,7 @@ func RegisterFrontendServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/GetTicket")
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/GetTicket", runtime.WithHTTPPathPattern("/v1/frontendservice/tickets/{ticket_id}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -531,7 +531,7 @@ func RegisterFrontendServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/AcknowledgeBackfill")
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/AcknowledgeBackfill", runtime.WithHTTPPathPattern("/v1/frontendservice/backfills/{backfill_id}/acknowledge"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -554,7 +554,7 @@ func RegisterFrontendServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/CreateBackfill")
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/CreateBackfill", runtime.WithHTTPPathPattern("/v1/frontendservice/backfills"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -577,7 +577,7 @@ func RegisterFrontendServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/DeleteBackfill")
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/DeleteBackfill", runtime.WithHTTPPathPattern("/v1/frontendservice/backfills/{backfill_id}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -600,7 +600,7 @@ func RegisterFrontendServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/GetBackfill")
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/GetBackfill", runtime.WithHTTPPathPattern("/v1/frontendservice/backfills/{backfill_id}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -623,7 +623,7 @@ func RegisterFrontendServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/UpdateBackfill")
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.FrontendService/UpdateBackfill", runtime.WithHTTPPathPattern("/v1/frontendservice/backfills"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -685,7 +685,7 @@ func RegisterFrontendServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/CreateTicket")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/CreateTicket", runtime.WithHTTPPathPattern("/v1/frontendservice/tickets"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -705,7 +705,7 @@ func RegisterFrontendServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/DeleteTicket")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/DeleteTicket", runtime.WithHTTPPathPattern("/v1/frontendservice/tickets/{ticket_id}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -725,7 +725,7 @@ func RegisterFrontendServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/GetTicket")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/GetTicket", runtime.WithHTTPPathPattern("/v1/frontendservice/tickets/{ticket_id}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -745,7 +745,7 @@ func RegisterFrontendServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/WatchAssignments")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/WatchAssignments", runtime.WithHTTPPathPattern("/v1/frontendservice/tickets/{ticket_id}/assignments"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -765,7 +765,7 @@ func RegisterFrontendServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/AcknowledgeBackfill")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/AcknowledgeBackfill", runtime.WithHTTPPathPattern("/v1/frontendservice/backfills/{backfill_id}/acknowledge"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -785,7 +785,7 @@ func RegisterFrontendServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/CreateBackfill")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/CreateBackfill", runtime.WithHTTPPathPattern("/v1/frontendservice/backfills"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -805,7 +805,7 @@ func RegisterFrontendServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/DeleteBackfill")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/DeleteBackfill", runtime.WithHTTPPathPattern("/v1/frontendservice/backfills/{backfill_id}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -825,7 +825,7 @@ func RegisterFrontendServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/GetBackfill")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/GetBackfill", runtime.WithHTTPPathPattern("/v1/frontendservice/backfills/{backfill_id}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -845,7 +845,7 @@ func RegisterFrontendServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/UpdateBackfill")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.FrontendService/UpdateBackfill", runtime.WithHTTPPathPattern("/v1/frontendservice/backfills"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return

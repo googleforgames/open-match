@@ -17,11 +17,10 @@ package filter
 import (
 	"testing"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"open-match.dev/open-match/internal/filter/testcases"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -43,11 +42,11 @@ func TestMeetsCriteria(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			testInclusion(t, tc.Pool, &pb.Ticket{
 				SearchFields: tc.SearchFields,
-				CreateTime:   ptypes.TimestampNow(),
+				CreateTime:   timestamppb.Now(),
 			})
 			testInclusion(t, tc.Pool, &pb.Backfill{
 				SearchFields: tc.SearchFields,
-				CreateTime:   ptypes.TimestampNow(),
+				CreateTime:   timestamppb.Now(),
 			})
 		})
 	}
@@ -68,11 +67,11 @@ func TestMeetsCriteria(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			testExclusion(t, tc.Pool, &pb.Ticket{
 				SearchFields: tc.SearchFields,
-				CreateTime:   ptypes.TimestampNow(),
+				CreateTime:   timestamppb.Now(),
 			})
 			testExclusion(t, tc.Pool, &pb.Backfill{
 				SearchFields: tc.SearchFields,
-				CreateTime:   ptypes.TimestampNow(),
+				CreateTime:   timestamppb.Now(),
 			})
 		})
 	}
@@ -88,7 +87,7 @@ func TestValidPoolFilter(t *testing.T) {
 		{
 			"invalid create before",
 			&pb.Pool{
-				CreatedBefore: &timestamp.Timestamp{Nanos: -1},
+				CreatedBefore: &timestamppb.Timestamp{Nanos: -1},
 			},
 			codes.InvalidArgument,
 			".invalid created_before value",
@@ -96,7 +95,7 @@ func TestValidPoolFilter(t *testing.T) {
 		{
 			"invalid create after",
 			&pb.Pool{
-				CreatedAfter: &timestamp.Timestamp{Nanos: -1},
+				CreatedAfter: &timestamppb.Timestamp{Nanos: -1},
 			},
 			codes.InvalidArgument,
 			".invalid created_after value",

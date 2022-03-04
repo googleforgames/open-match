@@ -16,8 +16,8 @@ package mmf
 
 import (
 	// Uncomment if following the tutorial
-	// "github.com/golang/protobuf/ptypes"
-	// "github.com/golang/protobuf/ptypes/any"
+	// "google.golang.org/protobuf/types"
+	// "google.golang.org/protobuf/types/known/anypb"
 
 	"fmt"
 	"log"
