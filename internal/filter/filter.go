@@ -54,17 +54,15 @@ func NewPoolFilter(pool *pb.Pool) (*PoolFilter, error) {
 	if pool.GetCreatedBefore() != nil {
 		if err = pool.GetCreatedBefore().CheckValid(); err != nil {
 			return nil, status.Error(codes.InvalidArgument, ".invalid created_before value")
-		} else {
-			cb = pool.GetCreatedBefore().AsTime()
 		}
+		cb = pool.GetCreatedBefore().AsTime()
 	}
 
 	if pool.GetCreatedAfter() != nil {
 		if err = pool.GetCreatedAfter().CheckValid(); err != nil {
 			return nil, status.Error(codes.InvalidArgument, ".invalid created_after value")
-		} else {
-			ca = pool.GetCreatedAfter().AsTime()
 		}
+		ca = pool.GetCreatedAfter().AsTime()
 	}
 
 	return &PoolFilter{
