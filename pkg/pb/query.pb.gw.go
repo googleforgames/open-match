@@ -178,7 +178,7 @@ func RegisterQueryServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.QueryService/QueryTickets")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.QueryService/QueryTickets", runtime.WithHTTPPathPattern("/v1/queryservice/tickets:query"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -198,7 +198,7 @@ func RegisterQueryServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.QueryService/QueryTicketIds")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.QueryService/QueryTicketIds", runtime.WithHTTPPathPattern("/v1/queryservice/ticketids:query"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -218,7 +218,7 @@ func RegisterQueryServiceHandlerClient(ctx context.Context, mux *runtime.ServeMu
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.QueryService/QueryBackfills")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.QueryService/QueryBackfills", runtime.WithHTTPPathPattern("/v1/queryservice/backfills:query"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return

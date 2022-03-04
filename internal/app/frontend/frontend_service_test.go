@@ -22,11 +22,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"open-match.dev/open-match/internal/statestore"
 	statestoreTesting "open-match.dev/open-match/internal/statestore/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
@@ -94,7 +94,7 @@ func TestCreateBackfill(t *testing.T) {
 	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()
 	ctx := utilTesting.NewContext(t)
-	fs := frontendService{cfg, store}
+	fs := frontendService{cfg: cfg, store: store}
 	var testCases = []struct {
 		description     string
 		request         *pb.CreateBackfillRequest
@@ -116,7 +116,7 @@ func TestCreateBackfill(t *testing.T) {
 		},
 		{
 			description:     "createTime should not exist in input",
-			request:         &pb.CreateBackfillRequest{Backfill: &pb.Backfill{CreateTime: ptypes.TimestampNow()}},
+			request:         &pb.CreateBackfillRequest{Backfill: &pb.Backfill{CreateTime: timestamppb.Now()}},
 			expectedCode:    codes.InvalidArgument,
 			expectedMessage: "backfills cannot be created with create time set",
 		},
@@ -157,7 +157,7 @@ func TestCreateBackfill(t *testing.T) {
 	// expect error with canceled context
 	store, closer = statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()
-	fs = frontendService{cfg, store}
+	fs = frontendService{cfg: cfg, store: store}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -178,7 +178,7 @@ func TestUpdateBackfill(t *testing.T) {
 	store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 	defer closer()
 	ctx := utilTesting.NewContext(t)
-	fs := frontendService{cfg, store}
+	fs := frontendService{cfg: cfg, store: store}
 	res, err := fs.CreateBackfill(ctx, &pb.CreateBackfillRequest{
 		Backfill: &pb.Backfill{
 			SearchFields: &pb.SearchFields{
@@ -248,7 +248,7 @@ func TestUpdateBackfill(t *testing.T) {
 
 	// expect error with canceled context
 	store, closer = statestoreTesting.NewStoreServiceForTesting(t, cfg)
-	fs = frontendService{cfg, store}
+	fs = frontendService{cfg: cfg, store: store}
 	defer closer()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -370,7 +370,7 @@ func TestAcknowledgeBackfillValidation(t *testing.T) {
 
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, cfg)
 			defer closer()
-			fs := frontendService{cfg, store}
+			fs := frontendService{cfg: cfg, store: store}
 			bf, err := fs.AcknowledgeBackfill(ctx, test.request)
 			require.Equal(t, codes.InvalidArgument.String(), status.Convert(err).Code().String())
 			require.Equal(t, test.expectedMessage, status.Convert(err).Message())
@@ -399,7 +399,7 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	}
 	err := store.CreateBackfill(ctx, fakeBackfill, []string{})
 	require.NoError(t, err)
-	fs := frontendService{cfg, store}
+	fs := frontendService{cfg: cfg, store: store}
 
 	resp, err := fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
 	require.NoError(t, err)
@@ -580,7 +580,7 @@ func TestGetBackfill(t *testing.T) {
 			ctx, cancel := context.WithCancel(utilTesting.NewContext(t))
 			store, closer := statestoreTesting.NewStoreServiceForTesting(t, viper.New())
 			defer closer()
-			fs := frontendService{cfg, store}
+			fs := frontendService{cfg: cfg, store: store}
 
 			test.preAction(ctx, cancel, store)
 
@@ -613,7 +613,7 @@ func TestDoDeleteBackfill(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := viper.New()
-	fs := frontendService{cfg, store}
+	fs := frontendService{cfg: cfg, store: store}
 
 	tests := []struct {
 		description string

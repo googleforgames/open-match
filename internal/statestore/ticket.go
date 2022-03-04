@@ -20,11 +20,11 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -36,6 +36,7 @@ const (
 
 // CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
 func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
+
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
 		return status.Errorf(codes.Unavailable, "CreateTicket, id: %s, failed to connect to redis: %v", ticket.GetId(), err)

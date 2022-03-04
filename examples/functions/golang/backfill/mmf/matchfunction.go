@@ -24,10 +24,10 @@ import (
 
 	"log"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -243,7 +243,7 @@ func newBackfill(searchFields *pb.SearchFields, openSlots int) (*pb.Backfill, er
 	b := pb.Backfill{
 		SearchFields: searchFields,
 		Generation:   0,
-		CreateTime:   ptypes.TimestampNow(),
+		CreateTime:   timestamppb.Now(),
 	}
 
 	err := setOpenSlots(&b, int32(openSlots))
@@ -264,10 +264,10 @@ func newMatch(num int, profile string, tickets []*pb.Ticket, b *pb.Backfill) pb.
 
 func setOpenSlots(b *pb.Backfill, val int32) error {
 	if b.Extensions == nil {
-		b.Extensions = make(map[string]*any.Any)
+		b.Extensions = make(map[string]*anypb.Any)
 	}
 
-	any, err := ptypes.MarshalAny(&wrappers.Int32Value{Value: val})
+	any, err := anypb.New(&wrapperspb.Int32Value{Value: val})
 	if err != nil {
 		return err
 	}
@@ -283,8 +283,8 @@ func getOpenSlots(b *pb.Backfill) (int32, error) {
 
 	if b.Extensions != nil {
 		if any, ok := b.Extensions[openSlotsKey]; ok {
-			var val wrappers.Int32Value
-			err := ptypes.UnmarshalAny(any, &val)
+			var val wrapperspb.Int32Value
+			err := any.UnmarshalTo(&val)
 			if err != nil {
 				return 0, err
 			}

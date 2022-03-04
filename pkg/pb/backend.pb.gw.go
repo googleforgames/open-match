@@ -177,7 +177,7 @@ func RegisterBackendServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.BackendService/AssignTickets")
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.BackendService/AssignTickets", runtime.WithHTTPPathPattern("/v1/backendservice/tickets:assign"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -200,7 +200,7 @@ func RegisterBackendServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.BackendService/ReleaseTickets")
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.BackendService/ReleaseTickets", runtime.WithHTTPPathPattern("/v1/backendservice/tickets:release"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -223,7 +223,7 @@ func RegisterBackendServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.BackendService/ReleaseAllTickets")
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/openmatch.BackendService/ReleaseAllTickets", runtime.WithHTTPPathPattern("/v1/backendservice/tickets:releaseall"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -285,7 +285,7 @@ func RegisterBackendServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.BackendService/FetchMatches")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.BackendService/FetchMatches", runtime.WithHTTPPathPattern("/v1/backendservice/matches:fetch"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -305,7 +305,7 @@ func RegisterBackendServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.BackendService/AssignTickets")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.BackendService/AssignTickets", runtime.WithHTTPPathPattern("/v1/backendservice/tickets:assign"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -325,7 +325,7 @@ func RegisterBackendServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.BackendService/ReleaseTickets")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.BackendService/ReleaseTickets", runtime.WithHTTPPathPattern("/v1/backendservice/tickets:release"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -345,7 +345,7 @@ func RegisterBackendServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.BackendService/ReleaseAllTickets")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.BackendService/ReleaseAllTickets", runtime.WithHTTPPathPattern("/v1/backendservice/tickets:releaseall"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return

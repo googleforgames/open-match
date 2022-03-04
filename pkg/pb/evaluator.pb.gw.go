@@ -55,15 +55,6 @@ func request_Evaluator_Evaluate_0(ctx context.Context, marshaler runtime.Marshal
 		}
 		return nil
 	}
-	if err := handleSend(); err != nil {
-		if cerr := stream.CloseSend(); cerr != nil {
-			grpclog.Infof("Failed to terminate client stream: %v", cerr)
-		}
-		if err == io.EOF {
-			return stream, metadata, nil
-		}
-		return nil, metadata, err
-	}
 	go func() {
 		for {
 			if err := handleSend(); err != nil {
@@ -141,7 +132,7 @@ func RegisterEvaluatorHandlerClient(ctx context.Context, mux *runtime.ServeMux, 
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.Evaluator/Evaluate")
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.Evaluator/Evaluate", runtime.WithHTTPPathPattern("/v1/evaluator/matches:evaluate"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
