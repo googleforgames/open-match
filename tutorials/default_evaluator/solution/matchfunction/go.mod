@@ -1,6 +1,6 @@
 module open-match.dev/open-match/tutorials/matchmaker101/matchfunction
 
-go 1.14
+go 1.17
 
 require (
 	github.com/golang/protobuf v1.4.3

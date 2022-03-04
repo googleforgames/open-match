@@ -1,6 +1,6 @@
 module open-match.dev/open-match/tutorials/matchmaker101/matchfunction
 
-go 1.14
+go 1.17
 
 require (
 	google.golang.org/grpc v1.36.0
