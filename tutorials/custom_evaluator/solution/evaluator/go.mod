@@ -1,6 +1,6 @@
 module open-match.dev/open-match/tutorials/matchmaker101/evaluator
 
-go 1.14
+go 1.17
 
 require (
 	github.com/sirupsen/logrus v1.7.0
