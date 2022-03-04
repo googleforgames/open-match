@@ -16,10 +16,9 @@ package mmf
 import (
 	"testing"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -129,13 +128,13 @@ func TestMakeFullMatches(t *testing.T) {
 }
 
 func withOpenSlots(openSlots int) *pb.Backfill {
-	val, err := ptypes.MarshalAny(&wrappers.Int32Value{Value: int32(openSlots)})
+	val, err := anypb.New(&wrapperspb.Int32Value{Value: int32(openSlots)})
 	if err != nil {
 		panic(err)
 	}
 
 	return &pb.Backfill{
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			openSlotsKey: val,
 		},
 	}

@@ -20,11 +20,10 @@ package filter
 import (
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -53,14 +52,18 @@ func NewPoolFilter(pool *pb.Pool) (*PoolFilter, error) {
 	var err error
 
 	if pool.GetCreatedBefore() != nil {
-		if cb, err = ptypes.Timestamp(pool.GetCreatedBefore()); err != nil {
+		if err = pool.GetCreatedBefore().CheckValid(); err != nil {
 			return nil, status.Error(codes.InvalidArgument, ".invalid created_before value")
+		} else {
+			cb = pool.GetCreatedBefore().AsTime()
 		}
 	}
 
 	if pool.GetCreatedAfter() != nil {
-		if ca, err = ptypes.Timestamp(pool.GetCreatedAfter()); err != nil {
+		if err = pool.GetCreatedAfter().CheckValid(); err != nil {
 			return nil, status.Error(codes.InvalidArgument, ".invalid created_after value")
+		} else {
+			ca = pool.GetCreatedAfter().AsTime()
 		}
 	}
 
@@ -76,7 +79,7 @@ func NewPoolFilter(pool *pb.Pool) (*PoolFilter, error) {
 type filteredEntity interface {
 	GetId() string
 	GetSearchFields() *pb.SearchFields
-	GetCreateTime() *timestamp.Timestamp
+	GetCreateTime() *timestamppb.Timestamp
 }
 
 // In returns true if the Ticket meets all the criteria for this PoolFilter.
@@ -89,7 +92,8 @@ func (pf *PoolFilter) In(entity filteredEntity) bool {
 
 	if !pf.CreatedAfter.IsZero() || !pf.CreatedBefore.IsZero() {
 		// CreateTime is only populated by Open Match and hence expected to be valid.
-		if ct, err := ptypes.Timestamp(entity.GetCreateTime()); err == nil {
+		if err := entity.GetCreateTime().CheckValid(); err == nil {
+			ct := entity.GetCreateTime().AsTime()
 			if !pf.CreatedAfter.IsZero() {
 				if !ct.After(pf.CreatedAfter) {
 					return false

@@ -21,14 +21,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/gomodule/redigo/redis"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"open-match.dev/open-match/internal/config"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
@@ -127,8 +126,8 @@ func TestUpdateExistingBackfillNoError(t *testing.T) {
 	ctx := utilTesting.NewContext(t)
 
 	// ARRANGE
-	v := &wrappers.DoubleValue{Value: 123}
-	a, err := ptypes.MarshalAny(v)
+	v := &wrapperspb.DoubleValue{Value: 123}
+	a, err := anypb.New(v)
 	require.NoError(t, err)
 
 	existingBF := pb.Backfill{
@@ -137,7 +136,7 @@ func TestUpdateExistingBackfillNoError(t *testing.T) {
 		SearchFields: &pb.SearchFields{
 			Tags: []string{"123"},
 		},
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			"qwe": a,
 		},
 	}
@@ -151,7 +150,7 @@ func TestUpdateExistingBackfillNoError(t *testing.T) {
 		SearchFields: &pb.SearchFields{
 			Tags: []string{"456"},
 		},
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			"xyz": a,
 		},
 	}
@@ -172,8 +171,8 @@ func TestUpdateExistingBackfillNoError(t *testing.T) {
 	require.NotNil(t, backfillActual.SearchFields)
 	require.Equal(t, updateBF.SearchFields.Tags, backfillActual.SearchFields.Tags)
 
-	res := &wrappers.DoubleValue{}
-	err = ptypes.UnmarshalAny(backfillActual.Extensions["xyz"], res)
+	res := &wrapperspb.DoubleValue{}
+	err = backfillActual.Extensions["xyz"].UnmarshalTo(res)
 	require.NoError(t, err)
 	require.Equal(t, v.Value, res.Value)
 }
@@ -186,8 +185,8 @@ func TestUpdateBackfillDoNotExistCanNotUpdate(t *testing.T) {
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
-	v := &wrappers.DoubleValue{Value: 123}
-	a, err := ptypes.MarshalAny(v)
+	v := &wrapperspb.DoubleValue{Value: 123}
+	a, err := anypb.New(v)
 	require.NoError(t, err)
 
 	updateBF := pb.Backfill{
@@ -196,7 +195,7 @@ func TestUpdateBackfillDoNotExistCanNotUpdate(t *testing.T) {
 		SearchFields: &pb.SearchFields{
 			Tags: []string{"456"},
 		},
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			"xyz": a,
 		},
 	}

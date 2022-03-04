@@ -16,10 +16,10 @@ package mmf
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 	"log"
 	"time"
+
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
@@ -87,7 +87,7 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 		}
 
 		matchScore := scoreCalculator(matchTickets)
-		evaluationInput, err := ptypes.MarshalAny(&pb.DefaultEvaluationCriteria{
+		evaluationInput, err := anypb.New(&pb.DefaultEvaluationCriteria{
 			Score: matchScore,
 		})
 
@@ -102,7 +102,7 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 			MatchProfile:  p.GetName(),
 			MatchFunction: matchName,
 			Tickets:       matchTickets,
-			Extensions: map[string]*any.Any{
+			Extensions: map[string]*anypb.Any{
 				"evaluation_input": evaluationInput,
 			},
 		})

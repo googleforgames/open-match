@@ -27,8 +27,6 @@ import (
 	"go.opencensus.io/stats"
 
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
@@ -36,6 +34,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"open-match.dev/open-match/internal/appmain/contextcause"
 	"open-match.dev/open-match/internal/ipb"
 	"open-match.dev/open-match/internal/rpc"
@@ -369,7 +369,7 @@ func (s *backendService) AssignTickets(ctx context.Context, req *pb.AssignTicket
 func createOrUpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketIds []string, store statestore.Service) error {
 	if backfill.Id == "" {
 		backfill.Id = xid.New().String()
-		backfill.CreateTime = ptypes.TimestampNow()
+		backfill.CreateTime = timestamppb.Now()
 		backfill.Generation = 1
 		err := store.CreateBackfill(ctx, backfill, ticketIds)
 		if err != nil {
@@ -459,10 +459,7 @@ func recordTimeToAssignment(ctx context.Context, ticket *pb.Ticket) error {
 	}
 
 	now := time.Now()
-	created, err := ptypes.Timestamp(ticket.CreateTime)
-	if err != nil {
-		return err
-	}
+	created := ticket.CreateTime.AsTime()
 
 	stats.Record(ctx, ticketsTimeToAssignment.M(now.Sub(created).Milliseconds()))
 
