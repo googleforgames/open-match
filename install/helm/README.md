@@ -26,7 +26,7 @@ swaggerui:
 global:
   kubernetes:
     service:
--	  portType: ClusterIP
+-     portType: ClusterIP
 +     portType: LoadBalancer
 
 # Enables grafana support in Open Match
