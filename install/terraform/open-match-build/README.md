@@ -12,7 +12,7 @@ If you're making changes to these files you must check in the .tfstate file as
 well as comment the reason why you're enabling a feature or making a change.
 
 ## GCP Service Account Setup
-To use the terraform templates when developing Open Match, you need to have the [credential of your service account](https://www.terraform.io/docs/providers/google/provider_reference.html#credentials-1) associated with your Open Match project.
+To use the terraform templates when developing Open Match, you need to have the [credential of your service account](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/google_service_account) associated with your Open Match project.
 
 ```bash
 # Example: Generates the key file in GCP.
