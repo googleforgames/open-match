@@ -16,7 +16,7 @@ Lastly, these templates are meant for advanced users that are most likely
 already using Terraform.
 
 ## GCP Service Account Setup
-To use the terraform templates when developing Open Match, you need to have the [credential of your service account](https://www.terraform.io/docs/providers/google/provider_reference.html#credentials-1) associated with your Open Match project.
+To use the terraform templates when developing Open Match, you need to have the [credential of your service account](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/google_service_account) associated with your Open Match project.
 
 ```bash
 # Example: Generates the key file in GCP.
