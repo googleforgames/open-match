@@ -15,8 +15,10 @@
 FROM golang:alpine as go
 WORKDIR /app
 ENV GO111MODULE=on
-
+RUN apk add --no-cache git
 COPY . .
+RUN go mod edit -replace open-match.dev/open-match@v0.0.0-dev=open-match.dev/open-match@latest
+RUN go mod tidy
 RUN go build -o matchfunction .
 
 CMD ["/app/matchfunction"]
