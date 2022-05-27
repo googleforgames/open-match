@@ -16,9 +16,36 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "openmatch.fullname" . }}-dashboards
+  name: {{ include "openmatch.fullname" . }}-go-processes-dashboard
   labels:
-     grafana_dashboard: "1"
+    grafana_dashboard: "1"
 data:
-  {{- (.Files.Glob "dashboards/*.json").AsConfig | nindent 2 }}
+  {{- (.Files.Glob "dashboards/go-processes.json").AsConfig | nindent 2 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "openmatch.fullname" . }}-grpc-dashboard
+  labels:
+    grafana_dashboard: "2"
+data:
+  {{- (.Files.Glob "dashboards/grpc.json").AsConfig | nindent 2 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "openmatch.fullname" . }}-match-making-dashboard
+  labels:
+    grafana_dashboard: "3"
+data:
+  {{- (.Files.Glob "dashboards/match-making.json").AsConfig | nindent 2 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "openmatch.fullname" . }}-redis-dashboard
+  labels:
+    grafana_dashboard: "4"
+data:
+  {{- (.Files.Glob "dashboards/redis.json").AsConfig | nindent 2 }}
 {{- end }}
