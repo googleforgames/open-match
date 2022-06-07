@@ -27,4 +27,4 @@ If the matter is security related, please disclose it privately via
 
 **Open Match Release Version**:
 
-**Install Method(yaml/helm):**:
+**Install Method(yaml/helm)**:
