@@ -90,11 +90,11 @@ data:
 {{- if index .Values "redis" "sentinel" "enabled"}}
       sentinelPort: {{ .Values.redis.sentinel.port }}
       sentinelMaster: {{ .Values.redis.sentinel.masterSet }}
-      sentinelHostname: {{ include "call-nested" (list . "redis" "redis.fullname") }}
-      sentinelUsePassword: {{ .Values.redis.sentinel.usePassword }}
+      sentinelHostname: {{ include "call-nested" (list . "redis" "common.names.fullname") }}
+      sentinelUsePassword: {{ .Values.redis.auth.sentinel }}
 {{- else}}
       # Open Match's default Redis setups
-      hostname: {{ include "call-nested" (list . "redis" "redis.fullname") }}-master.{{ .Release.Namespace }}.svc.cluster.local
+      hostname: {{ include "call-nested" (list . "redis" "common.names.fullname") }}-master.{{ .Release.Namespace }}.svc.cluster.local
       port: {{ .Values.redis.redisPort }}
       user: {{ .Values.redis.user }}
 {{- end}}
@@ -104,7 +104,7 @@ data:
       port: {{ index .Values "open-match-core" "redis" "port" }}
       user: {{ index .Values "open-match-core" "redis" "user" }}
 {{- end }}
-      usePassword: {{ .Values.redis.usePassword }}
+      usePassword: {{ .Values.redis.auth.enabled }}
       passwordPath: {{ .Values.redis.secretMountPath }}/redis-password
       pool:
         maxIdle: {{ index .Values "open-match-core" "redis" "pool" "maxIdle" }}

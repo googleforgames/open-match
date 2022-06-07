@@ -107,8 +107,10 @@ configs:
 # https://github.com/helm/charts/tree/master/stable/redis
 redis:
   redisPort: 6379
-  usePassword: false
-  usePasswordFile: false
+  auth:
+    enabled: false
+    sentinel: false
+    usePasswordFiles: false
   secretMountPath: /opt/bitnami/redis/secrets
   configmap: |
     maxclients 100000
@@ -117,17 +119,29 @@ redis:
     enabled: true
     masterSet: om-redis-master
     port: 26379
-    usePassword: false
+    resources:
+      requests:
+        memory: 300Mi
+        cpu: 0.5
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
     resources:
       requests:
         memory: 300Mi
         cpu: 0.5
+  replica:
+    disableCommands: [] # don't disable 'FLUSH-' commands
+    replicaCount: 3
+    resources:
+      requests:
+        memory: 300Mi
+        cpu: 0.5
   metrics:
     enabled: true
-  cluster:
-    slaveCount: 2
+    resources:
+      requests:
+        memory: 300Mi
+        cpu: 0.5
   serviceAccount:
     create: true
   sysctlImage:

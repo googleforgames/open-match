@@ -229,6 +229,23 @@ func TestUpdateAssignments(t *testing.T) {
 			},
 		},
 		{
+			description: "empty ticketIds, error expected",
+			request: &pb.AssignTicketsRequest{
+				Assignments: []*pb.AssignmentGroup{
+					{
+						TicketIds:  []string{},
+						Assignment: &pb.Assignment{Connection: "2"},
+					},
+				},
+			},
+			expected: expected{
+				resp:               nil,
+				errCode:            codes.InvalidArgument,
+				errMessage:         "AssignmentGroupTicketIds is empty",
+				assignedTicketsIDs: nil,
+			},
+		},
+		{
 			description: "nil assignment, error expected",
 			request: &pb.AssignTicketsRequest{
 				Assignments: []*pb.AssignmentGroup{
