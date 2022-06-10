@@ -23,7 +23,7 @@ kind: ConfigMap
 metadata:
   name: {{ printf "%s-%s-dashboard" $om ((printf "%s" $file) | replace $ext "") }} 
   labels:
-    grafana_dashboard: {{ $c }}
+    grafana_dashboard: {{ printf "d-%d" $c }}
 data:
   {{- ($.Files.Glob (printf "dashboards/%s" $file)).AsConfig | nindent 2 }}
 ---
