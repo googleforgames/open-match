@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -282,7 +283,7 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 			tickets = append(tickets, t)
 		}
 	}
-	assignmentTimeout := rb.cfg.GetDuration("assignedDeleteTimeout") / time.Millisecond
+	assignmentTimeout := getAssignedDeleteTimeout(rb.cfg) / time.Millisecond
 	err = redisConn.Send("MULTI")
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "error starting redis multi")
@@ -445,4 +446,19 @@ func (rb *redisBackend) newExponentialBackoffStrategy() backoff.BackOff {
 	backoffStrat.MaxInterval = rb.cfg.GetDuration("backoff.maxInterval")
 	backoffStrat.MaxElapsedTime = rb.cfg.GetDuration("backoff.maxElapsedTime")
 	return backoff.BackOff(backoffStrat)
+}
+
+func getAssignedDeleteTimeout(cfg config.View) time.Duration {
+	const (
+		name = "assignedDeleteTimeout"
+		// Default timeout to delete tickets after assignment. This value
+		// will be used if assignedDeleteTimeout is not configured.
+		defaultAssignedDeleteTimeout time.Duration = 10 * time.Minute
+	)
+
+	if !cfg.IsSet(name) {
+		return defaultAssignedDeleteTimeout
+	}
+
+	return cfg.GetDuration(name)
 }
