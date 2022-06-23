@@ -1,0 +1,12 @@
+module open-match.dev/open-match/tutorials/backfill/matchfunction
+
+go 1.14
+
+require (
+	github.com/golang/protobuf v1.4.3
+	github.com/stretchr/testify v1.7.0
+	google.golang.org/grpc v1.36.0
+	open-match.dev/open-match v0.0.0-dev
+)
+
+replace open-match.dev/open-match v0.0.0-dev => ../../../../
