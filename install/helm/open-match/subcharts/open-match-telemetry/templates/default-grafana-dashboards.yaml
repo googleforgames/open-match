@@ -13,12 +13,20 @@
 # limitations under the License.
 
 {{- if .Values.global.telemetry.grafana.enabled }}
+{{- $om := (include "openmatch.fullname" .) }}
+{{ $c := 1 | int }}
+{{- range $path, $bytes := .Files.Glob "dashboards/*.json" }}
+{{- $ext := ext $path }}
+{{- $file := base $path }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "openmatch.fullname" . }}-dashboards
+  name: {{ printf "%s-%s-dashboard" $om ((printf "%s" $file) | replace $ext "") }} 
   labels:
-     grafana_dashboard: "1"
+    grafana_dashboard: {{ printf "d-%d" $c }}
 data:
-  {{- (.Files.Glob "dashboards/*.json").AsConfig | nindent 2 }}
+  {{- ($.Files.Glob (printf "dashboards/%s" $file)).AsConfig | nindent 2 }}
+---
+{{ $c = add1 $c }}
+{{- end }}
 {{- end }}
