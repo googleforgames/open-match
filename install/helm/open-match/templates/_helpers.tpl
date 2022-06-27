@@ -160,6 +160,12 @@ targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoSc
 {{- .Values.global.kubernetes.serviceAccount | default (printf "%s-unprivileged-service" (include "openmatch.fullname" . ) ) -}}
 {{- end -}}
 
+{{- define "openmatch.serviceAccountAnnotations" -}}
+{{- if .Values.global.kubernetes.serviceAccountAnnotations -}}
+{{- toYaml (.Values.global.kubernetes.serviceAccountAnnotations) | nindent 4 -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "openmatch.swaggerui.hostName" -}}
 {{- .Values.swaggerui.hostName | default (printf "%s-swaggerui" (include "openmatch.fullname" . ) ) -}}
 {{- end -}}
