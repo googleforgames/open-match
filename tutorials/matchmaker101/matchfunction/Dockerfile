@@ -17,6 +17,6 @@ WORKDIR /app
 ENV GO111MODULE=on
 
 COPY . .
-RUN go build -o matchfunction .
+RUN cd tutorials/matchmaker101/matchfunction && go build -o /app/matchfunction .
 
 CMD ["/app/matchfunction"]

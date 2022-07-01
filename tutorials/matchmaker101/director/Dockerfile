@@ -17,6 +17,6 @@ WORKDIR /app
 ENV GO111MODULE=on
 
 COPY . .
-RUN go build -o director .
+RUN cd tutorials/matchmaker101/director && go build -o /app/director .
 
 CMD ["/app/director"]

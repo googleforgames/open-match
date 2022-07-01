@@ -17,6 +17,6 @@ WORKDIR /app
 ENV GO111MODULE=on
 
 COPY . .
-RUN go build -o frontend .
+RUN cd tutorials/matchmaker101/frontend && go build -o /app/frontend .
 
 CMD ["/app/frontend"]
