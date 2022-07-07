@@ -183,6 +183,7 @@ func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBack
 	// Update generation here, because Frontend is used by GameServer only
 	bfStored.SearchFields = backfill.SearchFields
 	bfStored.Extensions = backfill.Extensions
+	bfStored.PersistentField = backfill.PersistentField
 	// Autoincrement generation, input backfill generation validation is performed
 	// on Backend only (after MMF round)
 	bfStored.Generation++
