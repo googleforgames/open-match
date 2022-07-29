@@ -974,7 +974,7 @@ func createRedis(t *testing.T, withSentinel bool, withPassword string) (config.V
 	}
 }
 
-//nolint: unparam
+// nolint: unparam
 // generateTickets creates a proper amount of ticket, returns a slice of tickets and a slice of tickets ids
 func generateTickets(ctx context.Context, t *testing.T, service Service, amount int) ([]*pb.Ticket, []string) {
 	tickets := make([]*pb.Ticket, 0, amount)
