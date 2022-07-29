@@ -57,6 +57,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "BETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal.",
             "in": "body",
             "required": true,
             "schema": {
@@ -95,6 +96,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "UpdateBackfillRequest - update searchFields, extensions and set assignment.\n\nBETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal.",
             "in": "body",
             "required": true,
             "schema": {
@@ -152,6 +154,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
+              "type": "object",
               "properties": {}
             }
           },
@@ -322,6 +325,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
+              "type": "object",
               "properties": {}
             }
           },

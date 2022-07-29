@@ -66,6 +66,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "BETA FEATURE WARNING:  This Request messages are not finalized and \nstill subject to possible change or removal.",
             "in": "body",
             "required": true,
             "schema": {

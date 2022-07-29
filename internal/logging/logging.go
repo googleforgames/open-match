@@ -24,8 +24,8 @@ import (
 )
 
 // ConfigureLogging sets up open match logrus instance using the logging section of the matchmaker_config.json
-//  - log line format (text[default] or json)
-//  - min log level to include (debug, info [default], warn, error, fatal, panic)
+//   - log line format (text[default] or json)
+//   - min log level to include (debug, info [default], warn, error, fatal, panic)
 func ConfigureLogging(cfg config.View) {
 	logrus.SetFormatter(newFormatter(cfg.GetString("logging.format")))
 	level := toLevel(cfg.GetString("logging.level"))

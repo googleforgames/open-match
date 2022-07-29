@@ -132,12 +132,13 @@ func RegisterEvaluatorHandlerClient(ctx context.Context, mux *runtime.ServeMux, 
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/openmatch.Evaluator/Evaluate", runtime.WithHTTPPathPattern("/v1/evaluator/matches:evaluate"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/openmatch.Evaluator/Evaluate", runtime.WithHTTPPathPattern("/v1/evaluator/matches:evaluate"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_Evaluator_Evaluate_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_Evaluator_Evaluate_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
