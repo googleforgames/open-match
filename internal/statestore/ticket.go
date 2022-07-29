@@ -49,6 +49,10 @@ func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) err
 		return status.Errorf(codes.Internal, "%v", err)
 	}
 
+	if value == nil {
+		return status.Errorf(codes.Internal, "failed to marshal the ticket proto, id: %s: proto: Marshal called with nil", ticket.GetId())
+	}
+
 	_, err = redisConn.Do("SET", ticket.GetId(), value)
 	if err != nil {
 		err = errors.Wrapf(err, "failed to set the value for ticket, id: %s", ticket.GetId())
