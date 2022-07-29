@@ -24,11 +24,13 @@ const _ = grpc.SupportPackageIsVersion7
 type QueryServiceClient interface {
 	// QueryTickets gets a list of Tickets that match all Filters of the input Pool.
 	//   - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.
+	//
 	// QueryTickets pages the Tickets by `queryPageSize` and stream back responses.
 	//   - queryPageSize is default to 1000 if not set, and has a minimum of 10 and maximum of 10000.
 	QueryTickets(ctx context.Context, in *QueryTicketsRequest, opts ...grpc.CallOption) (QueryService_QueryTicketsClient, error)
 	// QueryTicketIds gets the list of TicketIDs that meet all the filtering criteria requested by the pool.
 	//   - If the Pool contains no Filters, QueryTicketIds will return all TicketIDs in the state storage.
+	//
 	// QueryTicketIds pages the TicketIDs by `queryPageSize` and stream back responses.
 	//   - queryPageSize is default to 1000 if not set, and has a minimum of 10 and maximum of 10000.
 	QueryTicketIds(ctx context.Context, in *QueryTicketIdsRequest, opts ...grpc.CallOption) (QueryService_QueryTicketIdsClient, error)
@@ -148,11 +150,13 @@ func (x *queryServiceQueryBackfillsClient) Recv() (*QueryBackfillsResponse, erro
 type QueryServiceServer interface {
 	// QueryTickets gets a list of Tickets that match all Filters of the input Pool.
 	//   - If the Pool contains no Filters, QueryTickets will return all Tickets in the state storage.
+	//
 	// QueryTickets pages the Tickets by `queryPageSize` and stream back responses.
 	//   - queryPageSize is default to 1000 if not set, and has a minimum of 10 and maximum of 10000.
 	QueryTickets(*QueryTicketsRequest, QueryService_QueryTicketsServer) error
 	// QueryTicketIds gets the list of TicketIDs that meet all the filtering criteria requested by the pool.
 	//   - If the Pool contains no Filters, QueryTicketIds will return all TicketIDs in the state storage.
+	//
 	// QueryTicketIds pages the TicketIDs by `queryPageSize` and stream back responses.
 	//   - queryPageSize is default to 1000 if not set, and has a minimum of 10 and maximum of 10000.
 	QueryTicketIds(*QueryTicketIdsRequest, QueryService_QueryTicketIdsServer) error
