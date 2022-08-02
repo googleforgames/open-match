@@ -151,6 +151,7 @@ only required once.**
 - [ ] Go to the History section and find the "Post Submit" build of the merged commit that's running. Wait for it to go Green. If it's red, fix error repeat this section. Take note of the docker image version tag for next step. Example: 0.5.0-a4706cb.
 - [ ] Run `./docs/governance/templates/release.sh {source version tag} {version}` to copy the images to open-match-public-images.
 - [ ] If this is a new minor version in the newest major version then run `./docs/governance/templates/release.sh {source version tag} latest`.
+- [ ] Once the images have successfully been pushed to the registry, modify the line `open-match.dev/open-match v0.0.0-dev` in all `go.mod` files in the [Tutorials] (https://github.com/googleforgames/open-match/tree/main/tutorials) directory to use the current release version. This includes all solution subdirectories as well
 - [ ] Use the files under the `build/release/` directory for the Open Match installation guide. Make sure the artifacts work as expected - these are the artifacts that will be published to the GCS bucket and used in our release assets.
 - [ ] Copy the files from `build/release/` generated from `make release` to the release draft you created.  You can drag and drop the files using the Github UI.
 - [ ] Update [Slack invitation link](https://slack.com/help/articles/201330256-invite-new-members-to-your-workspace#share-an-invite-link) in [open-match.dev](https://open-match.dev/site/docs/contribute/#get-involved).

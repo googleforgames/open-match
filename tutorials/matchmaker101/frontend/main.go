@@ -14,7 +14,7 @@
 
 package main
 
-// The Frontend in this tutorial continously creates Tickets in batches in Open Match.
+// The Frontend in this tutorial continuously creates Tickets in batches in Open Match.
 
 import (
 	"context"

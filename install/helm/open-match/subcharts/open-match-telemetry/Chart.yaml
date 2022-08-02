@@ -19,15 +19,15 @@ name: open-match-telemetry
 version: 0.0.0-dev
 dependencies:
   - name: prometheus
-    version: 9.2.0
-    repository: https://charts.helm.sh/stable
+    version: 15.8.7
+    repository:  https://prometheus-community.github.io/helm-charts
     condition: global.telemetry.prometheus.enabled,prometheus.enabled
   - name: grafana
-    version: 4.0.1
-    repository: https://charts.helm.sh/stable
+    version: 6.29.3
+    repository: https://grafana.github.io/helm-charts
     condition: global.telemetry.grafana.enabled,grafana.enabled
   - name: jaeger
-    version: 0.13.3
-    repository: https://charts.helm.sh/stable
+    version: 0.56.5
+    repository: https://jaegertracing.github.io/helm-charts
     condition: global.telemetry.jaeger.enabled,jaeger.enabled
 
