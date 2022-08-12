@@ -91,7 +91,7 @@ spec:
     command: ["go"]
     args:
     - "test"
-    - "./internal/testing/e2e"
+    - "./testing/e2e"
     - "-v"
     - "-timeout"
     - "150s"
