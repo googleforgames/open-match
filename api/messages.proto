@@ -45,9 +45,14 @@ message Ticket {
   // Optional, depending on the requirements of the connected systems.
   map<string, google.protobuf.Any> extensions = 5;
 
+  // Customized information not inspected by Open Match, to be kept persistent 
+  // throughout the life-cycle of a ticket. 
+  // Optional, depending on the requirements of the connected systems.
+  map<string, google.protobuf.Any> persistent_field = 6;
+
   // Create time is the time the Ticket was created. It is populated by Open
   // Match at the time of Ticket creation.
-  google.protobuf.Timestamp create_time = 6;
+  google.protobuf.Timestamp create_time = 7;
 
   // Deprecated fields.
   reserved 2;
@@ -253,12 +258,17 @@ message Backfill {
   // Optional, depending on the requirements of the connected systems.
   map<string, google.protobuf.Any> extensions = 3;
 
+  // Customized information not inspected by Open Match, to be kept persistent 
+  // throughout the life-cycle of a backfill. 
+  // Optional, depending on the requirements of the connected systems.
+  map<string, google.protobuf.Any> persistent_field = 4;
+
   // Create time is the time the Ticket was created. It is populated by Open
   // Match at the time of Ticket creation.
-  google.protobuf.Timestamp create_time = 4;
+  google.protobuf.Timestamp create_time = 5;
 
   // Generation gets incremented on GameServers update operations.
   // Prevents the MMF from overriding a newer version from the game server.
   // Do NOT read or write to this field, it is for internal tracking, and changing the value will cause bugs.
-  int64 generation = 5;
+  int64 generation = 6;
 }
