@@ -252,6 +252,8 @@ global:
         cpu: 2
     # Overrides the name of the service account which provides an identity for processes that run in a Pod in Open Match.
     serviceAccount:
+    # Adds custom annotations to the Open Match service account.
+    serviceAccountAnnotations: {}
     # Use this field if you need to override the port type for all services defined in this chart
     service:
       portType:
