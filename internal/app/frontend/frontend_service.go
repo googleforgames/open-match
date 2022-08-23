@@ -183,6 +183,7 @@ func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBack
 	// Update generation here, because Frontend is used by GameServer only
 	bfStored.SearchFields = backfill.SearchFields
 	bfStored.Extensions = backfill.Extensions
+	bfStored.PersistentField = backfill.PersistentField
 	// Autoincrement generation, input backfill generation validation is performed
 	// on Backend only (after MMF round)
 	bfStored.Generation++
@@ -227,6 +228,7 @@ func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBack
 // DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
 // The client must delete the Ticket when finished matchmaking with it.
 //   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
+//
 // Users may still be able to assign/get a ticket after calling DeleteTicket on it.
 func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*empty.Empty, error) {
 	err := doDeleteTicket(ctx, req.GetTicketId(), s.store)
@@ -277,39 +279,37 @@ func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketReques
 //   - If the Assignment is not updated, GetAssignment will retry using the configured backoff strategy.
 func (s *frontendService) WatchAssignments(req *pb.WatchAssignmentsRequest, stream pb.FrontendService_WatchAssignmentsServer) error {
 	ctx := stream.Context()
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			sender := func(assignment *pb.Assignment) error {
-				return stream.Send(&pb.WatchAssignmentsResponse{Assignment: assignment})
-			}
-			return doWatchAssignments(ctx, req.GetTicketId(), sender, s.store)
-		}
+	sender := func(assignment *pb.Assignment) error {
+		return stream.Send(&pb.WatchAssignmentsResponse{Assignment: assignment})
 	}
+	return doWatchAssignments(ctx, req.GetTicketId(), sender, s.store)
 }
 
 func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignment) error, store statestore.Service) error {
 	var currAssignment *pb.Assignment
 	var ok bool
 	callback := func(assignment *pb.Assignment) error {
-		if ctx.Err() != nil {
+		select {
+		case <-ctx.Done():
 			return status.Errorf(codes.Aborted, ctx.Err().Error())
-		}
-
-		if (currAssignment == nil && assignment != nil) || !proto.Equal(currAssignment, assignment) {
-			currAssignment, ok = proto.Clone(assignment).(*pb.Assignment)
-			if !ok {
-				return status.Error(codes.Internal, "failed to cast the assignment object")
+		default:
+			if ctx.Err() != nil {
+				return status.Errorf(codes.Aborted, ctx.Err().Error())
 			}
 
-			err := sender(currAssignment)
-			if err != nil {
-				return status.Errorf(codes.Aborted, err.Error())
+			if (currAssignment == nil && assignment != nil) || !proto.Equal(currAssignment, assignment) {
+				currAssignment, ok = proto.Clone(assignment).(*pb.Assignment)
+				if !ok {
+					return status.Error(codes.Internal, "failed to cast the assignment object")
+				}
+
+				err := sender(currAssignment)
+				if err != nil {
+					return status.Errorf(codes.Aborted, err.Error())
+				}
 			}
+			return nil
 		}
-		return nil
 	}
 
 	return store.GetAssignments(ctx, id, callback)

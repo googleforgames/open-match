@@ -636,7 +636,7 @@ delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bi
 create-cluster-role-binding:
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
-create-gke-cluster: GKE_VERSION = 1.21.11-gke.900 # gcloud beta container get-server-config --zone us-west1-a
+create-gke-cluster: GKE_VERSION = 1.22.8-gke.202 # gcloud beta container get-server-config --zone us-west1-a
 create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-8 --enable-autoscaling --min-nodes 1 --num-nodes 6 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
@@ -645,7 +645,7 @@ create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
 		--cluster-version $(GKE_VERSION) \
 		--image-type cos_containerd \
 		--tags open-match \
-		--workload-pool $(PROJECT_ID).svc.id.goog
+		--workload-pool $(GCP_PROJECT_ID).svc.id.goog
 	$(MAKE) create-cluster-role-binding
 	
 
