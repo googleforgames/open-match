@@ -864,7 +864,7 @@ ci-reap-namespaces: build/toolchain/bin/reaper$(EXE_EXTENSION)
 	-$(TOOLCHAIN_BIN)/reaper -age=30m
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
-presubmit: GOLANG_TEST_COUNT = 5
+presubmit: GOLANG_TEST_COUNT = 3
 presubmit: clean third_party/ update-chart-deps assets update-deps lint build test md-test terraform-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
