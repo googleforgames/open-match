@@ -230,6 +230,10 @@ open-match-customize:
   # function:
   #   image: [YOUR_MMF_IMAGE]
 
+# Controls if users need to install open-match-override ConfigMap.
+open-match-override:
+  enabled: false
+
 # Global configurations that are visible to all subcharts
 global:
   kubernetes:
