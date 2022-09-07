@@ -177,6 +177,7 @@ func updateTicketCache(store statestore.Service, value interface{}) error {
 	}
 
 	stats.Record(context.Background(), cacheTotalItems.M(int64(previousCount)))
+	stats.Record(context.Background(), totalTickets.M(int64(len(tickets)-len(toFetch))))
 	stats.Record(context.Background(), cacheFetchedItems.M(int64(len(toFetch))))
 	stats.Record(context.Background(), cacheUpdateLatency.M(float64(time.Since(t))/float64(time.Millisecond)))
 
@@ -242,6 +243,7 @@ func updateBackfillCache(store statestore.Service, value interface{}) error {
 	}
 
 	stats.Record(context.Background(), cacheTotalItems.M(int64(previousCount)))
+	stats.Record(context.Background(), totalBackfillsTickets.M(int64(len(backfills))))
 	stats.Record(context.Background(), cacheFetchedItems.M(int64(len(toFetch))))
 	stats.Record(context.Background(), cacheUpdateLatency.M(float64(time.Since(t))/float64(time.Millisecond)))
 

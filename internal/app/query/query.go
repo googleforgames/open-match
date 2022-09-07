@@ -25,12 +25,14 @@ import (
 )
 
 var (
-	ticketsPerQuery     = stats.Int64("open-match.dev/query/tickets_per_query", "Number of tickets per query", stats.UnitDimensionless)
-	backfillsPerQuery   = stats.Int64("open-match.dev/query/backfills_per_query", "Number of backfills per query", stats.UnitDimensionless)
-	cacheTotalItems     = stats.Int64("open-match.dev/query/total_cache_items", "Total number of items query service cached", stats.UnitDimensionless)
-	cacheFetchedItems   = stats.Int64("open-match.dev/query/fetched_items", "Number of fetched items in total", stats.UnitDimensionless)
-	cacheWaitingQueries = stats.Int64("open-match.dev/query/waiting_queries", "Number of waiting queries in the last update", stats.UnitDimensionless)
-	cacheUpdateLatency  = stats.Float64("open-match.dev/query/update_latency", "Time elapsed of each query cache update", stats.UnitMilliseconds)
+	ticketsPerQuery       = stats.Int64("open-match.dev/query/tickets_per_query", "Number of tickets per query", stats.UnitDimensionless)
+	totalTickets          = stats.Int64("open-match.dev/query/total_tickets", "Number of tickets", stats.UnitDimensionless)
+	backfillsPerQuery     = stats.Int64("open-match.dev/query/backfills_per_query", "Number of backfills per query", stats.UnitDimensionless)
+	totalBackfillsTickets = stats.Int64("open-match.dev/query/total_backfill_tickets", "Number of current backfills", stats.UnitDimensionless)
+	cacheTotalItems       = stats.Int64("open-match.dev/query/total_cache_items", "Total number of items query service cached", stats.UnitDimensionless)
+	cacheFetchedItems     = stats.Int64("open-match.dev/query/fetched_items", "Number of fetched items in total", stats.UnitDimensionless)
+	cacheWaitingQueries   = stats.Int64("open-match.dev/query/waiting_queries", "Number of waiting queries in the last update", stats.UnitDimensionless)
+	cacheUpdateLatency    = stats.Float64("open-match.dev/query/update_latency", "Time elapsed of each query cache update", stats.UnitMilliseconds)
 
 	ticketsPerQueryView = &view.View{
 		Measure:     ticketsPerQuery,
@@ -38,11 +40,23 @@ var (
 		Description: "Tickets per query",
 		Aggregation: telemetry.DefaultCountDistribution,
 	}
+	ticketsTotalView = &view.View{
+		Measure:     totalTickets,
+		Name:        "open-match.dev/query/total_tickets",
+		Description: "Total tickets",
+		Aggregation: view.LastValue(),
+	}
 	backfillsPerQueryView = &view.View{
 		Measure:     ticketsPerQuery,
 		Name:        "open-match.dev/query/backfills_per_query",
 		Description: "Backfills per query",
 		Aggregation: telemetry.DefaultCountDistribution,
+	}
+	backfillTotalTicketsView = &view.View{
+		Measure:     totalBackfillsTickets,
+		Name:        "open-match.dev/query/backfills_per_query",
+		Description: "Total number of backfill tickets",
+		Aggregation: view.LastValue(),
 	}
 	cacheTotalItemsView = &view.View{
 		Measure:     cacheTotalItems,
@@ -90,7 +104,9 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	}, pb.RegisterQueryServiceHandlerFromEndpoint)
 	b.RegisterViews(
 		ticketsPerQueryView,
+		ticketsTotalView,
 		backfillsPerQueryView,
+		backfillTotalTicketsView,
 		cacheTotalItemsView,
 		cacheUpdateView,
 		cacheFetchedItemsView,
