@@ -54,7 +54,7 @@ var (
 	}
 	backfillTotalTicketsView = &view.View{
 		Measure:     totalBackfillsTickets,
-		Name:        "open-match.dev/query/backfills_per_query",
+		Name:        "open-match.dev/query/total_backfill_tickets",
 		Description: "Total number of backfill tickets",
 		Aggregation: view.LastValue(),
 	}
