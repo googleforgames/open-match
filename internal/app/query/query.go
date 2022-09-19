@@ -111,9 +111,10 @@ func BindService(p *appmain.Params, b *appmain.Bindings) error {
 	}, pb.RegisterQueryServiceHandlerFromEndpoint)
 	b.RegisterViews(
 		ticketsPerQueryView,
-		ticketsTotalView,
+		ticketsActiveTotalView,
 		backfillsPerQueryView,
 		backfillTotalTicketsView,
+		pendingTotalTicketsView,
 		cacheTotalItemsView,
 		cacheUpdateView,
 		cacheFetchedItemsView,
