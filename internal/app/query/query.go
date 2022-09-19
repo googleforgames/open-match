@@ -29,7 +29,7 @@ var (
 	totalActiveTickets    = stats.Int64("open-match.dev/query/total_active_tickets", "Number of tickets", stats.UnitDimensionless)
 	backfillsPerQuery     = stats.Int64("open-match.dev/query/backfills_per_query", "Number of backfills per query", stats.UnitDimensionless)
 	totalBackfillsTickets = stats.Int64("open-match.dev/query/total_backfill_tickets", "Number of current backfills", stats.UnitDimensionless)
-	ticketsPending        = stats.Int64("open-match.dev/query/tickets_pending_release", "Number of tickets per query", stats.UnitDimensionless)
+	totalPendingTickets   = stats.Int64("open-match.dev/query/tickets_pending_release", "Number of tickets per query", stats.UnitDimensionless)
 	cacheTotalItems       = stats.Int64("open-match.dev/query/total_cache_items", "Total number of items query service cached", stats.UnitDimensionless)
 	cacheFetchedItems     = stats.Int64("open-match.dev/query/fetched_items", "Number of fetched items in total", stats.UnitDimensionless)
 	cacheWaitingQueries   = stats.Int64("open-match.dev/query/waiting_queries", "Number of waiting queries in the last update", stats.UnitDimensionless)
@@ -59,8 +59,8 @@ var (
 		Description: "Total number of backfill tickets",
 		Aggregation: view.LastValue(),
 	}
-	pendingTicketsView = &view.View{
-		Measure:     ticketsPending,
+	pendingTotalTicketsView = &view.View{
+		Measure:     totalPendingTickets,
 		Name:        "open-match.dev/query/total_pending_tickets",
 		Description: "Total number of pending tickets",
 		Aggregation: view.LastValue(),
