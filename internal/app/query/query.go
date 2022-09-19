@@ -26,7 +26,7 @@ import (
 
 var (
 	ticketsPerQuery       = stats.Int64("open-match.dev/query/tickets_per_query", "Number of tickets per query", stats.UnitDimensionless)
-	totalTickets          = stats.Int64("open-match.dev/query/total_tickets", "Number of tickets", stats.UnitDimensionless)
+	totalActiveTickets    = stats.Int64("open-match.dev/query/total_active_tickets", "Number of tickets", stats.UnitDimensionless)
 	backfillsPerQuery     = stats.Int64("open-match.dev/query/backfills_per_query", "Number of backfills per query", stats.UnitDimensionless)
 	totalBackfillsTickets = stats.Int64("open-match.dev/query/total_backfill_tickets", "Number of current backfills", stats.UnitDimensionless)
 	ticketsPending        = stats.Int64("open-match.dev/query/tickets_pending_release", "Number of tickets per query", stats.UnitDimensionless)
@@ -41,9 +41,9 @@ var (
 		Description: "Tickets per query",
 		Aggregation: telemetry.DefaultCountDistribution,
 	}
-	ticketsTotalView = &view.View{
-		Measure:     totalTickets,
-		Name:        "open-match.dev/query/total_tickets",
+	ticketsActiveTotalView = &view.View{
+		Measure:     totalActiveTickets,
+		Name:        "open-match.dev/query/total_active_tickets",
 		Description: "Total tickets",
 		Aggregation: view.LastValue(),
 	}
