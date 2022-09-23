@@ -330,23 +330,18 @@ func (x *Assignment) GetExtensions() map[string]*any.Any {
 }
 
 // Filters numerical values to only those within a range.
-//
-//	double_arg: "foo"
-//	max: 10
-//	min: 5
-//
+//   double_arg: "foo"
+//   max: 10
+//   min: 5
 // matches:
-//
-//	{"foo": 5}
-//	{"foo": 7.5}
-//	{"foo": 10}
-//
+//   {"foo": 5}
+//   {"foo": 7.5}
+//   {"foo": 10}
 // does not match:
-//
-//	{"foo": 4}
-//	{"foo": 10.01}
-//	{"foo": "7.5"}
-//	{}
+//   {"foo": 4}
+//   {"foo": 10.01}
+//   {"foo": "7.5"}
+//   {}
 type DoubleRangeFilter struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -425,19 +420,14 @@ func (x *DoubleRangeFilter) GetExclude() DoubleRangeFilter_Exclude {
 }
 
 // Filters strings exactly equaling a value.
-//
-//	string_arg: "foo"
-//	value: "bar"
-//
+//   string_arg: "foo"
+//   value: "bar"
 // matches:
-//
-//	{"foo": "bar"}
-//
+//   {"foo": "bar"}
 // does not match:
-//
-//	{"foo": "baz"}
-//	{"bar": "foo"}
-//	{}
+//   {"foo": "baz"}
+//   {"bar": "foo"}
+//   {}
 type StringEqualsFilter struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -495,18 +485,13 @@ func (x *StringEqualsFilter) GetValue() string {
 }
 
 // Filters to the tag being present on the search_fields.
-//
-//	tag: "foo"
-//
+//   tag: "foo"
 // matches:
-//
-//	["foo"]
-//	["bar","foo"]
-//
+//   ["foo"]
+//   ["bar","foo"]
 // does not match:
-//
-//	["bar"]
-//	[]
+//   ["bar"]
+//   []
 type TagPresentFilter struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
