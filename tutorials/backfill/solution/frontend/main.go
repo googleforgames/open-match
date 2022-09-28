@@ -28,9 +28,19 @@ import (
 const (
 	// The endpoint for the Open Match Frontend service.
 	omFrontendEndpoint = "open-match-frontend.open-match.svc.cluster.local:50504"
-	// Number of tickets created per iteration
-	ticketsPerIter = 20
 )
+
+var (
+	fe                 pb.FrontendServiceClient
+	scenarioWaitLobby  chan int
+	scenarioFillVacant chan int
+)
+
+func init() {
+	scenarioWaitLobby = make(chan int, 1)
+	scenarioFillVacant = make(chan int, 1)
+	scenarioWaitLobby <- 1
+}
 
 func main() {
 	// Connect to Open Match Frontend.
@@ -40,44 +50,70 @@ func main() {
 	}
 
 	defer conn.Close()
-	fe := pb.NewFrontendServiceClient(conn)
-	for range time.Tick(time.Second * 2) {
-		for i := 0; i <= ticketsPerIter; i++ {
-			req := &pb.CreateTicketRequest{
-				Ticket: makeTicket(),
+	fe = pb.NewFrontendServiceClient(conn)
+	for {
+		select {
+		case <-scenarioWaitLobby:
+			for i := 0; i < 5; i++ {
+				go createPlayerWaitLobby(i)
+				time.Sleep(3 * time.Second)
 			}
 
-			resp, err := fe.CreateTicket(context.Background(), req)
-			if err != nil {
-				log.Printf("Failed to Create Ticket, got %s", err.Error())
-				continue
-			}
+		case <-scenarioFillVacant:
 
-			log.Println("Ticket created successfully, id:", resp.Id)
-			go deleteOnAssign(fe, resp)
 		}
 	}
 }
 
-// deleteOnAssign fetches the Ticket state periodically and deletes the Ticket
-// once it has an assignment.
-func deleteOnAssign(fe pb.FrontendServiceClient, t *pb.Ticket) {
-	for {
-		got, err := fe.GetTicket(context.Background(), &pb.GetTicketRequest{TicketId: t.GetId()})
-		if err != nil {
-			log.Fatalf("Failed to Get Ticket %v, got %s", t.GetId(), err.Error())
-		}
-
-		if got.GetAssignment() != nil {
-			log.Printf("Ticket %v got assignment %v", got.GetId(), got.GetAssignment())
-			break
-		}
-
-		time.Sleep(time.Second * 1)
+func createPlayerWaitLobby(i int) {
+	defer handlePanic()
+	log.Printf("Player %d: Started game app and ready to play", i)
+	ticketRequest := &pb.CreateTicketRequest{
+		Ticket: &pb.Ticket{},
 	}
 
-	_, err := fe.DeleteTicket(context.Background(), &pb.DeleteTicketRequest{TicketId: t.GetId()})
+	ticketResponse, err := fe.CreateTicket(context.Background(), ticketRequest)
 	if err != nil {
-		log.Fatalf("Failed to Delete Ticket %v, got %s", t.GetId(), err.Error())
+		log.Printf("Player %d: Failed to Create Ticket, got %s", i, err.Error())
+		return
+	}
+
+	log.Println("Player ", i, ": Ticket created successfully, id:", ticketResponse.Id)
+
+	assignmentRequest := &pb.WatchAssignmentsRequest{
+		TicketId: ticketResponse.Id,
+	}
+
+	stream, err := fe.WatchAssignments(context.Background(), assignmentRequest)
+	for {
+		assignmentResponse, err := stream.Recv()
+		if err != nil {
+			// For now we don't expect to get EOF, so that's still an error worthy of panic.
+			panic(err)
+		}
+
+		if assignmentResponse.Assignment.Connection != "" {
+			log.Println("Player ", i, ": Ticket id:", ticketResponse.Id, "  got assignment --> ", assignmentResponse.Assignment.Connection)
+			break
+		}
+	}
+
+	err = stream.CloseSend()
+	if err != nil {
+		panic(err)
+	}
+	_, err = fe.DeleteTicket(context.Background(), &pb.DeleteTicketRequest{TicketId: ticketResponse.GetId()})
+	if err != nil {
+		log.Printf("Player %d: Failed to Delete Ticket %v, got %s", i, ticketResponse.Id, err.Error())
+	}
+	log.Printf("Player %d: Joined game server or waiting in lobby", i)
+}
+
+// recover function to handle panic
+func handlePanic() {
+	// detect if panic occurs or not
+	a := recover()
+	if a != nil {
+		log.Println("RECOVER", a)
 	}
 }

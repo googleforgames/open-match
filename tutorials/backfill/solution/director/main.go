@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
-	"sync"
 	"time"
 
 	"google.golang.org/grpc"
@@ -38,6 +36,18 @@ const (
 	functionPort     int32 = 50502
 )
 
+var (
+	be                 pb.BackendServiceClient
+	scenarioWaitLobby  chan int
+	scenarioFillVacant chan int
+)
+
+func init() {
+	scenarioWaitLobby = make(chan int, 1)
+	scenarioFillVacant = make(chan int, 1)
+	scenarioWaitLobby <- 1
+}
+
 func main() {
 	// Connect to Open Match Backend.
 	conn, err := grpc.Dial(omBackendEndpoint, grpc.WithInsecure())
@@ -46,46 +56,55 @@ func main() {
 	}
 
 	defer conn.Close()
-	be := pb.NewBackendServiceClient(conn)
+	be = pb.NewBackendServiceClient(conn)
 
-	// Generate the profiles to fetch matches for.
-	profiles := generateProfiles()
-	log.Printf("Fetching matches for %v profiles", len(profiles))
+	for {
+		select {
+		case <-scenarioWaitLobby:
+			waitLobby()
+		case <-scenarioFillVacant:
 
-	for range time.Tick(time.Second * 5) {
-		// Fetch matches for each profile and make random assignments for Tickets in
-		// the matches returned.
-		var wg sync.WaitGroup
-		for _, p := range profiles {
-			wg.Add(1)
-			go func(wg *sync.WaitGroup, p *pb.MatchProfile) {
-				defer wg.Done()
-				matches, err := fetch(be, p)
-				if err != nil {
-					log.Printf("Failed to fetch matches for profile %v, got %s", p.GetName(), err.Error())
-					return
-				}
-
-				log.Printf("Generated %v matches for profile %v", len(matches), p.GetName())
-				if err := assign(be, matches); err != nil {
-					log.Printf("Failed to assign servers to matches, got %s", err.Error())
-					return
-				}
-			}(&wg, p)
 		}
-
-		wg.Wait()
 	}
 }
 
-func fetch(be pb.BackendServiceClient, p *pb.MatchProfile) ([]*pb.Match, error) {
+func waitLobby() {
+	var noResultCount int
+	for range time.Tick(time.Second * 5) {
+		matches, err := fetch()
+		if err != nil {
+			log.Printf("Failed to fetch matches for profile, got %s", err.Error())
+			return
+		}
+		if len(matches) == 0 {
+			noResultCount += 1
+		}
+		log.Printf("Generated %v matches for profile", len(matches))
+		if err := assign(be, matches); err != nil {
+			log.Printf("Failed to assign servers to matches, got %s", err.Error())
+			return
+		}
+		if noResultCount > 20 {
+			break
+		}
+	}
+}
+
+func fetch() ([]*pb.Match, error) {
 	req := &pb.FetchMatchesRequest{
 		Config: &pb.FunctionConfig{
 			Host: functionHostName,
 			Port: functionPort,
 			Type: pb.FunctionConfig_GRPC,
 		},
-		Profile: p,
+		Profile: &pb.MatchProfile{
+			Name: "1v1",
+			Pools: []*pb.Pool{
+				{
+					Name: "Everyone",
+				},
+			},
+		},
 	}
 
 	stream, err := be.FetchMatches(context.Background(), req)
@@ -118,7 +137,7 @@ func assign(be pb.BackendServiceClient, matches []*pb.Match) error {
 			ticketIDs = append(ticketIDs, t.Id)
 		}
 
-		conn := fmt.Sprintf("%d.%d.%d.%d:2222", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256))
+		conn := fmt.Sprintf("%d.%d.%d.%d:2222", 127, 0, 0, 1)
 		req := &pb.AssignTicketsRequest{
 			Assignments: []*pb.AssignmentGroup{
 				{
