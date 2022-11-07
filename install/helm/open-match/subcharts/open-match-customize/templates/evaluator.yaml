@@ -54,7 +54,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ include "openmatch.evaluator.hostName" . }}
-  {{- include "openmatch.HorizontalPodAutoscaler.spec.common" . | nindent 2 }}
+  {{- include "openmatch.HorizontalPodAutoscaler.evaluator.spec.common" . | nindent 2 }}
 ---
 apiVersion: apps/v1
 kind: Deployment

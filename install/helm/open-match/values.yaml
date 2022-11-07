@@ -242,9 +242,26 @@ global:
     # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
     affinity: {}
     horizontalPodAutoScaler:
-      minReplicas: 1
-      maxReplicas: 10
-      targetCPUUtilizationPercentage: 80
+      frontend:
+        minReplicas: 1
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 80
+      backend:
+        minReplicas: 1
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 80
+      query:
+        minReplicas: 3
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 80
+      evaluator:
+        minReplicas: 1
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 80
+      matchfunction:
+        minReplicas: 1
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 80
     resources:
       requests:
         memory: 100Mi
