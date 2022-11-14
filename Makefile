@@ -1027,6 +1027,18 @@ sync-deps:
 	$(GO) clean -modcache
 	$(GO) mod download
 
+define tutorial_folder
+	$(if $(wildcard $(1)/go.mod), \
+		cd $(1) && \
+		$(GO) mod tidy
+    )
+	$(foreach dir, $(wildcard $(1)/*/.), $(call tutorial_folder, $(dir)))
+endef
+
+tutorial-deps: 
+	$(call tutorial_folder,./tutorials)
+
+
 # Prevents users from running with sudo.
 # There's an exception for Google Cloud Build because it runs as root.
 no-sudo:
