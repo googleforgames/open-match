@@ -155,7 +155,7 @@ func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{
 	}
 	defer handleConnectionClose(&redisConn)
 
-	ttl := rb.cfg.GetDuration("pendingReleaseTimeout")
+	ttl := getBackfillReleaseTimeout(rb.cfg)
 	curTime := time.Now()
 	endTimeInt := curTime.Add(time.Hour).UnixNano()
 	startTimeInt := curTime.Add(-ttl).UnixNano()
