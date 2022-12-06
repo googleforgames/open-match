@@ -193,7 +193,7 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	}
 	defer handleConnectionClose(&redisConn)
 
-	expired, err := isBackfillExpired(redisConn, backfill.Id, getBackfillReleaseTimeout(rb.cfg))
+	expired, err := isBackfillExpired(redisConn, backfill.Id, getBackfillReleaseTimeoutFraction(rb.cfg))
 	if err != nil {
 		return err
 	}
@@ -332,7 +332,7 @@ func (rb *redisBackend) UpdateAcknowledgmentTimestamp(ctx context.Context, id st
 	}
 	defer handleConnectionClose(&redisConn)
 
-	expired, err := isBackfillExpired(redisConn, id, getBackfillReleaseTimeout(rb.cfg))
+	expired, err := isBackfillExpired(redisConn, id, getBackfillReleaseTimeoutFraction(rb.cfg))
 	if err != nil {
 		return err
 	}
@@ -364,7 +364,7 @@ func (rb *redisBackend) GetExpiredBackfillIDs(ctx context.Context) ([]string, er
 	}
 	defer handleConnectionClose(&redisConn)
 
-	ttl := getBackfillReleaseTimeout(rb.cfg)
+	ttl := getBackfillReleaseTimeoutFraction(rb.cfg)
 	curTime := time.Now()
 	endTimeInt := curTime.Add(-ttl).UnixNano()
 	startTimeInt := 0
@@ -431,7 +431,7 @@ func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]int
 	}
 	defer handleConnectionClose(&redisConn)
 
-	ttl := getBackfillReleaseTimeout(rb.cfg)
+	ttl := getBackfillReleaseTimeoutFraction(rb.cfg)
 	curTime := time.Now()
 	endTimeInt := curTime.Add(time.Hour).UnixNano()
 	startTimeInt := curTime.Add(-ttl).UnixNano()
@@ -463,7 +463,22 @@ func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]int
 }
 
 func getBackfillReleaseTimeout(cfg config.View) time.Duration {
+	const (
+		name = "pendingReleaseTimeout"
+		// Default timeout to release backfill. This value
+		// will be used if pendingReleaseTimeout is not configured.
+		defaultpendingReleaseTimeout time.Duration = 1 * time.Minute
+	)
+
+	if !cfg.IsSet(name) {
+		return defaultpendingReleaseTimeout
+	}
+
+	return cfg.GetDuration(name)
+}
+
+func getBackfillReleaseTimeoutFraction(cfg config.View) time.Duration {
 	// Use a fraction 80% of pendingRelease Tickets TTL
-	ttl := cfg.GetDuration("pendingReleaseTimeout") / 5 * 4
+	ttl := getBackfillReleaseTimeout(cfg) / 5 * 4
 	return ttl
 }

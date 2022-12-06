@@ -25,8 +25,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	shellTesting "open-match.dev/open-match/internal/testing"
 	"open-match.dev/open-match/pkg/pb"
+	shellTesting "open-match.dev/open-match/testing"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 

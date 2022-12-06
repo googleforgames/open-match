@@ -24,7 +24,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
-	shellTesting "open-match.dev/open-match/internal/testing"
+	shellTesting "open-match.dev/open-match/testing"
 )
 
 func TestInsecureStartStop(t *testing.T) {

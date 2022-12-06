@@ -30,9 +30,9 @@ import (
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/telemetry"
-	shellTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
+	shellTesting "open-match.dev/open-match/testing"
 	certgenTesting "open-match.dev/open-match/tools/certgen/testing"
 )
 
