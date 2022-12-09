@@ -1,4 +1,4 @@
-This folder is for the tutorial to deploy the Open Match Matchmaker 102 sample with Redis Enterprise.
+This folder is for the tutorial to deploy the Open Match Matchmaker 102 sample with Redis Enterprise. This tutorial requires an open-match cluster deployed *without* Open Match Core installed. Run `kubectl delete namespace open-match` to begin this tutorial.
 
 ## Deploy Redis Enterprise
 <TODO - Update the README with stepts to deploy Redis Enterprise>
@@ -24,7 +24,11 @@ REDIS-PASS=<Replace with Redis Password>
 Run the below command below to deploy Open Match Core with Redis Enterprise via Helm.
 
 ```
-helm install open-match --create-namespace --namespace open-match open-match/open-match --set open-match-customize.enabled=true --set open-match-customize.evaluator.enabled=true --set open-match-override.enabled=true --set open-match-core.redis.enabled=false --set open-match-core.redis.hostname="Default:$(REDIS-PASS)@redis-$(REDIS-PORT).internal.c22552.us-west1-mz.gcp.cloud.rlrcp.com" --set open-match-core.redis.port=$REDIS-PORT
+helm install open-match --create-namespace --namespace open-match open-match/open-match \
+--set open-match-customize.enabled=true --set open-match-customize.evaluator.enabled=true \
+--set open-match-override.enabled=true --set open-match-core.redis.enabled=false \
+--set open-match-core.redis.hostname="Default:$(REDIS-PASS)@redis-$(REDIS-PORT).internal.c22552.us-west1-mz.gcp.cloud.rlrcp.com" \
+--set open-match-core.redis.port=$REDIS-PORT
 ```
 
 ## Deploy Redis Enterprise Tutorial
