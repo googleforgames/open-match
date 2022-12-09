@@ -24,7 +24,7 @@ REDIS-PASS=<Replace with Redis Password>
 Run the below command below to deploy Open Match Core with Redis Enterprise via Helm.
 
 ```
-helm install open-match-re --create-namespace --namespace open-match-re open-match/open-match --set open-match-customize.enabled=true --set open-match-customize.evaluator.enabled=true --set open-match-override.enabled=true --set open-match-telemetry.enabled=true --set global.telemetry.jaeger.enabled=true —-set global.telemetry.prometheus.enabled=true –-set global.telemetry.grafana.enabled=true --set open-match-override.enabled=true --set open-match-core.redis.enabled=false --set open-match-core.redis.hostname="Default:$(REDIS-PASS)@redis-$(REDIS-PORT).internal.c22552.us-west1-mz.gcp.cloud.rlrcp.com" --set open-match-core.redis.port=$REDIS-PORT
+helm install open-match --create-namespace --namespace open-match open-match/open-match --set open-match-customize.enabled=true --set open-match-customize.evaluator.enabled=true --set open-match-override.enabled=true --set open-match-core.redis.enabled=false --set open-match-core.redis.hostname="Default:$(REDIS-PASS)@redis-$(REDIS-PORT).internal.c22552.us-west1-mz.gcp.cloud.rlrcp.com" --set open-match-core.redis.port=$REDIS-PORT
 ```
 
 ## Deploy Redis Enterprise Tutorial
