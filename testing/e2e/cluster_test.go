@@ -1,3 +1,4 @@
+//go:build e2ecluster
 // +build e2ecluster
 
 // Copyright 2019 Google LLC
@@ -32,8 +33,8 @@ import (
 	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/appmain/apptest"
 	"open-match.dev/open-match/internal/config"
-	mmfService "open-match.dev/open-match/internal/testing/mmf"
 	"open-match.dev/open-match/pkg/pb"
+	mmfService "open-match.dev/open-match/testing/mmf"
 )
 
 func TestServiceHealth(t *testing.T) {

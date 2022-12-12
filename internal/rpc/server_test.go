@@ -25,9 +25,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/internal/telemetry"
-	shellTesting "open-match.dev/open-match/internal/testing"
 	utilTesting "open-match.dev/open-match/internal/util/testing"
 	"open-match.dev/open-match/pkg/pb"
+	shellTesting "open-match.dev/open-match/testing"
 )
 
 func TestStartStopServer(t *testing.T) {

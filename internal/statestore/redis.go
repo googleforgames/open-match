@@ -41,11 +41,11 @@ var (
 
 // NewMutex returns a new distributed mutex with given name
 func (rb *redisBackend) NewMutex(key string) RedisLocker {
-	m := redsync.NewMutex(fmt.Sprintf("lock/%s", key), rs.WithExpiry(rb.cfg.GetDuration("backfillLockTimeout")))
+	m := redsync.NewMutex(fmt.Sprintf("lock/%s", key), rs.WithExpiry(getBackfillLockTimeout(rb.cfg)))
 	return redisBackend{mutex: m}
 }
 
-//Lock locks r. In case it returns an error on failure, you may retry to acquire the lock by calling this method again.
+// Lock locks r. In case it returns an error on failure, you may retry to acquire the lock by calling this method again.
 func (rb redisBackend) Lock(ctx context.Context) error {
 	return rb.mutex.LockContext(ctx)
 }
@@ -245,4 +245,19 @@ func handleConnectionClose(conn *redis.Conn) {
 			"error": err,
 		}).Debug("failed to close redis client connection.")
 	}
+}
+
+func getBackfillLockTimeout(cfg config.View) time.Duration {
+	const (
+		name = "backfillLockTimeout"
+		// Default timeout to lock backfill. This value
+		// will be used if backfillLockTimeout is not configured.
+		defaultBackfillLockTimeout time.Duration = 1 * time.Minute
+	)
+
+	if !cfg.IsSet(name) {
+		return defaultBackfillLockTimeout
+	}
+
+	return cfg.GetDuration(name)
 }

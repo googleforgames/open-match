@@ -18,7 +18,7 @@ of running the tests in a realistic setting where requests may not be routed to 
 For a new test package under test/e2e/ do the following:
 
 Copy the contents of internal/testing/e2e/main_test.go and change the package name and add
-the `open-match.dev/open-match/internal/testing/e2e` import.
+the `open-match.dev/open-match/testing/e2e` import.
 
 Example (may be out of date):
 ```golang
@@ -39,7 +39,7 @@ Example (may be out of date):
 package tickets
 
 import (
-	"open-match.dev/open-match/internal/testing/e2e"
+	"open-match.dev/open-match/testing/e2e"
 	"testing"
 )
 
