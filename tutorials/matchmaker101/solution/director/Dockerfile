@@ -17,7 +17,7 @@ WORKDIR /app
 ENV GO111MODULE=on
 
 COPY . .
-RUN go mod edit -replace open-match.dev/open-match@v0.0.0-dev=open-match.dev/open-match@v1.6.0-rc.1
+RUN go mod edit -replace open-match.dev/open-match@v0.0.0-dev=open-match.dev/open-match@v1.6.0
 RUN go mod tidy
 RUN go build -o director .
 
