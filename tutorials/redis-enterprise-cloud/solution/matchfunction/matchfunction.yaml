@@ -15,15 +15,15 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: mm102-tutorial-matchfunction
-  namespace: mm102-tutorial
+  name: redis-ent-matchfunction
+  namespace: redis-ent
   labels:
-    app: mm102-tutorial
+    app: redis-ent
     component: matchfunction
 spec:
   containers:
-  - name: mm102-tutorial-matchfunction
-    image: REGISTRY_PLACEHOLDER/mm102-tutorial-matchfunction:latest
+  - name: redis-ent-matchfunction
+    image: REGISTRY_PLACEHOLDER/redis-ent-matchfunction:latest
     imagePullPolicy: Always
     ports:
     - name: grpc
@@ -32,14 +32,14 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: mm102-tutorial-matchfunction
-  namespace: mm102-tutorial
+  name: redis-ent-matchfunction
+  namespace: redis-ent
   labels:
-    app: mm102-tutorial
+    app: redis-ent
     component: matchfunction
 spec:
   selector:
-    app: mm102-tutorial
+    app: redis-ent
     component: matchfunction
   clusterIP: None
   type: ClusterIP
