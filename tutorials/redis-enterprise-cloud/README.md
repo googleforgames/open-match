@@ -1,8 +1,10 @@
 This folder is for the tutorial to deploy the Open Match Matchmaker 102 sample with Redis Enterprise. This tutorial requires an open-match cluster deployed *without* Open Match Core installed. Run `kubectl delete namespace open-match` to begin this tutorial.
 
 ## Deploy Redis Enterprise
-<TODO - Update the README with stepts to deploy Redis Enterprise>
-
+# <TODO-Update the README with stepts to deploy Redis Enterprise> 
+```
+	
+```
 
 ### Set Redis Port and Password Environment Variables
 #### Set Redis Port
@@ -15,7 +17,8 @@ REDIS-PORT=<Insert Redis instance port>
 REDIS-PASS=<Replace with Redis Password>
 ```
 
-#### VPC peering <TODO>
+#### VPC peering 
+# <TODO>
 ```
 
 ```
@@ -124,4 +127,3 @@ kubectl delete namespace redis-ent
 ```
 
 This will delete all the components deployed in this tutorial. Open Match core in open-match namespace can then be reused for other exercises but you will need to re-customize it.
-```
