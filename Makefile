@@ -53,7 +53,7 @@
 # If you want information on how to edit this file checkout,
 # http://makefiletutorial.com/
 
-BASE_VERSION = 1.6.0-rc.1
+BASE_VERSION = 1.6.0
 SHORT_SHA = $(shell git rev-parse --short=7 HEAD | tr -d [:punct:])
 BRANCH_NAME = $(shell git rev-parse --abbrev-ref HEAD | tr -d [:punct:])
 VERSION = $(BASE_VERSION)-$(SHORT_SHA)
@@ -864,7 +864,7 @@ ci-reap-namespaces: build/toolchain/bin/reaper$(EXE_EXTENSION)
 
 # For presubmit we want to update the protobuf generated files and verify that tests are good.
 presubmit: GOLANG_TEST_COUNT = 3
-presubmit: clean third_party/ update-chart-deps assets update-deps lint build test md-test terraform-test
+presubmit: clean third_party/ update-chart-deps assets update-deps lint build md-test terraform-test
 
 build/release/: presubmit clean-install-yaml install/yaml/
 	mkdir -p $(BUILD_DIR)/release/
