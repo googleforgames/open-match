@@ -26,7 +26,11 @@ metadata:
 data:
   matchmaker_config_default.yaml: |-
     logging:
+      {{- if .Values.global.logging.level }}
+      level: {{ .Values.global.logging.level }}
+      {{- else }}
       level: debug
+      {{- end }}
       {{- if .Values.global.telemetry.stackdriverMetrics.enabled }}
       format: stackdriver
       {{- else }}
