@@ -1,28 +1,33 @@
 This folder is for the tutorial to deploy the Open Match Matchmaker 102 sample with Redis Enterprise. This tutorial requires an open-match cluster deployed *without* Open Match Core installed. Run `kubectl delete namespace open-match` to begin this tutorial.
 
 ## Deploy Redis Enterprise
-# <TODO-Update the README with stepts to deploy Redis Enterprise> 
+To provision a fully managed Redis Enterprise database instance and create a VPC peering between your GKE cluster and Redis's managed VPC you can follow the instructions [here](https://github.com/Redislabs-Solution-Architects/redis-enterprise-cloud-gcp/blob/main/marketplace/gcp/redis-enterprise.md).
+  
+### Set Redis Enterprise Database Instance Environment Variables
+#### Set Redis Enterprise database instance's FQDN hostname for the Private endpoint
 ```
-	
+REDIS-HOST=<Insert the FQDN hostname of the Redis Enterprise database instance>
+
+For example,
+REDIS-HOST=redis-15219.internal.c22552.us-west1-mz.gcp.cloud.rlrcp.com
+```
+     
+#### Set Redis Enterprise database instance's port number for the Private endpoint
+```
+REDIS-PORT=<Insert the Redis Enterprise database instance's port number>
+
+For example,
+REDIS-PORT=15219
 ```
 
-### Set Redis Port and Password Environment Variables
-#### Set Redis Port
-```cmd
-REDIS-PORT=<Insert Redis instance port>
+#### Set Redis Enterprise database instance's Default user's Password
 ```
+REDIS-PASS=<Replace with the Redis Enteprise database instance's password>
 
-#### Set Redis Password
-```cmd
-REDIS-PASS=<Replace with Redis Password>
+For example,
+REDIS-PASS=xMq1VHMpsxgJGT68LTMFHQGRPPMJBAwWe
 ```
-
-#### VPC peering 
-# <TODO>
-```
-
-```
-
+   
 ## Deploy Open Match Core with Redis Enterprise
 Run the below command below to deploy Open Match Core with Redis Enterprise via Helm.
 
@@ -30,7 +35,7 @@ Run the below command below to deploy Open Match Core with Redis Enterprise via 
 helm install open-match --create-namespace --namespace open-match open-match/open-match \
 --set open-match-customize.enabled=true --set open-match-customize.evaluator.enabled=true \
 --set open-match-override.enabled=true --set open-match-core.redis.enabled=false \
---set open-match-core.redis.hostname="Default:$(REDIS-PASS)@redis-$(REDIS-PORT).internal.c22552.us-west1-mz.gcp.cloud.rlrcp.com" \
+--set open-match-core.redis.hostname="Default:$(REDIS-PASS)@$(REDIS-HOST)" \
 --set open-match-core.redis.port=$REDIS-PORT
 ```
 
