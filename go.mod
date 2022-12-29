@@ -15,7 +15,7 @@ module open-match.dev/open-match
 // limitations under the License.
 
 // When updating Go version, update Dockerfile.ci, Dockerfile.base-build, and go.mod
-go 1.19
+go 1.16
 
 require (
 	contrib.go.opencensus.io/exporter/jaeger v0.2.1
@@ -46,7 +46,7 @@ require (
 	google.golang.org/protobuf v1.28.1
 	k8s.io/api v0.0.0-20191004102349-159aefb8556b // kubernetes-1.14.10
 	k8s.io/apimachinery v0.0.0-20191004074956-c5d2f014d689 // kubernetes-1.14.10
-	k8s.io/client-go v11.0.1-0.20191029005444-8e4128053008+incompatible // kubernetes-1.14.10
+	k8s.io/client-go v0.23.4 // kubernetes-1.14.10
 )
 
 require (
