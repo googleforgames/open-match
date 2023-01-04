@@ -16,6 +16,7 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -100,6 +101,7 @@ func Serve(conn net.Listener, params *Params) error {
 func ReapNamespaces(params *Params) error {
 	log.Printf("Scanning for orphaned namespaces that are older than %s.", params.Age.String())
 
+	ctx := context.Background()
 	u, err := user.Current()
 	if err != nil {
 		log.Fatalf("cannot get current user, %s", err)
@@ -122,7 +124,7 @@ func ReapNamespaces(params *Params) error {
 	}
 
 	namespaceInterface := kubeClient.CoreV1().Namespaces()
-	namespaces, err := namespaceInterface.List(metav1.ListOptions{})
+	namespaces, err := namespaceInterface.List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return errors.Wrap(err, "listing namespace from kubernetes cluster failed")
 	}
@@ -134,7 +136,7 @@ func ReapNamespaces(params *Params) error {
 			continue
 		}
 
-		err = namespaceInterface.Delete(namespace.ObjectMeta.Name, &metav1.DeleteOptions{})
+		err = namespaceInterface.Delete(ctx, namespace.ObjectMeta.Name, metav1.DeleteOptions{})
 		if err != nil {
 			log.Printf("error: %s", err.Error())
 			continue
