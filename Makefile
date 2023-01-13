@@ -989,6 +989,7 @@ proxy:
 
 update-deps:
 	$(GO) mod tidy
+	$(MAKE) tutorial-deps
 
 third_party/: third_party/google/api third_party/protoc-gen-openapiv2/options third_party/swaggerui/
 
