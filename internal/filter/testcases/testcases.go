@@ -20,8 +20,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
-	tspb "github.com/golang/protobuf/ptypes/timestamp"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -447,9 +446,9 @@ func multipleFilters(doubleRange, stringEquals, tagPresent bool) TestCase {
 	}
 }
 
-func timestamp(t time.Time) *tspb.Timestamp {
-	tsp, err := ptypes.TimestampProto(t)
-	if err != nil {
+func timestamp(t time.Time) *timestamppb.Timestamp {
+	tsp := timestamppb.New(t)
+	if err := tsp.CheckValid(); err != nil {
 		panic(err)
 	}
 

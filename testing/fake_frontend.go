@@ -18,9 +18,9 @@ package testing
 import (
 	"context"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -40,7 +40,7 @@ func (s *FakeFrontend) CreateTicket(ctx context.Context, req *pb.CreateTicketReq
 // DeleteTicket removes the Ticket from state storage and from corresponding
 // configured indices. Deleting the ticket stops the ticket from being
 // considered for future matchmaking requests.
-func (s *FakeFrontend) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*empty.Empty, error) {
+func (s *FakeFrontend) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
@@ -67,7 +67,7 @@ func (s *FakeFrontend) CreateBackfill(ctx context.Context, req *pb.CreateBackfil
 }
 
 // DeleteBackfill deletes a Backfill by its ID.
-func (s *FakeFrontend) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*empty.Empty, error) {
+func (s *FakeFrontend) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 

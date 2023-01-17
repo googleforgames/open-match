@@ -18,15 +18,14 @@ import (
 	"context"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 	"open-match.dev/open-match/pkg/pb"
 )
 
-func mustAny(m proto.Message) *any.Any {
-	result, err := ptypes.MarshalAny(m)
+func mustAny(m proto.Message) *anypb.Any {
+	result, err := anypb.New(m)
 	if err != nil {
 		panic(err)
 	}
@@ -44,7 +43,7 @@ func TestEvaluate(t *testing.T) {
 	ticket12Score1 := &pb.Match{
 		MatchId: "ticket12Score1",
 		Tickets: []*pb.Ticket{ticket1, ticket2},
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 				Score: 1,
 			}),
@@ -54,7 +53,7 @@ func TestEvaluate(t *testing.T) {
 	ticket12Score10 := &pb.Match{
 		MatchId: "ticket12Score10",
 		Tickets: []*pb.Ticket{ticket2, ticket1},
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 				Score: 10,
 			}),
@@ -64,7 +63,7 @@ func TestEvaluate(t *testing.T) {
 	ticket123Score5 := &pb.Match{
 		MatchId: "ticket123Score5",
 		Tickets: []*pb.Ticket{ticket1, ticket2, ticket3},
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 				Score: 5,
 			}),
@@ -74,7 +73,7 @@ func TestEvaluate(t *testing.T) {
 	ticket3Score50 := &pb.Match{
 		MatchId: "ticket3Score50",
 		Tickets: []*pb.Ticket{ticket3},
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 				Score: 50,
 			}),
@@ -85,7 +84,7 @@ func TestEvaluate(t *testing.T) {
 		MatchId:  "ticket1Backfill0Score1",
 		Tickets:  []*pb.Ticket{ticket1},
 		Backfill: backfill0,
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 				Score: 1,
 			}),
@@ -96,7 +95,7 @@ func TestEvaluate(t *testing.T) {
 		MatchId:  "ticket2Backfill0Score1",
 		Tickets:  []*pb.Ticket{ticket2},
 		Backfill: backfill0,
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 				Score: 1,
 			}),
@@ -107,7 +106,7 @@ func TestEvaluate(t *testing.T) {
 		MatchId:  "ticket12Bacfill1Score1",
 		Tickets:  []*pb.Ticket{ticket1, ticket2},
 		Backfill: backfill1,
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 				Score: 1,
 			}),
@@ -118,7 +117,7 @@ func TestEvaluate(t *testing.T) {
 		MatchId:  "ticket12Bacfill1Score1",
 		Tickets:  []*pb.Ticket{ticket1, ticket2},
 		Backfill: backfill1,
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 				Score: 10,
 			}),
@@ -129,7 +128,7 @@ func TestEvaluate(t *testing.T) {
 		MatchId:  "ticket12Backfill2Score5",
 		Tickets:  []*pb.Ticket{ticket1, ticket2},
 		Backfill: backfill2,
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 				Score: 5,
 			}),

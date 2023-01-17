@@ -18,10 +18,13 @@
 // arguments used:
 // mode: The game mode the players wants to play in. mode is a hard partition.
 // regions: Players may have good latency to one or more regions. A player will
-//   search for matches in all eligible regions.
+//
+//	search for matches in all eligible regions.
+//
 // skill: Players have a random skill based on a normal distribution. Players
-//   will only be matched with other players who have a close skill value. The
-//   match functions have overlapping partitions of the skill brackets.
+//
+//	will only be matched with other players who have a close skill value. The
+//	match functions have overlapping partitions of the skill brackets.
 package teamshooter
 
 import (
@@ -32,9 +35,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -265,9 +267,9 @@ type matchExt struct {
 }
 
 func unpackMatch(m *pb.Match) (*matchExt, error) {
-	v := &wrappers.DoubleValue{}
+	v := &wrapperspb.DoubleValue{}
 
-	err := ptypes.UnmarshalAny(m.Extensions["quality"], v)
+	err := m.Extensions["quality"].UnmarshalTo(v)
 	if err != nil {
 		return nil, fmt.Errorf("Error unpacking match quality: %w", err)
 	}
@@ -282,9 +284,9 @@ func unpackMatch(m *pb.Match) (*matchExt, error) {
 }
 
 func (m *matchExt) pack() (*pb.Match, error) {
-	v := &wrappers.DoubleValue{Value: m.quality}
+	v := &wrapperspb.DoubleValue{Value: m.quality}
 
-	a, err := ptypes.MarshalAny(v)
+	a, err := anypb.New(v)
 	if err != nil {
 		return nil, fmt.Errorf("Error packing match quality: %w", err)
 	}
@@ -294,7 +296,7 @@ func (m *matchExt) pack() (*pb.Match, error) {
 		Tickets:       m.tickets,
 		MatchProfile:  m.matchProfile,
 		MatchFunction: m.matchFunction,
-		Extensions: map[string]*any.Any{
+		Extensions: map[string]*anypb.Any{
 			"quality": a,
 		},
 	}, nil
