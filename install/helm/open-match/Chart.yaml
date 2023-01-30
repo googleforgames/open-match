@@ -45,8 +45,8 @@ home: https://open-match.dev
 sources:
   - https://github.com/googleforgames/open-match
 maintainers:
- - name: open-match
-   email: open-match-discuss@googlegroups.com
-   url: https://groups.google.com/forum/#!forum/open-match-discuss
+  - name: open-match
+    email: open-match-discuss@googlegroups.com
+    url: https://groups.google.com/forum/#!forum/open-match-discuss
 engine: gotpl
 icon: https://open-match.dev/site/images/logo.svg

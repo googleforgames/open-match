@@ -53,6 +53,9 @@ RUN sudo mkdir -p "$GOPATH/src" "$GOPATH/bin" \
 # Prepare toolchain and workspace
 RUN mkdir -p /toolchain
 
+# Install dependencies
+RUN pip3 install yamale yamllint
+
 WORKDIR /workspace
 ENV OPEN_MATCH_CI_MODE=1
 ENV KUBECONFIG=$HOME/.kube/config

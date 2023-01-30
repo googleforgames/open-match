@@ -124,13 +124,13 @@ redis:
         memory: 300Mi
         cpu: 0.5
   master:
-    disableCommands: [] # don't disable 'FLUSH-' commands
+    disableCommands: []  # don't disable 'FLUSH-' commands
     resources:
       requests:
         memory: 300Mi
         cpu: 0.5
   replica:
-    disableCommands: [] # don't disable 'FLUSH-' commands
+    disableCommands: []  # don't disable 'FLUSH-' commands
     replicaCount: 3
     resources:
       requests:
@@ -195,7 +195,7 @@ open-match-core:
     enabled: true
     # If open-match-core.redis.enabled is set to false, have Open Match components talk to this redis address instead.
     # Otherwise the default is set to the om-redis instance.
-    hostname: # Your redis server address
+    hostname:  # Your redis server address
     port: 6379
     user:
     pool:
@@ -302,7 +302,7 @@ global:
   # See definitions in templates/_helpers.tpl - "prometheus.annotations" section for details
   telemetry:
     reportingPeriod: "1m"
-    traceSamplingFraction: 0.01 # What fraction of traces to sample.
+    traceSamplingFraction: 0.01  # What fraction of traces to sample.
     zpages:
       enabled: true
     jaeger:
