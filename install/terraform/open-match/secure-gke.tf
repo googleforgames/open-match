@@ -35,13 +35,9 @@
 #     IAM Service Account credentials for delegation.
 
 # Declare the providers necessary to call the Google APIs 
-provider "google" {
-  version = ">=2.8"
-}
+provider "google" {}
 
-provider "google-beta" {
-  version = ">=2.8"
-}
+provider "google-beta" {}
 
 variable "gcp_project_id" {
   description = "GCP Project ID"
@@ -59,9 +55,14 @@ variable "gcp_machine_type" {
 }
 
 # Enable Kubernetes and Cloud Resource Manager API
-resource "google_project_services" "gcp_apis" {
-  project  = var.gcp_project_id
-  services = ["container.googleapis.com", "cloudresourcemanager.googleapis.com"]
+resource "google_project_service" "gcp_api_container" {
+  project = var.gcp_project_id
+  service = "container.googleapis.com"
+}
+
+resource "google_project_service" "gcp_api_cloud_source_manager" {
+  project = var.gcp_project_id
+  service = "cloudresourcemanager.googleapis.com"
 }
 
 # Create a role with the minimum amount of permissions for logging, auditing, etc from the node VM.
@@ -113,9 +114,6 @@ resource "google_container_cluster" "primary" {
     http_load_balancing {
       disabled = false
     }
-    kubernetes_dashboard {
-      disabled = true
-    }
     network_policy_config {
       disabled = true
     }
@@ -147,14 +145,14 @@ resource "google_container_cluster" "primary" {
     key_name = ""
   }
 
-  ip_allocation_policy {
-    use_ip_aliases = true
-  }
+  ip_allocation_policy {}
 
   description = "Open Match Cluster"
 
   default_max_pods_per_node   = 100
-  enable_binary_authorization = false
+  binary_authorization {
+    evaluation_mode = "DISABLED"
+  }
   enable_kubernetes_alpha     = false
   enable_tpu                  = false
   enable_legacy_abac          = false
@@ -168,8 +166,6 @@ resource "google_container_cluster" "primary" {
   }
 
   master_auth {
-    username = ""
-    password = ""
     client_certificate_config {
       issue_client_certificate = false
     }
@@ -268,26 +264,18 @@ resource "google_container_node_pool" "om-services" {
     }
     */
     workload_metadata_config {
-      node_metadata = "SECURE"
+      mode = "GKE_METADATA"
     }
   }
   node_count = 5
   project    = google_container_cluster.primary.project
   version    = "1.13"
 
-  depends_on = [google_project_services.gcp_apis]
+  depends_on = [google_project_service.gcp_api_container]
 }
 
 output "cluster_name" {
   value = google_container_cluster.primary.name
-}
-
-output "primary_zone" {
-  value = google_container_cluster.primary.zone
-}
-
-output "additional_zones" {
-  value = google_container_cluster.primary.additional_zones
 }
 
 output "endpoint" {

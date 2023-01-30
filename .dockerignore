@@ -135,3 +135,6 @@ install/helm/open-match/secrets/
 
 # Helm tar charts
 install/helm/open-match/charts/
+
+# Terraform
+install/terraform

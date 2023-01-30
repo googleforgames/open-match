@@ -36,13 +36,11 @@ provider "null" {
 }
 
 provider "google" {
-  version = ">=2.8"
   project = var.gcp_project_id
   region  = var.gcp_region
 }
 
 provider "google-beta" {
-  version = ">=2.8"
   project = var.gcp_project_id
   region  = var.gcp_region
 }
@@ -63,17 +61,12 @@ resource "google_container_cluster" "ci_cluster" {
   # Enable IP Aliases. A cluster that uses Alias IPs is called a VPC-native cluster and is the recommended type for new clusters.
   # https://cloud.google.com/kubernetes-engine/docs/how-to/alias-ips
   ip_allocation_policy {
-    use_ip_aliases           = true
     cluster_ipv4_cidr_block  = "/14"
     services_ipv4_cidr_block = "/20"
-    create_subnetwork        = false
   }
 
   # Setting an empty username and password explicitly disables basic auth
   master_auth {
-    username = ""
-    password = ""
-
     client_certificate_config {
       issue_client_certificate = false
     }
@@ -83,17 +76,11 @@ resource "google_container_cluster" "ci_cluster" {
   logging_service    = "logging.googleapis.com"
   monitoring_service = "monitoring.googleapis.com"
 
-  addons_config {
-    kubernetes_dashboard {
-      disabled = true
-    }
-  }
-
   initial_node_count = 0
 
   # https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity
   workload_identity_config {
-    identity_namespace = "${var.gcp_project_id}.svc.id.goog"
+    workload_pool = "${var.gcp_project_id}.svc.id.goog"
   }
 
   # Enable PodSecurityPolicy
@@ -124,7 +111,7 @@ resource "google_container_cluster" "ci_cluster" {
     }
 
     workload_metadata_config {
-      node_metadata = "GKE_METADATA_SERVER"
+      mode = "GKE_METADATA"
     }
 
     tags = ["open-match"]

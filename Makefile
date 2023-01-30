@@ -61,17 +61,17 @@ BUILD_DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 YEAR_MONTH = $(shell date -u +'%Y%m')
 YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
-PROTOC_VERSION = 3.19.4
+PROTOC_VERSION = 21.9
 HELM_VERSION = 3.8.0
 KUBECTL_VERSION = 1.21.5
 MINIKUBE_VERSION = latest
 GOLANGCI_VERSION = 1.18.0
-KIND_VERSION = 0.5.1
+KIND_VERSION = 0.17.0
 SWAGGERUI_VERSION = 3.24.2
 GOOGLE_APIS_VERSION = aba342359b6743353195ca53f944fe71e6fb6cd4
 GRPC_GATEWAY_VERSION = 2.3.0
-TERRAFORM_VERSION = 0.12.13
-CHART_TESTING_VERSION = 2.4.0
+TERRAFORM_VERSION = 1.3.3
+CHART_TESTING_VERSION = 3.7.1
 
 # A workaround to simplify Open Match development workflow
 REDIS_DEV_PASSWORD = helloworld
@@ -165,26 +165,91 @@ ifeq ($(OS),Windows_NT)
 	SED_REPLACE = sed -i
 else
 	UNAME_S := $(shell uname -s)
+	UNAME_M := $(shell uname -m)
 	ifeq ($(UNAME_S),Linux)
-		HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz
-		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
-		PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
-		KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/linux/amd64/kubectl
-		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64.tar.gz
-		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-linux-amd64
-		TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_linux_amd64.zip
-		CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_linux_amd64.tar.gz
+		ifeq ($(UNAME_M),arm64)
+			HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-linux-arm64.tar.gz
+		else
+			HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz
+		endif
+		ifeq ($(UNAME_M),arm64)
+			MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-arm64
+		else
+			MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
+		endif
+		ifeq ($(UNAME_M),arm64)
+			PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-aarch_64.zip
+		else
+			PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
+		endif
+		ifeq ($(UNAME_M),arm64)
+			KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/linux/arm64/kubectl
+		else
+			KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/linux/amd64/kubectl
+		endif
+		ifeq ($(UNAME_M),arm64)
+			GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-linux-arm64.tar.gz
+		else
+			GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64.tar.gz
+		endif
+		ifeq ($(UNAME_M),arm64)
+			KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-linux-arm64
+		else
+			KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-linux-amd64
+		endif
+		ifeq ($(UNAME_M),arm64)
+			TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_linux_arm64.zip
+		else
+			TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_linux_amd64.zip
+		endif
+		ifeq ($(UNAME_M),arm64)
+			CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_linux_arm64.tar.gz
+		else
+			CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_linux_amd64.tar.gz
+		endif
 		SED_REPLACE = sed -i
 	endif
 	ifeq ($(UNAME_S),Darwin)
-		HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
-		MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-darwin-amd64
-		PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-osx-x86_64.zip
-		KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/darwin/amd64/kubectl
-		GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-darwin-amd64.tar.gz
-		KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-darwin-amd64
-		TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_darwin_amd64.zip
-		CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_darwin_amd64.tar.gz
+		ifeq ($(UNAME_M),arm64)
+			HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-darwin-arm64.tar.gz
+		else
+			HELM_PACKAGE = https://get.helm.sh/helm-v$(HELM_VERSION)-darwin-amd64.tar.gz
+		endif
+		ifeq ($(UNAME_M),arm64)
+			MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-darwin-arm64
+		else
+			MINIKUBE_PACKAGE = https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-darwin-amd64
+		endif
+		ifeq ($(UNAME_M),arm64)
+			PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-osx-aarch_64.zip
+		else
+			PROTOC_PACKAGE = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-osx-x86_64.zip
+		endif
+		ifeq ($(UNAME_M),arm64)
+			KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/darwin/arm64/kubectl
+		else
+			KUBECTL_PACKAGE = https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/darwin/amd64/kubectl
+		endif
+		ifeq ($(UNAME_M),arm64)
+			GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-darwin-arm64.tar.gz
+		else
+			GOLANGCI_PACKAGE = https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-darwin-amd64.tar.gz
+		endif
+		ifeq ($(UNAME_M),arm64)
+			KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-darwin-arm64
+		else
+			KIND_PACKAGE = https://github.com/kubernetes-sigs/kind/releases/download/v$(KIND_VERSION)/kind-darwin-amd64
+		endif
+		ifeq ($(UNAME_M),arm64)
+			TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_darwin_arm64.zip
+		else
+			TERRAFORM_PACKAGE = https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_darwin_amd64.zip
+		endif
+		ifeq ($(UNAME_M),arm64)
+			CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_darwin_arm64.tar.gz
+		else
+			CHART_TESTING_PACKAGE = https://github.com/helm/chart-testing/releases/download/v$(CHART_TESTING_VERSION)/chart-testing_$(CHART_TESTING_VERSION)_darwin_amd64.tar.gz
+		endif
 		SED_REPLACE = sed -i ''
 	endif
 endif
@@ -561,7 +626,7 @@ build/toolchain/bin/protoc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
 	curl -o $(TOOLCHAIN_DIR)/protoc-temp.zip -L $(PROTOC_PACKAGE)
 	(cd $(TOOLCHAIN_DIR); unzip -q -o protoc-temp.zip)
-	rm $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
+	rm -f $(TOOLCHAIN_DIR)/protoc-temp.zip $(TOOLCHAIN_DIR)/readme.txt
 
 build/toolchain/bin/protoc-gen-doc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -906,7 +971,7 @@ clean-protos:
 	rm -rf $(REPOSITORY_ROOT)/internal/ipb/
 
 clean-terraform:
-	rm -rf $(REPOSITORY_ROOT)/install/terraform/.terraform/
+	rm -rf $(REPOSITORY_ROOT)/install/terraform/*/.terraform/
 
 clean-build: clean-toolchain clean-release clean-chart
 	rm -rf $(BUILD_DIR)/
