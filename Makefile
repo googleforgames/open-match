@@ -17,16 +17,16 @@
 ##
 ## # Create a GKE Cluster (requires gcloud installed and initialized, https://cloud.google.com/sdk/docs/quickstarts)
 ## make activate-gcp-apis
-## make create-gke-cluster push-helm
+## make create-gke-cluster
+## make build-images -j$(nproc)
 ##
-## # Create a Minikube Cluster (requires VirtualBox)
-## make create-mini-cluster push-helm
+## # Create a Minikube Cluster
+## make create-mini-cluster
+## eval $(./build/toolchain/bin/minikube -p openmatch docker-env)
+## make build-images -j$(nproc)
 ##
 ## # Create a KinD Cluster (Follow instructions to run command before pushing helm.)
 ## make create-kind-cluster get-kind-kubeconfig
-##
-## # Finish KinD setup by installing helm:
-## make push-helm
 ##
 ## # Deploy Open Match
 ## make push-images -j$(nproc)
@@ -389,7 +389,7 @@ install-chart-prerequisite: build/toolchain/bin/kubectl$(EXE_EXTENSION) update-c
 HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --no-hooks --debug --timeout=600s --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) --set global.gcpProjectId=$(GCP_PROJECT_ID) --set open-match-override.enabled=true --set redis.password=$(REDIS_DEV_PASSWORD) --set redis.auth.enabled=false --set redis.auth.sentinel=false
 # Used for generate static yamls. Install om-configmap-override.yaml as needed.
 HELM_TEMPLATE_FLAGS = --no-hooks --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --set usingHelmTemplate=true
-HELM_IMAGE_FLAGS = --set global.image.registry=$(REGISTRY) --set global.image.tag=$(TAG)
+HELM_IMAGE_FLAGS = --set global.image.registry=$(REGISTRY) --set global.image.tag=$(TAG) --set global.image.pullPolicy=IfNotPresent
 
 install-demo: build/toolchain/bin/helm$(EXE_EXTENSION)
 	cp $(REPOSITORY_ROOT)/install/02-open-match-demo.yaml $(REPOSITORY_ROOT)/install/tmp-demo.yaml

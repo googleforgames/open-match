@@ -12,13 +12,13 @@ To build Open Match you'll need the following applications installed.
  * Make (Mac: install [XCode](https://itunes.apple.com/us/app/xcode/id497799835))
  * [Docker](https://docs.docker.com/install/) including the
    [post-install steps](https://docs.docker.com/install/linux/linux-postinstall/).
+ * [Yamllint](https://github.com/adrienverge/yamllint)
+ * [Yamale](https://github.com/23andMe/Yamale)
 
 Optional Software
 
  * [Visual Studio Code](https://code.visualstudio.com/Download) for IDE.
    Vim and Emacs work to.
- * [VirtualBox](https://www.virtualbox.org/wiki/Downloads) recommended for
-   [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/).
 
 On Debian-based Linux you can install all the required packages (except Go) by
 running:
