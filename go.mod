@@ -70,6 +70,7 @@ require (
 	github.com/go-openapi/swag v0.19.14 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
@@ -114,6 +115,7 @@ require (
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
 	google.golang.org/api v0.103.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.2.0 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect
