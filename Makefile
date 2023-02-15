@@ -293,7 +293,7 @@ $(foreach IMAGE,$(IMAGES),clean-$(IMAGE)-image): clean-%-image:
 
 #####################################################################################################################
 update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://charts.helm.sh/incubator; $(HELM) repo add bitnami-full-index https://raw.githubusercontent.com/bitnami/charts/archive-full-index/bitnami;$(HELM) dependency update)
+	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://charts.helm.sh/incubator; $(HELM) repo add bitnami https://charts.bitnami.com/bitnami;$(HELM) dependency update)
 
 lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/ct$(EXE_EXTENSION)
 	(cd $(REPOSITORY_ROOT)/install/helm; $(HELM) lint $(OPEN_MATCH_HELM_NAME))
