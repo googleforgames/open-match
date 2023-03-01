@@ -22,7 +22,6 @@ import (
 
 	"go.opencensus.io/stats"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/stats/view"
 	"open-match.dev/open-match/internal/app/evaluator"
@@ -73,7 +72,7 @@ func evaluate(ctx context.Context, in <-chan *pb.Match, out chan<- string) error
 		}
 
 		if a, ok := m.Extensions["evaluation_input"]; ok {
-			err := ptypes.UnmarshalAny(a, inp)
+			err := a.UnmarshalTo(inp)
 			if err != nil {
 				logger.WithFields(logrus.Fields{
 					"match_id": m.MatchId,

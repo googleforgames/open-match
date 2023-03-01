@@ -46,7 +46,7 @@ var (
 func BindServiceFor(eval Evaluator) appmain.Bind {
 	return func(p *appmain.Params, b *appmain.Bindings) error {
 		b.AddHandleFunc(func(s *grpc.Server) {
-			pb.RegisterEvaluatorServer(s, &evaluatorService{eval})
+			pb.RegisterEvaluatorServer(s, &evaluatorService{evaluate: eval})
 		}, pb.RegisterEvaluatorHandlerFromEndpoint)
 		b.RegisterViews(
 			matchesPerEvaluateRequestView,

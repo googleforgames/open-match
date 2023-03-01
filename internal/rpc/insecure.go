@@ -22,6 +22,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
 	"open-match.dev/open-match/internal/telemetry"
 )
@@ -73,7 +74,7 @@ func (s *insecureServer) start(params *ServerParams) error {
 
 	for _, handlerFunc := range params.handlersForGrpcProxy {
 		dialOpts := newGRPCDialOptions(params.enableMetrics, params.enableRPCLogging, params.enableRPCPayloadLogging)
-		dialOpts = append(dialOpts, grpc.WithInsecure())
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err := handlerFunc(ctx, s.proxyMux, s.grpcListener.Addr().String(), dialOpts); err != nil {
 			cancel()
 			return errors.WithStack(err)

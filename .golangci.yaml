@@ -175,6 +175,7 @@ linters:
     - gosec
     - interfacer # deprecated - "A tool that suggests interfaces is prone to bad suggestions"
     - lll
+    - typecheck
 
 #linters:
 #  enable-all: true

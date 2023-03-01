@@ -37,6 +37,7 @@ import (
 	"go.opencensus.io/plugin/ochttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/resolver"
 	"open-match.dev/open-match/internal/config"
@@ -134,7 +135,7 @@ func GRPCClientFromEndpoint(cfg config.View, address string) (*grpc.ClientConn, 
 
 		grpcOptions = append(grpcOptions, grpc.WithTransportCredentials(tc))
 	} else {
-		grpcOptions = append(grpcOptions, grpc.WithInsecure())
+		grpcOptions = append(grpcOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
 	return grpc.Dial(address, grpcOptions...)
@@ -152,7 +153,7 @@ func GRPCClientFromParams(params *ClientParams) (*grpc.ClientConn, error) {
 		}
 		grpcOptions = append(grpcOptions, grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(trustedCertPool, "")))
 	} else {
-		grpcOptions = append(grpcOptions, grpc.WithInsecure())
+		grpcOptions = append(grpcOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
 	return grpc.Dial(params.Address, grpcOptions...)

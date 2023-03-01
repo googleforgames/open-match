@@ -230,6 +230,10 @@ open-match-customize:
   # function:
   #   image: [YOUR_MMF_IMAGE]
 
+# Controls if users need to install open-match-override ConfigMap.
+open-match-override:
+  enabled: false
+
 # Global configurations that are visible to all subcharts
 global:
   kubernetes:
@@ -240,9 +244,26 @@ global:
     # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
     affinity: {}
     horizontalPodAutoScaler:
-      minReplicas: 3
-      maxReplicas: 10
-      targetCPUUtilizationPercentage: 60
+      frontend:
+        minReplicas: 3
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 60
+      backend:
+        minReplicas: 3
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 60
+      query:
+        minReplicas: 5
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 60
+      evaluator:
+        minReplicas: 3
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 60
+      matchfunction:
+        minReplicas: 3
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 60
     resources:
       requests:
         memory: 1.5Gi

@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -429,6 +429,7 @@ func TestTicketReleaseByTimeout(t *testing.T) {
 	{ // Create ticket
 		var err error
 		ticket, err = om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+		fmt.Println("------------------- ", err)
 		require.Nil(t, err)
 		require.NotEmpty(t, ticket.Id)
 	}
@@ -539,7 +540,7 @@ func TestCreateTicketErrors(t *testing.T) {
 			"already has create time",
 			&pb.CreateTicketRequest{
 				Ticket: &pb.Ticket{
-					CreateTime: ptypes.TimestampNow(),
+					CreateTime: timestamppb.Now(),
 				},
 			},
 			"tickets cannot be created with create time set",

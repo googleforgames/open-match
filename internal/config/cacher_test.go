@@ -133,7 +133,7 @@ var getTests = []struct {
 	},
 }
 
-//nolint: gocritic, staticcheck
+// nolint: gocritic, staticcheck
 func Test_Get(t *testing.T) {
 	for _, tt := range getTests {
 		tt := tt

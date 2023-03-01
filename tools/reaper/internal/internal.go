@@ -16,6 +16,7 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -121,8 +122,9 @@ func ReapNamespaces(params *Params) error {
 		return errors.Wrapf(err, "creating Kubernetes client from config failed\nkubeconfig= %s\nconfig= %+v", kubeconfig, config)
 	}
 
+	ctx := context.Background()
 	namespaceInterface := kubeClient.CoreV1().Namespaces()
-	namespaces, err := namespaceInterface.List(metav1.ListOptions{})
+	namespaces, err := namespaceInterface.List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return errors.Wrap(err, "listing namespace from kubernetes cluster failed")
 	}
@@ -134,7 +136,7 @@ func ReapNamespaces(params *Params) error {
 			continue
 		}
 
-		err = namespaceInterface.Delete(namespace.ObjectMeta.Name, &metav1.DeleteOptions{})
+		err = namespaceInterface.Delete(ctx, namespace.ObjectMeta.Name, metav1.DeleteOptions{})
 		if err != nil {
 			log.Printf("error: %s", err.Error())
 			continue

@@ -17,15 +17,15 @@ package frontend
 import (
 	"context"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/internal/statestore"
 	"open-match.dev/open-match/pkg/pb"
@@ -72,7 +72,7 @@ func doCreateTicket(ctx context.Context, req *pb.CreateTicketRequest, store stat
 	}
 
 	ticket.Id = xid.New().String()
-	ticket.CreateTime = ptypes.TimestampNow()
+	ticket.CreateTime = timestamppb.Now()
 
 	sfCount := 0
 	sfCount += len(ticket.GetSearchFields().GetDoubleArgs())
@@ -122,7 +122,7 @@ func doCreateBackfill(ctx context.Context, req *pb.CreateBackfillRequest, store 
 	}
 
 	backfill.Id = xid.New().String()
-	backfill.CreateTime = ptypes.TimestampNow()
+	backfill.CreateTime = timestamppb.Now()
 	backfill.Generation = 1
 
 	sfCount := 0
@@ -209,7 +209,7 @@ func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBack
 }
 
 // DeleteBackfill deletes a Backfill by its ID.
-func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*empty.Empty, error) {
+func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBackfillRequest) (*emptypb.Empty, error) {
 	bfID := req.GetBackfillId()
 	if bfID == "" {
 		return nil, status.Errorf(codes.InvalidArgument, ".BackfillId is required")
@@ -222,7 +222,7 @@ func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBack
 			"error": err.Error(),
 		}).Error("error on DeleteBackfill")
 	}
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
 // DeleteTicket immediately stops Open Match from using the Ticket for matchmaking and removes the Ticket from state storage.
@@ -230,12 +230,12 @@ func (s *frontendService) DeleteBackfill(ctx context.Context, req *pb.DeleteBack
 //   - If SearchFields exist in a Ticket, DeleteTicket will deindex the fields lazily.
 //
 // Users may still be able to assign/get a ticket after calling DeleteTicket on it.
-func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*empty.Empty, error) {
+func (s *frontendService) DeleteTicket(ctx context.Context, req *pb.DeleteTicketRequest) (*emptypb.Empty, error) {
 	err := doDeleteTicket(ctx, req.GetTicketId(), s.store)
 	if err != nil {
 		return nil, err
 	}
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
 func doDeleteTicket(ctx context.Context, id string, store statestore.Service) error {

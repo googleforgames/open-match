@@ -22,13 +22,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -91,13 +90,13 @@ func TestBackfillFrontendLifecycle(t *testing.T) {
 	createdBf.SearchFields.StringArgs["key"] = "val"
 
 	orig := &anypb.Any{Value: []byte("test")}
-	val, err := ptypes.MarshalAny(orig)
+	val, err := anypb.New(orig)
 	require.NoError(t, err)
 
 	// Create a different Backfill, but with the same ID
 	// Pass different time
 	bf2 := &pb.Backfill{
-		CreateTime: ptypes.TimestampNow(),
+		CreateTime: timestamppb.Now(),
 		Id:         createdBf.Id,
 		SearchFields: &pb.SearchFields{
 			StringArgs: map[string]string{
@@ -106,7 +105,7 @@ func TestBackfillFrontendLifecycle(t *testing.T) {
 			},
 		},
 		Generation: 42,
-		Extensions: map[string]*any.Any{"key": val},
+		Extensions: map[string]*anypb.Any{"key": val},
 	}
 	updatedBf, err := om.Frontend().UpdateBackfill(ctx, &pb.UpdateBackfillRequest{Backfill: bf2})
 	require.NoError(t, err)
@@ -120,7 +119,7 @@ func TestBackfillFrontendLifecycle(t *testing.T) {
 	require.Equal(t, bf2.SearchFields.StringArgs, get.SearchFields.StringArgs)
 
 	unpacked := &anypb.Any{}
-	err = ptypes.UnmarshalAny(get.Extensions["key"], unpacked)
+	err = get.Extensions["key"].UnmarshalTo(unpacked)
 	require.NoError(t, err)
 
 	require.Equal(t, unpacked.Value, orig.Value)
@@ -154,7 +153,7 @@ func TestAcknowledgeBackfill(t *testing.T) {
 		BackfillId: createdBf.Id,
 		Assignment: &pb.Assignment{
 			Connection: conn,
-			Extensions: map[string]*any.Any{
+			Extensions: map[string]*anypb.Any{
 				"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 					Score: 10,
 				}),
@@ -203,7 +202,7 @@ func TestAcknowledgeBackfillDeletedTicket(t *testing.T) {
 	// Delete 1st ticket
 	om.Frontend().DeleteTicket(ctx, &pb.DeleteTicketRequest{TicketId: ticketIDs[0]})
 	conn := "127.0.0.1:4242"
-	getResp, err := om.Frontend().AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: createdBf.Id, Assignment: &pb.Assignment{Connection: conn, Extensions: map[string]*any.Any{
+	getResp, err := om.Frontend().AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: createdBf.Id, Assignment: &pb.Assignment{Connection: conn, Extensions: map[string]*anypb.Any{
 		"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 			Score: 10,
 		}),
@@ -415,7 +414,7 @@ func TestProposedBackfillUpdate(t *testing.T) {
 		},
 	}
 	//using DefaultEvaluationCriteria just for testing purposes only
-	b.Extensions = map[string]*any.Any{
+	b.Extensions = map[string]*anypb.Any{
 		"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 			Score: 10,
 		}),
@@ -671,8 +670,8 @@ func TestBackfillSkipNotfoundError(t *testing.T) {
 	require.Equal(t, fmt.Sprintf("rpc error: code = NotFound desc = Backfill id: %s not found", b1.Id), err.Error())
 }
 
-func mustAny(m proto.Message) *any.Any {
-	result, err := ptypes.MarshalAny(m)
+func mustAny(m proto.Message) *anypb.Any {
+	result, err := anypb.New(m)
 	if err != nil {
 		panic(err)
 	}

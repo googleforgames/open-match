@@ -96,11 +96,6 @@ resource "google_container_cluster" "ci_cluster" {
     identity_namespace = "${var.gcp_project_id}.svc.id.goog"
   }
 
-  # Enable PodSecurityPolicy
-  pod_security_policy_config {
-    enabled = "true"
-  }
-
   node_config {
     oauth_scopes = [
       "https://www.googleapis.com/auth/devstorage.read_only",

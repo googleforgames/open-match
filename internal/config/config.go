@@ -58,6 +58,30 @@ func Read() (*viper.Viper, error) {
 		return nil, fmt.Errorf("fatal error reading override config file, desc: %s", err.Error())
 	}
 
+	if !cfg.IsSet("registrationInterval") {
+		log.Printf("config: registrationInterval is not set in matchmaker_config_override.yaml")
+	}
+
+	if !cfg.IsSet("proposalCollectionInterval") {
+		log.Printf("config: proposalCollectionInterval is not set in matchmaker_config_override.yaml")
+	}
+
+	if !cfg.IsSet("pendingReleaseTimeout") {
+		log.Printf("config: pendingReleaseTimeout is not set in matchmaker_config_override.yaml")
+	}
+
+	if !cfg.IsSet("assignedDeleteTimeout") {
+		log.Printf("config: assignedDeleteTimeout is not set in matchmaker_config_override.yaml")
+	}
+
+	if !cfg.IsSet("queryPageSize") {
+		log.Printf("config: queryPageSize is not set in matchmaker_config_override.yaml")
+	}
+
+	if !cfg.IsSet("backfillLockTimeout") {
+		log.Printf("config: backfillLockTimeout is not set in matchmaker_config_override.yaml")
+	}
+
 	// Look for updates to the config; in Kubernetes, this is implemented using
 	// a ConfigMap that is written to the matchmaker_config_override.yaml file, which is
 	// what the Open Match components using Viper monitor for changes.

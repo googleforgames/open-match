@@ -24,7 +24,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
-	shellTesting "open-match.dev/open-match/internal/testing"
+	"google.golang.org/grpc/credentials/insecure"
+	shellTesting "open-match.dev/open-match/testing"
 )
 
 func TestInsecureStartStop(t *testing.T) {
@@ -42,7 +43,7 @@ func TestInsecureStartStop(t *testing.T) {
 	err := s.start(params)
 	require.Nil(err)
 
-	conn, err := grpc.Dial(fmt.Sprintf(":%s", MustGetPortNumber(grpcL)), grpc.WithInsecure())
+	conn, err := grpc.Dial(fmt.Sprintf(":%s", MustGetPortNumber(grpcL)), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	require.Nil(err)
 	defer conn.Close()
 

@@ -150,10 +150,34 @@ readinessProbe:
   failureThreshold: 2
 {{- end -}}
 
-{{- define "openmatch.HorizontalPodAutoscaler.spec.common" -}}
-minReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.minReplicas }}
-maxReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.maxReplicas }}
-targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoScaler.targetCPUUtilizationPercentage }}
+{{- define "openmatch.HorizontalPodAutoscaler.frontend.spec.common" -}}
+minReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.frontend.minReplicas }}
+maxReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.frontend.maxReplicas }}
+targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoScaler.frontend.targetCPUUtilizationPercentage }}
+{{- end -}}
+
+{{- define "openmatch.HorizontalPodAutoscaler.backend.spec.common" -}}
+minReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.backend.minReplicas }}
+maxReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.backend.maxReplicas }}
+targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoScaler.backend.targetCPUUtilizationPercentage }}
+{{- end -}}
+
+{{- define "openmatch.HorizontalPodAutoscaler.query.spec.common" -}}
+minReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.query.minReplicas }}
+maxReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.query.maxReplicas }}
+targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoScaler.query.targetCPUUtilizationPercentage }}
+{{- end -}}
+
+{{- define "openmatch.HorizontalPodAutoscaler.evaluator.spec.common" -}}
+minReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.evaluator.minReplicas }}
+maxReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.evaluator.maxReplicas }}
+targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoScaler.evaluator.targetCPUUtilizationPercentage }}
+{{- end -}}
+
+{{- define "openmatch.HorizontalPodAutoscaler.matchfunction.spec.common" -}}
+minReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.matchfunction.minReplicas }}
+maxReplicas: {{ .Values.global.kubernetes.horizontalPodAutoScaler.matchfunction.maxReplicas }}
+targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoScaler.matchfunction.targetCPUUtilizationPercentage }}
 {{- end -}}
 
 {{- define "openmatch.serviceAccount.name" -}}

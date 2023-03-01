@@ -19,9 +19,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"open-match.dev/open-match/pkg/pb"
 )
 
@@ -162,8 +161,8 @@ func getOpenSlots(b *pb.Backfill, defaultVal int) int {
 		return defaultVal
 	}
 
-	var val wrappers.Int32Value
-	err := ptypes.UnmarshalAny(any, &val)
+	var val wrapperspb.Int32Value
+	err := any.UnmarshalTo(&val)
 	if err != nil {
 		panic(err)
 	}
@@ -173,10 +172,10 @@ func getOpenSlots(b *pb.Backfill, defaultVal int) int {
 
 func setOpenSlots(b *pb.Backfill, val int) {
 	if b.Extensions == nil {
-		b.Extensions = make(map[string]*any.Any)
+		b.Extensions = make(map[string]*anypb.Any)
 	}
 
-	any, err := ptypes.MarshalAny(&wrappers.Int32Value{Value: int32(val)})
+	any, err := anypb.New(&wrapperspb.Int32Value{Value: int32(val)})
 	if err != nil {
 		panic(err)
 	}
