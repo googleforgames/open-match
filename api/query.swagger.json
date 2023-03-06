@@ -279,6 +279,7 @@
         "double_range_filters": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/openmatchDoubleRangeFilter"
           },
           "description": "Set of Filters indicating the filtering criteria. Selected tickets must\nmatch every Filter."
@@ -286,12 +287,14 @@
         "string_equals_filters": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/openmatchStringEqualsFilter"
           }
         },
         "tag_present_filters": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/openmatchTagPresentFilter"
           }
         },
@@ -324,6 +327,7 @@
         "backfills": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/openmatchBackfill"
           },
           "description": "Backfills that meet all the filtering criteria requested by the pool."
@@ -367,6 +371,7 @@
         "tickets": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/openmatchTicket"
           },
           "description": "Tickets that meet all the filtering criteria requested by the pool."
@@ -486,6 +491,7 @@
         "details": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/protobufAny"
           },
           "description": "A list of messages that carry the error details.  There is a common set of\nmessage types for APIs to use."

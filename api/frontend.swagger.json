@@ -417,6 +417,7 @@
         "tickets": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/openmatchTicket"
           },
           "title": "All of the Tickets that were successfully assigned"
@@ -608,6 +609,7 @@
         "details": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/protobufAny"
           },
           "description": "A list of messages that carry the error details.  There is a common set of\nmessage types for APIs to use."

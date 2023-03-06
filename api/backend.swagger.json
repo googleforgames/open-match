@@ -225,6 +225,7 @@
         "assignments": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/openmatchAssignmentGroup"
           },
           "description": "Assignments is a list of assignment groups that contain assignment and the Tickets to which they should be applied."
@@ -237,6 +238,7 @@
         "failures": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/openmatchAssignmentFailure"
           },
           "description": "Failures is a list of all the Tickets that failed assignment along with the cause of failure."
@@ -415,6 +417,7 @@
         "tickets": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/openmatchTicket"
           },
           "description": "Tickets belonging to this match."
@@ -447,6 +450,7 @@
         "pools": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/openmatchPool"
           },
           "description": "Set of pools to be queried when generating a match for this MatchProfile."
@@ -471,6 +475,7 @@
         "double_range_filters": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/openmatchDoubleRangeFilter"
           },
           "description": "Set of Filters indicating the filtering criteria. Selected tickets must\nmatch every Filter."
@@ -478,12 +483,14 @@
         "string_equals_filters": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/openmatchStringEqualsFilter"
           }
         },
         "tag_present_filters": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/openmatchTagPresentFilter"
           }
         },
@@ -634,6 +641,7 @@
         "details": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/protobufAny"
           },
           "description": "A list of messages that carry the error details.  There is a common set of\nmessage types for APIs to use."
