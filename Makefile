@@ -758,7 +758,7 @@ endef
 ## # Run go tests
 ## make test
 ##
-test: GO111MODULE=on $(GO) mod tidy \
+test: go mod tidy \
 	$(ALL_PROTOS) tls-certs third_party/
 	$(call test_folder,.)
 
