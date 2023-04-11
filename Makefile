@@ -77,9 +77,7 @@ CHART_TESTING_VERSION = 2.4.0
 REDIS_DEV_PASSWORD = helloworld
 
 ENABLE_SECURITY_HARDENING = 0
-# GO = GO111MODULE=on go
-export GO111MODULE=on
-GO=go
+GO = GO111MODULE=on go
 # Defines the absolute local directory of the open-match project
 REPOSITORY_ROOT := $(patsubst %/,%,$(dir $(abspath $(MAKEFILE_LIST))))
 BUILD_DIR = $(REPOSITORY_ROOT)/build
