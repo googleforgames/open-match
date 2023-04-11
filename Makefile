@@ -760,9 +760,9 @@ endef
 ## # Run go tests
 ## make test
 ##
-test: $(GO) mod tidy
-	$(ALL_PROTOS) tls-certs third_party/
+test: $(ALL_PROTOS) tls-certs third_party/
 	$(call test_folder,.)
+	$(GO) mod tidy
 
 ## # Run go tests more quickly, but with worse flake and race detection
 ## make fasttest
