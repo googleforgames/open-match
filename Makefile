@@ -736,6 +736,7 @@ build: assets
 define test_folder
 	$(if $(wildcard $(1)/go.mod), \
 		cd $(1) && \
+		$(GO) mod tidy && \
 		$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./... && \
 		$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./... \
     )
