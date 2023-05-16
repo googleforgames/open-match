@@ -741,6 +741,7 @@ build: assets
 define test_folder
 	$(if $(wildcard $(1)/go.mod), \
 		cd $(1) && \
+		$(GO) mod tidy && \
 		$(GO) test -p 1 -cover -test.count $(GOLANG_TEST_COUNT) -race ./... && \
 		$(GO) test -p 1 -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./... \
     )
@@ -760,7 +761,6 @@ endef
 ##
 test: $(ALL_PROTOS) tls-certs third_party/
 	$(call test_folder,.)
-	$(GO) mod tidy
 
 ## # Run go tests more quickly, but with worse flake and race detection
 ## make fasttest
