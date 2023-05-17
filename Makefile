@@ -743,7 +743,6 @@ define test_folder
 		cd $(1) && \
 		$(GO) mod tidy && \
 		$(GO) test -p 1 -cover -test.count $(GOLANG_TEST_COUNT) -race ./... && \
-		cd - && \
 		$(GO) test -p 1 -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./... \
     )
 	$(foreach dir, $(wildcard $(1)/*/.), $(call test_folder, $(dir)))
