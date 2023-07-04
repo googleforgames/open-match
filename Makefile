@@ -607,6 +607,7 @@ auth-docker: gcloud docker
 	$(GCLOUD) $(GCP_PROJECT_FLAG) auth configure-docker
 
 auth-gke-cluster: gcloud
+	$(GCLOUD) components install gke-gcloud-auth-plugin
 	$(GCLOUD) $(GCP_PROJECT_FLAG) container clusters get-credentials $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG)
 
 activate-gcp-apis: gcloud
