@@ -174,4 +174,4 @@ logsBucket: '${_LOGS_BUCKET}'
 options:
   sourceProvenanceHash: ['SHA256']
   machineType: 'N1_HIGHCPU_32'
-timeout: 2500s
+timeout: 25000s
