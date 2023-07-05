@@ -245,6 +245,10 @@ build-mmf-go-soloduel-image: docker build-base-build-image
 build-mmf-go-backfill-image: docker build-base-build-image
 	docker build -f examples/functions/golang/backfill/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-backfill:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-backfill:$(ALTERNATE_TAG) .
 
+build-build-image: docker build-base-build-image
+	docker build -f Dockerfile.ci -t $(REGISTRY)/open-match-build:$(TAG) .
+
+
 #######################################
 ## # Builds and pushes images to your container registry.
 ## push-images / push-<image name>-image
@@ -321,6 +325,7 @@ install-chart-prerequisite: build/toolchain/bin/kubectl$(EXE_EXTENSION) update-c
 
 # Used for Open Match development. Install om-configmap-override.yaml by default.
 HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --no-hooks --debug --timeout=600s --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) --set global.gcpProjectId=$(GCP_PROJECT_ID) --set open-match-override.enabled=true --set redis.password=$(REDIS_DEV_PASSWORD) --set redis.usePassword=false --set redis.sentinel.usePassword=false
+HELM_TEST_FLAGS = --cleanup-on-fail -i --no-hooks --debug --timeout=6000s --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) --set global.gcpProjectId=$(GCP_PROJECT_ID) --set open-match-override.enabled=true --set redis.password=$(REDIS_DEV_PASSWORD) --set redis.usePassword=false --set redis.sentinel.usePassword=false
 # Used for generate static yamls. Install om-configmap-override.yaml as needed.
 HELM_TEMPLATE_FLAGS = --no-hooks --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --set usingHelmTemplate=true
 HELM_IMAGE_FLAGS = --set global.image.registry=$(REGISTRY) --set global.image.tag=$(TAG)
@@ -371,7 +376,7 @@ install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 
 # install-ci-chart will install open-match-core with pool based mmf for end-to-end in-cluster test.
 install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTENSION) install/helm/open-match/secrets/
-	$(HELM) upgrade $(OPEN_MATCH_HELM_NAME) $(HELM_UPGRADE_FLAGS) --atomic install/helm/open-match $(HELM_IMAGE_FLAGS) \
+	$(HELM) upgrade $(OPEN_MATCH_HELM_NAME) $(HELM_TEST_FLAGS) --atomic install/helm/open-match $(HELM_IMAGE_FLAGS) \
 		--set query.replicas=1,frontend.replicas=1,backend.replicas=1 \
 		--set evaluator.hostName=open-match-test \
 		--set evaluator.grpcPort=50509 \
