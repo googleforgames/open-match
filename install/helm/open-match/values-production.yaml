@@ -106,17 +106,12 @@ configs:
 # https://hub.helm.sh/charts/stable/redis
 # https://github.com/helm/charts/tree/master/stable/redis
 redis:
-  redisPort: 6379
-  usePassword: false
-  usePasswordFile: false
-  secretMountPath: /opt/bitnami/redis/secrets
+  architecture: standalone
+  auth:
+    enabled: false
   configmap: |
     maxclients 100000
     maxmemory 500000000
-  sentinel:
-    enabled: true
-    masterSet: om-redis-master
-    port: 26379
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
     resources:
@@ -130,20 +125,6 @@ redis:
       enabled: false
   metrics:
     enabled: true
-  cluster:
-    slaveCount: 3
-  serviceAccount:
-    create: true
-  slave:
-    persistence:
-      enabled: false
-    resources:
-      requests:
-        memory: 1Gi
-        cpu: 1
-      limits:
-        memory: 2Gi
-        cpu: 2
   sysctlImage:
     # Enable this setting in production if you are running Open Match under Linux environment
     enabled: true
