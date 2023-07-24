@@ -62,7 +62,7 @@ YEAR_MONTH = $(shell date -u +'%Y%m')
 YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
 PROTOC_VERSION = 3.19.4
-HELM_VERSION = 3.8.0
+HELM_VERSION = 3.12.1
 KUBECTL_VERSION = 1.21.5
 MINIKUBE_VERSION = latest
 GOLANGCI_VERSION = 1.18.0
@@ -640,12 +640,11 @@ delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bi
 create-cluster-role-binding:
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
-create-gke-cluster: GKE_VERSION = 1.25.5-gke.2000 # gcloud beta container get-server-config --zone us-west1-a
 create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-8 --enable-autoscaling --min-nodes 1 --num-nodes 6 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
-	$(GCLOUD)  $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS) $(GKE_CLUSTER_FLAGS) \
-		--cluster-version $(GKE_VERSION) \
+	$(GCLOUD) $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS) $(GKE_CLUSTER_FLAGS) \
+		--cluster-version 1.27.2-gke.2100 \
 		--image-type cos_containerd \
 		--tags open-match \
 		--workload-pool $(GCP_PROJECT_ID).svc.id.goog
@@ -741,8 +740,9 @@ build: assets
 define test_folder
 	$(if $(wildcard $(1)/go.mod), \
 		cd $(1) && \
-		$(GO) test -p 1 -cover -test.count $(GOLANG_TEST_COUNT) -race ./... && \
-		$(GO) test -p 1 -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./... \
+		$(GO) mod tidy && \
+		$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -race ./... && \
+		$(GO) test -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./... \
     )
 	$(foreach dir, $(wildcard $(1)/*/.), $(call test_folder, $(dir)))
 endef
