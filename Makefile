@@ -63,7 +63,7 @@ YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
 PROTOC_VERSION = 3.19.4
 HELM_VERSION = 3.12.1
-KUBECTL_VERSION = 1.21.5
+KUBECTL_VERSION = 1.27.3
 MINIKUBE_VERSION = latest
 GOLANGCI_VERSION = 1.18.0
 KIND_VERSION = 0.5.1
@@ -654,7 +654,7 @@ delete-gke-cluster: gcloud
 	-$(GCLOUD) $(GCP_PROJECT_FLAG) container clusters delete $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) $(GCLOUD_EXTRA_FLAGS)
 
 create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
-	$(MINIKUBE) start -p openmatch --memory 6144 --cpus 4 --disk-size 50g --kubernetes-version=v1.21.5
+	$(MINIKUBE) start -p openmatch --memory 6144 --cpus 4 --disk-size 50g --kubernetes-version=v1.27.3
 
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	-$(MINIKUBE) delete -p openmatch
@@ -798,7 +798,7 @@ $(foreach CMD,$(CMDS),build/cmd/$(CMD)): build/cmd/%: build/cmd/%/BUILD_PHONY bu
 
 build/cmd/%/BUILD_PHONY:
 	mkdir -p $(BUILD_DIR)/cmd/$*
-	CGO_ENABLED=0 $(GO) build -v -installsuffix cgo -o $(BUILD_DIR)/cmd/$*/run open-match.dev/open-match/cmd/$*
+	CGO_ENABLED=0 $(GO) build -a -v -installsuffix cgo -o $(BUILD_DIR)/cmd/$*/run open-match.dev/open-match/cmd/$*
 
 # Default is that nothing needs to be copied into the direcotry
 build/cmd/%/COPY_PHONY:
