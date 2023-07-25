@@ -14,8 +14,9 @@
 
 FROM debian:bullseye
 
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y \
- && apt-get install -y -qq git make python3 virtualenv curl sudo unzip apt-transport-https ca-certificates curl software-properties-common gnupg2
+ && apt-get install -y -qq apt-utils git make python3 virtualenv curl sudo unzip apt-transport-https ca-certificates curl software-properties-common gnupg2 libc6
 
 # Docker
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - \
