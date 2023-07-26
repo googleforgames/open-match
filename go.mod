@@ -15,7 +15,7 @@ module open-match.dev/open-match
 // limitations under the License.
 
 // When updating Go version, update Dockerfile.ci, Dockerfile.base-build, and go.mod
-go 1.19
+go 1.20
 
 require (
 	contrib.go.opencensus.io/exporter/jaeger v0.2.1
