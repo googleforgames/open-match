@@ -57,10 +57,10 @@ steps:
   args: ['make', 'clean-third-party', 'clean-protos', 'clean-swagger-docs']
   waitFor: ['Docker Image: open-match-build']
 
-# - id: 'Test: Markdown'
-#   name: 'gcr.io/$PROJECT_ID/open-match-build'
-#   args: ['make', 'md-test']
-#   waitFor: ['Build: Clean']
+ - id: 'Test: Markdown'
+   name: 'gcr.io/$PROJECT_ID/open-match-build'
+   args: ['make', 'md-test']
+   waitFor: ['Build: Clean']
 
 - id: 'Setup: Download Dependencies'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -98,7 +98,7 @@ steps:
 
 - id: 'Build: Binaries'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'build', 'all', '-j12']
+  args: ['make', '_CHARTS_BUCKET=${_CHARTS_BUCKET}', 'GOPROXY=off', 'build', 'all', '-j12']
   volumes:
   - name: 'go-vol'
     path: '/go'
