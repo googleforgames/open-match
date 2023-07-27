@@ -14,7 +14,6 @@
 
 # When updating Go version, update Dockerfile.ci, Dockerfile.base-build, and go.mod
 FROM golang:1.20.6
-ENV GO111MODULE=on
 
 WORKDIR /go/src/open-match.dev/open-match
 

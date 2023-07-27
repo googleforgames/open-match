@@ -77,7 +77,7 @@ CHART_TESTING_VERSION = 2.4.0
 REDIS_DEV_PASSWORD = helloworld
 
 ENABLE_SECURITY_HARDENING = 0
-GO = GO111MODULE=on go
+GO = go
 # Defines the absolute local directory of the open-match project
 REPOSITORY_ROOT := $(patsubst %/,%,$(dir $(abspath $(MAKEFILE_LIST))))
 BUILD_DIR = $(REPOSITORY_ROOT)/build
@@ -100,7 +100,6 @@ GCP_ZONE = us-west1-a
 GCP_LOCATION = $(GCP_ZONE)
 EXE_EXTENSION =
 GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
-GO111MODULE = on
 GOLANG_TEST_COUNT = 1
 SWAGGERUI_PORT = 51500
 PROMETHEUS_PORT = 9090
@@ -779,7 +778,7 @@ vet:
 	$(GO) vet ./...
 
 golangci: build/toolchain/bin/golangci-lint$(EXE_EXTENSION)
-	GO111MODULE=on $(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
+	$(GOLANGCI) run --config=$(REPOSITORY_ROOT)/.golangci.yaml
 
 ## # Run linter on Go code, charts and terraform
 ## make lint
