@@ -759,7 +759,6 @@ endef
 ##
 test: $(ALL_PROTOS) tls-certs third_party/
 	$(call test_folder,.)
-#	$(GO) mod tidy
 
 ## # Run go tests more quickly, but with worse flake and race detection
 ## make fasttest
@@ -1025,7 +1024,8 @@ third_party/swaggerui/:
 
 sync-deps:
 	$(GO) clean -modcache
-	$(GO) mod download
+	$(GO) mod tidy 
+	$(GO) mod download -x
 
 define tutorial_folder
 	$(if $(wildcard $(1)/go.mod), \

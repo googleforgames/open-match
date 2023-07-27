@@ -68,7 +68,8 @@ steps:
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Build: Clean']
+#  waitFor: ['Build: Clean']
+  waitFor: ['Build: Initialize Toolchain']
 
 - id: 'Build: Initialize Toolchain'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -76,7 +77,8 @@ steps:
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Download Dependencies']
+  #waitFor: ['Setup: Download Dependencies']
+  waitFor: ['Build: Clean']
 
 - id: 'Test: Terraform Configuration'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
