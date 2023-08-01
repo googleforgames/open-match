@@ -67,14 +67,13 @@ steps:
 #  args: ['make', 'md-test']
 #  waitFor: ['Build: Clean']
 
-#- id: 'Setup: Download Dependencies'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', 'sync-deps']
-#  volumes:
-#  - name: 'go-vol'
-#    path: '/go'
-#  waitFor: ['Build: Clean']
-#  #waitFor: ['Build: Initialize Toolchain']
+- id: 'Setup: Clean Dependencies'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'sync-deps']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
+  waitFor: ['Build: Clean']
 #
 #- id: 'Build: Initialize Toolchain'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -82,20 +81,26 @@ steps:
 #  volumes:
 #  - name: 'go-vol'
 #    path: '/go'
-#  waitFor: ['Setup: Download Dependencies']
+#  waitFor: ['Setup: Clean Dependencies']
 #  #waitFor: ['Build: Clean']
 #
-#
+#- id: 'Setup: Download Dependencies'
+#  name: 'gcr.io/$PROJECT_ID/open-match-build'
+#  args: ['make', 'sync-deps']
+#  volumes:
+#  - name: 'go-vol'
+#    path: '/go'
+#  waitFor: ['Build: Initialize Toolchain']
 #
 #- id: 'Test: Terraform Configuration'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
 #  args: ['make', 'terraform-test']
-#  waitFor: ['Build: Initialize Toolchain']
+#  waitFor: ['Build: Download Dependencies']
 #
 #- id: 'Build: Deployment Configs'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
 #  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'update-chart-deps', 'install/yaml/']
-#  waitFor: ['Build: Initialize Toolchain']
+#  waitFor: ['Build: Download Dependencies']
 #
 #- id: 'Build: Assets'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
