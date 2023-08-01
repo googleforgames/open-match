@@ -74,15 +74,15 @@ steps:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Build: Clean']
-#
-#- id: 'Build: Initialize Toolchain'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', 'install-toolchain']
-#  volumes:
-#  - name: 'go-vol'
-#    path: '/go'
-#  waitFor: ['Setup: Clean Dependencies']
-#  #waitFor: ['Build: Clean']
+
+- id: 'Build: Initialize Toolchain'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'install-toolchain']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
+  waitFor: ['Setup: Clean Dependencies']
+  #waitFor: ['Build: Clean']
 #
 #- id: 'Setup: Download Dependencies'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
