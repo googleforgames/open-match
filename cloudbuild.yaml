@@ -81,7 +81,7 @@ steps:
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Clean Dependencies']
+  waitFor: ['Setup: Clean Go Dependencies']
 
 - id: 'Setup: Download Go Dependencies'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -94,12 +94,12 @@ steps:
 #- id: 'Test: Terraform Configuration'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
 #  args: ['make', 'terraform-test']
-#  waitFor: ['Build: Download Dependencies']
+#  waitFor: ['Build: Download Go Dependencies']
 #
 #- id: 'Build: Deployment Configs'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
 #  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'update-chart-deps', 'install/yaml/']
-#  waitFor: ['Build: Download Dependencies']
+#  waitFor: ['Build: Download Go Dependencies']
 #
 #- id: 'Build: Assets'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
