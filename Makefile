@@ -189,8 +189,10 @@ else
 endif
 
 GOLANG_PROTOS = pkg/pb/backend.pb.go pkg/pb/frontend.pb.go pkg/pb/matchfunction.pb.go pkg/pb/query.pb.go pkg/pb/messages.pb.go pkg/pb/extensions.pb.go pkg/pb/evaluator.pb.go internal/ipb/synchronizer.pb.go internal/ipb/messages.pb.go pkg/pb/backend.pb.gw.go pkg/pb/frontend.pb.gw.go pkg/pb/matchfunction.pb.gw.go pkg/pb/query.pb.gw.go pkg/pb/evaluator.pb.gw.go
+golang-protos: $(GOLANG_PROTOS)
 
 SWAGGER_JSON_DOCS = api/frontend.swagger.json api/backend.swagger.json api/query.swagger.json api/matchfunction.swagger.json api/evaluator.swagger.json
+swagger-json-docs: $(SWAGGER_JSON_DOCS)
 
 ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS)
 
