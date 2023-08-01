@@ -83,13 +83,21 @@ steps:
     path: '/go'
   waitFor: ['Setup: Clean Go Dependencies']
 
+- id: 'Build: Compile Protos'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'golang-protos']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
+  waitFor: ['Setup: Initialize Toolchain']
+
 - id: 'Setup: Download Go Dependencies'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'sync-deps']
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Build: Initialize Toolchain']
+  waitFor: ['Build: Compile Protos']
 
 #- id: 'Test: Terraform Configuration'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
