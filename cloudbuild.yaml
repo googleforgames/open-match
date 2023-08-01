@@ -67,7 +67,7 @@ steps:
 #  args: ['make', 'md-test']
 #  waitFor: ['Build: Clean']
 
-- id: 'Setup: Clean Dependencies'
+- id: 'Setup: Clean Go Dependencies'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'clean-deps']
   volumes:
@@ -82,16 +82,15 @@ steps:
   - name: 'go-vol'
     path: '/go'
   waitFor: ['Setup: Clean Dependencies']
-  #waitFor: ['Build: Clean']
-#
-#- id: 'Setup: Download Dependencies'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', 'sync-deps']
-#  volumes:
-#  - name: 'go-vol'
-#    path: '/go'
-#  waitFor: ['Build: Initialize Toolchain']
-#
+
+- id: 'Setup: Download Go Dependencies'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'sync-deps']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
+  waitFor: ['Build: Initialize Toolchain']
+
 #- id: 'Test: Terraform Configuration'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
 #  args: ['make', 'terraform-test']
