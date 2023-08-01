@@ -89,7 +89,7 @@ steps:
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Initialize Toolchain']
+  waitFor: ['Build: Initialize Toolchain']
 
 - id: 'Setup: Download Go Dependencies'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
