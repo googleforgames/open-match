@@ -69,7 +69,7 @@ steps:
 
 - id: 'Setup: Clean Dependencies'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'sync-deps']
+  args: ['make', 'clean-deps']
   volumes:
   - name: 'go-vol'
     path: '/go'
