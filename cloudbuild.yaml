@@ -99,14 +99,14 @@ steps:
     path: '/go'
   waitFor: ['Build: Compile Protos']
 
+- id: 'Build: Deployment Configs'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'update-chart-deps', 'install/yaml/']
+  waitFor: ['Build: Download Go Dependencies']
+
 #- id: 'Test: Terraform Configuration'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
 #  args: ['make', 'terraform-test']
-#  waitFor: ['Build: Download Go Dependencies']
-#
-#- id: 'Build: Deployment Configs'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'update-chart-deps', 'install/yaml/']
 #  waitFor: ['Build: Download Go Dependencies']
 #
 #- id: 'Build: Assets'
