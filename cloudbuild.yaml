@@ -125,14 +125,14 @@ steps:
     path: '/go'
   waitFor: ['Build: Assets']
 
-#- id: 'Test: Services'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', 'GOPROXY=off', 'GOLANG_TEST_COUNT=10', 'test']
-#  volumes:
-#  - name: 'go-vol'
-#    path: '/go'
-#  waitFor: ['Build: Assets']
-#
+- id: 'Test: Services'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'GOPROXY=off', 'GOLANG_TEST_COUNT=10', 'test']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
+  waitFor: ['Build: Assets']
+
 #- id: 'Build: Docker Images'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
 #  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', 'push-images', '-j8']
