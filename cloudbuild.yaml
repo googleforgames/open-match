@@ -104,10 +104,10 @@ steps:
   args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'update-chart-deps', 'install/yaml/']
   waitFor: ['Setup: Download Go Dependencies']
 
-#- id: 'Test: Terraform Configuration'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', 'terraform-test']
-#  waitFor: ['Build: Download Go Dependencies']
+- id: 'Test: Terraform Configuration'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'terraform-test']
+  waitFor: ['Build: Download Go Dependencies']
 #
 #- id: 'Build: Assets'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
