@@ -117,14 +117,14 @@ steps:
     path: '/go'
   waitFor: ['Build: Deployment Configs']
 
-#- id: 'Build: Binaries'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', '_CHARTS_BUCKET=${_CHARTS_BUCKET}', 'GOPROXY=off', 'build', 'all', '-j12']
-#  volumes:
-#  - name: 'go-vol'
-#    path: '/go'
-#  waitFor: ['Build: Assets']
-#
+- id: 'Build: Binaries'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', '_CHARTS_BUCKET=${_CHARTS_BUCKET}', 'GOPROXY=off', 'build', 'all', '-j12']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
+  waitFor: ['Build: Assets']
+
 #- id: 'Test: Services'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
 #  args: ['make', 'GOPROXY=off', 'GOLANG_TEST_COUNT=10', 'test']
