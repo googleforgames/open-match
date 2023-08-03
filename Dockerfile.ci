@@ -36,6 +36,7 @@ RUN apt-get update -y \
             software-properties-common \
             gnupg2 \
             libc6
+            build-essential
 RUN mkdir -p /usr/share/keyrings/
 
 # Docker
