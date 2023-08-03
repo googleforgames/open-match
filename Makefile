@@ -1028,7 +1028,7 @@ third_party/swaggerui/:
 
 
 clean-deps:
-	$(GO) clean -modcache
+	CGO_ENABLED=1 $(GO) clean -modcache
 
 sync-deps: clean-deps
 	$(GO) mod tidy
