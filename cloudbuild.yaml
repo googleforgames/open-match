@@ -107,7 +107,7 @@ steps:
 - id: 'Test: Terraform Configuration'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'terraform-test']
-  waitFor: ['Build: Download Go Dependencies']
+  waitFor: ['Setup: Download Go Dependencies']
 #
 #- id: 'Build: Assets'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
