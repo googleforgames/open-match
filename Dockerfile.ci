@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM debian
+FROM debian:bullseye
 
 RUN apt-get update
 RUN apt-get install -y -qq git make python3 virtualenv curl sudo unzip apt-transport-https ca-certificates curl software-properties-common gnupg2
