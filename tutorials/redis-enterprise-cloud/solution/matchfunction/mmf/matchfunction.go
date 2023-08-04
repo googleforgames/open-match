@@ -19,6 +19,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
 	"open-match.dev/open-match/pkg/matchfunction"
 	"open-match.dev/open-match/pkg/pb"
 )
@@ -85,7 +86,7 @@ func makeMatches(p *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb
 		}
 
 		matches = append(matches, &pb.Match{
-			MatchId:       fmt.Sprintf("profile-%v-time-%v-%v", p.GetName(), time.Now().Format("2006-01-02T15:04:05.00"), count),
+			MatchId:       fmt.Sprintf("profile-%v-id-%v-time-%v-c-%v", p.GetName(), uuid.New().String(), time.Now().Format("2006-01-02T15:04:05.00"), count),
 			MatchProfile:  p.GetName(),
 			MatchFunction: matchName,
 			Tickets:       matchTickets,
