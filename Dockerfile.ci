@@ -35,7 +35,7 @@ RUN apt-get update -y \
             curl \
             software-properties-common \
             gnupg2 \
-            libc6
+            libc6 \
             build-essential
 RUN mkdir -p /usr/share/keyrings/
 
