@@ -744,8 +744,8 @@ build: assets
 define test_folder
 	$(if $(wildcard $(1)/go.mod), \
 		cd $(1) && \
-		CGO_ENABLED=1 $(GO) test -p 1 -cover -test.count $(GOLANG_TEST_COUNT) -race ./... && \
-		$(GO) test -p 1 -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./... \
+		CGO_ENABLED=1 $(GO) test -v -cover -test.count $(GOLANG_TEST_COUNT) -race ./... && \
+		$(GO) test -v -cover -test.count $(GOLANG_TEST_COUNT) -run IgnoreRace$$ ./... \
     )
 	$(foreach dir, $(wildcard $(1)/*/.), $(call test_folder, $(dir)))
 endef
