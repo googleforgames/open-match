@@ -62,8 +62,8 @@ YEAR_MONTH = $(shell date -u +'%Y%m')
 YEAR_MONTH_DAY = $(shell date -u +'%Y%m%d')
 MAJOR_MINOR_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f1).$(shell echo $(BASE_VERSION) | cut -d '.' -f2)
 PROTOC_VERSION = 3.19.4
-HELM_VERSION = 3.8.0
-KUBECTL_VERSION = 1.21.5
+HELM_VERSION = 3.12.1
+KUBECTL_VERSION = 1.27.3
 MINIKUBE_VERSION = latest
 GOLANGCI_VERSION = 1.18.0
 KIND_VERSION = 0.5.1
@@ -230,10 +230,10 @@ build-images: $(foreach IMAGE,$(IMAGES),build-$(IMAGE)-image)
 # Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
 # This is important so that the repository does not have any mutations while building individual images.
 build-base-build-image: docker $(ALL_PROTOS)
-	DOCKER_BUILDKIT=1 docker build -f Dockerfile.base-build -t open-match-base-build -t $(REGISTRY)/openmatch-base-build:$(TAG) -t $(REGISTRY)/openmatch-base-build:$(ALTERNATE_TAG) .
+	docker build -f Dockerfile.base-build -t open-match-base-build -t $(REGISTRY)/openmatch-base-build:$(TAG) -t $(REGISTRY)/openmatch-base-build:$(ALTERNATE_TAG) .
 
 $(foreach CMD,$(CMDS),build-$(CMD)-image): build-%-image: docker build-base-build-image
-	DOCKER_BUILDKIT=1 docker build \
+	docker build \
 		-f Dockerfile.cmd \
 		$(IMAGE_BUILD_ARGS) \
 		--build-arg=IMAGE_TITLE=$* \
@@ -242,10 +242,10 @@ $(foreach CMD,$(CMDS),build-$(CMD)-image): build-%-image: docker build-base-buil
 		.
 
 build-mmf-go-soloduel-image: docker build-base-build-image
-	DOCKER_BUILDKIT=1 docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
+	docker build -f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
 
 build-mmf-go-backfill-image: docker build-base-build-image
-	DOCKER_BUILDKIT=1 docker build -f examples/functions/golang/backfill/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-backfill:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-backfill:$(ALTERNATE_TAG) .
+	docker build -f examples/functions/golang/backfill/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-backfill:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-backfill:$(ALTERNATE_TAG) .
 
 #######################################
 ## # Builds and pushes images to your container registry.
@@ -294,7 +294,7 @@ $(foreach IMAGE,$(IMAGES),clean-$(IMAGE)-image): clean-%-image:
 
 #####################################################################################################################
 update-chart-deps: build/toolchain/bin/helm$(EXE_EXTENSION)
-	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://charts.helm.sh/incubator; $(HELM) repo add bitnami-full-index https://raw.githubusercontent.com/bitnami/charts/archive-full-index/bitnami;$(HELM) dependency update)
+	(cd $(REPOSITORY_ROOT)/install/helm/open-match; $(HELM) repo add incubator https://charts.helm.sh/incubator; $(HELM) repo add bitnami https://charts.bitnami.com/bitnami;$(HELM) dependency update)
 
 lint-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/ct$(EXE_EXTENSION)
 	(cd $(REPOSITORY_ROOT)/install/helm; $(HELM) lint $(OPEN_MATCH_HELM_NAME))
@@ -642,23 +642,20 @@ delete-kind-cluster: build/toolchain/bin/kind$(EXE_EXTENSION) build/toolchain/bi
 create-cluster-role-binding:
 	$(KUBECTL) create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin --user=$(GCLOUD_ACCOUNT_EMAIL)
 
-create-gke-cluster: GKE_VERSION = 1.22.12-gke.2300 # gcloud beta container get-server-config --zone us-west1-a
 create-gke-cluster: GKE_CLUSTER_SHAPE_FLAGS = --machine-type n1-standard-8 --enable-autoscaling --min-nodes 1 --num-nodes 6 --max-nodes 10 --disk-size 50
 create-gke-cluster: GKE_FUTURE_COMPAT_FLAGS = --no-enable-basic-auth --no-issue-client-certificate --enable-ip-alias --metadata disable-legacy-endpoints=true --enable-autoupgrade
 create-gke-cluster: build/toolchain/bin/kubectl$(EXE_EXTENSION) gcloud
-	$(GCLOUD)  $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS) $(GKE_CLUSTER_FLAGS) \
-		--cluster-version $(GKE_VERSION) \
+	$(GCLOUD) $(GCP_PROJECT_FLAG) container clusters create $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) $(GKE_CLUSTER_SHAPE_FLAGS) $(GKE_FUTURE_COMPAT_FLAGS) $(GKE_CLUSTER_FLAGS) \
+		--cluster-version 1.27.2-gke.2100 \
 		--image-type cos_containerd \
 		--tags open-match \
 		--workload-pool $(GCP_PROJECT_ID).svc.id.goog
-	$(MAKE) create-cluster-role-binding
-	
 
 delete-gke-cluster: gcloud
 	-$(GCLOUD) $(GCP_PROJECT_FLAG) container clusters delete $(GKE_CLUSTER_NAME) $(GCP_LOCATION_FLAG) $(GCLOUD_EXTRA_FLAGS)
 
 create-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
-	$(MINIKUBE) start -p openmatch --memory 6144 --cpus 4 --disk-size 50g --kubernetes-version=v1.21.5
+	$(MINIKUBE) start -p openmatch --memory 6144 --cpus 4 --disk-size 50g --kubernetes-version=v1.27.3
 
 delete-mini-cluster: build/toolchain/bin/minikube$(EXE_EXTENSION)
 	-$(MINIKUBE) delete -p openmatch
