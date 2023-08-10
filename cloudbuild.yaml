@@ -151,14 +151,14 @@ steps:
   args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${BUILD_ID}', 'OPEN_MATCH_RELEASE_NAME=open-match-${BUILD_ID}', 'auth-gke-cluster', 'delete-chart', 'ci-reap-namespaces', 'install-ci-chart']
   waitFor: ['Build: Docker Images']
 
-#- id: 'Deploy: Deployment Configs'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', '_CHARTS_BUCKET=${_CHARTS_BUCKET}',  'ci-deploy-artifacts']
-#  waitFor: ['Lint: Format, Vet, Charts', 'Test: Deploy Open Match']
-#  volumes:
-#  - name: 'go-vol'
-#    path: '/go'
-#
+- id: 'Deploy: Deployment Configs'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', '_GCB_POST_SUBMIT=${_GCB_POST_SUBMIT}', '_GCB_LATEST_VERSION=${_GCB_LATEST_VERSION}', 'SHORT_SHA=${SHORT_SHA}', 'BRANCH_NAME=${BRANCH_NAME}', '_CHARTS_BUCKET=${_CHARTS_BUCKET}',  'ci-deploy-artifacts']
+  waitFor: ['Lint: Format, Vet, Charts', 'Test: Deploy Open Match']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
+
 #- id: 'Test: End-to-End Cluster'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
 #  args: ['make', 'GOPROXY=off', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${BUILD_ID}', 'test-e2e-cluster']
@@ -184,13 +184,13 @@ steps:
 #            - install/yaml/05-jaeger-chart.yaml
 #            - install/yaml/06-open-match-override-configmap.yaml
 #            
-#substitutions:
+substitutions:
 #    _OM_VERSION: "0.0.0-dev"
 #    _GCB_POST_SUBMIT: "0"
 #    _GCB_LATEST_VERSION: "undefined"
 #    _ARTIFACTS_BUCKET: "gs://open-match-build-artifacts/output/"
 #    _LOGS_BUCKET: "gs://open-match-build-logs/"
-#    _CHARTS_BUCKET: "gs://open-match-chart"
+    _CHARTS_BUCKET: "gs://open-match-chart"
 #logsBucket: '${_LOGS_BUCKET}'
 options:
   sourceProvenanceHash: ['SHA256']
