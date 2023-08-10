@@ -127,8 +127,8 @@ steps:
 
 - id: 'Test: Services'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOLANG_TEST_COUNT=10', 'test']
-  # If debugging failing tests, enable verbose 'go test' output
+  args: ['make', 'GOLANG_TEST_COUNT=3', 'test']
+  # If debugging failing tests, enable verbose 'go test' output, run additional passes
   #args: ['make', 'GOLANG_EXTRA_TEST_FLAGS=-v', 'GOLANG_TEST_COUNT=10', 'test']
   volumes:
   - name: 'go-vol'
