@@ -159,14 +159,14 @@ steps:
   - name: 'go-vol'
     path: '/go'
 
-#- id: 'Test: End-to-End Cluster'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', 'GOPROXY=off', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${BUILD_ID}', 'test-e2e-cluster']
-#  waitFor: ['Test: Deploy Open Match', 'Build: Assets']
-#  volumes:
-#  - name: 'go-vol'
-#    path: '/go'
-#
+- id: 'Test: End-to-End Cluster'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'GOPROXY=off', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${BUILD_ID}', 'test-e2e-cluster']
+  waitFor: ['Test: Deploy Open Match', 'Build: Assets']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
+
 #- id: 'Test: Delete Open Match'
 #  name: 'gcr.io/$PROJECT_ID/open-match-build'
 #  args: ['make', 'GCLOUD_EXTRA_FLAGS=--async', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${BUILD_ID}', 'OPEN_MATCH_RELEASE_NAME=open-match-${BUILD_ID}', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
@@ -189,9 +189,9 @@ substitutions:
 #    _GCB_POST_SUBMIT: "0"
 #    _GCB_LATEST_VERSION: "undefined"
 #    _ARTIFACTS_BUCKET: "gs://open-match-build-artifacts/output/"
-#    _LOGS_BUCKET: "gs://open-match-build-logs/"
+    _LOGS_BUCKET: "gs://open-match-build-logs/"
     _CHARTS_BUCKET: "gs://open-match-chart"
-#logsBucket: '${_LOGS_BUCKET}'
+logsBucket: '${_LOGS_BUCKET}'
 options:
   sourceProvenanceHash: ['SHA256']
   machineType: 'N1_HIGHCPU_32'
