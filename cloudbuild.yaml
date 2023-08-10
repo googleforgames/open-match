@@ -62,10 +62,10 @@ steps:
   args: ['make', 'clean-third-party', 'clean-protos', 'clean-swagger-docs']
   waitFor: ['Docker Image: open-match-build']
 
-#- id: 'Test: Markdown'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', 'md-test']
-#  waitFor: ['Build: Clean']
+- id: 'Test: Markdown'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'md-test']
+  waitFor: ['Build: Clean']
 
 - id: 'Setup: Clean Go Dependencies'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -128,6 +128,8 @@ steps:
 - id: 'Test: Services'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'GOLANG_TEST_COUNT=10', 'test']
+  # If debugging failing tests, enable verbose 'go test' output
+  #args: ['make', 'GOLANG_EXTRA_TEST_FLAGS=-v', 'GOLANG_TEST_COUNT=10', 'test']
   volumes:
   - name: 'go-vol'
     path: '/go'

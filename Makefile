@@ -101,6 +101,7 @@ GCP_LOCATION = $(GCP_ZONE)
 EXE_EXTENSION =
 GCP_LOCATION_FLAG = --zone $(GCP_ZONE)
 GOLANG_TEST_COUNT = 1
+GOLANG_EXTRA_TEST_FLAGS = 
 SWAGGERUI_PORT = 51500
 PROMETHEUS_PORT = 9090
 JAEGER_QUERY_PORT = 16686
@@ -743,8 +744,8 @@ define test_folder
 		cd $(1) && \
 		$(GO) mod tidy && \
 		$(GO) mod download -x && \
-		CGO_ENABLED=1 $(GO) test -p 1 -v -cover -test.count $(GOLANG_TEST_COUNT) -race -vet=off ./... && \
-		$(GO) test -p 1 -v -cover -test.count $(GOLANG_TEST_COUNT) -vet=off -run IgnoreRace$$ ./... \
+		CGO_ENABLED=1 $(GO) test $(GOLANG_EXTRA_TEST_FLAGS) -p 1 -cover -test.count $(GOLANG_TEST_COUNT) -race -vet=off ./... && \
+		CGO_ENABLED=0 $(GO) test $(GOLANG_EXTRA_TEST_FLAGS) -p 1 -cover -test.count $(GOLANG_TEST_COUNT) -vet=off -run IgnoreRace$$ ./... \
     )
 	$(foreach dir, $(wildcard $(1)/*/.), $(call test_folder, $(dir)))
 endef
