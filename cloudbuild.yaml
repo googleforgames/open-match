@@ -128,7 +128,7 @@ steps:
 - id: 'Test: Services'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'GOLANG_TEST_COUNT=3', 'test']
-  # If debugging failing tests, enable verbose 'go test' output, run additional passes
+  # When debugging failing tests, enable verbose 'go test' output, run additional passes
   #args: ['make', 'GOLANG_EXTRA_TEST_FLAGS=-v', 'GOLANG_TEST_COUNT=10', 'test']
   volumes:
   - name: 'go-vol'
@@ -169,28 +169,28 @@ steps:
   - name: 'go-vol'
     path: '/go'
 
-#- id: 'Test: Delete Open Match'
-#  name: 'gcr.io/$PROJECT_ID/open-match-build'
-#  args: ['make', 'GCLOUD_EXTRA_FLAGS=--async', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${BUILD_ID}', 'OPEN_MATCH_RELEASE_NAME=open-match-${BUILD_ID}', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
-#  waitFor: ['Test: End-to-End Cluster']
-#
-#artifacts:
-#    objects:
-#        location: '${_ARTIFACTS_BUCKET}'
-#        paths:
-#            - install/yaml/install.yaml
-#            - install/yaml/01-open-match-core.yaml
-#            - install/yaml/02-open-match-demo.yaml
-#            - install/yaml/03-prometheus-chart.yaml
-#            - install/yaml/04-grafana-chart.yaml
-#            - install/yaml/05-jaeger-chart.yaml
-#            - install/yaml/06-open-match-override-configmap.yaml
-#            
+- id: 'Test: Delete Open Match'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'GCLOUD_EXTRA_FLAGS=--async', 'SHORT_SHA=${SHORT_SHA}', 'OPEN_MATCH_KUBERNETES_NAMESPACE=open-match-${BUILD_ID}', 'OPEN_MATCH_RELEASE_NAME=open-match-${BUILD_ID}', 'GCP_PROJECT_ID=${PROJECT_ID}', 'delete-chart']
+  waitFor: ['Test: End-to-End Cluster']
+
+artifacts:
+    objects:
+        location: '${_ARTIFACTS_BUCKET}'
+        paths:
+            - install/yaml/install.yaml
+            - install/yaml/01-open-match-core.yaml
+            - install/yaml/02-open-match-demo.yaml
+            - install/yaml/03-prometheus-chart.yaml
+            - install/yaml/04-grafana-chart.yaml
+            - install/yaml/05-jaeger-chart.yaml
+            - install/yaml/06-open-match-override-configmap.yaml
+            
 substitutions:
-#    _OM_VERSION: "0.0.0-dev"
-#    _GCB_POST_SUBMIT: "0"
-#    _GCB_LATEST_VERSION: "undefined"
-#    _ARTIFACTS_BUCKET: "gs://open-match-build-artifacts/output/"
+    _OM_VERSION: "0.0.0-dev"
+    _GCB_POST_SUBMIT: "0"
+    _GCB_LATEST_VERSION: "undefined"
+    _ARTIFACTS_BUCKET: "gs://open-match-build-artifacts/output/"
     _LOGS_BUCKET: "gs://open-match-build-logs/"
     _CHARTS_BUCKET: "gs://open-match-chart"
 logsBucket: '${_LOGS_BUCKET}'
