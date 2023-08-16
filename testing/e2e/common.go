@@ -219,12 +219,9 @@ api:
     httpport: "51509"
 
 redis:
-  sentinelPort: 26379
-  sentinelMaster: om-redis-master
-  sentinelHostname: open-match-redis
-  sentinelUsePassword: false
+  port: 6379
   usePassword: false
-  passwordPath: /opt/bitnami/redis/secrets/redis-password
+  passwordPath: /redis-password
   pool:
     maxIdle: 200
     maxActive: 0
