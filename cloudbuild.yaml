@@ -202,6 +202,11 @@ artifacts:
             - pkg/pb/query.pb.go
             - pkg/pb/query.pb.gw.go
             - pkg/pb/query_grpc.pb.go
+            - api/backend.swagger.json
+            - api/evaluator.swagger.json
+            - api/frontend.swagger.json
+            - api/matchfunction.swagger.json
+            - api/query.swagger.json
             
 substitutions:
     _OM_VERSION: "0.0.0-dev"
