@@ -112,7 +112,7 @@ resources:
 {{- if .Values.redis.auth.enabled	 }}
 - name: redis-password
   secret:
-    secretName: {{ include "call-nested" (list . "redis" "redis.fullname") }}
+    secretName: {{ include "call-nested" (list . "redis" "common.names.fullname") }}
 {{- end -}}
 {{- end -}}
 
@@ -240,7 +240,7 @@ http://{{ include "call-nested" (list . "open-match-telemetry.jaeger" "jaeger.co
 
 {{/*
 Call templates from sub-charts in a synthesized context, workaround for https://github.com/helm/helm/issues/3920
-Mainly useful for things like `{{ include "call-nested" (list . "redis" "redis.fullname") }}`
+Mainly useful for things like `{{ include "call-nested" (list . "redis" "common.names.fullname") }}`
 https://github.com/helm/helm/issues/4535#issuecomment-416022809
 https://github.com/helm/helm/issues/4535#issuecomment-477778391
 */}}
