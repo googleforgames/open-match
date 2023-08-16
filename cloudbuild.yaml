@@ -176,7 +176,7 @@ steps:
 
 artifacts:
     objects:
-        location: '${_ARTIFACTS_BUCKET}'
+        location: '${_ARTIFACTS_BUCKET}/${_OM_VERSION}'
         paths:
             - install/yaml/install.yaml
             - install/yaml/01-open-match-core.yaml
@@ -185,6 +185,23 @@ artifacts:
             - install/yaml/04-grafana-chart.yaml
             - install/yaml/05-jaeger-chart.yaml
             - install/yaml/06-open-match-override-configmap.yaml
+#            - pkg/pb/backend.pb.go
+#            - pkg/pb/backend.pb.gw.go
+#            - pkg/pb/backend_grpc.pb.go
+#            - pkg/pb/evaluator.pb.go
+#            - pkg/pb/evaluator.pb.gw.go
+#            - pkg/pb/evaluator_grpc.pb.go
+#            - pkg/pb/extensions.pb.go
+#            - pkg/pb/frontend.pb.go
+#            - pkg/pb/frontend.pb.gw.go
+#            - pkg/pb/frontend_grpc.pb.go
+#            - pkg/pb/matchfunction.pb.go
+#            - pkg/pb/matchfunction.pb.gw.go
+#            - pkg/pb/matchfunction_grpc.pb.go
+#            - pkg/pb/messages.pb.go
+#            - pkg/pb/query.pb.go
+#            - pkg/pb/query.pb.gw.go
+#            - pkg/pb/query_grpc.pb.go
             
 substitutions:
     _OM_VERSION: "0.0.0-dev"
