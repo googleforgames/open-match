@@ -21,18 +21,14 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/appmain/apptest"
-	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/pkg/pb"
 	mmfService "open-match.dev/open-match/testing/mmf"
 )
@@ -90,10 +86,13 @@ func TestMain(m *testing.M) {
 
 // TestConfigMatch covers that the config file used for local in memory e2e
 // tests matches the configs used for the in cluster tests, to avoid drift.
-// joeholley: commented out 2023.08.15: this test can no longer work as-is; the new bitnami
-// 										chart populates a generated redis hostname to the configmap
+// joeholley: commented out 2023.08.15: this test can no longer work as-is; the standalone
+//										redis hostname in the configmap
 //										which will change every time the kubernetes service is
-//										recreated (i.e. every time the CI/CD job runs). 
+//										recreated (i.e. every time the CI/CD job runs). So, it will never
+//										match a static hostname populated in the common.go file.
+//
+// Example: "hostname": "open-match-redis-master.open-match-52ff7e7c-b0e6-462f-8480-6462f96fda20.svc.cluster.local"
 //func TestConfigMatch(t *testing.T) {
 //	cfg, err := config.Read()
 //	if err != nil {
