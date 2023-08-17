@@ -224,12 +224,6 @@ targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoSc
 
 {{- end -}}
 
-{{- define "openmatch.jaeger.collector" -}}
-{{- if index .Values "open-match-telemetry" "enabled" -}}
-{{- if index .Values "open-match-telemetry" "jaeger" "enabled" -}}
-http://{{ include "call-nested" (list . "open-match-telemetry.jaeger" "jaeger.collector.name") }}:14268/api/traces
-{{- end -}}
-{{- end -}}
 {{- end -}}
 
 {{/*

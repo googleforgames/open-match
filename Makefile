@@ -342,7 +342,6 @@ install-large-chart: install-chart-prerequisite install-demo build/toolchain/bin
 		--set open-match-customize.enabled=true \
 		--set open-match-customize.evaluator.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
-		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.prometheus.enabled=true
 
 # install-chart will install open-match-core, open-match-demo, with the demo evaluator and mmf.
@@ -360,7 +359,6 @@ install-scale-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EX
 		--set open-match-customize.evaluator.enabled=true \
 		--set open-match-customize.function.image=openmatch-scale-mmf \
 		--set global.telemetry.grafana.enabled=true \
-		--set global.telemetry.jaeger.enabled=false \
 		--set global.telemetry.prometheus.enabled=true
 	$(HELM) template $(OPEN_MATCH_HELM_NAME)-scale  install/helm/open-match $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) -f install/helm/open-match/values-production.yaml \
 		--set open-match-core.enabled=false \
@@ -400,14 +398,11 @@ ifneq ($(BASE_VERSION), 0.0.0-dev)
 install/yaml/: REGISTRY = gcr.io/$(OPEN_MATCH_PUBLIC_IMAGES_PROJECT_ID)
 install/yaml/: TAG = $(BASE_VERSION)
 endif
-install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml install/yaml/05-jaeger-chart.yaml install/yaml/06-open-match-override-configmap.yaml install/yaml/07-open-match-default-evaluator.yaml
+install/yaml/: update-chart-deps install/yaml/install.yaml install/yaml/01-open-match-core.yaml install/yaml/02-open-match-demo.yaml install/yaml/03-prometheus-chart.yaml install/yaml/04-grafana-chart.yaml  install/yaml/06-open-match-override-configmap.yaml install/yaml/07-open-match-default-evaluator.yaml
 
-# We have to hard-code the Jaeger endpoints as we are excluding Jaeger, so Helm cannot determine the endpoints from the Jaeger subchart
 install/yaml/01-open-match-core.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
-		--set-string global.telemetry.jaeger.agentEndpoint="$(OPEN_MATCH_HELM_NAME)-jaeger-agent:6831" \
-		--set-string global.telemetry.jaeger.collectorEndpoint="http://$(OPEN_MATCH_HELM_NAME)-jaeger-collector:14268/api/traces" \
 		install/helm/open-match > install/yaml/01-open-match-core.yaml
 
 install/yaml/02-open-match-demo.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
@@ -956,10 +951,6 @@ proxy-synchronizer: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "Synchronizer Trace: http://localhost:$(SYNCHRONIZER_PORT)/debug/tracez"
 	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app=open-match,component=synchronizer,release=$(OPEN_MATCH_HELM_NAME)" --output jsonpath='{.items[0].metadata.name}') $(SYNCHRONIZER_PORT):51506 $(PORT_FORWARD_ADDRESS_FLAG)
 
-proxy-jaeger: build/toolchain/bin/kubectl$(EXE_EXTENSION)
-	@echo "Jaeger Query Frontend: http://localhost:16686"
-	$(KUBECTL) port-forward --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(shell $(KUBECTL) get pod --namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE) --selector="app.kubernetes.io/name=jaeger,app.kubernetes.io/component=query" --output jsonpath='{.items[0].metadata.name}') $(JAEGER_QUERY_PORT):16686 $(PORT_FORWARD_ADDRESS_FLAG)
-
 proxy-grafana: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	@echo "User: admin"
 	@echo "Password: openmatch"
@@ -981,7 +972,7 @@ proxy-demo: build/toolchain/bin/kubectl$(EXE_EXTENSION)
 
 # Run `make proxy` instead to run everything at the same time.
 # If you run this directly it will just run each proxy sequentially.
-proxy-all: proxy-frontend proxy-backend proxy-query proxy-grafana proxy-prometheus proxy-jaeger proxy-synchronizer proxy-ui proxy-dashboard proxy-demo
+proxy-all: proxy-frontend proxy-backend proxy-query proxy-grafana proxy-prometheus proxy-synchronizer proxy-ui proxy-dashboard proxy-demo
 
 proxy:
 	# This is an exception case where we'll call recursive make.
