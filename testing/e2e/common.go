@@ -233,10 +233,6 @@ telemetry:
   traceSamplingFraction: "0.01"
   zpages:
     enable: "true"
-  jaeger:
-    enable: "false"
-    agentEndpoint: ""
-    collectorEndpoint: ""
   prometheus:
     enable: "false"
     endpoint: "/metrics"

@@ -222,12 +222,6 @@ targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoSc
 {{- printf "%s-configmap-override" (include "openmatch.fullname" . ) -}}
 {{- end -}}
 
-{{- define "openmatch.jaeger.agent" -}}
-{{- if index .Values "open-match-telemetry" "enabled" -}}
-{{- if index .Values "open-match-telemetry" "jaeger" "enabled" -}}
-{{ include "call-nested" (list . "open-match-telemetry.jaeger" "jaeger.agent.name") }}:6831
-{{- end -}}
-{{- end -}}
 {{- end -}}
 
 {{- define "openmatch.jaeger.collector" -}}

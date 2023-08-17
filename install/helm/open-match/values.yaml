@@ -289,10 +289,6 @@ global:
     traceSamplingFraction: 0.01 # What fraction of traces to sample.
     zpages:
       enabled: true
-    jaeger:
-      enabled: false
-      agentEndpoint: '{{ include "openmatch.jaeger.agent" . }}'
-      collectorEndpoint: '{{ include "openmatch.jaeger.collector" . }}'
     prometheus:
       enabled: false
       endpoint: "/metrics"
