@@ -171,7 +171,7 @@ func (s *frontendService) UpdateBackfill(ctx context.Context, req *pb.UpdateBack
 		return nil, err
 	}
 	defer func() {
-		if _, err = m.Unlock(ctx); err != nil {
+		if _, err = m.Unlock(context.Background()); err != nil {
 			logger.WithError(err).Error("error on mutex unlock")
 		}
 	}()
@@ -332,7 +332,7 @@ func (s *frontendService) AcknowledgeBackfill(ctx context.Context, req *pb.Ackno
 		return nil, err
 	}
 	defer func() {
-		if _, err = m.Unlock(ctx); err != nil {
+		if _, err = m.Unlock(context.Background()); err != nil {
 			logger.WithError(err).Error("error on mutex unlock")
 		}
 	}()

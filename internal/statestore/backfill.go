@@ -242,7 +242,7 @@ func (rb *redisBackend) DeleteBackfillCompletely(ctx context.Context, id string)
 	}
 
 	defer func() {
-		if _, err = m.Unlock(ctx); err != nil {
+		if _, err = m.Unlock(context.Background()); err != nil {
 			logger.WithError(err).Error("error on mutex unlock")
 		}
 	}()
