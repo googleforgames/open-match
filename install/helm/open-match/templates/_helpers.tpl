@@ -222,10 +222,6 @@ targetCPUUtilizationPercentage: {{ .Values.global.kubernetes.horizontalPodAutoSc
 {{- printf "%s-configmap-override" (include "openmatch.fullname" . ) -}}
 {{- end -}}
 
-{{- end -}}
-
-{{- end -}}
-
 {{/*
 Call templates from sub-charts in a synthesized context, workaround for https://github.com/helm/helm/issues/3920
 Mainly useful for things like `{{ include "call-nested" (list . "redis" "common.names.fullname") }}`
