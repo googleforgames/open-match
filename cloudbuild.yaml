@@ -188,7 +188,7 @@ substitutions:
     _OM_VERSION: "0.0.0-dev"
     _GCB_POST_SUBMIT: "0"
     _GCB_LATEST_VERSION: "undefined"
-    _ARTIFACTS_BUCKET: "gs://open-match-build-artifacts/output/"
+    _ARTIFACTS_BUCKET: "gs://open-match-build-artifacts/"
     _LOGS_BUCKET: "gs://open-match-build-logs/"
     _CHARTS_BUCKET: "gs://open-match-chart"
 logsBucket: '${_LOGS_BUCKET}'
