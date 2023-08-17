@@ -104,7 +104,6 @@ GOLANG_TEST_COUNT = 1
 GOLANG_EXTRA_TEST_FLAGS = 
 SWAGGERUI_PORT = 51500
 PROMETHEUS_PORT = 9090
-JAEGER_QUERY_PORT = 16686
 GRAFANA_PORT = 3000
 FRONTEND_PORT = 51504
 BACKEND_PORT = 51505
@@ -431,15 +430,6 @@ install/yaml/04-grafana-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set-string global.telemetry.grafana.prometheusServer="http://$(OPEN_MATCH_HELM_NAME)-prometheus-server.$(OPEN_MATCH_KUBERNETES_NAMESPACE).svc.cluster.local:80/" \
 		install/helm/open-match > install/yaml/04-grafana-chart.yaml
 
-install/yaml/05-jaeger-chart.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
-	mkdir -p install/yaml/
-	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
-		--set open-match-core.enabled=false \
-		--set open-match-core.redis.enabled=false \
-		--set open-match-telemetry.enabled=true \
-		--set global.telemetry.jaeger.enabled=true \
-		install/helm/open-match > install/yaml/05-jaeger-chart.yaml
-
 install/yaml/06-open-match-override-configmap.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 	mkdir -p install/yaml/
 	$(HELM) template $(OPEN_MATCH_HELM_NAME) $(HELM_TEMPLATE_FLAGS) $(HELM_IMAGE_FLAGS) \
@@ -464,7 +454,6 @@ install/yaml/install.yaml: build/toolchain/bin/helm$(EXE_EXTENSION)
 		--set open-match-customize.enabled=true \
 		--set open-match-customize.evaluator.enabled=true \
 		--set open-match-telemetry.enabled=true \
-		--set global.telemetry.jaeger.enabled=true \
 		--set global.telemetry.grafana.enabled=true \
 		--set global.telemetry.prometheus.enabled=true \
 		install/helm/open-match > install/yaml/install.yaml
