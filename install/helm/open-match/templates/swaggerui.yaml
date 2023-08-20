@@ -54,6 +54,9 @@ spec:
       namespace: {{ .Release.Namespace }}
       annotations:
         {{- include "openmatch.chartmeta" . | nindent 8 }}
+        {{- if .Values.swaggerui.podAnnotations }}
+        {{- toYaml .Values.swaggerui.podAnnotations | nindent 8 }}
+        {{- end }}
       labels:
         app: {{ template "openmatch.name" . }}
         component: swaggerui

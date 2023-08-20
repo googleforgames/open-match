@@ -21,12 +21,14 @@ function:
   replicas: 3
   portType: ClusterIP
   image: openmatch-mmf-go-soloduel
+  podAnnotations: {}
 
 evaluator:
   enabled: false
   replicas: 3
   portType: ClusterIP
   image: openmatch-default-evaluator
+  podAnnotations: {}
 
 evaluatorConfigs: 
   # We use harness to implement the MMFs. MMF itself only requires one configmap but harness expects two,

@@ -43,12 +43,17 @@
 #
 #   # Specifies the image name to be used in a Kubernetes pod for `query` compoenent.
 #   image: openmatch-query
+#
+#   # Specifies annotations to be used in a Kubernetes pod for `query` compoenent.
+#   podAnnotations:
+#    key1: value1
 swaggerui: &swaggerui
   hostName:
   httpPort: 51500
   portType: ClusterIP
   replicas: 1
   image: openmatch-swaggerui
+  podAnnotations: {}
 query: &query
   hostName:
   grpcPort: 50503
@@ -56,6 +61,7 @@ query: &query
   portType: ClusterIP
   replicas: 3
   image: openmatch-query
+  podAnnotations: {}
 frontend: &frontend
   hostName:
   grpcPort: 50504
@@ -63,6 +69,7 @@ frontend: &frontend
   portType: ClusterIP
   replicas: 3
   image: openmatch-frontend
+  podAnnotations: {}
 backend: &backend
   hostName:
   grpcPort: 50505
@@ -70,6 +77,7 @@ backend: &backend
   portType: ClusterIP
   replicas: 3
   image: openmatch-backend
+  podAnnotations: {}
 synchronizer: &synchronizer
   hostName:
   grpcPort: 50506
@@ -77,16 +85,19 @@ synchronizer: &synchronizer
   portType: ClusterIP
   replicas: 1
   image: openmatch-synchronizer
+  podAnnotations: {}
 evaluator: &evaluator
   hostName:
   grpcPort: 50508
   httpPort: 51508
   replicas: 3
+  podAnnotations: {}
 function: &function
   hostName:
   grpcPort: 50502
   httpPort: 51502
   replicas: 3
+  podAnnotations: {}
 
 # Specifies the location and name of the Open Match application-level config volumes.
 # Used in template: `openmatch.volumemounts.configs` and `openmatch.volumes.configs` under `templates/_helpers.tpl` file.
