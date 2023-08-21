@@ -319,7 +319,6 @@ build/chart/: build/chart/index.yaml build/chart/index.yaml.$(YEAR_MONTH_DAY)
 
 install-chart-prerequisite: build/toolchain/bin/kubectl$(EXE_EXTENSION) update-chart-deps
 	-$(KUBECTL) create namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
-	$(KUBECTL) apply -f install/gke-metadata-server-workaround.yaml
 
 # Used for Open Match development. Install om-configmap-override.yaml by default.
 HELM_UPGRADE_FLAGS = --cleanup-on-fail -i --no-hooks --debug --timeout=600s --namespace=$(OPEN_MATCH_KUBERNETES_NAMESPACE) --set global.gcpProjectId=$(GCP_PROJECT_ID) --set open-match-override.enabled=true --set redis.password=$(REDIS_DEV_PASSWORD) --set redis.auth.enabled=false --set redis.auth.sentinel=false
@@ -388,8 +387,8 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 delete-chart: build/toolchain/bin/helm$(EXE_EXTENSION) build/toolchain/bin/kubectl$(EXE_EXTENSION)
 	-$(HELM) uninstall $(OPEN_MATCH_HELM_NAME)
 	-$(HELM) uninstall $(OPEN_MATCH_HELM_NAME)-demo
-	-$(KUBECTL) delete psp,clusterrole,clusterrolebinding --selector=release=open-match
-	-$(KUBECTL) delete psp,clusterrole,clusterrolebinding --selector=release=open-match-demo
+	-$(KUBECTL) delete clusterrole,clusterrolebinding --selector=release=open-match
+	-$(KUBECTL) delete clusterrole,clusterrolebinding --selector=release=open-match-demo
 	-$(KUBECTL) delete namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)
 	-$(KUBECTL) delete namespace $(OPEN_MATCH_KUBERNETES_NAMESPACE)-demo
 
