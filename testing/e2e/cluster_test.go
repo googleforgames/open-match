@@ -83,28 +83,3 @@ func TestMain(m *testing.M) {
 
 	os.Exit(exitCode)
 }
-
-// TestConfigMatch covers that the config file used for local in memory e2e
-// tests matches the configs used for the in cluster tests, to avoid drift.
-// joeholley: commented out 2023.08.15: this test can no longer work as-is; the standalone
-//										redis hostname in the configmap
-//										which will change every time the kubernetes service is
-//										recreated (i.e. every time the CI/CD job runs). So, it will never
-//										match a static hostname populated in the common.go file.
-//
-// Example: "hostname": "open-match-redis-master.open-match-52ff7e7c-b0e6-462f-8480-6462f96fda20.svc.cluster.local"
-//func TestConfigMatch(t *testing.T) {
-//	cfg, err := config.Read()
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	cfgMemory := viper.New()
-//	cfgMemory.SetConfigType("yaml")
-//	err = cfgMemory.ReadConfig(strings.NewReader(configFile))
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	require.Equal(t, cfgMemory.AllSettings(), cfg.AllSettings())
-//}
