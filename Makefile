@@ -550,7 +550,7 @@ build/toolchain/bin/protoc$(EXE_EXTENSION):
 
 build/toolchain/bin/protoc-gen-doc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
-	cd $(TOOLCHAIN_BIN) && $(GO) build -i -pkgdir . github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
+	cd $(TOOLCHAIN_BIN) && $(GO) get github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc && $(GO) build -pkgdir . github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
 
 build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
