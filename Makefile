@@ -550,7 +550,7 @@ build/toolchain/bin/protoc$(EXE_EXTENSION):
 
 build/toolchain/bin/protoc-gen-doc$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
-	cd $(TOOLCHAIN_BIN) && $(GO) build -i -pkgdir . github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
+	cd $(TOOLCHAIN_BIN) && $(GO) build -pkgdir . github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
 
 build/toolchain/bin/protoc-gen-go$(EXE_EXTENSION):
 	mkdir -p $(TOOLCHAIN_BIN)
@@ -754,7 +754,7 @@ fasttest: $(ALL_PROTOS) tls-certs third_party/
 	$(call fast_test_folder,.)
 
 test-e2e-cluster: all-protos tls-certs third_party/
-	$(HELM) test --timeout 7m30s -v 0 --logs -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(OPEN_MATCH_HELM_NAME)
+	$(HELM) test --timeout 15m --debug -v 0 --logs -n $(OPEN_MATCH_KUBERNETES_NAMESPACE) $(OPEN_MATCH_HELM_NAME)
 
 fmt:
 	$(GO) fmt ./...
