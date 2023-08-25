@@ -37,7 +37,7 @@ then you'll need to create the release branch.
 
 ```shell
 # Create a local release branch.
-git checkout -b release-0.5 upstream/master
+git checkout -b release-0.5 upstream/main
 # Push the branch upstream.
 git push upstream release-0.5
 ```
@@ -76,7 +76,7 @@ Hot Fixes:
 
 Preview:
 
-* Rare, a one off release cut from the master branch to provide early access
+* Rare, a one off release cut from the main branch to provide early access
   to APIs or some other major change.
 * **NOTE: There's no branch for this release.** 
 * Example: 0.5-preview.1
@@ -98,7 +98,7 @@ only required once.**
 
 - [ ] Create the branch in the **upstream** repository. It should be named
   release-X.Y. Example: release-0.5. At this point there's effectively a code
-  freeze for this version and all work on master will be included in a future
+  freeze for this version and all work on main will be included in a future
   version. If you're on the branch that you created in the *getting setup*
   section above you should be able to push upstream.
 
@@ -131,12 +131,12 @@ git push origin release-0.5
 only required once.**
 - [ ] Create the next [version milestone](https://github.com/googleforgames/open-match/milestones) and use [semantic versioning](https://semver.org/) when naming it to be consistent with the [Go community](https://blog.golang.org/versioning-proposal).
 - [ ] Create a *draft* [release](https://github.com/googleforgames/open-match/releases).  Note that github has both "Pre-release" and "draft" as different concepts for a release.  Until the release is finalized, only use "Save draft", and do not use "Publish release".
-- [ ] Use the [release template](https://github.com/googleforgames/open-match/blob/master/docs/governance/templates/release.md)
+- [ ] Use the [release template](https://github.com/googleforgames/open-match/blob/main/docs/governance/templates/release.md)
   - [ ] `Tag` = v{version}. Example: v0.5.0. Append -rc.# for release candidates. Example: v0.5.0-rc.1.
   - [ ] `Target` = release-X.Y. Example: release-0.5.
   - [ ] `Release Title` = `Tag`
-  - [ ] `Write` section will contain the contents from the [release template](https://github.com/googleforgames/open-match/blob/master/docs/governance/templates/release.md).
-- [ ] Add the milestone to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/googleforgames/open-match/releases) and look for the "X commits to master since this release" for the diff.
+  - [ ] `Write` section will contain the contents from the [release template](https://github.com/googleforgames/open-match/blob/main/docs/governance/templates/release.md).
+- [ ] Add the milestone to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/googleforgames/open-match/releases) and look for the "X commits to main since this release" for the diff.
 - [ ] Review all [milestone-less closed issues](https://github.com/googleforgames/open-match/issues?q=is%3Aissue+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
 - [ ] Review all [issues in milestone](https://github.com/googleforgames/open-match/milestones) for proper [labels](https://github.com/googleforgames/open-match/labels) (ex: area/build).
 - [ ] Review all [milestone-less closed PRs](https://github.com/googleforgames/open-match/pulls?q=is%3Apr+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
@@ -175,9 +175,9 @@ only required once.**
 
 [om-slack]: https://open-match.slack.com/
 [mailing-list-post]: https://groups.google.com/forum/#!newtopic/open-match-discuss
-[release-template]: https://github.com/googleforgames/open-match/blob/master/docs/governance/templates/release.md
-[makefile-version]: https://github.com/googleforgames/open-match/blob/master/Makefile#L53
-[om-chart-yaml-version]: https://github.com/googleforgames/open-match/blob/master/install/helm/open-match/Chart.yaml#L16
-[om-values-yaml-version]: https://github.com/googleforgames/open-match/blob/master/install/helm/open-match/values.yaml#L16
+[release-template]: https://github.com/googleforgames/open-match/blob/main/docs/governance/templates/release.md
+[makefile-version]: https://github.com/googleforgames/open-match/blob/main/Makefile#L53
+[om-chart-yaml-version]: https://github.com/googleforgames/open-match/blob/main/install/helm/open-match/Chart.yaml#L16
+[om-values-yaml-version]: https://github.com/googleforgames/open-match/blob/main/install/helm/open-match/values.yaml#L16
 [om-release]: https://github.com/googleforgames/open-match/releases/new
-[readme-deploy]: https://github.com/googleforgames/open-match/blob/master/README.md#deploy-to-kubernetes
+[readme-deploy]: https://github.com/googleforgames/open-match/blob/main/README.md#deploy-to-kubernetes
