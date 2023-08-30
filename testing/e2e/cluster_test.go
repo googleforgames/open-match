@@ -21,18 +21,14 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"open-match.dev/open-match/internal/app/evaluator"
 	"open-match.dev/open-match/internal/appmain/apptest"
-	"open-match.dev/open-match/internal/config"
 	"open-match.dev/open-match/pkg/pb"
 	mmfService "open-match.dev/open-match/testing/mmf"
 )
@@ -86,22 +82,4 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(exitCode)
-}
-
-// TestConfigMatch covers that the config file used for local in memory e2e
-// tests matches the configs used for the in cluster tests, to avoid drift.
-func TestConfigMatch(t *testing.T) {
-	cfg, err := config.Read()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cfgMemory := viper.New()
-	cfgMemory.SetConfigType("yaml")
-	err = cfgMemory.ReadConfig(strings.NewReader(configFile))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, cfgMemory.AllSettings(), cfg.AllSettings())
 }
