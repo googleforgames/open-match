@@ -136,8 +136,6 @@ only required once.**
   - [ ] `Release Title = v{version}` (Must match `Tag`)
   - [ ] `Write` section will contain the contents from the [release template](https://github.com/googleforgames/open-match/blob/main/docs/governance/templates/release.md).
 - [ ] Add the milestone to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/googleforgames/open-match/releases) and look for the "X commits to main since this release" for the diff.
-- [ ] Review all [milestone-less closed issues](https://github.com/googleforgames/open-match/issues?q=is%3Aissue+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
-- [ ] Review all [issues in milestone](https://github.com/googleforgames/open-match/milestones) for proper [labels](https://github.com/googleforgames/open-match/labels) (ex: area/build).
 - [ ] Review all [milestone-less closed PRs](https://github.com/googleforgames/open-match/pulls?q=is%3Apr+is%3Aclosed+no%3Amilestone) and assign the appropriate milestone.
 - [ ] Review all [PRs in milestone](https://github.com/googleforgames/open-match/milestones) for proper [labels](https://github.com/googleforgames/open-match/labels) (ex: area/build).
 - [ ] View all open entries in milestone and move them to a future milestone if they aren't getting closed in time. https://github.com/googleforgames/open-match/milestones/v{version}
@@ -147,20 +145,20 @@ only required once.**
 
 ## Build And Test Artifacts
 
-- [ ] Navigate to the [Cloud Console](https://console.cloud.google.com) in a browser and open the [Cloud Build History section](https://console.cloud.google.com/cloud-build/builds?project=open-match-build) and find the latest "Post Submit" build (Trigger name: 9a451c7a-197b-4a38-a612-21f4c53c42fd) of the merged commit. The build may still be running, if so wait for it to finish. If it failed, fix the error and repeat this section. Open the build details and click on step 12, "Build: Docker Images". Take note of the docker image version tag near the top of the build log. This is the "{source version tag}" referenced in various commands below. Example: `0.5.0-a4706cb`.
+- [ ] Navigate to the [Cloud Console](https://console.cloud.google.com) in a browser and open the [Cloud Build History section](https://console.cloud.google.com/cloud-build/builds?project=open-match-build) and find the latest "Post Submit" build (trigger id: 9a451c7a-197b-4a38-a612-21f4c53c42fd) of the merged commit. The build may still be running, if so wait for it to finish. If it failed, fix the error and repeat this section. Open the build details and click on step 12, "Build: Docker Images". Take note of the docker image version tag near the top of the build log. This is the "{source version tag}" referenced in various commands below. Example: `0.5.0-a4706cb`.
 - [ ] Run `./docs/governance/templates/release.sh {source version tag} {version}` to copy the images to open-match-public-images.
 - [ ] If this is not a release candidate or preview but a full release, run `./docs/governance/templates/release.sh {source version tag} latest` to tag these public images as the default version to pull from the registry.
 - [ ] Once the images have successfully been pushed to the registry, modify the line `open-match.dev/open-match v0.0.0-dev` in all `go.mod` files in the [Tutorials] (https://github.com/googleforgames/open-match/tree/main/tutorials) directory to use the current release version for the remainder of your local release testing. This includes all solution subdirectories as well. This change is local only and doesn't get committed to git.
 - [ ] Copy the installation files named `{sequence_number}-{component}.yaml` (example: `01-open-match-core.yaml`) from the [build folder in the private open-match-build-artifacts GCS bucket https://storage.mtls.cloud.google.com/open-match-build-artifacts/{version}](https://console.cloud.google.com/storage/browser/open-match-build-artifacts?project=open-match-build) to the release draft you created. Download them to your local machine, and then attach them to the draft using the Github UI. Note: the `05-jaeger.yaml` file no longer exists after release 1.8, so don't be surprised if that number is missing.
 - [ ] Update the [Slack invitation link](https://slack.com/help/articles/201330256-invite-new-members-to-your-workspace#share-an-invite-link) in [open-match.dev](https://open-match.dev/site/docs/contribute/#get-involved).
-- [ ] Test Open Match installation under GKE and Minikube enviroment using the YAML files attached to the release and the latest Helm chart, pulled from the helm repo. Follow the [First Match](https://development.open-match.dev/site/docs/getting-started/first_match/) guide, run `make proxy-demo`, and open `localhost:51507` to make sure everything works.
+- [ ] Test Open Match installation under GKE and Minikube enviroment using the YAML files attached to the release and the latest Helm chart, pulled from the public helm repo (not your local copy from github). Follow the [First Match](https://development.open-match.dev/site/docs/getting-started/first_match/) guide, run `make proxy-demo`, and open `localhost:51507` to make sure everything works.
   - [ ] Minikube: Run `make create-mini-cluster` to create a local cluster with latest Kubernetes API version.
   - [ ] GKE: Run `make create-gke-cluster` to create a GKE cluster.
   - [ ] Helm: Run `helm install open-match -n open-match open-match/open-match`. Note, the helm chart for the release is not public until the PR has been merged, so you cannot complete this step until after the PR is closed and the 'Tagged Build' trigger (trigger ID: 083adc1a-fcac-4033-bc38-b9f6eadcb75d) has completed, which publishes the helm chart.
 
 ## Finalize
 
-- [ ] Make sure your release draft reflects all steps up to this point, and is saved (so contributors can view it).
+- [ ] Make sure your release draft reflects all steps up to this point, and is saved (so contributors can review it).
 - [ ] Circulate the draft release to active contributors.  Where reasonable, get everyone's ok on the release notes before continuing.
 - [ ] Publish the [Release](om-release) in Github.  This will notify repository watchers.
 - [ ] Publish the [Release](om-release) on Open Match [Blog](https://open-match.dev/site/blog/).
