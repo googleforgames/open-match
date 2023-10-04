@@ -26,15 +26,11 @@ metadata:
 data:
   matchmaker_config_default.yaml: |-
     logging:
-      {{- if .Values.global.logging.level }}
-      level: {{ .Values.global.logging.level }}
-      {{- else }}
-      level: debug
-      {{- end }}
+      level: {{ default "debug" .Values.global.logging.level }}
       {{- if .Values.global.telemetry.stackdriverMetrics.enabled }}
       format: stackdriver
       {{- else }}
-      format: text
+      format: {{ default "text" .Values.global.logging.format }}
       {{- end }}
       rpc: {{ .Values.global.logging.rpc.enabled }}
     # Open Match applies the exponential backoff strategy for its retryable gRPC calls.
