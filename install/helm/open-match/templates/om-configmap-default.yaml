@@ -36,6 +36,7 @@ data:
       {{- else }}
       format: text
       {{- end }}
+      output: {{ .Values.global.logging.output }}
       rpc: {{ .Values.global.logging.rpc.enabled }}
     # Open Match applies the exponential backoff strategy for its retryable gRPC calls.
     # The settings below are the default backoff configuration used in Open Match.

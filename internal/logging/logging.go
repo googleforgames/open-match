@@ -16,6 +16,8 @@
 package logging
 
 import (
+	"log"
+	"os"
 	"strings"
 
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
@@ -27,6 +29,7 @@ import (
 //   - log line format (text[default] or json)
 //   - min log level to include (debug, info [default], warn, error, fatal, panic)
 func ConfigureLogging(cfg config.View) {
+	log.SetOutput(toOutput(cfg.GetString("logging.output")))
 	logrus.SetFormatter(newFormatter(cfg.GetString("logging.format")))
 	level := toLevel(cfg.GetString("logging.level"))
 	logrus.SetLevel(level)
@@ -83,4 +86,15 @@ func isDebugLevel(level logrus.Level) bool {
 		return true
 	}
 	return false
+}
+
+func toOutput(output string) *os.File {
+	switch output {
+	case "stdout":
+		return os.Stdout
+	case "stderr":
+		return os.Stderr
+	default:
+		return os.Stderr
+	}
 }
