@@ -146,23 +146,3 @@ grafana:
     datasources:
       enabled: true
   plugins: grafana-piechart-panel
-
-jaeger:
-  enabled: true
-  # Configs for the cassandra schema job
-  schema:
-    pullPolicy: Always
-    mode: prod
-    activeDeadlineSeconds: 200
-  cassandra:
-    image:
-      tag: latest
-    config:
-      cluster_size: 2
-    resources:
-      requests:
-        memory: 4Gi
-        cpu: 2
-      limits:
-        memory: 4Gi
-        cpu: 2

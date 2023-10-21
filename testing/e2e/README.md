@@ -17,7 +17,7 @@ of running the tests in a realistic setting where requests may not be routed to 
 
 For a new test package under test/e2e/ do the following:
 
-Copy the contents of internal/testing/e2e/main_test.go and change the package name and add
+Copy the contents of testing/e2e/main_test.go and change the package name and add
 the `open-match.dev/open-match/testing/e2e` import.
 
 Example (may be out of date):
@@ -61,10 +61,10 @@ Minimatch mode essentially binds all the services that Open Match provides
 into a single gRPC/HTTP server. The magic happens in the `internal/app/minimatch/minimatch.go`'s
 `BindService()` method.
 
-In addition, there's an in-memory Redis instance that's initialized and bound in `internal/testing/e2e/in_memory.go`.
+In addition, there's an in-memory Redis instance that's initialized and bound in `testing/e2e/in_memory.go`.
 
 From here the `OM` instance encapsulates the details of communicating with these components.
 
 ## Kubernetes Cluster
 
-Kubernetes cluster mode is managed via `internal/testing/e2e/cluster.go`
+Kubernetes cluster mode is managed via `testing/e2e/cluster.go`
