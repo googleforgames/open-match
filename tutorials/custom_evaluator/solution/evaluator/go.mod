@@ -6,7 +6,7 @@ toolchain go1.21.0
 
 require (
 	github.com/sirupsen/logrus v1.9.3
-	google.golang.org/grpc v1.57.0
+	google.golang.org/grpc v1.57.1
 	open-match.dev/open-match v0.0.0-dev
 )
 
