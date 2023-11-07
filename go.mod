@@ -41,7 +41,7 @@ require (
 	golang.org/x/net v0.17.0
 	golang.org/x/sync v0.3.0
 	google.golang.org/genproto v0.0.0-20230815205213-6bfd019c3878 // indirect
-	google.golang.org/grpc v1.57.0
+	google.golang.org/grpc v1.57.1
 	google.golang.org/protobuf v1.31.0
 	k8s.io/api v0.28.0 // kubernetes-1.14.10
 	k8s.io/apimachinery v0.28.0
