@@ -183,7 +183,7 @@ func synchronizeRecv(ctx context.Context, syncStream synchronizerStream, m *sync
 				err = createOrUpdateBackfill(ctx, backfill, ticketIds, store)
 				if err != nil {
 					e, ok := status.FromError(err)
-					if err == errBackfillGenerationMismatch || (ok && e.Code() == codes.NotFound) {
+					if err == errBackfillGenerationMismatch || (ok && (e.Code() == codes.NotFound || e.Code() == codes.FailedPrecondition)) {
 						err = doReleaseTickets(ctx, ticketIds, store)
 						if err != nil {
 							logger.WithError(err).Errorf("failed to remove match tickets from pending release: %v", ticketIds)
