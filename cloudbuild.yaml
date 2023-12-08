@@ -185,7 +185,7 @@ artifacts:
             - api/*.swagger.json
             
 substitutions:
-    _OM_VERSION: "1.8.0"
+    _OM_VERSION: "1.8.1"
     _GCB_POST_SUBMIT: "0"
     _GCB_LATEST_VERSION: "undefined"
     _ARTIFACTS_BUCKET: "gs://open-match-build-artifacts/"
