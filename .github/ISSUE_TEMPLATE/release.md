@@ -49,7 +49,7 @@ otherwise there should already be a `release-0.5` branch so run,
 git checkout -b release-0.5 upstream/release-0.5
 ```
 
-**NOTE: The branch name must be in the format, `release-X.Y` otherwise**
+**NOTE: The branch name must be in the format, `release-X.Y.Z` otherwise**
 **some artifacts will not be pushed.**
 
 ## Releases & Versions
@@ -97,7 +97,7 @@ releases. Find {version} and replace with the current release (e.g. 0.5.0)
 only required once.**
 
 - [ ] Create the branch in the **upstream** repository. It should be named
-  release-X.Y. Example: release-0.5. At this point there's effectively a code
+  release-X.Y.Z. Example: release-0.5. At this point there's effectively a code
   freeze for this version and all work on main will be included in a future
   version. If you're on the branch that you created in the *getting setup*
   section above you should be able to push upstream.
@@ -106,7 +106,7 @@ only required once.**
 git push origin release-0.5
 ```
 
-- [ ] Announce a PR freeze on release-X.Y branch on [open-match-discuss@](https://groups.google.com/forum/#!forum/open-match-discuss).
+- [ ] Announce a PR freeze on release-X.Y.Z branch on [open-match-discuss@](https://groups.google.com/forum/#!forum/open-match-discuss).
 - [ ] Open the [`Makefile`](makefile-version) and change BASE_VERSION entry.
 - [ ] Open the [`install/helm/open-match/Chart.yaml`](om-chart-yaml-version) and change the `appVersion` and `version` entries.
 - [ ] Open the [`install/helm/open-match/values.yaml`](om-values-yaml-version) and change the `tag` entries.
@@ -114,7 +114,7 @@ git push origin release-0.5
 - [ ] There might be additional references to the old version but be careful not to change it for places that have it for historical purposes.
 - [ ] Update usage requirements in the Installation doc - e.g. supported minikube version, kubectl version, golang version, etc.
 - [ ] Create a PR with the changes, include the release candidate name, and point it to the release branch.
-- [ ] Go to [open-match-build](https://pantheon.corp.google.com/cloud-build/triggers?project=open-match-build) and update all *post submit* triggers' `_GCB_LATEST_VERSION` value to the `X.Y` of the release. This value should only increase as it's used to determine the latest stable version.
+- [ ] Go to [open-match-build](https://pantheon.corp.google.com/cloud-build/triggers?project=open-match-build) and update all *post submit* triggers' `_GCB_LATEST_VERSION` value to the `X.Y.Z` of the release. This value should only increase as it's used to determine the latest stable version.
 - [ ] Merge your changes once the PR is approved. Note: the helm chart is not published to the public registry until the merge is complete (it's a second cloud build trigger upon merge), so you won't be able to do final release testing until after all checks/approvals are finished!
 
 ## Create a release branch in the upstream open-match-docs repository
@@ -132,7 +132,7 @@ only required once.**
 - [ ] Create a *draft* [release](https://github.com/googleforgames/open-match/releases).  Note that github has both "Pre-release" and "draft" as different concepts for a release.  Until the release is finalized, only use "Save draft", and do not use "Publish release".
 - [ ] Use the [release template](https://github.com/googleforgames/open-match/blob/main/docs/governance/templates/release.md)
   - [ ] `Tag = v{version}` (Example: v0.5.0. Append -rc.# for release candidates. Example: v0.5.0-rc.1.)
-  - [ ] `Target = release-X.Y` (Example: release-0.5.)
+  - [ ] `Target = release-X.Y.Z` (Example: release-0.5.)
   - [ ] `Release Title = v{version}` (Must match `Tag`)
   - [ ] `Write` section will contain the contents from the [release template](https://github.com/googleforgames/open-match/blob/main/docs/governance/templates/release.md).
 - [ ] Add the milestone to all PRs and issues that were merged since the last milestone. Look at the [releases page](https://github.com/googleforgames/open-match/releases) and look for the "X commits to main since this release" for the diff.
