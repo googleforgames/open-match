@@ -63,7 +63,7 @@ RUN rm -rf /usr/local/go/
 
 # When updating Go version, update Dockerfile.ci, Dockerfile.base-build, and go.mod
 # reference: https://github.com/docker-library/golang/blob/master/1.20/bookworm/Dockerfile
-RUN curl -L https://golang.org/dl/go1.21.0.linux-amd64.tar.gz | tar -C /usr/local -xz
+RUN curl -L https://golang.org/dl/go1.21.5.linux-amd64.tar.gz | tar -C /usr/local -xz
 RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" \
  && chmod -R 777 "$GOPATH"
 
