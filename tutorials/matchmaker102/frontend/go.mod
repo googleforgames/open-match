@@ -2,7 +2,7 @@ module open-match.dev/open-match/tutorials/matchmaker101/frontend
 
 go 1.21
 
-toolchain go1.21.0
+toolchain go1.21.5
 
 require (
 	google.golang.org/grpc v1.57.1

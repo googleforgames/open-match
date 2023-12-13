@@ -2,7 +2,7 @@ module open-match.dev/open-match/tutorials/matchmaker101/matchfunction
 
 go 1.21
 
-toolchain go1.21.0
+toolchain go1.21.5
 
 require (
 	github.com/rs/xid v1.5.0
