@@ -48,7 +48,7 @@ var (
 		Aggregation: view.LastValue(),
 	}
 	backfillsPerQueryView = &view.View{
-		Measure:     ticketsPerQuery,
+		Measure:     backfillsPerQuery,
 		Name:        "open-match.dev/query/backfills_per_query",
 		Description: "Backfills per query",
 		Aggregation: telemetry.DefaultCountDistribution,
