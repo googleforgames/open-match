@@ -283,7 +283,7 @@ global:
 
   # Enable monitoring if you want to create Prometheus Operator Service Monitor for every service
   monitoring:
-    enabled: true
+    enabled: false
 
   # Expose the telemetry configurations to all subcharts because prometheus, for example,
   # requires pod-level annotation to customize its scrape path.
