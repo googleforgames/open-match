@@ -250,7 +250,7 @@ global:
       requests:
         memory: 100Mi
         cpu: 100m
-        
+
     # Overrides the name of the service account which provides an identity for processes that run in a Pod in Open Match.
     serviceAccount:
     # Adds custom annotations to the Open Match service account.
