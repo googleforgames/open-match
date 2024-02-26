@@ -58,7 +58,7 @@ REGISTRY=gcr.io/$(gcloud config list --format 'value(core.project)')
 
 #### Get the Tutorial template
 
-Make a local copy of the [Tutorials Folder](https://github.com/googleforgames/open-match/blob/{{< param release_branch >}}/tutorials/matchmaker102). Checkout `release-x.y` branch（e.g. release-1.3, release-1.4） of the Open Match Git repository. Use `tutorials/matchmaker102` of `release-x.y` branch as a working copy for all the instructions in this tutorial.
+Make a local copy of the [Tutorials Folder](https://github.com/googleforgames/open-match/blob/main/tutorials/matchmaker102).  Use the `tutorials/matchmaker102` directory as a working copy for all the instructions in this tutorial.
 
 For convenience, set the following variable:
 

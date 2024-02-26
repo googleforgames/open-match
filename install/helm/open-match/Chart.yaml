@@ -13,13 +13,13 @@
 # limitations under the License.
 
 apiVersion: v2
-appVersion: "0.0.0-dev"
-version: 0.0.0-dev
+appVersion: "1.8.1"
+version: 1.8.1
 name: open-match
 dependencies:
   - name: redis
-    version: 16.3.1
-    repository: https://raw.githubusercontent.com/bitnami/charts/archive-full-index/bitnami
+    version: 17.15.4
+    repository: https://charts.bitnami.com/bitnami
     condition: open-match-core.redis.enabled
   - name: open-match-telemetry
     version: 0.0.0-dev

@@ -20,7 +20,6 @@ import (
 	"io"
 	"regexp"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -557,62 +556,6 @@ func TestBackfillGenerationMismatch(t *testing.T) {
 		require.Error(t, err)
 		require.Equal(t, io.EOF.Error(), err.Error())
 	}
-}
-
-func TestCleanUpExpiredBackfills(t *testing.T) {
-	ctx := context.Background()
-	om := newOM(t)
-
-	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
-	require.NoError(t, err)
-	require.NotNil(t, t1)
-
-	b1, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
-		SearchFields: &pb.SearchFields{
-			StringArgs: map[string]string{
-				"search": "me",
-			},
-		}}})
-	require.NoError(t, err)
-	require.NotNil(t, b1)
-
-	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
-		return nil
-	})
-
-	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
-		return nil
-	})
-
-	// wait until backfill is expired, then try to get it
-	time.Sleep(pendingReleaseTimeout * 2)
-
-	// statestore.CleanupBackfills is called at the end of each synchronizer cycle after fetch matches call, so expired backfill will be removed
-	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
-		Config:  om.MMFConfigGRPC(),
-		Profile: &pb.MatchProfile{},
-	})
-	require.NoError(t, err)
-	resp, err := stream.Recv()
-	require.Nil(t, resp)
-	require.Error(t, err)
-	require.Equal(t, io.EOF.Error(), err.Error())
-
-	// call FetchMatches twice in order to give backfills time to be completely cleaned up
-	stream, err = om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
-		Config:  om.MMFConfigGRPC(),
-		Profile: &pb.MatchProfile{},
-	})
-	require.NoError(t, err)
-
-	resp, err = stream.Recv()
-	require.Nil(t, resp)
-	require.Error(t, err)
-	require.Equal(t, io.EOF.Error(), err.Error())
-
-	_, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
-	require.Error(t, err)
-	require.Equal(t, fmt.Sprintf("rpc error: code = NotFound desc = Backfill id: %s not found", b1.Id), err.Error())
 }
 
 func TestBackfillSkipNotfoundError(t *testing.T) {

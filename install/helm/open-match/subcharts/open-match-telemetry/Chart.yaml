@@ -26,8 +26,3 @@ dependencies:
     version: 6.29.3
     repository: https://grafana.github.io/helm-charts
     condition: global.telemetry.grafana.enabled,grafana.enabled
-  - name: jaeger
-    version: 0.56.5
-    repository: https://jaegertracing.github.io/helm-charts
-    condition: global.telemetry.jaeger.enabled,jaeger.enabled
-

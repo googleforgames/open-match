@@ -43,12 +43,12 @@ func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction)
 	}
 	t.Cleanup(mredis.Close)
 
-	msentinal := minisentinel.NewSentinel(mredis)
-	err = msentinal.StartAddr("localhost:0")
+	msentinel := minisentinel.NewSentinel(mredis)
+	err = msentinel.StartAddr("localhost:0")
 	if err != nil {
 		t.Fatalf("failed to start minisentinel, %v", err)
 	}
-	t.Cleanup(msentinal.Close)
+	t.Cleanup(msentinel.Close)
 
 	grpcListener, err := net.Listen("tcp", ":0")
 	if err != nil {
@@ -75,9 +75,9 @@ func start(t *testing.T, eval evaluator.Evaluator, mmf mmfService.MatchFunction)
 		t.Fatal(err)
 	}
 
-	cfg.Set("redis.sentinelHostname", msentinal.Host())
-	cfg.Set("redis.sentinelPort", msentinal.Port())
-	cfg.Set("redis.sentinelMaster", msentinal.MasterInfo().Name)
+	cfg.Set("redis.sentinelHostname", msentinel.Host())
+	cfg.Set("redis.sentinelPort", msentinel.Port())
+	cfg.Set("redis.sentinelMaster", msentinel.MasterInfo().Name)
 	services := []string{apptest.ServiceName, "synchronizer", "backend", "frontend", "query", "evaluator"}
 	for _, name := range services {
 		cfg.Set("api."+name+".hostname", "localhost")

@@ -36,7 +36,6 @@ var (
 func Setup(p Params, b Bindings) error {
 	bindings := []func(p Params, b Bindings) error{
 		configureOpenCensus,
-		bindJaeger,
 		bindPrometheus,
 		bindStackDriverMetrics,
 		bindOpenCensusAgent,

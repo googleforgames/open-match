@@ -106,19 +106,12 @@ configs:
 # https://hub.helm.sh/charts/stable/redis
 # https://github.com/helm/charts/tree/master/stable/redis
 redis:
-  redisPort: 6379
+  architecture: standalone
   auth:
     enabled: false
-    sentinel: false
-    usePasswordFiles: false
-  secretMountPath: /opt/bitnami/redis/secrets
   configmap: |
     maxclients 100000
     maxmemory 500000000
-  sentinel:
-    enabled: true
-    masterSet: om-redis-master
-    port: 26379
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
     resources:
@@ -132,20 +125,6 @@ redis:
       enabled: false
   metrics:
     enabled: true
-  serviceAccount:
-    create: true
-  replica:
-    disableCommands: [] # don't disable 'FLUSH-' commands
-    replicaCount: 3
-    persistence:
-      enabled: false
-    resources:
-      requests:
-        memory: 1Gi
-        cpu: 1
-      limits:
-        memory: 2Gi
-        cpu: 2
   sysctlImage:
     # Enable this setting in production if you are running Open Match under Linux environment
     enabled: true
@@ -308,10 +287,6 @@ global:
     traceSamplingFraction: 0.005 # What fraction of traces to sample.
     zpages:
       enabled: true
-    jaeger:
-      enabled: false
-      agentEndpoint: '{{ include "openmatch.jaeger.agent" . }}'
-      collectorEndpoint: '{{ include "openmatch.jaeger.collector" . }}'
     prometheus:
       enabled: false
       endpoint: "/metrics"
