@@ -101,3 +101,21 @@ spec:
         {{- include "openmatch.container.common" . | nindent 8 }}
         {{- include "kubernetes.probe" (dict "port" .Values.frontend.httpPort "isHTTPS" .Values.global.tls.enabled) | nindent 8 }}
 {{- end }}
+{{- if and (index .Values "open-match-core" "enabled") (index .Values "global" "monitoring" "enabled")}} 
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "openmatch.frontend.hostName" . }}-service-monitor
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "openmatch.name" . }}
+      component: frontend
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+  - port: http
+{{- end }}
