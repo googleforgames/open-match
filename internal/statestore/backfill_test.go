@@ -68,7 +68,7 @@ func TestCreateBackfill(t *testing.T) {
 		Generation: 1,
 	}
 
-	var testCases = []struct {
+	testCases := []struct {
 		description     string
 		backfill        *pb.Backfill
 		ticketIDs       []string
@@ -231,7 +231,7 @@ func TestUpdateBackfillExpiredBackfillErrExpected(t *testing.T) {
 
 	err = service.UpdateBackfill(ctx, &bf, nil)
 	require.Error(t, err)
-	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Equal(t, codes.FailedPrecondition.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), fmt.Sprintf("can not update an expired backfill, id: %s", bfID))
 }
 
@@ -274,7 +274,7 @@ func TestGetBackfill(t *testing.T) {
 	_, err = c.Do("SET", "wrong-type-key", "wrong-type-value")
 	require.NoError(t, err)
 
-	var testCases = []struct {
+	testCases := []struct {
 		description     string
 		backfillID      string
 		expectedCode    codes.Code
@@ -348,7 +348,7 @@ func TestDeleteBackfill(t *testing.T) {
 	defer service.Close()
 	ctx := utilTesting.NewContext(t)
 
-	//Last Acknowledge timestamp is updated on Frontend CreateBackfill
+	// Last Acknowledge timestamp is updated on Frontend CreateBackfill
 	bfID := "mockBackfillID"
 	err := service.CreateBackfill(ctx, &pb.Backfill{
 		Id:         bfID,
@@ -363,7 +363,7 @@ func TestDeleteBackfill(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, ts > 0, "timestamp is not valid")
 
-	var testCases = []struct {
+	testCases := []struct {
 		description     string
 		backfillID      string
 		expectedCode    codes.Code
@@ -419,7 +419,6 @@ func TestDeleteBackfill(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), "DeleteBackfill, id: 12345, failed to connect to redis:")
-
 }
 
 // TestUpdateAcknowledgmentTimestampLifecycle test statestore functions - UpdateAcknowledgmentTimestamp, GetExpiredBackfillIDs
@@ -464,12 +463,12 @@ func TestUpdateAcknowledgmentTimestampLifecycle(t *testing.T) {
 
 	err = service.UpdateAcknowledgmentTimestamp(ctx, bf1)
 	require.Error(t, err)
-	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Equal(t, codes.FailedPrecondition.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), fmt.Sprintf("can not acknowledge an expired backfill, id: %s", bf1))
 
 	err = service.UpdateAcknowledgmentTimestamp(ctx, bf2)
 	require.Error(t, err)
-	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Equal(t, codes.FailedPrecondition.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), fmt.Sprintf("can not acknowledge an expired backfill, id: %s", bf2))
 
 	err = service.DeleteBackfill(ctx, bfIDs[0])
@@ -531,7 +530,7 @@ func TestUpdateAcknowledgmentTimestamptExpiredBackfillErrExpected(t *testing.T) 
 
 	err = service.UpdateAcknowledgmentTimestamp(ctx, bfID)
 	require.Error(t, err)
-	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Equal(t, codes.FailedPrecondition.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), fmt.Sprintf("can not acknowledge an expired backfill, id: %s", bfID))
 }
 

@@ -31,12 +31,10 @@ import (
 	"open-match.dev/open-match/pkg/pb"
 )
 
-var (
-	logger = logrus.WithFields(logrus.Fields{
-		"app":       "openmatch",
-		"component": "statestore.redis",
-	})
-)
+var logger = logrus.WithFields(logrus.Fields{
+	"app":       "openmatch",
+	"component": "statestore.redis",
+})
 
 const (
 	backfillLastAckTime = "backfill_last_ack_time"
@@ -199,7 +197,7 @@ func (rb *redisBackend) UpdateBackfill(ctx context.Context, backfill *pb.Backfil
 	}
 
 	if expired {
-		return status.Errorf(codes.Unavailable, "can not update an expired backfill, id: %s", backfill.Id)
+		return status.Errorf(codes.FailedPrecondition, "can not update an expired backfill, id: %s", backfill.Id)
 	}
 
 	bf := ipb.BackfillInternal{
@@ -338,7 +336,7 @@ func (rb *redisBackend) UpdateAcknowledgmentTimestamp(ctx context.Context, id st
 	}
 
 	if expired {
-		return status.Errorf(codes.Unavailable, "can not acknowledge an expired backfill, id: %s", id)
+		return status.Errorf(codes.FailedPrecondition, "can not acknowledge an expired backfill, id: %s", id)
 	}
 
 	return doUpdateAcknowledgmentTimestamp(redisConn, id)
@@ -380,7 +378,6 @@ func (rb *redisBackend) GetExpiredBackfillIDs(ctx context.Context) ([]string, er
 
 // deleteExpiredBackfillID deletes expired BackfillID from a sorted set
 func (rb *redisBackend) deleteExpiredBackfillID(conn redis.Conn, backfillID string) error {
-
 	_, err := conn.Do("ZREM", backfillLastAckTime, backfillID)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to delete expired backfill ID %s from Sorted Set %s",
@@ -459,7 +456,6 @@ func (rb *redisBackend) GetIndexedBackfills(ctx context.Context) (map[string]int
 	}
 
 	return r, nil
-
 }
 
 func getBackfillReleaseTimeout(cfg config.View) time.Duration {

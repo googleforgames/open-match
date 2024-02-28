@@ -95,7 +95,7 @@ func TestCreateBackfill(t *testing.T) {
 	defer closer()
 	ctx := utilTesting.NewContext(t)
 	fs := frontendService{cfg: cfg, store: store}
-	var testCases = []struct {
+	testCases := []struct {
 		description     string
 		request         *pb.CreateBackfillRequest
 		result          *pb.Backfill
@@ -133,7 +133,10 @@ func TestCreateBackfill(t *testing.T) {
 					SearchFields: &pb.SearchFields{
 						StringArgs: map[string]string{
 							"search": "me",
-						}}}},
+						},
+					},
+				},
+			},
 			expectedCode:    codes.OK,
 			expectedMessage: "",
 		},
@@ -191,7 +194,7 @@ func TestUpdateBackfill(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	var testCases = []struct {
+	testCases := []struct {
 		description     string
 		request         *pb.UpdateBackfillRequest
 		result          *pb.Backfill
@@ -224,7 +227,10 @@ func TestUpdateBackfill(t *testing.T) {
 					SearchFields: &pb.SearchFields{
 						StringArgs: map[string]string{
 							"search": "me",
-						}}}},
+						},
+					},
+				},
+			},
 			expectedCode:    codes.OK,
 			expectedMessage: "",
 		},
@@ -421,9 +427,8 @@ func TestAcknowledgeBackfill(t *testing.T) {
 	resp, err = fs.AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: fakeBackfill.Id, Assignment: &pb.Assignment{Connection: "10.0.0.1"}})
 	require.Nil(t, resp)
 	require.Error(t, err)
-	require.Equal(t, codes.Unavailable.String(), status.Convert(err).Code().String())
+	require.Equal(t, codes.FailedPrecondition.String(), status.Convert(err).Code().String())
 	require.Contains(t, status.Convert(err).Message(), "can not acknowledge an expired backfill, id: 1")
-
 }
 
 func TestDoDeleteTicket(t *testing.T) {
