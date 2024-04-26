@@ -27,7 +27,6 @@ admissionWhitelistPatterns:
 - namePattern: docker.io/bitnami/redis:*
 - namePattern: docker.io/oliver006/redis_exporter:*
 - namePattern: registry.hub.docker.com/grafana/*
-- namePattern: registry.hub.docker.com/jaegertracing/*
 - namePattern: registry.hub.docker.com/jimmidyson/configmap-reload:*
 - namePattern: registry.hub.docker.com/kiwigrid/k8s-sidecar:*
 - namePattern: registry.hub.docker.com/prom/*

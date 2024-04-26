@@ -103,28 +103,18 @@ configs:
     configName: '{{ include "openmatch.configmap.override" . }}'
 
 # Override Redis settings
-# https://hub.helm.sh/charts/stable/redis
-# https://github.com/helm/charts/tree/master/stable/redis
+# https://github.com/bitnami/charts/tree/ba40e46ec6831e039f5bf213ab10e9748603ce6c/bitnami/redis
 redis:
-  redisPort: 6379
+  architecture: standalone
   auth:
     enabled: false
-    sentinel: false
-    usePasswordFiles: false
-  secretMountPath: /opt/bitnami/redis/secrets
-  configmap: |
+  commonConfiguration: |
     maxclients 100000
     maxmemory 300000000
-  sentinel:
-    enabled: true
-    masterSet: om-redis-master
-    port: 26379
-    resources:
-      requests:
-        memory: 300Mi
-        cpu: 0.5
   master:
     disableCommands: [] # don't disable 'FLUSH-' commands
+    persistence:
+      enabled: false
     resources:
       requests:
         memory: 300Mi
@@ -138,19 +128,13 @@ redis:
         cpu: 0.5
   metrics:
     enabled: true
-    resources:
-      requests:
-        memory: 300Mi
-        cpu: 0.5
-  serviceAccount:
-    create: true
   sysctlImage:
-    # Enable this setting in production if you are running Open Match under Linux environment
-    enabled: false
+    # Disable this setting in production if you are not running Redis in Linux
+    enabled: true 
     mountHostSys: true
     # Redis may require some changes in the kernel of the host machine to work as expected,
     # in particular increasing the somaxconn value and disabling transparent huge pages.
-    # https://github.com/helm/charts/tree/master/stable/redis#host-kernel-settings
+    # https://docs.bitnami.com/kubernetes/infrastructure/redis/administration/configure-kernel-settings/ 
     command:
       - /bin/sh
       - -c
@@ -295,7 +279,7 @@ global:
   # Use this field if you need to override the image registry and image tag for all services defined in this chart
   image:
     registry: gcr.io/open-match-public-images
-    tag: 0.0.0-dev
+    tag: 1.8.1
     pullPolicy: Always
 
   # Expose the telemetry configurations to all subcharts because prometheus, for example,
@@ -306,10 +290,6 @@ global:
     traceSamplingFraction: 0.01 # What fraction of traces to sample.
     zpages:
       enabled: true
-    jaeger:
-      enabled: false
-      agentEndpoint: '{{ include "openmatch.jaeger.agent" . }}'
-      collectorEndpoint: '{{ include "openmatch.jaeger.collector" . }}'
     prometheus:
       enabled: false
       endpoint: "/metrics"

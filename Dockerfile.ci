@@ -11,49 +11,65 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+FROM debian:bookworm
 
-FROM debian
-
-RUN apt-get update
-RUN apt-get install -y -qq git make python3 virtualenv curl sudo unzip apt-transport-https ca-certificates curl software-properties-common gnupg2
-
-# Docker
-RUN curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
-RUN sudo apt-key fingerprint 0EBFCD88
-RUN  sudo add-apt-repository \
-   "deb [arch=amd64] https://download.docker.com/linux/debian \
-   stretch \
-   stable"
-RUN sudo apt-get update
-RUN sudo apt-get install -y -qq docker-ce docker-ce-cli containerd.io
-
-# Cloud SDK
-RUN export CLOUD_SDK_REPO="cloud-sdk-stretch" && \
-    echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
-    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
-    apt-get update -y && apt-get install google-cloud-sdk google-cloud-sdk-app-engine-go -y -qq && \
-    sudo apt-get update -y && \
-    sudo apt-get install -y google-cloud-sdk-gke-gcloud-auth-plugin
-
-# Install Golang
-# https://github.com/docker-library/golang/blob/master/1.14/stretch/Dockerfile
-RUN mkdir -p /toolchain/golang
-WORKDIR /toolchain/golang
-RUN sudo rm -rf /usr/local/go/
-
-# When updating Go version, update Dockerfile.ci, Dockerfile.base-build, and go.mod
-RUN curl -L https://golang.org/dl/go1.19.5.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
-
-ENV GOPATH /go
-ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
-
-RUN sudo mkdir -p "$GOPATH/src" "$GOPATH/bin" \
-  && sudo chmod -R 777 "$GOPATH"
-
-# Prepare toolchain and workspace
-RUN mkdir -p /toolchain
-
-WORKDIR /workspace
+# set env vars
+ARG DEBIAN_FRONTEND=noninteractive
 ENV OPEN_MATCH_CI_MODE=1
 ENV KUBECONFIG=$HOME/.kube/config
-RUN mkdir -p $HOME/.kube/
+ENV GOPATH=/go
+ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
+
+RUN apt-get update -y \
+ && apt-get install -y -qq --no-install-recommends \
+            apt-utils \
+            git \
+            make \
+            python3 \
+            virtualenv \
+            curl \
+            sudo \
+            unzip \
+            apt-transport-https \
+            ca-certificates \
+            curl \
+            software-properties-common \
+            gnupg2 \
+            libc6 \
+            build-essential
+RUN mkdir -p /usr/share/keyrings/
+
+# Docker
+RUN echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian bookworm stable" | tee -a /etc/apt/sources.list.d/docker.list \
+ && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker.gpg \
+ && apt-get update -y \ 
+ && apt-get install -y -qq \
+            docker-ce \
+            docker-ce-cli \
+            containerd.io
+
+# Cloud SDK
+RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list \
+ && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - \
+ && apt-get update -y \
+ && apt-get install -y -qq \
+            google-cloud-cli \
+            google-cloud-sdk-gke-gcloud-auth-plugin
+
+# Install Golang
+RUN mkdir -p /toolchain/golang
+WORKDIR /toolchain/golang
+RUN rm -rf /usr/local/go/
+
+# When updating Go version, update Dockerfile.ci, Dockerfile.base-build, and go.mod
+# reference: https://github.com/docker-library/golang/blob/master/1.20/bookworm/Dockerfile
+RUN curl -L https://golang.org/dl/go1.21.5.linux-amd64.tar.gz | tar -C /usr/local -xz
+RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" \
+ && chmod -R 777 "$GOPATH"
+
+# Prepare toolchain, workspace, homedir
+RUN mkdir -p \
+    /toolchain \
+    /workspace \
+    $HOME/.kube/
+WORKDIR /workspace

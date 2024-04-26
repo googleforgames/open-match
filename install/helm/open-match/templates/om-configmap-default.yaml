@@ -96,12 +96,24 @@ data:
       sentinelPort: {{ .Values.redis.sentinel.port }}
       sentinelMaster: {{ .Values.redis.sentinel.masterSet }}
       sentinelHostname: {{ include "call-nested" (list . "redis" "common.names.fullname") }}
-      sentinelUsePassword: {{ .Values.redis.auth.sentinel }}
+      sentinelUsePassword: {{ .Values.redis.sentinel.usePassword }}
 {{- else}}
       # Open Match's default Redis setups
       hostname: {{ include "call-nested" (list . "redis" "common.names.fullname") }}-master.{{ .Release.Namespace }}.svc.cluster.local
+      {{- if .Values.redis.redisPort }}
+      # source value: redis.redisPort = {{ .Values.redis.redisPort }}
       port: {{ .Values.redis.redisPort }}
+      {{- else if index .Values "open-match-core" "redis" "port" }}
+      # source value: open-match-core.redis.port = {{ index .Values "open-match-core" "redis" "port"}}
+      port: {{    index .Values "open-match-core" "redis" "port" }}
+      {{- end }}
+      {{- if .Values.redis.user }}
+      # source value: redis.user = {{ .Values.redis.user }}
       user: {{ .Values.redis.user }}
+      {{- else if index .Values "open-match-core" "redis" "user" }}
+      # source value: open-match-core.redis.user = {{ index .Values "open-match-core" "redis" "user"}}
+      user: {{ index .Values "open-match-core" "redis" "user"}}
+      {{- end }}
 {{- end}}
 {{- else }}
       # BYO Redis setups
@@ -122,15 +134,6 @@ data:
       traceSamplingFraction: "{{ .Values.global.telemetry.traceSamplingFraction }}"
       zpages:
         enable: "{{ .Values.global.telemetry.zpages.enabled }}"
-      jaeger:
-        enable: "{{ .Values.global.telemetry.jaeger.enabled }}"
-{{- if .Values.global.telemetry.jaeger.enabled }}
-        agentEndpoint: "{{ tpl .Values.global.telemetry.jaeger.agentEndpoint . }}"
-        collectorEndpoint: "{{ tpl .Values.global.telemetry.jaeger.collectorEndpoint . }}"
-{{- else }}
-        agentEndpoint: ""
-        collectorEndpoint: ""
-{{- end }}
       prometheus:
         enable: "{{ .Values.global.telemetry.prometheus.enabled }}"
         endpoint: "{{ .Values.global.telemetry.prometheus.endpoint }}"

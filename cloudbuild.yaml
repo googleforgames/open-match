@@ -16,14 +16,8 @@
 #                   Open Match Script for Google Cloud Build                   #
 ################################################################################
 
-# To run this locally:
-# cloud-build-local --config=cloudbuild.yaml --dryrun=false --substitutions=_OM_VERSION=DEV .
-# To run this remotely:
+# example command-line invocation:
 # gcloud builds submit --config=cloudbuild.yaml --substitutions=_OM_VERSION=DEV .
-
-# Requires gcloud to be installed to work. (https://cloud.google.com/sdk/)
-# gcloud auth login
-# gcloud components install cloud-build-local
 
 # This YAML contains all the build steps for building Open Match.
 # All PRs are verified against this script to prevent build breakages and regressions.
@@ -38,8 +32,11 @@
 #   Setup: Read-Write, similar to generate but steps that run before any other step.
 
 # Some useful things to know about Cloud Build.
-# The root of this repository is always stored in /workspace.
-#    Any modifications that occur within /workspace are persisted between builds anything else is forgotten.
+# When your build executes, Cloud Build copies the contents of your repository to /workspace, the default working directory for Cloud Build. 
+# Learn more about working directories on the Build configuration overview page https://cloud.google.com/build/docs/build-config-file-schema
+#   - Modifications that occur within /workspace are persisted between build steps.
+#   - If you want to replicate the build process from this file locally, you'll need to
+#     clone the open match github repo and set HEAD to the commit you're trying to build. 
 # If a build step has intermediate files that need to be persisted for a future step then use volumes.
 #    An example of this is the go-vol which is where the pkg/ data for go mod is stored.
 #    More information here: https://cloud.google.com/cloud-build/docs/build-config#build_steps
@@ -48,23 +45,31 @@
 
 steps:
 - id: 'Docker Image: open-match-build'
-  name: gcr.io/cloud-builders/docker
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/open-match-build', '-f', 'Dockerfile.ci', '.']
+  name: gcr.io/kaniko-project/executor:latest
+  args: [
+    "--destination=gcr.io/$PROJECT_ID/open-match-build", 
+    "--dockerfile=Dockerfile.ci",
+    "--cache=true",
+    "--cache-ttl=3600h",
+  ]
   waitFor: ['-']
+  #name: gcr.io/cloud-builders/docker
+  #args: ['build', '-t', 'gcr.io/$PROJECT_ID/open-match-build', '-f', 'Dockerfile.ci', '.']
+  #waitFor: ['-']
 
 - id: 'Build: Clean'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'clean-third-party', 'clean-protos', 'clean-swagger-docs']
   waitFor: ['Docker Image: open-match-build']
 
-# - id: 'Test: Markdown'
-#   name: 'gcr.io/$PROJECT_ID/open-match-build'
-#   args: ['make', 'md-test']
-#   waitFor: ['Build: Clean']
-
-- id: 'Setup: Download Dependencies'
+- id: 'Test: Markdown'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'sync-deps']
+  args: ['make', 'md-test']
+  waitFor: ['Build: Clean']
+
+- id: 'Setup: Clean Go Dependencies'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'clean-deps']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -76,17 +81,33 @@ steps:
   volumes:
   - name: 'go-vol'
     path: '/go'
-  waitFor: ['Setup: Download Dependencies']
+  waitFor: ['Setup: Clean Go Dependencies']
 
-- id: 'Test: Terraform Configuration'
+- id: 'Build: Compile Protos'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'terraform-test']
+  args: ['make', 'golang-protos']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
   waitFor: ['Build: Initialize Toolchain']
+
+- id: 'Setup: Download Go Dependencies'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'sync-deps']
+  volumes:
+  - name: 'go-vol'
+    path: '/go'
+  waitFor: ['Build: Compile Protos']
 
 - id: 'Build: Deployment Configs'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
   args: ['make', 'SHORT_SHA=${SHORT_SHA}', 'update-chart-deps', 'install/yaml/']
-  waitFor: ['Build: Initialize Toolchain']
+  waitFor: ['Setup: Download Go Dependencies']
+
+- id: 'Test: Terraform Configuration'
+  name: 'gcr.io/$PROJECT_ID/open-match-build'
+  args: ['make', 'terraform-test']
+  waitFor: ['Setup: Download Go Dependencies']
 
 - id: 'Build: Assets'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
@@ -98,7 +119,7 @@ steps:
 
 - id: 'Build: Binaries'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'build', 'all', '-j12']
+  args: ['make', '_CHARTS_BUCKET=${_CHARTS_BUCKET}', 'build', 'all', '-j12']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -106,7 +127,9 @@ steps:
 
 - id: 'Test: Services'
   name: 'gcr.io/$PROJECT_ID/open-match-build'
-  args: ['make', 'GOPROXY=off', 'GOLANG_TEST_COUNT=10', 'test']
+  args: ['make', 'GOLANG_TEST_COUNT=3', 'test']
+  # When debugging failing tests, enable verbose 'go test' output, run additional passes
+  #args: ['make', 'GOLANG_EXTRA_TEST_FLAGS=-v', 'GOLANG_TEST_COUNT=10', 'test']
   volumes:
   - name: 'go-vol'
     path: '/go'
@@ -153,21 +176,19 @@ steps:
 
 artifacts:
     objects:
-        location: '${_ARTIFACTS_BUCKET}'
+        location: '${_ARTIFACTS_BUCKET}${_OM_VERSION}'
         paths:
-            - install/yaml/install.yaml
-            - install/yaml/01-open-match-core.yaml
-            - install/yaml/02-open-match-demo.yaml
-            - install/yaml/03-prometheus-chart.yaml
-            - install/yaml/04-grafana-chart.yaml
-            - install/yaml/05-jaeger-chart.yaml
-            - install/yaml/06-open-match-override-configmap.yaml
+            - install/yaml/*.yaml
+            - pkg/pb/*.pb.go
+            - pkg/pb/*.pb.gw.go
+            - internal/ipb/*.pb.go
+            - api/*.swagger.json
             
 substitutions:
-    _OM_VERSION: "0.0.0-dev"
+    _OM_VERSION: "1.8.1"
     _GCB_POST_SUBMIT: "0"
     _GCB_LATEST_VERSION: "undefined"
-    _ARTIFACTS_BUCKET: "gs://open-match-build-artifacts/output/"
+    _ARTIFACTS_BUCKET: "gs://open-match-build-artifacts/"
     _LOGS_BUCKET: "gs://open-match-build-logs/"
     _CHARTS_BUCKET: "gs://open-match-chart"
 logsBucket: '${_LOGS_BUCKET}'

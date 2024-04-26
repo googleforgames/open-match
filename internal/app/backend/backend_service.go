@@ -388,7 +388,7 @@ func createOrUpdateBackfill(ctx context.Context, backfill *pb.Backfill, ticketId
 	}
 
 	defer func() {
-		_, unlockErr := m.Unlock(ctx)
+		_, unlockErr := m.Unlock(context.Background())
 		if unlockErr != nil {
 			logger.WithFields(logrus.Fields{"backfill_id": backfill.Id}).WithError(unlockErr).Error("failed to make unlock")
 		}
