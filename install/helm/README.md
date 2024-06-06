@@ -5,7 +5,7 @@ Templates under the `templates/` directory are for the core components in Open M
 
 Open Match also provides templates for optional components that are disabled by default under the `subcharts/` directory.
 1. `open-match-customize` contains flexible templates to deploy your own matchfunction and evaluator.
-2. `open-match-telemetry` contains monitoring supports for Open Match, you may choose to enable/disable [prometheus](http://prometheus.io "prometheus"), [stackdriver](https://cloud.google.com/stackdriver/ "stackdriver"), and [grafana](https://grafana.com/ "grafana") by overriding the config values in the provided templates.
+2. `open-match-telemetry` contains monitoring supports for Open Match, you may choose to enable/disable [prometheus](http://prometheus.io "prometheus"), [Observability in Google Cloud](https://cloud.google.com/stackdriver/docs "Observability in Google Cloud"), and [grafana](https://grafana.com/ "grafana") by overriding the config values in the provided templates.
 
 You may control the behavior of Open Match by overriding the configs in `install/helm/open-match/values.yaml` file. Here are a few examples:
 
