@@ -272,6 +272,8 @@ global:
       mountPath: /app/secrets/tls/rootca
 
   logging:
+    level: info
+    format: text
     rpc:
       enabled: false
 
