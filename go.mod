@@ -28,7 +28,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-redsync/redsync/v4 v4.8.1
 	github.com/golang/protobuf v1.5.3
-	github.com/gomodule/redigo v2.0.1-0.20191111085604-09d84710e01a+incompatible
+	github.com/gomodule/redigo v1.9.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.2
 	github.com/pkg/errors v0.9.1
