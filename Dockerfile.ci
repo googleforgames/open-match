@@ -32,7 +32,6 @@ RUN apt-get update -y \
             unzip \
             apt-transport-https \
             ca-certificates \
-            curl \
             software-properties-common \
             gnupg2 \
             libc6 \
