@@ -278,6 +278,10 @@ global:
     tag: 0.0.0-dev
     pullPolicy: Always
 
+  # Enable monitoring if you want to create Prometheus Operator Service Monitor for every service
+  monitoring:
+    enabled: false
+
   # Expose the telemetry configurations to all subcharts because prometheus, for example,
   # requires pod-level annotation to customize its scrape path.
   # See definitions in templates/_helpers.tpl - "prometheus.annotations" section for details
