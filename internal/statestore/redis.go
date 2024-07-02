@@ -17,7 +17,8 @@ package statestore
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"net/url"
+	"os"
 	"time"
 
 	rs "github.com/go-redsync/redsync/v4"
@@ -228,11 +229,12 @@ func redisURLFromAddr(addr string, cfg config.View, usePassword bool) string {
 	if usePassword {
 		passwordFile := cfg.GetString("redis.passwordPath")
 		redisLogger.Debugf("loading Redis password from file %s", passwordFile)
-		passwordData, err := ioutil.ReadFile(passwordFile)
+		passwordData, err := os.ReadFile(passwordFile)
 		if err != nil {
 			redisLogger.Fatalf("cannot read Redis password from file %s, desc: %s", passwordFile, err.Error())
 		}
-		redisURL += fmt.Sprintf("%s:%s@", cfg.GetString("redis.user"), string(passwordData))
+		redisUser := url.QueryEscape(cfg.GetString("redis.user"))
+		redisURL += fmt.Sprintf("%s:%s@", redisUser, url.QueryEscape(string(passwordData)))
 	}
 
 	return redisURL + addr
