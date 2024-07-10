@@ -112,7 +112,11 @@ resources:
 {{- if .Values.redis.auth.enabled	 }}
 - name: redis-password
   secret:
+{{- if .Values.redis.secretName }}
+    secretName: {{ .Values.redis.secretName }}
+{{- else }}
     secretName: {{ include "call-nested" (list . "redis" "common.names.fullname") }}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 
