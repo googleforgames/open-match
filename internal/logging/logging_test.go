@@ -16,6 +16,7 @@ package logging
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"testing"
 
@@ -89,6 +90,25 @@ func TestToLevel(t *testing.T) {
 		t.Run(fmt.Sprintf("toLevel(%s) => %s", tc.in, tc.expected), func(t *testing.T) {
 			require := require.New(t)
 			actual := toLevel(tc.in)
+			require.Equal(tc.expected, actual)
+		})
+	}
+}
+
+func TestToOutput(t *testing.T) {
+	testCases := []struct {
+		in       string
+		expected *os.File
+	}{
+		{"stdout", os.Stdout},
+		{"stderr", os.Stderr},
+		{"", os.Stderr},
+	}
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(fmt.Sprintf("toOutput(%s) => %s", tc.in, tc.expected.Name()), func(t *testing.T) {
+			require := require.New(t)
+			actual := toOutput(tc.in)
 			require.Equal(tc.expected, actual)
 		})
 	}
