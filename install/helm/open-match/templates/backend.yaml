@@ -75,6 +75,9 @@ spec:
       annotations:
         {{- include "openmatch.chartmeta" . | nindent 8 }}
         {{- include "prometheus.annotations" (dict "port" .Values.backend.httpPort "prometheus" .Values.global.telemetry.prometheus) | nindent 8 }}
+        {{- if .Values.backend.podAnnotations }}
+        {{- toYaml .Values.backend.podAnnotations | nindent 8 }}
+        {{- end }}
       labels:
         app: {{ template "openmatch.name" . }}
         component: backend

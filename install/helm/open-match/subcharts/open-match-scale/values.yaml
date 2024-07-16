@@ -17,12 +17,14 @@ scaleFrontend:
   httpPort: 51509
   replicas: 1
   image: openmatch-scale-frontend
+  podAnnotations: {}
 
 scaleBackend:
   hostName:
   httpPort: 51509
   replicas: 1
   image: openmatch-scale-backend
+  podAnnotations: {}
 
 configs:
   default:
