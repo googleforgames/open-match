@@ -20,6 +20,7 @@ import (
 	"io"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -186,11 +187,12 @@ func TestAcknowledgeBackfillDeletedTicket(t *testing.T) {
 	om := newOM(t)
 	ctx := context.Background()
 
-	bf := &pb.Backfill{SearchFields: &pb.SearchFields{
-		StringArgs: map[string]string{
-			"search": "me",
+	bf := &pb.Backfill{
+		SearchFields: &pb.SearchFields{
+			StringArgs: map[string]string{
+				"search": "me",
+			},
 		},
-	},
 	}
 	createdBf, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: bf})
 	require.NoError(t, err)
@@ -412,7 +414,7 @@ func TestProposedBackfillUpdate(t *testing.T) {
 			"field1": "value1",
 		},
 	}
-	//using DefaultEvaluationCriteria just for testing purposes only
+	// using DefaultEvaluationCriteria just for testing purposes only
 	b.Extensions = map[string]*anypb.Any{
 		"evaluation_input": mustAny(&pb.DefaultEvaluationCriteria{
 			Score: 10,
@@ -571,7 +573,8 @@ func TestBackfillSkipNotfoundError(t *testing.T) {
 			StringArgs: map[string]string{
 				"search": "me",
 			},
-		}}})
+		},
+	}})
 	require.NoError(t, err)
 	require.NotNil(t, b1)
 
@@ -611,6 +614,62 @@ func TestBackfillSkipNotfoundError(t *testing.T) {
 	_, err = om.Frontend().GetBackfill(ctx, &pb.GetBackfillRequest{BackfillId: b1.Id})
 	require.Error(t, err)
 	require.Equal(t, fmt.Sprintf("rpc error: code = NotFound desc = Backfill id: %s not found", b1.Id), err.Error())
+}
+
+func TestBackfillSkipExpiredError(t *testing.T) {
+	ctx := context.Background()
+	om := newOM(t)
+
+	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
+	require.NoError(t, err)
+	require.NotNil(t, t1)
+
+	b1, err := om.Frontend().CreateBackfill(ctx, &pb.CreateBackfillRequest{Backfill: &pb.Backfill{
+		SearchFields: &pb.SearchFields{
+			StringArgs: map[string]string{
+				"search": "me",
+			},
+		},
+	}})
+	require.NoError(t, err)
+	require.NotNil(t, b1)
+
+	m := &pb.Match{
+		MatchId:  "1",
+		Tickets:  []*pb.Ticket{t1},
+		Backfill: b1,
+	}
+
+	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
+		out <- m
+		return nil
+	})
+
+	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
+		p, ok := <-in
+		require.True(t, ok)
+
+		out <- p.MatchId
+		return nil
+	})
+
+	// Depends on pendingReleaseTimeout
+	time.Sleep(1 * time.Second)
+
+	// Make sure backfill has expired
+	_, err = om.Frontend().AcknowledgeBackfill(ctx, &pb.AcknowledgeBackfillRequest{BackfillId: b1.Id, Assignment: &pb.Assignment{}})
+	require.Error(t, err)
+	require.Equal(t, fmt.Sprintf("rpc error: code = FailedPrecondition desc = can not acknowledge an expired backfill, id: %s", b1.Id), err.Error())
+
+	stream, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
+		Config:  om.MMFConfigGRPC(),
+		Profile: &pb.MatchProfile{},
+	})
+	require.NoError(t, err)
+	resp, err := stream.Recv()
+	require.Nil(t, resp)
+	require.Error(t, err)
+	require.Equal(t, io.EOF.Error(), err.Error())
 }
 
 func mustAny(m proto.Message) *anypb.Any {
