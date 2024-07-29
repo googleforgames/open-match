@@ -12,13 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:alpine as go
+# Multi-stage build to minimize the final image size
+FROM golang:alpine AS builder
 WORKDIR /app
 ENV GO111MODULE=on
 
+#Combined related RUN commands to reduce the number of layers
 COPY . .
-RUN go mod edit -replace open-match.dev/open-match@v0.0.0-dev=open-match.dev/open-match@v1.7.0
-RUN go mod tidy
-RUN go build -o frontend .
+RUN go mod edit -replace open-match.dev/open-match@v0.0.0-dev=open-match.dev/open-match@v1.7.0 && \
+    go mod tidy && \
+    go build -o frontend .
+
+# Stage 2: Create a minimal runtime image,Used alpine for the runtime image to keep it lightweight.
+FROM alpine
+WORKDIR /app
+COPY --from=builder /app/frontend .
 
 CMD ["/app/frontend"]
