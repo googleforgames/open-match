@@ -63,6 +63,8 @@ frontend: &frontend
   portType: ClusterIP
   replicas: 3
   image: openmatch-frontend
+  service:
+    annotations: {}
 backend: &backend
   hostName:
   grpcPort: 50505
@@ -130,11 +132,11 @@ redis:
     enabled: true
   sysctlImage:
     # Disable this setting in production if you are not running Redis in Linux
-    enabled: true 
+    enabled: true
     mountHostSys: true
     # Redis may require some changes in the kernel of the host machine to work as expected,
     # in particular increasing the somaxconn value and disabling transparent huge pages.
-    # https://docs.bitnami.com/kubernetes/infrastructure/redis/administration/configure-kernel-settings/ 
+    # https://docs.bitnami.com/kubernetes/infrastructure/redis/administration/configure-kernel-settings/
     command:
       - /bin/sh
       - -c
