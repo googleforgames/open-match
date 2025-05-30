@@ -200,7 +200,8 @@ ALL_PROTOS = $(GOLANG_PROTOS) $(SWAGGER_JSON_DOCS)
 CMDS = $(notdir $(wildcard cmd/*))
 
 # Names of the individual images, ommiting the openmatch prefix.
-IMAGES = $(CMDS) mmf-go-soloduel mmf-go-backfill base-build
+#IMAGES = $(CMDS) mmf-go-soloduel mmf-go-backfill base-build
+IMAGES = backend base-build
 
 help:
 	@cat Makefile | grep ^\#\# | grep -v ^\#\#\# |cut -c 4-
@@ -246,6 +247,41 @@ build-mmf-go-soloduel-image: docker build-base-build-image
 
 build-mmf-go-backfill-image: docker build-base-build-image
 	docker build -f examples/functions/golang/backfill/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-backfill:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-backfill:$(ALTERNATE_TAG) .
+
+#######################################
+## # Pushes multiarch images to the container registry.
+## push-multiarch-images / push-multiarch-<image name>-image
+##
+PLATFORMS = linux/amd64,linux/arm64
+push-multiarch-images: $(foreach IMAGE,$(IMAGES),push-multiarch-$(IMAGE)-image)
+
+# Include all-protos here so that all dependencies are guaranteed to be downloaded after the base image is created.
+# This is important so that the repository does not have any mutations while building individual images.
+push-multiarch-base-build-image: docker $(ALL_PROTOS)
+	docker buildx build \
+		--platforms $(PLATFORMS) \
+		-f Dockerfile.base-build -t open-match-base-build -t $(REGISTRY)/openmatch-base-build:$(TAG) -t $(REGISTRY)/openmatch-base-build:$(ALTERNATE_TAG) .
+
+$(foreach CMD,$(CMDS),push-multiarch-$(CMD)-image): push-multiarch-%-image: docker push-multiarch-base-build-image
+	docker buildx build \
+		--platforms $(PLATFORMS) \
+		-f Dockerfile.cmd \
+		$(IMAGE_BUILD_ARGS) \
+		--build-arg=IMAGE_TITLE=$* \
+		-t $(REGISTRY)/openmatch-$*:$(TAG) \
+		-t $(REGISTRY)/openmatch-$*:$(ALTERNATE_TAG) \
+		.
+
+push-multiarch-mmf-go-soloduel-image: docker push-multiarch-base-build-image
+	docker buildx build \
+		--platforms $(PLATFORMS) \
+	 	-f examples/functions/golang/soloduel/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-soloduel:$(ALTERNATE_TAG) .
+
+push-multiarch-mmf-go-backfill-image: docker push-multiarch-base-build-image
+	docker buildx build \
+		--platforms $(PLATFORMS) \
+		-f examples/functions/golang/backfill/Dockerfile -t $(REGISTRY)/openmatch-mmf-go-backfill:$(TAG) -t $(REGISTRY)/openmatch-mmf-go-backfill:$(ALTERNATE_TAG) .
+
 
 #######################################
 ## # Builds and pushes images to your container registry.
