@@ -255,7 +255,7 @@ build-mmf-go-backfill-image: docker build-base-build-image
 ## push-multiarch-images / push-multiarch-<image name>-image
 ##
 
-create-arm64-builder:
+create-buildx-builder:
 	-docker buildx create --name $(BUILDX_BUILDER)
 
 PLATFORMS = linux/amd64,linux/arm64
