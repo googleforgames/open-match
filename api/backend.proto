@@ -115,6 +115,9 @@ message AssignmentFailure {
 message AssignTicketsRequest {
   // Assignments is a list of assignment groups that contain assignment and the Tickets to which they should be applied.
   repeated AssignmentGroup assignments = 1;
+
+  // If set, all assignments will fail if at least one ticket is missing.
+  bool all_or_none = 2;
 }
 
 message AssignTicketsResponse {

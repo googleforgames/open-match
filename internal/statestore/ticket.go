@@ -36,7 +36,6 @@ const (
 
 // CreateTicket creates a new Ticket in the state storage. If the id already exists, it will be overwritten.
 func (rb *redisBackend) CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
-
 	redisConn, err := rb.redisPool.GetContext(ctx)
 	if err != nil {
 		return status.Errorf(codes.Unavailable, "CreateTicket, id: %s, failed to connect to redis: %v", ticket.GetId(), err)
@@ -337,6 +336,12 @@ func (rb *redisBackend) UpdateAssignments(ctx context.Context, req *pb.AssignTic
 			tickets = append(tickets, t)
 		}
 	}
+
+	// If allOrNone and any ticket was missing already, fail early.
+	if req.AllOrNone && len(resp.Failures) > 0 {
+		return resp, []*pb.Ticket{}, nil
+	}
+
 	assignmentTimeout := getAssignedDeleteTimeout(rb.cfg) / time.Millisecond
 	err = redisConn.Send("MULTI")
 	if err != nil {
