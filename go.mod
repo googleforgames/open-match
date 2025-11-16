@@ -15,7 +15,7 @@ module open-match.dev/open-match
 // limitations under the License.
 
 // When updating Go version, update Dockerfile.ci, Dockerfile.base-build, and go.mod
-go 1.21
+go 1.23.0
 
 require (
 	contrib.go.opencensus.io/exporter/ocagent v0.7.0
@@ -54,8 +54,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute v1.23.0 // indirect
-	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	cloud.google.com/go/monitoring v1.15.1 // indirect
 	cloud.google.com/go/trace v1.10.1 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20230218143504-906a9b012302 // indirect
@@ -110,7 +109,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/yuin/gopher-lua v1.1.0 // indirect
 	golang.org/x/crypto v0.23.0 // indirect
-	golang.org/x/oauth2 v0.11.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/term v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
