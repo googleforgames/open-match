@@ -447,9 +447,7 @@ func doAssignTickets(ctx context.Context, req *pb.AssignTicketsRequest, store st
 	}
 
 	if err = store.DeleteTicketsFromPendingRelease(ctx, ids); err != nil {
-		logger.WithFields(logrus.Fields{
-			"ticket_ids": ids,
-		}).Error(err)
+		logger.WithError(err).WithField("ticket_ids", ids).Error("failed to delete tickets from pending release after updating assignment")
 	}
 
 	return resp, nil
