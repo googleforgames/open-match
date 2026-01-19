@@ -214,6 +214,14 @@ func (rb *redisBackend) GetIndexedIDSet(ctx context.Context) (map[string]struct{
 	endTimeInt := curTime.Add(time.Hour).UnixNano()
 	startTimeInt := curTime.Add(-ttl).UnixNano()
 
+	// Clean up expired entries from proposed_ticket_ids to prevent memory leak.
+	// Remove all entries with timestamps older than the pending release timeout.
+	_, err = redisConn.Do("ZREMRANGEBYSCORE", proposedTicketIDs, "-inf", startTimeInt-1)
+	if err != nil {
+		// Best-effort cleanup, log but don't fail
+		logger.Warningf("failed to clean up expired pending tickets: %v", err)
+	}
+
 	// Filter out tickets that are fetched but not assigned within ttl time (ms).
 	idsInPendingReleases, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", proposedTicketIDs, startTimeInt, endTimeInt))
 	if err != nil {
