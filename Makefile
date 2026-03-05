@@ -307,8 +307,8 @@ build/chart/open-match-$(BASE_VERSION).tgz: build/toolchain/bin/helm$(EXE_EXTENS
 
 build/chart/index.yaml: build/toolchain/bin/helm$(EXE_EXTENSION) gcloud build/chart/open-match-$(BASE_VERSION).tgz
 	mkdir -p $(BUILD_DIR)/chart-index/
-	-gsutil cp $(_CHARTS_BUCKET)/chart/index.yaml $(BUILD_DIR)/chart-index/
-	-gsutil -m cp $(_CHARTS_BUCKET)/chart/open-match-* $(BUILD_DIR)/chart-index/
+	-gcloud storage cp $(_CHARTS_BUCKET)/chart/index.yaml $(BUILD_DIR)/chart-index/
+	-gcloud storage cp $(_CHARTS_BUCKET)/chart/open-match-* $(BUILD_DIR)/chart-index/
 	$(HELM) repo index $(BUILD_DIR)/chart-index/
 	$(HELM) repo index --merge $(BUILD_DIR)/chart-index/index.yaml $(BUILD_DIR)/chart/
 
@@ -839,13 +839,13 @@ md-test: docker
 
 ci-deploy-artifacts: install/yaml/ $(SWAGGER_JSON_DOCS) build/chart/ gcloud
 ifeq ($(_GCB_POST_SUBMIT),1)
-	gsutil cp -a public-read $(REPOSITORY_ROOT)/install/yaml/* $(_CHARTS_BUCKET)/install/v$(BASE_VERSION)/yaml/
-	gsutil cp -a public-read $(REPOSITORY_ROOT)/api/*.json $(_CHARTS_BUCKET)/api/v$(BASE_VERSION)/
+	gcloud storage cp --predefined-acl=public-read $(REPOSITORY_ROOT)/install/yaml/* $(_CHARTS_BUCKET)/install/v$(BASE_VERSION)/yaml/
+	gcloud storage cp --predefined-acl=public-read $(REPOSITORY_ROOT)/api/*.json $(_CHARTS_BUCKET)/api/v$(BASE_VERSION)/
 	# Deploy Helm Chart
 	# Since each build will refresh just it's version we can allow this for every post submit.
 	# Copy the files into multiple locations to keep a backup.
-	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* $(_CHARTS_BUCKET)/chart/by-hash/$(VERSION)/
-	gsutil cp -a public-read $(BUILD_DIR)/chart/*.* $(_CHARTS_BUCKET)/chart/
+	gcloud storage cp --predefined-acl=public-read $(BUILD_DIR)/chart/*.* $(_CHARTS_BUCKET)/chart/by-hash/$(VERSION)/
+	gcloud storage cp --predefined-acl=public-read $(BUILD_DIR)/chart/*.* $(_CHARTS_BUCKET)/chart/
 else
 	@echo "Not deploying build artifacts to open-match.dev because this is not a post commit change."
 endif
