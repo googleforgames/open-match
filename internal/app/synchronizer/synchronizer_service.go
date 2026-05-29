@@ -190,7 +190,9 @@ func (s synchronizerService) register(ctx context.Context) *registration {
 	}
 
 	st := time.Now()
-	defer stats.Record(ctx, registrationWaitTime.M(float64(time.Since(st))/float64(time.Millisecond)))
+	defer func() {
+		stats.Record(ctx, registrationWaitTime.M(float64(time.Since(st))/float64(time.Millisecond)))
+	}()
 	for {
 		select {
 		case s.synchronizeRegistration <- req:

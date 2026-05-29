@@ -291,10 +291,10 @@ func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignme
 	callback := func(assignment *pb.Assignment) error {
 		select {
 		case <-ctx.Done():
-			return status.Errorf(codes.Aborted, ctx.Err().Error())
+			return status.Error(codes.Aborted, ctx.Err().Error())
 		default:
 			if ctx.Err() != nil {
-				return status.Errorf(codes.Aborted, ctx.Err().Error())
+				return status.Error(codes.Aborted, ctx.Err().Error())
 			}
 
 			if (currAssignment == nil && assignment != nil) || !proto.Equal(currAssignment, assignment) {
@@ -305,7 +305,7 @@ func doWatchAssignments(ctx context.Context, id string, sender func(*pb.Assignme
 
 				err := sender(currAssignment)
 				if err != nil {
-					return status.Errorf(codes.Aborted, err.Error())
+					return status.Error(codes.Aborted, err.Error())
 				}
 			}
 			return nil
