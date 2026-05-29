@@ -224,14 +224,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "type": "object",
-              "properties": {
-                "assignment": {
-                  "$ref": "#/definitions/openmatchAssignment",
-                  "description": "An updated Assignment of the requested Backfill."
-                }
-              },
-              "description": "BETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
+              "$ref": "#/definitions/FrontendServiceAcknowledgeBackfillBody"
             }
           }
         ],
@@ -407,6 +400,16 @@
     }
   },
   "definitions": {
+    "FrontendServiceAcknowledgeBackfillBody": {
+      "type": "object",
+      "properties": {
+        "assignment": {
+          "$ref": "#/definitions/openmatchAssignment",
+          "description": "An updated Assignment of the requested Backfill."
+        }
+      },
+      "description": "BETA FEATURE WARNING: This Request message is not finalized and still subject\nto possible change or removal."
+    },
     "openmatchAcknowledgeBackfillResponse": {
       "type": "object",
       "properties": {
