@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -758,11 +759,19 @@ func TestSlowBackendDoesntBlock(t *testing.T) {
 	})
 
 	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
-		m := <-in
-		_, ok := <-in
-		require.False(t, ok)
-		out <- m.MatchId
+		m, ok := <-in
+		if !assert.True(t, ok, "evaluator expected a match but input closed without returning one") {
+			evaluatorDone <- struct{}{}
+			return nil
+		}
 
+		_, ok = <-in
+		if !assert.False(t, ok, "evaluator received unexpected match") {
+			evaluatorDone <- struct{}{}
+			return nil
+		}
+
+		out <- m.MatchId
 		evaluatorDone <- struct{}{}
 		return nil
 	})
@@ -776,6 +785,9 @@ func TestSlowBackendDoesntBlock(t *testing.T) {
 	require.Nil(t, err)
 
 	<-evaluatorDone
+	if t.Failed() {
+		return
+	}
 
 	s2, err := om.Backend().FetchMatches(ctx, &pb.FetchMatchesRequest{
 		Config: om.MMFConfigGRPC(),
@@ -786,6 +798,9 @@ func TestSlowBackendDoesntBlock(t *testing.T) {
 	require.Nil(t, err)
 
 	<-evaluatorDone
+	if t.Failed() {
+		return
+	}
 
 	resp, err := s2.Recv()
 	require.Nil(t, err)
