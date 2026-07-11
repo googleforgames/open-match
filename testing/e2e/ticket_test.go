@@ -268,9 +268,13 @@ func TestReleaseTickets(t *testing.T) {
 			return nil
 		})
 		om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
-			m := <-in
-			_, ok := <-in
-			require.False(t, ok)
+			var m *pb.Match
+			count := 0
+			for x := range in {
+				m = x
+				count++
+			}
+			require.Equal(t, 1, count, "evaluator expected exactly 1 match")
 			matchReturnedAt = time.Now()
 			out <- m.MatchId
 			return nil
@@ -362,9 +366,13 @@ func TestReleaseAllTickets(t *testing.T) {
 			return nil
 		})
 		om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
-			m := <-in
-			_, ok := <-in
-			require.False(t, ok)
+			var m *pb.Match
+			count := 0
+			for x := range in {
+				m = x
+				count++
+			}
+			require.Equal(t, 1, count, "evaluator expected exactly 1 match")
 			matchReturnedAt = time.Now()
 			out <- m.MatchId
 			return nil
@@ -457,9 +465,13 @@ func TestTicketReleaseByTimeout(t *testing.T) {
 			return nil
 		})
 		om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
-			m := <-in
-			_, ok := <-in
-			require.False(t, ok)
+			var m *pb.Match
+			count := 0
+			for x := range in {
+				m = x
+				count++
+			}
+			require.Equal(t, 1, count, "evaluator expected exactly 1 match")
 			out <- m.MatchId
 			return nil
 		})
