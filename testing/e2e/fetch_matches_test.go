@@ -504,8 +504,7 @@ func TestStreaming(t *testing.T) {
 	ctx := context.Background()
 	om := newOM(t)
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
+	proceed := make(chan struct{})
 
 	t1, err := om.Frontend().CreateTicket(ctx, &pb.CreateTicketRequest{Ticket: &pb.Ticket{}})
 	require.Nil(t, err)
@@ -523,7 +522,13 @@ func TestStreaming(t *testing.T) {
 
 	om.SetMMF(func(ctx context.Context, profile *pb.MatchProfile, out chan<- *pb.Match) error {
 		out <- m1
-		wg.Wait()
+
+		// detect cycle close while waiting for proceed
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-proceed:
+		}
 		out <- m2
 		return nil
 	})
@@ -531,7 +536,14 @@ func TestStreaming(t *testing.T) {
 	om.SetEvaluator(func(ctx context.Context, in <-chan *pb.Match, out chan<- string) error {
 		<-in
 		out <- "1"
-		wg.Wait()
+
+		// detect cycle close while waiting for proceed
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-proceed:
+		}
+
 		<-in
 		out <- "2"
 
@@ -550,7 +562,7 @@ func TestStreaming(t *testing.T) {
 	require.Nil(t, err)
 	require.True(t, proto.Equal(m1, resp.Match))
 
-	wg.Done()
+	close(proceed)
 
 	resp, err = stream.Recv()
 	require.Nil(t, err)
