@@ -375,8 +375,8 @@ install-ci-chart: install-chart-prerequisite build/toolchain/bin/helm$(EXE_EXTEN
 		--set evaluator.hostName=open-match-test \
 		--set evaluator.grpcPort=50509 \
 		--set evaluator.httpPort=51509 \
-		--set open-match-core.registrationInterval=200ms \
-		--set open-match-core.proposalCollectionInterval=200ms \
+		--set open-match-core.registrationInterval=500ms \
+		--set open-match-core.proposalCollectionInterval=2s \
 		--set open-match-core.assignedDeleteTimeout=200ms \
 		--set open-match-core.pendingReleaseTimeout=1s \
 		--set open-match-core.queryPageSize=10 \
