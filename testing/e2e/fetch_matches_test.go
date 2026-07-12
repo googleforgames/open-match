@@ -148,6 +148,7 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 		},
 	})
 	require.Nil(t, err)
+	require.True(t, time.Since(startTime) < registrationInterval, "%s", time.Since(startTime))
 
 	resp, err := sError.Recv()
 	require.Contains(t, err.Error(), "MatchMakingFunction returned same match_id twice: \"1\"")
@@ -156,8 +157,6 @@ func TestMatchFunctionMatchCollision(t *testing.T) {
 	resp, err = sSuccess.Recv()
 	require.Nil(t, err)
 	require.True(t, proto.Equal(t2, resp.Match.Tickets[0]))
-
-	require.True(t, time.Since(startTime) < registrationInterval, "%s", time.Since(startTime))
 
 	resp, err = sSuccess.Recv()
 	require.Error(t, err)
